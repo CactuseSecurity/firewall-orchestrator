@@ -6,18 +6,25 @@ Python standard library, so it runs on a plain GitHub runner. Tested by
 scripts/tests/test_fwo_version_reservations.py.
 """
 
+from __future__ import annotations
+
 import argparse
 import base64
 import json
 import os
 import re
+import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any, Protocol
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Protocol
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
 
 JsonObject = dict[str, Any]
 
@@ -31,7 +38,10 @@ BASE_BRANCH = "develop"
 PAGE_SIZE = 100
 REQUEST_TIMEOUT_SECONDS = 30
 HTTP_NOT_FOUND = 404
-PRODUCT_VERSION_PATTERN = re.compile(r'^product_version:\s*"?([0-9]+\.[0-9]+\.[0-9]+)"?\s*$', re.MULTILINE)
+PRODUCT_VERSION_PATTERN = re.compile(
+    r"""^product_version:[ \t]*(?P<quote>["']?)(?P<version>[0-9]+\.[0-9]+\.[0-9]+)(?P=quote)(?:[ \t]+\#[^\n]*)?[ \t]*$""",
+    re.MULTILINE,
+)
 PRODUCT_VERSION_CHANGE_PATTERN = re.compile(r"^[+-]product_version:", re.MULTILINE)
 ALLOCATION_COMMAND_PATTERN = re.compile(r"^/allocate-fwo-version(?: (patch|minor|major))?$")
 NEXT_LINK_PATTERN = re.compile(r'<([^>]+)>;\s*rel="next"')
@@ -54,7 +64,9 @@ class GitHubClient(Protocol):
 
     def paginate(self, path: str) -> list[JsonObject]: ...
 
-    def post(self, path: str, body: JsonObject) -> None: ...
+    def post(self, path: str, body: JsonObject) -> Any: ...
+
+    def patch(self, path: str, body: JsonObject) -> None: ...
 
 
 class GitHubApi:
@@ -92,8 +104,11 @@ class GitHubApi:
             url = match.group(1) if match else None
         return items
 
-    def post(self, path: str, body: JsonObject) -> None:
-        self._request("POST", self._url(path), body)
+    def post(self, path: str, body: JsonObject) -> Any:
+        return self._request("POST", self._url(path), body)[0]
+
+    def patch(self, path: str, body: JsonObject) -> None:
+        self._request("PATCH", self._url(path), body)
 
 
 def parse_version(version: str) -> list[int]:
@@ -116,8 +131,8 @@ def release_line(version: str) -> str:
 
 def extract_product_version(content: str) -> str | None:
     """Extracts product_version from the content of inventory/group_vars/all.yml."""
-    match = PRODUCT_VERSION_PATTERN.search(content)
-    return match.group(1) if match else None
+    matches = list(PRODUCT_VERSION_PATTERN.finditer(content))
+    return matches[0].group("version") if len(matches) == 1 else None
 
 
 def parse_allocation_command(body: str | None) -> str | None:
@@ -279,23 +294,25 @@ def list_reservations(client: GitHubClient, excluded_number: int) -> list[Reserv
     for pull_request in list_versioned_pull_requests(client):
         if pull_request["number"] == excluded_number:
             continue
-        version = read_product_version(client, pull_request["head"]["sha"])
+        try:
+            version = read_product_version(client, pull_request["head"]["sha"])
+        except VersionError as error:
+            emit(f"::warning::Ignoring invalid reservation on PR #{pull_request['number']}: {error}")
+            continue
         if version != PLACEHOLDER_VERSION:
             reservations.append(Reservation(pull_request["number"], version))
     return reservations
 
 
-def dispatch_validation(client: GitHubClient, pull_request_number: int, ref: str) -> None:
-    """Starts the validator on a PR branch, attaching its check run to the branch head."""
+def dispatch_validation(client: GitHubClient, pull_request_number: int) -> None:
+    """Starts trusted upstream validation, which publishes a check on the current PR head."""
     client.post(
         f"/actions/workflows/{VALIDATOR_WORKFLOW}/dispatches",
-        {"ref": ref, "inputs": {"pull_request_number": str(pull_request_number)}},
+        {"ref": BASE_BRANCH, "inputs": {"pull_request_number": str(pull_request_number)}},
     )
 
 
-def authorize_allocation(
-    client: GitHubClient, repository: str, pull_request_number: int, comment_author: str
-) -> JsonObject:
+def authorize_allocation(client: GitHubClient, pull_request_number: int, comment_author: str) -> JsonObject:
     """Returns the pull request to allocate on, or fails when the author or the PR does not qualify."""
     if not has_write_permission(client.get(f"/collaborators/{urllib.parse.quote(comment_author)}/permission")):
         raise VersionError("Only repository maintainers may allocate FWO versions.")
@@ -304,10 +321,6 @@ def authorize_allocation(
         raise VersionError("Version allocation is only supported for open pull requests targeting develop.")
     if not is_versioned(pull_request):
         raise VersionError("Add the versioned-change label before allocating a FWO version.")
-    if not is_same_repository(pull_request, repository):
-        raise VersionError(
-            "Version allocation cannot push to a fork. A maintainer must create a same-repository branch."
-        )
     return pull_request
 
 
@@ -346,7 +359,7 @@ def plan_allocation(
     bump = parse_allocation_command(comment_body)
     if bump is None:
         raise VersionError("Unsupported allocation command.")
-    pull_request = authorize_allocation(client, repository, pull_request_number, comment_author)
+    pull_request = authorize_allocation(client, pull_request_number, comment_author)
     base_version = read_product_version(client, BASE_BRANCH)
     current_version = read_product_version(client, pull_request["head"]["sha"])
     reservations = list_reservations(client, pull_request_number)
@@ -359,30 +372,7 @@ def plan_allocation(
         "reallocate": str(reallocate).lower(),
         "head_ref": pull_request["head"]["ref"],
         "head_sha": pull_request["head"]["sha"],
-    }
-
-
-def describe_pull_request(
-    client: GitHubClient, pull_request_number: int, event_name: str, ref: str, sha: str
-) -> dict[str, str]:
-    """Returns the PR number, the commit to validate, and whether the PR is labelled."""
-    pull_request: JsonObject = client.get(f"/pulls/{pull_request_number}")
-    if event_name == "workflow_dispatch":
-        if (
-            pull_request["state"] != "open"
-            or pull_request["base"]["ref"] != BASE_BRANCH
-            or f"refs/heads/{pull_request['head']['ref']}" != ref
-        ):
-            raise VersionError(
-                f"Dispatched ref {ref} is not the head of open PR #{pull_request_number} targeting develop."
-            )
-        head_sha = sha  # a dispatched run validates the commit its check run is attached to
-    else:
-        head_sha = pull_request["head"]["sha"]
-    return {
-        "number": str(pull_request_number),
-        "head_sha": head_sha,
-        "versioned": str(is_versioned(pull_request)).lower(),
+        "same_repository": str(is_same_repository(pull_request, repository)).lower(),
     }
 
 
@@ -391,6 +381,81 @@ def check_unlabelled(client: GitHubClient, pull_request_number: int) -> None:
     findings = find_unlabelled_version_changes(client.paginate(f"/pulls/{pull_request_number}/files"))
     if findings:
         raise VersionError(f"Add the versioned-change label; this PR changes versioned files: {', '.join(findings)}.")
+
+
+def check_versioned_files(client: GitHubClient, pull_request_number: int, head_sha: str) -> None:
+    """Rejects new upgrade scripts outside the version reserved by a labelled PR."""
+    version = read_product_version(client, head_sha)
+    expected_file = f"{UPGRADE_DIRECTORY}{version}.sql"
+    for changed_file in client.paginate(f"/pulls/{pull_request_number}/files"):
+        filename: str = changed_file["filename"]
+        if (
+            filename.startswith(UPGRADE_DIRECTORY)
+            and changed_file["status"] in VERSION_ADDING_STATUSES
+            and filename != expected_file
+        ):
+            raise VersionError(f"Unexpected upgrade script {filename}; this PR may only add {expected_file}.")
+
+
+def check_versioned_content(client: GitHubClient, head_sha: str, base_version: str) -> None:
+    """Runs the trusted shell checker on regular files created from inert API content."""
+    version = read_product_version(client, head_sha)
+    paths = [PRODUCT_VERSION_FILE, REVISION_HISTORY_FILE, f"{UPGRADE_DIRECTORY}{version}.sql"]
+    placeholder_script = f"{UPGRADE_DIRECTORY}{PLACEHOLDER_VERSION}.sql"
+    if version != PLACEHOLDER_VERSION and read_file(client, placeholder_script, head_sha) is not None:
+        raise VersionError(f"Remove the leftover {PLACEHOLDER_VERSION} upgrade script.")
+    with tempfile.TemporaryDirectory() as directory:
+        for path in paths:
+            content = read_file(client, path, head_sha)
+            if content is None:
+                raise VersionError(f"Missing versioned file {path}.")
+            destination = Path(directory) / path
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(content, encoding="utf-8")
+        checker = Path(__file__).resolve().with_name("allocate-fwo-version.sh")
+        result = subprocess.run(  # noqa: S603 - only the trusted checker executes; PR files are data
+            ["/bin/bash", str(checker), "--check", "--base-version", base_version],
+            cwd=directory,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode:
+            raise VersionError(result.stderr.strip() or result.stdout.strip())
+
+
+def validate_pull_request(client: GitHubClient, pull_request_number: int) -> None:
+    """Publishes a check on a fork or upstream PR head using only trusted validation code."""
+    pull_request: JsonObject = client.get(f"/pulls/{pull_request_number}")
+    if pull_request["state"] != "open" or pull_request["base"]["ref"] != BASE_BRANCH:
+        raise VersionError("Validation is only supported for open pull requests targeting develop.")
+    head_sha: str = pull_request["head"]["sha"]
+    check = client.post(
+        "/check-runs", {"name": "Validate FWO PR version", "head_sha": head_sha, "status": "in_progress"}
+    )
+    conclusion = "success"
+    message = "Version validation passed."
+    try:
+        if is_versioned(pull_request):
+            base_version = read_product_version(client, BASE_BRANCH)
+            check_versioned_content(client, head_sha, base_version)
+            check_versioned_files(client, pull_request_number, head_sha)
+            check_order(client, pull_request_number, head_sha, base_version)
+        else:
+            check_unlabelled(client, pull_request_number)
+    except (VersionError, urllib.error.HTTPError) as error:
+        conclusion = "failure"
+        message = str(error)
+    client.patch(
+        f"/check-runs/{check['id']}",
+        {
+            "status": "completed",
+            "conclusion": conclusion,
+            "output": {"title": "FWO version validation", "summary": message},
+        },
+    )
+    if conclusion == "failure":
+        raise VersionError(message)
 
 
 def check_order(client: GitHubClient, pull_request_number: int, head_sha: str, base_version: str) -> None:
@@ -403,16 +468,13 @@ def check_order(client: GitHubClient, pull_request_number: int, head_sha: str, b
         raise VersionError(conflict)
 
 
-def requeue(client: GitHubClient, repository: str) -> None:
-    """Re-runs the validator on every labelled same-repository PR."""
+def requeue(client: GitHubClient) -> None:
+    """Re-runs trusted validation on every labelled PR, including forks."""
     for pull_request in list_versioned_pull_requests(client):
-        if not is_same_repository(pull_request, repository):
-            continue
         try:
-            dispatch_validation(client, pull_request["number"], pull_request["head"]["ref"])
+            dispatch_validation(client, pull_request["number"])
             emit(f"Re-validating PR #{pull_request['number']}.")
-        except urllib.error.HTTPError as error:
-            # The branch may predate the dispatchable workflow; a rebase fixes that.
+        except urllib.error.HTTPError as error:  # noqa: PERF203 - one failed dispatch must not stop other PRs
             emit(f"::warning::Could not re-validate PR #{pull_request['number']}: {error}")
 
 
@@ -438,13 +500,11 @@ def build_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
     plan = commands.add_parser("plan-allocation")
     plan.add_argument("--pull-request", type=int, required=True)
-    describe = commands.add_parser("describe-pull-request")
-    describe.add_argument("--pull-request", type=int, required=True)
-    describe.add_argument("--event-name", required=True)
-    describe.add_argument("--ref", required=True)
-    describe.add_argument("--sha", required=True)
     unlabelled = commands.add_parser("check-unlabelled")
     unlabelled.add_argument("--pull-request", type=int, required=True)
+    versioned_files = commands.add_parser("check-versioned-files")
+    versioned_files.add_argument("--pull-request", type=int, required=True)
+    versioned_files.add_argument("--head-sha", required=True)
     commands.add_parser("base-version")
     order = commands.add_parser("check-order")
     order.add_argument("--pull-request", type=int, required=True)
@@ -452,7 +512,8 @@ def build_parser() -> argparse.ArgumentParser:
     order.add_argument("--base-version", required=True)
     dispatch = commands.add_parser("dispatch-validation")
     dispatch.add_argument("--pull-request", type=int, required=True)
-    dispatch.add_argument("--ref", required=True)
+    validate = commands.add_parser("validate")
+    validate.add_argument("--pull-request", type=int, required=True)
     commands.add_parser("requeue")
     return parser
 
@@ -467,14 +528,13 @@ def run_command(arguments: argparse.Namespace, client: GitHubClient, repository:
             os.environ.get("COMMENT_BODY", ""),
             os.environ.get("COMMENT_AUTHOR", ""),
         ),
-        "describe-pull-request": lambda: describe_pull_request(
-            client, arguments.pull_request, arguments.event_name, arguments.ref, arguments.sha
-        ),
         "check-unlabelled": lambda: check_unlabelled(client, arguments.pull_request),
+        "check-versioned-files": lambda: check_versioned_files(client, arguments.pull_request, arguments.head_sha),
         "base-version": lambda: {"value": read_product_version(client, BASE_BRANCH)},
         "check-order": lambda: check_order(client, arguments.pull_request, arguments.head_sha, arguments.base_version),
-        "dispatch-validation": lambda: dispatch_validation(client, arguments.pull_request, arguments.ref),
-        "requeue": lambda: requeue(client, repository),
+        "dispatch-validation": lambda: dispatch_validation(client, arguments.pull_request),
+        "validate": lambda: validate_pull_request(client, arguments.pull_request),
+        "requeue": lambda: requeue(client),
     }
     return handlers[arguments.command]() or {}
 

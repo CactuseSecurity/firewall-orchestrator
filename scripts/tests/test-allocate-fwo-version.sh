@@ -117,4 +117,31 @@ prepare_case "$kTemporaryDirectory/placeholder" '## 999.0.0'
 expect_failure "$kTemporaryDirectory/placeholder" "unallocated placeholder" \
     ./allocate-fwo-version.sh --check --base-version 9.5.4
 
+# Allocated PRs must not retain placeholder artifacts.
+printf '%s\n' 'SELECT 2;' > "$kCaseDirectory/roles/database/files/upgrade/999.0.0.sql"
+expect_failure "$kCaseDirectory" "leftover placeholder script" \
+    ./allocate-fwo-version.sh --check --base-version 9.6.0
+rm "$kCaseDirectory/roles/database/files/upgrade/999.0.0.sql"
+printf '%s\n' '## 999.0.0 MAIN' >> "$kCaseDirectory/documentation/revision-history.md"
+expect_failure "$kCaseDirectory" "leftover placeholder heading" \
+    ./allocate-fwo-version.sh --check --base-version 9.6.0
+
+# Allocation must fail before overwriting a target script or heading.
+prepare_case "$kTemporaryDirectory/collision" '## 999.0.0'
+printf '%s\n' 'SELECT 2;' > "$kTemporaryDirectory/collision/roles/database/files/upgrade/9.6.3.sql"
+expect_failure "$kTemporaryDirectory/collision" "existing target script" \
+    ./allocate-fwo-version.sh --allocate --target 9.6.3 --base-version 9.6.2
+grep -qx 'SELECT 2;' "$kTemporaryDirectory/collision/roles/database/files/upgrade/9.6.3.sql"
+grep -qx 'product_version: "999.0.0"' "$kTemporaryDirectory/collision/inventory/group_vars/all.yml"
+rm "$kTemporaryDirectory/collision/roles/database/files/upgrade/9.6.3.sql"
+printf '%s\n' '## 9.6.3 - 01.10.2026' >> "$kTemporaryDirectory/collision/documentation/revision-history.md"
+expect_failure "$kTemporaryDirectory/collision" "existing target heading" \
+    ./allocate-fwo-version.sh --allocate --target 9.6.3 --base-version 9.6.2
+
+# Ansible-valid single quotes and trailing comments are accepted consistently.
+for value in "'9.5.6'" "'9.5.6' # release" '"9.5.6" # release' '9.5.6 # release'; do
+    printf 'product_version: %s\n' "$value" > "$kTemporaryDirectory/without-date/inventory/group_vars/all.yml"
+    (cd "$kTemporaryDirectory/without-date" && ./allocate-fwo-version.sh --check --base-version 9.5.4)
+done
+
 echo "All allocate-fwo-version tests passed."

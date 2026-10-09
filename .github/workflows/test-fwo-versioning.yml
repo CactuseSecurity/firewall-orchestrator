@@ -8,6 +8,7 @@ on:
       - scripts/fwo_version_reservations.py
       - scripts/tests/test-allocate-fwo-version.sh
       - scripts/tests/test_fwo_version_reservations.py
+      - roles/importer/files/importer/test/test_fwo_version_validation.py
       - .github/workflows/*fwo-pr-version*.yml
       - .github/workflows/test-fwo-versioning.yml
   pull_request:
@@ -16,6 +17,7 @@ on:
       - scripts/fwo_version_reservations.py
       - scripts/tests/test-allocate-fwo-version.sh
       - scripts/tests/test_fwo_version_reservations.py
+      - roles/importer/files/importer/test/test_fwo_version_validation.py
       - .github/workflows/*fwo-pr-version*.yml
       - .github/workflows/test-fwo-versioning.yml
 
@@ -41,4 +43,6 @@ jobs:
       - name: Test reservation logic
         run: |
           python -m pip install --quiet --only-binary :all: pytest==9.1.1
-          python -m pytest -q scripts/tests/test_fwo_version_reservations.py
+          # These tests use only the standard library and pytest; skip the
+          # importer conftest and its unrelated runtime dependencies.
+          python -m pytest -q --noconftest scripts/tests/test_fwo_version_reservations.py roles/importer/files/importer/test/test_fwo_version_validation.py

@@ -57,7 +57,7 @@ read_allocation_date() {
 read_product_version() {
     local version
 
-    version="$(sed -nE 's/^product_version:[[:space:]]*"?([^"[:space:]]+)"?[[:space:]]*$/\1/p' "$kProductVersionFile")"
+    version="$(sed -nE "s/^product_version:[[:blank:]]*(['\"]?)([0-9]+\\.[0-9]+\\.[0-9]+)\\1([[:blank:]]+#.*)?[[:blank:]]*$/\\2/p" "$kProductVersionFile")"
     if [[ "$(printf '%s\n' "$version" | sed '/^$/d' | wc -l)" -ne 1 ]] || ! version_is_valid "$version"; then
         echo "Expected exactly one semantic product_version in $kProductVersionFile." >&2
         exit 1
@@ -131,6 +131,11 @@ case "$mode" in
             exit 1
         }
         require_versioned_files "$source_version" "$kSourceHeadingPattern"
+        if [[ -e "$kUpgradeDirectory/$target_version.sql" ]] ||
+            grep -Eq "^## ${target_version//./\\.}$kSourceHeadingPattern" "$kRevisionHistoryFile"; then
+            echo "Target version $target_version already has an upgrade script or revision-history heading." >&2
+            exit 1
+        fi
         allocation_date="$(read_allocation_date)"
 
         sed -i "s/^product_version:.*/product_version: \"$target_version\"/" "$kProductVersionFile"
@@ -157,6 +162,11 @@ case "$mode" in
             exit 1
         }
         require_versioned_files "$product_version" "$kAllocatedHeadingPattern"
+        if [[ -e "$kUpgradeDirectory/$kPlaceholderVersion.sql" ]] ||
+            grep -Eq "^## ${kPlaceholderVersion//./\\.}$kSourceHeadingPattern" "$kRevisionHistoryFile"; then
+            echo "Remove the leftover $kPlaceholderVersion upgrade script and revision-history heading." >&2
+            exit 1
+        fi
         echo "Versioned files consistently reserve $product_version."
         ;;
     *) usage ;;

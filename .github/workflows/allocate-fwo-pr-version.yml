@@ -47,6 +47,7 @@ jobs:
         run: python3 fwo-version-tooling/scripts/fwo_version_reservations.py plan-allocation --pull-request "$PULL_REQUEST_NUMBER"
 
       - name: Check out pull request head
+        if: steps.version.outputs.same_repository == 'true'
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ steps.version.outputs.head_sha }}
@@ -54,6 +55,7 @@ jobs:
           fetch-depth: 0
 
       - name: Allocate versioned files
+        if: steps.version.outputs.same_repository == 'true'
         env:
           BASE_VERSION: ${{ steps.version.outputs.base_version }}
           TARGET_VERSION: ${{ steps.version.outputs.target_version }}
@@ -68,6 +70,7 @@ jobs:
           ../fwo-version-tooling/scripts/allocate-fwo-version.sh "${allocation_options[@]}"
 
       - name: Commit allocation
+        if: steps.version.outputs.same_repository == 'true'
         env:
           HEAD_REF: ${{ steps.version.outputs.head_ref }}
           TARGET_VERSION: ${{ steps.version.outputs.target_version }}
@@ -83,8 +86,28 @@ jobs:
       # Pushes made with GITHUB_TOKEN do not trigger pull_request workflows, so
       # the validation of the allocation commit is started explicitly.
       - name: Validate allocation commit
+        if: steps.version.outputs.same_repository == 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          HEAD_REF: ${{ steps.version.outputs.head_ref }}
           PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
-        run: python3 fwo-version-tooling/scripts/fwo_version_reservations.py dispatch-validation --pull-request "$PULL_REQUEST_NUMBER" --ref "$HEAD_REF"
+        run: python3 fwo-version-tooling/scripts/fwo_version_reservations.py dispatch-validation --pull-request "$PULL_REQUEST_NUMBER"
+
+      # GITHUB_TOKEN cannot push to contributor forks. Keep the contributor's
+      # branch and show the same local helper command instead.
+      - name: Show allocation command for a fork author
+        if: steps.version.outputs.same_repository == 'false'
+        env:
+          BASE_VERSION: ${{ steps.version.outputs.base_version }}
+          TARGET_VERSION: ${{ steps.version.outputs.target_version }}
+          REALLOCATE: ${{ steps.version.outputs.reallocate }}
+        run: |
+          {
+            echo '### Apply allocation locally on the fork PR branch'
+            echo 'The proposed version is reserved once the author pushes the allocation.'
+            echo '```bash'
+            options=""
+            if [[ "$REALLOCATE" == "true" ]]; then options=" --reallocate"; fi
+            printf 'scripts/allocate-fwo-version.sh --allocate --target %s --base-version %s%s\n' "$TARGET_VERSION" "$BASE_VERSION" "$options"
+            echo '```'
+            echo 'Commit and push the result to the fork. Upstream validation checks uniqueness and refreshes automatically.'
+          } >> "$GITHUB_STEP_SUMMARY"

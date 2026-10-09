@@ -134,9 +134,10 @@ every open pull request on `X.Y.Z` must raise `product_version`, see
 
 A versioned pull request can reserve its patch version before it merges into
 `develop`, so two open pull requests never use the same upgrade file name and
-need no manual renumbering when another one merges. This applies only to
-same-repository pull requests targeting `develop`; move fork pull requests to a
-maintainer-owned branch first.
+need no manual renumbering when another one merges. This applies to both
+upstream and fork pull requests targeting `develop`. The
+workflow commits allocations to upstream branches; fork authors apply the
+allocation locally and push it to their own branch.
 
 ### Repository setup
 
@@ -145,8 +146,10 @@ maintainer-owned branch first.
   rules block direct pushes to feature branches, allow `github-actions[bot]`.
   The allocator never pushes to `develop` and only accepts the command from
   collaborators with `write`, `maintain`, or `admin` permission.
-- Make **Validate FWO PR version** (job `validate`) a required check for
-  `develop` - but only once `main` contains `allocate-fwo-pr-version.yml`.
+- Make the explicitly published **Validate FWO PR version** check a required
+  check for `develop` - but only once `main` contains the allocation and
+  validation workflows. Do not require the orchestration job
+  **Run trusted version validation** instead; it runs on upstream commits.
   `issue_comment` workflows run from the default branch `main`, so the allocator
   stays inactive until the next stable release. Until then, prepare versions
   manually; the validator reports unlabelled version changes without blocking.
@@ -155,20 +158,20 @@ maintainer-owned branch first.
 
 | Workflow | Trigger | Purpose |
 | --- | --- | --- |
-| **Allocate FWO PR version** | `/allocate-fwo-version` comment | Reserves the next free version, commits it to the PR branch, and starts validation |
-| **Validate FWO PR version** | PR events, or dispatch on the PR branch | Checks the versioned files, uniqueness, and merge order |
+| **Allocate FWO PR version** | `/allocate-fwo-version` comment | Selects the next free version; commits it upstream or shows a local command for fork authors |
+| **Validate FWO PR version** | Trusted PR events, or dispatch on `develop` | Checks the versioned files, uniqueness, and merge order |
 | **Requeue FWO PR version checks** | Push to `develop`; closing or unlabelling a labelled PR | Re-runs validation on every other labelled PR |
 | **Test FWO versioning tooling** | Changes to the tooling | Runs the tooling tests |
 
-Pushes with the workflow token do not trigger `pull_request` workflows, so the
-allocator and requeue workflow start the validator via `workflow_dispatch` on
-the PR branch; the branch must already contain the validator workflow. The
-logic in
-[`scripts/fwo_version_reservations.py`](../../scripts/fwo_version_reservations.py)
-and [`scripts/allocate-fwo-version.sh`](../../scripts/allocate-fwo-version.sh)
-is loaded from `develop`, so a PR cannot weaken its own checks. The validator
-workflow file itself comes from the PR; review `.github/workflows/` changes
-carefully.
+The validator runs on `pull_request_target` and reads the current PR head
+through the GitHub API, including for fork PRs. It executes only tooling from
+`develop`, writes the versioned content into temporary regular files as inert
+data, and publishes **Validate FWO PR version** directly on that head SHA. It
+never checks out or executes contributor code. Allocator pushes made with the
+workflow token do not trigger PR workflows, so the allocator dispatches trusted
+validation on `develop` explicitly. Requeue uses the same upstream dispatch for
+all labelled PRs, including forks; contributor branches do not need to contain
+the validator workflow.
 
 ### Author workflow
 
@@ -178,13 +181,29 @@ carefully.
    idempotent `roles/database/files/upgrade/999.0.0.sql`, and one heading
    `## 999.0.0` (date and suffix such as `MAIN` optional) in
    `documentation/revision-history.md`.
-3. Ask a maintainer to comment `/allocate-fwo-version`. The allocator commits
-   the reserved version to all three files, sets the heading date to the
-   allocation date (`Europe/Berlin`, suffix preserved), and starts validation.
+3. Ask a maintainer to comment `/allocate-fwo-version`. For an upstream branch,
+   the allocator commits the reserved version to all three files, sets the
+   heading date to the allocation date (`Europe/Berlin`, suffix preserved),
+   and starts validation. For a fork, open the allocation run's summary and
+   run its proposed `scripts/allocate-fwo-version.sh` command locally on the
+   PR branch, using the trusted helper from `develop`. Review, commit, and push
+   those three files to the fork. The push starts upstream validation.
+
+For forks, the proposed version becomes a reservation only after the author
+pushes it. Another PR may reserve that number in the meantime; if validation
+reports a duplicate, ask for allocation again and apply the new command. This
+keeps the normal fork workflow without credentials granting upstream workflows
+write access to contributor repositories.
 
 Do not change an allocated version manually. A PR without the label fails
 validation when it changes `product_version` or adds or renames an upgrade
-script.
+script. Labelled PRs must remove the placeholder script and heading, and may
+only add, copy, or rename an upgrade script to their allocated version. The
+allocator refuses to overwrite an existing target script or heading.
+
+A malformed reservation fails its own check and is warned about and skipped
+when choosing versions or checking other PRs. Single-quoted, double-quoted,
+and unquoted product versions with trailing YAML comments are supported.
 
 Each PR gets the next patch number above `develop` and all other labelled open
 PRs. A closed PR's number may be handed out again, and gaps are safe, because

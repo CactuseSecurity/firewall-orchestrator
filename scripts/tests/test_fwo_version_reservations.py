@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import base64
 import io
 import re
 import urllib.error
 from email.message import Message
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 import pytest
 
@@ -30,8 +34,10 @@ class FakeGitHub:
         self.permission = permission
         self.changed_files = changed_files or []
         self.posts: list[tuple[str, JsonObject]] = []
-        self.failing_refs: set[str] = set()
+        self.failing_prs: set[str] = set()
+        self.patches: list[tuple[str, JsonObject]] = []
         self.develop_files: dict[str, str] = {}
+        self.files_by_ref: dict[str, dict[str, str]] = {}
 
     def get(self, path: str) -> Any:
         if path.startswith(f"/contents/{versions.PRODUCT_VERSION_FILE}?"):
@@ -40,9 +46,11 @@ class FakeGitHub:
             return {"content": base64.b64encode(content).decode()}
         if path.startswith("/contents/"):
             file_path = path.removeprefix("/contents/").split("?ref=")[0]
-            if file_path not in self.develop_files:
+            ref = path.split("?ref=")[1]
+            files = self.files_by_ref.get(ref, self.develop_files)
+            if file_path not in files:
                 raise urllib.error.HTTPError(path, 404, "Not Found", Message(), io.BytesIO())
-            return {"content": base64.b64encode(self.develop_files[file_path].encode()).decode()}
+            return {"content": base64.b64encode(files[file_path].encode()).decode()}
         if path.startswith("/collaborators/"):
             return {"permission": self.permission}
         number = int(path.removeprefix("/pulls/"))
@@ -51,10 +59,14 @@ class FakeGitHub:
     def paginate(self, path: str) -> list[JsonObject]:
         return self.changed_files if path.endswith("/files") else self.pull_requests
 
-    def post(self, path: str, body: JsonObject) -> None:
-        if body["ref"] in self.failing_refs:
+    def post(self, path: str, body: JsonObject) -> Any:
+        if body.get("inputs", {}).get("pull_request_number") in self.failing_prs:
             raise urllib.error.HTTPError(path, 422, "No workflow on ref", Message(), io.BytesIO())
         self.posts.append((path, body))
+        return {"id": 123}
+
+    def patch(self, path: str, body: JsonObject) -> None:
+        self.patches.append((path, body))
 
 
 def pull_request(number: int, labels: list[JsonObject], repository: str = REPOSITORY) -> JsonObject:
@@ -179,6 +191,62 @@ def test_extract_product_version_accepts_quoted_and_unquoted_versions() -> None:
     assert versions.extract_product_version('product_version: "9.5"\n') is None
 
 
+@pytest.mark.parametrize("value", ["'9.6.3'", '"9.6.3" # release', "'9.6.3' # release", "9.6.3 # release"])
+def test_extract_product_version_accepts_yaml_quotes_and_comments(value: str) -> None:
+    assert versions.extract_product_version(f"product_version: {value}\n") == "9.6.3"
+
+
+@pytest.mark.parametrize("value", ["'9.6.3\"", '"9.6.3', "9.6.3#suffix"])
+def test_extract_product_version_rejects_malformed_values(value: str) -> None:
+    assert versions.extract_product_version(f"product_version: {value}\n") is None
+
+
+def test_extract_product_version_rejects_multiple_definitions() -> None:
+    assert versions.extract_product_version("product_version: 9.6.3\nproduct_version: 9.6.4\n") is None
+
+
+def test_invalid_reservation_does_not_block_other_prs(capsys: pytest.CaptureFixture[str]) -> None:
+    client = FakeGitHub(
+        [pull_request(1, LABEL), pull_request(2, LABEL), pull_request(3, LABEL)],
+        {"develop": "9.6.2", "sha-1": "invalid", "sha-2": "9.6.3", "sha-3": "999.0.0"},
+    )
+    assert versions.list_reservations(client, 3) == [Reservation(2, "9.6.3")]
+    versions.check_order(client, 2, "sha-2", "9.6.2")
+    planned = versions.plan_allocation(client, REPOSITORY, 3, "/allocate-fwo-version", "maintainer")
+    assert planned["target_version"] == "9.6.4"
+    assert "Ignoring invalid reservation on PR #1" in capsys.readouterr().out
+    with pytest.raises(VersionError, match="No valid product_version"):
+        versions.check_order(client, 1, "sha-1", "9.6.2")
+
+
+@pytest.mark.parametrize("status", ["added", "renamed", "copied"])
+@pytest.mark.parametrize("filename", ["9.6.4.sql", "999.0.0.sql", "nested/9.6.3.sql"])
+def test_check_versioned_files_rejects_extra_scripts(status: str, filename: str) -> None:
+    client = FakeGitHub(
+        [],
+        {"sha-2": "9.6.3"},
+        changed_files=[{"filename": f"{versions.UPGRADE_DIRECTORY}{filename}", "status": status}],
+    )
+    with pytest.raises(VersionError, match="Unexpected upgrade script"):
+        versions.check_versioned_files(client, 2, "sha-2")
+
+
+def test_check_versioned_files_allows_reserved_script_and_inherited_files() -> None:
+    client = FakeGitHub(
+        [],
+        {"sha-2": "9.6.3"},
+        changed_files=[
+            {"filename": f"{versions.UPGRADE_DIRECTORY}9.6.3.sql", "status": "added"},
+            {"filename": f"{versions.UPGRADE_DIRECTORY}9.6.2.sql", "status": "modified"},
+            {"filename": "README.md", "status": "added"},
+        ],
+    )
+    arguments = versions.build_parser().parse_args(
+        ["check-versioned-files", "--pull-request", "2", "--head-sha", "sha-2"]
+    )
+    assert versions.run_command(arguments, client, REPOSITORY) == {}
+
+
 def test_list_reservations_skips_current_unlabelled_and_placeholder_prs() -> None:
     client = FakeGitHub(
         [pull_request(1, LABEL), pull_request(2, LABEL), pull_request(3, []), pull_request(4, LABEL)],
@@ -202,7 +270,16 @@ def test_plan_allocation_selects_next_version() -> None:
         "reallocate": "false",
         "head_ref": "branch-2",
         "head_sha": "sha-2",
+        "same_repository": "true",
     }
+
+
+def test_plan_allocation_proposes_local_command_for_fork() -> None:
+    client = FakeGitHub([pull_request(2, LABEL, "fork/repo")], {"develop": "9.6.2", "sha-2": "999.0.0"})
+    planned = versions.plan_allocation(client, REPOSITORY, 2, "/allocate-fwo-version", "maintainer")
+    assert planned["same_repository"] == "false"
+    assert planned["target_version"] == "9.6.3"
+    assert client.posts == []
 
 
 def test_plan_allocation_reallocates_stale_version() -> None:
@@ -248,7 +325,6 @@ def test_plan_allocation_moves_the_higher_numbered_duplicate() -> None:
             "Only repository maintainers",
         ),
         (FakeGitHub([pull_request(2, [])], {}), "/allocate-fwo-version", "Add the versioned-change label"),
-        (FakeGitHub([pull_request(2, LABEL, "fork/repo")], {}), "/allocate-fwo-version", "cannot push to a fork"),
         (
             FakeGitHub([pull_request(2, LABEL)], {"develop": "9.5.4", "sha-2": "9.5.5"}),
             "/allocate-fwo-version",
@@ -265,23 +341,6 @@ def test_plan_allocation_rejects_closed_pull_request() -> None:
     closed = pull_request(2, LABEL) | {"state": "closed"}
     with pytest.raises(VersionError, match="only supported for open pull requests"):
         versions.plan_allocation(FakeGitHub([closed], {}), REPOSITORY, 2, "/allocate-fwo-version", "maintainer")
-
-
-def test_describe_pull_request_uses_head_for_pull_request_events() -> None:
-    client = FakeGitHub([pull_request(2, LABEL)], {})
-    assert versions.describe_pull_request(client, 2, "pull_request", "refs/pull/2/merge", "merge-sha") == {
-        "number": "2",
-        "head_sha": "sha-2",
-        "versioned": "true",
-    }
-
-
-def test_describe_pull_request_validates_dispatched_ref() -> None:
-    client = FakeGitHub([pull_request(2, [])], {})
-    described = versions.describe_pull_request(client, 2, "workflow_dispatch", "refs/heads/branch-2", "new-sha")
-    assert described == {"number": "2", "head_sha": "new-sha", "versioned": "false"}
-    with pytest.raises(VersionError, match="is not the head of open PR #2"):
-        versions.describe_pull_request(client, 2, "workflow_dispatch", "refs/heads/other", "new-sha")
 
 
 def test_check_unlabelled_fails_on_new_upgrade_script() -> None:
@@ -311,18 +370,22 @@ def test_check_order_enforces_lowest_reservation_first() -> None:
     versions.check_order(client, 1, "sha-1", "9.5.4")
 
 
-def test_requeue_dispatches_same_repository_prs_and_tolerates_failures(capsys: pytest.CaptureFixture[str]) -> None:
+def test_requeue_dispatches_fork_and_upstream_prs_and_tolerates_failures(capsys: pytest.CaptureFixture[str]) -> None:
     client = FakeGitHub(
         [pull_request(1, LABEL), pull_request(2, LABEL, "fork/repo"), pull_request(3, []), pull_request(4, LABEL)],
         {},
     )
-    client.failing_refs.add("branch-4")
-    versions.requeue(client, REPOSITORY)
+    client.failing_prs.add("4")
+    versions.requeue(client)
     assert client.posts == [
         (
             "/actions/workflows/validate-fwo-pr-version.yml/dispatches",
-            {"ref": "branch-1", "inputs": {"pull_request_number": "1"}},
-        )
+            {"ref": "develop", "inputs": {"pull_request_number": "1"}},
+        ),
+        (
+            "/actions/workflows/validate-fwo-pr-version.yml/dispatches",
+            {"ref": "develop", "inputs": {"pull_request_number": "2"}},
+        ),
     ]
     assert "::warning::Could not re-validate PR #4" in capsys.readouterr().out
 
@@ -350,9 +413,9 @@ def test_run_command_dispatches_subcommands(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setenv("COMMENT_AUTHOR", "maintainer")
     planned = versions.run_command(parser.parse_args(["plan-allocation", "--pull-request", "2"]), client, REPOSITORY)
     assert planned["target_version"] == "9.5.5"
-    dispatch = parser.parse_args(["dispatch-validation", "--pull-request", "2", "--ref", "branch-2"])
+    dispatch = parser.parse_args(["dispatch-validation", "--pull-request", "2"])
     assert versions.run_command(dispatch, client, REPOSITORY) == {}
-    assert client.posts[0][1]["ref"] == "branch-2"
+    assert client.posts[0][1]["ref"] == "develop"
 
 
 def test_main_reports_rule_violations(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:

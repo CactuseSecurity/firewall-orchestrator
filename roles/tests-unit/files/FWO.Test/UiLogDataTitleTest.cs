@@ -92,14 +92,14 @@ namespace FWO.Test
         /// </summary>
         [TestCase(false)]
         [TestCase(true)]
-        public void Build_NamesThePeriodAndTheConfiguredStartDate(bool showTime)
+        public void Build_NamesThePeriodAndTheImportDate(bool showTime)
         {
             AggregatedTitleUserConfig userConfig = new() { ShowLogTimeRangeStartTime = showTime };
 
             string title = LogDataTitle.Build(new LogDataImportPeriod { LogTimeRangeInSeconds = kOneWeek, ImportTime = kImportTime }, userConfig);
 
             string expectedDate = kImportTime.ToLocalTime().DateTime.ToString(showTime ? "g" : "d", userConfig.GetUserCulture());
-            Assert.That(title, Is.EqualTo($"Logs (aggregated over 1 {userConfig.GetText("Weeks")} from {expectedDate})"));
+            Assert.That(title, Is.EqualTo($"Logs (aggregated over 1 {userConfig.GetText("Weeks")} until {expectedDate})"));
         }
 
         [Test]
@@ -188,7 +188,7 @@ namespace FWO.Test
         {
             public override string GetText(string key)
             {
-                return key == "log_data_aggregated" ? "Logs (aggregated over @@TIME_INTERVAL@@ from @@DATE@@)" : base.GetText(key);
+                return key == "log_data_aggregated" ? "Logs (aggregated over @@TIME_INTERVAL@@ until @@DATE@@)" : base.GetText(key);
             }
         }
 

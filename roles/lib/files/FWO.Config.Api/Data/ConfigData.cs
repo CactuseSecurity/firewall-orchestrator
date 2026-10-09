@@ -382,7 +382,7 @@ namespace FWO.Config.Api.Data
         public bool HideLogTimeColumn { get; set; } = true;
 
         /// <summary>
-        /// Includes the time alongside the start date in the log aggregation heading.
+        /// Includes the time next to the import date, which ends the aggregation period, in the log heading.
         /// </summary>
         [JsonProperty("showLogTimeRangeStartTime"), JsonPropertyName("showLogTimeRangeStartTime")]
         public bool ShowLogTimeRangeStartTime { get; set; } = false;

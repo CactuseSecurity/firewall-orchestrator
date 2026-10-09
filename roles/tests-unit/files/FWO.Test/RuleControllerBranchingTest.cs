@@ -7,6 +7,7 @@ using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Networking;
 using FWO.Middleware.Server.Controllers;
+using FWO.Test.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
@@ -311,6 +312,48 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, response.Result.Count);
             ClassicAssert.AreEqual(0,
                 response.Result.Rules.Count(rule => rule.Name == "SourceWithBroadDestination"));
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldLogSiemEntryWithOkResultAfterSuccess()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-siem-ok");
+            ActionResult<RulesByFilterResponse>? actionResult = null;
+
+            string output = await ConsoleOutput.CaptureAsync(async () =>
+            {
+                actionResult = await controller.GetRulesByFilter(
+                    new RulesByFilterRequest
+                    {
+                        RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                        Query = new RulesByFilterQuery { OwnerId = 42 }
+                    }, "req-siem-ok");
+            });
+
+            ClassicAssert.IsInstanceOf<OkObjectResult>(actionResult?.Result);
+            StringAssert.Contains("RequestId: \"req-siem-ok\",", output);
+            StringAssert.Contains("UserID: \"42\", UserName: \"debug\", OwnerId: 42, Result: ok", output);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldLogSiemEntryWithRejectedResultForInvalidIpFilter()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-siem-invalid-filter");
+            ActionResult<RulesByFilterResponse>? actionResult = null;
+
+            string output = await ConsoleOutput.CaptureAsync(async () =>
+            {
+                actionResult = await controller.GetRulesByFilter(
+                    new RulesByFilterRequest
+                    {
+                        RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                        Query = new RulesByFilterQuery { IpAddress = "10.1.2.3" }
+                    }, "req-siem-invalid-filter");
+            });
+
+            ClassicAssert.IsInstanceOf<BadRequestObjectResult>(actionResult?.Result);
+            StringAssert.Contains("RequestId: \"req-siem-invalid-filter\",", output);
+            StringAssert.Contains("UserName: \"debug\", IpAddress: \"10.1.2.3\", Result: rejected", output);
         }
 
         [Test]

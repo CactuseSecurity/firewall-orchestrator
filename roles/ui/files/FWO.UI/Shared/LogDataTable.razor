@@ -4,7 +4,7 @@
 @inject DomEventService eventService
 @implements IDisposable
 
-<h5 class="mt-3">@(userConfig.GetText("log_data"))</h5>
+<h5 class="mt-3">@(LogDataTitle.Build(importPeriod, userConfig))</h5>
 @if (isLoading)
 {
     <Loading />
@@ -21,22 +21,46 @@ else
         <Table @ref="logTable" TableClass="table table-bordered table-sm th-bg-secondary table-responsive sticky-header"
                TableItem="OwnerFirewallLogEntry" Items="logEntries" PageSize="pageSize" ColumnReorder="true">
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.SourceDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source_app_ids"))" Field="@(x => x.SourceAppIdsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source_network_areas"))" Field="@(x => x.SourceAreaIdsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source_name"))" Field="@(x => x.SourceDnsDisplay)" Sortable="true" Filterable="true" />
             @* protocol and port are separate columns, so the port sorts and filters as a number *@
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("protocol"))" Field="@(x => x.ProtocolDisplay)" Sortable="true" Filterable="true" />
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("port"))" Field="@(x => x.ServicePort)" Sortable="true" Filterable="true" />
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination"))" Field="@(x => x.DestinationDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination_app_ids"))" Field="@(x => x.DestinationAppIdsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination_network_areas"))" Field="@(x => x.DestinationAreaIdsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination_name"))" Field="@(x => x.DestinationDnsDisplay)" Sortable="true" Filterable="true" />
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("action"))" Field="@(x => x.Allowed)" Sortable="true" Filterable="true">
                 <Template>
                     @(userConfig.GetText(context.Allowed ? "allowed" : "denied"))
                 </Template>
             </Column>
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_count"))" Field="@(x => x.LogCount)" Sortable="true" Filterable="true" DefaultSortColumn="true" DefaultSortDescending="true" />
-            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_time"))" Field="@(x => x.LogTimeLocal)" Sortable="true" Filterable="true">
-                <Template>
-                    @context.LogTimeLocal.ToString(kLogTimeFormat)
-                </Template>
-            </Column>
+            @* the import file names the period the log counts were aggregated over, so the time of the
+               last occurrence often adds nothing and is hidden by default (hideLogTimeColumn) *@
+            @if (!userConfig.HideLogTimeColumn)
+            {
+                <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_time"))" Field="@(x => x.LogTimeLocal)" Sortable="true" Filterable="true">
+                    <Template>
+                        @context.LogTimeLocal.ToString(kLogTimeFormat)
+                    </Template>
+                </Column>
+            }
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("rule_name"))" Field="@(x => x.LoggingRuleName)" Sortable="true" Filterable="true" />
+            @if (importPeriod is null)
+            {
+                <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_aggregation_period"))" Field="@(x => x.LogTimeRangeInSeconds)" Sortable="true">
+                    <Template>
+                        @(context.LogTimeRangeInSeconds is > 0 ? LogDataTitle.FormatTimeRange(context.LogTimeRangeInSeconds.Value, userConfig) : userConfig.GetText("unknown"))
+                    </Template>
+                </Column>
+                <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_import_time"))" Field="@(x => x.ImportTime)" Sortable="true">
+                    <Template>
+                        @(context.ImportTime.HasValue ? LogDataTitle.FormatImportTime(context.ImportTime.Value, userConfig) : userConfig.GetText("unknown"))
+                    </Template>
+                </Column>
+            }
             <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
     </div>
@@ -65,6 +89,7 @@ else
     public int OwnerId { get; set; }
 
     private List<OwnerFirewallLogEntry> logEntries = [];
+    private LogDataImportPeriod? importPeriod;
     private bool isLoading = true;
     private int? loadedOwnerId;
 
@@ -105,9 +130,11 @@ else
             isLoading = true;
             List<OwnerFirewallLogEntry> loadedEntries = await apiConnection.SendQueryAsync<List<OwnerFirewallLogEntry>>(
                 LogDataQueries.getUnmodelledLogEntriesByOwner, new { ownerId = requestedOwnerId, limit = kMaxLoadedEntries });
+            LogDataImportPeriod? loadedPeriod = LogDataTitle.GetCommonPeriod(loadedEntries);
             if (IsCurrentLoad(requestedOwnerId))
             {
                 logEntries = loadedEntries;
+                importPeriod = loadedPeriod;
                 // the rows of another owner may be higher or lower, so the window is measured again
                 pageSizeMeasured = false;
             }
@@ -117,6 +144,7 @@ else
             if (IsCurrentLoad(requestedOwnerId))
             {
                 logEntries = [];
+                importPeriod = null;
                 DisplayMessageInUi(exception, userConfig.GetText("log_data"), "", true);
             }
         }

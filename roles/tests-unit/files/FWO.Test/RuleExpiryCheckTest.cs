@@ -13,6 +13,85 @@ namespace FWO.Test
     [Parallelizable]
     internal class RuleExpiryCheckTest
     {
+        /// <summary>
+        /// Ensures the expiry query loads the owner data needed for recipient resolution.
+        /// </summary>
+        [Test]
+        public void GetTimeBasedRulesByOwner_LoadsOwnerResponsibles()
+        {
+            Assert.That(RuleQueries.getTimeBasedRulesByOwner, Does.Match(
+                @"owner\s*\{[^{}]*owner_responsibles\s*\{\s*dn\s+responsible_type\s*\}"));
+        }
+
+        /// <summary>
+        /// Resolves owner recipients through the expiry check without dummy addresses or SMTP.
+        /// </summary>
+        [TestCase(EmailRecipientOption.OwnerGroupOnly, false, true)]
+        [TestCase(EmailRecipientOption.OwnerMainResponsible, true, false)]
+        [TestCase(EmailRecipientOption.AllOwnerResponsibles, true, true)]
+        [TestCase(EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty, false, true)]
+        [TestCase(EmailRecipientOption.ConfiguredResponsibles, false, true)]
+        public async Task CheckRuleExpiry_ResolvesOwnerRecipients(
+            EmailRecipientOption recipientOption, bool includesMain, bool includesSupporting)
+        {
+            FwoNotification notification = CreateRuleTimerNotification(1);
+            notification.RecipientTo = recipientOption;
+            notification.RecipientCc = recipientOption;
+            notification.RecipientBcc = recipientOption;
+            string recipientConfig = new EmailRecipientSelection
+            {
+                OwnerResponsibleTypeIds = new List<int> { GlobalConst.kOwnerResponsibleTypeSupporting }
+            }.ToConfigValue();
+            notification.EmailAddressTo = recipientConfig;
+            notification.EmailAddressCc = recipientConfig;
+            notification.EmailAddressBcc = recipientConfig;
+            ExpiredRuleEntryInput ruleEntry = CreateExpiredRuleEntry(1, 1001);
+            ruleEntry.OwnerResponsibles.Add(new OwnerResponsible
+            {
+                Dn = "cn=main,dc=test",
+                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+            });
+            ruleEntry.OwnerResponsibles.Add(new OwnerResponsible
+            {
+                Dn = "cn=supporting,dc=test",
+                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeSupporting
+            });
+            RuleExpiryCheckTestApiConn apiConnection = new()
+            {
+                Notifications = new List<FwoNotification> { notification },
+                ExpiredRuleEntries = new List<ExpiredRuleEntryInput> { ruleEntry },
+                LdapAvailable = false,
+                Users = new List<UiUser>
+                {
+                    new() { Dn = "cn=main,dc=test", Email = "main@example.test" },
+                    new() { Dn = "cn=supporting,dc=test", Email = "supporting@example.test" }
+                }
+            };
+            SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+            globalConfig.UseDummyEmailAddress = false;
+
+            await new RuleExpiryCheck(apiConnection, globalConfig).CheckRuleExpiry();
+
+            Assert.That(apiConnection.LogEntries, Has.Count.EqualTo(1));
+            NotificationLogInsertEntry logEntry = apiConnection.LogEntries.Single();
+            List<string> expectedRecipients = new();
+            if (includesMain)
+            {
+                expectedRecipients.Add("main@example.test");
+            }
+            if (includesSupporting)
+            {
+                expectedRecipients.Add("supporting@example.test");
+            }
+            Assert.Multiple(() =>
+            {
+                Assert.That(logEntry.To.Split(',', StringSplitOptions.TrimEntries), Is.EquivalentTo(expectedRecipients));
+                Assert.That(logEntry.Cc.Split(',', StringSplitOptions.TrimEntries), Is.EquivalentTo(expectedRecipients));
+                Assert.That(logEntry.Bcc.Split(',', StringSplitOptions.TrimEntries), Is.EquivalentTo(expectedRecipients));
+                Assert.That(apiConnection.LastLogStatus, Is.EqualTo(NotificationLogStatus.Suppressed));
+            });
+        }
+
         [Test]
         public async Task CheckRuleExpiry_SendsNotification_WhenExpiredRuleIsDue()
         {
@@ -496,6 +575,10 @@ namespace FWO.Test
             public int UpdateLastSentCalls { get; private set; }
             public int InsertNotificationLogCalls { get; private set; }
             public Action? OnInsertNotificationLog { get; set; }
+            public bool LdapAvailable { get; set; } = true;
+            public List<UiUser> Users { get; set; } = new();
+            public List<NotificationLogInsertEntry> LogEntries { get; } = new();
+            public NotificationLogStatus? LastLogStatus { get; private set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -503,6 +586,10 @@ namespace FWO.Test
 
                 if (responseType == typeof(List<Ldap>) && query == AuthQueries.getLdapConnections)
                 {
+                    if (!LdapAvailable)
+                    {
+                        throw new InvalidOperationException("LDAP unavailable in recipient tests.");
+                    }
                     List<Ldap> internalLdaps =
                     [
                         new Ldap
@@ -531,6 +618,10 @@ namespace FWO.Test
                 if (responseType == typeof(ReturnIdWrapper) && query == NotificationQueries.insertNotificationLog)
                 {
                     ++InsertNotificationLogCalls;
+                    if (variables?.GetType().GetProperty("entries")?.GetValue(variables) is List<NotificationLogInsertEntry> entries)
+                    {
+                        LogEntries.AddRange(entries);
+                    }
                     OnInsertNotificationLog?.Invoke();
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                     {
@@ -540,7 +631,24 @@ namespace FWO.Test
 
                 if (responseType == typeof(ReturnId) && query == NotificationQueries.updateNotificationLog)
                 {
+                    LastLogStatus = Enum.Parse<NotificationLogStatus>(
+                        variables?.GetType().GetProperty("status")?.GetValue(variables)?.ToString() ?? "");
                     return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
+                }
+
+                if (query == AuthQueries.getUserEmails)
+                {
+                    return Task.FromResult((QueryResponseType)(object)Users);
+                }
+
+                if (query == OwnerQueries.getOwnerResponsibleTypes)
+                {
+                    List<OwnerResponsibleType> types = new()
+                    {
+                        new() { Id = GlobalConst.kOwnerResponsibleTypeMain, Active = true },
+                        new() { Id = GlobalConst.kOwnerResponsibleTypeSupporting, Active = true }
+                    };
+                    return Task.FromResult((QueryResponseType)(object)types);
                 }
 
                 if (query == RuleQueries.getTimeBasedRulesByOwner && responseType.IsGenericType && responseType.GetGenericTypeDefinition() == typeof(List<>))
@@ -567,7 +675,13 @@ namespace FWO.Test
                 foreach (ExpiredRuleEntryInput entry in ExpiredRuleEntries)
                 {
                     object row = Activator.CreateInstance(rowType) ?? throw new InvalidOperationException("Could not create response row.");
-                    rowType.GetProperty("Owner")?.SetValue(row, new FwoOwner { Id = entry.OwnerId, Name = entry.OwnerName, ExtAppId = entry.OwnerExtAppId });
+                    rowType.GetProperty("Owner")?.SetValue(row, new FwoOwner
+                    {
+                        Id = entry.OwnerId,
+                        Name = entry.OwnerName,
+                        ExtAppId = entry.OwnerExtAppId,
+                        OwnerResponsibles = entry.OwnerResponsibles
+                    });
 
                     object rule = Activator.CreateInstance(ruleType) ?? throw new InvalidOperationException("Could not create rule.");
                     ruleType.GetProperty("RuleId")?.SetValue(rule, entry.RuleId);
@@ -612,6 +726,7 @@ namespace FWO.Test
 
         private sealed class ExpiredRuleEntryInput
         {
+            public List<OwnerResponsible> OwnerResponsibles { get; set; } = new();
             public int OwnerId { get; set; }
             public string OwnerName { get; set; } = "";
             public string OwnerExtAppId { get; set; } = "";

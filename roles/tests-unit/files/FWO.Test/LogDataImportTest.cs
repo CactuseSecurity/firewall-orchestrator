@@ -8,6 +8,35 @@ namespace FWO.Test
     internal class LogDataImportTest
     {
         private static readonly DateTimeOffset ImportTime = new(2026, 7, 28, 10, 0, 0, TimeSpan.Zero);
+        private static readonly List<string> kDnsNames = ["first.example.test", "second.example.test"];
+        private static readonly List<string> kEmptyDnsNames = [];
+
+        /// <summary>
+        /// DNS selection preserves the first answer when several PTR records are returned.
+        /// </summary>
+        [Test]
+        public void SelectDnsName_ReturnsTheFirstAnswer()
+        {
+            Assert.That(LogDataImport.SelectDnsName(kDnsNames), Is.EqualTo("first.example.test"));
+        }
+
+        /// <summary>
+        /// An address without PTR records keeps an empty DNS name.
+        /// </summary>
+        [Test]
+        public void SelectDnsName_ReturnsEmptyWhenThereAreNoAnswers()
+        {
+            Assert.That(LogDataImport.SelectDnsName(kEmptyDnsNames), Is.Empty);
+        }
+
+        /// <summary>
+        /// A lookup without definitive answer stays distinguishable from an address without name.
+        /// </summary>
+        [Test]
+        public void SelectDnsName_ReturnsNullForAFailedLookup()
+        {
+            Assert.That(LogDataImport.SelectDnsName(null), Is.Null);
+        }
 
         [Test]
         public void NormalizeEntries_UsesHighestCountsAndNormalizesIps()

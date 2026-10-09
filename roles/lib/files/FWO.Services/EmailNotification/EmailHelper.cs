@@ -327,6 +327,9 @@ namespace FWO.Services
             return otherAddresses != null ? [.. otherAddresses] : [];
         }
 
+        /// <summary>
+        /// Uses supporting recipients when available, otherwise falls back to main responsibles.
+        /// </summary>
         private async Task<List<string>> GetOwnerGroupOrMainResponsibleRecipients(FwoOwner? owner)
         {
             if (owner is null)
@@ -334,15 +337,17 @@ namespace FWO.Services
                 return [];
             }
 
-            List<string> ownerGroupAddresses = await CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeSupporting);
-            List<string> mainResponsibleAddresses = await CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeMain);
-            ownerGroupAddresses.AddRange(mainResponsibleAddresses);
+            List<string> ownerGroupAddresses = (await CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeSupporting))
+                .Where(address => !string.IsNullOrWhiteSpace(address))
+                .ToList();
             if (ownerGroupAddresses.Count > 0)
             {
                 return ownerGroupAddresses;
             }
 
-            return mainResponsibleAddresses;
+            return (await CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeMain))
+                .Where(address => !string.IsNullOrWhiteSpace(address))
+                .ToList();
         }
 
         public async Task<List<string>> GetRecipients(EmailRecipientSelection selection, FwoOwner? owner, List<string>? otherAddresses,

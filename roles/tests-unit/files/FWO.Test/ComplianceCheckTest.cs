@@ -555,10 +555,10 @@ namespace FWO.Test
             reverseRule.Tos[0].Object.IP = forwardRule.Froms[0].Object.IP;
             reverseRule.Tos[0].Object.IpEnd = forwardRule.Froms[0].Object.IpEnd;
             reverseRule.Services[0].Content.ProtoId = 6;
-            reverseRule.Services[0].Content.SourcePort = 443;
-            reverseRule.Services[0].Content.SourcePortEnd = 443;
-            reverseRule.Services[0].Content.DestinationPort = 0;
-            reverseRule.Services[0].Content.DestinationPortEnd = 0;
+            reverseRule.Services[0].Content.SourcePort = 0;
+            reverseRule.Services[0].Content.SourcePortEnd = 0;
+            reverseRule.Services[0].Content.DestinationPort = 443;
+            reverseRule.Services[0].Content.DestinationPortEnd = 443;
 
             bool compliant = await ComplianceCheck.AreRulesCompliant([1], [forwardRule, reverseRule]);
 

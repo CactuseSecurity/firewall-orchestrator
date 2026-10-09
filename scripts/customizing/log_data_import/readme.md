@@ -24,8 +24,10 @@ The database keeps one row per application, source, destination and service. Rep
 The generated JSON interface is:
 
 ```json
-{"logs":[{"app_id":"APP-1","log_count":42,"source":"192.0.2.1","destination":"198.51.100.10","protocol":6,"port":443,"action":"accept","log_time":"2026-07-28T10:30:00Z","rule_name":"web"}]}
+{"import_time":"2026-07-28T11:00:00+00:00","logs":[{"app_id":"APP-1","log_count":42,"source":"192.0.2.1","destination":"198.51.100.10","protocol":6,"port":443,"action":"accept","log_time":"2026-07-28T10:30:00Z","rule_name":"web"}]}
 ```
+
+CSV files do not name the period their log counts were aggregated over, so the generated JSON contains no `log_time_range_in_seconds` and the middleware uses the default log time range configured under Settings - Logging (7 days unless changed). The field is optional for every JSON import file: a file of another source may name its period in the top-level field `log_time_range_in_seconds`, which overrides the default for that file, and a file without the field uses the default as well. A value which is not positive rejects the file. The middleware stores period and import time on every imported log entry. The heading of the log table names them when all displayed entries share them, e.g. "Logs (aggregated over 1 Week(s) until 10/5/2026)", otherwise the table shows both per row. The time of the import can be added to the heading under Settings - Logging. The middleware logs a warning for every entry (up to 50 per file) whose `log_time` lies outside the period ending at `import_time`; such entries are imported anyway.
 
 ## Generate test log data
 

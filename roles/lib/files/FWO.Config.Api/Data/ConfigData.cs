@@ -369,11 +369,26 @@ namespace FWO.Config.Api.Data
         [JsonProperty("allowLogDataPortWithoutProtocol"), JsonPropertyName("allowLogDataPortWithoutProtocol")]
         public bool AllowLogDataPortWithoutProtocol { get; set; } = false;
 
+        [JsonProperty("resolveLogDataDns"), JsonPropertyName("resolveLogDataDns")]
+        public bool ResolveLogDataDns { get; set; } = true;
+
         [JsonProperty("replaceExistingLogData"), JsonPropertyName("replaceExistingLogData")]
         public bool ReplaceExistingLogData { get; set; } = true;
 
         [JsonProperty("showLogDataInConnections"), JsonPropertyName("showLogDataInConnections")]
         public bool ShowLogDataInConnections { get; set; } = false;
+
+        [JsonProperty("hideLogTimeColumn"), JsonPropertyName("hideLogTimeColumn")]
+        public bool HideLogTimeColumn { get; set; } = true;
+
+        /// <summary>
+        /// Includes the time next to the import date, which ends the aggregation period, in the log heading.
+        /// </summary>
+        [JsonProperty("showLogImportTimeInHeading"), JsonPropertyName("showLogImportTimeInHeading")]
+        public bool ShowLogImportTimeInHeading { get; set; } = false;
+
+        [JsonProperty("defaultLogTimeRangeInSeconds"), JsonPropertyName("defaultLogTimeRangeInSeconds")]
+        public int DefaultLogTimeRangeInSeconds { get; set; } = GlobalConst.kDefaultLogTimeRangeInSeconds;
 
         [JsonProperty("OwnerSoruceMappingID"), JsonPropertyName("OwnerSoruceMappingID")]
         public int OwnerSoruceMappingID { get; set; } = 0;

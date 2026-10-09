@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.1 - 09.10.2026
+- keep the importer on scrapli 1 (2026.2.20): Dependabot no longer proposes scrapli >= 2026.5, the
+  native libscrapli rewrite whose API the Cisco ASA importer does not support yet (migration tracked in #5424)
+
 ## 9.7.0 - 07.10.2026
 - resolve reverse DNS asynchronously with shutdown cancellation; reuse stored names and empty
   results across imports and allow disabling new lookups in Settings - Logging. A lookup without

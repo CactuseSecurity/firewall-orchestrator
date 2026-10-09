@@ -1,5 +1,8 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.1 - 09.10.2026
+- importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
+
 ## 9.7.0 - 07.10.2026
 - resolve reverse DNS asynchronously with shutdown cancellation; reuse stored names and empty
   results across imports and allow disabling new lookups in Settings - Logging. A lookup without
@@ -29,7 +32,6 @@
   setting Settings - Logging - default log time range (default: 7 days, used for CSV imports), which a
   log data import file can override in the new optional top-level field log_time_range_in_seconds.
   The middleware warns about entries logged outside the supplied period. New setting to hide the log time column (default: on) (issue #5391).
-- importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
   
 ## 9.6.2 - 02.10.2026
 

@@ -28,6 +28,36 @@
 - upgrade: 9.8.0.sql adds the labelling schema, the rule label columns, the labelLogic setting and the Guardicore
   device types to existing installations
 
+## 9.7.0 - 07.10.2026
+- resolve reverse DNS asynchronously with shutdown cancellation; reuse stored names and empty
+  results across imports and allow disabling new lookups in Settings - Logging. A lookup without
+  definitive answer (DNS server unreachable, server failure, refused) is repeated by the next import;
+  once no DNS server can be reached, an import skips its remaining lookups instead of waiting for
+  each of them to time out.
+- store aggregation period and import time on each log row. The table heading uses only the
+  displayed rows; mixed or unknown periods are shown per row. Existing rows retain unknown
+  timing until reimported. Counts and timing are updated together, including additive imports.
+
+- enrich imported log data with the external application IDs and network areas containing each
+  source and destination address, plus reverse-DNS names. The connection log table displays the
+  six new values and leaves unavailable metadata empty. The values are calculated once per import
+  batch from the owner networks and area address ranges and stored per address in
+  logging.ip_metadata, so an address logged by several owners is enriched once and carries the
+  applications of every owner it belongs to. An address the log entries no longer refer to loses
+  its metadata with the next import run, so the enrichment does not outlive the configured log
+  data retention.
+- rename the area IP data conversion script convertNwObjDataFromGit.py to
+  convert_area_ip_data_from_git.py. The upgrade removes the old file and moves a configured subnet
+  data import source pointing at the delivered script to the new name.
+- add generate_area_ip_data.py, which generates sample area IP data covering the app servers of an
+  app-data file; generate_app_and_log_data.py now also writes this area IP data file.
+- the log table heading names the period the log counts were aggregated over and the import time,
+  localized, e.g. "Logs (aggregated over 1 Week(s) until 10/5/2026)", the import ending the period.
+  Settings - Logging can enable displaying the time of the import in the heading (default: off). The period is the new
+  setting Settings - Logging - default log time range (default: 7 days, used for CSV imports), which a
+  log data import file can override in the new optional top-level field log_time_range_in_seconds.
+  The middleware warns about entries logged outside the supplied period. New setting to hide the log time column (default: on) (issue #5391).
+
 ## 9.6.2 - 02.10.2026
 - installer: Red Hat Enterprise Linux 8 is no longer supported. Fresh installations and
   upgrades now stop before changing the host if its OS release is unsupported. Supported
@@ -86,7 +116,6 @@
   180 seconds (TimeoutStopSec) before killing the process
 
 ## 9.5.10 - 29.09.2026
-
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration
 - add UI page Settings - Provisioning settings (settings/fwconfigprovisioning) to view (auditor) and edit (admin)

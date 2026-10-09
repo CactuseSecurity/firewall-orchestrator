@@ -29,6 +29,8 @@ namespace FWO.Basics
         public const int kMonthsPerYear = 12;
         public const int kMaxPortNumber = 65535;
         public const int kAnyIpProtocolId = -1;
+        // log time range of a log data import file which does not name its own (one week)
+        public const int kDefaultLogTimeRangeInSeconds = kDaysPerWeek * (int)TimeSpan.SecondsPerDay;
         // an import script is waited for with a timeout in milliseconds which has to fit into an int
         public const int kMaxImportScriptTimeoutMinutes = int.MaxValue / kMinutesToMilliseconds;
         public const int kOwnerResponsibleTypeMain = 1;

@@ -61,6 +61,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("availableReportTypes"), JsonPropertyName("availableReportTypes")]
         public string AvailableReportTypes { get; set; } = "[]";
 
+        [JsonProperty("reportTypeVisibilityByRole"), JsonPropertyName("reportTypeVisibilityByRole")]
+        public string ReportTypeVisibilityByRole { get; set; } = "{}";
+
         [JsonProperty("dataRetentionTime"), JsonPropertyName("dataRetentionTime")]
         public int DataRetentionTime { get; set; } = 731;
 

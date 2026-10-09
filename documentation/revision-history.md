@@ -8,6 +8,8 @@
 - new workflow action "create implementation tasks" creates the missing implementation tasks of a ticket, also
   with an active planning phase; existing implementation tasks are kept
 - the path analysis algorithm moved to the workflow customizing settings; "after path analysis" requires an algorithm
+- fix: implementation tasks of rule_delete tasks take the gateway of the rule element instead of the first element,
+  so rule deletions from the modelling no longer get an implementation task without gateway
 - the workflow roles and the modeller may read the provisioning settings (read only), so the implementation tasks
   created in the ui resolve their target managements; the ui only finds the sub-managements visible to the user
 

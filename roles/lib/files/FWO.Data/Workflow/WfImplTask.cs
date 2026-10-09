@@ -79,7 +79,7 @@ namespace FWO.Data.Workflow
             {
                 if (reqtask.TaskType == WfTaskType.rule_delete.ToString())
                 {
-                    DeviceId = reqtask.Elements[0].DeviceId;
+                    DeviceId = reqtask.Elements.FirstOrDefault(element => element.Field == ElemFieldType.rule.ToString())?.DeviceId;
                 }
                 ImplElements = new List<WfImplElement>();
                 foreach (WfReqElement element in reqtask.Elements)

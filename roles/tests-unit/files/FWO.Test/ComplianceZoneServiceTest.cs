@@ -56,22 +56,19 @@ internal class ComplianceZoneServiceTest
                                 {
                                     Name = "Backend Host",
                                     Type = "host",
-                                    IpStart = "10.0.0.1",
-                                    IpEnd = "10.0.0.1"
+                                    IpHost = "10.0.0.1"
                                 },
                                 new ResolveZonesForObjectsRequest.LeafObjectRequest
                                 {
                                     Name = "Backend Host Duplicate",
                                     Type = "network",
-                                    IpStart = "10.0.0.1",
-                                    IpEnd = "10.0.0.1"
+                                    IpHost = "10.0.0.1"
                                 },
                                 new ResolveZonesForObjectsRequest.LeafObjectRequest
                                 {
                                     Name = "DMZ Host",
                                     Type = "ip_range",
-                                    IpStart = "10.0.1.1",
-                                    IpEnd = "10.0.1.1"
+                                    IpHost = "10.0.1.1"
                                 }
                             ]
                         }
@@ -119,8 +116,7 @@ internal class ComplianceZoneServiceTest
                 {
                     Name = "Leaf",
                     Type = "network",
-                    IpStart = "10.0.0.1",
-                    IpEnd = "10.0.0.1"
+                    IpHost = "10.0.0.1"
                 }
             ]
         });
@@ -162,8 +158,7 @@ internal class ComplianceZoneServiceTest
                 {
                     Name = "External Host",
                     Type = "host",
-                    IpStart = "203.0.113.10",
-                    IpEnd = "203.0.113.10"
+                    IpHost = "203.0.113.10"
                 }
             ]
         });
@@ -193,8 +188,7 @@ internal class ComplianceZoneServiceTest
             {
                 Name = "IPv6 Host",
                 Type = "host",
-                IpStart = "2001:db8::1",
-                IpEnd = "2001:db8::1"
+                IpHost = "2001:db8::1"
             }]
         };
 
@@ -236,15 +230,13 @@ internal class ComplianceZoneServiceTest
                 {
                     Name = "Network Leaf",
                     Type = "network",
-                    IpStart = "10.0.2.1",
-                    IpEnd = "10.0.2.10"
+                    IpRange = ["10.0.2.1", "10.0.2.10"]
                 },
                 new ResolveZonesForObjectsRequest.LeafObjectRequest
                 {
                     Name = "Range Leaf",
                     Type = "ip_range",
-                    IpStart = "10.0.3.1",
-                    IpEnd = "10.0.3.10"
+                    IpRange = ["10.0.3.1", "10.0.3.10"]
                 }
             ]
         });
@@ -277,8 +269,7 @@ internal class ComplianceZoneServiceTest
                 {
                     Name = "Alias",
                     Type = "alias",
-                    IpStart = "10.0.0.1",
-                    IpEnd = "10.0.0.1"
+                    IpHost = "10.0.0.1"
                 }
             ]
         });

@@ -20,6 +20,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, GetTicketStatusRequestExample>();
         services.AddSingleton<IApiExampleProvider, VisibleInRequestFilterExample>();
         services.AddSingleton<IApiExampleProvider, GetAddressGroupsRequestExample>();
+        services.AddSingleton<IApiExampleProvider, GetAddressObjectIdRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetFlowComplianceStateRequestExample>();
         services.AddSingleton<IApiExampleProvider, ResolveZonesForObjectsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnersRequestExample>();
@@ -99,8 +100,7 @@ public sealed class CreateTicketRequestExample : ApiExampleProvider<CreateTicket
                 Id = -1,
                 Predicate = CreateTicketPredicates.kCreate,
                 Name = "app-server-1",
-                IpStart = "192.0.2.10",
-                IpEnd = "192.0.2.10"
+                IpHost = "192.0.2.10"
             }
         ],
         AddressGroups =
@@ -191,6 +191,22 @@ public sealed class GetAddressGroupsRequestExample : ApiExampleProvider<GetAddre
 }
 
 /// <summary>
+/// Provides a typed example for <see cref="GetAddressObjectIdRequest"/>.
+/// </summary>
+public sealed class GetAddressObjectIdRequestExample : ApiExampleProvider<GetAddressObjectIdRequest>
+{
+    /// <inheritdoc />
+    public override GetAddressObjectIdRequest GetExample() => new()
+    {
+        Filter = new VisibleInRequestFilter
+        {
+            VisibleInRequest = true
+        },
+        IpHost = "192.0.2.10"
+    };
+}
+
+/// <summary>
 /// Provides a typed example for <see cref="GetFlowComplianceStateRequest"/>.
 /// </summary>
 public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<GetFlowComplianceStateRequest>
@@ -209,8 +225,7 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
         [
             new GetFlowComplianceStateRequest.IpRangeRequest
             {
-                IpStart = "198.51.100.20",
-                IpEnd = "198.51.100.29"
+                IpRange = ["198.51.100.20", "198.51.100.29"]
             }
         ],
         Service =
@@ -245,8 +260,7 @@ public sealed class ResolveZonesForObjectsRequestExample : ApiExampleProvider<Re
                     {
                         Name = "branch-a",
                         Type = "network",
-                        IpStart = "10.0.0.1",
-                        IpEnd = "10.0.0.1"
+                        IpNetwork = "10.0.0.0/24"
                     },
                     new ResolveZonesForObjectsRequest.GroupObjectRequest
                     {
@@ -257,8 +271,7 @@ public sealed class ResolveZonesForObjectsRequestExample : ApiExampleProvider<Re
                             {
                                 Name = "leaf",
                                 Type = "ip_range",
-                                IpStart = "10.0.1.1",
-                                IpEnd = "10.0.1.10"
+                                IpRange = ["10.0.1.1", "10.0.1.10"]
                             }
                         ]
                     }

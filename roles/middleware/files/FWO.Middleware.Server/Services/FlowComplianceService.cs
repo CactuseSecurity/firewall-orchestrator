@@ -117,11 +117,22 @@ public sealed class FlowComplianceService
 
     private static NetworkObject ToNetworkObject(GetFlowComplianceStateRequest.IpRangeRequest request, string namePrefix)
     {
+        if (string.IsNullOrEmpty(request.NormalizedIpStart))
+        {
+            if (!AddressInputNormalizer.TryValidateAndNormalize(request, $"'{namePrefix}'", out NormalizedAddressBounds bounds, out string? errorMessage))
+            {
+                throw new ArgumentException(errorMessage);
+            }
+
+            request.NormalizedIpStart = bounds.IpStart;
+            request.NormalizedIpEnd = bounds.IpEnd;
+        }
+
         return new NetworkObject
         {
             Name = namePrefix,
-            IP = request.IpStart,
-            IpEnd = request.IpEnd,
+            IP = request.NormalizedIpStart,
+            IpEnd = request.NormalizedIpEnd,
             Type = new NetworkObjectType { Name = ObjectType.IPRange }
         };
     }

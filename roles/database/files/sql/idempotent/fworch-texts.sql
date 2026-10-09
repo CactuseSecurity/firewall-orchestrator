@@ -8052,11 +8052,11 @@ INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> st
             <tr><td><code>getServiceGroups</code></td><td>Liefert sichtbare Dienstgruppen.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getTimeObjects</code></td><td>Liefert sichtbare Zeitobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getServiceObjectId</code></td><td>L&ouml;st ein Dienstobjekt anhand von Protokoll und Portbereich auf.</td><td><code>protocol</code> erforderlich, dazu <code>portStart</code>, <code>portEnd</code> und optional <code>filter.visibleInRequest</code>.</td></tr>
-            <tr><td><code>getAddressObjectId</code></td><td>L&ouml;st ein Adressobjekt anhand eines IP-Bereichs auf.</td><td><code>ipStart</code> und <code>ipEnd</code> erforderlich, optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressObjectId</code></td><td>L&ouml;st ein Adressobjekt anhand einer IP-Adresse oder eines IP-Bereichs auf.</td><td>Genau eines von <code>ipHost</code>, <code>ipNetwork</code> oder <code>ipRange</code>, optional <code>filter.visibleInRequest</code>.</td></tr>
         </tbody>
     </table>
     Die Filterstruktur ist f&uuml;r diese Endpunkte bewusst klein gehalten und dient vor allem dazu, nur Objekte zur&uuml;ckzugeben, die im Request-Kontext sichtbar sein sollen.
-    F&uuml;r <code>getAddressObjectId</code> akzeptieren <code>ipStart</code> und <code>ipEnd</code> IPv4- und IPv6-Bereiche, ohne Maske oder mit der Hostmaske (<code>/32</code> bzw. <code>/128</code>); jede andere Maske wird abgelehnt.
+    F&uuml;r <code>getAddressObjectId</code> nimmt <code>ipHost</code> eine einzelne maskenlose Adresse, <code>ipNetwork</code> ein kanonisches CIDR-Netz und <code>ipRange</code> genau zwei maskenlose, geordnete Adressen derselben Familie auf. Genau eines dieser Felder ist erforderlich. Eine CIDR-Adresse muss die Netzadresse selbst enthalten; gesetzte Hostbits werden abgelehnt.
     IPv6-Werte, die lediglich eine IPv4-Adresse abbilden - die IPv4-mapped-Form (<code>::ffff:a.b.c.d</code>) und die veraltete IPv4-compatible-Form (<code>::a.b.c.d</code>) - werden ebenfalls abgelehnt; die IPv4-Schreibweise ist zu verwenden.
     F&uuml;r <code>getAddressGroups</code> liefert <code>option.separateZoneGroups=false</code> (Standard) weiterhin ein flaches JSON-Array aller Gruppen.
     Mit <code>option.separateZoneGroups=true</code> wird stattdessen ein Objekt mit den Listen <code>standardGroups</code> und <code>zoneGroups</code> zur&uuml;ckgegeben.
@@ -8073,11 +8073,11 @@ INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> ex
             <tr><td><code>getServiceGroups</code></td><td>Returns visible service groups.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getTimeObjects</code></td><td>Returns visible time objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getServiceObjectId</code></td><td>Resolves a service object from protocol and port range.</td><td><code>protocol</code> is required, together with <code>portStart</code>, <code>portEnd</code>, and optional <code>filter.visibleInRequest</code>.</td></tr>
-            <tr><td><code>getAddressObjectId</code></td><td>Resolves an address object from an IP range.</td><td><code>ipStart</code> and <code>ipEnd</code> are required, with optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressObjectId</code></td><td>Resolves an address object from an IP address or range.</td><td>Exactly one of <code>ipHost</code>, <code>ipNetwork</code>, or <code>ipRange</code>, with optional <code>filter.visibleInRequest</code>.</td></tr>
         </tbody>
     </table>
     The filter structure is intentionally small for these endpoints and is mainly used to restrict results to objects that should be visible in the request context.
-    For <code>getAddressObjectId</code>, <code>ipStart</code> and <code>ipEnd</code> accept IPv4 and IPv6 ranges, without a mask or with the host mask (<code>/32</code> or <code>/128</code>); every other mask is rejected.
+    For <code>getAddressObjectId</code>, <code>ipHost</code> accepts one maskless address, <code>ipNetwork</code> accepts one canonical CIDR network, and <code>ipRange</code> accepts exactly two maskless, ordered addresses of the same family. Exactly one field is required. A CIDR value must carry the network address itself; set host bits are rejected.
     IPv6 values that merely re-encode an IPv4 address - the IPv4-mapped form (<code>::ffff:a.b.c.d</code>) and the deprecated IPv4-compatible form (<code>::a.b.c.d</code>) - are rejected as well; use the IPv4 notation instead.
     For <code>getAddressGroups</code>, <code>option.separateZoneGroups=false</code> (default) still returns a flat JSON array of all groups.
     With <code>option.separateZoneGroups=true</code> an object holding the lists <code>standardGroups</code> and <code>zoneGroups</code> is returned instead.
@@ -8092,10 +8092,8 @@ INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b>
             <tr><td><code>getFlowComplianceState</code></td><td>Pr&uuml;ft einen oder mehrere synthetische Flows gegen ausgew&auml;hlte Policies.</td><td><code>source</code>, <code>destination</code>, <code>service</code> und <code>policies</code>.</td></tr>
         </tbody>
     </table>
-    F&uuml;r <code>getFlowComplianceState</code> werden Quellen und Ziele als IP-Bereiche sowie Dienste als Portbereiche mit Protokoll &uuml;bergeben.
-    <code>ipStart</code> und <code>ipEnd</code> akzeptieren IPv4- und IPv6-Bereiche, ohne Maske oder mit der Hostmaske (<code>/32</code> bzw. <code>/128</code>); jede andere Maske wird abgelehnt.
-    CIDR-Netze werden mit <code>ipNetwork</code> &uuml;bergeben und vor der Pr&uuml;fung in ihre Bereichsgrenzen aufgel&ouml;st. <code>ipNetwork</code> schlie&szlig;t <code>ipStart</code> und <code>ipEnd</code> aus und muss die Netzadresse selbst enthalten; gesetzte Hostbits werden abgelehnt.
-    IPv6-Werte, die lediglich eine IPv4-Adresse abbilden - die IPv4-mapped-Form (<code>::ffff:a.b.c.d</code>) und die veraltete IPv4-compatible-Form (<code>::a.b.c.d</code>) - werden in <code>ipStart</code>, <code>ipEnd</code> und <code>ipNetwork</code> abgelehnt, da sie als IPv6 gelten und deshalb zu keiner IPv4-Zone passen k&ouml;nnten; die IPv4-Schreibweise ist zu verwenden.
+    F&uuml;r <code>getFlowComplianceState</code> enth&auml;lt jede Quelle und jedes Ziel genau eines von <code>ipHost</code>, <code>ipNetwork</code> oder <code>ipRange</code>; Dienste werden als Portbereiche mit Protokoll &uuml;bergeben. Hosts und die genau zwei Bereichsgrenzen sind maskenlos. <code>ipNetwork</code> verlangt ein kanonisches CIDR-Netz, das vor der Pr&uuml;fung in seine inklusiven Grenzen aufgel&ouml;st wird.
+    IPv6-Werte, die lediglich eine IPv4-Adresse abbilden - die IPv4-mapped-Form (<code>::ffff:a.b.c.d</code>) und die veraltete IPv4-compatible-Form (<code>::a.b.c.d</code>) - werden abgelehnt; die IPv4-Schreibweise ist zu verwenden.
     Kriterien, die nur IPv4 unterst&uuml;tzen, melden einen IPv6-Flow als nicht bewertbar (<code>NotAssessable</code>) statt als Verletzung.
     Das gilt auch f&uuml;r die Zonenmatrix: L&auml;sst sich ein Objekt keiner konfigurierten Netzwerkzone zuordnen, wird der Flow als nicht bewertbar gemeldet und nicht als konform.
     Die Antwort liefert pro angefragter Policy einen Block mit <code>policy</code> und <code>violations</code>.
@@ -8110,10 +8108,8 @@ INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b>
             <tr><td><code>getFlowComplianceState</code></td><td>Checks one or more synthetic flows against selected policies.</td><td><code>source</code>, <code>destination</code>, <code>service</code>, and <code>policies</code>.</td></tr>
         </tbody>
     </table>
-    For <code>getFlowComplianceState</code>, sources and destinations are passed as IP ranges and services as port ranges with protocol.
-    <code>ipStart</code> and <code>ipEnd</code> accept IPv4 and IPv6 ranges, without a mask or with the host mask (<code>/32</code> or <code>/128</code>); every other mask is rejected.
-    CIDR networks are supplied through <code>ipNetwork</code> and expanded to their range boundaries before evaluation. <code>ipNetwork</code> excludes <code>ipStart</code> and <code>ipEnd</code> and has to carry the network address itself; set host bits are rejected.
-    IPv6 values that merely re-encode an IPv4 address - the IPv4-mapped form (<code>::ffff:a.b.c.d</code>) and the deprecated IPv4-compatible form (<code>::a.b.c.d</code>) - are rejected in <code>ipStart</code>, <code>ipEnd</code>, and <code>ipNetwork</code>, because they count as IPv6 and could therefore never match an IPv4 zone; use the IPv4 notation instead.
+    For <code>getFlowComplianceState</code>, every source and destination contains exactly one of <code>ipHost</code>, <code>ipNetwork</code>, or <code>ipRange</code>; services are passed as port ranges with protocol. Hosts and the exactly two range endpoints are maskless. <code>ipNetwork</code> requires a canonical CIDR network and is expanded to inclusive bounds before evaluation.
+    IPv6 values that merely re-encode an IPv4 address - the IPv4-mapped form (<code>::ffff:a.b.c.d</code>) and the deprecated IPv4-compatible form (<code>::a.b.c.d</code>) - are rejected; use the IPv4 notation instead.
     Criteria that only support IPv4 report an IPv6 flow as not assessable (<code>NotAssessable</code>) instead of as a violation.
     This includes the zone matrix: an object that cannot be assigned to any configured network zone is reported as not assessable rather than as compliant.
     The response returns one block per requested policy with <code>policy</code> and <code>violations</code>.
@@ -8129,6 +8125,7 @@ INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>WorkflowTicketController</b>
             <tr><td><code>getTicketStatus</code></td><td>Liefert den Status eines vorhandenen Workflow-Tickets.</td><td>Implementiert. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
+    Jeder Eintrag in <code>createTicket.addressObjects</code> enth&auml;lt genau eines von <code>ipHost</code>, <code>ipNetwork</code> oder <code>ipRange</code>. Hosts und die genau zwei Bereichsgrenzen sind maskenlos; <code>ipNetwork</code> verlangt ein kanonisches CIDR-Netz. Akzeptierte Werte werden intern auf die vorhandenen inklusiven Start-/Endgrenzen des Workflows abgebildet.
 ');
 INSERT INTO txt VALUES ('H6943', 'English', 'The <b>WorkflowTicketController</b> provides workflow ticket functions below <code>/api/workflow</code>.
     <table class="table table-sm">
@@ -8138,6 +8135,7 @@ INSERT INTO txt VALUES ('H6943', 'English', 'The <b>WorkflowTicketController</b>
             <tr><td><code>getTicketStatus</code></td><td>Returns the status of an existing workflow ticket.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
+    Every <code>createTicket.addressObjects</code> entry contains exactly one of <code>ipHost</code>, <code>ipNetwork</code>, or <code>ipRange</code>. Hosts and the exactly two range endpoints are maskless; <code>ipNetwork</code> requires a canonical CIDR network. Accepted values are mapped internally to the workflow''s existing inclusive start/end bounds.
 ');
 INSERT INTO txt VALUES ('H6944', 'German',  'Die Workflow-REST-API stellt lesende Funktionen f&uuml;r Workflow-Tickets unter <code>/api/workflow</code> bereit.
     Alle Endpunkte verwenden <code>POST</code> und stehen Administratoren und Auditoren zur Verf&uuml;gung.

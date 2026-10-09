@@ -137,9 +137,25 @@ internal class FlowRequestContractTest
 
     [TestCase("""{"ipEnd":"10.0.0.2"}""")]
     [TestCase("""{"ipStart":"10.0.0.1"}""")]
-    public void GetAddressObjectIdRequest_RequiresIpBounds(string json)
+    [TestCase("{}")]
+    public void GetAddressObjectIdRequest_CapturesUnknownOrMissingAddressFields(string json)
     {
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetAddressObjectIdRequest>(json));
+        Assert.DoesNotThrow(() => JsonSerializer.Deserialize<GetAddressObjectIdRequest>(json));
+    }
+
+    [Test]
+    public void GetAddressObjectIdRequest_DeserializesIpNetworkWithoutOtherRepresentations()
+    {
+        GetAddressObjectIdRequest? request = JsonSerializer.Deserialize<GetAddressObjectIdRequest>(
+            """{"ipNetwork":"2001:db8::/126"}""");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(request, Is.Not.Null);
+            Assert.That(request!.IpNetwork, Is.EqualTo("2001:db8::/126"));
+            Assert.That(request.IpHost, Is.Empty);
+            Assert.That(request.IpRange, Is.Null);
+        });
     }
 
     [Test]

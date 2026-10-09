@@ -6,7 +6,7 @@ namespace FWO.Middleware.Server.Requests;
 /// <summary>
 /// Represents the GetAddressObjectIdRequest type.
 /// </summary>
-public sealed class GetAddressObjectIdRequest : IVisibleInRequestFilterRequest
+public sealed class GetAddressObjectIdRequest : IVisibleInRequestFilterRequest, IAddressInput
 {
     /// <summary>
     /// Gets the Filter value.
@@ -15,18 +15,26 @@ public sealed class GetAddressObjectIdRequest : IVisibleInRequestFilterRequest
     public VisibleInRequestFilter? Filter { get; set; }
 
     /// <summary>
-    /// Gets the IpStart value.
+    /// Gets one maskless IPv4 or IPv6 address.
     /// </summary>
-    [JsonRequired]
-    [JsonPropertyName("ipStart")]
-    public string IpStart { get; set; } = string.Empty;
+    [JsonPropertyName("ipHost")]
+    public string IpHost { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets the IpEnd value.
+    /// Gets one canonical IPv4 or IPv6 CIDR network.
     /// </summary>
-    [JsonRequired]
-    [JsonPropertyName("ipEnd")]
-    public string IpEnd { get; set; } = string.Empty;
+    [JsonPropertyName("ipNetwork")]
+    public string IpNetwork { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets an inclusive range containing exactly two maskless addresses.
+    /// </summary>
+    [JsonPropertyName("ipRange")]
+    public List<string>? IpRange { get; set; }
+
+    internal string NormalizedIpStart { get; set; } = string.Empty;
+
+    internal string NormalizedIpEnd { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets the AdditionalData value.

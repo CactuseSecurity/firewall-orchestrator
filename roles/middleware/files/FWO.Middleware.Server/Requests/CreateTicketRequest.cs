@@ -192,7 +192,7 @@ public sealed class CreateTicketRequest
     /// <summary>
     /// Represents the CreateAddressObjectRequest type.
     /// </summary>
-    public sealed class CreateAddressObjectRequest
+    public sealed class CreateAddressObjectRequest : IAddressInput
     {
         /// <summary>
         /// Gets the requested leaf-object predicate. Defaults to <c>create</c>.
@@ -213,16 +213,26 @@ public sealed class CreateTicketRequest
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the IpStart value.
+        /// Gets one maskless IPv4 or IPv6 address.
         /// </summary>
-        [JsonPropertyName("ipStart")]
-        public string IpStart { get; set; } = string.Empty;
+        [JsonPropertyName("ipHost")]
+        public string IpHost { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the IpEnd value.
+        /// Gets one canonical IPv4 or IPv6 CIDR network.
         /// </summary>
-        [JsonPropertyName("ipEnd")]
-        public string IpEnd { get; set; } = string.Empty;
+        [JsonPropertyName("ipNetwork")]
+        public string IpNetwork { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets an inclusive range containing exactly two maskless addresses.
+        /// </summary>
+        [JsonPropertyName("ipRange")]
+        public List<string>? IpRange { get; set; }
+
+        internal string NormalizedIpStart { get; set; } = string.Empty;
+
+        internal string NormalizedIpEnd { get; set; } = string.Empty;
     }
 
     /// <summary>

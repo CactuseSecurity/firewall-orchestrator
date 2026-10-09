@@ -31,7 +31,8 @@ public class WorkflowTicketController : ControllerBase
     }
 
     /// <summary>
-    /// Creates a new workflow ticket.
+    /// Creates a new workflow ticket. Each addressObjects entry must supply exactly one address
+    /// representation: ipHost, canonical ipNetwork, or a two-entry ipRange.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}")]
     [HttpPost("createTicket")]

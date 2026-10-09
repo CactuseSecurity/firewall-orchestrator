@@ -42,7 +42,7 @@ public sealed class ResolveZonesForObjectsRequest : IRequestWithRootAdditionalDa
     /// <summary>
     /// Represents a leaf object with IP data.
     /// </summary>
-    public sealed class LeafObjectRequest : ObjectRequest
+    public sealed class LeafObjectRequest : ObjectRequest, IAddressInput
     {
         /// <summary>
         /// Gets the object type.
@@ -51,16 +51,26 @@ public sealed class ResolveZonesForObjectsRequest : IRequestWithRootAdditionalDa
         public string Type { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the start IP or range value.
+        /// Gets one maskless IPv4 or IPv6 address.
         /// </summary>
-        [JsonPropertyName("ipStart")]
-        public string IpStart { get; set; } = string.Empty;
+        [JsonPropertyName("ipHost")]
+        public string IpHost { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the end IP or range value.
+        /// Gets one canonical IPv4 or IPv6 CIDR network.
         /// </summary>
-        [JsonPropertyName("ipEnd")]
-        public string IpEnd { get; set; } = string.Empty;
+        [JsonPropertyName("ipNetwork")]
+        public string IpNetwork { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets an inclusive range containing exactly two maskless addresses.
+        /// </summary>
+        [JsonPropertyName("ipRange")]
+        public List<string>? IpRange { get; set; }
+
+        internal string NormalizedIpStart { get; set; } = string.Empty;
+
+        internal string NormalizedIpEnd { get; set; } = string.Empty;
     }
 
     /// <summary>

@@ -6,7 +6,6 @@ using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System.Collections;
 using System.Reflection;
-using System.Text.RegularExpressions;
 
 namespace FWO.Test
 {
@@ -86,9 +85,9 @@ namespace FWO.Test
             }
             Assert.Multiple(() =>
             {
-                Assert.That(Regex.Split(logEntry.To, @",\s*"), Is.EquivalentTo(expectedRecipients));
-                Assert.That(Regex.Split(logEntry.Cc, @",\s*"), Is.EquivalentTo(expectedRecipients));
-                Assert.That(Regex.Split(logEntry.Bcc, @",\s*"), Is.EquivalentTo(expectedRecipients));
+                Assert.That(logEntry.To.Split(',', StringSplitOptions.TrimEntries), Is.EquivalentTo(expectedRecipients));
+                Assert.That(logEntry.Cc.Split(',', StringSplitOptions.TrimEntries), Is.EquivalentTo(expectedRecipients));
+                Assert.That(logEntry.Bcc.Split(',', StringSplitOptions.TrimEntries), Is.EquivalentTo(expectedRecipients));
                 Assert.That(apiConnection.LastLogStatus, Is.EqualTo(NotificationLogStatus.Suppressed));
             });
         }

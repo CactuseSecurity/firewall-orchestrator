@@ -29,10 +29,11 @@ jobs:
       (github.event.action == 'unlabeled' && github.event.label.name == 'versioned-change')
     runs-on: ubuntu-latest
     steps:
+      # No explicit ref: push and pull_request_target both default to the develop
+      # commit of the triggering event, so a PR head is never checked out.
       - name: Check out trusted versioning tooling
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          ref: develop
           path: fwo-version-tooling
           fetch-depth: 1
           persist-credentials: false

@@ -27,10 +27,11 @@ jobs:
     steps:
       # Only upstream tooling executes. PR files are read through the API as
       # inert data, including for forks; no contributor checkout receives a token.
+      # No explicit ref: pull_request_target defaults to the base branch commit and
+      # the requeue dispatch targets develop, so a PR head is never checked out.
       - name: Check out trusted validation tooling
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          ref: develop
           fetch-depth: 1
           persist-credentials: false
 

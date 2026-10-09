@@ -582,6 +582,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Die Bezeichnungen Objekt-Katalog und Service-Katalog wurden verdeutlicht.</li>
     <li>Die neuen Auftragstypen "Objekt anlegen" und "Objekt &auml;ndern" beantragen ein einzelnes Netzwerkobjekt (Host, Netz, Adressbereich) oder einen Service ohne Gruppe. Beim &Auml;ndern wird das bestehende Objekt &uuml;ber eine Suche ausgew&auml;hlt, der Auftrag zeigt alten und neuen Stand. Die Auftragstypen m&uuml;ssen in den Workflow-Anpassungen freigeschaltet werden und werden noch nicht an externe Ticketsysteme &uuml;bergeben; siehe <a target="_blank" href="/help/workflow/tasktypes">Hilfe zu Auftragstypen</a>.</li>
     <li>Neues Importmodul f&uuml;r Akamai Guardicore Segmentation: Labels werden als Netzwerkobjektgruppen ihrer IP-Adressen (aus IP-Kriterien und den Assets mit dem Label) sowie als Labels importiert, UND-verkn&uuml;pfte Labels einer Regel als Gruppe der gemeinsamen IP-Adressen. Die Regeln werden je Abschnitt und Ruleset in verkettete Regelwerke aufgeteilt, deren alphabetische Reihenfolge der Guardicore-Abschnittsreihenfolge entspricht. Die Labels der Quelle und des Ziels einer Regel werden zudem an der Regel gespeichert.</li>
+    <li>F&uuml;r einzelne Rollen kann die Sichtbarkeit jedes Reporttyps auf sichtbar, nicht sichtbar oder geerbt (vom Standardverhalten) gesetzt werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -598,6 +599,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>The Object Catalog and Service Catalog labels were clarified.</li>
     <li>The new task types "Create Object" and "Modify Object" request a single network object (host, network, address range) or service without a group. When modifying, the existing object is selected through a search and the task shows the old and the new state. The task types have to be enabled in the workflow customizing settings and are not yet passed to external ticket systems; see <a target="_blank" href="/help/workflow/tasktypes">task type help</a>.</li>
     <li>New import module for Akamai Guardicore Segmentation: labels are imported as network object groups of their IP addresses (from IP criteria and from the assets carrying the label) and as labels, ANDed labels of a rule as a group of their common IP addresses. The rules are split into chained rulebases per section and ruleset, whose alphabetical order matches the Guardicore section order. The labels of the source and destination of a rule are also stored with the rule.</li>
+    <li>For individual roles, the visibility of each report type can be set to visible, not visible, or inherited (from the default behaviour).</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3567,6 +3569,16 @@ INSERT INTO txt VALUES ('select_file',          'German',   'Datei ausw&auml;hle
 INSERT INTO txt VALUES ('select_file',          'English',  'Select file');
 INSERT INTO txt VALUES ('availableReportTypes', 'German', 	'Verf&uuml;gbare Reporttypen');
 INSERT INTO txt VALUES ('availableReportTypes', 'English', 	'Available Report Types');
+INSERT INTO txt VALUES ('reportTypeVisibilityByRole', 'German', 	'Reporttyp-Sichtbarkeit je Rolle');
+INSERT INTO txt VALUES ('reportTypeVisibilityByRole', 'English', 	'Report Type Visibility by Role');
+INSERT INTO txt VALUES ('role', 'German', 	'Rolle');
+INSERT INTO txt VALUES ('role', 'English', 	'Role');
+INSERT INTO txt VALUES ('inherited', 'German', 	'Geerbt');
+INSERT INTO txt VALUES ('inherited', 'English', 	'Inherited');
+INSERT INTO txt VALUES ('visible', 'German', 	'Sichtbar');
+INSERT INTO txt VALUES ('visible', 'English', 	'Visible');
+INSERT INTO txt VALUES ('not_visible', 'German', 	'Nicht sichtbar');
+INSERT INTO txt VALUES ('not_visible', 'English', 	'Not Visible');
 INSERT INTO txt VALUES ('varianceAnalysisSync', 'German',   'Synchroner Soll-Ist-Abgleich');
 INSERT INTO txt VALUES ('varianceAnalysisSync', 'English',  'Synchroneous Variance Analysis');
 INSERT INTO txt VALUES ('varianceAnalysisRefresh','German', 'Soll-Ist-Abgleich auf Schaltfl&auml;che');
@@ -6954,6 +6966,8 @@ INSERT INTO txt VALUES ('H5461', 'English', 'Every user can set his own preferre
 ');
 INSERT INTO txt VALUES ('H5462', 'German',  'Regelt den Standardzustand der Klappelemente f&uuml;r die Regelwerkanzeige im Rules Report.');
 INSERT INTO txt VALUES ('H5462', 'English', 'Sets the default state of the collapsible elements for the rule display in the Rules Report.');
+INSERT INTO txt VALUES ('H5463', 'German',  'Reporttyp-Sichtbarkeit je Rolle: F&uuml;r eine ausgew&auml;hlte Rolle kann je Reporttyp festgelegt werden, ob dieser sichtbar, nicht sichtbar oder geerbt (vom Standardverhalten der verf&uuml;gbaren Reporttypen) sein soll. Diese Einstellung schr&auml;nkt die Liste der verf&uuml;gbaren Reporttypen zus&auml;tzlich f&uuml;r Nutzer der jeweiligen Rolle ein bzw. erweitert sie.');
+INSERT INTO txt VALUES ('H5463', 'English', 'Report Type Visibility by Role: For a selected role, each report type can be set to visible, not visible or inherited (from the default behaviour of the available report types). This setting additionally restricts or extends the list of available report types for users of the respective role.');
 INSERT INTO txt VALUES ('H5462a', 'German',  'FW Konfigurations&auml;nderungs-Intervall (in Sekunden): legt das Intervall fest, in dem die FW Konfigurations&auml;nderung durchgef&uuml;hrt werden sollen.');
 INSERT INTO txt VALUES ('H5462a', 'English', 'FW Config Change sleep time (in seconds): defines the interval in which the FW Config Changes should be performed.');
 INSERT INTO txt VALUES ('H5462b', 'German',  'Anzahl Wartezyklen: legt fest, wie viele Zyklen des Konfigurations&auml;nderungs-Intervalls bei bestimmten &auml;nderungen gewartet werden soll (z.B. nach Neuanlegen von Netzwerkobjekten).');

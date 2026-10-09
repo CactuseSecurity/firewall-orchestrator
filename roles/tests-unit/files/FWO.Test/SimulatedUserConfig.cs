@@ -30,6 +30,14 @@ namespace FWO.Test
 
     internal class SimulatedUserConfig : UserConfig
     {
+        public SimulatedUserConfig() : base()
+        {
+            // Report-type tests generally exercise the per-role/category visibility rules, not the
+            // global on/off switch - default to every report type being globally available so those
+            // rules are the only thing narrowing CanUseReportType, unless a test overrides this itself.
+            AvailableReportTypes = System.Text.Json.JsonSerializer.Serialize(FWO.Basics.ReportTypeGroups.AllReportTypes());
+        }
+
         public static Dictionary<string, string> DummyTranslate = new()
         {
             {"Rules","Rules Report"},

@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 999.0.0
+## 9.8.0 - 09.10.2026
 - database: add schema labelling for generic key/value labels (e.g. Guardicore labels, app roles, stages) as the
   basis of the Guardicore integration (issue #4949): label keys and values, a label change history
   (label_change_event, referencing import, ticket and connection) and label assignments to rules (source,
@@ -25,7 +25,7 @@
 - importer, middleware: rules carry the labels of their source and destination in rule_src_labels / rule_dst_labels as
   {"label-key": "label-value", ...}, several values of one key as array of values, null without labels; the
   normalized config of the middleware returns them, so that unchanged labels are not reported as rule changes
-- upgrade: 999.0.0.sql adds the labelling schema, the rule label columns, the labelLogic setting and the Guardicore
+- upgrade: 9.8.0.sql adds the labelling schema, the rule label columns, the labelLogic setting and the Guardicore
   device types to existing installations
 
 ## 9.6.2 - 02.10.2026

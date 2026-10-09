@@ -94,7 +94,7 @@ namespace FWO.Test
         [TestCase(true)]
         public void Build_NamesThePeriodAndTheImportDate(bool showTime)
         {
-            AggregatedTitleUserConfig userConfig = new() { ShowLogTimeRangeStartTime = showTime };
+            AggregatedTitleUserConfig userConfig = new() { ShowLogImportTimeInHeading = showTime };
 
             string title = LogDataTitle.Build(new LogDataImportPeriod { LogTimeRangeInSeconds = kOneWeek, ImportTime = kImportTime }, userConfig);
 

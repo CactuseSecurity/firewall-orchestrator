@@ -28,7 +28,7 @@ namespace FWO.Ui.Services
             }
             return userConfig.GetText("log_data_aggregated")
                 .Replace(Placeholder.TIME_INTERVAL, FormatTimeRange(period.LogTimeRangeInSeconds, userConfig))
-                .Replace(Placeholder.DATE, FormatImportTime(period.ImportTime, userConfig, userConfig.ShowLogTimeRangeStartTime));
+                .Replace(Placeholder.DATE, FormatImportTime(period.ImportTime, userConfig, userConfig.ShowLogImportTimeInHeading));
         }
 
         /// <summary>

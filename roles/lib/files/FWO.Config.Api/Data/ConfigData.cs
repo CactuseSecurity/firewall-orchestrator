@@ -384,8 +384,8 @@ namespace FWO.Config.Api.Data
         /// <summary>
         /// Includes the time next to the import date, which ends the aggregation period, in the log heading.
         /// </summary>
-        [JsonProperty("showLogTimeRangeStartTime"), JsonPropertyName("showLogTimeRangeStartTime")]
-        public bool ShowLogTimeRangeStartTime { get; set; } = false;
+        [JsonProperty("showLogImportTimeInHeading"), JsonPropertyName("showLogImportTimeInHeading")]
+        public bool ShowLogImportTimeInHeading { get; set; } = false;
 
         [JsonProperty("defaultLogTimeRangeInSeconds"), JsonPropertyName("defaultLogTimeRangeInSeconds")]
         public int DefaultLogTimeRangeInSeconds { get; set; } = GlobalConst.kDefaultLogTimeRangeInSeconds;

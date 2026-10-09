@@ -29,6 +29,7 @@
   setting Settings - Logging - default log time range (default: 7 days, used for CSV imports), which a
   log data import file can override in the new optional top-level field log_time_range_in_seconds.
   The middleware warns about entries logged outside the supplied period. New setting to hide the log time column (default: on) (issue #5391).
+- importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
   
 ## 9.6.2 - 02.10.2026
 
@@ -56,7 +57,6 @@
   columns needed for the search, at most 50 rows per query)
 - the upgrade copies the group_create state matrices of every workflow configuration for both new task
   types; both task types stay unavailable until an admin adds them to the available task types
-- importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
 
 ## 9.6.1 - 05.10.2026
 - add a management rulebases view to the rules report: select start rulebases per management instead of

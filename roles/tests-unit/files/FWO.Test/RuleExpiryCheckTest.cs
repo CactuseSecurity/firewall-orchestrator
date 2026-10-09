@@ -29,7 +29,7 @@ namespace FWO.Test
         [TestCase(EmailRecipientOption.OwnerGroupOnly, false, true)]
         [TestCase(EmailRecipientOption.OwnerMainResponsible, true, false)]
         [TestCase(EmailRecipientOption.AllOwnerResponsibles, true, true)]
-        [TestCase(EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty, true, true)]
+        [TestCase(EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty, false, true)]
         [TestCase(EmailRecipientOption.ConfiguredResponsibles, false, true)]
         public async Task CheckRuleExpiry_ResolvesOwnerRecipients(
             EmailRecipientOption recipientOption, bool includesMain, bool includesSupporting)

@@ -1177,7 +1177,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task GetOwnerGroupOrMainResponsibleRecipientsReturnsGroupAndMainAddresses()
+        public async Task GetOwnerGroupOrMainResponsibleRecipientsReturnsOnlySupportingAddresses()
         {
             EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false);
             SetPrivateField(helper, "uiUsers", new List<UiUser>
@@ -1191,7 +1191,57 @@ namespace FWO.Test
 
             List<string> recipients = await InvokePrivateAsync<List<string>>(helper, "GetOwnerGroupOrMainResponsibleRecipients", new object?[] { owner });
 
-            Assert.That(recipients, Is.EqualTo(kSupportAndMainRecipients));
+            Assert.That(recipients, Is.EqualTo(kSupportRecipients));
+        }
+
+        /// <summary>
+        /// Falls back to main when the supporting DN cannot resolve to a usable email address.
+        /// </summary>
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase(" ")]
+        public async Task GetRecipientsFallbackUsesMainWhenSupportingHasNoUsableEmail(string? supportingEmail)
+        {
+            EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false);
+            List<UiUser> users = new()
+            {
+                new() { Dn = "cn=main,dc=test", Email = "main@example.test" }
+            };
+            if (supportingEmail != null)
+            {
+                users.Add(new UiUser { Dn = "cn=support,dc=test", Email = supportingEmail });
+            }
+            SetPrivateField(helper, "uiUsers", users);
+            FwoOwner owner = new();
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeSupporting, "cn=support,dc=test");
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
+
+            List<string> recipients = await helper.GetRecipients(
+                EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty, null, owner, null, null);
+
+            Assert.That(recipients, Is.EqualTo(kMainRecipients));
+        }
+
+        /// <summary>
+        /// Returns no recipients when neither owner type has a usable address or no owner exists.
+        /// </summary>
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task GetRecipientsFallbackReturnsEmptyWithoutResolvableOwnerRecipients(bool hasOwner)
+        {
+            EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false);
+            SetPrivateField(helper, "uiUsers", new List<UiUser>
+            {
+                new() { Dn = "cn=main,dc=test", Email = " " }
+            });
+            FwoOwner? owner = hasOwner ? new FwoOwner() : null;
+            owner?.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeSupporting, "cn=support,dc=test");
+            owner?.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
+
+            List<string> recipients = await helper.GetRecipients(
+                EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty, null, owner, null, null);
+
+            Assert.That(recipients, Is.Empty);
         }
 
         [Test]

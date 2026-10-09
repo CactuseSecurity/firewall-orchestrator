@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.7.0 - 07.10.2026
+## 9.6.3 - 07.10.2026
 - resolve reverse DNS asynchronously with shutdown cancellation; reuse stored names and empty
   results across imports and allow disabling new lookups in Settings - Logging. A lookup without
   definitive answer (DNS server unreachable, server failure, refused) is repeated by the next import;

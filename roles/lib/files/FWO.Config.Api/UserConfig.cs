@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using FWO.Basics;
 using FWO.Logging;
@@ -172,6 +173,30 @@ namespace FWO.Config.Api
             return User.Language ?? "";
         }
 
+        /// <summary>
+        /// Culture of the language the user has selected, used to format dates the way the user reads them.
+        /// The UI renders on the server, so the culture of the thread belongs to the server and not to the user.
+        /// </summary>
+        /// <returns>The culture of the user language, the invariant culture if the language names no known culture.</returns>
+        public CultureInfo GetUserCulture()
+        {
+            ThrowIfDisposed();
+            string language = string.IsNullOrWhiteSpace(User.Language) ? globalConfig?.DefaultLanguage ?? GlobalConst.kEnglish : User.Language;
+            string? cultureName = globalConfig?.UiLanguages?.FirstOrDefault(uiLanguage => uiLanguage.Name == language)?.CultureInfo;
+            if (string.IsNullOrWhiteSpace(cultureName))
+            {
+                return CultureInfo.InvariantCulture;
+            }
+            try
+            {
+                return CultureInfo.GetCultureInfo(cultureName);
+            }
+            catch (CultureNotFoundException)
+            {
+                return CultureInfo.InvariantCulture;
+            }
+        }
+
         public void SetLanguage(string languageName)
         {
             ThrowIfDisposed();
@@ -207,18 +232,141 @@ namespace FWO.Config.Api
         public ReportVisibility GetReportVisibility()
         {
             return new ReportVisibility(
-                RuleRelated: CanUseAnyRole(Roles.Reporter, Roles.ReporterViewAll, Roles.Admin, Roles.Auditor, Roles.Recertifier),
-                ModellingRelated: CanUseAnyRole(Roles.Modeller, Roles.Admin, Roles.Auditor, Roles.Recertifier),
-                ComplianceRelated: CanUseAnyRole(Roles.Admin, Roles.Auditor),
-                OwnerRelated: CanUseAnyRole(Roles.Admin, Roles.Auditor),
-                WorkflowRelated: CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.Requester, Roles.Approver,
-                    Roles.Planner, Roles.Implementer, Roles.Reviewer));
+                RuleRelated: CanUseAnyRole(ReportVisibilityRoleSets.RuleRelated),
+                ModellingRelated: CanUseAnyRole(ReportVisibilityRoleSets.ModellingRelated),
+                ComplianceRelated: CanUseAnyRole(ReportVisibilityRoleSets.ComplianceRelated),
+                OwnerRelated: CanUseAnyRole(ReportVisibilityRoleSets.OwnerRelated),
+                WorkflowRelated: CanUseAnyRole(ReportVisibilityRoleSets.WorkflowRelated));
         }
 
+        /// <summary>
+        /// Role-based visibility of a report type, used for templates, schedules and the archive: combines the
+        /// standard role-category rules with any per-role "Visible"/"Not Visible" override configured in
+        /// <see cref="ConfigData.ReportTypeVisibilityByRole"/>. The global switch
+        /// (<see cref="ConfigData.AvailableReportTypes"/>) is not applied here, see <see cref="CanSelectReportTypeForGeneration"/>.
+        /// </summary>
         public bool CanUseReportType(ReportType reportType, bool modellingOwnerAllowed = true)
         {
-            return reportType == ReportType.Undefined
-                || reportType.IsVisibleTemplateType(GetReportVisibility(), modellingOwnerAllowed);
+            return CanUseReportType(reportType, modellingOwnerAllowed, applyGlobalSwitch: false);
+        }
+
+        /// <summary>
+        /// Visibility of a report type in the report-type chooser of the report generation: additionally applies the
+        /// global switch (<see cref="ConfigData.AvailableReportTypes"/>) to roles set to "Inherited". An explicit
+        /// per-role override always wins - it can reinstate a report type that was disabled globally, or hide one that wasn't.
+        /// </summary>
+        public bool CanSelectReportTypeForGeneration(ReportType reportType)
+        {
+            return CanUseReportType(reportType, modellingOwnerAllowed: true, applyGlobalSwitch: true);
+        }
+
+        private bool CanUseReportType(ReportType reportType, bool modellingOwnerAllowed, bool applyGlobalSwitch)
+        {
+            if (reportType == ReportType.Undefined)
+            {
+                return true;
+            }
+
+            List<string> applicableRoles = GetApplicableRoles();
+            if (applicableRoles.Count == 0)
+            {
+                return false;
+            }
+
+            Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> overrides = ParseReportTypeVisibilityByRole();
+            bool globallyAvailable = !applyGlobalSwitch || ParseAvailableReportTypes().Contains(reportType);
+            return applicableRoles.Any(role => IsReportTypeVisibleForRole(reportType, role, overrides, modellingOwnerAllowed, globallyAvailable));
+        }
+
+        /// <summary>
+        /// Returns the subset of the user's roles for which the given report type is explicitly set
+        /// to "Not Visible". Used to keep the data-access layer (role selection for report execution)
+        /// aligned with the UI-facing visibility rules in <see cref="CanUseReportType"/>.
+        /// </summary>
+        public List<string> GetExplicitlyDeniedRoles(ReportType reportType)
+        {
+            if (reportType == ReportType.Undefined)
+            {
+                return [];
+            }
+
+            Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> overrides = ParseReportTypeVisibilityByRole();
+            return [.. User.Roles
+                .Where(role => ReportTypeRoleVisibilityConfig.GetOption(overrides, role, reportType) == ReportTypeVisibilityOption.NotVisible)
+                .Distinct(StringComparer.OrdinalIgnoreCase)];
+        }
+
+        private List<string> GetApplicableRoles()
+        {
+            return [.. User.Roles.Where(role => ExecutionModeHelper.IsRoleAvailableInExecutionMode(User.Roles, ExecutionMode, role))];
+        }
+
+        private string? cachedReportTypeVisibilityByRoleRaw;
+        private Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> cachedReportTypeVisibilityByRole = [];
+
+        /// <summary>
+        /// Parses <see cref="ConfigData.ReportTypeVisibilityByRole"/>, memoizing the result against the
+        /// raw config string so repeated calls (e.g. once per report type per render) don't each re-run
+        /// JSON deserialization when the underlying config value hasn't changed.
+        /// </summary>
+        private Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> ParseReportTypeVisibilityByRole()
+        {
+            if (cachedReportTypeVisibilityByRoleRaw != ReportTypeVisibilityByRole)
+            {
+                cachedReportTypeVisibilityByRoleRaw = ReportTypeVisibilityByRole;
+                cachedReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Parse(ReportTypeVisibilityByRole);
+            }
+            return cachedReportTypeVisibilityByRole;
+        }
+
+        private static bool IsReportTypeVisibleForRole(ReportType reportType, string role,
+            Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> overrides, bool modellingOwnerAllowed,
+            bool globallyAvailable)
+        {
+            ReportTypeVisibilityOption option = ReportTypeRoleVisibilityConfig.GetOption(overrides, role, reportType);
+            return option switch
+            {
+                // An explicit "Visible" override wins over both the global switch and the coarse-grained
+                // role-category visibility rules; it must not bypass the per-instance modelling-owner scoping check.
+                ReportTypeVisibilityOption.Visible =>
+                    modellingOwnerAllowed || !reportType.IsModellingReport() || reportType.IsOwnerReport(),
+                ReportTypeVisibilityOption.NotVisible => false,
+                _ => globallyAvailable && reportType.IsVisibleTemplateType(ReportVisibilityRoleSets.ForRole(role), modellingOwnerAllowed)
+            };
+        }
+
+        private string? cachedAvailableReportTypesRaw;
+        private HashSet<ReportType> cachedAvailableReportTypes = [];
+
+        /// <summary>
+        /// Parses <see cref="ConfigData.AvailableReportTypes"/>, memoizing the result against the raw config
+        /// string the same way <see cref="ParseReportTypeVisibilityByRole"/> does. Malformed config data is
+        /// treated as "nothing globally available" rather than throwing, since this now runs on every
+        /// <see cref="CanSelectReportTypeForGeneration"/> call.
+        /// </summary>
+        private HashSet<ReportType> ParseAvailableReportTypes()
+        {
+            if (cachedAvailableReportTypesRaw != AvailableReportTypes)
+            {
+                cachedAvailableReportTypesRaw = AvailableReportTypes;
+                cachedAvailableReportTypes = [];
+                if (!string.IsNullOrWhiteSpace(AvailableReportTypes))
+                {
+                    try
+                    {
+                        List<ReportType>? parsed = System.Text.Json.JsonSerializer.Deserialize<List<ReportType>>(AvailableReportTypes);
+                        if (parsed != null)
+                        {
+                            cachedAvailableReportTypes = [.. parsed];
+                        }
+                    }
+                    catch (System.Text.Json.JsonException)
+                    {
+                        // Keep the empty set computed above.
+                    }
+                }
+            }
+            return cachedAvailableReportTypes;
         }
 
         public override string GetText(string key)

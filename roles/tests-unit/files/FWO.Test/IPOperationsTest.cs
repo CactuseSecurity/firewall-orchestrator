@@ -1,4 +1,5 @@
 using System.Net;
+using DnsClient;
 using NetTools;
 using NUnit.Framework;
 using FWO.Basics;
@@ -604,6 +605,42 @@ namespace FWO.Test
         {
             Assert.AreEqual("not-an-ip", IpOperations.ToCompactNotation("not-an-ip", "10.0.0.1"));
             Assert.AreEqual("10.0.0.1", IpOperations.ToCompactNotation("10.0.0.1", "2001:db8::1"));
+        }
+
+        private static readonly List<string> kPtrNames = ["host.example.test"];
+
+        /// <summary>
+        /// A response without error is definitive, with or without PTR records.
+        /// </summary>
+        [Test]
+        public void SelectReverseLookupNames_ReturnsTheNamesOfAResponseWithoutError()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(IpOperations.SelectReverseLookupNames(DnsHeaderResponseCode.NoError, kPtrNames), Is.EqualTo(kPtrNames));
+                Assert.That(IpOperations.SelectReverseLookupNames(DnsHeaderResponseCode.NoError, Array.Empty<string>()), Is.Empty);
+            });
+        }
+
+        /// <summary>
+        /// A non-existent domain answers that the address has no name.
+        /// </summary>
+        [Test]
+        public void SelectReverseLookupNames_ReturnsNoNameForANonExistentDomain()
+        {
+            Assert.That(IpOperations.SelectReverseLookupNames(DnsHeaderResponseCode.NotExistentDomain, kPtrNames), Is.Empty);
+        }
+
+        /// <summary>
+        /// Other response codes may change with the next query and therefore are no answer.
+        /// </summary>
+        [TestCase(DnsHeaderResponseCode.ServerFailure)]
+        [TestCase(DnsHeaderResponseCode.Refused)]
+        [TestCase(DnsHeaderResponseCode.FormatError)]
+        [TestCase(DnsHeaderResponseCode.NotImplemented)]
+        public void SelectReverseLookupNames_ReturnsNullForAFailedLookup(DnsHeaderResponseCode responseCode)
+        {
+            Assert.That(IpOperations.SelectReverseLookupNames(responseCode, kPtrNames), Is.Null);
         }
     }
 }

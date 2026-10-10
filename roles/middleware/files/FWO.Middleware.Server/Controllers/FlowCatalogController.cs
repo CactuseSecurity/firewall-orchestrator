@@ -235,10 +235,15 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Resolves a service object identifier from the supplied lookup request against the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
-    /// It is not intended to identify custom protocol-only services because their technical definitions are ambiguous.
+    /// It is not intended to identify custom protocol-only services because their technical definitions are ambiguous:
+    /// when more than one service object matches (several portless services of the same protocol), the lookup returns
+    /// 409 with the candidates instead of an id. Services with ports and the canonical ANY service are unique.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceObjectId")]
+    [ProducesResponseType(typeof(ServiceObjectIdResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(AmbiguousServiceObjectIdResponse), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ServiceObjectIdResponse>> GetServiceObjectId([FromBody] GetServiceObjectIdRequest request)
     {
         if (!TryValidateVisibleInRequestRequest(request, ServiceObjectIdRootSchema, ServiceObjectIdFilterSchema, out ActionResult? errorResult))
@@ -262,7 +267,18 @@ public class FlowCatalogController : ControllerBase
             return BadRequest(serviceErrorMessage);
         }
 
-        return Ok(await flowCatalogService.GetServiceObjectIdAsync(request.Protocol, request.PortStart, request.PortEnd, request.Filter?.VisibleInRequest));
+        List<ServiceObjectIdResponse> matches = await flowCatalogService.FindServiceObjectIdsAsync(
+            request.Protocol, request.PortStart, request.PortEnd, request.Filter?.VisibleInRequest);
+        if (matches.Count > 1)
+        {
+            return Conflict(new AmbiguousServiceObjectIdResponse
+            {
+                Message = "More than one service object matches the lookup; reference one of the candidates by id.",
+                Candidates = matches
+            });
+        }
+
+        return Ok(matches.Count == 1 ? matches[0] : new ServiceObjectIdResponse());
     }
 
     /// <summary>

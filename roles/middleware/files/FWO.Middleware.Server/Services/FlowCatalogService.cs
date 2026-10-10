@@ -20,6 +20,9 @@ namespace FWO.Middleware.Server.Services;
 /// </summary>
 public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
 {
+    /// <summary>Maximum number of candidates returned by an ambiguous service object id lookup.</summary>
+    public const int kMaxServiceObjectIdCandidates = 20;
+
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
     private readonly ApiSubscription? configSubscription;
@@ -230,27 +233,32 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     }
 
     /// <summary>
-    /// Performs the GetServiceObjectIdAsync operation.
+    /// Returns the service objects matching protocol and port range, ordered by id. Objects with ports and the
+    /// canonical ANY service are unique by their hash, so at most one of them matches; several portless services
+    /// of the same protocol may match, and the caller must treat more than one match as ambiguous instead of
+    /// picking one.
     /// </summary>
-    public async Task<ServiceObjectIdResponse> GetServiceObjectIdAsync(string protocol, int? portStart, int? portEnd, bool? visibleInRequest)
+    /// <param name="protocol">Protocol name or id.</param>
+    /// <param name="portStart">Inclusive starting port, null for a portless service.</param>
+    /// <param name="portEnd">Inclusive ending port, null for a portless service.</param>
+    /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
+    /// <returns>At most <see cref="kMaxServiceObjectIdCandidates"/> matches; empty for an unknown protocol.</returns>
+    public async Task<List<ServiceObjectIdResponse>> FindServiceObjectIdsAsync(string protocol, int? portStart, int? portEnd, bool? visibleInRequest)
     {
         int? protocolId = await ResolveProtocolIdAsync(protocol);
         if (!protocolId.HasValue)
         {
-            return new ServiceObjectIdResponse();
+            return [];
         }
 
-        List<FlowSvcObject> result = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(
-            FlowQueries.getFlowServiceObjectId,
-            BuildLookupQueryVariables(
-                visibleInRequest,
-                ("port_start", portStart),
-                ("port_end", portEnd),
-                ("ip_proto_id", protocolId.Value))) ?? [];
-        FlowSvcObject? flowObject = result.FirstOrDefault();
-        return flowObject == null
-            ? new ServiceObjectIdResponse()
-            : new ServiceObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name };
+        Dictionary<string, object> variables = BuildLookupQueryVariables(
+            visibleInRequest,
+            ("port_start", portStart),
+            ("port_end", portEnd),
+            ("ip_proto_id", protocolId.Value));
+        variables["limit"] = kMaxServiceObjectIdCandidates;
+        List<FlowSvcObject> result = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowServiceObjectId, variables) ?? [];
+        return result.Select(flowObject => new ServiceObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name }).ToList();
     }
 
     /// <summary>

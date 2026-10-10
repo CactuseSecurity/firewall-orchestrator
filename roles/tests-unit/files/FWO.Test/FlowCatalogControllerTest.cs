@@ -17,6 +17,8 @@ namespace FWO.Test
     [TestFixture]
     internal class FlowCatalogControllerTest
     {
+        private static readonly List<long> kAmbiguousCandidateIds = [61, 62];
+
         [Test]
         public async Task FlowCatalogController_ReturnsMappedResultsForCatalogAndLookupEndpoints()
         {
@@ -225,6 +227,41 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// SEC-27: an ambiguous portless lookup must return 409 with the candidates, never an id.
+        /// </summary>
+        [Test]
+        public async Task FlowCatalogController_GetServiceObjectId_ReturnsConflictForAmbiguousPortlessServices()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                ServiceObjectIdMatches = [new() { Id = 61, Name = "ping" }, new() { Id = 62, Name = "icmp-echo" }]
+            };
+            using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+            FlowCatalogController controller = new(service);
+
+            ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest { Protocol = "TCP" });
+
+            Assert.That(result.Result, Is.TypeOf<ConflictObjectResult>());
+            AmbiguousServiceObjectIdResponse conflict = (AmbiguousServiceObjectIdResponse)((ConflictObjectResult)result.Result!).Value!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(conflict.Candidates.Select(candidate => candidate.Id), Is.EqualTo(kAmbiguousCandidateIds));
+                Assert.That(conflict.Message, Is.Not.Empty);
+            });
+        }
+
+        [Test]
+        public async Task FlowCatalogController_GetServiceObjectId_ReturnsEmptyResponseWithoutMatch()
+        {
+            using FlowCatalogService service = new(new RecordingApiConnection { ServiceObjectIdMatches = [] }, new GlobalConfig());
+            FlowCatalogController controller = new(service);
+
+            ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest { Protocol = "TCP" });
+
+            Assert.That(ExtractValue(result).Id, Is.Zero);
+        }
+
         private static T ExtractOkValue<T>(ActionResult result)
         {
             Assert.That(result, Is.TypeOf<OkObjectResult>());
@@ -240,6 +277,7 @@ namespace FWO.Test
         private sealed class RecordingApiConnection : ApiConnection
         {
             public List<string> Queries { get; } = [];
+            public List<FlowSvcObject> ServiceObjectIdMatches { get; init; } = [new() { Id = 22, Name = "Dns" }];
 
             public override void SetAuthHeader(string jwt) { }
             public override void SetRole(string role) { }
@@ -355,10 +393,7 @@ namespace FWO.Test
 
                 if (typeof(QueryResponseType) == typeof(List<FlowSvcObject>) && query == FlowQueries.getFlowServiceObjectId)
                 {
-                    return Task.FromResult((QueryResponseType)(object)new List<FlowSvcObject>
-                    {
-                        new() { Id = 22, Name = "Dns" }
-                    });
+                    return Task.FromResult((QueryResponseType)(object)ServiceObjectIdMatches);
                 }
 
                 if (typeof(QueryResponseType) == typeof(List<FlowNwObject>) && query == FlowQueries.getFlowAddressObjectId)

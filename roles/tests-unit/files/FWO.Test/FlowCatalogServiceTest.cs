@@ -17,6 +17,7 @@ namespace FWO.Test;
 internal class FlowCatalogServiceTest
 {
     private static readonly List<string> kFirstTwoHostNames = ["HostA", "HostB"];
+    private static readonly List<long> kTwoPortlessServiceIds = [61, 62];
 
     [Test]
     public void Dispose_ReleasesTheOwnedProtocolCacheLock()
@@ -718,7 +719,7 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
-    public async Task GetServiceObjectIdAsync_ResolvesProtocolByName()
+    public async Task FindServiceObjectIdsAsync_ResolvesProtocolByName()
     {
         FlowCatalogServiceApiConn apiConnection = new();
         apiConnection.ServiceObjects =
@@ -738,12 +739,13 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("tcp", 443, 443, false);
+        List<ServiceObjectIdResponse> matches = await service.FindServiceObjectIdsAsync("tcp", 443, 443, false);
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.Id, Is.EqualTo(50));
-            Assert.That(result.Name, Is.EqualTo("HTTPS"));
+            Assert.That(matches, Has.Count.EqualTo(1));
+            Assert.That(matches[0].Id, Is.EqualTo(50));
+            Assert.That(matches[0].Name, Is.EqualTo("HTTPS"));
             Assert.That(apiConnection.SentQueries[0], Is.EqualTo(StmQueries.getIpProtocols));
             Assert.That(apiConnection.SentQueries[1], Is.EqualTo(FlowQueries.getFlowServiceObjectId));
             AssertWhereClauseContains(GetWhereClause(apiConnection.SentVariables[1]),
@@ -755,7 +757,7 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
-    public async Task GetServiceObjectIdAsync_LooksUpNullPorts()
+    public async Task FindServiceObjectIdsAsync_LooksUpNullPorts()
     {
         FlowCatalogServiceApiConn apiConnection = new();
         apiConnection.Protocols = [new IpProtocol { Id = 0, Name = "ANY" }];
@@ -763,11 +765,11 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("ANY", null, null, null);
+        List<ServiceObjectIdResponse> matches = await service.FindServiceObjectIdsAsync("ANY", null, null, null);
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.Id, Is.EqualTo(51));
+            Assert.That(matches.Single().Id, Is.EqualTo(51));
             Assert.That(apiConnection.SentQueries[1], Is.EqualTo(FlowQueries.getFlowServiceObjectId));
             AssertWhereClauseContainsLookup(GetWhereClause(apiConnection.SentVariables[1]),
                 ("port_start", null),
@@ -776,18 +778,43 @@ internal class FlowCatalogServiceTest
         });
     }
 
+    /// <summary>
+    /// SEC-27: several portless services of one protocol must all be returned so that the caller can detect the
+    /// ambiguity, instead of the first row being picked silently.
+    /// </summary>
     [Test]
-    public async Task GetServiceObjectIdAsync_ReturnsEmptyResponseForUnknownProtocol()
+    public async Task FindServiceObjectIdsAsync_ReturnsEveryMatchingPortlessService()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.Protocols = [new IpProtocol { Id = 1, Name = "ICMP" }];
+        apiConnection.ServiceObjects =
+        [
+            new FlowSvcObject { Id = 61, Name = "ping", ProtoId = 1 },
+            new FlowSvcObject { Id = 62, Name = "icmp-echo", ProtoId = 1 }
+        ];
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+
+        List<ServiceObjectIdResponse> matches = await service.FindServiceObjectIdsAsync("icmp", null, null, null);
+
+        Dictionary<string, object> variables = (Dictionary<string, object>)apiConnection.SentVariables[1]!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(matches.Select(match => match.Id), Is.EqualTo(kTwoPortlessServiceIds));
+            Assert.That(variables["limit"], Is.EqualTo(FlowCatalogService.kMaxServiceObjectIdCandidates));
+        });
+    }
+
+    [Test]
+    public async Task FindServiceObjectIdsAsync_ReturnsNoMatchForUnknownProtocol()
     {
         FlowCatalogServiceApiConn apiConnection = new();
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("not-a-protocol", 443, 443, null);
+        List<ServiceObjectIdResponse> matches = await service.FindServiceObjectIdsAsync("not-a-protocol", 443, 443, null);
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.Id, Is.EqualTo(0));
-            Assert.That(result.Name, Is.EqualTo(string.Empty));
+            Assert.That(matches, Is.Empty);
             Assert.That(apiConnection.SentQueries, Has.Count.EqualTo(1));
             Assert.That(apiConnection.SentQueries[0], Is.EqualTo(StmQueries.getIpProtocols));
         });

@@ -12,6 +12,7 @@ from fwo_exceptions import FwoApiFailedDeleteOldImportsError, FwoImporterError, 
 from fwo_log import FWOLogger
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
+from model_controllers.fwconfig_import_label import FwConfigImportLabel
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -245,6 +246,9 @@ class FwConfigImport:
         prev_global_config: FwConfigNormalized | None,
         single_manager: FwConfigManager,
     ) -> None:
+        if self.normalized_config is not None:
+            FwConfigImportLabel(self.import_state.api_call).upsert_labels(self.normalized_config.labels)
+
         self._fw_config_import_object.update_object_diffs(prev_config, prev_global_config, single_manager)
 
         if fwo_globals.shutdown_requested:
@@ -451,7 +455,12 @@ class FwConfigImport:
             for gw in normalized_config_from_db.gateways
             if any(gw.Uid == imported_gw.Uid for imported_gw in normalized_config.gateways)
         ]
-        all_diffs = find_all_diffs(normalized_config.model_dump(), normalized_config_from_db.model_dump(), strict=True)
+        # labels are global and not part of the config read back from the database
+        all_diffs = find_all_diffs(
+            normalized_config.model_dump(exclude={"labels"}),
+            normalized_config_from_db.model_dump(exclude={"labels"}),
+            strict=True,
+        )
         if len(all_diffs) > 0:
             FWOLogger.warning(
                 f"normalized config for mgm id {self.import_state.state.mgm_details.current_mgm_id} is inconsistent to database state: {all_diffs[0]}"

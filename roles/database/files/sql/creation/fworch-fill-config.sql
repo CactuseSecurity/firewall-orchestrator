@@ -185,6 +185,7 @@ insert into config (config_key, config_value, config_user) VALUES ('reqCreateReq
 INSERT INTO config (config_key, config_value, config_user) VALUES ('pathAnalysisAlgorithm', '1', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRollback', 'false', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZoneMatrix', '0', 0);
+INSERT INTO config (config_key, config_value, config_user) VALUES ('labelLogic', 'AND', 0); -- combination of the labels of a rule side: AND | OR
 
 INSERT INTO provisioning_config_node (node_type, object_key, display_name, sort_order)
 VALUES ('global', 'global', 'Global', 0)

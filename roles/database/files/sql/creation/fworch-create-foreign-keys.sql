@@ -445,3 +445,48 @@ ALTER TABLE flow.nwgroup_member ADD CONSTRAINT flow_nwgroup_member_nwobject_fore
 
 ALTER TABLE flow.svcgroup_member ADD CONSTRAINT flow_svcgroup_member_svcgroup_foreign_key FOREIGN KEY (svcgrp_id) REFERENCES flow.svcgroup(svcgrp_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE flow.svcgroup_member ADD CONSTRAINT flow_svcgroup_member_svcobject_foreign_key FOREIGN KEY (svcobj_id) REFERENCES flow.svcobject(svcobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+-- labelling
+ALTER TABLE labelling.label_value ADD CONSTRAINT labelling_label_value_label_key_fkey FOREIGN KEY (key_id) REFERENCES labelling.label_key(key_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_import_control_fkey FOREIGN KEY (import_control_id) REFERENCES import_control(control_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_request_ticket_fkey FOREIGN KEY (request_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE SET NULL;
+ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_connection_fkey FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE SET NULL;
+
+ALTER TABLE labelling.rule_source_label ADD CONSTRAINT labelling_rule_source_label_rule_fkey FOREIGN KEY (rule_id) REFERENCES firewall.rule(rule_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.rule_source_label ADD CONSTRAINT labelling_rule_source_label_label_value_fkey FOREIGN KEY (label_id) REFERENCES labelling.label_value(label_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.rule_source_label ADD CONSTRAINT labelling_rule_source_label_created_event_fkey FOREIGN KEY (created_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.rule_source_label ADD CONSTRAINT labelling_rule_source_label_removed_event_fkey FOREIGN KEY (removed_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE SET NULL;
+
+ALTER TABLE labelling.rule_destination_label ADD CONSTRAINT labelling_rule_destination_label_rule_fkey FOREIGN KEY (rule_id) REFERENCES firewall.rule(rule_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.rule_destination_label ADD CONSTRAINT labelling_rule_destination_label_label_value_fkey FOREIGN KEY (label_id) REFERENCES labelling.label_value(label_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.rule_destination_label ADD CONSTRAINT labelling_rule_destination_label_created_event_fkey FOREIGN KEY (created_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.rule_destination_label ADD CONSTRAINT labelling_rule_destination_label_removed_event_fkey FOREIGN KEY (removed_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE SET NULL;
+
+ALTER TABLE labelling.rule_label ADD CONSTRAINT labelling_rule_label_rule_fkey FOREIGN KEY (rule_id) REFERENCES firewall.rule(rule_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.rule_label ADD CONSTRAINT labelling_rule_label_label_value_fkey FOREIGN KEY (label_id) REFERENCES labelling.label_value(label_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.rule_label ADD CONSTRAINT labelling_rule_label_created_event_fkey FOREIGN KEY (created_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.rule_label ADD CONSTRAINT labelling_rule_label_removed_event_fkey FOREIGN KEY (removed_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE SET NULL;
+
+ALTER TABLE labelling.connection_source_label ADD CONSTRAINT labelling_connection_source_label_connection_fkey FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.connection_source_label ADD CONSTRAINT labelling_connection_source_label_label_value_fkey FOREIGN KEY (label_id) REFERENCES labelling.label_value(label_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.connection_source_label ADD CONSTRAINT labelling_connection_source_label_created_event_fkey FOREIGN KEY (created_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.connection_source_label ADD CONSTRAINT labelling_connection_source_label_removed_event_fkey FOREIGN KEY (removed_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE SET NULL;
+
+ALTER TABLE labelling.connection_destination_label ADD CONSTRAINT labelling_connection_destination_label_connection_fkey FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.connection_destination_label ADD CONSTRAINT labelling_connection_destination_label_label_value_fkey FOREIGN KEY (label_id) REFERENCES labelling.label_value(label_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.connection_destination_label ADD CONSTRAINT labelling_connection_destination_label_created_event_fkey FOREIGN KEY (created_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.connection_destination_label ADD CONSTRAINT labelling_connection_destination_label_removed_event_fkey FOREIGN KEY (removed_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE SET NULL;
+
+ALTER TABLE labelling.connection_label ADD CONSTRAINT labelling_connection_label_connection_fkey FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.connection_label ADD CONSTRAINT labelling_connection_label_label_value_fkey FOREIGN KEY (label_id) REFERENCES labelling.label_value(label_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.connection_label ADD CONSTRAINT labelling_connection_label_created_event_fkey FOREIGN KEY (created_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.connection_label ADD CONSTRAINT labelling_connection_label_removed_event_fkey FOREIGN KEY (removed_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE SET NULL;
+
+ALTER TABLE labelling.access_flow_label ADD CONSTRAINT labelling_access_flow_label_flow_access_fkey FOREIGN KEY (flow_access_id) REFERENCES flow.access(access_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.access_flow_label ADD CONSTRAINT labelling_access_flow_label_label_value_fkey FOREIGN KEY (label_id) REFERENCES labelling.label_value(label_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE labelling.owner_network_label ADD CONSTRAINT labelling_owner_network_label_owner_network_fkey FOREIGN KEY (owner_network_id) REFERENCES owner_network(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.owner_network_label ADD CONSTRAINT labelling_owner_network_label_label_value_fkey FOREIGN KEY (label_id) REFERENCES labelling.label_value(label_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.owner_network_label ADD CONSTRAINT labelling_owner_network_label_created_event_fkey FOREIGN KEY (created_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.owner_network_label ADD CONSTRAINT labelling_owner_network_label_removed_event_fkey FOREIGN KEY (removed_event_id) REFERENCES labelling.label_change_event(id) ON UPDATE RESTRICT ON DELETE SET NULL;

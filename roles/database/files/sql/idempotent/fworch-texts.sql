@@ -571,6 +571,8 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
+    <li>Neues Importmodul f&uuml;r Akamai Guardicore Segmentation: Labels werden als Netzwerkobjektgruppen ihrer IP-Adressen (aus IP-Kriterien und den Assets mit dem Label) sowie als Labels importiert, UND-verkn&uuml;pfte Labels einer Regel als Gruppe der gemeinsamen IP-Adressen. Die Regeln werden je Abschnitt und Ruleset in verkettete Regelwerke aufgeteilt, deren alphabetische Reihenfolge der Guardicore-Abschnittsreihenfolge entspricht. Die Labels der Quelle und des Ziels einer Regel werden zudem an der Regel gespeichert.</li>
+    <li>F&uuml;r einzelne Rollen kann die Sichtbarkeit jedes Reporttyps auf sichtbar, nicht sichtbar oder geerbt (vom Standardverhalten) gesetzt werden.</li>
     <li>Importierte Logdaten zeigen f&uuml;r Quell- und Zieladressen die zugeh&ouml;rigen externen App-IDs, Netzwerk-Areas und Reverse-DNS-Namen. DNS-Ergebnisse werden wiederverwendet; neue Lookups k&ouml;nnen unter Einstellungen - Logging deaktiviert werden.</li>
     <li>Die Logdaten-Tabelle zeigt den Aggregationszeitraum und Importzeitpunkt der angezeigten Daten. Bei unterschiedlichen oder unbekannten Zeitr&auml;umen erscheinen diese Angaben pro Zeile. Der Standardzeitraum ist unter Einstellungen - Logging einstellbar (7 Tage) und kann von JSON-Importdateien &uuml;berschrieben werden. Die Spalte Zeitpunkt ist standardm&auml;&szlig;ig ausgeblendet. Die &Uuml;berschrift nennt das Ende des Zeitraums und zeigt standardm&auml;&szlig;ig nur das Importdatum; die Uhrzeit des Imports kann unter Einstellungen - Logging aktiviert werden.</li>
     <li>Die Area-IP-Daten-Konvertierung hei&szlig;t nun convert_area_ip_data_from_git.py. generate_area_ip_data.py erzeugt Area-IP-Testdaten.</li>
@@ -579,6 +581,8 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 ');
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
+    <li>New import module for Akamai Guardicore Segmentation: labels are imported as network object groups of their IP addresses (from IP criteria and from the assets carrying the label) and as labels, ANDed labels of a rule as a group of their common IP addresses. The rules are split into chained rulebases per section and ruleset, whose alphabetical order matches the Guardicore section order. The labels of the source and destination of a rule are also stored with the rule.</li>
+    <li>For individual roles, the visibility of each report type can be set to visible, not visible, or inherited (from the default behaviour).</li>
     <li>Imported log data shows matching external application IDs, network areas, and reverse-DNS names for source and destination addresses. DNS results are reused; new lookups can be disabled under Settings - Logging.</li>
     <li>The log data table shows the aggregation period and import time of the displayed data. When periods differ or are unknown, these values appear per row. The default period is configurable under Settings - Logging (7 days) and can be overridden by JSON import files. The log time column is hidden by default. The heading names the end of the period and shows only the import date by default; the time of the import can be enabled under Settings - Logging.</li>
     <li>The area IP data converter is now named convert_area_ip_data_from_git.py. generate_area_ip_data.py generates area IP test data.</li>
@@ -6275,6 +6279,7 @@ INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nn
                 <li>Palo Alto Firewalls (nicht Panorama)</li>
                 <li>Azure Firewall</li>
                 <li>Cisco FirePower Management Center</li>
+                <li>Akamai Guardicore Segmentation (Guardicore Management REST). Labels werden als Netzwerkobjektgruppen ihrer IP-Adressen importiert, die Regeln je Abschnitt (Override Allow, Override Alert, Override Block, Allow, Alert, Block) und Ruleset in verkettete Regelwerke aufgeteilt.</li>
             </ul>
         </li>
     </ul>
@@ -6300,6 +6305,7 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
                 <li>Palo Alto Firewalls (not Panorama)</li>
                 <li>Azure Firewall</li>
                 <li>Cisco FirePower Management Center</li>
+                <li>Akamai Guardicore Segmentation (Guardicore Management REST). Labels are imported as network object groups of their IP addresses, the rules are split into chained rulebases per section (Override Allow, Override Alert, Override Block, Allow, Alert, Block) and ruleset.</li>
             </ul>
         </li>
     </ul>
@@ -6342,11 +6348,11 @@ INSERT INTO txt VALUES ('H5114', 'English', 'Hostname*: Address of the host (eit
     For all firewall platforms which do not possess a separate management, use the IP address or the resolvable name of the firewall gateway.
 ');
 INSERT INTO txt VALUES ('H5115', 'German',  'Port*: Port-Nummer des Hosts.<br>
-    Wenn das Ziel Check Point R8x, FortiManager, Azure oder Cisco FirePower ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Firewall Managment zu aktivieren.<br>
+    Wenn das Ziel Check Point R8x, FortiManager, Azure, Cisco FirePower oder Guardicore ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Firewall Managment zu aktivieren.<br>
     Wenn das Ziel eine andere Plattform ist, braucht Firewall Orchestrator einen ssh-basierten Zugang. Die Standard-Port-Nummer ist in diesem Fall 22.
 ');
 INSERT INTO txt VALUES ('H5115', 'English', 'Port*: Port number of the host.<br>
-    If the target is Check Point R8x, FortiManager, Azure or Cisco FirePower the connection is established via API. The default port number is 443. Remember to enable API access on your firewall managment.<br>
+    If the target is Check Point R8x, FortiManager, Azure, Cisco FirePower or Guardicore the connection is established via API. The default port number is 443. Remember to enable API access on your firewall managment.<br>
     If the target any other platform Firewall Orchestrator needs ssh-based access. The default port number here is 22.
 ');
 INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten f&uuml;r den Import-Nutzer des Managements.<br>
@@ -6401,6 +6407,9 @@ Ein L&ouml;schen ist erst m&ouml;glich, wenn die Zugangsdaten von keinem Managem
             <code>secret=yyy</code></li>
         <li>In der Firewall Orchestrator WebUI: erstelle neue Import Login-Daten mit Import Nutzer = Wert von "key" und Passwort = Wert von "secret"</li>
     </ol>
+    <br>
+    F&uuml;r den Guardicore Import via REST API: erstelle in der Guardicore Management-Konsole einen Nutzer mit Lesezugriff auf Labels, Label-Gruppen, Assets und Segmentierungsregeln und
+    hinterlege seinen Namen und sein Passwort als Import Login-Daten (Nutzer mit Mehr-Faktor-Authentifizierung k&ouml;nnen nicht verwendet werden).
 ');
 INSERT INTO txt VALUES ('H5130', 'English', 'Manage credentials for importing firewall configuration data.
 Credentials can be used for logging in to one or multiple firewall managements.
@@ -6421,6 +6430,9 @@ Credentials can only be deleted when no management uses them for import or expor
             <code>secret=4N4yTQZATPa/Tj+IUiyXNFsB2r0Kpjt8lQ6UDjsaNZgo0vd/l+ByD3dBR61T/b/8Jz5rleZytIuzpO6R</code></li>
         <li>In Firewall Orchestrator UI create new credentials with username = value of "key" and password = value of "secret"</li>
     </ol>
+    <br>
+    For Guardicore import via REST API: create a user in the Guardicore management console with read access to labels, label groups, assets and segmentation rules
+    and enter its name and password as import credentials (users with multi-factor authentication cannot be used).
 ');
 INSERT INTO txt VALUES ('H5131', 'German',  'Name*: Ein beliebiger Name, der diese Zugangsdaten eindeutig beschreibt.
 ');

@@ -162,3 +162,45 @@ CREATE INDEX IF NOT EXISTS idx_change_history_audit_proof ON change_history (cha
 -- leads with owner_id and cannot answer it.
 CREATE INDEX IF NOT EXISTS idx_log_entry_source ON logging.log_entry (source);
 CREATE INDEX IF NOT EXISTS idx_log_entry_destination ON logging.log_entry (destination);
+
+-- labelling
+CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_import_control ON labelling.label_change_event (import_control_id) WHERE import_control_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_request ON labelling.label_change_event (request_id) WHERE request_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_connection ON labelling.label_change_event (connection_id) WHERE connection_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_source_label_active_unique ON labelling.rule_source_label (rule_id, label_id) WHERE removed_event_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_labelling_rule_source_label_label_id ON labelling.rule_source_label (label_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_rule_source_label_created_event ON labelling.rule_source_label (created_event_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_rule_source_label_removed_event ON labelling.rule_source_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_active_unique ON labelling.rule_destination_label (rule_id, label_id) WHERE removed_event_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_label_id ON labelling.rule_destination_label (label_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_created_event ON labelling.rule_destination_label (created_event_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_removed_event ON labelling.rule_destination_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_label_active_unique ON labelling.rule_label (rule_id, label_id) WHERE removed_event_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_labelling_rule_label_label_id ON labelling.rule_label (label_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_rule_label_created_event ON labelling.rule_label (created_event_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_rule_label_removed_event ON labelling.rule_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_connection_source_label_active_unique ON labelling.connection_source_label (connection_id, label_id) WHERE removed_event_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_labelling_connection_source_label_label_id ON labelling.connection_source_label (label_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_connection_source_label_created_event ON labelling.connection_source_label (created_event_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_connection_source_label_removed_event ON labelling.connection_source_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_connection_destination_label_active_unique ON labelling.connection_destination_label (connection_id, label_id) WHERE removed_event_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_labelling_connection_destination_label_label_id ON labelling.connection_destination_label (label_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_connection_destination_label_created_event ON labelling.connection_destination_label (created_event_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_connection_destination_label_removed_event ON labelling.connection_destination_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_connection_label_active_unique ON labelling.connection_label (connection_id, label_id) WHERE removed_event_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_labelling_connection_label_label_id ON labelling.connection_label (label_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_connection_label_created_event ON labelling.connection_label (created_event_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_connection_label_removed_event ON labelling.connection_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_labelling_access_flow_label_label_id ON labelling.access_flow_label (label_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_owner_network_label_active_unique ON labelling.owner_network_label (owner_network_id, label_id) WHERE removed_event_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_labelling_owner_network_label_label_id ON labelling.owner_network_label (label_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_owner_network_label_created_event ON labelling.owner_network_label (created_event_id);
+CREATE INDEX IF NOT EXISTS idx_labelling_owner_network_label_removed_event ON labelling.owner_network_label (removed_event_id) WHERE removed_event_id IS NOT NULL;

@@ -5,4 +5,15 @@
       <FWO_RUN_INTEGRATION_TESTS>false</FWO_RUN_INTEGRATION_TESTS>
     </EnvironmentVariables>
   </RunConfiguration>
+  <!-- Aborts the run and names the test when a single test makes no progress for 5 minutes,
+       instead of letting a hung test block the run until the CI job limit. -->
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="blame" enabled="True">
+        <Configuration>
+          <CollectDumpOnTestSessionHang TestTimeout="5m" HangDumpType="None" />
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
 </RunSettings>

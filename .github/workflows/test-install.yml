@@ -146,7 +146,7 @@ jobs:
           cd ${{ github.workspace }}/roles/tests-unit/files/FWO.Test
           dotnet restore
           dotnet build
-          dotnet test --filter "Name=HtmlToPdfTest"
+          dotnet test --filter "Name=HtmlToPdfTest" --blame-hang-timeout 5m --blame-hang-dump-type none
 
       - name: Run JWT refresh integration tests
         if: ${{ matrix.integration }}
@@ -156,7 +156,7 @@ jobs:
             FWO_RUN_INTEGRATION_TESTS=true \
             FWO_TEST_USERNAME=integration_user_jwt_refresh_test \
             FWO_TEST_PASSWORD=testpassword \
-            dotnet test /usr/local/fworch/test/csharp/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
+            dotnet test /usr/local/fworch/test/csharp/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest" --blame-hang-timeout 5m --blame-hang-dump-type none
 
       - name: Collect middleware diagnostics after JWT test failure
         if: ${{ matrix.integration && failure() }}

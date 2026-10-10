@@ -1,5 +1,8 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.1 - 09.10.2026
+- importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
+
 ## 9.7.0 - 07.10.2026
 - resolve reverse DNS asynchronously with shutdown cancellation; reuse stored names and empty
   results across imports and allow disabling new lookups in Settings - Logging. A lookup without

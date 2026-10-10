@@ -401,7 +401,7 @@ class TestCompleteImport:
         fwo_api_call.complete_import(import_state)
 
         mock_attempt.assert_called_once_with(MGM_ID, successful=True)
-        mock_unlock.assert_called_once_with(import_state, success=True)
+        mock_unlock.assert_called_once_with(import_state, success=True, import_errors=None)
         mock_alert.assert_not_called()
         message = mock_info.call_args.args[0]
         assert " successful," in message
@@ -418,7 +418,7 @@ class TestCompleteImport:
 
         fwo_api_call.complete_import(import_state, FwoImporterError("import failed"))
 
-        mock_unlock.assert_called_once_with(import_state, success=False)
+        mock_unlock.assert_called_once_with(import_state, success=False, import_errors="import failed")
         mock_issue.assert_called_once_with(severity=1, description="import failed")
         assert mock_alert.call_args.kwargs["alert_code"] == IMPORT_ERROR_ALERT_CODE
         assert "threw errors" in mock_info.call_args.args[0]

@@ -86,16 +86,31 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Review finding F2: the refill must add exactly the configured number of requests per minute, also for
-        /// values that are no multiple of 60, without periods shorter than a second.
+        /// Review findings F2 and F12: the refill adds exactly the configured number of requests per minute whenever
+        /// that fits a short period, and never refills more than a few seconds' worth at once.
         /// </summary>
-        [TestCase(600, 10, 1)]
-        [TestCase(60, 1, 1)]
-        [TestCase(100, 5, 3)]
-        [TestCase(30, 1, 2)]
-        [TestCase(1000, 50, 3)]
-        [TestCase(7, 7, 60)]
-        public void RefillAddsExactlyTheConfiguredRequestsPerMinute(int requestsPerMinute, int expectedTokens, int expectedPeriodSeconds)
+        [TestCase(600, 10, 1.0)]
+        [TestCase(60, 1, 1.0)]
+        [TestCase(100, 5, 3.0)]
+        [TestCase(1000, 50, 3.0)]
+        [TestCase(30, 1, 2.0)]
+        [TestCase(7, 1, 60.0 / 7)]
+        [TestCase(1, 1, 60.0)]
+        public void RefillIsExactWhenItFitsAShortPeriod(int requestsPerMinute, int expectedTokens, double expectedPeriodSeconds)
+        {
+            (int tokensPerPeriod, TimeSpan period) = ApiRateLimiting.GetRefill(requestsPerMinute);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(tokensPerPeriod, Is.EqualTo(expectedTokens));
+                Assert.That(period.TotalSeconds, Is.EqualTo(expectedPeriodSeconds).Within(0.001));
+                Assert.That(tokensPerPeriod * 60 / period.TotalSeconds, Is.EqualTo(requestsPerMinute).Within(0.01));
+            });
+        }
+
+        [TestCase(601, 10, 1)]
+        [TestCase(89, 3, 2)]
+        public void RefillIsRoundedToAShortPeriodOtherwise(int requestsPerMinute, int expectedTokens, int expectedPeriodSeconds)
         {
             (int tokensPerPeriod, TimeSpan period) = ApiRateLimiting.GetRefill(requestsPerMinute);
 
@@ -103,8 +118,20 @@ namespace FWO.Test
             {
                 Assert.That(tokensPerPeriod, Is.EqualTo(expectedTokens));
                 Assert.That(period, Is.EqualTo(TimeSpan.FromSeconds(expectedPeriodSeconds)));
-                Assert.That(tokensPerPeriod * (TimeSpan.FromMinutes(1) / period), Is.EqualTo(requestsPerMinute));
             });
+        }
+
+        [Test]
+        public void RefillStaysCloseToTheConfiguredRateWithoutLargeRefills()
+        {
+            for (int requestsPerMinute = 1; requestsPerMinute <= 5000; requestsPerMinute++)
+            {
+                (int tokensPerPeriod, TimeSpan period) = ApiRateLimiting.GetRefill(requestsPerMinute);
+                double ratePerMinute = tokensPerPeriod * 60 / period.TotalSeconds;
+
+                Assert.That(Math.Abs(ratePerMinute - requestsPerMinute), Is.LessThanOrEqualTo(3.0), $"rate for {requestsPerMinute}");
+                Assert.That(tokensPerPeriod == 1 || period.TotalSeconds <= ApiRateLimiting.kMaxRefillPeriodSeconds, Is.True, $"refill for {requestsPerMinute}");
+            }
         }
 
         [Test]

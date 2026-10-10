@@ -121,8 +121,15 @@ namespace FWO.Services.Workflow
             DisplaySaveTicketMode = false;
         }
 
+        /// <summary>
+        /// True if the last <see cref="SaveTicket"/> saved a new ticket that could not be read back: the returned id
+        /// is valid, but <see cref="ActTicket"/> is the in-memory copy without the ids of its request tasks.
+        /// </summary>
+        public bool LastSaveReloadFailed { get; private set; }
+
         public async Task<long> SaveTicket(WfStatefulObject ticket)
         {
+            LastSaveReloadFailed = false;
             try
             {
                 if (dbAcc != null)
@@ -147,6 +154,7 @@ namespace FWO.Services.Workflow
                         if (creation.ReloadFailed)
                         {
                             // saved, but its request tasks are unknown here: processing them could write them twice
+                            LastSaveReloadFailed = true;
                             ResetTicketActions();
                             return ActTicket.Id;
                         }

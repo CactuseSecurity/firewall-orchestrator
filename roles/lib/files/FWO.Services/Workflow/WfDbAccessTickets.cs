@@ -59,9 +59,18 @@ namespace FWO.Services.Workflow
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
-                return newTicketId > 0
-                    ? await SavedWithoutInitialActions(ticket, newTicketId, exception)
-                    : new WfTicketCreationResult(ticket, false);
+                if (newTicketId <= 0)
+                {
+                    return new WfTicketCreationResult(ticket, false);
+                }
+                if (ticket.Id == newTicketId)
+                {
+                    // read back completely, but failed while preparing the initial actions
+                    Log.WriteError("Create Request", $"Preparing the initial workflow actions of ticket {newTicketId} failed.", exception);
+                    await RecordInitialActionsFailure(ticket, exception);
+                    return new WfTicketCreationResult(ticket, true);
+                }
+                return await SavedWithoutInitialActions(ticket, newTicketId, exception);
             }
 
             try

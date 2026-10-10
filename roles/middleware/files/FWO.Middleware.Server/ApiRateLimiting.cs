@@ -64,6 +64,8 @@ namespace FWO.Middleware.Server
         internal const int kExpensiveQueueLimit = 4;
 
         private const int kSecondsPerMinute = 60;
+        /// <summary>Longest refill period; shorter periods keep bursts close to one minute's budget.</summary>
+        internal const int kMaxRefillPeriodSeconds = 10;
         private const string kUserPartitionPrefix = "user:";
         private const string kUnlimitedPartition = "";
         private static readonly List<string> kExemptRoles = [Roles.Anonymous, Roles.Importer, Roles.MiddlewareServer];
@@ -115,16 +117,49 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Returns a refill that adds exactly the given number of tokens per minute in whole seconds: the shortest
-        /// period that divides a minute and receives a whole number of tokens (e.g. 600 per minute: 10 tokens every
-        /// second, 100 per minute: 5 tokens every 3 seconds, 7 per minute: 7 tokens every minute).
+        /// Returns a smooth refill of the given number of tokens per minute: every token is refilled within at most
+        /// <see cref="kMaxRefillPeriodSeconds"/> seconds, so a user cannot get much more than one minute's budget at
+        /// once. Below 60 per minute one token is added every 60 / requestsPerMinute seconds; from 60 on the refill is
+        /// exact when a period of at most <see cref="kMaxRefillPeriodSeconds"/> whole seconds receives a whole number of
+        /// tokens (e.g. 600: 10 every second, 100: 5 every 3 seconds) and otherwise rounded to the period with the
+        /// smallest error, which is at most 3 tokens per minute (e.g. 601: 10 every second, 89: 3 every 2 seconds).
         /// </summary>
         /// <param name="requestsPerMinute">Requests allowed per minute, at least 1.</param>
         internal static (int TokensPerPeriod, TimeSpan ReplenishmentPeriod) GetRefill(int requestsPerMinute)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(requestsPerMinute);
+            if (requestsPerMinute < kSecondsPerMinute)
+            {
+                return (1, TimeSpan.FromSeconds((double)kSecondsPerMinute / requestsPerMinute));
+            }
             int periodsPerMinute = GreatestCommonDivisor(requestsPerMinute, kSecondsPerMinute);
-            return (requestsPerMinute / periodsPerMinute, TimeSpan.FromSeconds(kSecondsPerMinute / periodsPerMinute));
+            int exactPeriodSeconds = kSecondsPerMinute / periodsPerMinute;
+            if (exactPeriodSeconds <= kMaxRefillPeriodSeconds)
+            {
+                return (requestsPerMinute / periodsPerMinute, TimeSpan.FromSeconds(exactPeriodSeconds));
+            }
+            return GetRoundedRefill(requestsPerMinute);
+        }
+
+        /// <summary>
+        /// Returns the refill with a period of at most <see cref="kMaxRefillPeriodSeconds"/> whole seconds whose rate
+        /// comes closest to the given number of tokens per minute.
+        /// </summary>
+        private static (int TokensPerPeriod, TimeSpan ReplenishmentPeriod) GetRoundedRefill(int requestsPerMinute)
+        {
+            int bestTokens = requestsPerMinute / kSecondsPerMinute;
+            int bestPeriodSeconds = 1;
+            double bestError = double.MaxValue;
+            for (int periodSeconds = 1; periodSeconds <= kMaxRefillPeriodSeconds; periodSeconds++)
+            {
+                int tokens = (int)Math.Round((double)requestsPerMinute * periodSeconds / kSecondsPerMinute);
+                double error = Math.Abs((double)tokens * kSecondsPerMinute / periodSeconds - requestsPerMinute);
+                if (error < bestError)
+                {
+                    (bestTokens, bestPeriodSeconds, bestError) = (tokens, periodSeconds, error);
+                }
+            }
+            return (bestTokens, TimeSpan.FromSeconds(bestPeriodSeconds));
         }
 
         private static int GreatestCommonDivisor(int first, int second)

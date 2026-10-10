@@ -590,8 +590,14 @@ dotnet_install_script_url: "https://raw.githubusercontent.com/dotnet/install-scr
 dotnet_install_script_sha256: "082f7685e156738a1b2e2ed8381a621870d4ce8e8c59278034556f05c186eb2e"
 # The Microsoft repository configuration package (packages-microsoft-prod) runs maintainer scripts as root, so it is
 # verified before it is installed: the unsigned .deb against its sha256 per "<distribution>/<release>", the signed
-# .rpm against the Microsoft signing key with this fingerprint
-dotnet_ms_signing_key_fingerprint: "BC528686B50D79E339D3721CEB3E94ADBE1229CF"
+# .rpm against the Microsoft signing key of its Red Hat major version, imported only with this fingerprint
+dotnet_ms_signing_keys:
+  "9":
+    url: "https://packages.microsoft.com/keys/microsoft.asc"
+    fingerprint: "BC528686B50D79E339D3721CEB3E94ADBE1229CF"
+  "10":
+    url: "https://packages.microsoft.com/keys/microsoft-2025.asc"
+    fingerprint: "AA86F75E427A19DD33346403EE4D7792F748182B"
 dotnet_ms_repo_package_sha256:
   debian/12: "8434dcb8c346dc95fbd63dbece056c343704590b58b6a5c323d39acf52bf0b48"
   ubuntu/22.04: "0d335c06ceb3227e330a36a7135997207843c726e42ec341e34a3825f151213b"

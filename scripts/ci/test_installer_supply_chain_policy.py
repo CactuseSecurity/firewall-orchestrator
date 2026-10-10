@@ -4,14 +4,14 @@ Policy tests that keep installer downloads verifiable and SSH host keys checked 
 Container images in the inventory are pinned by digest and the running Hasura version is checked against the configured
 one. In the role tasks and the playbooks in scripts/, downloaded scripts and .deb packages need a checksum, and
 downloaded .rpm packages need a signature check against a signing key imported with a pinned fingerprint. Host key
-checking is not switched off in the inventory or in ansible.cfg. Downloads of other file types (e.g. the Chrome for
+checking is not switched off in the inventory or in ansible.cfg (host_key_checking, ssh_args). Downloads of other file types (e.g. the Chrome for
 Testing archive, an accepted risk) are not covered.
 """
 
 from __future__ import annotations
 
+import configparser
 import re
-import shlex
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -52,11 +52,16 @@ COMMAND_MODULES = ("command", "ansible.builtin.command", "shell", "ansible.built
 SIGNATURE_CHECK_COMMAND = ("rpmkeys", "--checksig")
 SSH_ARGS_KEYS = ("ansible_ssh_common_args", "ansible_ssh_extra_args", "ansible_ssh_args")
 DISABLED_HOST_KEY_CHECKING_PATTERN = re.compile(
-    r"StrictHostKeyChecking\s*(?:=\s*|\s+)[\"']?no\b|UserKnownHostsFile\s*(?:=\s*|\s+)[\"']?/dev/null", re.IGNORECASE
+    r"StrictHostKeyChecking\s*(?:=\s*|\s+)[\"']?(?:no|off)\b|UserKnownHostsFile\s*(?:=\s*|\s+)[\"']?/dev/null",
+    re.IGNORECASE,
 )
 DISABLED_HOST_KEY_CHECKING_CONFIG_PATTERN = re.compile(
     r"^\s*host_key_checking\s*=\s*(?:false|no|off|0)\s*$", re.IGNORECASE | re.MULTILINE
 )
+ANSIBLE_SSH_SECTION = "ssh_connection"
+ANSIBLE_SSH_ARGS_OPTION = "ssh_args"
+# a free-form key=value argument; the value may contain Jinja expressions and quoted parts with spaces
+FREE_FORM_ARGUMENT_PATTERN = re.compile(r"(\w+)=((?:\{\{.*?\}\}|\{%.*?%\}|\"[^\"]*\"|'[^']*'|[^\s\"'{]|\{(?![{%]))+)")
 HASURA_VERSION_URL_SUFFIX = "/v1/version"
 HASURA_VERSION_VARIABLE = "api_hasura_version"
 
@@ -99,13 +104,13 @@ def iter_file_tasks(content: object) -> Iterator[dict[str, object]]:
 
 
 def parse_free_form(arguments: str) -> dict[str, object]:
-    """Return the key=value arguments of a module given in free form, e.g. 'url=... dest=...'."""
-    parsed: dict[str, object] = {}
-    for token in shlex.split(arguments):
-        key, separator, value = token.partition("=")
-        if separator:
-            parsed[key] = value
-    return parsed
+    """Return the key=value arguments of a module given in free form, e.g. 'url={{ base }}/x.deb dest=...'."""
+    return {key: unquote(value) for key, value in FREE_FORM_ARGUMENT_PATTERN.findall(arguments)}
+
+
+def unquote(value: str) -> str:
+    """Return a free-form value without its quotes."""
+    return re.sub(r"\"([^\"]*)\"|'([^']*)'", lambda match: match.group(1) or match.group(2) or "", value)
 
 
 def module_arguments(task: dict[str, object], modules: tuple[str, ...]) -> dict[str, object] | None:
@@ -170,14 +175,17 @@ def is_signed_package_download(arguments: dict[str, object]) -> bool:
     return bool(SIGNED_PACKAGE_DOWNLOAD_PATTERN.search(download_target(arguments)))
 
 
-def verifies_package_signatures(tasks: list[dict[str, object]]) -> bool:
-    """Return whether tasks import a signing key with a pinned fingerprint and check package signatures."""
+def verifies_package_signature(tasks: list[dict[str, object]], package_path: str) -> bool:
+    """Return whether tasks import a signing key with a pinned fingerprint and check the signature of the package."""
     imports_pinned_key = any(
         (arguments := module_arguments(task, RPM_KEY_MODULES)) is not None and bool(arguments.get("fingerprint"))
         for task in tasks
     )
-    checks_signatures = any(all(part in command_text(task) for part in SIGNATURE_CHECK_COMMAND) for task in tasks)
-    return imports_pinned_key and checks_signatures
+    checks_package = any(
+        all(part in command_text(task) for part in SIGNATURE_CHECK_COMMAND) and package_path in command_text(task)
+        for task in tasks
+    )
+    return bool(package_path) and imports_pinned_key and checks_package
 
 
 def ssh_argument_values(content: object) -> Iterator[tuple[str, str]]:
@@ -207,11 +215,14 @@ def test_iter_file_tasks_reads_the_tasks_of_playbooks() -> None:
 
 
 def test_module_arguments_reads_free_form_arguments() -> None:
-    task: dict[str, object] = {"get_url": "url=https://example.com/x.deb dest='/opt/x y.deb' mode=0644"}
+    task: dict[str, object] = {
+        "get_url": "url={{ base_url }}/{{ dotnet_deb_name }} dest='/opt/x y.deb' checksum=\"sha256:{{ sum }}\" mode=0644"
+    }
 
     assert module_arguments(task, GET_URL_MODULES) == {
-        "url": "https://example.com/x.deb",
+        "url": "{{ base_url }}/{{ dotnet_deb_name }}",
         "dest": "/opt/x y.deb",
+        "checksum": "sha256:{{ sum }}",
         "mode": "0644",
     }
 
@@ -231,14 +242,17 @@ def test_needs_checksum(arguments: dict[str, object], *, expected: bool) -> None
     assert needs_checksum(arguments) is expected
 
 
-def test_verifies_package_signatures_needs_a_pinned_key_and_a_signature_check() -> None:
+def test_verifies_package_signature_needs_a_pinned_key_and_a_check_of_the_package() -> None:
+    package = "{{ lib_tmp_dir }}/x.rpm"
     pinned_key: dict[str, object] = {"rpm_key": {"key": "https://example.com/key.asc", "fingerprint": "A" * 40}}
     unpinned_key: dict[str, object] = {"rpm_key": {"key": "https://example.com/key.asc"}}
-    signature_check: dict[str, object] = {"command": {"argv": ["rpmkeys", "--checksig", "{{ lib_tmp_dir }}/x.rpm"]}}
+    signature_check: dict[str, object] = {"command": {"argv": ["rpmkeys", "--checksig", package]}}
+    other_check: dict[str, object] = {"command": "rpmkeys --checksig /tmp/other.rpm"}
 
-    assert verifies_package_signatures([pinned_key, signature_check])
-    assert not verifies_package_signatures([unpinned_key, signature_check])
-    assert not verifies_package_signatures([pinned_key])
+    assert verifies_package_signature([pinned_key, signature_check], package)
+    assert not verifies_package_signature([unpinned_key, signature_check], package)
+    assert not verifies_package_signature([pinned_key], package)
+    assert not verifies_package_signature([pinned_key, other_check], package)
 
 
 @pytest.mark.parametrize(
@@ -248,6 +262,7 @@ def test_verifies_package_signatures_needs_a_pinned_key_and_a_signature_check() 
         ("-o 'StrictHostKeyChecking no'", True),
         ("-o StrictHostKeyChecking=NO -o ControlMaster=auto", True),
         ("-o UserKnownHostsFile=/dev/null", True),
+        ("-o StrictHostKeyChecking=off", True),
         ("-o StrictHostKeyChecking=accept-new", False),
         ("-o StrictHostKeyChecking=yes", False),
     ],
@@ -311,12 +326,17 @@ def test_hasura_cli_checksums_cover_the_supported_architectures() -> None:
 def test_signing_key_fingerprints_are_complete() -> None:
     variables = group_vars()
     epel_fingerprints: object = variables.get("epel_signing_key_fingerprints")
+    microsoft_keys: object = variables.get("dotnet_ms_signing_keys")
 
     assert isinstance(epel_fingerprints, dict)
-    fingerprints = [
-        variables.get("dotnet_ms_signing_key_fingerprint"),
-        *cast("dict[str, object]", epel_fingerprints).values(),
+    assert isinstance(microsoft_keys, dict)
+    typed_microsoft_keys = cast("dict[str, object]", microsoft_keys)
+    assert set(typed_microsoft_keys) >= {"9", "10"}
+    microsoft_fingerprints = [
+        cast("dict[str, object]", key).get("fingerprint") if isinstance(key, dict) else None
+        for key in typed_microsoft_keys.values()
     ]
+    fingerprints = [*microsoft_fingerprints, *cast("dict[str, object]", epel_fingerprints).values()]
     for fingerprint in fingerprints:
         assert isinstance(fingerprint, str), f"{fingerprint} is not a string"
         assert FINGERPRINT_PATTERN.match(fingerprint), f"{fingerprint} is not a 40 digit upper case key fingerprint"
@@ -331,13 +351,14 @@ def test_executable_downloads_are_verified_by_checksum() -> None:
 
 
 def test_signed_package_downloads_are_verified_by_signature() -> None:
-    files = sorted({path for path, arguments in get_url_tasks() if is_signed_package_download(arguments)})
+    downloads = [(path, arguments) for path, arguments in get_url_tasks() if is_signed_package_download(arguments)]
 
-    assert files
-    for path in files:
-        assert verifies_package_signatures(file_tasks(path)), (
-            f"{path.relative_to(REPOSITORY_ROOT)} installs a downloaded package without checking its signature against "
-            "a signing key imported with a pinned fingerprint"
+    assert downloads
+    for path, arguments in downloads:
+        package_path = str(arguments.get("dest", ""))
+        assert verifies_package_signature(file_tasks(path), package_path), (
+            f"{path.relative_to(REPOSITORY_ROOT)} installs {package_path or arguments.get('url')} without checking its "
+            "signature against a signing key imported with a pinned fingerprint"
         )
 
 
@@ -355,6 +376,13 @@ def test_ssh_host_key_checking_is_not_disabled() -> None:
     assert ssh_arguments
     for key, value in ssh_arguments:
         assert not DISABLED_HOST_KEY_CHECKING_PATTERN.search(value), f"{key} disables host key checking: {value}"
-    assert not DISABLED_HOST_KEY_CHECKING_CONFIG_PATTERN.search(ANSIBLE_CONFIG_FILE.read_text(encoding="utf-8")), (
+    ansible_config_text = ANSIBLE_CONFIG_FILE.read_text(encoding="utf-8")
+    assert not DISABLED_HOST_KEY_CHECKING_CONFIG_PATTERN.search(ansible_config_text), (
         "ansible.cfg disables host key checking"
+    )
+    ansible_config = configparser.ConfigParser(interpolation=None)
+    ansible_config.read_string(ansible_config_text)
+    ssh_args = ansible_config.get(ANSIBLE_SSH_SECTION, ANSIBLE_SSH_ARGS_OPTION, fallback="")
+    assert not DISABLED_HOST_KEY_CHECKING_PATTERN.search(ssh_args), (
+        f"ansible.cfg ssh_args disable host key checking: {ssh_args}"
     )

@@ -98,7 +98,9 @@ log, and the default applies.
 ## API request limits
 
 Every request to the middleware REST API with a user token counts against a budget of that user (identified by
-the `x-hasura-uuid` claim): by default 600 requests per minute, with bursts of up to one minute's budget. Endpoints
+the `x-hasura-uuid` claim): by default 600 requests per minute, with bursts of up to one minute's budget. The budget
+is refilled at least every 10 seconds (below 60 per minute: one request every 60 / value seconds); a configured value
+that cannot be refilled exactly within such a period is rounded by at most 3 requests per minute. Endpoints
 whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwners` and the Flow catalog lists
 `getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects`) additionally
 run at most 2 requests of one user at the same time; up to 4 further requests wait, the rest are rejected. Their

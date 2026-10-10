@@ -466,33 +466,42 @@ After you defined additional distributed servers you have to add them to the hos
 ## Verified downloads
 
 The following downloaded artifacts are checked against a value pinned in the inventory, so an artifact that was
-changed after review fails the installation before it is executed:
+changed after review fails the installation before it is executed or installed:
 
 | Artifact | Pin | Checked by |
 |----------|-----|------------|
-| Hasura container image | `api_hasura_image_digest` (multi-arch index digest) in `inventory/group_vars/apiserver.yml` | podman when pulling |
+| Hasura container image | `api_hasura_image_digest` (multi-arch index digest) in `inventory/group_vars/apiserver.yml` | podman when pulling; after the start the installer compares the version the server reports with `api_hasura_version` |
 | Hasura CLI | `api_hasura_cli_sha256` per architecture in `inventory/group_vars/apiserver.yml` | `get_url` before the binary is used |
 | `dotnet-install.sh` (Debian >= 13/testing, Ubuntu fallback) | `dotnet_install_script_commit` and `dotnet_install_script_sha256` in `inventory/group_vars/all.yml` | `get_url` before the script runs |
+| Microsoft repository package `packages-microsoft-prod.deb` (Debian 12, Ubuntu fallback) | `dotnet_ms_repo_package_sha256` per `<distribution>/<release>` in `inventory/group_vars/all.yml` | `get_url` before it is installed; it is only downloaded when it is not installed yet |
+| Microsoft repository package `packages-microsoft-prod.rpm` (Red Hat / Rocky) | `dotnet_ms_signing_key_fingerprint` in `inventory/group_vars/all.yml` | the signing key is imported only with this fingerprint, the package is installed only with a valid signature (`rpmkeys --checksig`) |
+| EPEL release package (Red Hat / Rocky, when not available from the configured repositories) | `epel_signing_key_fingerprints` per major version in `inventory/group_vars/all.yml` | as for the Microsoft `.rpm` |
 
 When `api_hasura_version` is raised, update its pins together with it: the index digest is returned as
 `Docker-Content-Digest` for the tag by the registry (or shown as the tag's digest on Docker Hub), the CLI checksums
-are the `digest` values of the release assets (`gh api repos/hasura/graphql-engine/releases/tags/<version>`).
+are the `digest` values of the release assets (`gh api repos/hasura/graphql-engine/releases/tags/<version>`). A digest
+that belongs to another version fails the installation at the version check after the start of Hasura.
 `dotnet-install.sh` is taken from a commit of `github.com/dotnet/install-scripts`; to move to a newer script, set the
-commit and the sha256 of `src/dotnet-install.sh` at that commit. The policy tests in `scripts/ci` check the inventory
-and the role tasks for these pins: container images in `inventory/group_vars` need a digest, the `get_url` downloads
-of `dotnet-install.sh` and the Hasura CLI need a checksum, and `ansible_ssh_common_args` in `inventory/group_vars`
-must not contain `StrictHostKeyChecking=no`. Other downloads and other ways of disabling host key checking are not
-covered by these tests.
+commit and the sha256 of `src/dotnet-install.sh` at that commit. If Microsoft republishes `packages-microsoft-prod.deb`
+or a new distribution release needs it, the installation stops with a message naming the missing or outdated entry of
+`dotnet_ms_repo_package_sha256`; the checksum is the sha256 of
+`https://packages.microsoft.com/config/<distribution>/<release>/packages-microsoft-prod.deb`. Signed `.rpm` packages
+need no update as long as their signing keys stay the same.
+
+The policy tests in `scripts/ci` check the inventory, the role tasks and the playbooks in `scripts/`: container images
+in the inventory need a digest and the running Hasura version is checked, downloaded scripts and `.deb` packages need a
+checksum, downloaded `.rpm` packages need a signature check against a signing key imported with a pinned fingerprint,
+and neither the inventory nor `ansible.cfg` may disable SSH host key checking (`StrictHostKeyChecking no`,
+`UserKnownHostsFile=/dev/null`, `host_key_checking = False`).
 
 Packages installed from the distribution and vendor repositories are verified by the package manager's signature
 check. The following downloads are not checked against a pinned value; they are fetched over HTTPS only:
 
-- the Microsoft repository configuration package (`packages-microsoft-prod.deb` / `.rpm`), which sets up the
-  Microsoft package repository for the .NET SDK, also in `scripts/preinstall-packages.yml`
-- the EPEL release package on Red Hat / Rocky when it is not available from the configured repositories
 - Chrome for Testing, which is downloaded for PDF generation when no system chromium package is available. It is
   deliberately not pinned: it follows the current stable release, so that browser security fixes arrive without an
   installer change.
+- the Docker apt signing key in the developer helper `scripts/preinstall-packages.yml` and in the `docker` role, which
+  the installation no longer uses
 
 ## old
 

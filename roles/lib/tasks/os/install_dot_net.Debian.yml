@@ -13,6 +13,11 @@
       set_fact:
         dotnet_package_name: "dotnet-sdk-{{ dotnet_version }}"
 
+    - name: look up the pinned checksum of the microsoft repository package
+      set_fact:
+        dotnet_ms_repo_package_checksum: >-
+          {{ dotnet_ms_repo_package_sha256[ansible_facts['distribution'] | lower ~ '/' ~ distribution_version] | default('') }}
+
     - name: decide whether dotnet script fallback is required
       set_fact:
         use_dotnet_install_script: "{{ ansible_facts['distribution']|lower == 'debian' and (ansible_facts['distribution_release']|lower == debian_testing_release_name or ansible_facts['distribution_major_version'] | int >= 13) }}"
@@ -21,21 +26,32 @@
     # Add the Microsoft repository only when installing those packages fails.
     - block:
 
-      - name: get package list from ms {{ dotnet_deb_name }}
-        get_url:
-          url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
-          dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
-          mode: "0644"
-        register: dotnet_ms_repo_download
-        until: dotnet_ms_repo_download is succeeded
-        retries: 3
-        delay: 5
-
       - name: check ms package list status
         command: dpkg-query -W -f='${Status}' packages-microsoft-prod
         register: dotnet_ms_repo_pkg_status
         changed_when: false
         failed_when: false
+
+      - name: require a pinned checksum for the microsoft repository package
+        assert:
+          that: dotnet_ms_repo_package_checksum | length > 0
+          fail_msg: >-
+            No sha256 is pinned for {{ dotnet_deb_name }} on
+            {{ ansible_facts['distribution'] | lower }}/{{ distribution_version }}: add it to dotnet_ms_repo_package_sha256
+            in inventory/group_vars/all.yml (see documentation/installer/install-advanced.md, verified downloads).
+        when: "'install ok installed' not in dotnet_ms_repo_pkg_status.stdout"
+
+      - name: get package list from ms {{ dotnet_deb_name }}
+        get_url:
+          url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
+          dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+          checksum: "sha256:{{ dotnet_ms_repo_package_checksum }}"
+          mode: "0644"
+        register: dotnet_ms_repo_download
+        when: "'install ok installed' not in dotnet_ms_repo_pkg_status.stdout"
+        until: dotnet_ms_repo_download is succeeded
+        retries: 3
+        delay: 5
 
       - name: install ms package list
         apt:
@@ -110,21 +126,32 @@
           name: "{{ dotnet_package_name }}"
           state: present
       rescue:
-        - name: get package list from ms {{ dotnet_deb_name }} (ubuntu fallback)
-          get_url:
-            url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
-            dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
-            mode: "0644"
-          register: dotnet_ms_repo_download_ubuntu_fallback
-          until: dotnet_ms_repo_download_ubuntu_fallback is succeeded
-          retries: 3
-          delay: 5
-
         - name: check ms package list status (ubuntu fallback)
           command: dpkg-query -W -f='${Status}' packages-microsoft-prod
           register: dotnet_ms_repo_pkg_status_ubuntu_fallback
           changed_when: false
           failed_when: false
+
+        - name: require a pinned checksum for the microsoft repository package (ubuntu fallback)
+          assert:
+            that: dotnet_ms_repo_package_checksum | length > 0
+            fail_msg: >-
+              No sha256 is pinned for {{ dotnet_deb_name }} on
+              {{ ansible_facts['distribution'] | lower }}/{{ distribution_version }}: add it to dotnet_ms_repo_package_sha256
+              in inventory/group_vars/all.yml (see documentation/installer/install-advanced.md, verified downloads).
+          when: "'install ok installed' not in dotnet_ms_repo_pkg_status_ubuntu_fallback.stdout"
+
+        - name: get package list from ms {{ dotnet_deb_name }} (ubuntu fallback)
+          get_url:
+            url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
+            dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+            checksum: "sha256:{{ dotnet_ms_repo_package_checksum }}"
+            mode: "0644"
+          register: dotnet_ms_repo_download_ubuntu_fallback
+          when: "'install ok installed' not in dotnet_ms_repo_pkg_status_ubuntu_fallback.stdout"
+          until: dotnet_ms_repo_download_ubuntu_fallback is succeeded
+          retries: 3
+          delay: 5
 
         - name: install ms package list (ubuntu fallback)
           apt:

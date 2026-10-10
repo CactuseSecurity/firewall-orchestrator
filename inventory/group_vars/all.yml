@@ -382,6 +382,11 @@ arch: x86_64
 linux_architecture: amd64
 redhat_major_version: "{{ ansible_facts['distribution_major_version'] | default('8') }}"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
+# fingerprints of the EPEL signing keys per Red Hat major version; the EPEL release package is only installed when its
+# signature verifies against the key imported with this fingerprint
+epel_signing_key_fingerprints:
+  "9": "FF8AD1344597106ECE813B918A3872BF3228467C"
+  "10": "7D8D15CBFC4E62688591FB2633D98517E37ED158"
 
 ###############################################################
 ### database
@@ -583,6 +588,15 @@ dotnet_version: "10.0"
 dotnet_install_script_commit: "5147e32300a8e908f5d737c8cff63a76b4b63531"
 dotnet_install_script_url: "https://raw.githubusercontent.com/dotnet/install-scripts/{{ dotnet_install_script_commit }}/src/dotnet-install.sh"
 dotnet_install_script_sha256: "082f7685e156738a1b2e2ed8381a621870d4ce8e8c59278034556f05c186eb2e"
+# The Microsoft repository configuration package (packages-microsoft-prod) runs maintainer scripts as root, so it is
+# verified before it is installed: the unsigned .deb against its sha256 per "<distribution>/<release>", the signed
+# .rpm against the Microsoft signing key with this fingerprint
+dotnet_ms_signing_key_fingerprint: "BC528686B50D79E339D3721CEB3E94ADBE1229CF"
+dotnet_ms_repo_package_sha256:
+  debian/12: "8434dcb8c346dc95fbd63dbece056c343704590b58b6a5c323d39acf52bf0b48"
+  ubuntu/22.04: "0d335c06ceb3227e330a36a7135997207843c726e42ec341e34a3825f151213b"
+  ubuntu/24.04: "c13f01ac7c3001b51a9281d40dde666db5e037e05512840c319832f7852bfec4"
+  ubuntu/26.04: "b2e7c6b9328e0c6a68bfe5d0045be90ceb192b32e0ca906c6c529b9012726f39"
 dotnet_mode: "Release"
 # dotnet_mode: "Debug"
 debug_level: "1"

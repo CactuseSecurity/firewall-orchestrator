@@ -539,6 +539,44 @@ namespace FWO.Test
             Assert.That(result, Is.SameAs(ticket));
         }
 
+        /// <summary>
+        /// Review finding F5: a ticket that was saved but cannot be read back must not be reported as unsaved - a
+        /// caller would create it a second time. It keeps its new id, its initial actions are not executed on the
+        /// incomplete copy, and the failure is alerted and recorded.
+        /// </summary>
+        [Test]
+        public async Task AddTicketToDb_ReportsSavedTicketWhenItCannotBeReadBack()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                NewTicketId = 101,
+                ThrowOnGetTicketById = true
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            ActionHandler actionHandler = new(apiConn, new WfHandler());
+            await actionHandler.Init(new List<WfState>());
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+
+            WfTicketCreationResult creation = await dbAccess.AddTicketToDb(new WfTicket
+            {
+                StateId = 1,
+                Requester = new UiUser { DbId = 42 },
+                Tasks = new List<WfReqTask>()
+            });
+
+            string historyEntry = JsonConvert.SerializeObject(apiConn.HistoryVariables.Last());
+            Assert.Multiple(() =>
+            {
+                Assert.That(creation.Ticket.Id, Is.EqualTo(101));
+                Assert.That(creation.InitialActionsFailed, Is.True);
+                Assert.That(creation.ReloadFailed, Is.True);
+                Assert.That(creation.ActionsStatus, Is.EqualTo(WfTicketCreationResult.kActionsFailed));
+                Assert.That(apiConn.AlertVariables, Has.Count.EqualTo(1));
+                Assert.That(historyEntry, Does.Contain("could not be read back"));
+            });
+        }
+
         [Test]
         public async Task AddTicketToDb_ReturnsOriginalTicket_WhenInsertReturnsNoIds()
         {

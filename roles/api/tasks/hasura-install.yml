@@ -617,6 +617,33 @@
           - "podman ps: {{ api_hasura_container_list.stdout | default(api_hasura_container_list.stderr | default('')) }}"
           - "podman logs {{ api_container_name }}: {{ api_hasura_container_logs.stdout | default(api_hasura_container_logs.stderr | default('')) }}"
 
+# The image is pulled by its digest, and podman ignores the tag next to a digest: a raised api_hasura_version without a
+# matching api_hasura_image_digest would silently keep the old server. Compare the version the server reports.
+- name: check that the running hasura server has the configured version
+  block:
+    - name: read the version of the running hasura server
+      uri:
+        url: "http://{{ api_local_listening_ip_address }}:{{ api_port }}/v1/version"
+        return_content: true
+      register: api_hasura_running_version
+      retries: 10
+      delay: 3
+      until: api_hasura_running_version.status | default(-1) == 200
+      environment:
+        http_proxy: ""
+        https_proxy: ""
+
+    - name: require the configured hasura version
+      assert:
+        that: (api_hasura_running_version.json.version | default('')) == api_hasura_version
+        fail_msg: >-
+          The Hasura server reports version {{ api_hasura_running_version.json.version | default('unknown') }}, but
+          api_hasura_version is {{ api_hasura_version }}: api_hasura_image_digest belongs to another version. Update the
+          digest and the cli checksums in inventory/group_vars/apiserver.yml together with the version.
+  when:
+    - not api_reuse_existing_hasura_image | default(false) | bool
+    - not api_use_existing_hasura_on_upgrade | default(false) | bool
+
 - name: import API metadata via metadata API directly from local file
   uri:
     url: "http://{{ api_local_listening_ip_address }}:{{ api_port }}/v1/metadata"

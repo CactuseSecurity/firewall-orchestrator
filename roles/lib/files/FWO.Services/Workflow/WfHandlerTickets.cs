@@ -142,7 +142,14 @@ namespace FWO.Services.Workflow
                         ActTicket.Requester = requester;
                         // A failure of the initial actions is already shown, alerted and recorded by AddTicketToDb;
                         // the ticket itself is saved, so the save continues with it.
-                        ActTicket = (await dbAcc.AddTicketToDb(ActTicket)).Ticket;
+                        WfTicketCreationResult creation = await dbAcc.AddTicketToDb(ActTicket);
+                        ActTicket = creation.Ticket;
+                        if (creation.ReloadFailed)
+                        {
+                            // saved, but its request tasks are unknown here: processing them could write them twice
+                            ResetTicketActions();
+                            return ActTicket.Id;
+                        }
                         TicketList.Add(ActTicket);
                     }
                     else

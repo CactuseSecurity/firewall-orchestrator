@@ -1,14 +1,17 @@
 """
-Policy tests that keep the pinned installer downloads verifiable and SSH host keys checked (GHSA-8hf3-3hp5-gj32).
+Policy tests that keep installer downloads verifiable and SSH host keys checked (GHSA-8hf3-3hp5-gj32).
 
-Container images in the inventory are pinned by digest, the known executable downloads (dotnet-install.sh, the Hasura
-cli) are checked against a checksum before they run, and the inventory does not switch off host key checking with
-StrictHostKeyChecking=no. The tests cover these known cases only, not every download or ssh option of the installer.
+Container images in the inventory are pinned by digest and the running Hasura version is checked against the configured
+one. In the role tasks and the playbooks in scripts/, downloaded scripts and .deb packages need a checksum, and
+downloaded .rpm packages need a signature check against a signing key imported with a pinned fingerprint. Host key
+checking is not switched off in the inventory or in ansible.cfg. Downloads of other file types (e.g. the Chrome for
+Testing archive, an accepted risk) are not covered.
 """
 
 from __future__ import annotations
 
 import re
+import shlex
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -19,21 +22,43 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
 REPOSITORY_ROOT = Path(__file__).parents[2]
-GROUP_VARS_DIRECTORY = REPOSITORY_ROOT / "inventory" / "group_vars"
+INVENTORY_DIRECTORY = REPOSITORY_ROOT / "inventory"
+GROUP_VARS_DIRECTORY = INVENTORY_DIRECTORY / "group_vars"
+HOSTS_FILE = INVENTORY_DIRECTORY / "hosts.yml"
+ANSIBLE_CONFIG_FILE = REPOSITORY_ROOT / "ansible.cfg"
 ROLES_DIRECTORY = REPOSITORY_ROOT / "roles"
+SCRIPTS_DIRECTORY = REPOSITORY_ROOT / "scripts"
+HASURA_INSTALL_TASKS = ROLES_DIRECTORY / "api" / "tasks" / "hasura-install.yml"
 IMAGE_KEY_SUFFIX = "_image"
 IMAGE_DIGEST_KEY_SUFFIX = "_image_digest"
 DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 # an image reference ends with a literal digest or with the variable holding it
 PINNED_IMAGE_PATTERN = re.compile(r"@(?:sha256:[0-9a-f]{64}|\{\{\s*[a-z0-9_]+_image_digest\s*\}\})$")
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
-# downloads that are executed afterwards and therefore need a checksum
-EXECUTABLE_DOWNLOAD_PATTERN = re.compile(r"dotnet-install|cli-hasura|api_hasura_cli|releases/assets", re.IGNORECASE)
+FINGERPRINT_PATTERN = re.compile(r"^[0-9A-F]{40}$")
+# downloads that are executed or installed with root rights afterwards and therefore need a checksum
+CHECKSUM_DOWNLOAD_PATTERN = re.compile(
+    r"\.(?:sh|deb)\b|dotnet-install|cli-hasura|api_hasura_cli|releases/assets|_deb_name\b", re.IGNORECASE
+)
+# signed packages, which are verified by their signature instead
+SIGNED_PACKAGE_DOWNLOAD_PATTERN = re.compile(r"\.rpm\b|_rpm_name\b", re.IGNORECASE)
 UNPINNED_DOTNET_INSTALL_URL = "dot.net/v1/dotnet-install.sh"
 NESTED_TASK_KEYS = ("block", "rescue", "always")
+PLAY_TASK_KEYS = ("pre_tasks", "tasks", "post_tasks", "handlers")
+PLAY_KEY = "hosts"
 GET_URL_MODULES = ("get_url", "ansible.builtin.get_url")
-SSH_ARGS_KEY = "ansible_ssh_common_args"
-DISABLED_HOST_KEY_CHECKING_PATTERN = re.compile(r"StrictHostKeyChecking\s*=\s*no\b", re.IGNORECASE)
+RPM_KEY_MODULES = ("rpm_key", "ansible.builtin.rpm_key")
+COMMAND_MODULES = ("command", "ansible.builtin.command", "shell", "ansible.builtin.shell")
+SIGNATURE_CHECK_COMMAND = ("rpmkeys", "--checksig")
+SSH_ARGS_KEYS = ("ansible_ssh_common_args", "ansible_ssh_extra_args", "ansible_ssh_args")
+DISABLED_HOST_KEY_CHECKING_PATTERN = re.compile(
+    r"StrictHostKeyChecking\s*(?:=\s*|\s+)[\"']?no\b|UserKnownHostsFile\s*(?:=\s*|\s+)[\"']?/dev/null", re.IGNORECASE
+)
+DISABLED_HOST_KEY_CHECKING_CONFIG_PATTERN = re.compile(
+    r"^\s*host_key_checking\s*=\s*(?:false|no|off|0)\s*$", re.IGNORECASE | re.MULTILINE
+)
+HASURA_VERSION_URL_SUFFIX = "/v1/version"
+HASURA_VERSION_VARIABLE = "api_hasura_version"
 
 
 def group_vars() -> dict[str, object]:
@@ -59,21 +84,112 @@ def iter_tasks(tasks: object) -> Iterator[dict[str, object]]:
             yield from iter_tasks(typed_task.get(key))
 
 
+def iter_file_tasks(content: object) -> Iterator[dict[str, object]]:
+    """Yield every task of a task file or of all plays of a playbook."""
+    if not isinstance(content, list):
+        return
+    entries = cast("list[object]", content)
+    plays = [cast("dict[str, object]", entry) for entry in entries if isinstance(entry, dict) and PLAY_KEY in entry]
+    if not plays:
+        yield from iter_tasks(entries)
+        return
+    for play in plays:
+        for key in PLAY_TASK_KEYS:
+            yield from iter_tasks(play.get(key))
+
+
+def parse_free_form(arguments: str) -> dict[str, object]:
+    """Return the key=value arguments of a module given in free form, e.g. 'url=... dest=...'."""
+    parsed: dict[str, object] = {}
+    for token in shlex.split(arguments):
+        key, separator, value = token.partition("=")
+        if separator:
+            parsed[key] = value
+    return parsed
+
+
+def module_arguments(task: dict[str, object], modules: tuple[str, ...]) -> dict[str, object] | None:
+    """Return the arguments of the first of the given modules a task uses, in mapping or free form."""
+    for module in modules:
+        arguments = task.get(module)
+        if isinstance(arguments, dict):
+            return cast("dict[str, object]", arguments)
+        if isinstance(arguments, str):
+            return parse_free_form(arguments)
+    return None
+
+
+def command_text(task: dict[str, object]) -> str:
+    """Return the command line of a command or shell task, whether given as string, cmd or argv."""
+    for module in COMMAND_MODULES:
+        command = task.get(module)
+        if isinstance(command, str):
+            return command
+        if isinstance(command, dict):
+            typed_command = cast("dict[str, object]", command)
+            argv = typed_command.get("argv")
+            if isinstance(argv, list):
+                return " ".join(str(argument) for argument in cast("list[object]", argv))
+            return str(typed_command.get("cmd", ""))
+    return ""
+
+
+def task_files() -> list[Path]:
+    """Return the task files of all roles and the playbooks in scripts/."""
+    return sorted([*ROLES_DIRECTORY.glob("*/tasks/**/*.yml"), *SCRIPTS_DIRECTORY.glob("*.yml")])
+
+
+def file_tasks(path: Path) -> list[dict[str, object]]:
+    """Return all tasks of a task file or playbook."""
+    return list(iter_file_tasks(yaml.safe_load(path.read_text(encoding="utf-8"))))
+
+
 def get_url_tasks() -> list[tuple[Path, dict[str, object]]]:
-    """Return every get_url task of all roles with the file defining it."""
+    """Return the arguments of every get_url task with the file defining it."""
     found: list[tuple[Path, dict[str, object]]] = []
-    for path in sorted(ROLES_DIRECTORY.glob("*/tasks/**/*.yml")):
-        for task in iter_tasks(yaml.safe_load(path.read_text(encoding="utf-8"))):
-            for module in GET_URL_MODULES:
-                arguments = task.get(module)
-                if isinstance(arguments, dict):
-                    found.append((path, cast("dict[str, object]", arguments)))
+    for path in task_files():
+        for task in file_tasks(path):
+            arguments = module_arguments(task, GET_URL_MODULES)
+            if arguments is not None:
+                found.append((path, arguments))
     return found
 
 
-def is_executable_download(arguments: dict[str, object]) -> bool:
-    """Return whether a get_url call downloads something that is executed afterwards."""
-    return bool(EXECUTABLE_DOWNLOAD_PATTERN.search(f"{arguments.get('url', '')} {arguments.get('dest', '')}"))
+def download_target(arguments: dict[str, object]) -> str:
+    """Return the url and destination of a download."""
+    return f"{arguments.get('url', '')} {arguments.get('dest', '')}"
+
+
+def needs_checksum(arguments: dict[str, object]) -> bool:
+    """Return whether a download is executed or installed with root rights and is not a signed package."""
+    return bool(CHECKSUM_DOWNLOAD_PATTERN.search(download_target(arguments)))
+
+
+def is_signed_package_download(arguments: dict[str, object]) -> bool:
+    """Return whether a download is a signed package that must be verified by its signature."""
+    return bool(SIGNED_PACKAGE_DOWNLOAD_PATTERN.search(download_target(arguments)))
+
+
+def verifies_package_signatures(tasks: list[dict[str, object]]) -> bool:
+    """Return whether tasks import a signing key with a pinned fingerprint and check package signatures."""
+    imports_pinned_key = any(
+        (arguments := module_arguments(task, RPM_KEY_MODULES)) is not None and bool(arguments.get("fingerprint"))
+        for task in tasks
+    )
+    checks_signatures = any(all(part in command_text(task) for part in SIGNATURE_CHECK_COMMAND) for task in tasks)
+    return imports_pinned_key and checks_signatures
+
+
+def ssh_argument_values(content: object) -> Iterator[tuple[str, str]]:
+    """Yield every ssh argument variable with its value from inventory content, at any nesting depth."""
+    if isinstance(content, dict):
+        for key, value in cast("dict[object, object]", content).items():
+            if key in SSH_ARGS_KEYS and isinstance(value, str):
+                yield str(key), value
+            yield from ssh_argument_values(value)
+    elif isinstance(content, list):
+        for item in cast("list[object]", content):
+            yield from ssh_argument_values(item)
 
 
 def test_iter_tasks_includes_nested_tasks() -> None:
@@ -84,16 +200,60 @@ def test_iter_tasks_includes_nested_tasks() -> None:
     assert [task["name"] for task in iter_tasks(tasks)] == ["outer", "inner", "fallback", "deep"]
 
 
+def test_iter_file_tasks_reads_the_tasks_of_playbooks() -> None:
+    playbook: object = [{"hosts": "all", "pre_tasks": [{"name": "first"}], "tasks": [{"name": "second"}]}]
+
+    assert [task["name"] for task in iter_file_tasks(playbook)] == ["first", "second"]
+
+
+def test_module_arguments_reads_free_form_arguments() -> None:
+    task: dict[str, object] = {"get_url": "url=https://example.com/x.deb dest='/opt/x y.deb' mode=0644"}
+
+    assert module_arguments(task, GET_URL_MODULES) == {
+        "url": "https://example.com/x.deb",
+        "dest": "/opt/x y.deb",
+        "mode": "0644",
+    }
+
+
 @pytest.mark.parametrize(
     ("arguments", "expected"),
     [
         ({"url": "{{ dotnet_install_script_url }}", "dest": "{{ lib_tmp_dir }}/dotnet-install.sh"}, True),
         ({"url": "https://github.com/hasura/graphql-engine/releases/download/v1/cli-hasura-linux-amd64"}, True),
+        ({"url": "https://packages.microsoft.com/config/debian/12/{{ dotnet_deb_name }}"}, True),
+        ({"url": "https://example.com/tool.sh", "dest": "{{ lib_tmp_dir }}/tool.sh"}, True),
         ({"url": "https://example.com/data.json", "dest": "{{ lib_tmp_dir }}/data.json"}, False),
+        ({"url": "https://example.com/release.rpm"}, False),
     ],
 )
-def test_is_executable_download(arguments: dict[str, object], *, expected: bool) -> None:
-    assert is_executable_download(arguments) is expected
+def test_needs_checksum(arguments: dict[str, object], *, expected: bool) -> None:
+    assert needs_checksum(arguments) is expected
+
+
+def test_verifies_package_signatures_needs_a_pinned_key_and_a_signature_check() -> None:
+    pinned_key: dict[str, object] = {"rpm_key": {"key": "https://example.com/key.asc", "fingerprint": "A" * 40}}
+    unpinned_key: dict[str, object] = {"rpm_key": {"key": "https://example.com/key.asc"}}
+    signature_check: dict[str, object] = {"command": {"argv": ["rpmkeys", "--checksig", "{{ lib_tmp_dir }}/x.rpm"]}}
+
+    assert verifies_package_signatures([pinned_key, signature_check])
+    assert not verifies_package_signatures([unpinned_key, signature_check])
+    assert not verifies_package_signatures([pinned_key])
+
+
+@pytest.mark.parametrize(
+    ("ssh_args", "expected"),
+    [
+        ("-o StrictHostKeyChecking=no", True),
+        ("-o 'StrictHostKeyChecking no'", True),
+        ("-o StrictHostKeyChecking=NO -o ControlMaster=auto", True),
+        ("-o UserKnownHostsFile=/dev/null", True),
+        ("-o StrictHostKeyChecking=accept-new", False),
+        ("-o StrictHostKeyChecking=yes", False),
+    ],
+)
+def test_disabled_host_key_checking_pattern(ssh_args: str, *, expected: bool) -> None:
+    assert bool(DISABLED_HOST_KEY_CHECKING_PATTERN.search(ssh_args)) is expected
 
 
 def test_container_images_are_pinned_by_digest() -> None:
@@ -115,23 +275,70 @@ def test_image_digests_are_complete() -> None:
         assert DIGEST_PATTERN.match(value), f"{key} is not a sha256 digest: {value}"
 
 
+def test_running_hasura_version_is_checked_against_the_configured_version() -> None:
+    tasks = file_tasks(HASURA_INSTALL_TASKS)
+
+    reads_version = any(
+        str((module_arguments(task, ("uri", "ansible.builtin.uri")) or {}).get("url", "")).endswith(
+            HASURA_VERSION_URL_SUFFIX
+        )
+        for task in tasks
+    )
+    asserts_version = any(HASURA_VERSION_VARIABLE in str(task.get("assert", "")) for task in tasks)
+    assert reads_version, "the installer must read the version of the running Hasura server"
+    assert asserts_version, "the installer must compare the running Hasura version with api_hasura_version"
+
+
+@pytest.mark.parametrize("variable", ["api_hasura_cli_sha256", "dotnet_ms_repo_package_sha256"])
+def test_checksum_pins_are_sha256_digests(variable: str) -> None:
+    checksums: object = group_vars().get(variable)
+
+    assert isinstance(checksums, dict)
+    typed_checksums = cast("dict[str, object]", checksums)
+    assert typed_checksums
+    for name, checksum in typed_checksums.items():
+        assert isinstance(checksum, str), f"{variable}[{name}] is not a string"
+        assert SHA256_PATTERN.match(checksum), f"{variable}[{name}] is not a sha256 hex digest"
+
+
 def test_hasura_cli_checksums_cover_the_supported_architectures() -> None:
     checksums: object = group_vars().get("api_hasura_cli_sha256")
 
     assert isinstance(checksums, dict)
-    typed_checksums = cast("dict[str, object]", checksums)
-    assert set(typed_checksums) >= {"amd64", "arm64"}
-    for architecture, checksum in typed_checksums.items():
-        assert isinstance(checksum, str), f"checksum for {architecture} is not a string"
-        assert SHA256_PATTERN.match(checksum), f"checksum for {architecture} is not a sha256 hex digest"
+    assert set(cast("dict[str, object]", checksums)) >= {"amd64", "arm64"}
+
+
+def test_signing_key_fingerprints_are_complete() -> None:
+    variables = group_vars()
+    epel_fingerprints: object = variables.get("epel_signing_key_fingerprints")
+
+    assert isinstance(epel_fingerprints, dict)
+    fingerprints = [
+        variables.get("dotnet_ms_signing_key_fingerprint"),
+        *cast("dict[str, object]", epel_fingerprints).values(),
+    ]
+    for fingerprint in fingerprints:
+        assert isinstance(fingerprint, str), f"{fingerprint} is not a string"
+        assert FINGERPRINT_PATTERN.match(fingerprint), f"{fingerprint} is not a 40 digit upper case key fingerprint"
 
 
 def test_executable_downloads_are_verified_by_checksum() -> None:
-    downloads = [(path, arguments) for path, arguments in get_url_tasks() if is_executable_download(arguments)]
+    downloads = [(path, arguments) for path, arguments in get_url_tasks() if needs_checksum(arguments)]
 
     assert downloads
     for path, arguments in downloads:
         assert arguments.get("checksum"), f"{path.relative_to(REPOSITORY_ROOT)}: {arguments.get('url')} has no checksum"
+
+
+def test_signed_package_downloads_are_verified_by_signature() -> None:
+    files = sorted({path for path, arguments in get_url_tasks() if is_signed_package_download(arguments)})
+
+    assert files
+    for path in files:
+        assert verifies_package_signatures(file_tasks(path)), (
+            f"{path.relative_to(REPOSITORY_ROOT)} installs a downloaded package without checking its signature against "
+            "a signing key imported with a pinned fingerprint"
+        )
 
 
 def test_dotnet_install_script_is_not_downloaded_from_the_moving_url() -> None:
@@ -142,7 +349,12 @@ def test_dotnet_install_script_is_not_downloaded_from_the_moving_url() -> None:
 
 
 def test_ssh_host_key_checking_is_not_disabled() -> None:
-    ssh_args: object = group_vars().get(SSH_ARGS_KEY, "")
+    hosts: object = yaml.safe_load(HOSTS_FILE.read_text(encoding="utf-8"))
+    ssh_arguments = [*ssh_argument_values(group_vars()), *ssh_argument_values(hosts)]
 
-    assert isinstance(ssh_args, str)
-    assert not DISABLED_HOST_KEY_CHECKING_PATTERN.search(ssh_args), f"{SSH_ARGS_KEY} disables host key checking"
+    assert ssh_arguments
+    for key, value in ssh_arguments:
+        assert not DISABLED_HOST_KEY_CHECKING_PATTERN.search(value), f"{key} disables host key checking: {value}"
+    assert not DISABLED_HOST_KEY_CHECKING_CONFIG_PATTERN.search(ANSIBLE_CONFIG_FILE.read_text(encoding="utf-8")), (
+        "ansible.cfg disables host key checking"
+    )

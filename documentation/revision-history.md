@@ -172,18 +172,22 @@
 - security (GHSA-frxw-mwhq-xgjq): failed initial workflow actions of a new ticket are no longer reported as success
   - the ticket stays saved, but the failure is recorded in its change history and raised as an alert
   - the createTicket api returns the new field actionsStatus (completed or failed)
+  - a ticket that was saved but could not be read back is reported as saved with failed initial actions (which are
+    not executed then) instead of as not saved, so that api clients do not create it a second time
 - security (GHSA-2xpm-58hq-qwvm): getServiceObjectId no longer picks one of several matching portless services
   - if more than one service object matches (e.g. several icmp services), the lookup answers with 409 and the
     candidates instead of an id; services with ports and the canonical ANY service are unique
 - security (GHSA-8hf3-3hp5-gj32): verify installer downloads against pinned values
-  - the Hasura container image is pinned by digest, the Hasura cli and dotnet-install.sh (pinned to a commit of
-    dotnet/install-scripts) are checked against a checksum before they are executed; the Microsoft repository
-    package, the EPEL release package and Chrome for Testing are still fetched without a pinned value
+  - the Hasura container image is pinned by digest and the installer checks that the running server has the
+    configured version; the Hasura cli, dotnet-install.sh (pinned to a commit of dotnet/install-scripts) and the
+    Microsoft repository .deb are checked against a checksum, the Microsoft repository .rpm and the EPEL release
+    package against signing keys with pinned fingerprints, before they are executed or installed; Chrome for Testing
+    is still fetched without a pinned value
   - remote servers are connected with StrictHostKeyChecking=accept-new instead of no: a changed host key aborts
     the installation (see documentation/installer/install-advanced.md)
   - all actions of the GitHub workflows are pinned to commit SHAs; policy tests reject unpinned actions, container
-    images without digest in the inventory, the dotnet-install.sh and Hasura cli downloads without checksum and
-    StrictHostKeyChecking=no in the inventory
+    images without digest, downloaded scripts and .deb packages without checksum, downloaded .rpm packages without
+    signature check and disabled host key checking in the inventory or ansible.cfg
   - Chrome for Testing keeps following the current stable release (accepted risk, documented)
 - security (GHSA-9j26-vffp-8f83): fix the release build of the UI, which the installer uses
   - an unexpected error while checking the report filter is now logged in every build configuration; the

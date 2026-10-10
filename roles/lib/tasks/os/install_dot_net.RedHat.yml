@@ -30,6 +30,18 @@
           rpm_key:
             state: present
             key: "https://packages.microsoft.com/keys/microsoft.asc"
+            fingerprint: "{{ dotnet_ms_signing_key_fingerprint }}"
+
+        # the package runs scripts as root on installation, so it is only installed with a valid signature
+        - name: verify the signature of the ms package list for RedHat
+          command:
+            argv:
+              - rpmkeys
+              - --checksig
+              - "{{ lib_tmp_dir }}/{{ dotnet_rpm_name }}"
+          register: dotnet_ms_repo_signature_redhat
+          changed_when: false
+          failed_when: dotnet_ms_repo_signature_redhat.rc != 0 or 'signatures OK' not in dotnet_ms_repo_signature_redhat.stdout
 
         - name: install ms package list for RedHat
           yum:

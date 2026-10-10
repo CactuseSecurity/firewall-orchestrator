@@ -39,6 +39,7 @@ namespace FWO.Test
         ];
         private static readonly string[] kGetUserEmailsQuery = [AuthQueries.getUserEmails];
         private static readonly string[] kApproverRole = [Roles.Approver];
+        private static readonly string[] kAdminRole = [Roles.Admin];
         private const int kCallerUserId = 93;
         private static readonly string[] kExpectedResolvedUserDns = ["uid=user,ou=users,dc=test"];
 
@@ -534,6 +535,46 @@ namespace FWO.Test
                 Assert.That(result.ErrorMessage, Does.Contain("Invalid ticket id"));
                 Assert.That(GetTicketActionLockCount(), Is.Zero);
             });
+        }
+
+        /// <summary>
+        /// SEC-24: a caller already holding or waiting for the maximum number of distinct tickets is
+        /// rejected before a further ticket lock is allocated.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_ExecuteActionsRejectsCallerExceedingConcurrentTicketCap()
+        {
+            const string callerDn = "uid=flood,ou=users,dc=test";
+            const long firstHeldTicketId = 900001;
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRolesAndClaims(kAdminRole, new Claim("x-hasura-uuid", callerDn)));
+            KeyedAsyncLock<long> ticketActionLocks = GetTicketActionLocks();
+            List<IDisposable> heldLocks = [];
+            try
+            {
+                for (long ticketId = firstHeldTicketId; ticketId < firstHeldTicketId + KeyedAsyncLock<long>.kDefaultMaxKeysPerOwner; ticketId++)
+                {
+                    heldLocks.Add(await ticketActionLocks.TryAcquireAsync(ticketId, callerDn) ?? throw new InvalidOperationException("Lock setup failed."));
+                }
+
+                WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+                {
+                    Scope = WfObjectScopes.Ticket.ToString(),
+                    Phase = WorkflowPhases.request.ToString(),
+                    ObjectId = firstHeldTicketId - 1
+                });
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result.Success, Is.False);
+                    Assert.That(result.ErrorMessage, Does.Contain("Too many concurrent workflow action requests"));
+                    Assert.That(GetTicketActionLockCount(), Is.EqualTo(KeyedAsyncLock<long>.kDefaultMaxKeysPerOwner));
+                });
+            }
+            finally
+            {
+                heldLocks.ForEach(heldLock => heldLock.Dispose());
+            }
+            Assert.That(GetTicketActionLockCount(), Is.Zero);
         }
 
         /// <summary>
@@ -2025,9 +2066,14 @@ namespace FWO.Test
 
         private static int GetTicketActionLockCount()
         {
+            return GetTicketActionLocks().Count;
+        }
+
+        private static KeyedAsyncLock<long> GetTicketActionLocks()
+        {
             FieldInfo field = typeof(WorkflowController).GetField("TicketActionLocks", BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new MissingFieldException(nameof(WorkflowController), "TicketActionLocks");
-            return ((KeyedAsyncLock<long>)field.GetValue(null)!).Count;
+            return (KeyedAsyncLock<long>)field.GetValue(null)!;
         }
 
         private static string? GetApiServerUri()

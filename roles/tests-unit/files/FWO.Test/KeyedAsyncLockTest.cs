@@ -8,6 +8,8 @@ namespace FWO.Test
     {
         private const int kUniqueKeyCount = 1000;
         private const int kConcurrentCallers = 20;
+        private const string kOwner = "uid=user,ou=users,dc=test";
+        private const string kOtherOwner = "uid=other,ou=users,dc=test";
         private static readonly TimeSpan kWaitTimeout = TimeSpan.FromSeconds(5);
 
         [Test]
@@ -17,11 +19,15 @@ namespace FWO.Test
 
             for (long key = 1; key <= kUniqueKeyCount; key++)
             {
-                using IDisposable handle = await keyedLock.AcquireAsync(key);
+                using IDisposable handle = await Acquire(keyedLock, key);
                 Assert.That(keyedLock.Count, Is.EqualTo(1));
             }
 
-            Assert.That(keyedLock.Count, Is.Zero);
+            Assert.Multiple(() =>
+            {
+                Assert.That(keyedLock.Count, Is.Zero);
+                Assert.That(keyedLock.OwnerCount, Is.Zero);
+            });
         }
 
         [Test]
@@ -36,7 +42,7 @@ namespace FWO.Test
             {
                 callers.Add(Task.Run(async () =>
                 {
-                    using IDisposable handle = await keyedLock.AcquireAsync(42);
+                    using IDisposable handle = await Acquire(keyedLock, 42);
                     int active = Interlocked.Increment(ref activeHolders);
                     InterlockedMax(ref maxActiveHolders, active);
                     await Task.Delay(1);
@@ -57,8 +63,8 @@ namespace FWO.Test
         {
             KeyedAsyncLock<long> keyedLock = new();
 
-            using IDisposable first = await keyedLock.AcquireAsync(1);
-            Task<IDisposable> second = keyedLock.AcquireAsync(2);
+            using IDisposable first = await Acquire(keyedLock, 1);
+            Task<IDisposable> second = Acquire(keyedLock, 2);
 
             Assert.That(await Task.WhenAny(second, Task.Delay(kWaitTimeout)), Is.SameAs(second));
             second.Result.Dispose();
@@ -69,20 +75,24 @@ namespace FWO.Test
         public async Task CancelledWaitReleasesReservationWithoutDisposingHeldLock()
         {
             KeyedAsyncLock<long> keyedLock = new();
-            IDisposable holder = await keyedLock.AcquireAsync(7);
+            IDisposable holder = await Acquire(keyedLock, 7);
             using CancellationTokenSource cancellation = new();
 
-            Task<IDisposable> waiter = keyedLock.AcquireAsync(7, cancellation.Token);
-            Assert.That(keyedLock.Count, Is.EqualTo(1));
+            Task<IDisposable?> waiter = keyedLock.TryAcquireAsync(7, kOtherOwner, cancellation.Token);
+            Assert.That(keyedLock.OwnerCount, Is.EqualTo(2));
             await cancellation.CancelAsync();
 
-            Assert.That(async () => await waiter, Throws.InstanceOf<OperationCanceledException>());
-            Assert.That(keyedLock.Count, Is.EqualTo(1));
+            await Assert.ThatAsync(async () => await waiter, Throws.InstanceOf<OperationCanceledException>());
+            Assert.Multiple(() =>
+            {
+                Assert.That(keyedLock.Count, Is.EqualTo(1));
+                Assert.That(keyedLock.OwnerCount, Is.EqualTo(1));
+            });
 
             holder.Dispose();
             Assert.That(keyedLock.Count, Is.Zero);
 
-            using IDisposable reacquired = await keyedLock.AcquireAsync(7);
+            using IDisposable reacquired = await Acquire(keyedLock, 7);
             Assert.That(keyedLock.Count, Is.EqualTo(1));
         }
 
@@ -93,8 +103,12 @@ namespace FWO.Test
             using CancellationTokenSource cancellation = new();
             await cancellation.CancelAsync();
 
-            Assert.That(async () => await keyedLock.AcquireAsync(3, cancellation.Token), Throws.InstanceOf<OperationCanceledException>());
-            Assert.That(keyedLock.Count, Is.Zero);
+            await Assert.ThatAsync(async () => await keyedLock.TryAcquireAsync(3, kOwner, cancellation.Token), Throws.InstanceOf<OperationCanceledException>());
+            Assert.Multiple(() =>
+            {
+                Assert.That(keyedLock.Count, Is.Zero);
+                Assert.That(keyedLock.OwnerCount, Is.Zero);
+            });
         }
 
         [Test]
@@ -102,14 +116,14 @@ namespace FWO.Test
         {
             KeyedAsyncLock<long> keyedLock = new();
 
-            Assert.That(async () =>
+            await Assert.ThatAsync(async () =>
             {
-                using IDisposable handle = await keyedLock.AcquireAsync(9);
+                using IDisposable handle = await Acquire(keyedLock, 9);
                 throw new InvalidOperationException("action failed");
             }, Throws.InvalidOperationException);
 
             Assert.That(keyedLock.Count, Is.Zero);
-            using IDisposable reacquired = await keyedLock.AcquireAsync(9);
+            using IDisposable reacquired = await Acquire(keyedLock, 9);
             Assert.That(keyedLock.Count, Is.EqualTo(1));
         }
 
@@ -117,8 +131,8 @@ namespace FWO.Test
         public async Task WaiterAcquiresAfterHolderReleasesAndEntryIsKeptMeanwhile()
         {
             KeyedAsyncLock<long> keyedLock = new();
-            IDisposable holder = await keyedLock.AcquireAsync(11);
-            Task<IDisposable> waiter = keyedLock.AcquireAsync(11);
+            IDisposable holder = await Acquire(keyedLock, 11);
+            Task<IDisposable> waiter = Acquire(keyedLock, 11);
 
             Assert.That(waiter.IsCompleted, Is.False);
             holder.Dispose();
@@ -133,14 +147,14 @@ namespace FWO.Test
         public async Task DisposingHandleTwiceReleasesOnlyOnce()
         {
             KeyedAsyncLock<long> keyedLock = new();
-            IDisposable holder = await keyedLock.AcquireAsync(13);
-            Task<IDisposable> waiter = keyedLock.AcquireAsync(13);
+            IDisposable holder = await Acquire(keyedLock, 13);
+            Task<IDisposable> waiter = Acquire(keyedLock, 13);
 
             holder.Dispose();
-            using IDisposable second = await waiter.WaitAsync(kWaitTimeout);
+            IDisposable second = await waiter.WaitAsync(kWaitTimeout);
             holder.Dispose();
 
-            Task<IDisposable> third = keyedLock.AcquireAsync(13);
+            Task<IDisposable> third = Acquire(keyedLock, 13);
             Assert.Multiple(() =>
             {
                 Assert.That(third.IsCompleted, Is.False);
@@ -149,6 +163,100 @@ namespace FWO.Test
             second.Dispose();
             (await third.WaitAsync(kWaitTimeout)).Dispose();
             Assert.That(keyedLock.Count, Is.Zero);
+        }
+
+        [Test]
+        public async Task GlobalKeyCapRejectsNewKeysButNotExistingOnes()
+        {
+            KeyedAsyncLock<long> keyedLock = new(maxKeys: 2, maxKeysPerOwner: 10);
+            IDisposable first = await Acquire(keyedLock, 1);
+            using IDisposable second = await Acquire(keyedLock, 2, kOtherOwner);
+
+            IDisposable? rejected = await keyedLock.TryAcquireAsync(3, kOwner);
+            Task<IDisposable> waiterOnExistingKey = Acquire(keyedLock, 1, kOtherOwner);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rejected, Is.Null);
+                Assert.That(waiterOnExistingKey.IsCompleted, Is.False);
+                Assert.That(keyedLock.Count, Is.EqualTo(2));
+            });
+            first.Dispose();
+            (await waiterOnExistingKey.WaitAsync(kWaitTimeout)).Dispose();
+        }
+
+        [Test]
+        public async Task CallersPerKeyCapRejectsFurtherWaiters()
+        {
+            KeyedAsyncLock<long> keyedLock = new(maxCallersPerKey: 2);
+            IDisposable holder = await Acquire(keyedLock, 5);
+            Task<IDisposable> waiter = Acquire(keyedLock, 5, kOtherOwner);
+
+            IDisposable? rejected = await keyedLock.TryAcquireAsync(5, kOwner);
+
+            Assert.That(rejected, Is.Null);
+            holder.Dispose();
+            (await waiter.WaitAsync(kWaitTimeout)).Dispose();
+            Assert.Multiple(() =>
+            {
+                Assert.That(keyedLock.Count, Is.Zero);
+                Assert.That(keyedLock.OwnerCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task KeysPerOwnerCapRejectsOnlyThatOwner()
+        {
+            KeyedAsyncLock<long> keyedLock = new(maxKeysPerOwner: 2);
+            IDisposable first = await Acquire(keyedLock, 1);
+            IDisposable second = await Acquire(keyedLock, 2);
+
+            IDisposable? rejectedNewKey = await keyedLock.TryAcquireAsync(3, kOwner);
+            IDisposable? rejectedForeignKey = await keyedLock.TryAcquireAsync(4, kOwner);
+            using IDisposable otherOwner = await Acquire(keyedLock, 3, kOtherOwner);
+            Task<IDisposable> sameOwnerSameKey = Acquire(keyedLock, 1);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rejectedNewKey, Is.Null);
+                Assert.That(rejectedForeignKey, Is.Null);
+                Assert.That(sameOwnerSameKey.IsCompleted, Is.False);
+            });
+
+            second.Dispose();
+            using IDisposable afterRelease = await Acquire(keyedLock, 4);
+            first.Dispose();
+            (await sameOwnerSameKey.WaitAsync(kWaitTimeout)).Dispose();
+        }
+
+        [Test]
+        public async Task OwnerMayJoinExistingKeyOfOtherOwnerOnlyWithinOwnCap()
+        {
+            KeyedAsyncLock<long> keyedLock = new(maxKeysPerOwner: 1);
+            using IDisposable foreign = await Acquire(keyedLock, 1, kOtherOwner);
+            using IDisposable own = await Acquire(keyedLock, 2);
+
+            IDisposable? rejected = await keyedLock.TryAcquireAsync(1, kOwner);
+
+            Assert.That(rejected, Is.Null);
+        }
+
+        [Test]
+        public void ConstructorRejectsNonPositiveCaps()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(() => new KeyedAsyncLock<long>(maxKeys: 0), Throws.InstanceOf<ArgumentOutOfRangeException>());
+                Assert.That(() => new KeyedAsyncLock<long>(maxCallersPerKey: 0), Throws.InstanceOf<ArgumentOutOfRangeException>());
+                Assert.That(() => new KeyedAsyncLock<long>(maxKeysPerOwner: -1), Throws.InstanceOf<ArgumentOutOfRangeException>());
+            });
+        }
+
+        private static async Task<IDisposable> Acquire(KeyedAsyncLock<long> keyedLock, long key, string owner = kOwner)
+        {
+            IDisposable? handle = await keyedLock.TryAcquireAsync(key, owner);
+            Assert.That(handle, Is.Not.Null, $"Lock for key {key} and owner {owner} was rejected.");
+            return handle!;
         }
 
         private static void InterlockedMax(ref int target, int value)

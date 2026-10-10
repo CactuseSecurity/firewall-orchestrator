@@ -139,7 +139,14 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<WorkflowActionResult> ExecuteActionsWithTicketLock(WorkflowActionParameters parameters, WfObjectScopes scope,
             WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
         {
-            using IDisposable ticketActionLock = await TicketActionLocks.AcquireAsync(lockTicketId, HttpContext?.RequestAborted ?? CancellationToken.None);
+            string caller = User.FindFirstValue("x-hasura-uuid") ?? "";
+            using IDisposable? ticketActionLock = await TicketActionLocks.TryAcquireAsync(lockTicketId, caller,
+                HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (ticketActionLock == null)
+            {
+                SetWarning(result, $"Too many concurrent workflow action requests. Ticket {lockTicketId} was not processed, please retry.");
+                return result;
+            }
             return await ExecuteActionsWithApi(parameters, scope, phase, lockTicketId, result);
         }
 

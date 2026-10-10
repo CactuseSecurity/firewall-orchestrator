@@ -4,8 +4,9 @@ namespace FWO.Middleware.Server.Services
     /// Serializes asynchronous work per key. Entries are reference counted: an entry exists only while
     /// a caller holds or waits for its key and is removed and disposed as soon as the last one leaves,
     /// so the number of entries is bounded by the number of concurrent callers, not by the number of
-    /// distinct keys ever seen. Caps on the total number of keys, the callers per key and the distinct
-    /// keys per owner bound this further against a flood of concurrent callers.
+    /// distinct keys ever seen. Caps on the total number of keys, the callers per key, the callers of one
+    /// owner per key and the distinct keys per owner bound this further against a flood of concurrent
+    /// callers; the per-owner caps keep a single owner from occupying the capacity of others.
     /// </summary>
     /// <typeparam name="TKey">Type of the key the work is serialized on.</typeparam>
     public sealed class KeyedAsyncLock<TKey> where TKey : notnull
@@ -16,6 +17,8 @@ namespace FWO.Middleware.Server.Services
         public const int kDefaultMaxCallersPerKey = 32;
         /// <summary>Default maximum number of distinct keys one owner holds or waits for at the same time.</summary>
         public const int kDefaultMaxKeysPerOwner = 8;
+        /// <summary>Default maximum number of callers of one owner holding or waiting for the same key.</summary>
+        public const int kDefaultMaxCallersPerOwnerAndKey = 2;
 
         private readonly Dictionary<TKey, LockEntry> entries = [];
         private readonly Dictionary<string, int> keysPerOwner = [];
@@ -23,6 +26,7 @@ namespace FWO.Middleware.Server.Services
         private readonly int maxKeys;
         private readonly int maxCallersPerKey;
         private readonly int maxKeysPerOwner;
+        private readonly int maxCallersPerOwnerAndKey;
 
         /// <summary>
         /// Creates the lock with the given caps.
@@ -30,15 +34,18 @@ namespace FWO.Middleware.Server.Services
         /// <param name="maxKeys">Maximum number of keys held or waited for at the same time.</param>
         /// <param name="maxCallersPerKey">Maximum number of callers holding or waiting for one key.</param>
         /// <param name="maxKeysPerOwner">Maximum number of distinct keys one owner holds or waits for at the same time.</param>
+        /// <param name="maxCallersPerOwnerAndKey">Maximum number of callers of one owner holding or waiting for the same key.</param>
         public KeyedAsyncLock(int maxKeys = kDefaultMaxKeys, int maxCallersPerKey = kDefaultMaxCallersPerKey,
-            int maxKeysPerOwner = kDefaultMaxKeysPerOwner)
+            int maxKeysPerOwner = kDefaultMaxKeysPerOwner, int maxCallersPerOwnerAndKey = kDefaultMaxCallersPerOwnerAndKey)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxKeys);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxCallersPerKey);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxKeysPerOwner);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxCallersPerOwnerAndKey);
             this.maxKeys = maxKeys;
             this.maxCallersPerKey = maxCallersPerKey;
             this.maxKeysPerOwner = maxKeysPerOwner;
+            this.maxCallersPerOwnerAndKey = maxCallersPerOwnerAndKey;
         }
 
         /// <summary>
@@ -128,8 +135,10 @@ namespace FWO.Middleware.Server.Services
             {
                 return entries.Count < maxKeys && keysPerOwner.GetValueOrDefault(owner) < maxKeysPerOwner;
             }
-            return entry!.References < maxCallersPerKey
-                && (entry.OwnerReferences.ContainsKey(owner) || keysPerOwner.GetValueOrDefault(owner) < maxKeysPerOwner);
+            int ownerReferences = entry!.OwnerReferences.GetValueOrDefault(owner);
+            return entry.References < maxCallersPerKey
+                && ownerReferences < maxCallersPerOwnerAndKey
+                && (ownerReferences > 0 || keysPerOwner.GetValueOrDefault(owner) < maxKeysPerOwner);
         }
 
         private void RemoveReference(TKey key, string owner, LockEntry entry)
@@ -177,8 +186,11 @@ namespace FWO.Middleware.Server.Services
 
         private sealed class LockEntry
         {
+            /// <summary>Serializes the callers of the key.</summary>
             public SemaphoreSlim Semaphore { get; } = new(1, 1);
+            /// <summary>Number of callers holding or waiting for the key, per owner.</summary>
             public Dictionary<string, int> OwnerReferences { get; } = [];
+            /// <summary>Number of all callers holding or waiting for the key.</summary>
             public int References { get; set; }
         }
 
@@ -186,6 +198,9 @@ namespace FWO.Middleware.Server.Services
         {
             private int released;
 
+            /// <summary>
+            /// Releases the lock and the reservation of the key; further calls do nothing.
+            /// </summary>
             public void Dispose()
             {
                 if (Interlocked.Exchange(ref released, 1) == 0)

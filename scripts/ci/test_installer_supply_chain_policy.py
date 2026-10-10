@@ -1,8 +1,9 @@
 """
-Policy tests that keep installer downloads verifiable and SSH host keys checked (GHSA-8hf3-3hp5-gj32).
+Policy tests that keep the pinned installer downloads verifiable and SSH host keys checked (GHSA-8hf3-3hp5-gj32).
 
-Container images are pinned by digest, executable downloads are checked against a checksum before they run, and
-host key checking is never switched off, so a changed artifact or an impersonated host fails the installation.
+Container images in the inventory are pinned by digest, the known executable downloads (dotnet-install.sh, the Hasura
+cli) are checked against a checksum before they run, and the inventory does not switch off host key checking with
+StrictHostKeyChecking=no. The tests cover these known cases only, not every download or ssh option of the installer.
 """
 
 from __future__ import annotations

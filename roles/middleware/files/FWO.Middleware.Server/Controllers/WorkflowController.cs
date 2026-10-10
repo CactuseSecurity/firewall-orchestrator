@@ -83,6 +83,13 @@ namespace FWO.Middleware.Server.Controllers
                 }
                 return await ExecuteActionsWithTicketLock(parameters, scope, phase, lockTicketId, result);
             }
+            catch (OperationCanceledException) when (HttpContext?.RequestAborted.IsCancellationRequested == true)
+            {
+                // the client went away (e.g. closed the page) while waiting for the ticket lock: nothing failed here
+                Log.WriteDebug("Workflow Actions", "Workflow action request was cancelled by the client.");
+                result.ErrorMessage = "The request was cancelled.";
+                return result;
+            }
             catch (Exception exc)
             {
                 Log.WriteError("Workflow Actions", "Could not execute workflow actions in middleware.", exc);

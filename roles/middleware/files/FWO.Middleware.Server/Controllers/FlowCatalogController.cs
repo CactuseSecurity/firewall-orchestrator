@@ -86,6 +86,8 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Returns address objects for the requested visibility filter from the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
+    /// Returns one page of at most 1000 items (root keys <c>limit</c> and <c>offset</c>, ordered by name and id); the
+    /// <c>X-Has-More</c> response header is <c>true</c> when further items follow.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressObjects")]
@@ -98,12 +100,15 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        return PageResult(await flowCatalogService.GetAddressObjectsAsync(request.Filter?.VisibleInRequest, request.Limit, request.Offset));
+        return PageResult(await flowCatalogService.GetAddressObjectsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxObjectLimit), request.Offset));
     }
 
     /// <summary>
     /// Returns address groups for the requested visibility filter from the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
+    /// Returns one page of at most 250 groups (root keys <c>limit</c> and <c>offset</c>, ordered by name and id); the
+    /// <c>X-Has-More</c> response header is <c>true</c> when further groups follow.
+    /// With separated zone groups the page is taken before the groups are separated.
     /// With 'option.separateZoneGroups' set to true the result is a
     /// <see cref="SeparatedAddressGroupsResponse"/> holding the zone groups separately;
     /// otherwise a flat JSON array of all groups is returned.
@@ -132,17 +137,19 @@ public class FlowCatalogController : ControllerBase
         if (request.Option?.SeparateZoneGroups == true)
         {
             (SeparatedAddressGroupsResponse separatedGroups, bool hasMore) =
-                await flowCatalogService.GetSeparatedAddressGroupsAsync(request.Filter?.VisibleInRequest, request.Limit, request.Offset);
+                await flowCatalogService.GetSeparatedAddressGroupsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxGroupLimit), request.Offset);
             ListPaging.SetHasMoreHeader(HttpContext, hasMore);
             return Ok(separatedGroups);
         }
 
-        return PageResult(await flowCatalogService.GetAddressGroupsAsync(request.Filter?.VisibleInRequest, request.Limit, request.Offset));
+        return PageResult(await flowCatalogService.GetAddressGroupsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxGroupLimit), request.Offset));
     }
 
     /// <summary>
     /// Returns service objects for the requested visibility filter from the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
+    /// Returns one page of at most 1000 items (root keys <c>limit</c> and <c>offset</c>, ordered by name and id); the
+    /// <c>X-Has-More</c> response header is <c>true</c> when further items follow.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceObjects")]
@@ -155,12 +162,14 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        return PageResult(await flowCatalogService.GetServiceObjectsAsync(request.Filter?.VisibleInRequest, request.Limit, request.Offset));
+        return PageResult(await flowCatalogService.GetServiceObjectsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxObjectLimit), request.Offset));
     }
 
     /// <summary>
     /// Returns service groups for the requested visibility filter from the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
+    /// Returns one page of at most 250 groups (root keys <c>limit</c> and <c>offset</c>, ordered by name and id); the
+    /// <c>X-Has-More</c> response header is <c>true</c> when further groups follow.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceGroups")]
@@ -173,7 +182,7 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        return PageResult(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest, request.Limit, request.Offset));
+        return PageResult(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxGroupLimit), request.Offset));
     }
 
     /// <summary>
@@ -217,6 +226,8 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Returns time objects for the requested visibility filter from the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
+    /// Returns one page of at most 1000 items (root keys <c>limit</c> and <c>offset</c>, ordered by name and id); the
+    /// <c>X-Has-More</c> response header is <c>true</c> when further items follow.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getTimeObjects")]
@@ -229,7 +240,7 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        return PageResult(await flowCatalogService.GetTimeObjectsAsync(request.Filter?.VisibleInRequest, request.Limit, request.Offset));
+        return PageResult(await flowCatalogService.GetTimeObjectsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxObjectLimit), request.Offset));
     }
 
     /// <summary>

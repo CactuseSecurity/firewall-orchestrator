@@ -538,6 +538,31 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// Review finding F7: a client that goes away while waiting for the ticket lock is no error of the
+        /// middleware; the request ends without executing anything and leaves no lock behind.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_ExecuteActionsEndsQuietlyWhenTheClientCancels()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            controller.HttpContext.RequestAborted = new CancellationToken(canceled: true);
+
+            WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                Phase = WorkflowPhases.request.ToString(),
+                ObjectId = 1
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.ErrorMessage, Is.EqualTo("The request was cancelled."));
+                Assert.That(GetTicketActionLockCount(), Is.Zero);
+            });
+        }
+
+        /// <summary>
         /// SEC-24: a caller already holding or waiting for the maximum number of distinct tickets is
         /// rejected before a further ticket lock is allocated.
         /// </summary>

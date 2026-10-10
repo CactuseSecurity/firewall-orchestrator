@@ -15,12 +15,12 @@ public sealed class GetServiceObjectsRequest : IVisibleInRequestFilterRequest, I
     public VisibleInRequestFilter? Filter { get; set; }
 
     /// <summary>
-    /// Gets or sets the maximum number of items returned, between 1 and <see cref="FlowCatalogPaging.kMaxObjectLimit"/>; defaults to
-    /// <see cref="FlowCatalogPaging.kMaxObjectLimit"/>. Items are ordered by name and id, so <c>limit</c> and <c>offset</c> page the
-    /// result deterministically; the <c>X-Has-More</c> response header tells whether further items follow.
+    /// Gets or sets the maximum number of items returned, between 1 and <see cref="FlowCatalogPaging.kMaxObjectLimit"/>. When omitted or
+    /// null, a page of <see cref="FlowCatalogPaging.kMaxObjectLimit"/> items is returned. Items are ordered by name and id, so <c>limit</c>
+    /// and <c>offset</c> page the result deterministically; the <c>X-Has-More</c> response header tells whether further items follow.
     /// </summary>
     [JsonPropertyName("limit")]
-    public int Limit { get; set; } = FlowCatalogPaging.kMaxObjectLimit;
+    public int? Limit { get; set; } = FlowCatalogPaging.kMaxObjectLimit;
 
     /// <summary>
     /// Gets or sets the number of items skipped before the first returned item, at least 0. When omitted or null, no

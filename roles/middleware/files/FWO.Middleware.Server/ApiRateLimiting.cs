@@ -97,6 +97,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         internal static PartitionedRateLimiter<HttpContext> CreateGlobalLimiter(ApiRateLimitSettings settings)
         {
+            (int tokensPerPeriod, TimeSpan replenishmentPeriod) = GetRefill(settings.RequestsPerMinute);
             return PartitionedRateLimiter.Create<HttpContext, string>(context =>
             {
                 string? partitionKey = GetPartitionKey(context.User);
@@ -105,12 +106,34 @@ namespace FWO.Middleware.Server
                     : RateLimitPartition.GetTokenBucketLimiter(partitionKey, _ => new TokenBucketRateLimiterOptions
                     {
                         TokenLimit = settings.RequestsPerMinute,
-                        TokensPerPeriod = Math.Max(1, settings.RequestsPerMinute / kSecondsPerMinute),
-                        ReplenishmentPeriod = TimeSpan.FromSeconds(1),
+                        TokensPerPeriod = tokensPerPeriod,
+                        ReplenishmentPeriod = replenishmentPeriod,
                         QueueLimit = 0,
                         AutoReplenishment = true
                     });
             });
+        }
+
+        /// <summary>
+        /// Returns a refill that adds exactly the given number of tokens per minute in whole seconds: the shortest
+        /// period that divides a minute and receives a whole number of tokens (e.g. 600 per minute: 10 tokens every
+        /// second, 100 per minute: 5 tokens every 3 seconds, 7 per minute: 7 tokens every minute).
+        /// </summary>
+        /// <param name="requestsPerMinute">Requests allowed per minute, at least 1.</param>
+        internal static (int TokensPerPeriod, TimeSpan ReplenishmentPeriod) GetRefill(int requestsPerMinute)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(requestsPerMinute);
+            int periodsPerMinute = GreatestCommonDivisor(requestsPerMinute, kSecondsPerMinute);
+            return (requestsPerMinute / periodsPerMinute, TimeSpan.FromSeconds(kSecondsPerMinute / periodsPerMinute));
+        }
+
+        private static int GreatestCommonDivisor(int first, int second)
+        {
+            while (second != 0)
+            {
+                (first, second) = (second, first % second);
+            }
+            return first;
         }
 
         /// <summary>

@@ -15,12 +15,12 @@ public sealed class GetServiceGroupsRequest : IVisibleInRequestFilterRequest, IP
     public VisibleInRequestFilter? Filter { get; set; }
 
     /// <summary>
-    /// Gets or sets the maximum number of items returned, between 1 and <see cref="FlowCatalogPaging.kMaxGroupLimit"/>; defaults to
-    /// <see cref="FlowCatalogPaging.kMaxGroupLimit"/>. Items are ordered by name and id, so <c>limit</c> and <c>offset</c> page the
-    /// result deterministically; the <c>X-Has-More</c> response header tells whether further items follow.
+    /// Gets or sets the maximum number of items returned, between 1 and <see cref="FlowCatalogPaging.kMaxGroupLimit"/>. When omitted or
+    /// null, a page of <see cref="FlowCatalogPaging.kMaxGroupLimit"/> items is returned. Items are ordered by name and id, so <c>limit</c>
+    /// and <c>offset</c> page the result deterministically; the <c>X-Has-More</c> response header tells whether further items follow.
     /// </summary>
     [JsonPropertyName("limit")]
-    public int Limit { get; set; } = FlowCatalogPaging.kMaxGroupLimit;
+    public int? Limit { get; set; } = FlowCatalogPaging.kMaxGroupLimit;
 
     /// <summary>
     /// Gets or sets the number of items skipped before the first returned item, at least 0. When omitted or null, no

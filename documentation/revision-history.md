@@ -175,13 +175,15 @@
 - security (GHSA-2xpm-58hq-qwvm): getServiceObjectId no longer picks one of several matching portless services
   - if more than one service object matches (e.g. several icmp services), the lookup answers with 409 and the
     candidates instead of an id; services with ports and the canonical ANY service are unique
-- security (GHSA-8hf3-3hp5-gj32): the installer only runs verified downloads
+- security (GHSA-8hf3-3hp5-gj32): verify installer downloads against pinned values
   - the Hasura container image is pinned by digest, the Hasura cli and dotnet-install.sh (pinned to a commit of
-    dotnet/install-scripts) are checked against a checksum before they are executed
+    dotnet/install-scripts) are checked against a checksum before they are executed; the Microsoft repository
+    package, the EPEL release package and Chrome for Testing are still fetched without a pinned value
   - remote servers are connected with StrictHostKeyChecking=accept-new instead of no: a changed host key aborts
     the installation (see documentation/installer/install-advanced.md)
-  - all actions of the GitHub workflows are pinned to commit SHAs; policy tests reject unpinned actions,
-    container images without digest and executable downloads without checksum
+  - all actions of the GitHub workflows are pinned to commit SHAs; policy tests reject unpinned actions, container
+    images without digest in the inventory, the dotnet-install.sh and Hasura cli downloads without checksum and
+    StrictHostKeyChecking=no in the inventory
   - Chrome for Testing keeps following the current stable release (accepted risk, documented)
 - security (GHSA-9j26-vffp-8f83): fix the release build of the UI, which the installer uses
   - an unexpected error while checking the report filter is now logged in every build configuration; the

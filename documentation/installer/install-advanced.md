@@ -465,7 +465,7 @@ After you defined additional distributed servers you have to add them to the hos
 
 ## Verified downloads
 
-The installer only runs downloaded artifacts that match a value pinned in the inventory, so an artifact that was
+The following downloaded artifacts are checked against a value pinned in the inventory, so an artifact that was
 changed after review fails the installation before it is executed:
 
 | Artifact | Pin | Checked by |
@@ -478,12 +478,21 @@ When `api_hasura_version` is raised, update its pins together with it: the index
 `Docker-Content-Digest` for the tag by the registry (or shown as the tag's digest on Docker Hub), the CLI checksums
 are the `digest` values of the release assets (`gh api repos/hasura/graphql-engine/releases/tags/<version>`).
 `dotnet-install.sh` is taken from a commit of `github.com/dotnet/install-scripts`; to move to a newer script, set the
-commit and the sha256 of `src/dotnet-install.sh` at that commit. The policy tests in `scripts/ci` reject container
-images without digest, executable downloads without checksum and disabled SSH host key checking.
+commit and the sha256 of `src/dotnet-install.sh` at that commit. The policy tests in `scripts/ci` check the inventory
+and the role tasks for these pins: container images in `inventory/group_vars` need a digest, the `get_url` downloads
+of `dotnet-install.sh` and the Hasura CLI need a checksum, and `ansible_ssh_common_args` in `inventory/group_vars`
+must not contain `StrictHostKeyChecking=no`. Other downloads and other ways of disabling host key checking are not
+covered by these tests.
 
-Chrome for Testing, which is downloaded for PDF generation when no system chromium package is available, is
-deliberately not pinned: it follows the current stable release, so that browser security fixes arrive without an
-installer change. It is downloaded over HTTPS from Google's storage, but not checked against a pinned checksum.
+Packages installed from the distribution and vendor repositories are verified by the package manager's signature
+check. The following downloads are not checked against a pinned value; they are fetched over HTTPS only:
+
+- the Microsoft repository configuration package (`packages-microsoft-prod.deb` / `.rpm`), which sets up the
+  Microsoft package repository for the .NET SDK, also in `scripts/preinstall-packages.yml`
+- the EPEL release package on Red Hat / Rocky when it is not available from the configured repositories
+- Chrome for Testing, which is downloaded for PDF generation when no system chromium package is available. It is
+  deliberately not pinned: it follows the current stable release, so that browser security fixes arrive without an
+  installer change.
 
 ## old
 

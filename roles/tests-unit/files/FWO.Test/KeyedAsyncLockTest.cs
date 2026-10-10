@@ -40,9 +40,10 @@ namespace FWO.Test
             List<Task> callers = [];
             for (int i = 0; i < kConcurrentCallers; i++)
             {
+                string owner = $"uid=caller{i},ou=users,dc=test";
                 callers.Add(Task.Run(async () =>
                 {
-                    using IDisposable handle = await Acquire(keyedLock, 42);
+                    using IDisposable handle = await Acquire(keyedLock, 42, owner);
                     int active = Interlocked.Increment(ref activeHolders);
                     InterlockedMax(ref maxActiveHolders, active);
                     await Task.Delay(1);
@@ -241,6 +242,31 @@ namespace FWO.Test
             Assert.That(rejected, Is.Null);
         }
 
+        /// <summary>
+        /// One owner must not be able to occupy all caller slots of a key: further callers of other owners are
+        /// still admitted (review finding F1 of SEC-24).
+        /// </summary>
+        [Test]
+        public async Task CallersPerOwnerAndKeyCapLeavesSlotsForOtherOwners()
+        {
+            KeyedAsyncLock<long> keyedLock = new(maxCallersPerKey: 4, maxCallersPerOwnerAndKey: 2);
+            IDisposable holder = await Acquire(keyedLock, 5);
+            Task<IDisposable> sameOwnerWaiter = Acquire(keyedLock, 5);
+
+            IDisposable? rejectedThirdCall = await keyedLock.TryAcquireAsync(5, kOwner);
+            Task<IDisposable> otherOwnerWaiter = Acquire(keyedLock, 5, kOtherOwner);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rejectedThirdCall, Is.Null);
+                Assert.That(otherOwnerWaiter.IsCompleted, Is.False);
+            });
+            holder.Dispose();
+            (await sameOwnerWaiter.WaitAsync(kWaitTimeout)).Dispose();
+            (await otherOwnerWaiter.WaitAsync(kWaitTimeout)).Dispose();
+            Assert.That(keyedLock.Count, Is.Zero);
+        }
+
         [Test]
         public void ConstructorRejectsNonPositiveCaps()
         {
@@ -249,6 +275,7 @@ namespace FWO.Test
                 Assert.That(() => new KeyedAsyncLock<long>(maxKeys: 0), Throws.InstanceOf<ArgumentOutOfRangeException>());
                 Assert.That(() => new KeyedAsyncLock<long>(maxCallersPerKey: 0), Throws.InstanceOf<ArgumentOutOfRangeException>());
                 Assert.That(() => new KeyedAsyncLock<long>(maxKeysPerOwner: -1), Throws.InstanceOf<ArgumentOutOfRangeException>());
+                Assert.That(() => new KeyedAsyncLock<long>(maxCallersPerOwnerAndKey: 0), Throws.InstanceOf<ArgumentOutOfRangeException>());
             });
         }
 

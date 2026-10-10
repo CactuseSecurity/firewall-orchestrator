@@ -85,6 +85,34 @@ namespace FWO.Test
             }
         }
 
+        /// <summary>
+        /// Review finding F2: the refill must add exactly the configured number of requests per minute, also for
+        /// values that are no multiple of 60, without periods shorter than a second.
+        /// </summary>
+        [TestCase(600, 10, 1)]
+        [TestCase(60, 1, 1)]
+        [TestCase(100, 5, 3)]
+        [TestCase(30, 1, 2)]
+        [TestCase(1000, 50, 3)]
+        [TestCase(7, 7, 60)]
+        public void RefillAddsExactlyTheConfiguredRequestsPerMinute(int requestsPerMinute, int expectedTokens, int expectedPeriodSeconds)
+        {
+            (int tokensPerPeriod, TimeSpan period) = ApiRateLimiting.GetRefill(requestsPerMinute);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(tokensPerPeriod, Is.EqualTo(expectedTokens));
+                Assert.That(period, Is.EqualTo(TimeSpan.FromSeconds(expectedPeriodSeconds)));
+                Assert.That(tokensPerPeriod * (TimeSpan.FromMinutes(1) / period), Is.EqualTo(requestsPerMinute));
+            });
+        }
+
+        [Test]
+        public void RefillRejectsNonPositiveRates()
+        {
+            Assert.That(() => ApiRateLimiting.GetRefill(0), Throws.InstanceOf<ArgumentOutOfRangeException>());
+        }
+
         [Test]
         public void ExpensivePartitionLimitsConcurrentRequestsPerUser()
         {

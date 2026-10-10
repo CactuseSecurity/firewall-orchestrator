@@ -3,6 +3,7 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
+using System.Text.Json;
 
 namespace FWO.Test
 {
@@ -111,6 +112,24 @@ namespace FWO.Test
             GetTimeObjectsRequest request = new() { Offset = null };
 
             Assert.That(FlowCatalogPaging.TryValidate(request, FlowCatalogPaging.kMaxObjectLimit, out _), Is.True);
+        }
+
+        /// <summary>
+        /// Review finding F3: an explicit null limit, as generated clients send it, selects the default page size
+        /// instead of failing deserialization.
+        /// </summary>
+        [Test]
+        public void NullLimitSelectsTheMaximumPageSize()
+        {
+            GetAddressObjectsRequest request = JsonSerializer.Deserialize<GetAddressObjectsRequest>("{\"limit\": null, \"offset\": null}")!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(request.Limit, Is.Null);
+                Assert.That(FlowCatalogPaging.TryValidate(request, FlowCatalogPaging.kMaxObjectLimit, out _), Is.True);
+                Assert.That(FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxObjectLimit), Is.EqualTo(FlowCatalogPaging.kMaxObjectLimit));
+                Assert.That(FlowCatalogPaging.GetPageSize(new GetServiceGroupsRequest { Limit = 20 }, FlowCatalogPaging.kMaxGroupLimit), Is.EqualTo(20));
+            });
         }
 
         [Test]

@@ -362,6 +362,7 @@
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";
     private string filterFeedbackEnd = "";
+    private readonly ReportFilterFeedbackEvaluator filterFeedbackEvaluator = new();
     private string filterInput = "";
 
     private bool resetToEmptyDevFilter = false;
@@ -815,7 +816,7 @@
     private void TryFilter(ChangeEventArgs changeArgs)
     {
         string input = (changeArgs.Value ?? "").ToString() ?? "";
-        ReportFilterFeedback feedback = ReportFilterFeedback.Evaluate(input, filter => Compiler.Compile(ConstructReportTemplate(filter)));
+        ReportFilterFeedback feedback = filterFeedbackEvaluator.Evaluate(input, filter => Compiler.Compile(ConstructReportTemplate(filter)));
         filterFeedbackStart = feedback.Start;
         filterFeedbackError = feedback.Error;
         filterFeedbackEnd = feedback.End;

@@ -9,9 +9,9 @@ namespace FWO.Middleware.Server.Requests;
 public interface IPagedListRequest
 {
     /// <summary>
-    /// Gets or sets the maximum number of items returned.
+    /// Gets or sets the maximum number of items returned; null returns a page of the maximum size.
     /// </summary>
-    int Limit { get; set; }
+    int? Limit { get; set; }
 
     /// <summary>
     /// Gets or sets the number of items skipped before the first returned item; null skips no item.
@@ -37,7 +37,7 @@ public static class FlowCatalogPaging
     /// Describes the 'limit' key for the given maximum page size.
     /// </summary>
     public static string DescribeLimit(int maxLimit) =>
-        $"Maximum number of items returned, between 1 and {maxLimit}; defaults to {maxLimit}. Items are ordered by name and id, " +
+        $"Maximum number of items returned, between 1 and {maxLimit}; omitted or null returns {maxLimit}. Items are ordered by name and id, " +
         $"so 'limit' and 'offset' page the result deterministically; the response header '{ListPaging.kHasMoreHeader}' tells whether further items follow.";
 
     /// <summary>
@@ -55,6 +55,16 @@ public static class FlowCatalogPaging
     ];
 
     /// <summary>
+    /// Returns the page size of a request; an omitted or null limit selects the maximum page size of the endpoint.
+    /// </summary>
+    /// <param name="request">Request carrying the paging keys.</param>
+    /// <param name="maxLimit">Maximum page size of the endpoint.</param>
+    public static int GetPageSize(IPagedListRequest request, int maxLimit)
+    {
+        return request.Limit ?? maxLimit;
+    }
+
+    /// <summary>
     /// Validates both paging keys and reports every invalid key together.
     /// </summary>
     /// <param name="request">Request carrying the paging keys.</param>
@@ -64,7 +74,7 @@ public static class FlowCatalogPaging
     public static bool TryValidate(IPagedListRequest request, int maxLimit, out ActionResult? errorResult)
     {
         List<string> errors = [];
-        if (request.Limit < 1 || request.Limit > maxLimit)
+        if (request.Limit is < 1 || request.Limit > maxLimit)
         {
             errors.Add($"'{kLimitKey}': {DescribeLimit(maxLimit)}");
         }

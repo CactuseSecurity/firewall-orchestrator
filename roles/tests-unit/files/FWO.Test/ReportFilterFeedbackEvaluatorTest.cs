@@ -6,7 +6,7 @@ namespace FWO.Test
 {
     [TestFixture]
     [NonParallelizable]
-    internal class ReportFilterFeedbackTest
+    internal class ReportFilterFeedbackEvaluatorTest
     {
         private const string kInput = "src=1.2.3.4 and dst=foo";
         private const string kInternalDetail = "secret internal detail";
@@ -14,7 +14,7 @@ namespace FWO.Test
         [Test]
         public void ValidFilterIsShownWithoutErrorMarker()
         {
-            ReportFilterFeedback feedback = ReportFilterFeedback.Evaluate(kInput, _ => { });
+            ReportFilterFeedback feedback = new ReportFilterFeedbackEvaluator().Evaluate(kInput, _ => { });
 
             Assert.Multiple(() =>
             {
@@ -28,7 +28,7 @@ namespace FWO.Test
         [Test]
         public void FilterErrorIsMarkedAtItsPosition()
         {
-            ReportFilterFeedback feedback = ReportFilterFeedback.Evaluate(kInput,
+            ReportFilterFeedback feedback = new ReportFilterFeedbackEvaluator().Evaluate(kInput,
                 _ => throw new FilterException("unknown value", new Range(20, 23)));
 
             Assert.Multiple(() =>
@@ -49,7 +49,7 @@ namespace FWO.Test
         {
             InvalidOperationException failure = new(kInternalDetail);
 
-            (ReportFilterFeedback feedback, string log) = EvaluateCapturingLog(_ => throw failure);
+            (ReportFilterFeedback feedback, string log) = EvaluateCapturingLog(new ReportFilterFeedbackEvaluator(), _ => throw failure);
 
             Assert.Multiple(() =>
             {
@@ -66,7 +66,7 @@ namespace FWO.Test
         [Test]
         public void FilterErrorOutsideTheInputIsTreatedAsUnexpected()
         {
-            (ReportFilterFeedback feedback, string log) = EvaluateCapturingLog(
+            (ReportFilterFeedback feedback, string log) = EvaluateCapturingLog(new ReportFilterFeedbackEvaluator(),
                 _ => throw new FilterException("bad position", new Range(30, 40)));
 
             Assert.Multiple(() =>
@@ -78,14 +78,39 @@ namespace FWO.Test
             });
         }
 
-        private static (ReportFilterFeedback Feedback, string Log) EvaluateCapturingLog(Action<string> validate)
+        /// <summary>
+        /// Review finding F8: typing must not log the same unexpected error on every keystroke. It is logged again
+        /// once the filter was valid in between or the error changes.
+        /// </summary>
+        [Test]
+        public void SameUnexpectedErrorIsLoggedOnlyOnceInARow()
+        {
+            ReportFilterFeedbackEvaluator evaluator = new();
+            static void FailSame(string _) => throw new NotSupportedException(kInternalDetail);
+
+            string firstLog = EvaluateCapturingLog(evaluator, FailSame).Log;
+            string repeatedLog = EvaluateCapturingLog(evaluator, FailSame).Log;
+            string differentLog = EvaluateCapturingLog(evaluator, _ => throw new NotSupportedException("other failure")).Log;
+            evaluator.Evaluate(kInput, _ => { });
+            string afterValidLog = EvaluateCapturingLog(evaluator, FailSame).Log;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstLog, Does.Contain(kInternalDetail));
+                Assert.That(repeatedLog, Is.Empty);
+                Assert.That(differentLog, Does.Contain("other failure"));
+                Assert.That(afterValidLog, Does.Contain(kInternalDetail));
+            });
+        }
+
+        private static (ReportFilterFeedback Feedback, string Log) EvaluateCapturingLog(ReportFilterFeedbackEvaluator evaluator, Action<string> validate)
         {
             TextWriter originalOut = Console.Out;
             using StringWriter capturedOut = new();
             Console.SetOut(capturedOut);
             try
             {
-                ReportFilterFeedback feedback = ReportFilterFeedback.Evaluate(kInput, validate);
+                ReportFilterFeedback feedback = evaluator.Evaluate(kInput, validate);
                 return (feedback, capturedOut.ToString());
             }
             finally

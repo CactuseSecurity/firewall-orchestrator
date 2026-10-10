@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 import argparse
 import csv
-import logging
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from netaddr import IPAddress, IPNetwork
 
-from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
+if TYPE_CHECKING:
+    import logging
+
+    from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
 
 DEFAULT_VALID_APP_ID_PREFIXES: list[str] = []
 DEFAULT_OWNER_HEADER_PATTERNS: dict[str, str] = {

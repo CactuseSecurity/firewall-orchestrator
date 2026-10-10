@@ -84,7 +84,7 @@ class TestImportSingleManagement:
         _run_single_management(api_call)
 
         single_mgm_mocks["import_management"].assert_called_once_with(
-            MGM_ID, api_call, False, API_FETCH_LIMIT, False, True, suppress_consistency_check=False
+            MGM_ID, api_call, API_FETCH_LIMIT, False, suppress_consistency_check=False
         )
 
     def test_unsupported_device_type_is_skipped(self, single_mgm_mocks: dict[str, MagicMock]) -> None:

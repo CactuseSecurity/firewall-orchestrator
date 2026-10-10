@@ -1,12 +1,17 @@
-from collections.abc import Generator
+from __future__ import annotations
+
 from ipaddress import IPv6Address
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import fwo_const
-from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, NwObjAddress6
 from fwo_log import FWOLogger
 from models.networkobject import NetworkObject
 from netaddr import IPAddress, IPNetwork
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, NwObjAddress6
 
 DEFAULT_IPv4 = (IPNetwork("0.0.0.0/32"), IPNetwork("255.255.255.255/32"))
 DUMMY_IPv4 = (IPNetwork(fwo_const.DUMMY_IP), IPNetwork(fwo_const.DUMMY_IP))

@@ -214,7 +214,7 @@ namespace FWO.Test
         {
             MethodInfo method = authManager.GetType().GetMethod("AuthenticateAndBuildUserAsync")
                 ?? throw new MissingMethodException(authManager.GetType().FullName, "AuthenticateAndBuildUserAsync");
-            object?[] arguments = [user, false, false];
+            object?[] arguments = [user, false, false, CancellationToken.None];
             return await (Task<UiUser?>)method.Invoke(authManager, arguments)!;
         }
 

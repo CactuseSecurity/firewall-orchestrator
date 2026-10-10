@@ -70,8 +70,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importSleepTime"), JsonPropertyName("importSleepTime")]
         public int ImportSleepTime { get; set; } = 40;
 
+        /// <summary>
+        /// Whether TLS certificates of all firewall management connections are checked: importer, autodiscovery
+        /// and Check Point change requests.
+        /// </summary>
         [JsonProperty("importCheckCertificates"), JsonPropertyName("importCheckCertificates")]
-        public bool ImportCheckCertificates { get; set; } = false;
+        public bool ImportCheckCertificates { get; set; } = true;
 
         [JsonProperty("importSuppressCertificateWarnings"), JsonPropertyName("importSuppressCertificateWarnings")]
         public bool ImportSuppressCertificateWarnings { get; set; } = true;
@@ -227,6 +231,12 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("emailSenderAddress"), JsonPropertyName("emailSenderAddress")]
         public string EmailSenderAddress { get; set; } = "";
+
+        /// <summary>
+        /// Whether the TLS certificate of the email server is checked (StartTls and Tls only).
+        /// </summary>
+        [JsonProperty("emailCheckCertificates"), JsonPropertyName("emailCheckCertificates")]
+        public bool EmailCheckCertificates { get; set; } = true;
 
         [JsonProperty("useDummyEmailAddress"), JsonPropertyName("useDummyEmailAddress")]
         public bool UseDummyEmailAddress { get; set; } = false;
@@ -545,6 +555,21 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
         public string ExtTicketSystems { get; set; } = "";
+
+        /// <summary>
+        /// Whether TLS certificates of all external ticket systems are checked.
+        /// </summary>
+        [JsonProperty("extTicketSystemsCheckCertificates"), JsonPropertyName("extTicketSystemsCheckCertificates")]
+        public bool ExtTicketSystemsCheckCertificates { get; set; } = true;
+
+        /// <summary>
+        /// Collects the certificate checking switches needed by external ticket system connections.
+        /// </summary>
+        /// <returns>The switches for firewall connections and ticket systems.</returns>
+        public ExternalCertificateChecks GetExternalCertificateChecks()
+        {
+            return new ExternalCertificateChecks(ImportCheckCertificates, ExtTicketSystemsCheckCertificates);
+        }
 
         [JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]
         public string ModExtraConfigs { get; set; } = "";

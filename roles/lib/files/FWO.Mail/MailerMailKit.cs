@@ -41,6 +41,57 @@ namespace FWO.Mail
 
     public static class MailKitMailer
     {
+        private const string kTlsLogCategory = "Email TLS";
+        private static readonly HashSet<string> uncheckedServersWarned = [];
+        private static readonly object uncheckedServerLock = new();
+
+        /// <summary>
+        /// Applies the certificate checking setting of the email connection to the SMTP client.
+        /// </summary>
+        /// <remarks>
+        /// With checking on, MailKit's default validation against the host trust store applies.
+        /// With checking off, any certificate is accepted and a warning is logged once per server,
+        /// because the authentication password then travels over an unverified channel.
+        /// The online revocation check (CRL/OCSP) MailKit enables by default stays off, like for the REST
+        /// clients: it would fail for internal CAs without revocation endpoints and on hosts without
+        /// access to them.
+        /// </remarks>
+        /// <param name="smtp">The SMTP client to configure.</param>
+        /// <param name="emailConn">The email connection holding the setting.</param>
+        public static void ConfigureCertificateValidation(SmtpClient smtp, EmailConnection emailConn)
+        {
+            smtp.CheckCertificateRevocation = false;
+            if (emailConn.CheckCertificates)
+            {
+                smtp.ServerCertificateValidationCallback = null;
+                return;
+            }
+            WarnUncheckedServer(emailConn);
+            smtp.ServerCertificateValidationCallback = (s, c, h, e) => true; // NOSONAR: explicit admin opt-out (emailCheckCertificates), default on, logged per server
+        }
+
+        /// <summary>
+        /// Says in the log that an email server is reached without certificate checking, once per server.
+        /// </summary>
+        /// <param name="emailConn">The email connection.</param>
+        /// <returns>True when the warning was written, false when it was already written before.</returns>
+        public static bool WarnUncheckedServer(EmailConnection emailConn)
+        {
+            string server = $"{emailConn.ServerAddress}:{emailConn.Port}";
+            lock (uncheckedServerLock)
+            {
+                if (!uncheckedServersWarned.Add(server))
+                {
+                    return false;
+                }
+            }
+            Log.WriteWarning(kTlsLogCategory,
+                $"Certificate checking is switched off for email server {server}: any server certificate is accepted, " +
+                "so the email credentials can be intercepted. Add the issuing CA to the host trust store and switch " +
+                "certificate checking on in the email settings.");
+            return true;
+        }
+
         public static async Task<bool> SendAsync(
             MailData mailData,
             EmailConnection emailConn,
@@ -65,7 +116,7 @@ namespace FWO.Mail
                         );
                         break;
                     case EmailEncryptionMethod.StartTls:
-                        smtp.ServerCertificateValidationCallback = (s, c, h, e) => true; //accept all SSL certificates
+                        ConfigureCertificateValidation(smtp, emailConn);
                         await smtp.ConnectAsync(
                             emailConn.ServerAddress,
                             emailConn.Port,
@@ -74,7 +125,7 @@ namespace FWO.Mail
                         );
                         break;
                     case EmailEncryptionMethod.Tls:
-                        smtp.ServerCertificateValidationCallback = (s, c, h, e) => true; //accept all SSL certificates
+                        ConfigureCertificateValidation(smtp, emailConn);
                         await smtp.ConnectAsync(
                             emailConn.ServerAddress,
                             emailConn.Port,

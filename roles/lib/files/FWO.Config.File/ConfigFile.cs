@@ -10,6 +10,10 @@ namespace FWO.Config.File
         private const string configPathEnvVar = "FWO_CONFIG_FILE_PATH";
         private const string jwtPublicKeyPathEnvVar = "FWO_JWT_PUBLIC_KEY_PATH";
         private const string jwtPrivateKeyPathEnvVar = "FWO_JWT_PRIVATE_KEY_PATH";
+        private const string kLoginMaxDirectoriesKey = "login_max_directories";
+        private const string kLoginClientAttemptsPerMinuteKey = "login_client_attempts_per_minute";
+        private const string kLoginUserFailuresPerMinuteKey = "login_user_failures_per_minute";
+        private const string kLoginTrustedClientHostsKey = "login_trusted_client_hosts";
 
         /// <summary>
         /// Path to config file
@@ -67,6 +71,21 @@ namespace FWO.Config.File
 
             [JsonPropertyName("product_version")]
             public string? ProductVersion { get; set; }
+
+            // Suffixed with Setting for the same reason as the certificate paths above (S3218).
+            // The login settings may be edited by hand: they are read as raw values, so that a value of the wrong
+            // type is ignored (see ConfigValueParser) instead of making the whole file unreadable.
+            [JsonPropertyName(kLoginMaxDirectoriesKey)]
+            public JsonElement? LoginMaxDirectoriesSetting { get; set; }
+
+            [JsonPropertyName(kLoginClientAttemptsPerMinuteKey)]
+            public JsonElement? LoginClientAttemptsPerMinuteSetting { get; set; }
+
+            [JsonPropertyName(kLoginUserFailuresPerMinuteKey)]
+            public JsonElement? LoginUserFailuresPerMinuteSetting { get; set; }
+
+            [JsonPropertyName(kLoginTrustedClientHostsKey)]
+            public JsonElement? LoginTrustedClientHostsSetting { get; set; }
 
             [JsonPropertyName("fworch_home")]
             public string? CfgFwoHome { get; set; }
@@ -194,6 +213,27 @@ namespace FWO.Config.File
             }
         }
 
+        /// <summary>
+        /// Optional cap on the LDAP connections one login may fan out to; null if not configured or invalid.
+        /// </summary>
+        public static int? LoginMaxDirectories { get; private set; }
+
+        /// <summary>
+        /// Optional limit of credentialed login attempts per minute and client address; null if not configured or invalid.
+        /// </summary>
+        public static int? LoginClientAttemptsPerMinute { get; private set; }
+
+        /// <summary>
+        /// Optional limit of failed logins per minute for one user name and client address; null if not configured or invalid.
+        /// </summary>
+        public static int? LoginUserFailuresPerMinute { get; private set; }
+
+        /// <summary>
+        /// Optional hosts (for example the UI servers) exempt from the per-client login limit; null if not configured
+        /// or invalid. A comma separated string or a string holding a JSON list is accepted as well.
+        /// </summary>
+        public static List<string>? LoginTrustedClientHosts { get; private set; }
+
         static ConfigFile()
         {
             Read(
@@ -211,6 +251,7 @@ namespace FWO.Config.File
 
                 // Deserialize config to dictionary
                 Data = JsonSerializer.Deserialize<ConfigFileData>(configFile) ?? throw new JsonException("Config file could not be parsed.");
+                ReadLoginSettings();
 
                 // Errors can be ignored. If a configuration value that could not be loaded is requested from outside this class, an excpetion is thrown. See CriticalConfigValueLoaded()
 
@@ -233,6 +274,17 @@ namespace FWO.Config.File
 #endif
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Reads the optional login settings; values of the wrong type are logged and left unset.
+        /// </summary>
+        private static void ReadLoginSettings()
+        {
+            LoginMaxDirectories = ConfigValueParser.ReadOptionalInt(Data.LoginMaxDirectoriesSetting, kLoginMaxDirectoriesKey);
+            LoginClientAttemptsPerMinute = ConfigValueParser.ReadOptionalInt(Data.LoginClientAttemptsPerMinuteSetting, kLoginClientAttemptsPerMinuteKey);
+            LoginUserFailuresPerMinute = ConfigValueParser.ReadOptionalInt(Data.LoginUserFailuresPerMinuteSetting, kLoginUserFailuresPerMinuteKey);
+            LoginTrustedClientHosts = ConfigValueParser.ReadOptionalStringList(Data.LoginTrustedClientHostsSetting, kLoginTrustedClientHostsKey);
         }
 
         private static ConfigValueType CriticalConfigValueLoaded<ConfigValueType>(ConfigValueType? configValue)

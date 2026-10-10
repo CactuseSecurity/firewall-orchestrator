@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import unittest.mock
 from pathlib import Path
@@ -16,6 +18,8 @@ def find_repo_graphql_query_path(start_path: Path) -> Path | None:
 if repo_graphql_query_path := find_repo_graphql_query_path(Path(__file__)):
     os.environ.setdefault("FWO_GRAPHQL_QUERY_PATH", str(repo_graphql_query_path))
 
+from typing import TYPE_CHECKING
+
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
@@ -33,13 +37,15 @@ from model_controllers.management_controller import (
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from models.import_state import ImportState
-from pytest_mock import MockerFixture
 from services.enums import Lifetime, Services
 from services.global_state import GlobalState
 from services.group_flats_mapper import GroupFlatsMapper
 from services.service_provider import ServiceProvider
 from services.uid2id_mapper import Uid2IdMapper
 from test.utils.config_builder import FwConfigBuilder
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture

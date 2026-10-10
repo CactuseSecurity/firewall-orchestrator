@@ -1,5 +1,7 @@
 using System.Net;
+using System.Security.Claims;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JsonRequired = System.Text.Json.Serialization.JsonRequiredAttribute;
@@ -30,6 +32,18 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 {
     private const int OwnerMappingIdCustomField = 2;
     private const int UnsetPortEnd = 0;
+    private const string kSiemLogTitle = "Log type: portal-application";
+    private const string kSiemResultOk = "ok";
+    private const string kSiemResultRejected = "rejected";
+    private const string kSiemResultError = "error";
+    private const string kCallerNameClaim = "unique_name";
+    private const string kCallerIdClaim = "x-hasura-user-id";
+
+    // Relaxed escaping keeps non-ASCII names readable; quotes, backslashes and control characters are still escaped.
+    private static readonly JsonSerializerOptions kSiemValueSerializerOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
 
     /// <summary>
     /// Returns firewall rules that match the specified filtering options.
@@ -51,20 +65,20 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         [FromBody] RulesByFilterRequest request,
         [FromHeader(Name = "X-Request-Id")] string? requestId = null)
     {
+        DateTime requestTime = DateTime.UtcNow;
+        string resolvedRequestId = requestId ?? Guid.NewGuid().ToString();
+        string siemResult = kSiemResultError;
         try
         {
             string? filterSelectionValidationError = ValidateFilterSelection(request.Query.OwnerId, request.Query.IpAddress);
             if (filterSelectionValidationError is not null)
             {
+                siemResult = kSiemResultRejected;
                 return BadRequest(filterSelectionValidationError);
             }
 
             GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection);
             UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
-
-            string resolvedRequestId = requestId ?? Guid.NewGuid().ToString();
-
-            LogSiemEntry(request, resolvedRequestId);
 
             List<RuleDetail> rules;
             if (request.Query.OwnerId is not null)
@@ -82,18 +96,24 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 
                 if (validationError is not null)
                 {
+                    siemResult = kSiemResultRejected;
                     return BadRequest(validationError);
                 }
 
                 rules = fetchedRules ?? [];
             }
 
+            siemResult = kSiemResultOk;
             return Ok(CreateRulesByFilterResponse(resolvedRequestId, rules));
         }
         catch (Exception exception)
         {
             Log.WriteError("Get Rules By Filter", "Error while fetching rules.", exception);
             return StatusCode(500, "Internal server error");
+        }
+        finally
+        {
+            Log.WriteInfo(kSiemLogTitle, BuildSiemEntry(request, resolvedRequestId, User, siemResult, requestTime));
         }
     }
 
@@ -179,27 +199,59 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         };
     }
 
-    private void LogSiemEntry(RulesByFilterRequest request, string requestId)
+    /// <summary>
+    /// Builds the SIEM audit entry for a rules-by-filter request.
+    /// </summary>
+    /// <remarks>
+    /// The caller identity is taken from the authenticated JWT. The user given in the request body is
+    /// logged as well, since a portal application calls on behalf of its own users. All strings that
+    /// do not come from the middleware itself are JSON-quoted, so they cannot add fields to the entry.
+    /// </remarks>
+    /// <param name="request">The rules-by-filter request as sent by the client.</param>
+    /// <param name="requestId">The resolved request identifier.</param>
+    /// <param name="caller">The authenticated principal of the caller, if any.</param>
+    /// <param name="result">The outcome of the request: ok, rejected or error.</param>
+    /// <param name="timestamp">The UTC time the request was received.</param>
+    /// <returns>The entry as comma-separated <c>Key: value</c> pairs.</returns>
+    internal static string BuildSiemEntry(RulesByFilterRequest request, string requestId, ClaimsPrincipal? caller,
+        string result, DateTime timestamp)
     {
-        var info = $"DateTime: {DateTime.UtcNow:O}, " +
-                   $"RequestId: {requestId}, " +
-                   $"UserID: {request.RequestContext.UserID}, " +
-                   $"UserName: {request.RequestContext.UserName}, ";
+        string callerName = caller?.FindFirstValue(kCallerNameClaim) ?? caller?.Identity?.Name ?? "";
+        int callerId = int.TryParse(caller?.FindFirstValue(kCallerIdClaim), out int parsedCallerId) ? parsedCallerId : 0;
+
+        List<string> fields =
+        [
+            $"DateTime: {timestamp:O}",
+            $"RequestId: {QuoteSiemValue(requestId)}",
+            $"CallerName: {QuoteSiemValue(callerName)}",
+            $"CallerId: {callerId}",
+            $"UserID: {QuoteSiemValue(request.RequestContext.UserID)}",
+            $"UserName: {QuoteSiemValue(request.RequestContext.UserName)}"
+        ];
         if (request.Query.OwnerId is not null)
         {
-            info += $"OwnerId: {request.Query.OwnerId}";
+            fields.Add($"OwnerId: {request.Query.OwnerId}");
         }
-        else if (request.Query.IpAddress is not null && request.Query.Filter is not null)
+        if (request.Query.IpAddress is not null)
         {
-            info += $"IpAddress: {request.Query.IpAddress}"
-                    + "Filter: {"
-                    + $"MinPrefixLength: {request.Query.Filter.MinPrefixLength}"
-                    + $"InField: {request.Query.Filter.InField}"
-                    + $"Action: {request.Query.Filter.Action}"
-                    + "}";
+            fields.Add($"IpAddress: {QuoteSiemValue(request.Query.IpAddress)}");
         }
+        if (request.Query.Filter is not null)
+        {
+            fields.Add("Filter: {"
+                + $"MinPrefixLength: {request.Query.Filter.MinPrefixLength}, "
+                + $"InField: {QuoteSiemValue(request.Query.Filter.InField)}, "
+                + $"Action: {QuoteSiemValue(request.Query.Filter.Action)}"
+                + "}");
+        }
+        fields.Add($"Result: {result}");
 
-        Log.WriteInfo("Log type: portal-application", info);
+        return string.Join(", ", fields);
+    }
+
+    private static string QuoteSiemValue(string? value)
+    {
+        return System.Text.Json.JsonSerializer.Serialize(value ?? "", kSiemValueSerializerOptions);
     }
 
     private async Task<List<RuleDetail>> FetchRulesByOwnerId(int ownerId,
@@ -274,42 +326,42 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         switch (inField)
         {
             case FilterFields.Source:
-            {
-                IpFilterEvaluation sourceEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
-                    GetRuleNetworkObjects(rule, isSource: true));
-                if (sourceEvaluation != IpFilterEvaluation.Match)
                 {
-                    return false;
-                }
+                    IpFilterEvaluation sourceEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                        GetRuleNetworkObjects(rule, isSource: true));
+                    if (sourceEvaluation != IpFilterEvaluation.Match)
+                    {
+                        return false;
+                    }
 
-                return ipHelper.MeetsMinimumPrefix(minPrefix, GetRuleNetworkObjects(rule, isSource: false));
-            }
+                    return ipHelper.MeetsMinimumPrefix(minPrefix, GetRuleNetworkObjects(rule, isSource: false));
+                }
             case FilterFields.Destination:
-            {
-                IpFilterEvaluation destinationEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
-                    GetRuleNetworkObjects(rule, isSource: false));
-                if (destinationEvaluation != IpFilterEvaluation.Match)
                 {
-                    return false;
-                }
+                    IpFilterEvaluation destinationEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                        GetRuleNetworkObjects(rule, isSource: false));
+                    if (destinationEvaluation != IpFilterEvaluation.Match)
+                    {
+                        return false;
+                    }
 
-                return ipHelper.MeetsMinimumPrefix(minPrefix, GetRuleNetworkObjects(rule, isSource: true));
-            }
+                    return ipHelper.MeetsMinimumPrefix(minPrefix, GetRuleNetworkObjects(rule, isSource: true));
+                }
             case FilterFields.Both:
-            {
-                IpFilterEvaluation sourceEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
-                    GetRuleNetworkObjects(rule, isSource: true));
-                if (sourceEvaluation == IpFilterEvaluation.PrefixViolation)
                 {
-                    return false;
-                }
+                    IpFilterEvaluation sourceEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                        GetRuleNetworkObjects(rule, isSource: true));
+                    if (sourceEvaluation == IpFilterEvaluation.PrefixViolation)
+                    {
+                        return false;
+                    }
 
-                IpFilterEvaluation destinationEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
-                    GetRuleNetworkObjects(rule, isSource: false));
-                return destinationEvaluation != IpFilterEvaluation.PrefixViolation &&
-                       (sourceEvaluation == IpFilterEvaluation.Match ||
-                        destinationEvaluation == IpFilterEvaluation.Match);
-            }
+                    IpFilterEvaluation destinationEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                        GetRuleNetworkObjects(rule, isSource: false));
+                    return destinationEvaluation != IpFilterEvaluation.PrefixViolation &&
+                           (sourceEvaluation == IpFilterEvaluation.Match ||
+                            destinationEvaluation == IpFilterEvaluation.Match);
+                }
             default:
                 throw new ArgumentException($"Invalid InField: {inField}");
         }

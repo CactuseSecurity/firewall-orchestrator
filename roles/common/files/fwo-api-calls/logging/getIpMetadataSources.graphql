@@ -1,0 +1,22 @@
+# All address ranges a logged IP can belong to, fetched once per import batch instead of once
+# per address: a batch holds up to importLogDataMaxEntries entries per application and therefore
+# up to twice that many distinct addresses, and owner_network carries no index over its range, so
+# a query per address would turn every import into that many sequential table scans.
+# nw_type 10 rows are the app servers of an owner and carry the external application id,
+# nw_type 11 rows are the address ranges of a network area and carry no owner.
+query getIpMetadataSources {
+  owner_network(where: {is_deleted: {_eq: false}}) {
+    ip
+    ip_end
+    owner {
+      app_id_external
+    }
+    nwobject_nwgroups(
+      where: {nwgroup: {group_type: {_eq: 23}, is_deleted: {_eq: false}}}
+    ) {
+      nwgroup {
+        id_string
+      }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Api.Client.Queries;
 using System.Linq;
 using FWO.Data;
@@ -11,10 +12,17 @@ namespace FWO.Services.Workflow
 {
     public partial class WfDbAccess
     {
+        private const string kInitialActionsFailedText = "Initial workflow actions failed";
+
         /// <summary>
         /// Persists a newly created ticket and triggers the initial workflow actions.
         /// </summary>
-        public async Task<WfTicket> AddTicketToDb(WfTicket ticket)
+        /// <returns>
+        /// The ticket (with id 0 if it could not be saved) and whether its initial workflow actions failed. A failure
+        /// of the actions does not undo the saved ticket; it is shown, logged, raised as alert and recorded in the
+        /// ticket's change history, and returned so that callers do not report the creation as a plain success.
+        /// </returns>
+        public async Task<WfTicketCreationResult> AddTicketToDb(WfTicket ticket)
         {
             try
             {
@@ -31,7 +39,7 @@ namespace FWO.Services.Workflow
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8001"), true);
-                    return ticket;
+                    return new WfTicketCreationResult(ticket, false);
                 }
 
                 int newStateId = ticket.StateId;
@@ -42,7 +50,7 @@ namespace FWO.Services.Workflow
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
-                return ticket;
+                return new WfTicketCreationResult(ticket, false);
             }
 
             try
@@ -54,9 +62,26 @@ namespace FWO.Services.Workflow
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
                 Log.WriteError("Create Request", "Workflow actions failed while creating the request ticket.", exception);
+                await RecordInitialActionsFailure(ticket, exception);
+                return new WfTicketCreationResult(ticket, true);
             }
 
-            return ticket;
+            return new WfTicketCreationResult(ticket, false);
+        }
+
+        /// <summary>
+        /// Makes a failure of the initial workflow actions visible beyond the log: as an alert for the administrators
+        /// and as an entry in the ticket's change history, since the saved ticket may imply actions that did not run.
+        /// </summary>
+        private async Task RecordInitialActionsFailure(WfTicket ticket, Exception exception)
+        {
+            await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
+                kInitialActionsFailedText, null, new { initialActionsStatus = WfTicketCreationResult.kActionsFailed, error = exception.Message },
+                ticket.Requester, false);
+            await AlertHelper.SetAlert(ApiConnection, UserConfig.GetText("save_request"),
+                $"Ticket {ticket.Id} was saved, but its initial workflow actions failed: {exception.Message}",
+                GlobalConst.kWorkflow, AlertCode.WorkflowAlert,
+                new AlertHelper.AdditionalAlertData { JsonData = new { ticketId = ticket.Id }, CompareDesc = true });
         }
 
         /// <summary>

@@ -140,7 +140,9 @@ namespace FWO.Services.Workflow
                             requester = userConfig.User;
                         }
                         ActTicket.Requester = requester;
-                        ActTicket = await dbAcc.AddTicketToDb(ActTicket);
+                        // A failure of the initial actions is already shown, alerted and recorded by AddTicketToDb;
+                        // the ticket itself is saved, so the save continues with it.
+                        ActTicket = (await dbAcc.AddTicketToDb(ActTicket)).Ticket;
                         TicketList.Add(ActTicket);
                     }
                     else

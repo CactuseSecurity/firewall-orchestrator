@@ -85,6 +85,7 @@ namespace FWO.Test
             public int GetTicketByIdCallCount { get; private set; }
             public bool ThrowOnGetTicketById { get; set; }
             public bool ThrowOnAddHistoryEntry { get; set; }
+            public List<object?> AlertVariables { get; } = [];
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -92,6 +93,15 @@ namespace FWO.Test
                 {
                     List<TicketId> ids = RegisteredTicketIds.ConvertAll(id => new TicketId { Id = id });
                     return Task.FromResult((T)(object)ids);
+                }
+                if (query == MonitorQueries.getOpenAlerts)
+                {
+                    return Task.FromResult((T)(object)new List<Alert>());
+                }
+                if (query == MonitorQueries.addAlert)
+                {
+                    AlertVariables.Add(variables);
+                    return Task.FromResult((T)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId { NewIdLong = 1 }] });
                 }
                 if (query == ModellingQueries.addHistoryEntry || query == ModellingQueries.addHistoryEntryAsService)
                 {
@@ -435,7 +445,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AddTicketToDb_DoesNotRejectWorkflowActionFailures()
+        public async Task AddTicketToDb_ReportsWorkflowActionFailuresExplicitly()
         {
             WfDbAccessTestApiConn apiConn = new()
             {
@@ -484,10 +494,21 @@ namespace FWO.Test
                 Tasks = new List<WfReqTask>()
             };
 
-            WfTicket result = await dbAccess.AddTicketToDb(ticket);
+            WfTicketCreationResult result = await dbAccess.AddTicketToDb(ticket);
 
-            Assert.That(result.Id, Is.EqualTo(101));
-            Assert.That(result.StateId, Is.EqualTo(1));
+            // SEC-26: the ticket stays saved, but the failed initial actions are reported, alerted and audited
+            string historyEntry = JsonConvert.SerializeObject(apiConn.HistoryVariables.Last());
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Ticket.Id, Is.EqualTo(101));
+                Assert.That(result.Ticket.StateId, Is.EqualTo(1));
+                Assert.That(result.InitialActionsFailed, Is.True);
+                Assert.That(result.ActionsStatus, Is.EqualTo(WfTicketCreationResult.kActionsFailed));
+                Assert.That(apiConn.AlertVariables, Has.Count.EqualTo(1));
+                Assert.That(JsonConvert.SerializeObject(apiConn.AlertVariables[0]), Does.Contain("Ticket 101 was saved"));
+                Assert.That(historyEntry, Does.Contain("Initial workflow actions failed"));
+                Assert.That(historyEntry, Does.Contain(WfTicketCreationResult.kActionsFailed));
+            });
         }
 
         [Test]
@@ -511,7 +532,9 @@ namespace FWO.Test
                 Tasks = new List<WfReqTask>()
             };
 
-            WfTicket result = await dbAccess.AddTicketToDb(ticket);
+            WfTicketCreationResult creation = await dbAccess.AddTicketToDb(ticket);
+            WfTicket result = creation.Ticket;
+            Assert.That(creation.InitialActionsFailed, Is.False);
 
             Assert.That(result, Is.SameAs(ticket));
         }
@@ -537,7 +560,9 @@ namespace FWO.Test
                 Tasks = new List<WfReqTask>()
             };
 
-            WfTicket result = await dbAccess.AddTicketToDb(ticket);
+            WfTicketCreationResult creation = await dbAccess.AddTicketToDb(ticket);
+            WfTicket result = creation.Ticket;
+            Assert.That(creation.InitialActionsFailed, Is.False);
 
             Assert.That(result, Is.SameAs(ticket));
         }
@@ -575,13 +600,15 @@ namespace FWO.Test
             });
             WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
-            WfTicket result = await dbAccess.AddTicketToDb(new WfTicket
+            WfTicketCreationResult creation = await dbAccess.AddTicketToDb(new WfTicket
             {
                 Id = 0,
                 StateId = 1,
                 Requester = new UiUser { DbId = 42 },
                 Tasks = new List<WfReqTask>()
             });
+            WfTicket result = creation.Ticket;
+            Assert.That(creation.InitialActionsFailed, Is.False);
 
             Assert.That(result.Id, Is.EqualTo(101));
             Assert.That(result.Tasks, Has.Count.EqualTo(1));
@@ -645,7 +672,9 @@ namespace FWO.Test
                 new() { Id = 100, Name = "done" }
             });
 
-            WfTicket result = await dbAccess.AddTicketToDb(CreatePromotingTicket());
+            WfTicketCreationResult creation = await dbAccess.AddTicketToDb(CreatePromotingTicket());
+            WfTicket result = creation.Ticket;
+            Assert.That(creation.InitialActionsFailed, Is.False);
 
             Assert.Multiple(() =>
             {

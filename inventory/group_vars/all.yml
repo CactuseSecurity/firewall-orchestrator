@@ -16,7 +16,9 @@ ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
 importer_python_interpreter: "{{ '/usr/bin/python3.11' if ansible_facts['os_family'] == 'RedHat' else ansible_python_interpreter }}"
-ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+# Trust on first use: the key of an unknown host is recorded on the first connection, a changed key aborts the run.
+# For strict checking, provision known_hosts and override this with '-o StrictHostKeyChecking=yes'.
+ansible_ssh_common_args: '-o StrictHostKeyChecking=accept-new'
 product_name: fworch
 installer_controller_tmp_dir: "{{ lookup('env', 'HOME') }}/.fworch/tmp"
 installer_tmp_dir: "{{ ansible_user_dir }}/.fworch/tmp"
@@ -576,6 +578,11 @@ importer_testonly_password: "not4production"
 dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_rpm_name: "packages-microsoft-prod.rpm"
 dotnet_version: "10.0"
+# dotnet-install.sh (used on Debian >= 13/testing and as Ubuntu fallback) is pinned to a commit of
+# github.com/dotnet/install-scripts and verified by checksum before it is executed
+dotnet_install_script_commit: "5147e32300a8e908f5d737c8cff63a76b4b63531"
+dotnet_install_script_url: "https://raw.githubusercontent.com/dotnet/install-scripts/{{ dotnet_install_script_commit }}/src/dotnet-install.sh"
+dotnet_install_script_sha256: "082f7685e156738a1b2e2ed8381a621870d4ce8e8c59278034556f05c186eb2e"
 dotnet_mode: "Release"
 # dotnet_mode: "Debug"
 debug_level: "1"

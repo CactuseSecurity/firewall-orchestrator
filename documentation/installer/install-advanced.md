@@ -426,6 +426,13 @@ all:
 
 The names you define (like ui-srv and test-srv) are abitrary and only relevant in the hosts.yml file.
 
+The installer connects to remote servers with `StrictHostKeyChecking=accept-new` (`ansible_ssh_common_args` in
+`inventory/group_vars/all.yml`): the host key of a server is recorded in the installing user's `known_hosts` on the
+first connection, and a different key on a later run aborts the installation instead of connecting to a possibly
+impersonated host. If a server was legitimately reinstalled, remove its old entry with `ssh-keygen -R <host>`. For
+strict checking from the first connection on, add the keys to `known_hosts` beforehand (verify the fingerprints
+out of band) and override the setting, for example with `-e "ansible_ssh_common_args='-o StrictHostKeyChecking=yes'"`.
+
 After you defined additional distributed servers you have to add them to the host groups in hosts.yml
 
 ```console
@@ -455,6 +462,28 @@ After you defined additional distributed servers you have to add them to the hos
       hosts:
         install-srv:
 ```
+
+## Verified downloads
+
+The installer only runs downloaded artifacts that match a value pinned in the inventory, so an artifact that was
+changed after review fails the installation before it is executed:
+
+| Artifact | Pin | Checked by |
+|----------|-----|------------|
+| Hasura container image | `api_hasura_image_digest` (multi-arch index digest) in `inventory/group_vars/apiserver.yml` | podman when pulling |
+| Hasura CLI | `api_hasura_cli_sha256` per architecture in `inventory/group_vars/apiserver.yml` | `get_url` before the binary is used |
+| `dotnet-install.sh` (Debian >= 13/testing, Ubuntu fallback) | `dotnet_install_script_commit` and `dotnet_install_script_sha256` in `inventory/group_vars/all.yml` | `get_url` before the script runs |
+
+When `api_hasura_version` is raised, update its pins together with it: the index digest is returned as
+`Docker-Content-Digest` for the tag by the registry (or shown as the tag's digest on Docker Hub), the CLI checksums
+are the `digest` values of the release assets (`gh api repos/hasura/graphql-engine/releases/tags/<version>`).
+`dotnet-install.sh` is taken from a commit of `github.com/dotnet/install-scripts`; to move to a newer script, set the
+commit and the sha256 of `src/dotnet-install.sh` at that commit. The policy tests in `scripts/ci` reject container
+images without digest, executable downloads without checksum and disabled SSH host key checking.
+
+Chrome for Testing, which is downloaded for PDF generation when no system chromium package is available, is
+deliberately not pinned: it follows the current stable release, so that browser security fixes arrive without an
+installer change. It is downloaded over HTTPS from Google's storage, but not checked against a pinned checksum.
 
 ## old
 

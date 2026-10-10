@@ -155,6 +155,7 @@
       get_url:
         url: "https://api.github.com/repos/hasura/graphql-engine/releases/assets/{{ hasura_cli_asset_id }}"
         dest: "{{ api_hasura_cli_bin }}"
+        checksum: "sha256:{{ api_hasura_cli_sha256[linux_architecture] }}"
         headers: "{{ {'Accept': 'application/octet-stream'} | combine(api_github_auth_header) }}"
         force: true
         timeout: "{{ github_download_timeout }}"
@@ -175,6 +176,7 @@
           get_url:
             url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
             dest: "{{ api_hasura_cli_bin }}"
+            checksum: "sha256:{{ api_hasura_cli_sha256[linux_architecture] }}"
             force: true
             timeout: "{{ github_download_timeout }}"
             mode: "0755"
@@ -217,6 +219,7 @@
       get_url:
         url: "https://github.com/hasura/graphql-engine/releases/download/{{ api_hasura_version }}/cli-hasura-linux-{{ linux_architecture }}"
         dest: "{{ api_hasura_cli_bin }}"
+        checksum: "sha256:{{ api_hasura_cli_sha256[linux_architecture] }}"
         force: true
         timeout: "{{ github_download_timeout }}"
         mode: "0755"

@@ -213,8 +213,9 @@
           rescue:
             - name: download dotnet-install script (ubuntu fallback)
               get_url:
-                url: https://dot.net/v1/dotnet-install.sh
+                url: "{{ dotnet_install_script_url }}"
                 dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
+                checksum: "sha256:{{ dotnet_install_script_sha256 }}"
                 mode: "0755"
               register: dotnet_install_script_download
               until: dotnet_install_script_download is succeeded
@@ -256,8 +257,9 @@
       block:
         - name: download dotnet-install script for Debian testing
           get_url:
-            url: https://dot.net/v1/dotnet-install.sh
+            url: "{{ dotnet_install_script_url }}"
             dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
+            checksum: "sha256:{{ dotnet_install_script_sha256 }}"
             mode: "0755"
           register: dotnet_install_script_download_debian
           until: dotnet_install_script_download_debian is succeeded

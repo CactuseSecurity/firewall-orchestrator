@@ -11,7 +11,7 @@ cryptography==50.0.1
 # HTTP / GraphQL stack
 requests==2.34.2
 urllib3==2.8.0
-graphql-core==3.2.12
+graphql-core==3.3.0
 
 # SSH
 scrapli==2026.2.20
@@ -23,7 +23,7 @@ pytest-mock==3.16.0
 pytest-cov==7.1.0
 
 # Linting
-ruff==0.16.4
+ruff==0.16.5
 pre-commit==4.6.2
 pyright==1.1.414
 

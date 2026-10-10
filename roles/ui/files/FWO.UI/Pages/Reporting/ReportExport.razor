@@ -279,7 +279,7 @@
             {
                 await FetchReportObjects();
                 return true;
-            });
+            }, userConfig.GetExplicitlyDeniedRoles(ReportToExport.ReportType));
     }
 
     /// <summary>

@@ -22,6 +22,12 @@ public sealed class GetApplicationAddressesRequest
 public sealed class GetApplicationAddressesOptions
 {
     /// <summary>
+    /// Maximum and default number of applications returned per request. It is high because each application entry is
+    /// small, so that clients that do not page still receive every application in all but very large environments.
+    /// </summary>
+    public const int kMaxLimit = 10000;
+
+    /// <summary>
     /// Gets or sets the optional response filter. Null or omitted filter fields do not restrict the result.
     /// </summary>
     [JsonPropertyName("filter")]
@@ -36,15 +42,17 @@ public sealed class GetApplicationAddressesOptions
     public bool? ShowOnlyActiveState { get; set; }
 
     /// <summary>
-    /// Gets or sets the optional maximum number of applications to read. When omitted, every matching
-    /// application is returned. Applications are ordered by name, so this pages the result deterministically
-    /// together with <see cref="Offset"/>.
+    /// Gets or sets the maximum number of applications to read, between 1 and <see cref="kMaxLimit"/>. When omitted or
+    /// null, a page of <see cref="kMaxLimit"/> applications is returned. Applications are ordered by name, so this pages
+    /// the result deterministically together with <see cref="Offset"/>; the <c>X-Has-More</c> response header tells
+    /// whether further applications follow.
     /// </summary>
     [JsonPropertyName("limit")]
-    public int? Limit { get; set; }
+    public int? Limit { get; set; } = kMaxLimit;
 
     /// <summary>
-    /// Gets or sets the optional number of applications to skip before the first returned application.
+    /// Gets or sets the optional number of applications to skip before the first returned application. When omitted
+    /// or null, no application is skipped.
     /// </summary>
     [JsonPropertyName("offset")]
     public int? Offset { get; set; }

@@ -7,6 +7,7 @@ using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
 using System.Text.Json;
@@ -176,6 +177,51 @@ namespace FWO.Test
             {
                 Assert.That(missingProtocol.Result, Is.TypeOf<BadRequestObjectResult>());
                 Assert.That(missingIpBounds.Result, Is.TypeOf<BadRequestObjectResult>());
+            });
+        }
+
+        [Test]
+        public async Task FlowCatalogController_ListEndpointsRejectInvalidPaging()
+        {
+            using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
+            FlowCatalogController controller = new(service);
+
+            ActionResult<List<AddressObjectResponse>> addressObjects = await controller.GetAddressObjects(new GetAddressObjectsRequest { Limit = 0, Offset = -1 });
+            ActionResult addressGroups = await controller.GetAddressGroups(new GetAddressGroupsRequest { Limit = FlowCatalogPaging.kMaxGroupLimit + 1 });
+            ActionResult<List<ServiceObjectResponse>> serviceObjects = await controller.GetServiceObjects(new GetServiceObjectsRequest { Offset = -1 });
+            ActionResult<List<ServiceGroupResponse>> serviceGroups = await controller.GetServiceGroups(new GetServiceGroupsRequest { Limit = 0 });
+            ActionResult<List<TimeObjectResponse>> timeObjects = await controller.GetTimeObjects(new GetTimeObjectsRequest { Limit = FlowCatalogPaging.kMaxObjectLimit + 1 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(addressObjects.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(((BadRequestObjectResult)addressObjects.Result!).Value?.ToString(), Does.Contain("'limit'").And.Contain("'offset'"));
+                Assert.That(addressGroups, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(serviceObjects.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(serviceGroups.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(timeObjects.Result, Is.TypeOf<BadRequestObjectResult>());
+            });
+        }
+
+        [Test]
+        public async Task FlowCatalogController_ListEndpointsSetTheHasMoreHeader()
+        {
+            using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
+            DefaultHttpContext httpContext = new();
+            FlowCatalogController controller = new(service)
+            {
+                ControllerContext = new ControllerContext { HttpContext = httpContext }
+            };
+
+            await controller.GetTimeObjects(new GetTimeObjectsRequest());
+            string timeObjectsHeader = httpContext.Response.Headers[ListPaging.kHasMoreHeader].ToString();
+            httpContext.Response.Headers.Remove(ListPaging.kHasMoreHeader);
+            await controller.GetAddressGroups(new GetAddressGroupsRequest { Option = new AddressGroupsOption { SeparateZoneGroups = true } });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(timeObjectsHeader, Is.EqualTo("false"));
+                Assert.That(httpContext.Response.Headers[ListPaging.kHasMoreHeader].ToString(), Is.EqualTo("false"));
             });
         }
 

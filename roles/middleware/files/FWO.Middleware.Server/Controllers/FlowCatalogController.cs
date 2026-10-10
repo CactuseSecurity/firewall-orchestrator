@@ -5,6 +5,7 @@ using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FWO.Middleware.Server.Controllers;
 
@@ -17,20 +18,21 @@ namespace FWO.Middleware.Server.Controllers;
 [Route("api/flow")]
 public class FlowCatalogController : ControllerBase
 {
-    private static readonly RequestRootValidationSchema AddressObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
+    private static readonly RequestRootValidationSchema AddressObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetAddressObjects), FlowCatalogPaging.kMaxObjectLimit);
     private static readonly RequestFilterValidationSchema AddressObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
     private static readonly RequestRootValidationSchema AddressGroupsRootSchema = new(
         nameof(GetAddressGroups),
         [
             new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-            new RequestKeyDefinition("option", "Optional option container controlling the response shape.")
+            new RequestKeyDefinition("option", "Optional option container controlling the response shape."),
+            .. FlowCatalogPaging.KeyDefinitions(FlowCatalogPaging.kMaxGroupLimit)
         ]);
     private static readonly RequestFilterValidationSchema AddressGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
-    private static readonly RequestRootValidationSchema ServiceObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetServiceObjects));
+    private static readonly RequestRootValidationSchema ServiceObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetServiceObjects), FlowCatalogPaging.kMaxObjectLimit);
     private static readonly RequestFilterValidationSchema ServiceObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjects));
-    private static readonly RequestRootValidationSchema ServiceGroupsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetServiceGroups));
+    private static readonly RequestRootValidationSchema ServiceGroupsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetServiceGroups), FlowCatalogPaging.kMaxGroupLimit);
     private static readonly RequestFilterValidationSchema ServiceGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceGroups));
-    private static readonly RequestRootValidationSchema TimeObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetTimeObjects));
+    private static readonly RequestRootValidationSchema TimeObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetTimeObjects), FlowCatalogPaging.kMaxObjectLimit);
     private static readonly RequestFilterValidationSchema TimeObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjects));
     private static readonly RequestRootValidationSchema ServiceObjectIdRootSchema = new(
         nameof(GetServiceObjectId),
@@ -87,14 +89,16 @@ public class FlowCatalogController : ControllerBase
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressObjects")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     public async Task<ActionResult<List<AddressObjectResponse>>> GetAddressObjects([FromBody] GetAddressObjectsRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, AddressObjectsRootSchema, AddressObjectsFilterSchema, out ActionResult? errorResult))
+        if (!TryValidatePagedRequest(request, AddressObjectsRootSchema, AddressObjectsFilterSchema, FlowCatalogPaging.kMaxObjectLimit, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
-        return Ok(await flowCatalogService.GetAddressObjectsAsync(request.Filter?.VisibleInRequest));
+        return PageResult(await flowCatalogService.GetAddressObjectsAsync(request.Filter?.VisibleInRequest, request.Limit, request.Offset));
     }
 
     /// <summary>
@@ -109,11 +113,13 @@ public class FlowCatalogController : ControllerBase
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressGroups")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     [ProducesResponseType(typeof(List<AddressGroupResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> GetAddressGroups([FromBody] GetAddressGroupsRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, AddressGroupsRootSchema, AddressGroupsFilterSchema, out ActionResult? errorResult))
+        if (!TryValidatePagedRequest(request, AddressGroupsRootSchema, AddressGroupsFilterSchema, FlowCatalogPaging.kMaxGroupLimit, out ActionResult? errorResult))
         {
             return errorResult!;
         }
@@ -125,10 +131,13 @@ public class FlowCatalogController : ControllerBase
 
         if (request.Option?.SeparateZoneGroups == true)
         {
-            return Ok(await flowCatalogService.GetSeparatedAddressGroupsAsync(request.Filter?.VisibleInRequest));
+            (SeparatedAddressGroupsResponse separatedGroups, bool hasMore) =
+                await flowCatalogService.GetSeparatedAddressGroupsAsync(request.Filter?.VisibleInRequest, request.Limit, request.Offset);
+            ListPaging.SetHasMoreHeader(HttpContext, hasMore);
+            return Ok(separatedGroups);
         }
 
-        return Ok(await flowCatalogService.GetAddressGroupsAsync(request.Filter?.VisibleInRequest));
+        return PageResult(await flowCatalogService.GetAddressGroupsAsync(request.Filter?.VisibleInRequest, request.Limit, request.Offset));
     }
 
     /// <summary>
@@ -137,14 +146,16 @@ public class FlowCatalogController : ControllerBase
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceObjects")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     public async Task<ActionResult<List<ServiceObjectResponse>>> GetServiceObjects([FromBody] GetServiceObjectsRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, ServiceObjectsRootSchema, ServiceObjectsFilterSchema, out ActionResult? errorResult))
+        if (!TryValidatePagedRequest(request, ServiceObjectsRootSchema, ServiceObjectsFilterSchema, FlowCatalogPaging.kMaxObjectLimit, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
-        return Ok(await flowCatalogService.GetServiceObjectsAsync(request.Filter?.VisibleInRequest));
+        return PageResult(await flowCatalogService.GetServiceObjectsAsync(request.Filter?.VisibleInRequest, request.Limit, request.Offset));
     }
 
     /// <summary>
@@ -153,14 +164,16 @@ public class FlowCatalogController : ControllerBase
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceGroups")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     public async Task<ActionResult<List<ServiceGroupResponse>>> GetServiceGroups([FromBody] GetServiceGroupsRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, ServiceGroupsRootSchema, ServiceGroupsFilterSchema, out ActionResult? errorResult))
+        if (!TryValidatePagedRequest(request, ServiceGroupsRootSchema, ServiceGroupsFilterSchema, FlowCatalogPaging.kMaxGroupLimit, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
-        return Ok(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest));
+        return PageResult(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest, request.Limit, request.Offset));
     }
 
     /// <summary>
@@ -207,14 +220,16 @@ public class FlowCatalogController : ControllerBase
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getTimeObjects")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     public async Task<ActionResult<List<TimeObjectResponse>>> GetTimeObjects([FromBody] GetTimeObjectsRequest request)
     {
-        if (!TryValidateVisibleInRequestRequest(request, TimeObjectsRootSchema, TimeObjectsFilterSchema, out ActionResult? errorResult))
+        if (!TryValidatePagedRequest(request, TimeObjectsRootSchema, TimeObjectsFilterSchema, FlowCatalogPaging.kMaxObjectLimit, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
-        return Ok(await flowCatalogService.GetTimeObjectsAsync(request.Filter?.VisibleInRequest));
+        return PageResult(await flowCatalogService.GetTimeObjectsAsync(request.Filter?.VisibleInRequest, request.Limit, request.Offset));
     }
 
     /// <summary>
@@ -313,6 +328,31 @@ public class FlowCatalogController : ControllerBase
         request.IpStart = normalizedIpStart;
         request.IpEnd = normalizedIpEnd;
         return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));
+    }
+
+    private static bool TryValidatePagedRequest<TRequest>(
+        TRequest request,
+        RequestRootValidationSchema rootSchema,
+        RequestFilterValidationSchema filterSchema,
+        int maxLimit,
+        out ActionResult? errorResult)
+        where TRequest : IVisibleInRequestFilterRequest, IPagedListRequest
+    {
+        if (!TryValidateVisibleInRequestRequest(request, rootSchema, filterSchema, out errorResult))
+        {
+            return false;
+        }
+
+        return FlowCatalogPaging.TryValidate(request, maxLimit, out errorResult);
+    }
+
+    /// <summary>
+    /// Returns the items of a page and tells through the <c>X-Has-More</c> response header whether further items follow.
+    /// </summary>
+    private OkObjectResult PageResult<T>(ListPage<T> page)
+    {
+        ListPaging.SetHasMoreHeader(HttpContext, page.HasMore);
+        return Ok(page.Items);
     }
 
     private static bool TryValidateVisibleInRequestRequest<TRequest>(

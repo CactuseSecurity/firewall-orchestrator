@@ -88,7 +88,7 @@ internal class FlowComplianceServiceTest
             Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getLanguages), Is.EqualTo(0));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getTextsPerLanguage), Is.EqualTo(0));
-            Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getPolicyById));
+            Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getPoliciesByIds));
             Assert.That(apiConnection.SentQueries, Does.Contain(NetworkZoneQueries.getNetworkZonesForMatrix));
             Assert.That(apiConnection.SentQueries, Does.Contain(DeviceQueries.getManagementNames));
         });
@@ -137,6 +137,30 @@ internal class FlowComplianceServiceTest
         });
     }
 
+    /// <summary>
+    /// SEC-25: the number of policy queries must not grow with the number of requested policies.
+    /// </summary>
+    [Test]
+    public async Task GetFlowComplianceStateAsync_LoadsAllPoliciesWithOneQuery()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+        GetFlowComplianceStateRequest request = BuildComplianceRequest();
+        request.Policies = Enumerable.Range(1, FlowComplianceRequestValidator.kMaxPolicies).ToList();
+
+        List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(request);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Has.Count.EqualTo(FlowComplianceRequestValidator.kMaxPolicies));
+            Assert.That(apiConnection.CountQueries(ComplianceQueries.getPoliciesByIds), Is.EqualTo(1));
+            Assert.That(apiConnection.CountQueries(ComplianceQueries.getPolicyById), Is.Zero);
+            Assert.That(result.Single(response => response.Policy.Id == 7).Policy.Name, Is.EqualTo("Matrix and Service Policy"));
+            Assert.That(result.Single(response => response.Policy.Id == 1).Policy.Name, Is.Empty);
+        });
+    }
+
     [Test]
     public async Task GetFlowComplianceStateAsync_ReusesSharedComplianceDataAcrossPolicies()
     {
@@ -159,7 +183,8 @@ internal class FlowComplianceServiceTest
             Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix" }));
             Assert.That(apiConnection.CountQueries(DeviceQueries.getManagementNames), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(NetworkZoneQueries.getNetworkZonesForMatrix), Is.EqualTo(1));
-            Assert.That(apiConnection.CountQueries(ComplianceQueries.getPolicyById), Is.EqualTo(2));
+            Assert.That(apiConnection.CountQueries(ComplianceQueries.getPoliciesByIds), Is.EqualTo(1));
+            Assert.That(apiConnection.CountQueries(ComplianceQueries.getPolicyById), Is.Zero);
         });
     }
 
@@ -491,6 +516,15 @@ internal class FlowComplianceServiceTest
             if (typeof(QueryResponseType) == typeof(List<CompliancePolicy>) && query == ComplianceQueries.getPolicies)
             {
                 return Task.FromResult((QueryResponseType)(object)Policies);
+            }
+
+            if (typeof(QueryResponseType) == typeof(List<CompliancePolicy>) && query == ComplianceQueries.getPoliciesByIds)
+            {
+                List<int> policyIds = variables?.GetType().GetProperty("ids")?.GetValue(variables) as List<int> ?? [];
+                return Task.FromResult((QueryResponseType)(object)policyIds
+                    .Where(PoliciesById.ContainsKey)
+                    .Select(policyId => PoliciesById[policyId])
+                    .ToList());
             }
 
             if (typeof(QueryResponseType) == typeof(CompliancePolicy) && query == ComplianceQueries.getPolicyById)

@@ -205,6 +205,24 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
             Assert.That(ConfigFile.ApiServerUri, Is.EqualTo("https://127.0.0.1:9443/api/v1/graphqlo/"));
         }
 
+        [Test]
+        public void RateLimitSettingsAcceptNumbersAndIgnoreInvalidValues()
+        {
+            CreateAndReadConfigFile(11, WithEntries(@"""rate_limit_requests_per_minute"": ""120"", ""rate_limit_concurrent_expensive_requests"": 3"));
+            int? requestsPerMinute = ConfigFile.RateLimitRequestsPerMinute;
+            int? concurrentExpensiveRequests = ConfigFile.RateLimitConcurrentExpensiveRequests;
+
+            CreateAndReadConfigFile(12, WithEntries(@"""rate_limit_requests_per_minute"": ""many"", ""rate_limit_concurrent_expensive_requests"": 1.5"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(requestsPerMinute, Is.EqualTo(120));
+                Assert.That(concurrentExpensiveRequests, Is.EqualTo(3));
+                Assert.That(ConfigFile.RateLimitRequestsPerMinute, Is.Null);
+                Assert.That(ConfigFile.RateLimitConcurrentExpensiveRequests, Is.Null);
+            });
+        }
+
         [TestCase(@"[""ui1"", "" ui2 "", """", ""ui1""]", "ui1,ui2")]
         [TestCase(@"""ui1, ui2,""", "ui1,ui2")]
         [TestCase(@"""[\""ui1\"", \""ui2\""]""", "ui1,ui2")]

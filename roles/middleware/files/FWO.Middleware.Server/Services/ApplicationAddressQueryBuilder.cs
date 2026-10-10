@@ -14,7 +14,8 @@ public static class ApplicationAddressQueryBuilder
     private const string kEditableOwnersClaim = "x-hasura-editable-owners";
 
     /// <summary>
-    /// Builds the variables selecting the applications visible to the caller, including optional paging.
+    /// Builds the variables selecting the applications visible to the caller, including paging. One application more
+    /// than the page size is requested, so the caller can tell whether further applications follow.
     /// </summary>
     public static Dictionary<string, object> BuildApplicationVariables(
         GetApplicationAddressesOptions options, ClaimsPrincipal user)
@@ -36,9 +37,16 @@ public static class ApplicationAddressQueryBuilder
         {
             ["where"] = GraphQlFilterBuilder.CombinePredicates(predicates)
         };
-        AddPagingValue(variables, "limit", options.Limit);
-        AddPagingValue(variables, "offset", options.Offset);
+        ListPaging.AddLookaheadPagingVariables(variables, GetPageSize(options), options.Offset ?? 0);
         return variables;
+    }
+
+    /// <summary>
+    /// Returns the page size of the request; an omitted or null limit selects the default page size.
+    /// </summary>
+    public static int GetPageSize(GetApplicationAddressesOptions options)
+    {
+        return options.Limit ?? GetApplicationAddressesOptions.kMaxLimit;
     }
 
     /// <summary>
@@ -57,14 +65,6 @@ public static class ApplicationAddressQueryBuilder
     public static bool ShouldRestrictToEditableApplications(ClaimsPrincipal user)
     {
         return user.IsInRole(Roles.Modeller) && !user.IsInRole(Roles.Admin) && !user.IsInRole(Roles.Auditor);
-    }
-
-    private static void AddPagingValue(Dictionary<string, object> variables, string fieldName, int? value)
-    {
-        if (value is not null)
-        {
-            variables[fieldName] = value.Value;
-        }
     }
 
     private static void AddApplicationIdPredicate(List<Dictionary<string, object>> predicates, List<int>? applicationIds)

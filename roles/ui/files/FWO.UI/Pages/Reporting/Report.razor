@@ -814,33 +814,18 @@
 
     private void TryFilter(ChangeEventArgs changeArgs)
     {
-        try
-        {
-            string input = (changeArgs.Value ?? "").ToString() ?? "";
-            try
-            {
-                DynGraphqlQuery query = Compiler.Compile(ConstructReportTemplate(input));
-
-                filterFeedbackStart = input;
-                filterFeedbackError = "";
-                filterFeedbackEnd = "";
-            }
-            catch(FilterException filterError)
-            {
-                int errorStart = filterError.ErrorPosition.Start.Value;
-                int errorEnd = filterError.ErrorPosition.End.Value;
-
-                filterFeedbackStart = input[..errorStart];
-                filterFeedbackError = input[errorStart..errorEnd];
-                filterFeedbackEnd = input[errorEnd..];
-            }
-        }
-        catch(Exception unexpectedError)
-        {
+        string input = (changeArgs.Value ?? "").ToString() ?? "";
+        ReportFilterFeedback feedback = ReportFilterFeedback.Evaluate(input, filter => Compiler.Compile(ConstructReportTemplate(filter)));
+        filterFeedbackStart = feedback.Start;
+        filterFeedbackError = feedback.Error;
+        filterFeedbackEnd = feedback.End;
 #if DEBUG
-            DisplayMessageInUi(unexpectedError, userConfig.GetText("filter"), "", false);
-#endif
+        // the error is logged in every configuration; only debug builds show its details in the ui as well
+        if (feedback.UnexpectedError != null)
+        {
+            DisplayMessageInUi(feedback.UnexpectedError, userConfig.GetText("filter"), "", false);
         }
+#endif
     }
 
     private void ToggleShowAnyRule(ChangeEventArgs e)

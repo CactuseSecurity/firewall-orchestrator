@@ -183,6 +183,10 @@
   - all actions of the GitHub workflows are pinned to commit SHAs; policy tests reject unpinned actions,
     container images without digest and executable downloads without checksum
   - Chrome for Testing keeps following the current stable release (accepted risk, documented)
+- security (GHSA-9j26-vffp-8f83): fix the release build of the UI, which the installer uses
+  - an unexpected error while checking the report filter is now logged in every build configuration; the
+    filter input is shown without error marker, details appear in the UI in debug builds only
+  - a new job of the test install workflow builds all projects in Release configuration
 - api: upgrade hasura graphql API to 2.50.3
 - importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
 

@@ -14,8 +14,7 @@ urllib3==2.8.0
 graphql-core==3.3.0
 
 # SSH
-scrapli==2026.2.20
-scrapli-community==2025.1.30
+scrapli==2026.10.3
 
 # Test
 pytest==9.1.1

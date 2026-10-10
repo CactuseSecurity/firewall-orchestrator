@@ -98,8 +98,8 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// </summary>
     /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
     /// <param name="limit">Page size.</param>
-    /// <param name="offset">Number of objects skipped before the page.</param>
-    public async Task<ListPage<AddressObjectResponse>> GetAddressObjectsAsync(bool? visibleInRequest, int limit, int offset)
+    /// <param name="offset">Number of objects skipped before the page; null skips none.</param>
+    public async Task<ListPage<AddressObjectResponse>> GetAddressObjectsAsync(bool? visibleInRequest, int limit, int? offset)
     {
         ListPage<FlowNwObject> page = await LoadPageAsync<FlowNwObject>(FlowQueries.getFlowAddressObjects, visibleInRequest, limit, offset);
         return new ListPage<AddressObjectResponse>(page.Items.Select(ToAddressObjectResponse).ToList(), page.HasMore);
@@ -110,8 +110,8 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// </summary>
     /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
     /// <param name="limit">Page size.</param>
-    /// <param name="offset">Number of groups skipped before the page.</param>
-    public async Task<ListPage<AddressGroupResponse>> GetAddressGroupsAsync(bool? visibleInRequest, int limit, int offset)
+    /// <param name="offset">Number of groups skipped before the page; null skips none.</param>
+    public async Task<ListPage<AddressGroupResponse>> GetAddressGroupsAsync(bool? visibleInRequest, int limit, int? offset)
     {
         ListPage<FlowNwGroup> page = await LoadPageAsync<FlowNwGroup>(FlowQueries.getFlowAddressGroups, visibleInRequest, limit, offset);
         return new ListPage<AddressGroupResponse>(page.Items.Select(ToAddressGroupResponse).ToList(), page.HasMore);
@@ -123,9 +123,9 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// </summary>
     /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
     /// <param name="limit">Page size, applied to all groups before they are separated.</param>
-    /// <param name="offset">Number of groups skipped before the page.</param>
+    /// <param name="offset">Number of groups skipped before the page; null skips none.</param>
     /// <returns>The address groups of the page separated into standard groups and zone groups, and whether further groups follow.</returns>
-    public async Task<(SeparatedAddressGroupsResponse Groups, bool HasMore)> GetSeparatedAddressGroupsAsync(bool? visibleInRequest, int limit, int offset)
+    public async Task<(SeparatedAddressGroupsResponse Groups, bool HasMore)> GetSeparatedAddressGroupsAsync(bool? visibleInRequest, int limit, int? offset)
     {
         ListPage<FlowNwGroup> page = await LoadPageAsync<FlowNwGroup>(FlowQueries.getFlowAddressGroups, visibleInRequest, limit, offset);
         IReadOnlyList<FlowZoneGroupPattern> configuredZonePatterns = GetZonePatterns();
@@ -152,8 +152,8 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// </summary>
     /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
     /// <param name="limit">Page size.</param>
-    /// <param name="offset">Number of objects skipped before the page.</param>
-    public async Task<ListPage<ServiceObjectResponse>> GetServiceObjectsAsync(bool? visibleInRequest, int limit, int offset)
+    /// <param name="offset">Number of objects skipped before the page; null skips none.</param>
+    public async Task<ListPage<ServiceObjectResponse>> GetServiceObjectsAsync(bool? visibleInRequest, int limit, int? offset)
     {
         ListPage<FlowSvcObject> page = await LoadPageAsync<FlowSvcObject>(FlowQueries.getFlowServiceObjects, visibleInRequest, limit, offset);
         IpProtocolCache protocolCache = await GetIpProtocolCacheAsync();
@@ -166,8 +166,8 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// </summary>
     /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
     /// <param name="limit">Page size.</param>
-    /// <param name="offset">Number of groups skipped before the page.</param>
-    public async Task<ListPage<ServiceGroupResponse>> GetServiceGroupsAsync(bool? visibleInRequest, int limit, int offset)
+    /// <param name="offset">Number of groups skipped before the page; null skips none.</param>
+    public async Task<ListPage<ServiceGroupResponse>> GetServiceGroupsAsync(bool? visibleInRequest, int limit, int? offset)
     {
         ListPage<FlowSvcGroup> page = await LoadPageAsync<FlowSvcGroup>(FlowQueries.getFlowServiceGroups, visibleInRequest, limit, offset);
         return new ListPage<ServiceGroupResponse>(page.Items.Select(ToServiceGroupResponse).ToList(), page.HasMore);
@@ -208,8 +208,8 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// </summary>
     /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
     /// <param name="limit">Page size.</param>
-    /// <param name="offset">Number of objects skipped before the page.</param>
-    public async Task<ListPage<TimeObjectResponse>> GetTimeObjectsAsync(bool? visibleInRequest, int limit, int offset)
+    /// <param name="offset">Number of objects skipped before the page; null skips none.</param>
+    public async Task<ListPage<TimeObjectResponse>> GetTimeObjectsAsync(bool? visibleInRequest, int limit, int? offset)
     {
         ListPage<FlowTimeObject> page = await LoadPageAsync<FlowTimeObject>(FlowQueries.getFlowTimeObjects, visibleInRequest, limit, offset);
         return new ListPage<TimeObjectResponse>(page.Items.Select(ToTimeObjectResponse).ToList(), page.HasMore);
@@ -270,7 +270,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <summary>
     /// Loads one page of a catalog list, fetching one item more than the page size to detect further items.
     /// </summary>
-    private async Task<ListPage<TItem>> LoadPageAsync<TItem>(string query, bool? visibleInRequest, int limit, int offset)
+    private async Task<ListPage<TItem>> LoadPageAsync<TItem>(string query, bool? visibleInRequest, int limit, int? offset)
     {
         Dictionary<string, object> variables = BuildCatalogQueryVariables(visibleInRequest);
         ListPaging.AddLookaheadPagingVariables(variables, limit, offset);

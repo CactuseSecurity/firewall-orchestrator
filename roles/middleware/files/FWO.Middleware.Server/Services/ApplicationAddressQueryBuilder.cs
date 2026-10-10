@@ -37,7 +37,7 @@ public static class ApplicationAddressQueryBuilder
         {
             ["where"] = GraphQlFilterBuilder.CombinePredicates(predicates)
         };
-        ListPaging.AddLookaheadPagingVariables(variables, GetPageSize(options), options.Offset ?? 0);
+        ListPaging.AddLookaheadPagingVariables(variables, GetPageSize(options), options.Offset);
         return variables;
     }
 

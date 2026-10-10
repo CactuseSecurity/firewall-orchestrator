@@ -14,9 +14,9 @@ public interface IPagedListRequest
     int Limit { get; set; }
 
     /// <summary>
-    /// Gets or sets the number of items skipped before the first returned item.
+    /// Gets or sets the number of items skipped before the first returned item; null skips no item.
     /// </summary>
-    int Offset { get; set; }
+    int? Offset { get; set; }
 }
 
 /// <summary>
@@ -43,7 +43,7 @@ public static class FlowCatalogPaging
     /// <summary>
     /// Describes the 'offset' key.
     /// </summary>
-    public const string kOffsetDescription = "Number of items skipped before the first returned item, at least 0; defaults to 0.";
+    public const string kOffsetDescription = "Number of items skipped before the first returned item, at least 0; omitted or null skips no item.";
 
     /// <summary>
     /// Returns the root key definitions of the paging keys.

@@ -29,10 +29,11 @@ public sealed class GetAddressGroupsRequest : IVisibleInRequestFilterRequest, IP
     public int Limit { get; set; } = FlowCatalogPaging.kMaxGroupLimit;
 
     /// <summary>
-    /// Gets or sets the number of items skipped before the first returned item, at least 0; defaults to 0.
+    /// Gets or sets the number of items skipped before the first returned item, at least 0. When omitted or null, no
+    /// item is skipped.
     /// </summary>
     [JsonPropertyName("offset")]
-    public int Offset { get; set; }
+    public int? Offset { get; set; }
 
     /// <summary>
     /// Gets the AdditionalData value.

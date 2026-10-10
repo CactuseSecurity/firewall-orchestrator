@@ -52,6 +52,16 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void LookaheadVariablesWithoutOffsetSkipNothing()
+        {
+            Dictionary<string, object> variables = [];
+
+            ListPaging.AddLookaheadPagingVariables(variables, 50, null);
+
+            Assert.That(variables["offset"], Is.EqualTo(0));
+        }
+
         [TestCase(true, "true")]
         [TestCase(false, "false")]
         public void SetHasMoreHeaderWritesTheHeader(bool hasMore, string expectedValue)
@@ -79,7 +89,7 @@ namespace FWO.Test
                 Assert.That(new GetTimeObjectsRequest().Limit, Is.EqualTo(FlowCatalogPaging.kMaxObjectLimit));
                 Assert.That(new GetAddressGroupsRequest().Limit, Is.EqualTo(FlowCatalogPaging.kMaxGroupLimit));
                 Assert.That(new GetServiceGroupsRequest().Limit, Is.EqualTo(FlowCatalogPaging.kMaxGroupLimit));
-                Assert.That(new GetAddressObjectsRequest().Offset, Is.Zero);
+                Assert.That(new GetAddressObjectsRequest().Offset, Is.Null);
             });
         }
 
@@ -93,6 +103,14 @@ namespace FWO.Test
                 Assert.That(FlowCatalogPaging.TryValidate(request, FlowCatalogPaging.kMaxObjectLimit, out ActionResult? errorResult), Is.True);
                 Assert.That(errorResult, Is.Null);
             });
+        }
+
+        [Test]
+        public void OmittedOffsetPasses()
+        {
+            GetTimeObjectsRequest request = new() { Offset = null };
+
+            Assert.That(FlowCatalogPaging.TryValidate(request, FlowCatalogPaging.kMaxObjectLimit, out _), Is.True);
         }
 
         [Test]

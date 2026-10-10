@@ -173,7 +173,7 @@ namespace FWO.Test
             return lease.IsAcquired;
         }
 
-        private static HttpContext Context(ClaimsPrincipal user)
+        private static DefaultHttpContext Context(ClaimsPrincipal user)
         {
             return new DefaultHttpContext { User = user };
         }

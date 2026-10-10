@@ -53,10 +53,10 @@ public static class ListPaging
     /// </summary>
     /// <param name="variables">Query variables to extend.</param>
     /// <param name="pageSize">Requested page size.</param>
-    /// <param name="offset">Number of items to skip.</param>
-    public static void AddLookaheadPagingVariables(Dictionary<string, object> variables, int pageSize, int offset)
+    /// <param name="offset">Number of items to skip; null skips no item.</param>
+    public static void AddLookaheadPagingVariables(Dictionary<string, object> variables, int pageSize, int? offset)
     {
         variables["limit"] = pageSize + 1;
-        variables["offset"] = offset;
+        variables["offset"] = offset ?? 0;
     }
 }

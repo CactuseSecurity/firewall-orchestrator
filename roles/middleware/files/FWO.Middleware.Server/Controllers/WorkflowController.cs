@@ -13,7 +13,6 @@ using FWO.Services;
 using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Concurrent;
 using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers
@@ -30,7 +29,7 @@ namespace FWO.Middleware.Server.Controllers
         private readonly List<Ldap> ldaps;
         private readonly JwtWriter jwtWriter;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
-        private static readonly ConcurrentDictionary<long, SemaphoreSlim> TicketActionLocks = new();
+        private static readonly KeyedAsyncLock<long> TicketActionLocks = new();
         private static readonly WorkflowEmailBundleStore EmailBundleStore = new();
         private static readonly List<string> kNoGroups = [];
         private const string kStateChangeRefusalTitleKey = "actions";
@@ -77,6 +76,11 @@ namespace FWO.Middleware.Server.Controllers
                 }
 
                 long lockTicketId = GetTicketId(parameters, scope);
+                if (lockTicketId <= 0)
+                {
+                    SetWarning(result, $"Invalid ticket id {lockTicketId}.");
+                    return result;
+                }
                 return await ExecuteActionsWithTicketLock(parameters, scope, phase, lockTicketId, result);
             }
             catch (Exception exc)
@@ -135,16 +139,8 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<WorkflowActionResult> ExecuteActionsWithTicketLock(WorkflowActionParameters parameters, WfObjectScopes scope,
             WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
         {
-            SemaphoreSlim ticketActionLock = TicketActionLocks.GetOrAdd(lockTicketId, _ => new SemaphoreSlim(1, 1));
-            await ticketActionLock.WaitAsync();
-            try
-            {
-                return await ExecuteActionsWithApi(parameters, scope, phase, lockTicketId, result);
-            }
-            finally
-            {
-                ticketActionLock.Release();
-            }
+            using IDisposable ticketActionLock = await TicketActionLocks.AcquireAsync(lockTicketId, HttpContext?.RequestAborted ?? CancellationToken.None);
+            return await ExecuteActionsWithApi(parameters, scope, phase, lockTicketId, result);
         }
 
         private async Task<WorkflowActionResult> ExecuteActionsWithApi(WorkflowActionParameters parameters, WfObjectScopes scope,

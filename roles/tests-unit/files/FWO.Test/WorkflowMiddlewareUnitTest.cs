@@ -494,19 +494,46 @@ namespace FWO.Test
                 WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
                 {
                     Scope = WfObjectScopes.Ticket.ToString(),
-                    Phase = WorkflowPhases.request.ToString()
+                    Phase = WorkflowPhases.request.ToString(),
+                    ObjectId = 1
                 });
 
                 Assert.Multiple(() =>
                 {
                     Assert.That(result.Success, Is.False);
                     Assert.That(result.ErrorMessage, Does.Contain("necessary config value"));
+                    Assert.That(GetTicketActionLockCount(), Is.Zero);
                 });
             }
             finally
             {
                 SetApiServerUri(previousApiServerUri);
             }
+        }
+
+        /// <summary>
+        /// SEC-24: a request without a positive ticket id must be rejected before any per-ticket lock is
+        /// allocated, and a request that fails inside the lock must not leave its lock entry behind.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_ExecuteActionsRejectsNonPositiveTicketIdWithoutAllocatingLock()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+
+            WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+            {
+                Scope = WfObjectScopes.RequestTask.ToString(),
+                Phase = WorkflowPhases.request.ToString(),
+                ObjectId = 5,
+                TicketId = -7
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("Invalid ticket id"));
+                Assert.That(GetTicketActionLockCount(), Is.Zero);
+            });
         }
 
         /// <summary>
@@ -1994,6 +2021,13 @@ namespace FWO.Test
                 }
             };
             return controller;
+        }
+
+        private static int GetTicketActionLockCount()
+        {
+            FieldInfo field = typeof(WorkflowController).GetField("TicketActionLocks", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingFieldException(nameof(WorkflowController), "TicketActionLocks");
+            return ((KeyedAsyncLock<long>)field.GetValue(null)!).Count;
         }
 
         private static string? GetApiServerUri()

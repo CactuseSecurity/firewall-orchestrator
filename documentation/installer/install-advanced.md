@@ -402,6 +402,10 @@ distributed_install: true
 
 You then have to edit inventory/hosts.yml according to your needs.
 
+In a distributed setup, all logins through the UI reach the middleware from the UI server's address. The installer
+therefore exempts the hosts of the `frontends` group from the middleware's per-client login limit, see
+[login limits](../auth/README.md#login-limits).
+
 install-srv is the local machine the installation is started from. By default FWO is installed on this server
 
 If you want to use distributed machines add them like ui-srv and test-srv in the following example

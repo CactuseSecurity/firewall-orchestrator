@@ -90,7 +90,14 @@ installation_mode: new
 # Set this to true only when FWO components are installed on separate hosts.
 distributed_install: false
 install_syslog: true
-add_demo_data: true
+# Fixed test keys and passwords (e.g. the static jwt generation key) if set to yes - only for testing, never for
+# production. Defined here for all hosts, as add_demo_data below is derived from it on every host: a value set for
+# a single group would make hosts disagree about creating the demo data.
+testkeys: no
+# Demo data (sample devices, owners and LDAP users with publicly known passwords) is only meant for
+# development, test and demo installations. It is created automatically with testkeys=yes and can be
+# requested explicitly with -e add_demo_data=yes.
+add_demo_data: "{{ testkeys | default(false) | bool }}"
 api_docu: false
 force_install: false
 allowRepoChangesForRedhat: false
@@ -559,6 +566,12 @@ middleware_internal_port: 8880
 # the proxy target cannot end up on different loopback families.
 middleware_native_listener_address: "{{ ipv4_loopback_address }}"
 middleware_native_uri: "http://{{ middleware_native_listener_address }}:{{ middleware_internal_port }}/"
+# Hosts whose logins reach the middleware on behalf of many users: every UI login arrives
+# from the UI server's address, so a per-client login limit keyed on it would be one
+# shared limit for all UI users. These hosts (and the middleware host itself) are exempt
+# from the per-client limit; the per-user failure limit still applies to them. Written to
+# fworch.json as login_trusted_client_hosts and resolved by the middleware at startup.
+login_trusted_client_hosts: "{{ (groups['frontends'] | default([])) + (groups['frontends'] | default([]) | map('extract', hostvars) | selectattr('ansible_host', 'defined') | map(attribute='ansible_host') | list) | unique }}"
 
 ###############################################################
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"

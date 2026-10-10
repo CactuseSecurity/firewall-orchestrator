@@ -27,6 +27,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_provisioning_config_node_single_global ON 
 CREATE INDEX IF NOT EXISTS idx_provisioning_config_value_key ON provisioning_config_value (config_key);
 Create index IF NOT EXISTS idx_rule_standard_report_page on rule (mgm_id,rulebase_id,rule_num_numeric,rule_id) WHERE access_rule = TRUE;
 Create index IF NOT EXISTS idx_rulebase_link_to_rulebase_id on rulebase_link (to_rulebase_id);
+-- rule_fully_visible_to_tenant looks up the gateways of a rule for every rule, rule_from and rule_to row a tenant reads
+Create index IF NOT EXISTS idx_rule_enforced_on_gateway_rule_id on rule_enforced_on_gateway (rule_id);
 Create index IF NOT EXISTS idx_rule_from01 on rule_from (rule_id);
 Create index IF NOT EXISTS idx_rule_service01 on rule_service (rule_id);
 Create index IF NOT EXISTS idx_rule_service02 on rule_service (svc_id);
@@ -49,6 +51,9 @@ CREATE UNIQUE index if not exists owner_responsible_owner_dn_type_unique on owne
 CREATE index if not exists owner_responsible_dn_idx on owner_responsible(dn);
 CREATE UNIQUE index if not exists owner_responsible_type_name_unique on owner_responsible_type(name);
 CREATE UNIQUE INDEX IF NOT EXISTS request_workflow_configuration_single_active ON request.workflow_configuration (is_active) WHERE is_active;
+-- at most one active (not yet finished) external request per ticket, so concurrent calls cannot start the request chain
+-- of a ticket twice; the middleware sets finish_date when closing a request, before it creates the next one
+CREATE UNIQUE INDEX IF NOT EXISTS uidx_ext_request_one_active_per_ticket ON ext_request (ticket_id) WHERE finish_date IS NULL;
 
 Create index "IX_Relationship68" on "changelog_object" ("control_id");
 Create index "IX_Relationship76" on "changelog_service" ("control_id");

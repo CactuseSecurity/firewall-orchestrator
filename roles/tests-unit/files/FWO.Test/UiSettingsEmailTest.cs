@@ -72,6 +72,7 @@ namespace FWO.Test
             globalConfig.EmailUser = "smtp-user";
             globalConfig.EmailPassword = "stored-password";
             globalConfig.EmailSenderAddress = "noreply@example.test";
+            globalConfig.EmailCheckCertificates = false;
             SimulatedUserConfig userConfig = CreateUserConfig();
             SettingsEmail component = CreateComponent(apiConnection, globalConfig, userConfig);
 
@@ -86,7 +87,31 @@ namespace FWO.Test
                 Assert.That(actEmailConnection.User, Is.EqualTo("smtp-user"));
                 Assert.That(actEmailConnection.Password, Is.EqualTo("stored-password"));
                 Assert.That(actEmailConnection.SenderEmailAddress, Is.EqualTo("noreply@example.test"));
+                Assert.That(actEmailConnection.CheckCertificates, Is.False);
             });
+        }
+
+        [Test]
+        public async Task Save_StoresCertificateCheckingSwitch()
+        {
+            RecordingSettingsApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+            SimulatedUserConfig userConfig = CreateUserConfig();
+            SettingsEmail component = CreateComponent(apiConnection, globalConfig, userConfig);
+
+            await InvokePrivateTask(component, "OnInitializedAsync");
+            SetMember(component, "actEmailConnection", new EmailConnection
+            {
+                ServerAddress = "smtp.example.test",
+                Port = 587,
+                Encryption = EmailEncryptionMethod.StartTls,
+                SenderEmailAddress = "sender@example.test",
+                CheckCertificates = false
+            });
+
+            await InvokePrivateTask(component, "Save");
+
+            Assert.That(GetMember<ConfigData>(component, "editableConfig").EmailCheckCertificates, Is.False);
         }
 
         [Test]

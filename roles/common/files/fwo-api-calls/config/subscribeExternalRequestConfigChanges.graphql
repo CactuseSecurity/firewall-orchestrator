@@ -5,6 +5,8 @@
     {config_key: {_eq: "modRolloutBundleTasks"}},
     {config_key: {_eq: "externalRequestWaitCycles"}},
     {config_key: {_eq: "extTicketSystems"}},
+    {config_key: {_eq: "extTicketSystemsCheckCertificates"}},
+    {config_key: {_eq: "importCheckCertificates"}},
     {config_key: {_eq: "modNamingConvention"}}
   ]}){
     config_key

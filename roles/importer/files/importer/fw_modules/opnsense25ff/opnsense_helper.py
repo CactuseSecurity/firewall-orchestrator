@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, TypeAlias, TypeGuard, cast
 
 from fw_modules.opnsense25ff.opnsense_constants import MAX_DEPTH

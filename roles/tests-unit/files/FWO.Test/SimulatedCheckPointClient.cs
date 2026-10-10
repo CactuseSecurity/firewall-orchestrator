@@ -14,7 +14,7 @@ namespace FWO.Test
         private readonly Dictionary<string, Queue<RestResponse<int>>> queuedResponses = new();
 
         public SimulatedCheckPointClient(ExternalTicketSystem checkPointSystem, Management management)
-            : base(checkPointSystem, management)
+            : base(checkPointSystem, management, new ExternalCertificateChecks(FirewallConnections: true, TicketSystems: true))
         { }
 
         public void EnqueueResponse(string restEndPoint, RestResponse<int> response)

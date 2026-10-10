@@ -60,10 +60,8 @@ def _run_import_management(api_call: FwoApiCall) -> None:
     import_management(
         MGM_ID,
         api_call,
-        ssl_verification=False,
         limit=100,
         clear_management_data=False,
-        suppress_cert_warnings=True,
     )
 
 
@@ -204,11 +202,9 @@ class TestImportManagementInner:
     def _run(clear_management_data: bool = False, suppress_consistency_check: bool = False) -> None:
         common._import_management(
             MGM_ID,
-            ssl_verification=False,
             file=None,
             limit=100,
             clear_management_data=clear_management_data,
-            suppress_cert_warnings=True,
             suppress_consistency_check=suppress_consistency_check,
         )
 

@@ -1,3 +1,4 @@
+using FWO.Logging;
 using RestSharp;
 using RestSharp.Authenticators;
 using RestSharp.Serializers;
@@ -8,6 +9,10 @@ namespace FWO.Api.Client
 {
     public abstract class RestApiClient
     {
+        private const string kTlsLogCategory = "REST TLS";
+        private static readonly HashSet<string> uncheckedEndpointsWarned = [];
+        private static readonly object uncheckedEndpointLock = new();
+
         protected RestClient restClient;
         readonly string BaseUrl;
         readonly TimeSpan? ResponseTimeout;
@@ -19,8 +24,8 @@ namespace FWO.Api.Client
         /// <remarks>
         /// Certificate checking defaults to on, so a new client is safe unless it opts out.
         /// Clients talking to third party systems (CheckPoint, FortiManager, SecureChange)
-        /// pass false explicitly, because those appliances commonly present a self-signed
-        /// certificate that no FWO host has a reason to trust.
+        /// take the decision from the configured connection, because some of those appliances
+        /// present a self-signed certificate that no FWO host has a reason to trust.
         /// </remarks>
         /// <param name="baseUrl">Base url of the REST api.</param>
         /// <param name="timeout">Response timeout in seconds, null for the RestSharp default.</param>
@@ -30,7 +35,37 @@ namespace FWO.Api.Client
             BaseUrl = baseUrl;
             ResponseTimeout = timeout != null ? TimeSpan.FromSeconds((double)timeout) : null;
             CheckCertificates = checkCertificates;
+            if (!checkCertificates)
+            {
+                WarnUncheckedEndpoint(baseUrl);
+            }
             restClient = CreateRestClient(authenticator: null);
+        }
+
+        /// <summary>
+        /// Says in the log that an endpoint is reached without certificate checking.
+        /// </summary>
+        /// <remarks>
+        /// Everything keeps working without the check, so an installation left in that state
+        /// has to be able to say so. Warned once per endpoint per process, because clients
+        /// are created per request or discovery run and would otherwise fill the log.
+        /// </remarks>
+        /// <param name="baseUrl">Base url of the REST api.</param>
+        /// <returns>True when the warning was written, false when it was already written before.</returns>
+        internal static bool WarnUncheckedEndpoint(string baseUrl)
+        {
+            lock (uncheckedEndpointLock)
+            {
+                if (!uncheckedEndpointsWarned.Add(baseUrl))
+                {
+                    return false;
+                }
+            }
+            Log.WriteWarning(kTlsLogCategory,
+                $"Certificate checking is switched off for {baseUrl}: any server certificate is accepted, so credentials " +
+                "sent to this endpoint can be intercepted. Add the issuing CA to the host trust store and switch " +
+                "certificate checking on for this connection.");
+            return true;
         }
 
         public void SetAuthenticationToken(string jwt)

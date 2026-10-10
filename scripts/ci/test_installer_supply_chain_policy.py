@@ -62,6 +62,7 @@ ANSIBLE_SSH_SECTION = "ssh_connection"
 ANSIBLE_SSH_ARGS_OPTION = "ssh_args"
 # a free-form key=value argument; the value may contain Jinja expressions and quoted parts with spaces
 FREE_FORM_ARGUMENT_PATTERN = re.compile(r"(\w+)=((?:\{\{.*?\}\}|\{%.*?%\}|\"[^\"]*\"|'[^']*'|[^\s\"'{]|\{(?![{%]))+)")
+COMMAND_ARGUMENT_PATTERN = re.compile(r"(?:\{\{.*?\}\}|\{%.*?%\}|\"[^\"]*\"|'[^']*'|[^\s\"'{]|\{(?![{%]))+")
 HASURA_VERSION_URL_SUFFIX = "/v1/version"
 HASURA_VERSION_VARIABLE = "api_hasura_version"
 
@@ -124,19 +125,22 @@ def module_arguments(task: dict[str, object], modules: tuple[str, ...]) -> dict[
     return None
 
 
-def command_text(task: dict[str, object]) -> str:
-    """Return the command line of a command or shell task, whether given as string, cmd or argv."""
+def command_arguments(task: dict[str, object]) -> list[str]:
+    """Return separate command arguments, preserving spaces in argv, quoted paths and Jinja expressions."""
     for module in COMMAND_MODULES:
         command = task.get(module)
-        if isinstance(command, str):
-            return command
         if isinstance(command, dict):
             typed_command = cast("dict[str, object]", command)
             argv = typed_command.get("argv")
             if isinstance(argv, list):
-                return " ".join(str(argument) for argument in cast("list[object]", argv))
-            return str(typed_command.get("cmd", ""))
-    return ""
+                return [str(argument) for argument in cast("list[object]", argv)]
+            command = typed_command.get("cmd", "")
+        if isinstance(command, str):
+            return [
+                argument[1:-1] if argument.startswith(("'", '"')) and argument[-1] == argument[0] else argument
+                for argument in COMMAND_ARGUMENT_PATTERN.findall(command)
+            ]
+    return []
 
 
 def task_files() -> list[Path]:
@@ -176,15 +180,13 @@ def is_signed_package_download(arguments: dict[str, object]) -> bool:
 
 
 def verifies_package_signature(tasks: list[dict[str, object]], package_path: str) -> bool:
-    """Return whether tasks import a signing key with a pinned fingerprint and check the signature of the package."""
+    """Require a pinned signing key and a dedicated rpmkeys --checksig invocation for the exact downloaded path."""
     imports_pinned_key = any(
         (arguments := module_arguments(task, RPM_KEY_MODULES)) is not None and bool(arguments.get("fingerprint"))
         for task in tasks
     )
-    checks_package = any(
-        all(part in command_text(task) for part in SIGNATURE_CHECK_COMMAND) and package_path in command_text(task)
-        for task in tasks
-    )
+    expected_arguments = [*SIGNATURE_CHECK_COMMAND, package_path]
+    checks_package = any(command_arguments(task) == expected_arguments for task in tasks)
     return bool(package_path) and imports_pinned_key and checks_package
 
 
@@ -248,11 +250,15 @@ def test_verifies_package_signature_needs_a_pinned_key_and_a_check_of_the_packag
     unpinned_key: dict[str, object] = {"rpm_key": {"key": "https://example.com/key.asc"}}
     signature_check: dict[str, object] = {"command": {"argv": ["rpmkeys", "--checksig", package]}}
     other_check: dict[str, object] = {"command": "rpmkeys --checksig /tmp/other.rpm"}
+    suffix_check: dict[str, object] = {"command": {"argv": ["rpmkeys", "--checksig", package + ".old"]}}
+    prefix_check: dict[str, object] = {"command": {"argv": ["rpmkeys", "--checksig", package + "2"]}}
 
     assert verifies_package_signature([pinned_key, signature_check], package)
     assert not verifies_package_signature([unpinned_key, signature_check], package)
     assert not verifies_package_signature([pinned_key], package)
     assert not verifies_package_signature([pinned_key, other_check], package)
+    assert not verifies_package_signature([pinned_key, suffix_check], package)
+    assert not verifies_package_signature([pinned_key, prefix_check], package)
 
 
 @pytest.mark.parametrize(

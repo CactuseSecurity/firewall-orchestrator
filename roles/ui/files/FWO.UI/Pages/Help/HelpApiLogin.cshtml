@@ -22,7 +22,7 @@
 curl --request POST \
     --url https://localhost:8888/api/AuthenticationToken/GetTokenPair/ \
     --header 'content-type: application/json' \
-    --data '{"Username": "user1_demo", "Password": "cactus1"}'
+    --data '{"Username": "myuser", "Password": "mypassword"}'
 </code>
     </pre>
     <small class="small-helptext">
@@ -46,7 +46,7 @@ curl --request POST \
 curl --request POST \
     --url https://localhost:8888/api/AuthenticationToken/GetTokenPair/ \
     --header 'content-type: application/json' \
-    --data '{"Username": "user1_demo", "Password": "wrong-pwd"}'
+    --data '{"Username": "myuser", "Password": "wrong-pwd"}'
 </code>
     </pre>
     <small class="small-helptext">

@@ -11,6 +11,32 @@
       dest: "/etc/{{ product_name }}"
       state: link
 
+  # fworch.json holds a list of strings here (the middleware ignores other values and logs a warning). A comma
+  # separated string (e.g. -e login_trusted_client_hosts=ui1,ui2) is accepted and split, a JSON list given as a
+  # string (e.g. -e 'login_trusted_client_hosts=["ui1","ui2"]') is parsed.
+  - name: parse trusted login client hosts given as a JSON list string
+    set_fact:
+      login_trusted_client_hosts_value: >-
+        {{ login_trusted_client_hosts | from_json
+           if login_trusted_client_hosts is string and login_trusted_client_hosts | trim is match('[[]')
+           else login_trusted_client_hosts }}
+
+  - name: check the type of the trusted login client hosts
+    assert:
+      that:
+        - login_trusted_client_hosts_value is string or (login_trusted_client_hosts_value is iterable and login_trusted_client_hosts_value is not mapping)
+        - login_trusted_client_hosts_value is string or login_trusted_client_hosts_value | reject('string') | reject('number') | list | length == 0
+      fail_msg: >-
+        login_trusted_client_hosts must be a list of host names or addresses, or a comma separated string of them,
+        not {{ login_trusted_client_hosts_value | type_debug }} {{ login_trusted_client_hosts_value }}.
+      quiet: true
+
+  - name: normalize the trusted login client hosts to a list of host names
+    set_fact:
+      login_trusted_client_host_list: >-
+        {{ (login_trusted_client_hosts_value.split(',') if login_trusted_client_hosts_value is string else login_trusted_client_hosts_value)
+           | map('string') | map('trim') | reject('equalto', '') | unique | list }}
+
   - name: set config values
     set_fact:
       config_json:
@@ -30,6 +56,7 @@
         tls_ca_certificate: "{{ internalca_trust_bundle }}"
         internal_ca_certificate: "{{ internalca_ca_certificate_local }}"
         remote_addresses: []
+        login_trusted_client_hosts: "{{ login_trusted_client_host_list }}"
 
   - name: create central conf file by dumping varibale as json file
     copy: 
@@ -84,7 +111,8 @@
               'dotnet_mode': config_json.dotnet_mode,
               'api_uri': config_json.api_uri,
               'middleware_uri': config_json.middleware_uri,
-              'middleware_native_uri': config_json.middleware_native_uri
+              'middleware_native_uri': config_json.middleware_native_uri,
+              'login_trusted_client_hosts': config_json.login_trusted_client_hosts
             }
           ) | to_nice_json
         }}

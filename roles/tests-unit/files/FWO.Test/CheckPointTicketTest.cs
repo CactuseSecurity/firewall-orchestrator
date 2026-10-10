@@ -16,6 +16,7 @@ namespace FWO.Test
     [Parallelizable]
     internal class CheckPointTicketTest
     {
+        private static readonly ExternalCertificateChecks CertificateChecks = new(FirewallConnections: true, TicketSystems: true);
         private static readonly string[] kExpectedExistingHostEndpoints = ["add-host", "show-host", "publish"];
         private static readonly string[] kExpectedRetriedHostEndpoints = ["add-host", "show-host", "add-host"];
         private static readonly string[] kExpectedExistingNetworkEndpoints = ["add-network", "show-network", "publish"];
@@ -46,7 +47,7 @@ namespace FWO.Test
         [Test]
         public async Task CreateRequestStringForGroupCreateBuildsDeltaExecutionPlan()
         {
-            CheckPointTicket ticket = new(checkPointSystem);
+            CheckPointTicket ticket = new(checkPointSystem, CertificateChecks);
 
             await ticket.CreateRequestString([CreateGroupCreateTaskWithNewHostMember()], [], new ModellingNamingConvention());
 
@@ -77,7 +78,7 @@ namespace FWO.Test
         [Test]
         public async Task CreateRequestStringForGroupCreateReplacesSlashInNetworkObjectName()
         {
-            CheckPointTicket ticket = new(checkPointSystem);
+            CheckPointTicket ticket = new(checkPointSystem, CertificateChecks);
             List<WfReqTask> tasks = new() { CreateGroupCreateTaskWithNewNetworkMemberHavingSlashInName() };
             List<IpProtocol> ipProtos = new();
 
@@ -100,7 +101,7 @@ namespace FWO.Test
         [Test]
         public async Task CreateRequestStringForGroupCreateUsesIpEndForNetworkMaskLength()
         {
-            CheckPointTicket ticket = new(checkPointSystem);
+            CheckPointTicket ticket = new(checkPointSystem, CertificateChecks);
             List<WfReqTask> tasks = new();
             tasks.Add(CreateGroupCreateTaskWithNewNetworkMemberHavingRangeEndpoints());
             List<IpProtocol> ipProtos = new();
@@ -120,7 +121,7 @@ namespace FWO.Test
         [Test]
         public async Task CreateRequestStringForGroupCreateKeepsNetworkCidrWhenIpEndIsRedundant()
         {
-            CheckPointTicket ticket = new(checkPointSystem);
+            CheckPointTicket ticket = new(checkPointSystem, CertificateChecks);
             List<WfReqTask> tasks = new();
             tasks.Add(CreateGroupCreateTaskWithNetworkCidrAndRedundantIpEnd());
             List<IpProtocol> ipProtos = new();
@@ -145,7 +146,7 @@ namespace FWO.Test
             string expectedSubnet,
             int expectedMaskLength)
         {
-            CheckPointTicket ticket = new(checkPointSystem);
+            CheckPointTicket ticket = new(checkPointSystem, CertificateChecks);
             List<WfReqTask> tasks = new();
             tasks.Add(CreateGroupCreateTaskWithNetworkMember("NET_extra", ipString, ipEnd));
             List<IpProtocol> ipProtos = new();
@@ -241,7 +242,7 @@ namespace FWO.Test
                 Content = "{}"
             });
 
-            CheckPointTicket ticket = new(retryCheckPointSystem, checkPointClient)
+            CheckPointTicket ticket = new(retryCheckPointSystem, CertificateChecks, checkPointClient)
             {
                 OnManagement = management
             };
@@ -286,7 +287,7 @@ namespace FWO.Test
                 ]
             };
 
-            CheckPointTicket ticket = new(groupModifyCheckPointSystem);
+            CheckPointTicket ticket = new(groupModifyCheckPointSystem, CertificateChecks);
 
             await ticket.CreateRequestString([CreateGroupModifyTask()], [], new ModellingNamingConvention());
 
@@ -335,7 +336,7 @@ namespace FWO.Test
                 ]
             };
 
-            CheckPointTicket ticket = new(groupModifyCheckPointSystem);
+            CheckPointTicket ticket = new(groupModifyCheckPointSystem, CertificateChecks);
 
             await ticket.CreateRequestString([CreateGroupModifyTaskWithRemovedNetworkMemberHavingSlashInName()], [], new ModellingNamingConvention());
 
@@ -699,7 +700,7 @@ namespace FWO.Test
 
         private CheckPointTicket CreateTicketWithPlan(SimulatedCheckPointClient checkPointClient, Management management, string ticketText)
         {
-            return new CheckPointTicket(checkPointSystem, checkPointClient)
+            return new CheckPointTicket(checkPointSystem, CertificateChecks, checkPointClient)
             {
                 OnManagement = management,
                 TicketText = ticketText

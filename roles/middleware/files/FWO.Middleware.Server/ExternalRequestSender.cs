@@ -284,7 +284,7 @@ namespace FWO.Middleware.Server
                 throw new InvalidOperationException("No external ticket system loaded.");
             }
 
-            ExternalTicket ticket = ExternalTicketFactory.Create(ExtTicketSystem, InjScClient);
+            ExternalTicket ticket = ExternalTicketFactory.Create(ExtTicketSystem, userConfig.GetExternalCertificateChecks(), InjScClient);
             ticket.TicketText = request.ExtRequestContent;
             ticket.TicketSystem = ExtTicketSystem;
             ticket.ExtQueryVariables = request.ExtQueryVariables;
@@ -399,6 +399,7 @@ namespace FWO.Middleware.Server
 
                 ExternalTicket ticket = ExternalTicketFactory.Create(
                     ExtTicketSystem,
+                    userConfig.GetExternalCertificateChecks(),
                     InjScClient
                 );
 

@@ -1,5 +1,7 @@
 # normalizing OPNsense services (ports, port aliases and rule protocols) into service objects
 
+from __future__ import annotations
+
 import fw_modules.opnsense25ff.opnsense_helper as os_helper
 from fw_modules.opnsense25ff.opnsense_constants import (
     BUILTIN_SERVICE_PORTS,

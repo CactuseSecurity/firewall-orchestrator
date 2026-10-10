@@ -45,6 +45,13 @@
         </InputRadioGroup>
         </p>
     </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5491h"))">
+        <label for="emailCheckCertificates" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("check_certificates")):</label>
+        <div class="col-sm-1">
+            <input id="emailCheckCertificates" type="checkbox" @bind="actEmailConnection.CheckCertificates"
+                disabled="@(actEmailConnection.Encryption == EmailEncryptionMethod.None)" />
+        </div>
+    </div>
     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5491d"))">
         <label for="emailAuthUser" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("email_auth_user")):</label>
         <div class="col-sm-8">
@@ -117,7 +124,10 @@
                     editableConfig.EmailUser,
                     editableConfig.EmailPassword,
                     editableConfig.EmailSenderAddress
-                );
+                )
+                {
+                    CheckCertificates = editableConfig.EmailCheckCertificates
+                };
             }
         }
         catch (Exception exception)
@@ -138,6 +148,7 @@
                 editableConfig.EmailUser = actEmailConnection.User ?? "";
                 editableConfig.EmailPassword = actEmailConnection.Password != null ? AesEnc.TryEncrypt(actEmailConnection.Password) : "";
                 editableConfig.EmailSenderAddress = actEmailConnection.SenderEmailAddress ?? "";
+                editableConfig.EmailCheckCertificates = actEmailConnection.CheckCertificates;
                 await globalConfig.WriteToDatabase(editableConfig, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

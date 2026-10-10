@@ -1,14 +1,18 @@
+from __future__ import annotations
+
 import builtins
 import json
-from pathlib import Path
-from types import TracebackType
-from typing import Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 from unittest.mock import Mock
 
 import pytest
 import requests
 
 from scripts.customizing import customizing
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from types import TracebackType
 
 EXPECTED_MODELLING_SERVICE_ID = 7
 

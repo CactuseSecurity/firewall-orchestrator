@@ -128,17 +128,20 @@ jobs:
           cd ${{ github.workspace }}
           ansible-galaxy collection install -r collections/requirements.yml -p collections --force
 
+      # Demo data is off by default since GHSA-3v53-q5h9-pvfh, but the tests rely on it: sample-auth-data
+      # creates the LDAP user of the JWT integration tests (integration_user_jwt_refresh_test), and the
+      # integration tests use the sample devices, tenants and users. So every run requests it explicitly.
       - name: Run Ansible test install without integration cleanup
         if: ${{ matrix.integration }}
         run: |
           cd ${{ github.workspace }}
-          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true --skip-tags integrationtests
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes --skip-tags integrationtests
 
       - name: Run Ansible test install
         if: ${{ !matrix.integration }}
         run: |
           cd ${{ github.workspace }}
-          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e "ansible_python_interpreter=$(which python)"
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes -e "ansible_python_interpreter=$(which python)"
 
       - name: Running in GitHub actions requires testing puppeteer pdf creation separately
         if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
@@ -170,7 +173,7 @@ jobs:
         if: ${{ matrix.integration && success() }}
         run: |
           cd ${{ github.workspace }}
-          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true --tags integrationtests
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes --tags integrationtests
 
       # A full run rather than "--tags integrationtests", because roles/tests-integration
       # asserts on facts the reset itself produces - the retired CA names, which identities
@@ -185,6 +188,7 @@ jobs:
           cd ${{ github.workspace }}
           ./scripts/run-playbook-with-sudo.sh site.yml \
             -e force_install=true \
+            -e add_demo_data=yes \
             -e "installation_mode=upgrade internalca_reset_certificates=true"
 
       - name: Collect certificate diagnostics after a failed reset upgrade

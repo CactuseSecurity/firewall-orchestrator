@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FWO.Middleware.Server.Controllers;
 
@@ -24,7 +25,7 @@ public class ApplicationAddressesController(ApiConnection apiConnection) : Contr
 {
     internal const int kMaxFilterTextLength = 256;
     internal const int kMaxFilterValues = 100;
-    internal const int kMaxLimit = 1000;
+    internal const int kMaxLimit = GetApplicationAddressesOptions.kMaxLimit;
 
     /// <summary>
     /// Returns every undeleted app-server address for each visible application.
@@ -38,12 +39,15 @@ public class ApplicationAddressesController(ApiConnection apiConnection) : Contr
     /// is matched as a contains search, matching the owner endpoint. Applications with an inactive lifecycle state
     /// are excluded unless <c>options.showOnlyActiveState</c> is set to <c>false</c>. Applications are ordered by
     /// name, so <c>options.limit</c> and <c>options.offset</c> page the result deterministically; without a limit
-    /// every matching application is returned. Every matching application is returned even when it owns no address;
+    /// a page of at most 10000 applications is returned, and the <c>X-Has-More</c> response header tells whether
+    /// further applications follow. Every matching application of the page is returned even when it owns no address;
     /// its <c>addresses</c> list is then empty. Each address uses compact notation: a plain IP when start and end
     /// are equal, CIDR notation when start and end span exactly one network, and <c>ipStart-ipEnd</c> for any other
     /// range. Addresses that appear more than once for an application are returned only once.
     /// </remarks>
     [HttpPost("getIpDataForOwners")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(List<ApplicationAddressResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -67,9 +71,11 @@ public class ApplicationAddressesController(ApiConnection apiConnection) : Contr
         try
         {
             GetApplicationAddressesOptions options = effectiveRequest.Options!;
-            List<FwoOwner> applications = await GetApplicationsAsync(options);
-            List<ModellingAppServer> appServers = await GetApplicationAddressesAsync(applications);
-            return Ok(BuildResponses(applications, appServers));
+            ListPage<FwoOwner> applications = ListPage<FwoOwner>.FromLookahead(
+                await GetApplicationsAsync(options), ApplicationAddressQueryBuilder.GetPageSize(options));
+            List<ModellingAppServer> appServers = await GetApplicationAddressesAsync(applications.Items);
+            ListPaging.SetHasMoreHeader(HttpContext, applications.HasMore);
+            return Ok(BuildResponses(applications.Items, appServers));
         }
         catch (Exception exception)
         {

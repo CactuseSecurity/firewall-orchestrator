@@ -152,6 +152,48 @@
   - rule uids of entries that were already parsed correctly do not change. Entries whose meaning changed (icmp
     with a type, lt / gt ports, any6 and IPv6 addresses, subnets given by a name alias, entries with a
     time-range) get new uids, so they show up as removed and added on the first import after the upgrade
+- security (GHSA-4qpx-88jv-297x): the per-ticket locks of the middleware workflow action endpoint no longer pile up
+  - a lock exists only while a request holds or waits for its ticket and is removed afterwards, so requests with
+    many different ticket ids no longer grow the middleware memory; waiting stops when the client aborts
+  - at most 1000 tickets, 32 requests per ticket and 8 tickets per user are locked or waited for at the same
+    time; further requests get a retry message and are not processed. Ticket ids of 0 or less are rejected
+- security (GHSA-m87v-j229-2g65): bound the work single middleware REST requests can cause
+  - every user may send 600 requests per minute (with bursts of up to one minute's budget); getFlowComplianceState,
+    getIpDataForOwners and the Flow catalog lists additionally run at most 2 requests per user at the same time
+    and accept request bodies up to 1 MiB. Rejected requests get 429 with Retry-After. Service accounts,
+    anonymous tokens and unauthenticated requests are not limited here; the limits can be set in fworch.json
+    (rate_limit_* keys, see documentation/auth/README.md)
+  - breaking change for API clients that do not page: getIpDataForOwners returns at most 10000 applications per
+    request, getAddressObjects, getServiceObjects and getTimeObjects at most 1000 objects and getAddressGroups
+    and getServiceGroups at most 250 groups (new root keys limit and offset for the Flow catalog lists). The
+    response header X-Has-More tells whether further entries follow
+  - getFlowComplianceState loads all requested policies with one query and accepts at most 100 entries each in
+    source, destination, service and policies
+- security (GHSA-frxw-mwhq-xgjq): failed initial workflow actions of a new ticket are no longer reported as success
+  - the ticket stays saved, but the failure is recorded in its change history and raised as an alert
+  - the createTicket api returns the new field actionsStatus (completed or failed)
+  - a ticket that was saved but could not be read back is reported as saved with failed initial actions (which are
+    not executed then) instead of as not saved, so that api clients do not create it a second time
+- security (GHSA-2xpm-58hq-qwvm): getServiceObjectId no longer picks one of several matching portless services
+  - if more than one service object matches (e.g. several icmp services), the lookup answers with 409 and the
+    candidates instead of an id; services with ports and the canonical ANY service are unique
+- security (GHSA-8hf3-3hp5-gj32): verify installer downloads against pinned values
+  - the Hasura container image is pinned by digest and the installer checks that the running server has the
+    configured version; the Hasura cli, dotnet-install.sh (pinned to a commit of dotnet/install-scripts) and the
+    Microsoft repository .deb are checked against a checksum, the Microsoft repository .rpm and the EPEL release
+    package against signing keys with pinned fingerprints, before they are executed or installed; Chrome for Testing
+    is still fetched without a pinned value
+  - remote servers are connected with StrictHostKeyChecking=accept-new instead of no: a changed host key aborts
+    the installation (see documentation/installer/install-advanced.md)
+  - all actions of the GitHub workflows are pinned to commit SHAs; policy tests reject unpinned actions, container
+    images without digest, downloaded scripts and .deb packages without checksum, downloaded .rpm packages without
+    signature check and disabled host key checking in the inventory or ansible.cfg
+  - Chrome for Testing keeps following the current stable release (accepted risk, documented)
+- security (GHSA-9j26-vffp-8f83): fix the release build of the UI, which the installer uses
+  - an unexpected error while checking the report filter is now logged in every build configuration; the
+    filter input is shown without error marker, details appear in the UI in debug builds only
+  - a new job of the test install workflow builds all projects in Release configuration
+- api: upgrade hasura graphql API to 2.50.3
 - importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
 
 ## 9.7.0 - 07.10.2026

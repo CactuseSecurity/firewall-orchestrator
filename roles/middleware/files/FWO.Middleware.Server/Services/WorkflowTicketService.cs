@@ -89,13 +89,14 @@ public sealed class WorkflowTicketService : IDisposable
         // caller is named. An internal caller supplies a requester without being the user who made the change,
         // and attributing the change history entry to that requester would be wrong.
         int? changerId = string.IsNullOrWhiteSpace(callerName) ? null : requesterId;
-        ticket = await SaveTicketAsync(ticket, ticketPhase, callerName, changerId);
-        string status = await BuildTicketStatusAsync(ticket.StateId, tolerateExternalStateErrors: true);
+        WfTicketCreationResult creation = await SaveTicketAsync(ticket, ticketPhase, callerName, changerId);
+        string status = await BuildTicketStatusAsync(creation.Ticket.StateId, tolerateExternalStateErrors: true);
 
         return new CreateTicketResponse
         {
             Status = status,
-            TicketId = ticket.Id
+            TicketId = creation.Ticket.Id,
+            ActionsStatus = creation.ActionsStatus
         };
     }
 
@@ -265,7 +266,8 @@ public sealed class WorkflowTicketService : IDisposable
     /// <param name="phase">Workflow phase the ticket is created in.</param>
     /// <param name="callerName">Login name of the authenticated caller, empty for unauthenticated internal callers.</param>
     /// <param name="changerId">Database id of the authenticated caller, null for unauthenticated internal callers.</param>
-    private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase, string? callerName, int? changerId)
+    /// <returns>The saved ticket and whether its initial workflow actions failed.</returns>
+    private async Task<WfTicketCreationResult> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase, string? callerName, int? changerId)
     {
         using UserConfig userConfig = CreateWorkflowUserConfig(callerName);
         WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null) { SystemContext = true, ChangerId = changerId };
@@ -276,15 +278,13 @@ public sealed class WorkflowTicketService : IDisposable
 
         WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true, phase, false) { ChangerId = changerId };
 
-        WfTicket createdTicket = await dbAccess.AddTicketToDb(ticket);
-
-        long ticketId = createdTicket.Id;
-        if (ticketId <= 0)
+        WfTicketCreationResult creation = await dbAccess.AddTicketToDb(ticket);
+        if (creation.Ticket.Id <= 0)
         {
             throw new InvalidOperationException("Could not create the request ticket.");
         }
 
-        return createdTicket;
+        return creation;
     }
 
     /// <summary>

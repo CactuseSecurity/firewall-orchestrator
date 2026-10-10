@@ -20,6 +20,9 @@ namespace FWO.Middleware.Server.Services;
 /// </summary>
 public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
 {
+    /// <summary>Maximum number of candidates returned by an ambiguous service object id lookup.</summary>
+    public const int kMaxServiceObjectIdCandidates = 20;
+
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
     private readonly ApiSubscription? configSubscription;
@@ -94,21 +97,27 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     }
 
     /// <summary>
-    /// Performs the GetAddressObjectsAsync operation.
+    /// Returns one page of address objects, ordered by name and id.
     /// </summary>
-    public async Task<List<AddressObjectResponse>> GetAddressObjectsAsync(bool? visibleInRequest)
+    /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
+    /// <param name="limit">Page size.</param>
+    /// <param name="offset">Number of objects skipped before the page; null skips none.</param>
+    public async Task<ListPage<AddressObjectResponse>> GetAddressObjectsAsync(bool? visibleInRequest, int limit, int? offset)
     {
-        List<FlowNwObject> flowObjects = await LoadFlowNwObjectsAsync(visibleInRequest);
-        return flowObjects.Select(ToAddressObjectResponse).ToList();
+        ListPage<FlowNwObject> page = await LoadPageAsync<FlowNwObject>(FlowQueries.getFlowAddressObjects, visibleInRequest, limit, offset);
+        return new ListPage<AddressObjectResponse>(page.Items.Select(ToAddressObjectResponse).ToList(), page.HasMore);
     }
 
     /// <summary>
-    /// Performs the GetAddressGroupsAsync operation.
+    /// Returns one page of address groups, ordered by name and id.
     /// </summary>
-    public async Task<List<AddressGroupResponse>> GetAddressGroupsAsync(bool? visibleInRequest)
+    /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
+    /// <param name="limit">Page size.</param>
+    /// <param name="offset">Number of groups skipped before the page; null skips none.</param>
+    public async Task<ListPage<AddressGroupResponse>> GetAddressGroupsAsync(bool? visibleInRequest, int limit, int? offset)
     {
-        List<FlowNwGroup> flowGroups = await LoadFlowNwGroupsAsync(visibleInRequest);
-        return flowGroups.Select(ToAddressGroupResponse).ToList();
+        ListPage<FlowNwGroup> page = await LoadPageAsync<FlowNwGroup>(FlowQueries.getFlowAddressGroups, visibleInRequest, limit, offset);
+        return new ListPage<AddressGroupResponse>(page.Items.Select(ToAddressGroupResponse).ToList(), page.HasMore);
     }
 
     /// <summary>
@@ -116,14 +125,16 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// Zone groups are identified by the zone name patterns configured in the general flow settings.
     /// </summary>
     /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
-    /// <returns>The address groups separated into standard groups and zone groups.</returns>
-    public async Task<SeparatedAddressGroupsResponse> GetSeparatedAddressGroupsAsync(bool? visibleInRequest)
+    /// <param name="limit">Page size, applied to all groups before they are separated.</param>
+    /// <param name="offset">Number of groups skipped before the page; null skips none.</param>
+    /// <returns>The address groups of the page separated into standard groups and zone groups, and whether further groups follow.</returns>
+    public async Task<(SeparatedAddressGroupsResponse Groups, bool HasMore)> GetSeparatedAddressGroupsAsync(bool? visibleInRequest, int limit, int? offset)
     {
-        List<FlowNwGroup> flowGroups = await LoadFlowNwGroupsAsync(visibleInRequest);
+        ListPage<FlowNwGroup> page = await LoadPageAsync<FlowNwGroup>(FlowQueries.getFlowAddressGroups, visibleInRequest, limit, offset);
         IReadOnlyList<FlowZoneGroupPattern> configuredZonePatterns = GetZonePatterns();
         SeparatedAddressGroupsResponse separatedGroups = new();
 
-        foreach (FlowNwGroup flowGroup in flowGroups)
+        foreach (FlowNwGroup flowGroup in page.Items)
         {
             AddressGroupResponse groupResponse = ToAddressGroupResponse(flowGroup);
             if (FlowZoneGroupMatcher.IsZoneGroupName(flowGroup.Name, configuredZonePatterns))
@@ -136,26 +147,33 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
             }
         }
 
-        return separatedGroups;
+        return (separatedGroups, page.HasMore);
     }
 
     /// <summary>
-    /// Performs the GetServiceObjectsAsync operation.
+    /// Returns one page of service objects, ordered by name and id.
     /// </summary>
-    public async Task<List<ServiceObjectResponse>> GetServiceObjectsAsync(bool? visibleInRequest)
+    /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
+    /// <param name="limit">Page size.</param>
+    /// <param name="offset">Number of objects skipped before the page; null skips none.</param>
+    public async Task<ListPage<ServiceObjectResponse>> GetServiceObjectsAsync(bool? visibleInRequest, int limit, int? offset)
     {
-        List<FlowSvcObject> flowObjects = await LoadFlowSvcObjectsAsync(visibleInRequest);
+        ListPage<FlowSvcObject> page = await LoadPageAsync<FlowSvcObject>(FlowQueries.getFlowServiceObjects, visibleInRequest, limit, offset);
         IpProtocolCache protocolCache = await GetIpProtocolCacheAsync();
-        return flowObjects.Select(flowObject => ToServiceObjectResponse(flowObject, protocolCache)).ToList();
+        return new ListPage<ServiceObjectResponse>(
+            page.Items.Select(flowObject => ToServiceObjectResponse(flowObject, protocolCache)).ToList(), page.HasMore);
     }
 
     /// <summary>
-    /// Performs the GetServiceGroupsAsync operation.
+    /// Returns one page of service groups, ordered by name and id.
     /// </summary>
-    public async Task<List<ServiceGroupResponse>> GetServiceGroupsAsync(bool? visibleInRequest)
+    /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
+    /// <param name="limit">Page size.</param>
+    /// <param name="offset">Number of groups skipped before the page; null skips none.</param>
+    public async Task<ListPage<ServiceGroupResponse>> GetServiceGroupsAsync(bool? visibleInRequest, int limit, int? offset)
     {
-        List<FlowSvcGroup> flowGroups = await LoadFlowSvcGroupsAsync(visibleInRequest);
-        return flowGroups.Select(ToServiceGroupResponse).ToList();
+        ListPage<FlowSvcGroup> page = await LoadPageAsync<FlowSvcGroup>(FlowQueries.getFlowServiceGroups, visibleInRequest, limit, offset);
+        return new ListPage<ServiceGroupResponse>(page.Items.Select(ToServiceGroupResponse).ToList(), page.HasMore);
     }
 
     /// <summary>
@@ -189,12 +207,15 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     }
 
     /// <summary>
-    /// Performs the GetTimeObjectsAsync operation.
+    /// Returns one page of time objects, ordered by name and id.
     /// </summary>
-    public async Task<List<TimeObjectResponse>> GetTimeObjectsAsync(bool? visibleInRequest)
+    /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
+    /// <param name="limit">Page size.</param>
+    /// <param name="offset">Number of objects skipped before the page; null skips none.</param>
+    public async Task<ListPage<TimeObjectResponse>> GetTimeObjectsAsync(bool? visibleInRequest, int limit, int? offset)
     {
-        List<FlowTimeObject> flowObjects = await LoadFlowTimeObjectsAsync(visibleInRequest);
-        return flowObjects.Select(ToTimeObjectResponse).ToList();
+        ListPage<FlowTimeObject> page = await LoadPageAsync<FlowTimeObject>(FlowQueries.getFlowTimeObjects, visibleInRequest, limit, offset);
+        return new ListPage<TimeObjectResponse>(page.Items.Select(ToTimeObjectResponse).ToList(), page.HasMore);
     }
 
     /// <summary>
@@ -212,27 +233,32 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     }
 
     /// <summary>
-    /// Performs the GetServiceObjectIdAsync operation.
+    /// Returns the service objects matching protocol and port range, ordered by id. Objects with ports and the
+    /// canonical ANY service are unique by their hash, so at most one of them matches; several portless services
+    /// of the same protocol may match, and the caller must treat more than one match as ambiguous instead of
+    /// picking one.
     /// </summary>
-    public async Task<ServiceObjectIdResponse> GetServiceObjectIdAsync(string protocol, int? portStart, int? portEnd, bool? visibleInRequest)
+    /// <param name="protocol">Protocol name or id.</param>
+    /// <param name="portStart">Inclusive starting port, null for a portless service.</param>
+    /// <param name="portEnd">Inclusive ending port, null for a portless service.</param>
+    /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
+    /// <returns>At most <see cref="kMaxServiceObjectIdCandidates"/> matches; empty for an unknown protocol.</returns>
+    public async Task<List<ServiceObjectIdResponse>> FindServiceObjectIdsAsync(string protocol, int? portStart, int? portEnd, bool? visibleInRequest)
     {
         int? protocolId = await ResolveProtocolIdAsync(protocol);
         if (!protocolId.HasValue)
         {
-            return new ServiceObjectIdResponse();
+            return [];
         }
 
-        List<FlowSvcObject> result = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(
-            FlowQueries.getFlowServiceObjectId,
-            BuildLookupQueryVariables(
-                visibleInRequest,
-                ("port_start", portStart),
-                ("port_end", portEnd),
-                ("ip_proto_id", protocolId.Value))) ?? [];
-        FlowSvcObject? flowObject = result.FirstOrDefault();
-        return flowObject == null
-            ? new ServiceObjectIdResponse()
-            : new ServiceObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name };
+        Dictionary<string, object> variables = BuildLookupQueryVariables(
+            visibleInRequest,
+            ("port_start", portStart),
+            ("port_end", portEnd),
+            ("ip_proto_id", protocolId.Value));
+        variables["limit"] = kMaxServiceObjectIdCandidates;
+        List<FlowSvcObject> result = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowServiceObjectId, variables) ?? [];
+        return result.Select(flowObject => new ServiceObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name }).ToList();
     }
 
     /// <summary>
@@ -249,11 +275,15 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
             : new TimeObjectIdResponse { Id = flowObject.Id, Name = flowObject.Name ?? string.Empty };
     }
 
-    private async Task<List<FlowNwObject>> LoadFlowNwObjectsAsync(bool? visibleInRequest)
+    /// <summary>
+    /// Loads one page of a catalog list, fetching one item more than the page size to detect further items.
+    /// </summary>
+    private async Task<ListPage<TItem>> LoadPageAsync<TItem>(string query, bool? visibleInRequest, int limit, int? offset)
     {
-        return await apiConnection.SendQueryAsync<List<FlowNwObject>>(
-            FlowQueries.getFlowAddressObjects,
-            BuildCatalogQueryVariables(visibleInRequest)) ?? [];
+        Dictionary<string, object> variables = BuildCatalogQueryVariables(visibleInRequest);
+        ListPaging.AddLookaheadPagingVariables(variables, limit, offset);
+        List<TItem> items = await apiConnection.SendQueryAsync<List<TItem>>(query, variables) ?? [];
+        return ListPage<TItem>.FromLookahead(items, limit);
     }
 
     private static Dictionary<string, object> BuildGroupResolutionVariables(string idFieldName, IEnumerable<long> ids, IEnumerable<string> names)
@@ -342,34 +372,6 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
                 yield return nameMatches[0];
             }
         }
-    }
-
-    private async Task<List<FlowNwGroup>> LoadFlowNwGroupsAsync(bool? visibleInRequest)
-    {
-        return await apiConnection.SendQueryAsync<List<FlowNwGroup>>(
-            FlowQueries.getFlowAddressGroups,
-            BuildCatalogQueryVariables(visibleInRequest)) ?? [];
-    }
-
-    private async Task<List<FlowSvcObject>> LoadFlowSvcObjectsAsync(bool? visibleInRequest)
-    {
-        return await apiConnection.SendQueryAsync<List<FlowSvcObject>>(
-            FlowQueries.getFlowServiceObjects,
-            BuildCatalogQueryVariables(visibleInRequest)) ?? [];
-    }
-
-    private async Task<List<FlowSvcGroup>> LoadFlowSvcGroupsAsync(bool? visibleInRequest)
-    {
-        return await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(
-            FlowQueries.getFlowServiceGroups,
-            BuildCatalogQueryVariables(visibleInRequest)) ?? [];
-    }
-
-    private async Task<List<FlowTimeObject>> LoadFlowTimeObjectsAsync(bool? visibleInRequest)
-    {
-        return await apiConnection.SendQueryAsync<List<FlowTimeObject>>(
-            FlowQueries.getFlowTimeObjects,
-            BuildCatalogQueryVariables(visibleInRequest)) ?? [];
     }
 
     /// <summary>

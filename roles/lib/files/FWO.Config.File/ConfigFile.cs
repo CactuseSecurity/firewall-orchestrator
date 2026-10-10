@@ -13,6 +13,8 @@ namespace FWO.Config.File
         private const string kLoginMaxDirectoriesKey = "login_max_directories";
         private const string kLoginClientAttemptsPerMinuteKey = "login_client_attempts_per_minute";
         private const string kLoginUserFailuresPerMinuteKey = "login_user_failures_per_minute";
+        private const string kRateLimitRequestsPerMinuteKey = "rate_limit_requests_per_minute";
+        private const string kRateLimitConcurrentExpensiveRequestsKey = "rate_limit_concurrent_expensive_requests";
         private const string kLoginTrustedClientHostsKey = "login_trusted_client_hosts";
 
         /// <summary>
@@ -83,6 +85,12 @@ namespace FWO.Config.File
 
             [JsonPropertyName(kLoginUserFailuresPerMinuteKey)]
             public JsonElement? LoginUserFailuresPerMinuteSetting { get; set; }
+
+            [JsonPropertyName(kRateLimitRequestsPerMinuteKey)]
+            public JsonElement? RateLimitRequestsPerMinuteSetting { get; set; }
+
+            [JsonPropertyName(kRateLimitConcurrentExpensiveRequestsKey)]
+            public JsonElement? RateLimitConcurrentExpensiveRequestsSetting { get; set; }
 
             [JsonPropertyName(kLoginTrustedClientHostsKey)]
             public JsonElement? LoginTrustedClientHostsSetting { get; set; }
@@ -229,6 +237,16 @@ namespace FWO.Config.File
         public static int? LoginUserFailuresPerMinute { get; private set; }
 
         /// <summary>
+        /// Optional limit of middleware REST requests per minute and user; null if not configured or invalid.
+        /// </summary>
+        public static int? RateLimitRequestsPerMinute { get; private set; }
+
+        /// <summary>
+        /// Optional limit of concurrent expensive middleware REST requests per user; null if not configured or invalid.
+        /// </summary>
+        public static int? RateLimitConcurrentExpensiveRequests { get; private set; }
+
+        /// <summary>
         /// Optional hosts (for example the UI servers) exempt from the per-client login limit; null if not configured
         /// or invalid. A comma separated string or a string holding a JSON list is accepted as well.
         /// </summary>
@@ -284,6 +302,8 @@ namespace FWO.Config.File
             LoginMaxDirectories = ConfigValueParser.ReadOptionalInt(Data.LoginMaxDirectoriesSetting, kLoginMaxDirectoriesKey);
             LoginClientAttemptsPerMinute = ConfigValueParser.ReadOptionalInt(Data.LoginClientAttemptsPerMinuteSetting, kLoginClientAttemptsPerMinuteKey);
             LoginUserFailuresPerMinute = ConfigValueParser.ReadOptionalInt(Data.LoginUserFailuresPerMinuteSetting, kLoginUserFailuresPerMinuteKey);
+            RateLimitRequestsPerMinute = ConfigValueParser.ReadOptionalInt(Data.RateLimitRequestsPerMinuteSetting, kRateLimitRequestsPerMinuteKey);
+            RateLimitConcurrentExpensiveRequests = ConfigValueParser.ReadOptionalInt(Data.RateLimitConcurrentExpensiveRequestsSetting, kRateLimitConcurrentExpensiveRequestsKey);
             LoginTrustedClientHosts = ConfigValueParser.ReadOptionalStringList(Data.LoginTrustedClientHostsSetting, kLoginTrustedClientHostsKey);
         }
 

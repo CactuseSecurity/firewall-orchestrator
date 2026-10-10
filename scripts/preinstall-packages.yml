@@ -97,6 +97,7 @@
         get_url:
           url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
           dest: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+          checksum: "sha256:{{ dotnet_ms_repo_package_sha256[ansible_facts['distribution'] | lower ~ '/' ~ distribution_version] }}"
           mode: "0644"
 
       - name: install ms package list

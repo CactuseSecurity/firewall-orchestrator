@@ -94,3 +94,33 @@ string (`-e login_trusted_client_hosts=ui1,ui2`) or a JSON list given as a strin
 The middleware also reads hand-edited values: the numbers may be given as strings (`"16"`) and
 `login_trusted_client_hosts` as a comma separated string. A value of another type is ignored with a warning in the
 log, and the default applies.
+
+## API request limits
+
+Every request to the middleware REST API with a user token counts against a budget of that user (identified by
+the `x-hasura-uuid` claim): by default 600 requests per minute, with bursts of up to one minute's budget. The budget
+is refilled at least every 10 seconds (below 60 per minute: one request every 60 / value seconds); a configured value
+that cannot be refilled exactly within such a period is rounded by at most 3 requests per minute. Endpoints
+whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwners` and the Flow catalog lists
+`getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects`) additionally
+run at most 2 requests of one user at the same time; up to 4 further requests wait, the rest are rejected. Their
+request bodies are limited to 1 MiB (`413` above). Rejected requests get `429` with `Retry-After: 60`.
+
+Service identities (`importer`, `middleware-server`), anonymous login tokens and unauthenticated requests are not
+counted here; logins are limited as described above.
+
+The limits can be changed in `/etc/fworch/fworch.json`; the middleware reads them at startup, and values of a wrong
+type are ignored like the login limits:
+
+```json
+{
+  "rate_limit_requests_per_minute": 600,
+  "rate_limit_concurrent_expensive_requests": 2
+}
+```
+
+The list endpoints above return one page per request: `getIpDataForOwners` at most 10000 applications, the
+object lists at most 1000 items and the group lists at most 250, which is also the default when no limit is sent. Items are ordered by name and
+id; page with `limit` and `offset` (`options.limit`/`options.offset` for `getIpDataForOwners`) until the response
+header `X-Has-More` is `false`. `getFlowComplianceState` accepts at most 100 entries in each of `source`,
+`destination` and `service`, and at most 100 `policies`.

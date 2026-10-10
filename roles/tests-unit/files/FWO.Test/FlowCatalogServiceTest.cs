@@ -4,6 +4,7 @@ using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Data.Middleware;
+using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
@@ -15,6 +16,9 @@ namespace FWO.Test;
 [TestFixture]
 internal class FlowCatalogServiceTest
 {
+    private static readonly List<string> kFirstTwoHostNames = ["HostA", "HostB"];
+    private static readonly List<long> kTwoPortlessServiceIds = [61, 62];
+
     [Test]
     public void Dispose_ReleasesTheOwnedProtocolCacheLock()
     {
@@ -53,7 +57,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<ServiceObjectResponse> result = await service.GetServiceObjectsAsync(true);
+        List<ServiceObjectResponse> result = (await service.GetServiceObjectsAsync(true, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
 
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].Protocol, Is.EqualTo("TCP"));
@@ -87,7 +91,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<ServiceObjectResponse> result = await service.GetServiceObjectsAsync(false);
+        List<ServiceObjectResponse> result = (await service.GetServiceObjectsAsync(false, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
 
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].Protocol, Is.EqualTo("250"));
@@ -106,7 +110,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<ServiceObjectResponse> result = await service.GetServiceObjectsAsync(null);
+        List<ServiceObjectResponse> result = (await service.GetServiceObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
 
         Assert.That(result[0].PortStart, Is.Null);
         Assert.That(result[0].PortEnd, Is.Null);
@@ -138,7 +142,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<AddressGroupResponse> result = await service.GetAddressGroupsAsync(null);
+        List<AddressGroupResponse> result = (await service.GetAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0)).Items;
 
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].ShowInRequest, Is.False);
@@ -161,7 +165,7 @@ internal class FlowCatalogServiceTest
         };
         using FlowCatalogService service = new(apiConnection, globalConfig);
 
-        SeparatedAddressGroupsResponse result = await service.GetSeparatedAddressGroupsAsync(true);
+        SeparatedAddressGroupsResponse result = (await service.GetSeparatedAddressGroupsAsync(true, FlowCatalogPaging.kMaxGroupLimit, 0)).Groups;
 
         Assert.Multiple(() =>
         {
@@ -184,15 +188,15 @@ internal class FlowCatalogServiceTest
         };
         using FlowCatalogService service = new(apiConnection, globalConfig);
 
-        await service.GetSeparatedAddressGroupsAsync(null);
+        await service.GetSeparatedAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0);
         object cachedPatterns = GetZonePatternCache(service);
-        SeparatedAddressGroupsResponse repeatedResult = await service.GetSeparatedAddressGroupsAsync(null);
+        SeparatedAddressGroupsResponse repeatedResult = (await service.GetSeparatedAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0)).Groups;
 
         Assert.That(GetZonePatternCache(service), Is.SameAs(cachedPatterns), "The unchanged config was parsed again.");
         Assert.That(repeatedResult.ZoneGroups.Select(group => group.Name), Is.EqualTo(new List<string> { "dmz_zone", "dmz_ZONE" }));
 
         globalConfig.FlowZoneGroupNamePatterns = "[{\"matchType\":\"Exact\",\"caseSensitive\":false,\"value\":\"DMZ-Servers\"}]";
-        SeparatedAddressGroupsResponse changedResult = await service.GetSeparatedAddressGroupsAsync(null);
+        SeparatedAddressGroupsResponse changedResult = (await service.GetSeparatedAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0)).Groups;
 
         Assert.That(GetZonePatternCache(service), Is.Not.SameAs(cachedPatterns), "The changed config was not parsed again.");
         Assert.That(changedResult.ZoneGroups.Select(group => group.Name), Is.EqualTo(new List<string> { "DMZ-Servers" }));
@@ -236,7 +240,7 @@ internal class FlowCatalogServiceTest
         };
         using FlowCatalogService service = new(apiConnection, globalConfig);
 
-        SeparatedAddressGroupsResponse result = await service.GetSeparatedAddressGroupsAsync(null);
+        SeparatedAddressGroupsResponse result = (await service.GetSeparatedAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0)).Groups;
 
         Assert.That(result.StandardGroups, Is.Empty);
         Assert.That(result.ZoneGroups, Has.Count.EqualTo(1));
@@ -259,7 +263,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        SeparatedAddressGroupsResponse result = await service.GetSeparatedAddressGroupsAsync(null);
+        SeparatedAddressGroupsResponse result = (await service.GetSeparatedAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0)).Groups;
 
         Assert.That(result.ZoneGroups, Is.Empty);
         Assert.That(result.StandardGroups, Has.Count.EqualTo(5));
@@ -406,7 +410,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<TimeObjectResponse> result = await service.GetTimeObjectsAsync(null);
+        List<TimeObjectResponse> result = (await service.GetTimeObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
 
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].StartTime, Does.StartWith("2026-06-01T08:00:00"));
@@ -569,13 +573,54 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<AddressObjectResponse> result = await service.GetAddressObjectsAsync(null);
+        List<AddressObjectResponse> result = (await service.GetAddressObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
 
         Assert.Multiple(() =>
         {
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].Name, Is.EqualTo("HostA"));
             Assert.That(result[0].ShowInRequest, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task GetAddressObjectsAsync_RequestsOneItemMoreThanThePageAndReportsFurtherItems()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.AddressObjects =
+        [
+            new FlowNwObject { Id = 1, Name = "HostA", IpStart = "10.0.0.1", IpEnd = "10.0.0.1" },
+            new FlowNwObject { Id = 2, Name = "HostB", IpStart = "10.0.0.2", IpEnd = "10.0.0.2" },
+            new FlowNwObject { Id = 3, Name = "HostC", IpStart = "10.0.0.3", IpEnd = "10.0.0.3" }
+        ];
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+
+        ListPage<AddressObjectResponse> page = await service.GetAddressObjectsAsync(null, 2, 4);
+
+        Dictionary<string, object> variables = (Dictionary<string, object>)apiConnection.SentVariables[0]!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(page.Items.Select(item => item.Name), Is.EqualTo(kFirstTwoHostNames));
+            Assert.That(page.HasMore, Is.True);
+            Assert.That(variables["limit"], Is.EqualTo(3));
+            Assert.That(variables["offset"], Is.EqualTo(4));
+        });
+    }
+
+    [Test]
+    public async Task GetSeparatedAddressGroupsAsync_ReportsWhetherFurtherGroupsFollow()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+
+        (SeparatedAddressGroupsResponse groups, bool hasMore) = await service.GetSeparatedAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0);
+
+        Dictionary<string, object> variables = (Dictionary<string, object>)apiConnection.SentVariables[0]!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(groups.StandardGroups.Count + groups.ZoneGroups.Count, Is.LessThanOrEqualTo(FlowCatalogPaging.kMaxGroupLimit));
+            Assert.That(hasMore, Is.False);
+            Assert.That(variables["limit"], Is.EqualTo(FlowCatalogPaging.kMaxGroupLimit + 1));
         });
     }
 
@@ -602,7 +647,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<AddressObjectResponse> result = await service.GetAddressObjectsAsync(null);
+        List<AddressObjectResponse> result = (await service.GetAddressObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
 
         Assert.That(result[0].Type, Is.EqualTo(expectedType));
     }
@@ -633,7 +678,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<ServiceGroupResponse> result = await service.GetServiceGroupsAsync(null);
+        List<ServiceGroupResponse> result = (await service.GetServiceGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0)).Items;
 
         Assert.Multiple(() =>
         {
@@ -674,7 +719,7 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
-    public async Task GetServiceObjectIdAsync_ResolvesProtocolByName()
+    public async Task FindServiceObjectIdsAsync_ResolvesProtocolByName()
     {
         FlowCatalogServiceApiConn apiConnection = new();
         apiConnection.ServiceObjects =
@@ -694,12 +739,13 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("tcp", 443, 443, false);
+        List<ServiceObjectIdResponse> matches = await service.FindServiceObjectIdsAsync("tcp", 443, 443, false);
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.Id, Is.EqualTo(50));
-            Assert.That(result.Name, Is.EqualTo("HTTPS"));
+            Assert.That(matches, Has.Count.EqualTo(1));
+            Assert.That(matches[0].Id, Is.EqualTo(50));
+            Assert.That(matches[0].Name, Is.EqualTo("HTTPS"));
             Assert.That(apiConnection.SentQueries[0], Is.EqualTo(StmQueries.getIpProtocols));
             Assert.That(apiConnection.SentQueries[1], Is.EqualTo(FlowQueries.getFlowServiceObjectId));
             AssertWhereClauseContains(GetWhereClause(apiConnection.SentVariables[1]),
@@ -711,7 +757,7 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
-    public async Task GetServiceObjectIdAsync_LooksUpNullPorts()
+    public async Task FindServiceObjectIdsAsync_LooksUpNullPorts()
     {
         FlowCatalogServiceApiConn apiConnection = new();
         apiConnection.Protocols = [new IpProtocol { Id = 0, Name = "ANY" }];
@@ -719,11 +765,11 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("ANY", null, null, null);
+        List<ServiceObjectIdResponse> matches = await service.FindServiceObjectIdsAsync("ANY", null, null, null);
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.Id, Is.EqualTo(51));
+            Assert.That(matches.Single().Id, Is.EqualTo(51));
             Assert.That(apiConnection.SentQueries[1], Is.EqualTo(FlowQueries.getFlowServiceObjectId));
             AssertWhereClauseContainsLookup(GetWhereClause(apiConnection.SentVariables[1]),
                 ("port_start", null),
@@ -732,18 +778,43 @@ internal class FlowCatalogServiceTest
         });
     }
 
+    /// <summary>
+    /// SEC-27: several portless services of one protocol must all be returned so that the caller can detect the
+    /// ambiguity, instead of the first row being picked silently.
+    /// </summary>
     [Test]
-    public async Task GetServiceObjectIdAsync_ReturnsEmptyResponseForUnknownProtocol()
+    public async Task FindServiceObjectIdsAsync_ReturnsEveryMatchingPortlessService()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.Protocols = [new IpProtocol { Id = 1, Name = "ICMP" }];
+        apiConnection.ServiceObjects =
+        [
+            new FlowSvcObject { Id = 61, Name = "ping", ProtoId = 1 },
+            new FlowSvcObject { Id = 62, Name = "icmp-echo", ProtoId = 1 }
+        ];
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+
+        List<ServiceObjectIdResponse> matches = await service.FindServiceObjectIdsAsync("icmp", null, null, null);
+
+        Dictionary<string, object> variables = (Dictionary<string, object>)apiConnection.SentVariables[1]!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(matches.Select(match => match.Id), Is.EqualTo(kTwoPortlessServiceIds));
+            Assert.That(variables["limit"], Is.EqualTo(FlowCatalogService.kMaxServiceObjectIdCandidates));
+        });
+    }
+
+    [Test]
+    public async Task FindServiceObjectIdsAsync_ReturnsNoMatchForUnknownProtocol()
     {
         FlowCatalogServiceApiConn apiConnection = new();
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("not-a-protocol", 443, 443, null);
+        List<ServiceObjectIdResponse> matches = await service.FindServiceObjectIdsAsync("not-a-protocol", 443, 443, null);
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.Id, Is.EqualTo(0));
-            Assert.That(result.Name, Is.EqualTo(string.Empty));
+            Assert.That(matches, Is.Empty);
             Assert.That(apiConnection.SentQueries, Has.Count.EqualTo(1));
             Assert.That(apiConnection.SentQueries[0], Is.EqualTo(StmQueries.getIpProtocols));
         });
@@ -786,12 +857,13 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        Task<List<ServiceObjectResponse>> firstCall = service.GetServiceObjectsAsync(null);
+        Task<ListPage<ServiceObjectResponse>> firstCall = service.GetServiceObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0);
         await protocolQueryStarted.Task;
-        Task<List<ServiceObjectResponse>> secondCall = service.GetServiceObjectsAsync(null);
+        Task<ListPage<ServiceObjectResponse>> secondCall = service.GetServiceObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0);
         releaseProtocolQuery.TrySetResult(true);
 
-        List<ServiceObjectResponse>[] results = await Task.WhenAll(firstCall, secondCall);
+        ListPage<ServiceObjectResponse>[] pages = await Task.WhenAll(firstCall, secondCall);
+        List<List<ServiceObjectResponse>> results = pages.Select(page => page.Items).ToList();
 
         Assert.Multiple(() =>
         {

@@ -74,6 +74,16 @@ the force-regeneration paths in `roles/internalCA`, and it proves every
 service still comes up against a CA anchor that changed underneath it.
 A failure there is followed by a certificate diagnostics step.
 
+## Release build
+
+The `release-build` job builds `roles/FWO.sln` in the `Release`
+configuration on every run. The installer publishes the middleware and the
+UI in `Release` (`dotnet_mode`), while the SonarCloud workflows build
+`Debug`. As warnings are treated as errors, a warning that only occurs in
+`Release` - for example a variable whose only use is inside `#if DEBUG` -
+would otherwise only surface when an installation fails. The job needs no
+installation and reports such a break within minutes.
+
 ## Job names
 
 Each matrix entry also carries a `label`, used as the job's display

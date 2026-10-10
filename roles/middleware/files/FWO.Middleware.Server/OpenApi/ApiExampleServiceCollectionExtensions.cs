@@ -1,5 +1,6 @@
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
+using FWO.Services.Workflow;
 using System.Reflection;
 
 namespace FWO.Middleware.Server.OpenApi;
@@ -295,7 +296,8 @@ public sealed class CreateTicketResponseExample : ApiExampleProvider<CreateTicke
     public override CreateTicketResponse GetExample() => new()
     {
         Status = "created",
-        TicketId = 12345
+        TicketId = 12345,
+        ActionsStatus = WfTicketCreationResult.kActionsCompleted
     };
 }
 

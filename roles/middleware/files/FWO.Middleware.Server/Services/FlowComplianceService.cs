@@ -61,10 +61,12 @@ public sealed class FlowComplianceService
         List<FlowComplianceStateResponse> results = [];
         List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames) ?? [];
         Dictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion = [];
+        List<int> policyIds = request.Policies.Distinct().ToList();
+        Dictionary<int, CompliancePolicy> policiesById = await LoadPoliciesAsync(policyIds);
 
-        foreach (int policyId in request.Policies.Distinct())
+        foreach (int policyId in policyIds)
         {
-            CompliancePolicy policy = await apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
+            CompliancePolicy? policy = policiesById.GetValueOrDefault(policyId);
             ComplianceCheck complianceCheck = new(userConfig, apiConnection);
 
             if (policy is not { Id: > InvalidPolicyId } || policy.Criteria.Count == 0)
@@ -79,6 +81,19 @@ public sealed class FlowComplianceService
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Loads all requested policies with one query instead of one query per policy.
+    /// </summary>
+    private async Task<Dictionary<int, CompliancePolicy>> LoadPoliciesAsync(List<int> policyIds)
+    {
+        List<CompliancePolicy> policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(
+            ComplianceQueries.getPoliciesByIds, new { ids = policyIds }) ?? [];
+        return policies
+            .Where(policy => policy.Id > InvalidPolicyId)
+            .GroupBy(policy => policy.Id)
+            .ToDictionary(group => group.Key, group => group.First());
     }
 
     private async Task EnsureNetworkZonesLoadedAsync(CompliancePolicy policy, IDictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion)

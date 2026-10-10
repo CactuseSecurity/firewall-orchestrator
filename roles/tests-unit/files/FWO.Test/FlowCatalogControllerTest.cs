@@ -7,6 +7,7 @@ using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
 using System.Text.Json;
@@ -16,6 +17,8 @@ namespace FWO.Test
     [TestFixture]
     internal class FlowCatalogControllerTest
     {
+        private static readonly List<long> kAmbiguousCandidateIds = [61, 62];
+
         [Test]
         public async Task FlowCatalogController_ReturnsMappedResultsForCatalogAndLookupEndpoints()
         {
@@ -179,6 +182,86 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task FlowCatalogController_ListEndpointsRejectInvalidPaging()
+        {
+            using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
+            FlowCatalogController controller = new(service);
+
+            ActionResult<List<AddressObjectResponse>> addressObjects = await controller.GetAddressObjects(new GetAddressObjectsRequest { Limit = 0, Offset = -1 });
+            ActionResult addressGroups = await controller.GetAddressGroups(new GetAddressGroupsRequest { Limit = FlowCatalogPaging.kMaxGroupLimit + 1 });
+            ActionResult<List<ServiceObjectResponse>> serviceObjects = await controller.GetServiceObjects(new GetServiceObjectsRequest { Offset = -1 });
+            ActionResult<List<ServiceGroupResponse>> serviceGroups = await controller.GetServiceGroups(new GetServiceGroupsRequest { Limit = 0 });
+            ActionResult<List<TimeObjectResponse>> timeObjects = await controller.GetTimeObjects(new GetTimeObjectsRequest { Limit = FlowCatalogPaging.kMaxObjectLimit + 1 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(addressObjects.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(((BadRequestObjectResult)addressObjects.Result!).Value?.ToString(), Does.Contain("'limit'").And.Contain("'offset'"));
+                Assert.That(addressGroups, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(serviceObjects.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(serviceGroups.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(timeObjects.Result, Is.TypeOf<BadRequestObjectResult>());
+            });
+        }
+
+        [Test]
+        public async Task FlowCatalogController_ListEndpointsSetTheHasMoreHeader()
+        {
+            using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
+            DefaultHttpContext httpContext = new();
+            FlowCatalogController controller = new(service)
+            {
+                ControllerContext = new ControllerContext { HttpContext = httpContext }
+            };
+
+            await controller.GetTimeObjects(new GetTimeObjectsRequest());
+            string timeObjectsHeader = httpContext.Response.Headers[ListPaging.kHasMoreHeader].ToString();
+            httpContext.Response.Headers.Remove(ListPaging.kHasMoreHeader);
+            await controller.GetAddressGroups(new GetAddressGroupsRequest { Option = new AddressGroupsOption { SeparateZoneGroups = true } });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(timeObjectsHeader, Is.EqualTo("false"));
+                Assert.That(httpContext.Response.Headers[ListPaging.kHasMoreHeader].ToString(), Is.EqualTo("false"));
+            });
+        }
+
+        /// <summary>
+        /// SEC-27: an ambiguous portless lookup must return 409 with the candidates, never an id.
+        /// </summary>
+        [Test]
+        public async Task FlowCatalogController_GetServiceObjectId_ReturnsConflictForAmbiguousPortlessServices()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                ServiceObjectIdMatches = [new() { Id = 61, Name = "ping" }, new() { Id = 62, Name = "icmp-echo" }]
+            };
+            using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+            FlowCatalogController controller = new(service);
+
+            ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest { Protocol = "TCP" });
+
+            Assert.That(result.Result, Is.TypeOf<ConflictObjectResult>());
+            AmbiguousServiceObjectIdResponse conflict = (AmbiguousServiceObjectIdResponse)((ConflictObjectResult)result.Result!).Value!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(conflict.Candidates.Select(candidate => candidate.Id), Is.EqualTo(kAmbiguousCandidateIds));
+                Assert.That(conflict.Message, Is.Not.Empty);
+            });
+        }
+
+        [Test]
+        public async Task FlowCatalogController_GetServiceObjectId_ReturnsEmptyResponseWithoutMatch()
+        {
+            using FlowCatalogService service = new(new RecordingApiConnection { ServiceObjectIdMatches = [] }, new GlobalConfig());
+            FlowCatalogController controller = new(service);
+
+            ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest { Protocol = "TCP" });
+
+            Assert.That(ExtractValue(result).Id, Is.Zero);
+        }
+
         private static T ExtractOkValue<T>(ActionResult result)
         {
             Assert.That(result, Is.TypeOf<OkObjectResult>());
@@ -194,6 +277,7 @@ namespace FWO.Test
         private sealed class RecordingApiConnection : ApiConnection
         {
             public List<string> Queries { get; } = [];
+            public List<FlowSvcObject> ServiceObjectIdMatches { get; init; } = [new() { Id = 22, Name = "Dns" }];
 
             public override void SetAuthHeader(string jwt) { }
             public override void SetRole(string role) { }
@@ -309,10 +393,7 @@ namespace FWO.Test
 
                 if (typeof(QueryResponseType) == typeof(List<FlowSvcObject>) && query == FlowQueries.getFlowServiceObjectId)
                 {
-                    return Task.FromResult((QueryResponseType)(object)new List<FlowSvcObject>
-                    {
-                        new() { Id = 22, Name = "Dns" }
-                    });
+                    return Task.FromResult((QueryResponseType)(object)ServiceObjectIdMatches);
                 }
 
                 if (typeof(QueryResponseType) == typeof(List<FlowNwObject>) && query == FlowQueries.getFlowAddressObjectId)

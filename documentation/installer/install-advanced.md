@@ -426,6 +426,13 @@ all:
 
 The names you define (like ui-srv and test-srv) are abitrary and only relevant in the hosts.yml file.
 
+The installer connects to remote servers with `StrictHostKeyChecking=accept-new` (`ansible_ssh_common_args` in
+`inventory/group_vars/all.yml`): the host key of a server is recorded in the installing user's `known_hosts` on the
+first connection, and a different key on a later run aborts the installation instead of connecting to a possibly
+impersonated host. If a server was legitimately reinstalled, remove its old entry with `ssh-keygen -R <host>`. For
+strict checking from the first connection on, add the keys to `known_hosts` beforehand (verify the fingerprints
+out of band) and override the setting, for example with `-e "ansible_ssh_common_args='-o StrictHostKeyChecking=yes'"`.
+
 After you defined additional distributed servers you have to add them to the host groups in hosts.yml
 
 ```console
@@ -455,6 +462,57 @@ After you defined additional distributed servers you have to add them to the hos
       hosts:
         install-srv:
 ```
+
+## Verified downloads
+
+The following downloaded artifacts are checked against a value pinned in the inventory, so an artifact that was
+changed after review fails the installation before it is executed or installed:
+
+| Artifact | Pin | Checked by |
+|----------|-----|------------|
+| Hasura container image | `api_hasura_image_digest` (multi-arch index digest) in `inventory/group_vars/apiserver.yml` | podman when pulling; after the start the installer compares the version the server reports with `api_hasura_version` |
+| Hasura CLI | `api_hasura_cli_sha256` per architecture in `inventory/group_vars/apiserver.yml` | `get_url` before the binary is used |
+| `dotnet-install.sh` (Debian >= 13/testing, Ubuntu fallback) | `dotnet_install_script_commit` and `dotnet_install_script_sha256` in `inventory/group_vars/all.yml` | `get_url` before the script runs |
+| Microsoft repository package `packages-microsoft-prod.deb` (Debian 12, Ubuntu fallback) | `dotnet_ms_repo_package_sha256` per `<distribution>/<release>` in `inventory/group_vars/all.yml` | `get_url` before it is installed; it is only downloaded when it is not installed yet |
+| Microsoft repository package `packages-microsoft-prod.rpm` (Red Hat / Rocky) | `dotnet_ms_signing_keys` per major version in `inventory/group_vars/all.yml` | the signing key is imported only with its pinned fingerprint, the package is installed only with a valid signature (`rpmkeys --checksig`) |
+| EPEL release package (Red Hat / Rocky, when not available from the configured repositories) | `epel_signing_key_fingerprints` per major version in `inventory/group_vars/all.yml` | as for the Microsoft `.rpm` |
+
+When `api_hasura_version` is raised, update its pins together with it: the index digest is returned as
+`Docker-Content-Digest` for the tag by the registry (or shown as the tag's digest on Docker Hub), the CLI checksums
+are the `digest` values of the release assets (`gh api repos/hasura/graphql-engine/releases/tags/<version>`). A digest
+that belongs to another version fails the installation at the version check after the start of Hasura.
+`dotnet-install.sh` is taken from a commit of `github.com/dotnet/install-scripts`; to move to a newer script, set the
+commit and the sha256 of `src/dotnet-install.sh` at that commit. When the Microsoft repository package needs to be
+installed, if a distribution release has no entry in
+`dotnet_ms_repo_package_sha256`, the installation stops with a message naming the missing entry. If Microsoft
+republishes `packages-microsoft-prod.deb` and its checksum differs from the pinned value, the `get_url` task fails
+with a checksum mismatch after its configured retries; this error does not identify the inventory entry to update.
+After reviewing the replacement package, update the corresponding `<distribution>/<release>` entry in
+`inventory/group_vars/all.yml` with the sha256 of
+`https://packages.microsoft.com/config/<distribution>/<release>/packages-microsoft-prod.deb`. Signed `.rpm` packages
+need no update as long as their signing keys stay the same.
+
+The policy tests in `scripts/ci` check the inventory, the role tasks and the playbooks in `scripts/`: container images
+in the inventory need a digest and the running Hasura version is checked, downloaded scripts and `.deb` packages need a
+checksum, downloaded `.rpm` packages need a signature check against a signing key imported with a pinned fingerprint,
+and neither the inventory nor `ansible.cfg` may disable SSH host key checking (`StrictHostKeyChecking no`,
+`UserKnownHostsFile=/dev/null`, `host_key_checking = False`).
+
+Packages installed through apt or dnf from the distribution and vendor repositories are verified through the package
+manager's repository or package signature checks. This does not cover packages fetched from PyPI or npm.
+The following downloads are outside the pinned checksum/signature checks described above:
+
+- Importer Python packages fetched from PyPI: direct requirements in
+  `roles/importer/files/importer/requirements.txt` have version pins, but no artifact hashes are required. Transitive
+  dependencies are not fully pinned, so version pins alone do not verify the downloaded artifacts or fix the entire
+  dependency set.
+- `@2fd/graphdoc`, installed globally from npm when optional API documentation generation (`api_docu`) is enabled:
+  neither its version nor its dependency set is pinned by the installer, and no reviewed artifact hash is pinned.
+- Chrome for Testing, which is downloaded for PDF generation when no system chromium package is available. It is
+  deliberately not pinned: it follows the current stable release, so that browser security fixes arrive without an
+  installer change.
+- the Docker apt signing key in the developer helper `scripts/preinstall-packages.yml` and in the `docker` role, which
+  the installation no longer uses
 
 ## old
 

@@ -1,3 +1,5 @@
+import json
+
 import fwo_globals
 import pytest
 from fwo_api import FwoApi
@@ -22,7 +24,7 @@ class TestGetFwoJwt:
     ):
         # Arrange
         expected_value = "not-a-real-token-for-tests"
-        mock_login(mocker, return_value={"AccessToken": expected_value})
+        mock_login(mocker, return_value=json.dumps({"AccessToken": expected_value}))
 
         # Act
         api = FwoApi("mocked_mgm_api", "mocked_username", "", "mocked_mgm_api", "")
@@ -55,14 +57,23 @@ class TestGetFwoJwt:
 
 
 class TestWaitWithShutdownCheck:
+    @pytest.fixture(autouse=True)
+    def _reset_shutdown_requested(self):
+        # Guard against cross-test pollution of this process-global flag, regardless
+        # of test order or whether a preceding test failed before its own cleanup ran.
+        fwo_globals.shutdown_requested = False
+        yield
+        fwo_globals.shutdown_requested = False
+
     def test_wait_completes_without_shutdown(
         self,
         mocker: MockerFixture,
+        monkeypatch: pytest.MonkeyPatch,
     ):
         # Arrange
-        mock_sleep = mocker.patch("import_main_loop.time.sleep")
-        mock_logger = mocker.patch("fwo_log.FWOLogger")
-        fwo_globals.shutdown_requested = False
+        mock_sleep = mocker.patch("importer.import_main_loop.time").sleep
+        mock_logger = mocker.patch("importer.import_main_loop.FWOLogger")
+        monkeypatch.setattr(fwo_globals, "shutdown_requested", False)
 
         sleep_duration = 3
 
@@ -76,32 +87,31 @@ class TestWaitWithShutdownCheck:
     def test_shutdown_requested_immediately(
         self,
         mocker: MockerFixture,
+        monkeypatch: pytest.MonkeyPatch,
     ):
         # Arrange
-        mock_sleep = mocker.patch("importer.import_main_loop.time.sleep")
+        mock_sleep = mocker.patch("importer.import_main_loop.time").sleep
         mock_logger = mocker.patch("importer.import_main_loop.FWOLogger")
-        fwo_globals.shutdown_requested = True
+        monkeypatch.setattr(fwo_globals, "shutdown_requested", True)
 
-        try:
-            # Act
-            with pytest.raises(SystemExit) as excinfo:
-                wait_with_shutdown_check(5)
+        # Act
+        with pytest.raises(SystemExit) as excinfo:
+            wait_with_shutdown_check(5)
 
-            # Assert
-            assert "shutdown requested" in str(excinfo.value)
-            mock_sleep.assert_not_called()
-            mock_logger.info.assert_called_once()
-        finally:
-            fwo_globals.shutdown_requested = False
+        # Assert
+        assert "shutdown requested" in str(excinfo.value)
+        mock_sleep.assert_not_called()
+        mock_logger.info.assert_called_once()
 
     def test_shutdown_requested_during_loop(
         self,
         mocker: MockerFixture,
+        monkeypatch: pytest.MonkeyPatch,
     ):
         # Arrange
-        mock_sleep = mocker.patch("importer.import_main_loop.time.sleep")
+        mock_sleep = mocker.patch("importer.import_main_loop.time").sleep
         mock_logger = mocker.patch("importer.import_main_loop.FWOLogger")
-        fwo_globals.shutdown_requested = False
+        monkeypatch.setattr(fwo_globals, "shutdown_requested", False)
 
         def side_effect_simulating_external_shutdown(_: int):
             if mock_sleep.call_count >= 2:
@@ -117,28 +127,25 @@ class TestWaitWithShutdownCheck:
         assert "shutdown requested" in str(excinfo.value)
         assert mock_sleep.call_count == 2
         mock_logger.info.assert_called_once()
-        fwo_globals.shutdown_requested = False
 
     def test_shutdown_requested_with_zero_sleep_exits(
         self,
         mocker: MockerFixture,
+        monkeypatch: pytest.MonkeyPatch,
     ):
         # Arrange
-        mock_sleep = mocker.patch("importer.import_main_loop.time.sleep")
+        mock_sleep = mocker.patch("importer.import_main_loop.time").sleep
         mock_logger = mocker.patch("importer.import_main_loop.FWOLogger")
-        fwo_globals.shutdown_requested = True
+        monkeypatch.setattr(fwo_globals, "shutdown_requested", True)
 
-        try:
-            # Act
-            with pytest.raises(SystemExit) as excinfo:
-                wait_with_shutdown_check(0)
+        # Act
+        with pytest.raises(SystemExit) as excinfo:
+            wait_with_shutdown_check(0)
 
-            # Assert
-            assert "shutdown requested" in str(excinfo.value)
-            mock_sleep.assert_not_called()
-            mock_logger.info.assert_called_once()
-        finally:
-            fwo_globals.shutdown_requested = False
+        # Assert
+        assert "shutdown requested" in str(excinfo.value)
+        mock_sleep.assert_not_called()
+        mock_logger.info.assert_called_once()
 
 
 class TestImportSingleManagement:

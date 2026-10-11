@@ -26,6 +26,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            RecordingApiConnection apiConnection = new();
+            GlobalConfig globalConfig = new SimulatedGlobalConfig();
+            UpdateFlowsJob job = new(apiConnection, globalConfig, new FlowSync(apiConnection, globalConfig));
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
+        }
+
+        [Test]
         public async Task Execute_LogsAlertWhenFlowSyncThrows()
         {
             ThrowingApiConnection apiConnection = new();

@@ -36,6 +36,8 @@ def main(
         urllib3.disable_warnings()
 
     fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
+    # the command line can only force certificate checking on, never switch the configured value off
+    fwo_globals.set_cli_verify_certs(verify_certificates)
     FWOLogger.info("import-mgm starting ...")
     if IMPORTER_BASE_DIR not in sys.path:
         sys.path.append(IMPORTER_BASE_DIR)

@@ -6,7 +6,7 @@
 @using System.Text.Json
 
 @page "/monitoring/main"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -20,7 +20,7 @@
 @(userConfig.GetText("U7001"))
 <hr />
 
-<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
+<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
     <h5>@(userConfig.GetText("open_alerts"))</h5>
     @if (InitComplete)
     {
@@ -30,7 +30,7 @@
         }
         else
         {
-            <button type="button" class="btn btn-sm btn-danger" disabled="@(!userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin))" @onclick="RequestAcknowledgeAllOpen">@(DisplayService.DisplayButton(userConfig, "acknowledge_all", Icons.Acknowledge))</button>
+            <button type="button" class="btn btn-sm btn-danger" disabled="@(!userConfig.CanUseAnyRole(Roles.Admin))" @onclick="RequestAcknowledgeAllOpen">@(DisplayService.DisplayButton(userConfig, "acknowledge_all", Icons.Acknowledge))</button>
             <div class="vheight75">
                 <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
                 <Table PageSize="PageSize" TableClass="table table-bordered table-sm th-bg-secondary sticky-header" TableItem="Alert" Items="alertEntrys">
@@ -58,7 +58,7 @@
                                     <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                                 }
 
-                                @if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin))
+                                @if (userConfig.CanUseAnyRole(Roles.Admin))
                                 {
                                     <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(DisplayService.DisplayButton(userConfig, "acknowledge", Icons.Acknowledge))</button>
                                 }
@@ -131,7 +131,7 @@
     {
         try
         {
-            if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+            if (userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor))
             {
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
                 await RefreshAlerts();
@@ -278,7 +278,7 @@
     private async Task DeleteManagements()
     {
         // Todo: refresh necessary?
-        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor))
         {
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
         }

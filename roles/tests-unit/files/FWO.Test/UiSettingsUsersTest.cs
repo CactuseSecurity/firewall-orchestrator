@@ -65,7 +65,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getLdapConnections));
+                Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getLdapConnectionsWithoutSecrets));
                 Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getTenants));
                 Assert.That(GetMember<List<UiUser>>(handler, "UiUsers"), Has.Count.EqualTo(1));
                 Assert.That(GetMember<bool>(handler, "ShowSampleRemoveButton"), Is.False);
@@ -125,7 +125,7 @@ namespace FWO.Test
             {
                 Queries.Add(query);
 
-                if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<UiLdapConnection>))
+                if (query == AuthQueries.getLdapConnectionsWithoutSecrets && typeof(QueryResponseType) == typeof(List<UiLdapConnection>))
                 {
                     return Task.FromResult((QueryResponseType)(object)ConnectedLdaps);
                 }

@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Data;
 using NUnit.Framework;
 
@@ -75,6 +76,17 @@ namespace FWO.Test
             List<IpProtocol> sortedProtocols = ProtocolDisplayHelper.CustomSortProtocols(protocols, ["icmp"], false);
 
             Assert.That(sortedProtocols.Select(protocol => protocol.Name), Does.Not.Contain("unassigned"));
+        }
+
+        [Test]
+        public void GetSelectableProtocols_ExcludesInternalProtocols()
+        {
+            List<IpProtocol> protocols = BuildProtocols();
+            protocols.Add(new() { Id = GlobalConst.kAnyIpProtocolId, Name = "any" });
+
+            List<IpProtocol> selectableProtocols = ProtocolDisplayHelper.GetSelectableProtocols(protocols);
+
+            Assert.That(selectableProtocols.Select(protocol => protocol.Id), Does.Not.Contain(GlobalConst.kAnyIpProtocolId));
         }
 
         [Test]

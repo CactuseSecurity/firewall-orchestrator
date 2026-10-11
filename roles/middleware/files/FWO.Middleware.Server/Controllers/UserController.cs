@@ -107,6 +107,9 @@ namespace FWO.Middleware.Server.Controllers
 
             bool userAdded = false;
             int userId = 0;
+            // The local user belongs to the directory that holds the account: the dn alone does not
+            // identify it, as the same dn may exist in another LDAP connection (SEC-11).
+            int addedInLdapId = 0;
 
             foreach (Ldap currentLdap in ldaps)
             {
@@ -118,6 +121,10 @@ namespace FWO.Middleware.Server.Controllers
                         if (await currentLdap.AddUser(parameters.UserDn, parameters.Password, email))
                         {
                             userAdded = true;
+                            if (addedInLdapId == 0)
+                            {
+                                addedInLdapId = currentLdap.Id;
+                            }
                             Log.WriteAudit("AddUser", $"user {parameters.UserDn} successfully added to Ldap Id: {parameters.LdapId} Name: {currentLdap.Host()}");
                         }
                     });
@@ -137,7 +144,7 @@ namespace FWO.Middleware.Server.Controllers
                         uiuser_last_name = parameters.Lastname,
                         tenant = parameters.TenantId,
                         passwordMustBeChanged = parameters.PwChangeRequired,
-                        ldapConnectionId = parameters.LdapId != 0 ? parameters.LdapId : (int?)null
+                        ldapConnectionId = addedInLdapId
                     };
                     ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.upsertUiUser, Variables)).ReturnIds;
                     if (returnIds != null)
@@ -253,7 +260,7 @@ namespace FWO.Middleware.Server.Controllers
                         errorMsg = await currentLdap.ChangePassword(user.Dn, parameters.OldPassword, parameters.NewPassword);
                         if (errorMsg == "")
                         {
-                            await UiUserHandler.UpdateUserPasswordChanged(apiConnection, user.Dn);
+                            await UiUserHandler.UpdateUserPasswordChanged(apiConnection, user.DbId);
                         }
                     });
                 }
@@ -312,7 +319,7 @@ namespace FWO.Middleware.Server.Controllers
                             List<string> roles = [.. await currentLdap.GetRoles([user.Dn])]; // TODO: Group roles are not included
                                                                                              // the demo user (currently auditor) can't be forced to change password as he is not allowed to do it. Everyone else has to change it though
                             bool passwordMustBeChanged = !roles.Contains(Roles.Auditor);
-                            await UiUserHandler.UpdateUserPasswordChanged(apiConnection, user.Dn, passwordMustBeChanged);
+                            await UiUserHandler.UpdateUserPasswordChanged(apiConnection, user.DbId, passwordMustBeChanged);
                         }
                     });
                 }

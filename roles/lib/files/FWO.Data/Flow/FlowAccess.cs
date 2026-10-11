@@ -58,6 +58,29 @@ namespace FWO.Data.Flow
             List<string> serviceHashes = Services?.Select(s => s.SvcObject.Hash).ToList() ?? [];
             List<string> timeObjectHashes = TimeObjects?.Select(t => t.TimeObject.Hash).ToList() ?? [];
 
+            return TryCalculateAccessHash(sourceHashes, destinationHashes, serviceHashes, timeObjectHashes);
+        }
+
+        /// <summary>
+        /// Calculates the access hash from the given member hashes instead of the members' stored hashes.
+        /// Used when member hashes have been recalculated but are not yet written back to the database.
+        /// </summary>
+        public string? TryCalculateHash(FlowBaseObjectHashes baseObjectHashes)
+        {
+            List<string> sourceHashes = Sources?.Select(s => baseObjectHashes.NwObjects.GetValueOrDefault(s.NwObjectId, s.NwObject.Hash)).ToList() ?? [];
+            List<string> destinationHashes = Destinations?.Select(d => baseObjectHashes.NwObjects.GetValueOrDefault(d.NwObjectId, d.NwObject.Hash)).ToList() ?? [];
+            List<string> serviceHashes = Services?.Select(s => baseObjectHashes.SvcObjects.GetValueOrDefault(s.SvcObjectId, s.SvcObject.Hash)).ToList() ?? [];
+            List<string> timeObjectHashes = TimeObjects?.Select(t => baseObjectHashes.TimeObjects.GetValueOrDefault(t.TimeObjectId, t.TimeObject.Hash)).ToList() ?? [];
+
+            return TryCalculateAccessHash(sourceHashes, destinationHashes, serviceHashes, timeObjectHashes);
+        }
+
+        private string? TryCalculateAccessHash(
+            List<string> sourceHashes,
+            List<string> destinationHashes,
+            List<string> serviceHashes,
+            List<string> timeObjectHashes)
+        {
             try
             {
                 return FlowHashGenerator.GenerateAccessHash(sourceHashes, destinationHashes, serviceHashes, timeObjectHashes, AllowsTraffic);

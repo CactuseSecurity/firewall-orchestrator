@@ -1,0 +1,214 @@
+from __future__ import annotations
+
+import json
+from typing import TYPE_CHECKING
+
+import fwo_base
+import pytest
+from fwo_base import (
+    cidr_to_range,
+    ensure_device_name,
+    extend_string_list,
+    find_all_diffs,
+    generate_hash_from_dict,
+    replace_none_with_empty,
+    sanitize,
+    sort_and_join,
+    sort_and_join_refs,
+    string_is_uri,
+    valid_ip_address,
+    write_native_config_to_file,
+)
+from fwo_const import LIST_DELIMITER
+from fwo_log import FWOLogger
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from states.global_state import GlobalState
+    from states.import_state import ImportState
+
+NATIVE_CONFIG_DEBUG_LEVEL = 7
+
+
+class TestStringHelpers:
+    def test_sanitize_none_returns_none(self) -> None:
+        assert sanitize(None) is None
+
+    def test_sanitize_removes_quotes_and_line_breaks(self) -> None:
+        assert sanitize('a "quoted"\nText') == "a quoted Text"
+
+    def test_sanitize_lowercases_on_request(self) -> None:
+        assert sanitize("MiXeD", lower=True) == "mixed"
+
+    @pytest.mark.parametrize(
+        ("list_string", "src_dict", "expected"),
+        [
+            (None, {"k": ["a", "b"]}, "a|b"),
+            ("", {}, ""),
+            ("x|y", {"k": ["z"]}, "x|y|z"),
+            ("x", {"other": ["z"]}, "x"),
+        ],
+    )
+    def test_extend_string_list(self, list_string: str | None, src_dict: dict[str, list[str]], expected: str) -> None:
+        assert extend_string_list(list_string, src_dict, "k", LIST_DELIMITER) == expected
+
+    @pytest.mark.parametrize(
+        ("value", "is_uri"),
+        [
+            ("http://host/cfg", True),
+            ("https://host/cfg", True),
+            ("file:///tmp/cfg.json", True),
+            ("fw.example.com", False),
+            ("ftp://host", False),
+        ],
+    )
+    def test_string_is_uri(self, value: str, is_uri: bool) -> None:
+        assert bool(string_is_uri(value)) is is_uri
+
+    def test_replace_none_with_empty(self) -> None:
+        assert replace_none_with_empty(None) == "<EMPTY>"
+        assert replace_none_with_empty("") == "<EMPTY>"
+        assert replace_none_with_empty("value") == "value"
+
+    def test_sort_and_join(self) -> None:
+        assert sort_and_join(["b", "c", "a"]) == "a|b|c"
+
+    def test_sort_and_join_refs_sorts_by_name(self) -> None:
+        assert sort_and_join_refs([("uid-2", "beta"), ("uid-1", "alpha")]) == ("uid-1|uid-2", "alpha|beta")
+
+    def test_generate_hash_from_dict_ignores_key_order(self) -> None:
+        assert generate_hash_from_dict({"a": 1, "b": 2}) == generate_hash_from_dict({"b": 2, "a": 1})
+        assert generate_hash_from_dict({"a": 1}) != generate_hash_from_dict({"a": 2})
+
+
+class TestIpHelpers:
+    def test_cidr_to_range_splits_ranges(self) -> None:
+        assert cidr_to_range("10.0.0.0-10.0.0.255") == ["10.0.0.0", "10.0.0.255"]
+
+    def test_cidr_to_range_ipv4_network(self) -> None:
+        assert cidr_to_range("10.0.0.0/24") == ["10.0.0.0", "10.0.0.255"]
+
+    def test_cidr_to_range_ipv6_network(self) -> None:
+        assert cidr_to_range("2001:db8::/127") == ["2001:db8::", "2001:db8::1"]
+
+    def test_cidr_to_range_invalid_ip_is_returned_unchanged(self) -> None:
+        assert cidr_to_range("not-an-ip") == ["not", "an", "ip"]
+        assert cidr_to_range("garbage") == ["garbage"]
+
+    def test_cidr_to_range_non_string(self) -> None:
+        assert cidr_to_range(None) == [""]
+
+    @pytest.mark.parametrize(
+        ("ip", "expected"),
+        [
+            ("10.0.0.1", "IPv4"),
+            ("10.0.0.0/8", "IPv4"),
+            ("2001:db8::1", "IPv6"),
+            ("2001:db8::/32", "IPv6"),
+            ("300.1.1.1", "Invalid"),
+        ],
+    )
+    def test_valid_ip_address(self, ip: str, expected: str) -> None:
+        assert valid_ip_address(ip) == expected
+
+    def test_valid_ip_address_falls_back_to_single_address(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        def reject_network(_ip: str, strict: bool = True) -> None:  # noqa: ARG001
+            raise ValueError("no network")
+
+        monkeypatch.setattr(fwo_base.ipaddress, "ip_network", reject_network)
+
+        assert valid_ip_address("10.0.0.1") == "IPv4"
+        assert valid_ip_address("2001:db8::1") == "IPv6"
+
+
+class TestFindAllDiffs:
+    def test_equal_structures_have_no_diffs(self) -> None:
+        assert find_all_diffs({"a": [1, {"b": 2}]}, {"a": [1, {"b": 2}]}) == []
+
+    def test_missing_keys_are_reported_on_both_sides(self) -> None:
+        diffs = find_all_diffs({"a": 1}, {"b": 1})
+
+        assert diffs == ["Key 'a' missing in second object at root", "Key 'b' missing in first object at root"]
+
+    def test_list_length_mismatch(self) -> None:
+        assert find_all_diffs([1], [1, 2]) == ["list length mismatch at root: 1 != 2"]
+
+    def test_value_mismatch_path(self) -> None:
+        assert find_all_diffs({"a": [1, 2]}, {"a": [1, 3]}) == ["Value mismatch at root.a[1]: 2 != 3"]
+
+    def test_none_and_empty_string_are_equal_unless_strict(self) -> None:
+        assert find_all_diffs(None, "") == []
+        assert find_all_diffs(None, "", strict=True) == ["Value mismatch at root: None != "]
+
+
+class TestWriteNativeConfigToFile:
+    def test_writes_config_in_debug_mode(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, import_state: ImportState
+    ) -> None:
+        monkeypatch.setattr(FWOLogger.instance, "debug_level", NATIVE_CONFIG_DEBUG_LEVEL)
+        monkeypatch.setattr(fwo_base, "IMPORT_TMP_PATH", str(tmp_path))
+        state = import_state
+
+        write_native_config_to_file(state, {"native": True})
+
+        written_file = tmp_path / f"mgm_id_{state.mgm_details.mgm_id}_config_native.json"
+        assert json.loads(written_file.read_text()) == {"native": True}
+
+    def test_skips_writing_below_debug_level(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, import_state: ImportState
+    ) -> None:
+        monkeypatch.setattr(FWOLogger.instance, "debug_level", 0)
+        monkeypatch.setattr(fwo_base, "IMPORT_TMP_PATH", str(tmp_path))
+
+        write_native_config_to_file(import_state, {"native": True})
+
+        assert list(tmp_path.iterdir()) == []
+
+    def test_reraises_write_errors(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, import_state: ImportState
+    ) -> None:
+        monkeypatch.setattr(FWOLogger.instance, "debug_level", NATIVE_CONFIG_DEBUG_LEVEL)
+        monkeypatch.setattr(fwo_base, "IMPORT_TMP_PATH", str(tmp_path / "missing"))
+
+        with pytest.raises(FileNotFoundError):
+            write_native_config_to_file(import_state, {})
+
+
+class TestEnsureDeviceName:
+    def test_keeps_existing_device_matching_gateway_map(
+        self, global_state: GlobalState, import_state: ImportState
+    ) -> None:
+        mgm_details = import_state.mgm_details
+        mgm_details.devices = [{"name": "gw1"}]
+        global_state.stm_mapper.gateway_map = {mgm_details.mgm_id: {"gw1": 1}}
+
+        ensure_device_name(global_state, import_state)
+
+        assert mgm_details.devices == [{"name": "gw1"}]
+
+    def test_replaces_device_with_first_gateway_uid(self, global_state: GlobalState, import_state: ImportState) -> None:
+        mgm_details = import_state.mgm_details
+        mgm_details.devices = [{"name": "unknown"}]
+        global_state.stm_mapper.gateway_map = {mgm_details.mgm_id: {"gw1": 1}}
+
+        ensure_device_name(global_state, import_state)
+
+        assert mgm_details.devices == [{"name": "gw1"}]
+
+    def test_falls_back_to_management_name(self, global_state: GlobalState, import_state: ImportState) -> None:
+        mgm_details = import_state.mgm_details
+        mgm_details.devices = []
+
+        ensure_device_name(global_state, import_state)
+
+        assert mgm_details.devices == [{"name": mgm_details.name}]
+
+    def test_falls_back_to_hostname_without_name(self, global_state: GlobalState, import_state: ImportState) -> None:
+        mgm_details = import_state.mgm_details
+        mgm_details.devices = []
+        mgm_details.name = ""
+
+        ensure_device_name(global_state, import_state)
+
+        assert mgm_details.devices == [{"name": mgm_details.hostname}]

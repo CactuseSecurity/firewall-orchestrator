@@ -4,6 +4,21 @@ namespace FWO.Data
 {
     public static class ProtocolDisplayHelper
     {
+        /// <summary>
+        /// Returns the IP protocols that can be selected in user-facing editors.
+        /// </summary>
+        /// <remarks>
+        /// Negative protocol IDs are internal markers, such as the ANY protocol used
+        /// for imported service objects, and must not be offered as request or modelling values.
+        /// </remarks>
+        public static List<IpProtocol> GetSelectableProtocols(IEnumerable<IpProtocol> protocols)
+        {
+            return protocols.Where(protocol => protocol.Id >= 0).ToList();
+        }
+
+        /// <summary>
+        /// Sorts IP protocols according to the configured reduced protocol set.
+        /// </summary>
         public static List<IpProtocol> CustomSortProtocols(List<IpProtocol> listIn, IEnumerable<string>? reducedProtocolNames, bool reducedProtocolSet)
         {
             List<IpProtocol> remainingProtocols = [.. listIn];

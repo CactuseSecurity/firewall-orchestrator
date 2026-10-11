@@ -137,6 +137,7 @@ def main(
     FWOLogger(debug_level)
     verify_certificates = verify_certificates_default or False
     fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
+    fwo_globals.set_cli_verify_certs(verify_certificates)
     if suppress_certificate_warnings:
         urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
 

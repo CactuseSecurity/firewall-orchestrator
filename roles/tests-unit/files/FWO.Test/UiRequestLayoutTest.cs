@@ -37,7 +37,7 @@ namespace FWO.Test
                 Assert.That(apiConnection.LastTargetRoles, Is.EqualTo(new[]
                 {
                     Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer,
-                    Roles.Admin, Roles.FwAdmin, Roles.Auditor
+                    Roles.Admin, Roles.Auditor
                 }));
                 Assert.That(apiConnection.QueryRoles, Is.EqualTo(new[] { Roles.Approver, Roles.Approver }));
                 StateMatrix stateMatrix = GetPrivateField<StateMatrix>(layout.Instance, "stateMatrix");

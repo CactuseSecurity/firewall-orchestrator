@@ -167,7 +167,7 @@ class FwoApiCall:
                 "success": success,
                 "changesFound": import_stats.get_total_change_number() > 0,
                 "policyChangesFound": import_stats.get_rule_change_number() > 0,
-                "changeNumber": import_stats.get_rule_change_number(),
+                "changeNumber": import_stats.get_security_relevant_rule_change_number(),
             }
 
             unlock_mutation = FwoApi.get_graphql_code(
@@ -402,6 +402,8 @@ class FwoApiCall:
             + str(import_state.statistics_controller.get_total_change_number())
             + ", rule change count: "
             + str(import_state.statistics_controller.get_rule_change_number())
+            + ", security-relevant rule change count: "
+            + str(import_state.statistics_controller.get_security_relevant_rule_change_number())
             + ", duration: "
             + str(int(time.time()) - import_state.start_time)
             + "s"

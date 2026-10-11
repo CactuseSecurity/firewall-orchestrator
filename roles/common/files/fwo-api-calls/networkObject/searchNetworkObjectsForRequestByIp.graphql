@@ -1,0 +1,23 @@
+query searchNetworkObjectsForRequestByIp(
+  $mgmId: Int!
+  $objTypeIds: [Int!]!
+  $ip: cidr!
+  $limit: Int!
+) {
+  firewall_nw_object(
+    where: {
+      mgm_id: { _eq: $mgmId }
+      obj_typ_id: { _in: $objTypeIds }
+      active: { _eq: true }
+      removed: { _is_null: true }
+      obj_ip: { _eq: $ip }
+    }
+    order_by: [{ obj_name: asc }, { obj_id: asc }]
+    limit: $limit
+  ) {
+    obj_id
+    obj_name
+    obj_ip
+    obj_ip_end
+  }
+}

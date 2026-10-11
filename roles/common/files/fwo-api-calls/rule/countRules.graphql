@@ -1,5 +1,5 @@
     query countRules($mgm_ids: [Int!]) {
-      firewall_rule_aggregate(where: { mgm_id: { _in: $mgm_ids } }) {
+      firewall_rule_aggregate(where: { mgm_id: { _in: $mgm_ids } access_rule: { _eq: true } }) {
         aggregate { count }
       }
     }

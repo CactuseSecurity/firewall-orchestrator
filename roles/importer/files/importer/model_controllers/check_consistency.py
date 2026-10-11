@@ -1,19 +1,23 @@
-from collections.abc import Callable
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 import fwo_const
 from fwo_exceptions import FwoImporterError, FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
-from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from models.fwconfig_normalized import FwConfigNormalized
-from models.rulebase import Rulebase
-from states.global_state import GlobalState
-from states.import_state import ImportState
+from models.networkobject import NETWORK_OBJECT_TYPES_WITHOUT_STATIC_IP
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+    from models.fwconfig_normalized import FwConfigNormalized
     from models.networkobject import NetworkObject
     from models.rule import RuleNormalized
+    from models.rulebase import Rulebase
     from models.rulebase_link import RulebaseLinkUidBased
+    from states.global_state import GlobalState
+    from states.import_state import ImportState
 
 
 class FwConfigImportCheckConsistency:
@@ -192,18 +196,21 @@ class FwConfigImportCheckConsistency:
 
         return all_used_obj_refs
 
-    def _check_objects_with_missing_ips(self, config: FwConfigNormalized):
-        # check if there are any objects with obj_typ<>group and empty ip addresses (breaking constraint)
+    def _check_objects_with_missing_ips(self, config: FwConfigNormalized) -> None:
+        """
+        Check for network objects for which IP addresses are expected but missing.
+        Types without IP addresses are ignored (group, dynamic_net_obj, domain, access-role).
+        """
         non_group_nw_obj_with_missing_ips: list[NetworkObject] = []
         for obj_id in config.network_objects:
-            if config.network_objects[obj_id].obj_typ != "group":
+            if config.network_objects[obj_id].obj_typ not in NETWORK_OBJECT_TYPES_WITHOUT_STATIC_IP:
                 ip1 = config.network_objects[obj_id].obj_ip
                 ip2 = config.network_objects[obj_id].obj_ip_end
                 if ip1 is None or ip2 is None:
                     non_group_nw_obj_with_missing_ips.append(config.network_objects[obj_id])
         if non_group_nw_obj_with_missing_ips:
             self.issues.update(
-                {"non-group network object with undefined IP addresse(s)": list(non_group_nw_obj_with_missing_ips)}
+                {"network object with undefined IP addresse(s)": list(non_group_nw_obj_with_missing_ips)}
             )
 
     def check_service_object_consistency(

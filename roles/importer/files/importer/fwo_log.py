@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 import logging
+import os
+import sys
 import threading
 import time
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TextIO, TypeAlias, cast
 
-try:
-    import fcntl as fcntl_module
-except ImportError:
+# Returns True if the OS is Linux, macOS (Darwin), or BSD-based systems
+is_unix = sys.platform in ("linux", "darwin", "freebsd")
+if is_unix:
+    try:
+        import fcntl as fcntl_module
+    except ImportError:
+        fcntl_module = None
+else:
     fcntl_module = None
 
 
@@ -249,6 +256,7 @@ class ChangeLogger:
         import_time: str,
         rule_id: int,
         rule_id_alternative: int = 0,
+        security_relevant: bool = True,
     ) -> dict[str, Any]:
         unique_name = self._get_changelog_import_object_unique_name(rule_id)
         old_rule_id = None
@@ -272,6 +280,7 @@ class ChangeLogger:
             "change_type_id": change_typ,
             "change_time": import_time,
             "unique_name": unique_name,
+            "security_relevant": security_relevant,
         }
 
         return rule_changelog_object

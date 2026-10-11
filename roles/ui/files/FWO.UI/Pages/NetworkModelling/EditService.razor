@@ -149,7 +149,10 @@
     private List<NetworkProtocol> CustomSort(List<IpProtocol> ListIn)
     {
         List<string> reducedProtocolNames = ProtocolDisplayHelper.ParseProtocolNames(userConfig.ReducedProtocolSetProtocols);
-        return ProtocolDisplayHelper.CustomSortProtocols(ListIn, reducedProtocolNames, userConfig.ReducedProtocolSet)
+        return ProtocolDisplayHelper.CustomSortProtocols(
+            ProtocolDisplayHelper.GetSelectableProtocols(ListIn),
+            reducedProtocolNames,
+            userConfig.ReducedProtocolSet)
             .Select(protocol => new NetworkProtocol(protocol))
             .ToList();
     }

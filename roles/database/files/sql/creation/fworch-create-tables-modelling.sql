@@ -124,16 +124,3 @@ create table modelling.service_connection -- (used only if settings flag is set)
     connection_id int,
 	primary key (service_id, connection_id)
 );
-
-create table modelling.change_history
-(
-	id BIGSERIAL PRIMARY KEY,
-	app_id int,
-	change_type int,
-	object_type int,
-    object_id bigint,
-	change_text Varchar,
-	changer Varchar,
-	change_time Timestamp default now(),
-	change_source Varchar default 'manual'
-);

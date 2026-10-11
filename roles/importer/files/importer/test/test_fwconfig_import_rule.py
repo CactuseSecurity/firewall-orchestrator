@@ -1,14 +1,29 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import pytest
+from fwo_exceptions import FwoImporterError
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 from models.rulebase import Rulebase
 from pytest_mock import MockerFixture
-from states.global_state import GlobalState
-from states.import_state import ImportState
-from states.management_state import ManagementState
 from test.utils.test_utils import mock_get_graphql_code
 
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+    from states.global_state import GlobalState
+    from states.import_state import ImportState
+    from states.management_state import ManagementState
 
-def build_normalized_rule(rule_uid: str, *, rule_src_zone: str | None, rule_dst_zone: str | None) -> RuleNormalized:
+
+def build_normalized_rule(
+    rule_uid: str | None,
+    *,
+    rule_src_zone: str | None,
+    rule_dst_zone: str | None,
+    xlate_rule_uid: str | None = None,
+) -> RuleNormalized:
     return RuleNormalized(
         rule_num_numeric=1.0,
         rule_disabled=False,
@@ -27,8 +42,10 @@ def build_normalized_rule(rule_uid: str, *, rule_src_zone: str | None, rule_dst_
         rule_action=RuleAction.ACCEPT,
         rule_track=RuleTrack.NONE,
         rule_implied=False,
-        rule_type=RuleType.ACCESS,
+        rule_type=RuleType.NAT if xlate_rule_uid else RuleType.ACCESS,
         rule_uid=rule_uid,
+        xlate_rule_uid=xlate_rule_uid,
+        nat_rule=xlate_rule_uid is not None,
     )
 
 
@@ -104,6 +121,284 @@ class TestFwConfigImportRule:
         assert rule_changes[0]["change_action"] == "C"
         assert rule_changes[0]["new_rule_id"] == new_rule_id
         assert rule_changes[0]["old_rule_id"] == old_rule_id
+
+    @pytest.mark.parametrize(
+        ("changed_field", "changed_value"),
+        [
+            ("rule_comment", "new comment"),
+            ("rule_name", "new name"),
+            ("rule_custom_fields", '{"owner": "new owner"}'),
+        ],
+    )
+    def test_is_change_security_relevant_ignores_documentation_fields(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        changed_field: str,
+        changed_value: str,
+    ) -> None:
+        # Changes that only differ in a documentation field are not security-relevant
+        # (they still have to be written to the changelog, see the tests below).
+        old_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        new_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        setattr(new_rule, changed_field, changed_value)
+
+        assert fwconfig_import_rule.is_change_security_relevant(old_rule, new_rule) is False
+
+    @pytest.mark.parametrize(
+        ("changed_field", "changed_value"),
+        [
+            ("rule_comment", "new comment"),
+            ("rule_name", "new name"),
+            ("rule_custom_fields", '{"owner": "new owner"}'),
+        ],
+    )
+    def test_write_changelog_rules_writes_entry_for_non_security_relevant_change(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+        changed_field: str,
+        changed_value: str,
+    ) -> None:
+        # A change of a documentation field creates a new rule version and therefore must also
+        # create a changelog entry - flagged as not security-relevant so change reports skip it,
+        # while the incremental rule owner mapping still sees the new rule version.
+        mock_get_graphql_code(mocker, "mutation { dummy }")
+
+        rule_uid = "doc-changed-rule-uid"
+        old_rule_id = 101
+        new_rule_id = 202
+
+        def get_rule_id_side_effect(_uid: str, before_update: bool = False) -> int:
+            return old_rule_id if before_update else new_rule_id
+
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(side_effect=get_rule_id_side_effect)
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
+
+        old_rule = build_normalized_rule(rule_uid, rule_src_zone=None, rule_dst_zone=None)
+        new_rule = build_normalized_rule(rule_uid, rule_src_zone=None, rule_dst_zone=None)
+        setattr(new_rule, changed_field, changed_value)
+
+        num_security_relevant_changes = fwconfig_import_rule.write_changelog_rules(
+            added_rules=[],
+            removed_rules=[],
+            changed_rules=[(old_rule, new_rule)],
+        )
+
+        fwconfig_import_rule.global_state.fwo_api.call.assert_called_once()
+        query_variables = fwconfig_import_rule.global_state.fwo_api.call.call_args.kwargs["query_variables"]
+        rule_changes = query_variables["rule_changes"]
+
+        assert len(rule_changes) == 1
+        assert rule_changes[0]["change_action"] == "C"
+        assert rule_changes[0]["new_rule_id"] == new_rule_id
+        assert rule_changes[0]["old_rule_id"] == old_rule_id
+        assert rule_changes[0]["security_relevant"] is False
+        # must not be counted into security_relevant_changes_counter / policy_changes_found
+        assert num_security_relevant_changes == 0
+
+    def test_write_changelog_rules_flags_security_relevant_change(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ) -> None:
+        mock_get_graphql_code(mocker, "mutation { dummy }")
+
+        rule_uid = "zone-changed-rule-uid"
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
+
+        old_rule = build_normalized_rule(rule_uid, rule_src_zone="zoneA", rule_dst_zone="zoneB")
+        new_rule = build_normalized_rule(rule_uid, rule_src_zone="zoneC", rule_dst_zone="zoneB")
+
+        num_security_relevant_changes = fwconfig_import_rule.write_changelog_rules(
+            added_rules=[],
+            removed_rules=[],
+            changed_rules=[(old_rule, new_rule)],
+        )
+
+        query_variables = fwconfig_import_rule.global_state.fwo_api.call.call_args.kwargs["query_variables"]
+        rule_changes = query_variables["rule_changes"]
+
+        assert len(rule_changes) == 1
+        assert rule_changes[0]["security_relevant"] is True
+        assert num_security_relevant_changes == 1
+
+    def test_write_changelog_rules_flags_added_and_removed_rules_as_security_relevant(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ) -> None:
+        # Rule inserts and deletes are always security-relevant - only changes of an existing
+        # rule can be documentation-only - so they must carry the flag and keep showing up in
+        # change reports.
+        mock_get_graphql_code(mocker, "mutation { dummy }")
+
+        added_rule_id = 101
+        removed_rule_id = 202
+        rule_ids = {"added-rule-uid": added_rule_id, "removed-rule-uid": removed_rule_id}
+
+        def get_rule_id_side_effect(rule_uid: str) -> int:
+            return rule_ids[rule_uid]
+
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(side_effect=get_rule_id_side_effect)
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
+
+        added_rule = build_normalized_rule("added-rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        removed_rule = build_normalized_rule("removed-rule-uid", rule_src_zone=None, rule_dst_zone=None)
+
+        # Act
+        num_security_relevant_changes = fwconfig_import_rule.write_changelog_rules(
+            added_rules=[added_rule],
+            removed_rules=[removed_rule],
+            changed_rules=[],
+        )
+
+        # Assert
+        query_variables = fwconfig_import_rule.global_state.fwo_api.call.call_args.kwargs["query_variables"]
+        rule_changes = {rule_change["change_action"]: rule_change for rule_change in query_variables["rule_changes"]}
+
+        assert set(rule_changes) == {"I", "D"}
+        assert rule_changes["I"]["new_rule_id"] == added_rule_id
+        assert rule_changes["I"]["old_rule_id"] is None
+        assert rule_changes["I"]["security_relevant"] is True
+        assert rule_changes["D"]["new_rule_id"] is None
+        assert rule_changes["D"]["old_rule_id"] == removed_rule_id
+        assert rule_changes["D"]["security_relevant"] is True
+        # adds and deletes are counted via rule_add_count / rule_delete_count, not via the
+        # security-relevant changed-rule counter returned here
+        assert num_security_relevant_changes == 0
+
+    def test_write_changelog_rules_skips_changed_rules_without_uid(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ) -> None:
+        # A rule without a uid cannot be mapped to a rule_id, so it has to be skipped instead
+        # of producing a changelog entry pointing at the wrong rule.
+        mock_get_graphql_code(mocker, "mutation { dummy }")
+
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
+
+        old_rule = build_normalized_rule(None, rule_src_zone="zoneA", rule_dst_zone=None)
+        new_rule = build_normalized_rule(None, rule_src_zone="zoneB", rule_dst_zone=None)
+
+        # Act
+        num_security_relevant_changes = fwconfig_import_rule.write_changelog_rules(
+            added_rules=[],
+            removed_rules=[],
+            changed_rules=[(old_rule, new_rule)],
+        )
+
+        # Assert
+        fwconfig_import_rule.global_state.fwo_api.call.assert_not_called()
+        assert num_security_relevant_changes == 0
+
+    def test_collect_changed_rules_for_changelog_includes_xlate_fk_repoints_and_rulebase_moves(self) -> None:
+        # Every new rule version needs a changelog entry for the incremental rule owner mapping:
+        # this includes NAT original rules that were only re-versioned to repoint their xlate FK.
+        prev_rules = {
+            "changed-uid": build_normalized_rule("changed-uid", rule_src_zone="zoneA", rule_dst_zone=None),
+            "moved-uid": build_normalized_rule("moved-uid", rule_src_zone=None, rule_dst_zone=None),
+            "orig-uid": build_normalized_rule("orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="x"),
+        }
+        curr_rules = {
+            "changed-uid": build_normalized_rule("changed-uid", rule_src_zone="zoneB", rule_dst_zone=None),
+            "moved-uid": build_normalized_rule("moved-uid", rule_src_zone=None, rule_dst_zone=None),
+            "orig-uid": build_normalized_rule("orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="x"),
+        }
+
+        changed_rules, moved_uids = FwConfigImportRule.collect_changed_rules_for_changelog(
+            prev_rules,
+            curr_rules,
+            changed_rule_uids={"changed-uid", "moved-uid"},
+            xlate_fk_repoint_uids={"orig-uid"},
+            prev_rule_to_rulebase={"changed-uid": "rb1", "moved-uid": "rb1", "orig-uid": "nat"},
+            curr_rule_to_rulebase={"changed-uid": "rb1", "moved-uid": "rb2", "orig-uid": "nat"},
+        )
+
+        assert {new_rule.rule_uid for _, new_rule in changed_rules} == {"changed-uid", "moved-uid", "orig-uid"}
+        assert all(prev_rules[str(new_rule.rule_uid)] is old_rule for old_rule, new_rule in changed_rules)
+        assert moved_uids == {"moved-uid"}
+
+    def test_write_changelog_rules_flags_rulebase_move_as_security_relevant(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ) -> None:
+        # A rule moved to another rulebase can be identical in all its own fields, but the move
+        # still changes the policy and must show up in the change report.
+        mock_get_graphql_code(mocker, "mutation { dummy }")
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
+
+        old_rule = build_normalized_rule("moved-uid", rule_src_zone=None, rule_dst_zone=None)
+        new_rule = build_normalized_rule("moved-uid", rule_src_zone=None, rule_dst_zone=None)
+
+        num_security_relevant_changes = fwconfig_import_rule.write_changelog_rules(
+            added_rules=[],
+            removed_rules=[],
+            changed_rules=[(old_rule, new_rule)],
+            moved_between_rulebases_uids={"moved-uid"},
+        )
+
+        query_variables = fwconfig_import_rule.global_state.fwo_api.call.call_args.kwargs["query_variables"]
+        assert query_variables["rule_changes"][0]["security_relevant"] is True
+        assert num_security_relevant_changes == 1
+
+    def test_write_changelog_rules_flags_unchanged_rule_version_as_not_security_relevant(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ) -> None:
+        # An xlate FK repoint creates a new version of an otherwise unchanged NAT rule.
+        mock_get_graphql_code(mocker, "mutation { dummy }")
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
+
+        old_rule = build_normalized_rule("orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="x")
+        new_rule = build_normalized_rule("orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="x")
+
+        num_security_relevant_changes = fwconfig_import_rule.write_changelog_rules(
+            added_rules=[],
+            removed_rules=[],
+            changed_rules=[(old_rule, new_rule)],
+        )
+
+        query_variables = fwconfig_import_rule.global_state.fwo_api.call.call_args.kwargs["query_variables"]
+        assert query_variables["rule_changes"][0]["change_action"] == "C"
+        assert query_variables["rule_changes"][0]["security_relevant"] is False
+        assert num_security_relevant_changes == 0
+
+    def test_write_changelog_rules_raises_on_graphql_errors(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ) -> None:
+        # Missing changelog entries would hide new rule versions from the incremental rule owner
+        # mapping, so the import has to fail (and be rolled back) instead of only logging.
+        mock_get_graphql_code(mocker, "mutation { dummy }")
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"errors": ["boom"]})
+
+        added_rule = build_normalized_rule("added-uid", rule_src_zone=None, rule_dst_zone=None)
+
+        with pytest.raises(FwoImporterError, match="changelog entries for rules"):
+            fwconfig_import_rule.write_changelog_rules(added_rules=[added_rule], removed_rules=[], changed_rules=[])
+
+    def test_write_changelog_rules_raises_on_api_exception(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ) -> None:
+        mock_get_graphql_code(mocker, "mutation { dummy }")
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(side_effect=RuntimeError("connection lost"))
+
+        added_rule = build_normalized_rule("added-uid", rule_src_zone=None, rule_dst_zone=None)
+
+        with pytest.raises(FwoImporterError, match="changelog entries for rules"):
+            fwconfig_import_rule.write_changelog_rules(added_rules=[added_rule], removed_rules=[], changed_rules=[])
 
     def test_write_changelog_rules_uses_current_mgm_id_for_sub_management(
         self,
@@ -222,3 +517,97 @@ class TestFwConfigImportRule:
 
         assert changes == 1
         assert removed_rule_ids == [101]
+
+    def test_get_stale_xlate_rule_fk_uids_flags_unchanged_original_rule(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+    ):
+        # Original rule "orig-uid" is unchanged, but its translated counterpart
+        # "orig-uid_translated" was changed and will be re-inserted with a new rule_id.
+        # The original rule must be flagged so it gets routed through the normal
+        # insert/remove handling (new versioned row) instead of an in-place FK patch.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        translated_rule = build_normalized_rule("orig-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        curr_rules = {"orig-uid": original_rule, "orig-uid_translated": translated_rule}
+
+        repoint_uids = fwconfig_import_rule.get_stale_xlate_rule_fk_uids(
+            curr_rules, changed_rule_uids={"orig-uid_translated"}, added_rule_uids=set()
+        )
+
+        assert repoint_uids == {"orig-uid"}
+
+    def test_get_stale_xlate_rule_fk_uids_skips_when_original_rule_already_reinserted(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+    ):
+        # If the original rule's own row is already (re)inserted this import, its xlate_rule
+        # FK is already set correctly by prepare_rule_for_import, so no repoint is needed.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        translated_rule = build_normalized_rule("orig-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        curr_rules = {"orig-uid": original_rule, "orig-uid_translated": translated_rule}
+
+        repoint_uids = fwconfig_import_rule.get_stale_xlate_rule_fk_uids(
+            curr_rules,
+            changed_rule_uids={"orig-uid_translated", "orig-uid"},
+            added_rule_uids=set(),
+        )
+
+        assert repoint_uids == set()
+
+    def test_get_stale_xlate_rule_fk_uids_skips_when_translated_rule_unchanged(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+    ):
+        # If the translated counterpart didn't change (and thus wasn't re-inserted), the
+        # original rule's existing xlate_rule FK is still correct.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        translated_rule = build_normalized_rule("orig-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        curr_rules = {"orig-uid": original_rule, "orig-uid_translated": translated_rule}
+
+        repoint_uids = fwconfig_import_rule.get_stale_xlate_rule_fk_uids(
+            curr_rules, changed_rule_uids=set(), added_rule_uids=set()
+        )
+
+        assert repoint_uids == set()
+
+    def test_filter_resolvable_xlate_fk_repoint_uids_keeps_resolvable_rows(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+    ):
+        # The translated counterpart's rule_id is already resolvable in the mapping (e.g. it
+        # was just inserted and added to the mapping), so the repoint row is kept.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        curr_rules = {"orig-uid": original_rule}
+        fwconfig_import_rule.uid2id_mapper.rule_uid2id.set("orig-uid_translated", 202)
+
+        resolvable_uids = fwconfig_import_rule.filter_resolvable_xlate_fk_repoint_uids(curr_rules, {"orig-uid"})
+
+        assert resolvable_uids == {"orig-uid"}
+
+    def test_filter_resolvable_xlate_fk_repoint_uids_skips_unresolvable_rows(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        # If the translated counterpart's rule_id never showed up in the mapping (e.g. the
+        # earlier insert of the translated rule returned fewer 'returning' rows than expected),
+        # the repoint row must be skipped with a warning instead of blowing up later with an
+        # uncaught KeyError from prepare_rule_for_import's get_rule_id call.
+        original_rule = build_normalized_rule(
+            "orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="orig-uid_translated"
+        )
+        curr_rules = {"orig-uid": original_rule}
+        warning_mock = mocker.patch("model_controllers.fwconfig_import_rule.FWOLogger.warning")
+
+        resolvable_uids = fwconfig_import_rule.filter_resolvable_xlate_fk_repoint_uids(curr_rules, {"orig-uid"})
+
+        assert resolvable_uids == set()
+        warning_mock.assert_called_once()

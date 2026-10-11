@@ -29,6 +29,11 @@ ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_is_host CHECK (is_single_ip(ip));
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_end_is_host CHECK (is_single_ip(ip_end));
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_unique UNIQUE (owner_id, ip, ip_end, import_source);
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_start_is_host CHECK (is_single_ip(ip_start));
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_end_is_host CHECK (is_single_ip(ip_end));
+-- IPv4 addresses sort before IPv6 ones, so ip_start <= ip_end alone still admits a range which starts
+-- in one address family and ends in the other
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_same_family CHECK (family(ip_start) = family(ip_end));
 ALTER TABLE request.reqelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 ALTER TABLE request.implelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 -- Alter Table "rule" add Constraint "rule_altkey" UNIQUE ("dev_id","rule_uid","rule_create",xlate_rule);
@@ -45,16 +50,18 @@ Alter table "rulebase_link" add CONSTRAINT unique_rulebase_link
 Alter Table firewall."nw_service" add Constraint "svc_altkey" UNIQUE ("mgm_id","svc_uid","svc_create");
 Alter Table "stm_dev_typ" add Constraint "Alter_Key1" UNIQUE ("dev_typ_name","dev_typ_version");
 Alter Table firewall."nw_user" add Constraint "usr_altkey" UNIQUE ("mgm_id","user_name","user_create");
+-- a dn is unique only inside its directory, so a local user is identified by directory and dn (SEC-11)
+Alter Table "uiuser" add Constraint "uiuser_ldap_connection_id_uuid_key" UNIQUE ("ldap_connection_id","uuid");
 
 CREATE UNIQUE INDEX if not exists "zone_mgm_id_zone_name_removed_is_null_unique" ON zone (mgm_id, zone_name) WHERE removed IS NULL;
 
 create unique index if not exists only_one_future_recert_per_owner_per_rule on recertification(owner_id,rule_metadata_id,recert_date)
     where recert_date IS NULL;
 
---- compliance
+--- network_zone
 
 CREATE EXTENSION IF NOT EXISTS btree_gist;
-ALTER TABLE compliance.ip_range ADD CONSTRAINT "exclude_overlapping_ip_ranges"
+ALTER TABLE network_zone.ip_range ADD CONSTRAINT "exclude_overlapping_ip_ranges"
 EXCLUDE USING gist (
     network_zone_id WITH =,
     numrange(ip_range_start - '0.0.0.0'::inet, ip_range_end - '0.0.0.0'::inet, '[]') WITH &&

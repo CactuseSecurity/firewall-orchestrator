@@ -130,11 +130,7 @@ def _import_management(
     config_importer = FwConfigImport()
 
     fwo_config = global_state.fwo_config_controller.fwo_config
-    FWOLogger.debug(f"import_management - ssl_verification: {fwo_config.ssl_verification}", 9)
-    FWOLogger.debug(
-        f"import_management - suppress_cert_warnings_in: {fwo_config.suppress_certificate_warnings}",
-        9,
-    )
+    import_state.apply_certificate_settings(fwo_config.ssl_verification, fwo_config.suppress_certificate_warnings)
     FWOLogger.debug(f"import_management - limit: {fwo_config.api_fetch_size}", 9)
 
     if import_state.mgm_details.import_disabled and not fwo_config.force:

@@ -619,3 +619,12 @@ div.modal-content .sticky-header thead {
     font-weight: 600;
     line-height: 1.2;
 }
+
+.provisioning-field {
+    transition: background-color 500ms linear, box-shadow 500ms linear;
+}
+
+.provisioning-field-highlight {
+    background-color: var(--bs-warning-bg-subtle);
+    box-shadow: 0 0 0 2px var(--bs-warning);
+}

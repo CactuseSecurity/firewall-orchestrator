@@ -1,7 +1,7 @@
 ﻿@using FWO.Ui.Data
 @using System.Text.Json
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection

@@ -127,15 +127,20 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
             {
                 return FillIcmpTemplate(template, svc.Name ?? "");
             }
-            if (svc.ProtoId == 6 || svc.ProtoId == 17) // TCP, UDP
+            if ((svc.ProtoId == 6 || svc.ProtoId == 17) && svc.Port != null) // TCP, UDP with a port
             {
                 return FillServiceTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? "");
             }
             return FillIpProtocolTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), svc.ProtoId.ToString(), svc.Name ?? "");
         }
 
-        public static string DisplayPortRange(int port, int? portEnd)
+        public static string DisplayPortRange(int? port, int? portEnd)
         {
+            if (port == null)
+            {
+                return "";
+            }
+
             return portEnd == null || portEnd == 0 || port == portEnd ? $"{port}" : $"{port}-{portEnd}";
         }
 

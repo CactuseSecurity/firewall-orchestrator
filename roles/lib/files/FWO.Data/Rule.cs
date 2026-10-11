@@ -1,5 +1,6 @@
 using FWO.Basics;
 using FWO.Data.Flow;
+using System.Linq;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using SystemTextJsonIgnore = System.Text.Json.Serialization.JsonIgnoreAttribute;
@@ -121,11 +122,22 @@ namespace FWO.Data
         [JsonProperty("nat_rule"), JsonPropertyName("nat_rule")]
         public bool NatRule { get; set; }
 
+        [JsonProperty("access_rule"), JsonPropertyName("access_rule")]
+        public bool AccessRule { get; set; } = true;
+
         [JsonProperty("rulebase_id"), JsonPropertyName("rulebase_id")]
         public int RulebaseId { get; set; }
 
+        private DeviceWrapper[] enforcingGateways = [];
+
         [JsonProperty("rule_enforced_on_gateways"), JsonPropertyName("rule_enforced_on_gateways")]
-        public DeviceWrapper[] EnforcingGateways { get; set; } = [];
+        public DeviceWrapper[] EnforcingGateways
+        {
+            get => enforcingGateways;
+            // a rule can have multiple (historic) enforced-on-gateway entries for the same gateway
+            // (e.g. across import versions), so deduplicate by device id when assigning
+            set => enforcingGateways = [.. value.DistinctBy(gw => gw.Content.Id)];
+        }
 
         [JsonProperty("rule_installon"), JsonPropertyName("rule_installon")]
         public string? InstallOn { get; set; }
@@ -148,8 +160,14 @@ namespace FWO.Data
         [JsonProperty("rule"), JsonPropertyName("rule")]
         public Rule? ParentRule { get; set; }
 
+        [JsonProperty("ruleByXlateRule"), JsonPropertyName("ruleByXlateRule")]
+        public Rule? TranslatedRule { get; set; }
+
         [JsonProperty("rule_owners"), JsonPropertyName("rule_owners")]
         public RuleOwner?[] RuleOwner { get; set; } = [];
+
+        [JsonProperty("xlate_rule"), JsonPropertyName("xlate_rule")]
+        public long? XlateRule { get; set; }
 
         [JsonProperty("flow_access_id"), JsonPropertyName("flow_access_id")]
         public long? FlowAccessId { get; set; }
@@ -235,6 +253,7 @@ namespace FWO.Data
             CustomFields = rule.CustomFields;
             Implied = rule.Implied;
             NatRule = rule.NatRule;
+            AccessRule = rule.AccessRule;
             RulebaseId = rule.RulebaseId;
             EnforcingGateways = rule.EnforcingGateways;
             InstallOn = rule.InstallOn;
@@ -244,6 +263,7 @@ namespace FWO.Data
             Rulebase = rule.Rulebase;
             LastChangeAdmin = rule.LastChangeAdmin;
             ParentRule = rule.ParentRule;
+            TranslatedRule = rule.TranslatedRule;
             DisplayOrderNumberString = rule.DisplayOrderNumberString;
             DisplayOrderNumber = rule.DisplayOrderNumber;
             OrderNumber = rule.OrderNumber;
@@ -261,6 +281,7 @@ namespace FWO.Data
             Detailed = rule.Detailed;
             UnusedSpecialUserObjects = rule.UnusedSpecialUserObjects;
             UnusedUpdatableObjects = rule.UnusedUpdatableObjects;
+            XlateRule = rule.XlateRule;
         }
 
         public bool IsDropRule()

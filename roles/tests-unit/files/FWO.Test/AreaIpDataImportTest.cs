@@ -217,6 +217,73 @@ namespace FWO.Test
             }
         }
 
+        [Test]
+        public async Task Run_CanceledBeforeSaving_NeitherSavesNorDeletesAreas()
+        {
+            string tempRoot = CreateTempRoot();
+            object? originalConfigData = null;
+            object? originalJwtPrivateKey = null;
+            object? originalJwtPublicKey = null;
+            bool configSnapshotTaken = false;
+            try
+            {
+                (originalConfigData, originalJwtPrivateKey, originalJwtPublicKey) = SnapshotConfigFileState();
+                configSnapshotTaken = true;
+                ConfigureAllowedCustomizationRoots(tempRoot);
+
+                string customizationRoot = Path.Combine(tempRoot, "etc");
+                Directory.CreateDirectory(customizationRoot);
+                string source = Path.Combine(customizationRoot, "area-source");
+                WriteImportFile(source, new ModellingImportNwData
+                {
+                    Areas =
+                    [
+                        new ModellingImportAreaData("Area One", "area-1")
+                        {
+                            IpData = [new ModellingImportAreaIpData { Name = "net-a", Ip = "192.0.2.10/24" }]
+                        }
+                    ]
+                });
+
+                GlobalConfig globalConfig = new()
+                {
+                    ImportSubnetDataPath = JsonSerializer.Serialize(new[] { source })
+                };
+                using CancellationTokenSource cancellationTokenSource = new();
+                AreaIpDataImportTestApiConnection apiConnection = new()
+                {
+                    ExistingAreasResponse = [CreateExistingArea(id: 102, idString: "area-3", name: "Stale Area")],
+                    OnGetAreas = cancellationTokenSource.Cancel
+                };
+                AreaIpDataImport import = new(apiConnection, globalConfig);
+
+                Assert.ThrowsAsync<OperationCanceledException>(async () => await import.Run(cancellationTokenSource.Token));
+                Assert.That(apiConnection.Calls.Select(call => call.Query), Is.EqualTo(new[] { ModellingQueries.getAreas }));
+            }
+            finally
+            {
+                if (configSnapshotTaken)
+                {
+                    RestoreConfigFileState(originalConfigData, originalJwtPrivateKey, originalJwtPublicKey);
+                }
+
+                if (Directory.Exists(tempRoot))
+                {
+                    Directory.Delete(tempRoot, true);
+                }
+            }
+        }
+
+        [Test]
+        public void Run_PreCanceledToken_StopsBeforeReadingFiles()
+        {
+            AreaIpDataImportTestApiConnection apiConnection = new();
+            AreaIpDataImport import = new(apiConnection, new GlobalConfig());
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await import.Run(new CancellationToken(canceled: true)));
+            Assert.That(apiConnection.Calls, Is.Empty);
+        }
+
         private static string CreateTempRoot()
         {
             string tempRoot = Path.Combine(Path.GetTempPath(), $"fwo-area-ip-{Guid.NewGuid():N}");
@@ -291,6 +358,7 @@ namespace FWO.Test
             public Dictionary<string, int> CallCounts { get; } = new(StringComparer.Ordinal);
             public List<(string Query, object? Variables)> Calls { get; } = [];
             public List<ModellingNetworkArea> ExistingAreasResponse { get; set; } = [];
+            public Action? OnGetAreas { get; set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
@@ -303,6 +371,7 @@ namespace FWO.Test
 
                 if (query == ModellingQueries.getAreas)
                 {
+                    OnGetAreas?.Invoke();
                     return Task.FromResult((QueryResponseType)(object)ExistingAreasResponse);
                 }
 

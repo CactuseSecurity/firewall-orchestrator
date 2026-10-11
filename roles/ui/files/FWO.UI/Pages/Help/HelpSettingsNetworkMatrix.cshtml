@@ -1,0 +1,25 @@
+@page "/help/settings/matrix"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("matrix"))</h3>
+    @(Html.Raw(userConfig.GetText("H5804")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5812")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5842")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5891")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5809")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5815")))</li>
+    </ul>
+</div>

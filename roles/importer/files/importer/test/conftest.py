@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import unittest.mock
 from pathlib import Path
@@ -16,17 +18,26 @@ def find_repo_graphql_query_path(start_path: Path) -> Path | None:
 if repo_graphql_query_path := find_repo_graphql_query_path(Path(__file__)):
     os.environ.setdefault("FWO_GRAPHQL_QUERY_PATH", str(repo_graphql_query_path))
 
+from typing import TYPE_CHECKING
+
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_const import FWO_CONFIG_FILENAME
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.fwconfig_import_object import FwConfigImportObject
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
+from model_controllers.management_controller import (
+    ConnectionInfo,
+    CredentialInfo,
+    DeviceInfo,
+    DomainInfo,
+    ManagementController,
+    ManagerInfo,
+)
 from model_controllers.rulebase_link_controller import RulebaseLinkController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from models.fwo_config_controller import FwoConfigController
-from pytest_mock import MockerFixture
 from services.group_flats_mapper import GroupFlatsMapper
 from services.stm_mapper import StmMapper
 from services.uid2id_mapper import Uid2IdMapper
@@ -34,6 +45,9 @@ from states.global_state import GlobalState
 from states.import_state import ImportState
 from states.management_state import ManagementState
 from test.utils.config_builder import FwConfigBuilder
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture
@@ -214,3 +228,24 @@ def uid2id_mapper(import_state: ImportState, api_connection: FwoApi) -> Uid2IdMa
 @pytest.fixture
 def rb_link_controller() -> RulebaseLinkController:
     return RulebaseLinkController()
+
+
+@pytest.fixture
+def management_controller() -> ManagementController:
+    return ManagementController(
+        mgm_id=3,
+        uid="mock-uid",
+        devices=[],
+        device_info=DeviceInfo(name="Mock Management", type_name="MockDevice", type_version="1.0"),
+        connection_info=ConnectionInfo(hostname="mock.example.com", port=443),
+        importer_hostname="mock-importer",
+        credential_info=CredentialInfo(
+            secret="mock-secret",  # noqa: S106
+            import_user="mock-user",
+            cloud_client_id="",
+            cloud_client_secret="",
+        ),
+        manager_info=ManagerInfo(is_super_manager=False, sub_manager_ids=[], sub_managers=[]),
+        domain_info=DomainInfo(domain_name="mock-domain", domain_uid="mock-domain-uid"),
+        import_disabled=False,
+    )

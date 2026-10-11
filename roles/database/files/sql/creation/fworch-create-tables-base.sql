@@ -93,7 +93,7 @@ Create table "uiuser"
 (
 	"uiuser_id" SERIAL NOT NULL,
 	"uiuser_username" Varchar,
-	"uuid" Varchar NOT NULL UNIQUE,
+	"uuid" Varchar NOT NULL,
 	"uiuser_first_name" Varchar,
 	"uiuser_last_name" Varchar,
 	"uiuser_start_date" Date Default now(),
@@ -141,6 +141,12 @@ Create table "error"
 	"error_txt_ger" Text NOT NULL,
 	"error_txt_eng" Text NOT NULL,
  primary key ("error_id")
+);
+
+Create table "path_analysis_algorithm"
+(
+	"id" BIGSERIAL PRIMARY KEY,
+	"name" varchar NOT NULL UNIQUE
 );
 
 -- tenant -------------------------------------
@@ -330,8 +336,29 @@ create table notification
 	bundle_type Varchar,
 	bundle_id Varchar,
 	recipient_bcc Varchar,
-	email_address_bcc Varchar
+	email_address_bcc Varchar,
+	logging Varchar NOT NULL DEFAULT 'send_only',
+	active Boolean NOT NULL DEFAULT TRUE
   );
+
+create table notification_log
+(
+    id SERIAL PRIMARY KEY,
+    "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    notification_id INTEGER NOT NULL,
+    notification_type Varchar NOT NULL,
+    "to" Varchar NOT NULL DEFAULT '',
+    cc Varchar NOT NULL DEFAULT '',
+    bcc Varchar NOT NULL DEFAULT '',
+    subject Varchar NOT NULL DEFAULT '',
+    deadline_type Varchar NOT NULL DEFAULT 'None',
+    deadline TIMESTAMP WITH TIME ZONE,
+    status Varchar NOT NULL DEFAULT 'Pending',
+    error Varchar NOT NULL DEFAULT ''
+ );
+
+create index if not exists notification_log_timestamp_id_idx
+    on notification_log ("timestamp" desc, id desc);
 
 -- configuration
 
@@ -367,6 +394,28 @@ Create table "config"
 	primary key ("config_key","config_user")
 );
 
+Create table "provisioning_config_node"
+(
+	"id" BIGSERIAL,
+	"node_type" Varchar NOT NULL,
+	"object_key" Varchar NOT NULL,
+	"parent_id" BIGINT,
+	"display_name" Varchar NOT NULL Default '',
+	"sort_order" Integer,
+	primary key ("id"),
+	CONSTRAINT provisioning_config_node_node_type_object_key_key UNIQUE ("node_type", "object_key"),
+	CONSTRAINT provisioning_config_node_node_type_check CHECK ("node_type" IN ('global', 'device_type', 'management', 'gateway')),
+	CONSTRAINT provisioning_config_node_parent_check CHECK (("node_type" = 'global') = ("parent_id" IS NULL))
+);
+
+Create table "provisioning_config_value"
+(
+	"node_id" BIGINT NOT NULL,
+	"config_key" Varchar NOT NULL,
+	"config_value" Jsonb NOT NULL,
+	primary key ("node_id","config_key")
+);
+
 create table time_object
 (
     time_obj_id BIGSERIAL PRIMARY KEY,
@@ -379,4 +428,40 @@ create table time_object
     removed BIGINT,
 	flow_timeobj_id BIGINT,
 	flow_active BOOLEAN NOT NULL Default FALSE
+);
+
+-- central, append-only history for modelling and workflow changes
+CREATE TABLE change_history
+(
+    id BIGSERIAL PRIMARY KEY,
+    app_id INTEGER,
+    ticket_id BIGINT,
+    -- Names the subsystem that wrote the row. It is the discriminator for object_type
+    -- and the basis of the read permissions of the modelling roles, so it is set by the
+    -- API and never derived from imported data.
+    module VARCHAR NOT NULL DEFAULT 'modelling',
+    change_type INTEGER,
+    -- Holds two disjoint enums, selected by module:
+    -- FWO.Data.Modelling.ModellingTypes.ModObjectType (1-31) for module = 'modelling',
+    -- FWO.Data.ChangeHistoryObjectType (100 and above) for module = 'workflow'.
+    object_type INTEGER,
+    object_id BIGINT,
+    change_text TEXT,
+    -- Free text supplied by the client. changer_id is set by the API from the
+    -- authenticated session and is the trustworthy identity of the two. It stays null for rows
+    -- written outside a user session, because the middleware-server role carries no user id; in
+    -- that case changer names the automation, see FWO.Basics.Roles.MiddlewareServer.
+    changer VARCHAR,
+    changer_id INTEGER,
+    -- Kept timezone-naive for compatibility with migrated modelling history.
+    change_time TIMESTAMP DEFAULT NOW(),
+    -- Provenance within the module, e.g. manual, adjustAppServerNames or an import source
+    -- name configured by the customer. Never used to tell modules apart, see module.
+    change_source VARCHAR NOT NULL DEFAULT 'manual',
+    -- FWO.Data.Workflow.WorkflowPhases, null for modelling changes. Note that request = 0.
+    workflow_phase INTEGER,
+    old_data JSONB,
+    new_data JSONB,
+    audit_proof_critical BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT change_history_module_check CHECK (module IN ('modelling', 'workflow'))
 );

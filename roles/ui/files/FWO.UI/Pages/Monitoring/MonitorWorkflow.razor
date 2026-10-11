@@ -5,7 +5,7 @@
 @using System.Text.Json
 
 @page "/monitoring/workflow"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -260,7 +260,7 @@ else
             }
             else
             {
-                await apiConnection.RunWithBestRole(authenticationStateTask.Result.User, [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                await apiConnection.RunWithBestRole(authenticationStateTask.Result.User, [Roles.Admin, Roles.Auditor],
                     async () =>
                     {
                         fetchedTickets = await apiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getFullTicketsPaged, variables);

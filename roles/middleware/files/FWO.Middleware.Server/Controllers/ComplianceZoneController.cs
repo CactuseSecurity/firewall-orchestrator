@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Logging;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -43,8 +44,10 @@ public class ComplianceZoneController(ComplianceZoneService complianceZoneServic
 
     /// <summary>
     /// Returns the zones occupied by object trees.
-    /// Only IPv4 leaf addresses are supported; IPv6 ranges are rejected during validation.
-    /// Optional /32 masks on ipStart and ipEnd are ignored; all other masks are rejected.
+    /// IPv4 and IPv6 leaf ranges are accepted through ipStart and ipEnd.
+    /// Optional host masks (/32 and /128) are ignored; all other masks are rejected.
+    /// IPv6 values that only re-encode an IPv4 address are rejected as well, i.e. the IPv4-mapped form
+    /// (::ffff:a.b.c.d) and the deprecated IPv4-compatible form (::a.b.c.d); use the IPv4 notation instead.
     /// </summary>
     /// <param name="request">The object tree to resolve.</param>
     [HttpPost("resolveZonesForObjects")]
@@ -64,6 +67,10 @@ public class ComplianceZoneController(ComplianceZoneService complianceZoneServic
         try
         {
             return Ok(await complianceZoneService.ResolveZonesForObjectsAsync(request));
+        }
+        catch (UnassignableIpRangesException exception)
+        {
+            return BadRequest(exception.Message);
         }
         catch (Exception exception)
         {

@@ -31,12 +31,16 @@ make_stub_bin() {
     return 0
 }
 
-# Fixture repo dir with collections/requirements.yml and an optional
-# community.general manifest at version $1 ("" = no manifest).
+# Fixture repo dir with collections/requirements.yml and optional repository-local
+# and fallback community.general manifests ("" = no manifest).
 make_fixture() {
-    local cg_version="$1" dir manifest
+    local local_cg_version="$1" fallback_cg_version="$2" dir manifest
     dir="$(mktemp -d)"
-    mkdir -p "$dir/collections"
+    mkdir -p "$dir/collections" "$dir/fallback"
+    cat >"$dir/ansible.cfg" <<'INI'
+[defaults]
+collections_path = ./collections:./fallback
+INI
     cat >"$dir/collections/requirements.yml" <<'YAML'
 ---
 collections:
@@ -44,29 +48,41 @@ collections:
     version: 11.4.2
 YAML
 
-    if [[ -n "$cg_version" ]]; then
+    if [[ -n "$local_cg_version" ]]; then
         manifest="$dir/collections/ansible_collections/community/general"
         mkdir -p "$manifest"
         printf '{\n  "collection_info": {\n    "version": "%s"\n  }\n}\n' \
-            "$cg_version" >"$manifest/MANIFEST.json"
+            "$local_cg_version" >"$manifest/MANIFEST.json"
+    fi
+
+    if [[ -n "$fallback_cg_version" ]]; then
+        manifest="$dir/fallback/ansible_collections/community/general"
+        mkdir -p "$manifest"
+        printf '{\n  "collection_info": {\n    "version": "%s"\n  }\n}\n' \
+            "$fallback_cg_version" >"$manifest/MANIFEST.json"
     fi
 
     printf '%s' "$dir"
     return 0
 }
 
-# assert_case <name> <expected_rc> <expect_galaxy: yes|no> <core_version> <cg_version> <func>
+# assert_case <name> <expected_rc> <expect_galaxy: yes|no> <core_version> <local_cg_version> <fallback_cg_version> <fallback_only_env: no|singular|plural> <func>
 assert_case() {
-    local name="$1" expected_rc="$2" expect_galaxy="$3" core_version="$4" cg_version="$5" func="$6"
+    local name="$1" expected_rc="$2" expect_galaxy="$3" core_version="$4" local_cg_version="$5" fallback_cg_version="$6" fallback_only_env="$7" func="$8"
     local bin fixture marker rc galaxy_seen="no"
 
     marker="$(mktemp -u)"
     bin="$(make_stub_bin "$core_version" "$marker")"
-    fixture="$(make_fixture "$cg_version")"
+    fixture="$(make_fixture "$local_cg_version" "$fallback_cg_version")"
 
     (
         cd "$fixture" || exit 99
         PATH="$bin:$PATH"
+        if [[ "$fallback_only_env" == "singular" ]]; then
+            ANSIBLE_COLLECTIONS_PATH="$fixture/fallback"
+        elif [[ "$fallback_only_env" == "plural" ]]; then
+            ANSIBLE_COLLECTIONS_PATHS="$fixture/fallback"
+        fi
         # shellcheck disable=SC1090
         source "$launcher"
         "$func"
@@ -93,13 +109,80 @@ assert_case() {
     return 0
 }
 
-#           name                              rc  galaxy core     cg        func
-assert_case "core >=2.16 passes"               0  no     2.19.7   11.4.2    require_ansible_core
-assert_case "core <2.16 rejected"              1  no     2.14.18  11.4.2    require_ansible_core
-assert_case "missing/unknown ansible rejected" 1  no     none     11.4.2    require_ansible_core
-assert_case "correct manifest: no galaxy call" 0  no     2.19.7   11.4.2    ensure_collections
-assert_case "stale manifest: reinstalls"       0  yes    2.19.7   6.6.2     ensure_collections
-assert_case "missing manifest: installs"       0  yes    2.19.7   ""        ensure_collections
+# assert_settings_case <name> <expected_rc> <expected_resolved: none|file> <file_state: absent|present|unreadable> <env: unset|set|set_missing>
+# Drives resolve_install_settings with the default path pointed at a temporary file, so the
+# case does not depend on whether this machine happens to have an installed FWO.
+assert_settings_case() {
+    local name="$1" expected_rc="$2" expected_resolved="$3" file_state="$4" env_state="$5"
+    local dir settings rc resolved
+
+    # root reads a 000 file regardless of its mode, so that case cannot be expressed here.
+    if [[ "$file_state" == "unreadable" ]] && [[ "$(id -u)" -eq 0 ]]; then
+        printf 'SKIP  %s (running as root)\n' "$name"
+        return 0
+    fi
+
+    dir="$(mktemp -d)"
+    settings="$dir/fwo-install-settings.yml"
+    if [[ "$file_state" != "absent" ]]; then
+        printf 'fwo_endpoint_hostname: fwo.example.com\n' >"$settings"
+        if [[ "$file_state" == "unreadable" ]]; then
+            chmod 000 "$settings"
+        fi
+    fi
+
+    resolved="$(
+        # shellcheck disable=SC1090
+        source "$launcher"
+        install_settings_default_file="$settings"
+        case "$env_state" in
+            set) export FWORCH_LOCAL_SETTINGS="$settings" ;;
+            set_missing) export FWORCH_LOCAL_SETTINGS="$dir/not-there.yml" ;;
+            *) unset FWORCH_LOCAL_SETTINGS ;;
+        esac
+        resolve_install_settings 2>/dev/null || exit $?
+        printf '%s' "$install_settings_file"
+    )"
+    rc=$?
+
+    local ok=1 got="none"
+    [[ -n "$resolved" ]] && got="file"
+    [[ "$rc" -eq "$expected_rc" ]] || ok=0
+    [[ "$got" == "$expected_resolved" ]] || ok=0
+    # A resolved path must be the file itself, never a guess at one.
+    [[ "$got" == "none" || "$resolved" == "$settings" ]] || ok=0
+
+    if [[ "$ok" -eq 1 ]]; then
+        printf 'PASS  %s\n' "$name"
+        pass=$((pass + 1))
+    else
+        printf 'FAIL  %s (rc=%s want %s; resolved=%s want %s)\n' \
+            "$name" "$rc" "$expected_rc" "$got" "$expected_resolved"
+        fail=$((fail + 1))
+    fi
+
+    chmod 700 "$dir" 2>/dev/null || true
+    rm -rf "$dir"
+    return 0
+}
+
+#           name                                                  rc  galaxy core     local   fallback env  func
+assert_case "core >=2.16 passes"                                   0  no     2.19.7   11.4.2  ""       no   require_ansible_core
+assert_case "core <2.16 rejected"                                  1  no     2.14.18  11.4.2  ""       no   require_ansible_core
+assert_case "missing/unknown ansible rejected"                     1  no     none     11.4.2  ""       no   require_ansible_core
+assert_case "correct local manifest: no galaxy call"               0  no     2.19.7   11.4.2  ""       no   ensure_collections
+assert_case "matching fallback manifest: no galaxy call"           0  no     2.19.7   ""      11.4.2   no   ensure_collections
+assert_case "stale local shadows fallback: reinstalls"             0  yes    2.19.7   6.6.2   11.4.2   no   ensure_collections
+assert_case "stale local outside configured path: no galaxy call"  0  no     2.19.7   6.6.2   11.4.2   singular ensure_collections
+assert_case "legacy fallback path variable: no galaxy call"        0  no     2.19.7   ""      11.4.2   plural   ensure_collections
+assert_case "missing manifests: installs"                          0  yes    2.19.7   ""      ""       no   ensure_collections
+
+#                    name                                             rc  resolved  file        env
+assert_settings_case "no settings file: silent, nothing applied"       0  none      absent      unset
+assert_settings_case "settings file at the default path: applied"      0  file      present     unset
+assert_settings_case "unreadable settings file rejected"               1  none      unreadable  unset
+assert_settings_case "FWORCH_LOCAL_SETTINGS honoured"                  0  file      present     set
+assert_settings_case "FWORCH_LOCAL_SETTINGS pointing nowhere fails"    1  none      present     set_missing
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ "$fail" -eq 0 ]]

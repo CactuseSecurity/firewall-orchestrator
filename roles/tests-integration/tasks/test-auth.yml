@@ -16,17 +16,18 @@
 - block:
     - name: wait for middleware port to become available
       ansible.builtin.wait_for:
-          port: "{{ middleware_internal_port }}"
-          host: "127.0.0.1"
+          port: "{{ test_middleware_port }}"
+          host: "{{ test_middleware_host }}"
           connect_timeout: 1
           delay: 10
           timeout: 120
 
     - name: wait for middleware web server to become available
       ansible.builtin.uri:
-          url: "{{ middleware_uri }}/swagger/"
+          url: "{{ test_middleware_uri }}api-docs/"
           method: GET
-          validate_certs: false
+          validate_certs: true
+          ca_path: "{{ internalca_trust_bundle }}"
           return_content: false
       register: middleware_web_result
       changed_when: false
@@ -48,19 +49,85 @@
       failed_when: false
       become: true
 
+    # A TLS failure here is Apache's, not the middleware's, so the service journal
+    # says nothing about it. Report the identity actually served, the vhost that
+    # selects it and the anchors the test validates against, because the three
+    # together name the cause: a certificate missing the configured host name, a
+    # vhost still pointing at a certificate FWO did not issue, or a trust bundle
+    # that does not carry the issuer.
+    - name: get the certificate the middleware endpoint serves
+      ansible.builtin.shell:
+          cmd: >-
+              set -o pipefail;
+              openssl s_client -connect {{ test_middleware_host }}:{{ test_middleware_port }} </dev/null 2>/dev/null
+              | openssl x509 -noout -subject -issuer -dates -ext subjectAltName
+          executable: /bin/bash
+      register: middleware_served_certificate
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: get the certificate paths the middleware vhost is configured with
+      ansible.builtin.command: "grep -E '^[[:space:]]*SSLCertificate' {{ http_conf_dir }}{{ product_name }}-mw.conf"
+      register: middleware_vhost_certificate_paths
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: get the trust anchors the test validates against
+      ansible.builtin.shell:
+          cmd: >-
+              set -o pipefail;
+              openssl crl2pkcs7 -nocrl -certfile {{ internalca_trust_bundle }}
+              | openssl pkcs7 -print_certs -noout
+          executable: /bin/bash
+      register: middleware_trust_bundle_anchors
+      changed_when: false
+      failed_when: false
+      become: true
+
+    # A bind conflict is the other way this endpoint stays dead while Apache is
+    # perfectly healthy: the vhost answers on the public port and proxies to a
+    # middleware that never came up, because something else already holds its
+    # internal port. The journal names the address it failed to bind; this names
+    # the process holding it, which is the part that is otherwise guesswork.
+    - name: get the processes listening on the middleware ports
+      ansible.builtin.shell:
+          cmd: >-
+              set -o pipefail;
+              ss -ltnp
+              | grep -E ':({{ middleware_internal_port }}|{{ test_middleware_port }})[[:space:]]'
+              || true
+          executable: /bin/bash
+      register: middleware_listening_processes
+      changed_when: false
+      failed_when: false
+      become: true
+
     - name: show middleware startup diagnostics
       ansible.builtin.debug:
           msg:
+              - "configured middleware_uri in {{ fworch_conf_file }}: {{ test_middleware_uri }}"
+              - "listeners on {{ middleware_internal_port }} (middleware) and {{ test_middleware_port }} (reverse proxy): {{ middleware_listening_processes.stdout | default('') | trim or 'none - neither port is bound' }}"
+              - "certificate served on {{ test_middleware_host }}:{{ test_middleware_port }}: {{ middleware_served_certificate.stdout | default('') }}"
+              - "{{ http_conf_dir }}{{ product_name }}-mw.conf: {{ middleware_vhost_certificate_paths.stdout | default('') }}"
+              - "anchors in {{ internalca_trust_bundle }}: {{ middleware_trust_bundle_anchors.stdout | default('') }}"
               - "systemctl status {{ middleware_service_name }}: {{ middleware_service_status.stdout | default('') }}"
               - "journalctl -u {{ middleware_service_name }}: {{ middleware_service_journal.stdout | default('') }}"
 
     - name: fail middleware readiness check
       ansible.builtin.fail:
-          msg: "Middleware did not become ready on 127.0.0.1:{{ middleware_internal_port }}."
+          msg: >-
+            Middleware did not become ready on
+            {{ test_middleware_host }}:{{ test_middleware_port }}, reached as
+            {{ test_middleware_uri }}. See the diagnostics above: a service in
+            failed state points at the journal, a read timeout against a healthy
+            vhost points at {{ middleware_internal_port }} being unreachable or
+            held by another process.
 
 - name: middleware test get jwt valid creds
   ansible.builtin.uri:
-      url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/GetTokenPair/"
+      url: "{{ test_middleware_uri }}api/AuthenticationToken/GetTokenPair/"
       method: POST
       status_code: 200
       headers:
@@ -69,7 +136,8 @@
           Username: "user1{{ test_postfix }}"
           Password: "{{ test_user1_pw }}"
       body_format: json
-      validate_certs: false
+      validate_certs: true
+      ca_path: "{{ internalca_trust_bundle }}"
       return_content: true
   register: sample_jwt
   changed_when: false
@@ -125,7 +193,7 @@
 # --- negative test: wrong credentials ---
 - name: middleware test get jwt wrong creds
   ansible.builtin.uri:
-      url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/"
+      url: "{{ test_middleware_uri }}api/AuthenticationToken/Get/"
       method: POST
       headers:
           Content-Type: application/json
@@ -133,7 +201,8 @@
           Username: "user1{{ test_postfix }}"
           Password: "wrong-pwd"
       body_format: json
-      validate_certs: false
+      validate_certs: true
+      ca_path: "{{ internalca_trust_bundle }}"
       return_content: true
   register: sample_jwt
   changed_when: false

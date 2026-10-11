@@ -520,7 +520,23 @@ else
 
     private async Task<FlowSvcObject> GetOrCreateCustomFlowSvcObject(CustomServiceSignature signature)
     {
-        return await InsertCustomFlowSvcObject(signature, FlowHashGenerator.GenerateRandomHash());
+        FlowSvcObject newFlowSvcObject = new()
+        {
+            ProtoId = signature.ProtoId,
+            PortStart = signature.DestinationPortStart,
+            PortEnd = signature.DestinationPortEnd
+        };
+        string? deterministicHash = newFlowSvcObject.TryCalculateHash();
+        if (deterministicHash != null)
+        {
+            FlowSvcObject? existingFlowSvcObject = flowSvcObjects.FirstOrDefault(flowObject => flowObject.Hash == deterministicHash);
+            if (existingFlowSvcObject != null)
+            {
+                return existingFlowSvcObject;
+            }
+        }
+
+        return await InsertCustomFlowSvcObject(signature, deterministicHash ?? FlowHashGenerator.GenerateRandomHash());
     }
 
     /// <summary>

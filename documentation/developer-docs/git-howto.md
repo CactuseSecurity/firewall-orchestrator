@@ -119,6 +119,33 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 
 ## Submodules
 
+### Before you pull: back up an existing `.claude/` directory
+
+The repo tracks `.claude` as a link to the `.agents` submodule. If you already have a
+local `.claude/` directory, move it before pulling so its local settings and skills are
+not replaced:
+```shell
+mv .claude ~/claude-backup-$(date +%F)
+git pull
+```
+
+### Windows only: enable symbolic links before cloning
+
+Before cloning, enable Windows **Developer Mode** (or run Git elevated) and configure Git:
+```shell
+git config --global core.symlinks true
+```
+The Git for Windows installer provides the same setting as **Enable symbolic links**.
+Without symlink support, `.claude`, `AGENTS.md`, `CLAUDE.md`, and the shared GraphQL
+queries are checked out incorrectly.
+
+For an existing clone, enable the setting, initialize submodules, then restore the links:
+```shell
+git config core.symlinks true
+git submodule update --init --recursive
+git checkout --force HEAD -- .claude AGENTS.md CLAUDE.md roles/lib/files/FWO.Api.Client/Queries/GraphQL
+```
+
 ### Automatic submodule sync via repo hooks
 Enable the repo-managed hooks once (per clone) to keep submodules up to date automatically:
 ```shell
@@ -138,6 +165,9 @@ To automatically ignore local submodule pointer changes, run:
 ```shell
 git config submodule.agents.ignore all
 ```
+
+The `.agents` submodule is loaded as project configuration through the `.claude` link;
+review submodule pointer updates as carefully as code changes.
 
 ### Trigger hook 
 In order to initially trigger the hook which does the initialisation, we need to do any of the operations (git checkout, git merge, git rewrite)
@@ -176,6 +206,23 @@ tim@acantha24:~/dev/tim/fwo$
 Notes:
 - 160000 - sub module
 - 120000 - symbolic link
+
+List every symbolic link the repo tracks:
+```shell
+git ls-files -s | awk '$1=="120000"'
+```
+This shows tracked links, not whether they were checked out correctly. Check both the
+link and its target on disk:
+```shell
+git ls-files -s | awk '$1=="120000"{print $4}' | while read -r f; do
+  [ -L "$f" ] || echo "NOT A LINK: $f"
+  [ -e "$f" ] || echo "DANGLING:   $f"
+done
+```
+No output means all links are valid. `NOT A LINK` indicates that the checkout lacks
+symlink support; `DANGLING` usually means that `.agents` was not initialized. Run
+`git submodule update --init --recursive` to fix the latter.
+
 ## Troubleshooting: pre-commit Python / Ruff / Pyright
 
 If `git commit` fails with messages like:

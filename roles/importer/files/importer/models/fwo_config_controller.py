@@ -1,9 +1,39 @@
+import functools
 import json
 import sys
 
 from fwo_const import FWO_CONFIG_FILENAME, IMPORTER_PWD_FILE
+from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
-from models.fwo_config import FwoConfig
+from models.fwo_config import FwoConfig, TlsIdentity
+
+FWO_CONFIG_FILE = "/etc/fworch/fworch.json"
+
+
+@functools.lru_cache(maxsize=1)
+def read_tls_identity(fwo_config_filename: str) -> TlsIdentity:
+    """
+    Read the local TLS identity straight from the config file.
+
+    Kept independent of the FwoConfigController so FwoApi can attach the identity to every
+    internal call (including the very first login) without needing a config instance.
+    """
+    try:
+        with open(fwo_config_filename) as fwo_config:
+            fwo_config_json = json.loads(fwo_config.read())
+        return TlsIdentity(
+            client_certificate=str(fwo_config_json["tls_client_certificate"]),
+            client_private_key=str(fwo_config_json["tls_client_private_key"]),
+            ca_certificate=str(fwo_config_json["tls_ca_certificate"]),
+        )
+    except KeyError as key_error:
+        raise FwoImporterError(
+            f"TLS identity key not found in {fwo_config_filename}: {key_error.args[0]}"
+        ) from key_error
+    except OSError as os_error:
+        raise FwoImporterError(f"config file not found or unable to access: {fwo_config_filename}") from os_error
+    except ValueError as value_error:
+        raise FwoImporterError(f"config file is not valid json: {fwo_config_filename}") from value_error
 
 
 class FwoConfigController:
@@ -39,9 +69,7 @@ class FwoConfigController:
             debug_level=debug_level,
         )
 
-    def read_config(
-        self, fwo_config_filename: str = "/etc/fworch/fworch.json"
-    ) -> tuple[str, str, str, str, int, int, int]:
+    def read_config(self, fwo_config_filename: str = FWO_CONFIG_FILE) -> tuple[str, str, str, str, int, int, int]:
         try:
             # read fwo config (API URLs)
             with open(fwo_config_filename) as fwo_config:
@@ -53,6 +81,7 @@ class FwoConfigController:
             fwo_major_version = int(fwo_version.split(".")[0])
             api_fetch_size = fwo_config_json.get("fwApiElementsPerFetch", 150)
             sleep_timer = fwo_config_json.get("importSleepTime", 90)
+            read_tls_identity(fwo_config_filename)  # fail fast on a missing TLS identity
 
             # read importer password from file
             with open(IMPORTER_PWD_FILE) as file:
@@ -63,6 +92,11 @@ class FwoConfigController:
             sys.exit(1)
         except FileNotFoundError:
             FWOLogger.error("config file not found or unable to access: " + fwo_config_filename)
+            sys.exit(1)
+        except FwoImporterError as tls_error:
+            # read_tls_identity already names the offending key or file; keep that detail
+            # instead of letting it fall through to the generic message below.
+            FWOLogger.error(str(tls_error))
             sys.exit(1)
         except Exception:
             FWOLogger.error("unspecified error occurred while trying to read config file: " + fwo_config_filename)

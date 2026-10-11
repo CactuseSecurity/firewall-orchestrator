@@ -7,7 +7,6 @@ normalized JSON structure.
 
 from typing import Any
 
-import fwo_globals
 import requests
 import xmltodict
 from fw_modules.opnsense25ff.opnsense_normalizer import normalize_opnsense_config
@@ -54,7 +53,7 @@ def fetch_native_config(import_state: ImportState) -> dict[str, Any]:
         f"https://{import_state.mgm_details.hostname}:{import_state.mgm_details.port!s}/api/core/backup/download/this"
     )
     with requests.Session() as session:
-        session.verify = fwo_globals.verify_certs or False
+        session.verify = import_state.verify_certs
         session.auth = HTTPBasicAuth(import_state.mgm_details.import_user, import_state.mgm_details.secret)
 
         FWOLogger.debug("[*] receiving OPNsense config.xml ...")

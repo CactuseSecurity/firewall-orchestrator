@@ -21,10 +21,11 @@ namespace FWO.DeviceAutoDiscovery
 
         private readonly string Autodiscovery = "Autodiscovery";
 
-        public AutoDiscoveryFortiManager(Management superManagement, ApiConnection apiConn) : base(superManagement, apiConn) { }
+        public AutoDiscoveryFortiManager(Management superManagement, ApiConnection apiConn, bool checkCertificates) : base(superManagement, apiConn, checkCertificates) { }
 
-        public override async Task<List<Management>> Run()
+        public override async Task<List<Management>> Run(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             List<Management> discoveredDevices = [];
             Log.WriteAudit(Autodiscovery, $"starting discovery for {SuperManagement.Name} (id={SuperManagement.Id})");
             // #if DEBUG
@@ -34,11 +35,11 @@ namespace FWO.DeviceAutoDiscovery
             {
                 SuperManagement.IsSupermanager = true; // just to be sure
                 Log.WriteDebug(Autodiscovery, $"discovering FortiManager adoms, vdoms, devices");
-                FortiManagerClient restClientFM = new(SuperManagement);
+                FortiManagerClient restClientFM = new(SuperManagement, CheckCertificates);
                 RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
                 {
-                    return await DiscoverySession(discoveredDevices);
+                    return await DiscoverySession(discoveredDevices, cancellationToken);
                 }
                 else
                 {
@@ -55,10 +56,10 @@ namespace FWO.DeviceAutoDiscovery
             return discoveredDevices;
         }
 
-        private async Task<List<Management>> DiscoverySession(List<Management> discoveredDevices)
+        private async Task<List<Management>> DiscoverySession(List<Management> discoveredDevices, CancellationToken cancellationToken)
         {
             Log.WriteDebug(Autodiscovery, $"discovering FortiManager adoms, vdoms, devices");
-            FortiManagerClient restClientFM = new(SuperManagement);
+            FortiManagerClient restClientFM = new(SuperManagement, CheckCertificates);
 
             RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
             if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
@@ -67,18 +68,26 @@ namespace FWO.DeviceAutoDiscovery
                 Log.WriteDebug(Autodiscovery, $"successful FortiManager login, got SessionID: {sessionId}");
                 // need to use @ verbatim identifier for special chars in sessionId
 
-                discoveredDevices = await CollectDevices(sessionId, restClientFM);
-                await UpdateMgmtUid(sessionId, restClientFM);
-                sessionResponse = await restClientFM.DeAuthenticateUser(sessionId);
-                if (sessionResponse.StatusCode == HttpStatusCode.OK)
+                try
                 {
-                    Log.WriteDebug(Autodiscovery, $"successful FortiManager logout");
+                    discoveredDevices = await CollectDevices(sessionId, restClientFM, cancellationToken);
+                    await UpdateMgmtUid(sessionId, restClientFM);
                 }
-                else
+                finally
                 {
-                    Log.WriteWarning(Autodiscovery, $"error while logging out from FortiManager: {sessionResponse.ErrorMessage}");
+                    sessionResponse = await restClientFM.DeAuthenticateUser(sessionId);
+                    if (sessionResponse.StatusCode == HttpStatusCode.OK)
+                    {
+                        Log.WriteDebug(Autodiscovery, $"successful FortiManager logout");
+                    }
+                    else
+                    {
+                        Log.WriteWarning(Autodiscovery, $"error while logging out from FortiManager: {sessionResponse.ErrorMessage}");
+                    }
                 }
             }
+            // an incomplete discovery would report all managements it did not reach as deleted
+            cancellationToken.ThrowIfCancellationRequested();
             return await GetDeltas(discoveredDevices);
         }
 
@@ -96,18 +105,19 @@ namespace FWO.DeviceAutoDiscovery
             }
         }
 
-        private async Task<List<Management>> CollectDevices(string sessionId, FortiManagerClient restClientFM)
+        private async Task<List<Management>> CollectDevices(string sessionId, FortiManagerClient restClientFM, CancellationToken cancellationToken)
         {
             List<Adom> customAdoms = await GetAdoms(sessionId, restClientFM);
-            await BuildAdomDeviceVdomStructure(sessionId, customAdoms, restClientFM);
+            await BuildAdomDeviceVdomStructure(sessionId, customAdoms, restClientFM, cancellationToken);
             return ConvertAdomsToManagements(customAdoms);
         }
 
-        public async Task BuildAdomDeviceVdomStructure(string sessionId, List<Adom> customAdoms, FortiManagerClient restClientFM)
+        public async Task BuildAdomDeviceVdomStructure(string sessionId, List<Adom> customAdoms, FortiManagerClient restClientFM, CancellationToken cancellationToken = default)
         {
 
             foreach (Adom adom in customAdoms)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 List<FortiGate> additionalVdomDevices = [];
                 RestResponse<FmApiTopLevelHelperDev> deviceResponse = await restClientFM.GetDevicesPerAdom(sessionId, adom.Name);
                 if (deviceResponse != null && deviceResponse.StatusCode == HttpStatusCode.OK && deviceResponse.IsSuccessful)
@@ -237,6 +247,10 @@ namespace FWO.DeviceAutoDiscovery
             List<Management> discoveredDevices = [];
             foreach (Adom adom in customAdoms)
             {
+                if (!IsAcceptableDomainName(adom.Name))
+                {
+                    continue;
+                }
                 Management currentManagement = CreateManagement(SuperManagement, adom.Name, adom.Uid);
                 if (adom.DeviceList != null)
                 {

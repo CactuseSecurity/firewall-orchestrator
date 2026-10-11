@@ -15,4 +15,4 @@ mutation assertUserExists(
   }
 }
 
-# {"uiuser_username": "hugo", "uuid": "0815", "onConflictRule": {"update_columns": "uuid", "constraint": "uiuser_uuid_key" }}
+# {"uiuser_username": "hugo", "uuid": "0815", "onConflictRule": {"update_columns": "uiuser_username", "constraint": "uiuser_ldap_connection_id_uuid_key" }}

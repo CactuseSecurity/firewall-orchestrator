@@ -27,6 +27,7 @@ try:
         extract_label_items,
         login_fwo,
         login_guardicore,
+        resolve_fwo_client_identity,
         resolve_ssl_verification_settings,
         run_graphql_query,
     )
@@ -41,6 +42,7 @@ except ModuleNotFoundError:
         extract_label_items,
         login_fwo,
         login_guardicore,
+        resolve_fwo_client_identity,
         resolve_ssl_verification_settings,
         run_graphql_query,
     )
@@ -255,6 +257,8 @@ def parse_args() -> argparse.Namespace:  # pragma: no cover
         "--fwo-ca-cert",
         help="Path to a CA bundle for the FWO API (useful for self-signed certs)",
     )
+    parser.add_argument("--fwo-client-cert", help="Path to the client certificate for FWO API calls")
+    parser.add_argument("--fwo-client-key", help="Path to the client private key for FWO API calls")
     parser.add_argument(
         "--fwo-insecure",
         action="store_true",
@@ -612,7 +616,11 @@ def post_guardicore_labels(config: GuardicoreConfig, payload: list[JsonDict]) ->
                     )
 
 
-def get_fwo_jwt(args: argparse.Namespace, fwo_verify: bool | str) -> str:
+def get_fwo_jwt(
+    args: argparse.Namespace,
+    fwo_verify: bool | str,
+    client_identity: tuple[str, str] | None = None,
+) -> str:
     if args.fwo_jwt:
         return args.fwo_jwt
     return login_fwo(
@@ -622,11 +630,15 @@ def get_fwo_jwt(args: argparse.Namespace, fwo_verify: bool | str) -> str:
         fwo_verify,
         args.timeout,
         GuardicoreProvisioningError,
+        client_identity,
     )
 
 
 def fetch_labels_from_fwo(
-    args: argparse.Namespace, jwt: str, fwo_verify: bool | str
+    args: argparse.Namespace,
+    jwt: str,
+    fwo_verify: bool | str,
+    client_identity: tuple[str, str] | None = None,
 ) -> tuple[list[LabelItem], Counter[int]]:
     fwo_config = FwoConfig(
         graphql_url=args.fwo_graphql_url,
@@ -634,6 +646,7 @@ def fetch_labels_from_fwo(
         verify_ssl=fwo_verify,
         timeout_seconds=args.timeout,
         role=args.fwo_role,
+        client_identity=client_identity,
     )
     response = run_graphql_query(
         fwo_config,
@@ -709,14 +722,18 @@ def main() -> int:  # pragma: no cover
     try:
         require_login_fields(args)
         require_guardicore_fields(args)
-    except GuardicoreProvisioningError:
+        client_identity = resolve_fwo_client_identity(args, GuardicoreProvisioningError)
+    # resolve_fwo_client_identity reads the local fworch.json, which raises
+    # JSONDecodeError when that file is corrupt rather than pretending no client
+    # identity is configured.
+    except (GuardicoreProvisioningError, json.JSONDecodeError):
         logger.exception("Argument validation failed.")
         return 2
 
     try:
         fwo_verify, guardicore_verify = resolve_ssl_verification_settings(args)
-        jwt = get_fwo_jwt(args, fwo_verify)
-        labels, fwo_group_type_counts = fetch_labels_from_fwo(args, jwt, fwo_verify)
+        jwt = get_fwo_jwt(args, fwo_verify, client_identity)
+        labels, fwo_group_type_counts = fetch_labels_from_fwo(args, jwt, fwo_verify, client_identity)
         built_by_key = count_labels_by_key(labels)
         logger.info(
             "FWO nwgroups summary: total=%s, type20=%s, type21=%s, type23=%s.",
@@ -779,7 +796,7 @@ def main() -> int:  # pragma: no cover
         )
         return 0
 
-    except GuardicoreProvisioningError:
+    except (GuardicoreProvisioningError, json.JSONDecodeError):
         logger.exception("Guardicore provisioning failed.")
         return 1
 

@@ -3,6 +3,16 @@ the configuraton of a firewall orchestrator itself
 as read from the global config file including FWO URI
 """
 
+from typing import NamedTuple
+
+
+class TlsIdentity(NamedTuple):
+    """Paths FWO components use to authenticate to, and verify, internal endpoints."""
+
+    client_certificate: str
+    client_private_key: str
+    ca_certificate: str
+
 
 class FwoConfig:
     fwo_api_url: str

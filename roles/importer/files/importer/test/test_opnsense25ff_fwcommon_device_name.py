@@ -1,4 +1,3 @@
-import fwo_globals
 import pytest
 import requests
 from fw_modules.opnsense25ff import fwcommon
@@ -66,7 +65,7 @@ def test_get_config_fetches_sanitizes_and_normalizes_config(
         timeout=60,
     )
     response.raise_for_status.assert_called_once_with()
-    assert session.verify == (fwo_globals.verify_certs or False)
+    assert session.verify == import_state.verify_certs
     assert session.auth.username == "mock-user"
     assert session.auth.password == "mock-secret"  # noqa: S105
     sanitizer.assert_called_once_with({"opnsense": {"system": {}}})

@@ -5,9 +5,15 @@ namespace FWO.Api.Client.Queries
     public class NotificationQueries : Queries
     {
         public static readonly string getNotifications;
+        public static readonly string getNotificationById;
         public static readonly string addNotification;
         public static readonly string updateNotification;
         public static readonly string updateNotificationsLastSent;
+        public static readonly string insertNotificationLog;
+        public static readonly string updateNotificationLog;
+        public static readonly string refreshNotificationLog;
+        public static readonly string getNoRecipientNotificationLogs;
+        public static readonly string getNoRecipientNotificationLogsWithoutDeadline;
 
         public static readonly string deleteNotification;
 
@@ -17,9 +23,15 @@ namespace FWO.Api.Client.Queries
             try
             {
                 getNotifications = File.ReadAllText(QueryPath + "notification/getNotifications.graphql");
+                getNotificationById = File.ReadAllText(QueryPath + "notification/getNotificationById.graphql");
                 addNotification = File.ReadAllText(QueryPath + "notification/addNotification.graphql");
                 updateNotification = File.ReadAllText(QueryPath + "notification/updateNotification.graphql");
                 updateNotificationsLastSent = File.ReadAllText(QueryPath + "notification/updateNotificationsLastSent.graphql");
+                insertNotificationLog = File.ReadAllText(QueryPath + "notification_log/insertNotificationLog.graphql");
+                updateNotificationLog = File.ReadAllText(QueryPath + "notification_log/updateNotificationLog.graphql");
+                refreshNotificationLog = File.ReadAllText(QueryPath + "notification_log/refreshNotificationLog.graphql");
+                getNoRecipientNotificationLogs = File.ReadAllText(QueryPath + "notification_log/getNoRecipientNotificationLogs.graphql");
+                getNoRecipientNotificationLogsWithoutDeadline = File.ReadAllText(QueryPath + "notification_log/getNoRecipientNotificationLogsWithoutDeadline.graphql");
                 deleteNotification = File.ReadAllText(QueryPath + "notification/deleteNotification.graphql");
             }
             catch (Exception exception)

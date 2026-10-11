@@ -20,6 +20,13 @@ namespace FWO.Data.Report
         [JsonProperty("rules"), JsonPropertyName("rules")]
         public Rule[] Rules { get; set; } = [];
 
+        /// <summary>
+        /// Active links pointing to this rulebase (only fetched for management rulebases view, cleared after scoping).
+        /// </summary>
+        [JsonProperty("rulebase_links", NullValueHandling = NullValueHandling.Ignore), JsonPropertyName("rulebase_links")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public RulebaseLink[]? IncomingLinks { get; set; }
+
         public RulebaseReport()
         { }
     }

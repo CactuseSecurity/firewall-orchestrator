@@ -288,7 +288,7 @@ namespace FWO.Services.Workflow
 
         private Func<WfTicket, bool>? GetVisibilityTicketFilter()
         {
-            return userConfig.ReqVisibilityBased ? ApplyVisibilityRestrictions : null;
+            return userConfig.ReqVisibilityBased && !SystemContext ? ApplyVisibilityRestrictions : null;
         }
 
         private void LogVisibilityDecision(string objectType, int stateId, string objectId, StateMatrix stateMatrix, bool visible,

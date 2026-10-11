@@ -48,6 +48,8 @@ namespace FWO.Basics
         public const string Login = "bi bi-box-arrow-in-right";
         public const string Logout = "bi bi-box-arrow-left";
         public const string Check = "bi bi-check-lg";
+        public const string SelectAll = "bi bi-check2-all";
+        public const string ClearAll = "bi bi-x-lg";
         public const string Swap = "bi bi-arrow-repeat";
         public const string CollapseUp = "bi bi-chevron-up";
         public const string CollapseDown = "bi bi-chevron-down";

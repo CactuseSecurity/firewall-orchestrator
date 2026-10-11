@@ -19,6 +19,7 @@ namespace FWO.Services
 
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
+        private readonly FlowHashRecalculator flowHashRecalculator;
 
         /// <summary>
         /// Creates a new flow sync service with API access.
@@ -27,6 +28,7 @@ namespace FWO.Services
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
+            flowHashRecalculator = new FlowHashRecalculator(apiConnection);
         }
 
         /// <summary>
@@ -53,10 +55,52 @@ namespace FWO.Services
         }
 
         /// <summary>
+        /// Fetches the flow data and makes sure its hashes match the current hash logic. If they do not,
+        /// the hashes stored in the flow database are recalculated and the flow data is fetched again.
+        /// </summary>
+        /// <returns>The consistent flow data, or null if the hashes could not be brought in line.</returns>
+        private async Task<FlowSyncFlowData?> GetConsistentFlowDataAsync(int mgmId)
+        {
+            FlowSyncFlowData flowData = await GetFlowSyncDataAsync(mgmId);
+            List<FlowHashInconsistency> inconsistencies = flowData.GetHashInconsistencies();
+
+            if (inconsistencies.Count == 0)
+            {
+                return flowData;
+            }
+
+            Log.WriteWarning(LogMessageTitle, $"Hash inconsistencies found for management {mgmId}, recalculating flow hashes. " +
+                $"Inconsistent entries: {FlowHashInconsistency.Describe(inconsistencies)}");
+
+            FlowHashRecalculationOutcome outcome = await flowHashRecalculator.RecalculateFlowHashesAsync(flowData);
+
+            if (outcome != FlowHashRecalculationOutcome.Updated)
+            {
+                Log.WriteError(LogMessageTitle, $"Flow hashes could not be recalculated, skipping management {mgmId}. " +
+                    $"Inconsistent entries: {FlowHashInconsistency.Describe(inconsistencies)}");
+                return null;
+            }
+
+            flowData = await GetFlowSyncDataAsync(mgmId);
+            List<FlowHashInconsistency> remainingInconsistencies = flowData.GetHashInconsistencies();
+
+            if (remainingInconsistencies.Count > 0)
+            {
+                Log.WriteError(LogMessageTitle, $"Hash inconsistencies remain after recalculation, skipping management {mgmId}. " +
+                    $"Inconsistent entries: {FlowHashInconsistency.Describe(remainingInconsistencies)}");
+                return null;
+            }
+
+            return flowData;
+        }
+
+        /// <summary>
         /// Main entry point: discovers pending imports and synchronizes each management.
         /// </summary>
-        public async Task<bool> Run()
+        /// <param name="cancellationToken">Stops before the next management or sync phase; imports of completely synchronized managements are still marked as done.</param>
+        public async Task<bool> Run(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(FlowQueries.getPendingFlowSyncImports);
 
             if (pendingImports == null || pendingImports.Count == 0)
@@ -102,19 +146,33 @@ namespace FWO.Services
 
             HashSet<int> successfullySyncedManagementIds = [];
 
-            foreach (int mgmId in managementIdsToSync)
+            try
             {
-                try
+                foreach (int mgmId in managementIdsToSync)
                 {
-                    if (await SyncManagementAsync(mgmId, useManagementNamesForFlow))
+                    cancellationToken.ThrowIfCancellationRequested();
+                    try
                     {
-                        successfullySyncedManagementIds.Add(mgmId);
+                        if (await SyncManagementAsync(mgmId, useManagementNamesForFlow, cancellationToken))
+                        {
+                            successfullySyncedManagementIds.Add(mgmId);
+                        }
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception exception)
+                    {
+                        Log.WriteError(LogMessageTitle, $"Flow sync failed for management {mgmId}.", exception);
                     }
                 }
-                catch (Exception exception)
-                {
-                    Log.WriteError(LogMessageTitle, $"Flow sync failed for management {mgmId}.", exception);
-                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // a partially synchronized management stays pending and is synchronized again in the next run
+                await CompletePendingImportsAsync(pendingImportsByManagement, superMgmToSubMgmIds, successfullySyncedManagementIds);
+                throw;
             }
 
             await CompletePendingImportsAsync(pendingImportsByManagement, superMgmToSubMgmIds, successfullySyncedManagementIds);
@@ -132,7 +190,7 @@ namespace FWO.Services
         /// Synchronizes a single management: fetches normalized objects, calculates hashes,
         /// inserts missing flows, and updates mappings.
         /// </summary>
-        private async Task<bool> SyncManagementAsync(int mgmId, bool useManagementNamesForFlow)
+        private async Task<bool> SyncManagementAsync(int mgmId, bool useManagementNamesForFlow, CancellationToken cancellationToken)
         {
             var managementData = (await apiConnection.SendQueryAsync<List<FlowSyncManagementData>>(FlowQueries.getFlowSyncManagementData, new { mgmId }))?.FirstOrDefault();
 
@@ -142,29 +200,36 @@ namespace FWO.Services
                 return false;
             }
 
-            var flowData = await GetFlowSyncDataAsync(mgmId);
+            cancellationToken.ThrowIfCancellationRequested();
+            var flowData = await GetConsistentFlowDataAsync(mgmId);
 
-            if (flowData.HasHashInconsistencies())
+            if (flowData == null)
             {
-                Log.WriteError(LogMessageTitle, $"Hash inconsistencies found for management {mgmId}.");
                 return false;
             }
 
             // Process simple objects first, as they are used in groups and accesses
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessNetworkObjectsAsync(mgmId, managementData.NetworkObjects.Where(o => o.Type.Name != ObjectType.Group), flowData, useManagementNamesForFlow);
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessServiceObjectsAsync(mgmId, managementData.ServiceObjects.Where(s => s.Type.Name != ServiceType.Group), flowData, useManagementNamesForFlow);
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessTimeObjectsAsync(mgmId, managementData.TimeObjects, flowData, useManagementNamesForFlow);
             // Refresh flow data to include newly inserted objects
+            cancellationToken.ThrowIfCancellationRequested();
             flowData = await GetFlowSyncDataAsync(mgmId);
             // Process groups next, as they are used in accesses
             await ProcessNetworkGroupsAsync(mgmId, managementData.NetworkObjects.Where(o => o.Type.Name == ObjectType.Group), flowData, useManagementNamesForFlow);
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessServiceGroupsAsync(mgmId, managementData.ServiceObjects.Where(s => s.Type.Name == ServiceType.Group), flowData, useManagementNamesForFlow);
             // Refresh flow data to include newly inserted groups
+            cancellationToken.ThrowIfCancellationRequested();
             flowData = await GetFlowSyncDataAsync(mgmId);
             // Finally, process accesses which reference all object types
             await ProcessRulesAsync(mgmId, managementData.Rules, flowData);
 
             // remove flow mappings from all normalized entries that are set to removed
+            cancellationToken.ThrowIfCancellationRequested();
             await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateFlowMappingsForRemoved, new { mgmId });
 
             return true;
@@ -855,7 +920,7 @@ namespace FWO.Services
         /// </summary>
         private static string NormalizeNwObjectIpEnd(NetworkObject obj)
         {
-            return string.IsNullOrWhiteSpace(obj.IpEnd) ? obj.IP : obj.IpEnd;
+            return string.IsNullOrWhiteSpace(obj.IpEnd) ? obj.IP ?? "" : obj.IpEnd;
         }
 
         /// <summary>
@@ -870,6 +935,13 @@ namespace FWO.Services
                 return false;
             }
             var portEnd = NormalizeSvcObjectPortEnd(svc);
+            if (svc.ProtoId.Value == GlobalConst.kAnyIpProtocolId
+                && !svc.DestinationPort.HasValue
+                && !portEnd.HasValue)
+            {
+                hash = FlowHashGenerator.GenerateSvcObjectHash(svc.ProtoId.Value, null, null);
+                return true;
+            }
             if (!svc.DestinationPort.HasValue || !portEnd.HasValue)
             {
                 if (flowData.SvcObjectHashes.TryGetValue(svc.Id, out var storedHash) && !string.IsNullOrWhiteSpace(storedHash))

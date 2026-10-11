@@ -29,6 +29,9 @@
                 <a class="nav-link" href="/help/monitoring/daily_checks/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Check"></span> @(userConfig.GetText("daily_checks"))
                 </a>
+                <a class="nav-link" href="/help/monitoring/rule_owner_mapping/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Owner"></span> @(userConfig.GetText("rule_owner_mapping_runs"))
+                </a>
                 <p></p>
                 <h5>@(userConfig.GetText("import"))</h5>
                 <a class="nav-link" href="/help/monitoring/import_status/?lang=@($"{userConfig.GetUserLanguage()}")">
@@ -60,6 +63,11 @@
                 <h5>@(userConfig.GetText("workflow"))</h5>
                 <a class="nav-link" href="/help/monitoring/workflow/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Workflow"></span> @(userConfig.GetText("tickets"))
+                </a>
+                <p></p>
+                <h5>@(userConfig.GetText("notifications"))</h5>
+                <a class="nav-link" href="/help/monitoring/email_log/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Email"></span> @(userConfig.GetText("email_log"))
                 </a>
                 <p></p>
                 <h5>@(userConfig.GetText("personal"))</h5>

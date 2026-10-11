@@ -38,7 +38,7 @@ public class ApiExampleCatalogTest
     [Test]
     public void TypedExamplesUseProductionJsonPropertyNames()
     {
-        Assert.That(catalog.TryGetExample(typeof(CreateRequestRequest), out object? example), Is.True);
+        Assert.That(catalog.TryGetExample(typeof(CreateTicketRequest), out object? example), Is.True);
 
         string json = JsonSerializer.Serialize(example, example!.GetType(), serializerOptions);
 
@@ -182,6 +182,46 @@ public class ApiExampleCatalogTest
         {
             Assert.That(addressGroup.Members.Select(member => member.Id), Does.Contain(addressObject.Id));
             Assert.That(serviceGroup.Members.Select(member => member.Id), Does.Contain(serviceObject.Id));
+        });
+    }
+
+    /// <summary>
+    /// Verifies the flow catalog response example documents portless protocol-only services.
+    /// </summary>
+    [Test]
+    public void FlowCatalogExamplesIncludePortlessServices()
+    {
+        Assert.That(catalog.TryGetExample(typeof(List<ServiceObjectResponse>), out object? responseExample), Is.True);
+
+        List<ServiceObjectResponse> response = (List<ServiceObjectResponse>)responseExample!;
+        string responseJson = JsonSerializer.Serialize(response, serializerOptions);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Any(service => service.PortStart is null && service.PortEnd is null), Is.True);
+            Assert.That(responseJson, Does.Contain("\"portStart\":null"));
+            Assert.That(responseJson, Does.Contain("\"portEnd\":null"));
+        });
+    }
+
+    /// <summary>
+    /// Verifies the address group request example documents the default response shape.
+    /// </summary>
+    [Test]
+    public void AddressGroupRequestExampleKeepsZoneSeparationDisabled()
+    {
+        Assert.That(catalog.TryGetExample(typeof(GetAddressGroupsRequest), out object? example), Is.True);
+
+        GetAddressGroupsRequest request = (GetAddressGroupsRequest)example!;
+        string json = JsonSerializer.Serialize(request, serializerOptions);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(request.Option, Is.Not.Null);
+            Assert.That(request.Option!.SeparateZoneGroups, Is.False);
+            Assert.That(request.Filter!.VisibleInRequest, Is.True);
+            Assert.That(json, Does.Contain("\"separateZoneGroups\":false"));
+            Assert.That(json, Does.Contain("\"visibleInRequest\":true"));
         });
     }
 

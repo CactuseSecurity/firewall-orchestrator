@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 # revision history:
+from __future__ import annotations
+
 __version__ = "2026-06-16-01"
 
 # breaking change: /usr/local/fworch needs to be in the python path
@@ -36,11 +38,11 @@ __version__ = "2026-06-16-01"
 #   b) requires the config items listed in the aprser help to be present in config file /usr/local/orch/etc/secrets/customizingConfig.json
 
 import argparse
-import logging
 import re
 import shlex
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import urllib3
 
@@ -71,6 +73,9 @@ from scripts.customizing.fwo_custom_lib.responsibles_config import (
 from scripts.customizing.fwo_custom_lib.responsibles_config import (
     resolve_responsibles_columns_headers as resolve_responsibles_columns_headers_from_lib,
 )
+
+if TYPE_CHECKING:
+    import logging
 
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"

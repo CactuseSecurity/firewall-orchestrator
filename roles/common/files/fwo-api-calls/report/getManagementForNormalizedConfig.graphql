@@ -177,6 +177,8 @@ fragment ruleFragment on firewall_rule {
   rule_custom_fields
   rule_implied
   nat_rule
+  access_rule
+  xlate_rule
   uiuser {
     uiuser_username
   }
@@ -187,6 +189,9 @@ fragment ruleFragment on firewall_rule {
     rule_last_hit
   }
   rule_comment
+  ruleByXlateRule {
+    rule_uid
+  }
   section_header: rule_head_text
 }
 

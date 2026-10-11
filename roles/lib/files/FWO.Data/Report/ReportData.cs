@@ -23,6 +23,11 @@ namespace FWO.Data.Report
         public bool MergeOwnerRecertTables { get; set; } = false;
         public string OwnerAdditionalInfoKey { get; set; } = "";
         public AddInfoFilter OwnerAddInfoFilter { get; set; } = new();
+        /// <summary>
+        /// Set when a report was generated with reduced accuracy, e.g. because an optional filter could not be applied.
+        /// The UI shows a localized warning banner when this is true.
+        /// </summary>
+        public bool ExistingViolationsFilterFailed { get; set; }
 
         public ReportData()
         { }
@@ -46,6 +51,7 @@ namespace FWO.Data.Report
             MergeOwnerRecertTables = reportData.MergeOwnerRecertTables;
             OwnerAdditionalInfoKey = reportData.OwnerAdditionalInfoKey;
             OwnerAddInfoFilter = new(reportData.OwnerAddInfoFilter);
+            ExistingViolationsFilterFailed = reportData.ExistingViolationsFilterFailed;
         }
     }
 }

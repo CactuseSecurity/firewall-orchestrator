@@ -4,26 +4,22 @@
 
 # See ldap.conf(5) for details
 # This file should be world readable but not world writable.
+# Managed by the {{ product_name }} installer - local changes are overwritten.
 
 BASE    {{ openldap_path }}
 {% if openldap_server_enable_ssl %}
 URI     ldaps://{{ openldap_server }}:{{ openldap_port }}
-TLS_REQCERT never
-TLS_CACERT {{ openldap_server_cert }}
-{% endif %}
-{% if not openldap_server_enable_ssl %}
-URI     ldap://{{ openldap_server }}:{{ openldap_port }}
+
+# The trust bundle contains the internal CA and, when a customer-managed slapd
+# certificate is retained, the issuing root required by the upgrade preflight.
+TLS_REQCERT demand
+TLS_CACERT {{ internalca_trust_bundle }}
+{% else %}
+{# openldap_port defaults to the TLS port, so fall back to 389 when TLS is off,
+   matching the ldap_cmd_url built by the middleware and sample-auth-data roles. #}
+URI     ldap://{{ openldap_server }}:{{ 389 if openldap_port | int == 636 else openldap_port }}
 {% endif %}
 
 #SIZELIMIT      12
 #TIMELIMIT      15
 #DEREF          never
-{% if ansible_facts['os_family'] == 'RedHat' %}
-# This if block is outdated
-TLS_CACERTDIR /etc/openldap/cacerts
-TLS_CACERT {{ openldap_server_cert }}
-{% endif %}
-{% if ansible_facts['os_family'] == 'Debian' %}
-TLS_CACERTDIR {{ openldap_server_cert_path }}
-TLS_CACERT {{ openldap_server_cert }}
-{% endif %}

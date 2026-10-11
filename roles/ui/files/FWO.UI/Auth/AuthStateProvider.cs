@@ -109,12 +109,24 @@ namespace FWO.Ui.Auth
                 return await HandleRestoreResult(applyStoredTokenResult);
             }
 
-            TokenPair? refreshedTokenPair = await tokenService.RefreshTokenPair();
+            TokenRefreshResult refreshResult = await tokenService.TryRefreshTokenPair();
+            TokenPair? refreshedTokenPair = refreshResult.Tokens;
 
             if (refreshedTokenPair == null ||
                 string.IsNullOrWhiteSpace(refreshedTokenPair.AccessToken) ||
                 string.IsNullOrWhiteSpace(refreshedTokenPair.RefreshToken))
             {
+                if (refreshResult.Retryable)
+                {
+                    // Keep the stored pair. The refresh did not complete, which says nothing
+                    // about whether the refresh token is still good, and revoking it here
+                    // would turn a momentary middleware or API outage into a forced re-login
+                    // for every session. The next attempt uses the same pair.
+                    Log.WriteWarning("Session Restore", "Could not refresh the session this time; keeping the stored tokens.");
+
+                    return false;
+                }
+
                 await HandleExpiredSessionAsync();
                 return false;
             }
@@ -224,12 +236,12 @@ namespace FWO.Ui.Auth
 
             user = new ClaimsPrincipal(identity);
 
-            string userDn = user.FindFirstValue("x-hasura-uuid") ?? "";
+            int userDbId = int.TryParse(user.FindFirstValue("x-hasura-user-id"), out int parsedUserDbId) ? parsedUserDbId : 0;
             string defaultRole = user.FindFirstValue("x-hasura-default-role") ?? "";
 
             await apiConnection.RunWithRole(defaultRole, async () =>
             {
-                await userConfig.SetUserInformation(userDn, apiConnection);
+                await userConfig.SetUserInformation(userDbId, apiConnection);
                 userConfig.User.Tenant = await GetTenantFromJwt(jwtString, apiConnection);
             });
 

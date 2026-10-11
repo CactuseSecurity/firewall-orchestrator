@@ -20,6 +20,10 @@ namespace FWO.Test
         private static readonly string[] kExpectedSectionHeaderDisplayOrderNumbers = ["1", string.Empty, string.Empty];
         private static readonly string[] kExpectedSectionRuleDisplayOrderNumbers = ["1.1", "1.2", "1.3", "1.4"];
         private static readonly string[] kExpectedSuppressedSectionRuleDisplayOrderNumbers = ["1.1", "1.2"];
+        private static readonly string[] kExpectedReferencedLayerDisplayOrderNumbers = [string.Empty, "1", "1.1"];
+        private static readonly string[] kExpectedReferencedInlineDisplayOrderNumbers = ["1", "1.1", string.Empty, "1.2"];
+        private static readonly HashSet<int> kReferencedFirstLayer = [1];
+        private static readonly HashSet<int> kReferencedInlineLayer = [3];
 
         private RuleTreeBuilder _ruleTreeBuilder = default!;
 
@@ -162,6 +166,82 @@ namespace FWO.Test
             inlineSectionHeaderNode.IsExpanded = true;
 
             Assert.That(inlineSectionRuleNode.IsVisible, Is.True);
+        }
+
+        [Test]
+        public void BuildRuleTree_NatRulebaseFanOut_IncludesNatRulesUnderLayer()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10),
+                Rulebase(2, "NAT"),
+                Rulebase(3, "NAT-Section-A", 20),
+                Rulebase(4, "NAT-Section-B", 30)
+            ];
+
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                NatLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2),
+                NatLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 3),
+                NatLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 4)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+            Rule[] realRules = flattenedRules.Where(rule => string.IsNullOrEmpty(rule.SectionHeader)).ToArray();
+
+            Assert.That(realRules.Select(rule => rule.Id), Is.EquivalentTo(new long[] { 10, 20, 30 }));
+            Assert.That(_ruleTreeBuilder.LinksToBeProcessed, Is.Empty);
+        }
+
+        [Test]
+        public void BuildRuleTree_PolicyInitialLink_ShowsPolicyHeaderWithoutConsumingANumber()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Policy"),
+                Rulebase(2, "Layer-1", 10),
+                Rulebase(3, "Layer-2", 20)
+            ];
+
+            RulebaseLink[] links =
+            [
+                PolicyInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                OrderedLayerLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2),
+                OrderedLayerLink(gatewayId: 1, fromRulebaseId: 2, nextRulebaseId: 3)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+
+            Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Policy"));
+            Assert.That(flattenedRules.Single(rule => rule.SectionHeader == "Policy").DisplayOrderNumberString, Is.EqualTo(string.Empty));
+            Assert.That(_ruleTreeBuilder.RuleTree.Children.Select(child => child.Header), Is.EqualTo(["Policy", "Layer-1", "Layer-2"]));
+            Assert.That(_ruleTreeBuilder.RuleTree.Children[0].IsPolicyHeader, Is.True);
+            Assert.That(flattenedRules.Where(rule => rule.SectionHeader != "Policy").Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedTwoLayerDisplayOrderNumbers));
+        }
+
+        [Test]
+        public void BuildRuleTree_PolicyInitialLink_NatRulebaseIsSiblingOfPolicyHeaderNotNestedUnderIt()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Policy"),
+                Rulebase(2, "Layer-1", 10),
+                Rulebase(3, "NAT", 20)
+            ];
+
+            RulebaseLink[] links =
+            [
+                PolicyInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                OrderedLayerLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2),
+                NatLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 3)
+            ];
+
+            _ = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1);
+
+            RuleTreeItem policyHeaderNode = _ruleTreeBuilder.RuleTree.Children.Single(child => child.IsPolicyHeader);
+            Assert.That(_ruleTreeBuilder.RuleTree.Children.Select(child => child.Header), Is.EqualTo(["Policy", "NAT", "Layer-1"]));
+            Assert.That(policyHeaderNode.Children.Select(child => child.Header), Does.Not.Contain("NAT"));
         }
 
         [Test]
@@ -433,6 +513,53 @@ namespace FWO.Test
             Assert.That(flattenedRules.Single(rule => string.IsNullOrEmpty(rule.SectionHeader)).DisplayOrderNumberString, Is.EqualTo("1.1"));
         }
 
+        [Test]
+        public void BuildRuleTree_ReferencedOrderedLayer_ShowsReferenceRowAndContinuesWithNextLayer()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10, 11),
+                Rulebase(2, "Layer-2", 20)
+            ];
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                OrderedLayerLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1, referencedRulebaseIds: kReferencedFirstLayer);
+
+            RuleTreeItem referenceRow = _ruleTreeBuilder.RuleTree.ElementsFlat[0];
+            Assert.That(referenceRow.IsRulebaseReference, Is.True);
+            Assert.That(referenceRow.ReferencedRulebaseId, Is.EqualTo(1));
+            Assert.That(referenceRow.Children, Is.Empty);
+            Assert.That(flattenedRules[0].SectionHeader, Is.EqualTo("Layer-1"));
+            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedReferencedLayerDisplayOrderNumbers));
+            Assert.That(flattenedRules.Any(rule => rule.Id == 10 || rule.Id == 11), Is.False);
+        }
+
+        [Test]
+        public void BuildRuleTree_ReferencedInlineLayer_ShowsReferenceRowBelowCallingRule()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10, 11),
+                Rulebase(3, "Inline-3", 30)
+            ];
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                InlineLayerLink(gatewayId: 1, fromRulebaseId: 1, fromRuleId: 10, nextRulebaseId: 3)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1, suppressEmptyHeaders: true, referencedRulebaseIds: kReferencedInlineLayer);
+
+            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedReferencedInlineDisplayOrderNumbers));
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat[2].IsRulebaseReference, Is.True);
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat[2].Parent!.Data.Id, Is.EqualTo(10));
+            Assert.That(flattenedRules.Any(rule => rule.Id == 30), Is.False);
+        }
+
         private static RulebaseReport Rulebase(int id, string name, params int[] ruleIds)
         {
             return new RulebaseReport
@@ -452,6 +579,21 @@ namespace FWO.Test
                 FromRuleId = null,
                 NextRulebaseId = nextRulebaseId,
                 LinkType = 2,
+                IsInitial = true,
+                IsGlobal = false,
+                IsSection = false
+            };
+        }
+
+        private static RulebaseLink PolicyInitialLink(int gatewayId, int nextRulebaseId)
+        {
+            return new RulebaseLink
+            {
+                GatewayId = gatewayId,
+                FromRulebaseId = null,
+                FromRuleId = null,
+                NextRulebaseId = nextRulebaseId,
+                LinkType = 7,
                 IsInitial = true,
                 IsGlobal = false,
                 IsSection = false
@@ -497,6 +639,21 @@ namespace FWO.Test
                 FromRuleId = null,
                 NextRulebaseId = nextRulebaseId,
                 LinkType = 4,
+                IsInitial = false,
+                IsGlobal = false,
+                IsSection = false
+            };
+        }
+
+        private static RulebaseLink NatLink(int gatewayId, int fromRulebaseId, int nextRulebaseId)
+        {
+            return new RulebaseLink
+            {
+                GatewayId = gatewayId,
+                FromRulebaseId = fromRulebaseId,
+                FromRuleId = null,
+                NextRulebaseId = nextRulebaseId,
+                LinkType = 6,
                 IsInitial = false,
                 IsGlobal = false,
                 IsSection = false

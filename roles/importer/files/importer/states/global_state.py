@@ -1,5 +1,6 @@
 import warnings
 
+import fwo_globals
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from models.fwo_config_controller import FwoConfigController
@@ -40,8 +41,10 @@ class GlobalState:
 
         self.fwo_api_call = FwoApiCall(self.fwo_api)
         suppress_certificate_warnings = self.fwo_api_call.get_config_value(key="importSuppressCertificateWarnings")
+        # the command line can only force certificate checking on, never switch the configured value off
         self.fwo_config_controller.update_settings(
-            ssl_verification=self.fwo_api_call.get_config_value(key="importCheckCertificates") == "True",
+            ssl_verification=fwo_globals.cli_verify_certs
+            or self.fwo_api_call.get_config_value(key="importCheckCertificates") == "True",
             suppress_certificate_warnings=suppress_certificate_warnings == "True",
         )
 

@@ -87,7 +87,62 @@ internal class ComplianceZoneValidationTest
     }
 
     [Test]
-    public void ResolveZonesForObjects_AllowsCidr32MaskedIpBoundsAndNormalizesLeaf()
+    public void ResolveZonesForObjects_AllowsIpv4RangeBounds()
+    {
+        ResolveZonesForObjectsRequest.LeafObjectRequest leaf = new()
+        {
+            Name = "Network",
+            Type = "network",
+            IpStart = "10.0.0.0",
+            IpEnd = "10.0.0.255"
+        };
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects = [leaf]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+            Assert.That(leaf.IpStart, Is.EqualTo("10.0.0.0"));
+            Assert.That(leaf.IpEnd, Is.EqualTo("10.0.0.255"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_AllowsIpv6RangeBounds()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Network",
+                    Type = "network",
+                    IpStart = "2001:db8::",
+                    IpEnd = "2001:db8::3"
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+        ResolveZonesForObjectsRequest.LeafObjectRequest leaf = (ResolveZonesForObjectsRequest.LeafObjectRequest)request.Objects[0];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+            Assert.That(leaf.IpStart, Is.EqualTo("2001:db8::"));
+            Assert.That(leaf.IpEnd, Is.EqualTo("2001:db8::3"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_AllowsCidrHostMaskedIpBoundsAndNormalizesLeaf()
     {
         ResolveZonesForObjectsRequest.LeafObjectRequest leaf = new()
         {
@@ -113,7 +168,7 @@ internal class ComplianceZoneValidationTest
     }
 
     [Test]
-    public void ResolveZonesForObjects_RejectsNonCidr32MaskedIpBounds()
+    public void ResolveZonesForObjects_RejectsBroaderMaskedIpBounds()
     {
         ResolveZonesForObjectsRequest request = new()
         {
@@ -575,7 +630,7 @@ internal class ComplianceZoneValidationTest
     }
 
     [Test]
-    public void ResolveZonesForObjects_RejectsIpv6Addresses()
+    public void ResolveZonesForObjects_AllowsIpv6Addresses()
     {
         ResolveZonesForObjectsRequest request = new()
         {
@@ -595,11 +650,8 @@ internal class ComplianceZoneValidationTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("does not support IPv6 addresses"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipStart'"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipEnd'"));
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
         });
     }
 

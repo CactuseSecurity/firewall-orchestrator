@@ -106,6 +106,10 @@ namespace FWO.ExternalSystems
             return configured != null && IsSameEndpoint(configured, system) ? configured.CredentialId : system.CredentialId;
         }
 
+        /// <summary>
+        /// Checks whether the configured and stored ticket systems have the same type and URL,
+        /// ignoring surrounding whitespace so credentials are only reused for the same endpoint.
+        /// </summary>
         private static bool IsSameEndpoint(ExternalTicketSystem configured, ExternalTicketSystem stored)
         {
             return configured.TypeId == stored.TypeId && string.Equals(configured.Url.Trim(), stored.Url.Trim(), StringComparison.Ordinal);

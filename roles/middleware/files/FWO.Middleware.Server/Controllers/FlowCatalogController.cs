@@ -20,13 +20,13 @@ public class FlowCatalogController : ControllerBase
 {
     private static readonly RequestRootValidationSchema AddressObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetAddressObjects), FlowCatalogPaging.kMaxObjectLimit);
     private static readonly RequestFilterValidationSchema AddressObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
-    private static readonly RequestRootValidationSchema AddressGroupsRootSchema = new(
-        nameof(GetAddressGroups),
-        [
-            new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-            new RequestKeyDefinition("option", "Optional option container controlling the response shape."),
-            .. FlowCatalogPaging.KeyDefinitions(FlowCatalogPaging.kMaxGroupLimit)
-        ]);
+    private static readonly List<RequestKeyDefinition> kAddressGroupsRootKeys =
+    [
+        new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
+        new RequestKeyDefinition("option", "Optional option container controlling the response shape."),
+        .. FlowCatalogPaging.KeyDefinitions(FlowCatalogPaging.kMaxGroupLimit)
+    ];
+    private static readonly RequestRootValidationSchema AddressGroupsRootSchema = new(nameof(GetAddressGroups), kAddressGroupsRootKeys);
     private static readonly RequestFilterValidationSchema AddressGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
     private static readonly RequestRootValidationSchema ServiceObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetServiceObjects), FlowCatalogPaging.kMaxObjectLimit);
     private static readonly RequestFilterValidationSchema ServiceObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjects));

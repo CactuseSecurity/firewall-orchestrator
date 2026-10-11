@@ -2239,6 +2239,54 @@ internal class WorkflowTicketServiceTest
         });
     }
 
+    /// <summary>
+    /// F22: failed status enrichment after persistence must return the saved identity and action outcome.
+    /// </summary>
+    [TestCase(false, false)]
+    [TestCase(false, true)]
+    [TestCase(true, false)]
+    [TestCase(true, true)]
+    public async Task CreateTicket_PreservesSavedResultWhenStatusEnrichmentThrows(bool initialActionsFail, bool stateNamesFail)
+    {
+        List<WfStateActionDataHelper> actions = initialActionsFail ? [BrokenOnSetTicketAction()] : [];
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 17, Name = "requested", Actions = actions }, new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations = [CreateWorkflowConfiguration("request-active", CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))],
+            ThrowOnStateLookupAfterCreation = stateNamesFail,
+            ThrowOnExternalStateLookup = !stateNamesFail
+        };
+        using WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+
+        CreateTicketResponse response = await service.CreateTicketAsync(CreateBaseRequest("Status enrichment failure"), kTrustedCallerId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.TicketId, Is.EqualTo(apiConnection.CreatedTicket?.Id).And.GreaterThan(0));
+            Assert.That(response.Status, Is.EqualTo("17"));
+            Assert.That(response.ActionsStatus, Is.EqualTo(initialActionsFail
+                ? WfTicketCreationResult.kActionsFailed : WfTicketCreationResult.kActionsCompleted));
+            Assert.That(apiConnection.SentQueries.Count(query => query == RequestQueries.newTicket), Is.EqualTo(1));
+        });
+    }
+
+    /// <summary>
+    /// Status reads must still report unavailable state data instead of treating the read as successful creation.
+    /// </summary>
+    [Test]
+    public void GetTicketStatusAsync_ThrowsWhenStateNamesCannotBeLoaded()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            Ticket = new WfTicket { Id = 42, StateId = 17 },
+            ThrowOnStateLookup = true
+        };
+        using WorkflowTicketService service = new(apiConnection, new GlobalConfig());
+
+        Assert.ThrowsAsync<InvalidOperationException>(() => service.GetTicketStatusAsync(42));
+    }
+
     [TestCase("999")]
     [TestCase("-1")]
     [TestCase("ANY")]
@@ -3064,6 +3112,9 @@ internal class WorkflowTicketServiceTest
             }
         ];
         public string[]? ExtStateErrors { get; set; }
+        public bool ThrowOnStateLookup { get; set; }
+        public bool ThrowOnStateLookupAfterCreation { get; set; }
+        public bool ThrowOnExternalStateLookup { get; set; }
         public WfTicketWriter? LastTicketWriter { get; private set; }
         public int AddHistoryEntryCallCount { get; private set; }
         public List<object?> AlertVariables { get; } = [];
@@ -3127,6 +3178,10 @@ internal class WorkflowTicketServiceTest
 
             if (responseType == typeof(List<WfState>))
             {
+                if (ThrowOnStateLookup || (ThrowOnStateLookupAfterCreation && CreatedTicket != null))
+                {
+                    throw new InvalidOperationException("Simulated state name query failure");
+                }
                 return Task.FromResult((QueryResponseType)(object)States);
             }
 
@@ -3204,6 +3259,10 @@ internal class WorkflowTicketServiceTest
 
             if (typeof(QueryResponseType) == typeof(List<WfExtState>))
             {
+                if (ThrowOnExternalStateLookup)
+                {
+                    throw new InvalidOperationException("Simulated external state query failure");
+                }
                 if (ExtStateErrors != null)
                 {
                     return Task.FromResult((ApiResponse<QueryResponseType>)(object)new ApiResponse<List<WfExtState>>(ExtStateErrors));

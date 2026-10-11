@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 from fwo_api import FwoApi
 from models.fwconfig_normalized import FwConfigNormalized
 from services.group_flats_mapper import GroupFlatsMapper
@@ -34,7 +32,7 @@ class ManagementState:
         self.uid2id_mapper = (
             Uid2IdMapper(fwo_api)
             if import_state.super_uid2id_mapper is None
-            else deepcopy(import_state.super_uid2id_mapper)
+            else import_state.super_uid2id_mapper.clone()
         )
         self.group_flats_mapper = GroupFlatsMapper()
         self.prev_group_flats_mapper = GroupFlatsMapper()

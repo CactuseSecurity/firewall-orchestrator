@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
 import fwo_const
@@ -72,6 +73,23 @@ class Uid2IdMapper:
         self.timeobj_uid2id = Uid2IdMap()
         self.rule_uid2id = Uid2IdMap()
         self.rulebase_uid2id = Uid2IdMap()
+
+    def clone(self) -> Uid2IdMapper:
+        """
+        Returns a mapper with copies of all mappings that shares this mapper's FwoApi.
+
+        Deep-copying the whole mapper would also copy the FwoApi, so a JWT refresh on the copy
+        would rotate the refresh token without the shared FwoApi ever seeing the new one.
+        """
+        mapper = Uid2IdMapper(self.fwo_api)
+        mapper.nwobj_uid2id = deepcopy(self.nwobj_uid2id)
+        mapper.svc_uid2id = deepcopy(self.svc_uid2id)
+        mapper.user_uid2id = deepcopy(self.user_uid2id)
+        mapper.zone_name2id = deepcopy(self.zone_name2id)
+        mapper.timeobj_uid2id = deepcopy(self.timeobj_uid2id)
+        mapper.rule_uid2id = deepcopy(self.rule_uid2id)
+        mapper.rulebase_uid2id = deepcopy(self.rulebase_uid2id)
+        return mapper
 
     def get_network_object_id(self, uid: str, before_update: bool = False, local_only: bool = False) -> int:
         """

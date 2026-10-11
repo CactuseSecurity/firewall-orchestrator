@@ -37,7 +37,8 @@ def mock_api_connection_response(api_connection: FwoApi):
         query_variables: dict[str, list[dict[str, Any]]],
         analyze_payload: bool = False,  # noqa: ARG001
     ) -> dict[str, Any]:
-        outcome: dict[str, Any] = {"data": {"firewall_rule": []}}
+        # the uid2id mapper shares this connection to refresh its rule and rulebase mappings
+        outcome: dict[str, Any] = {"data": {"firewall_rule": [], "firewall_rulebase": []}}
 
         if "rulebases" in query_variables:
             outcome["data"].update(

@@ -233,7 +233,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                await ExternalTicketAuthorization.ResolveHeader(ticketSystem, apiConnection);
+                await ExternalTicketAuthorization.ResolveHeader(ticketSystem, apiConnection, globalConfig.ExtTicketSystems);
             }
             catch (Exception exception)
             {
@@ -426,7 +426,7 @@ namespace FWO.Middleware.Server
                 );
 
                 ticket.TicketId = request.ExtTicketId;
-                await ExternalTicketAuthorization.ResolveHeader(ExtTicketSystem, apiConnection);
+                await ExternalTicketAuthorization.ResolveHeader(ExtTicketSystem, apiConnection, globalConfig.ExtTicketSystems);
 
                 return await ticket.GetNewState(request.ExtRequestState);
             }

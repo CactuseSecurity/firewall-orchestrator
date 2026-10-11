@@ -196,9 +196,10 @@
 - security (GHSA-jhj7-f9vj-r9v8): auditors could read the Authorization header string of external ticket systems
   in the ticket system configuration and in every external request created with it (external request monitoring)
   - external ticket systems now reference a credential (username and encrypted password, no key pair) instead of
-    keeping the header string; requests store only this reference, and the middleware builds the basic
-    authentication header from the current credential right before each call to the ticket system (also for the
-    requester lookup), so a changed password applies to open requests as well. A header that cannot be built
+    keeping the header string; the middleware builds the basic authentication header right before each call to
+    the ticket system (also for the requester lookup) from the credential the ticket system currently references,
+    so a changed password or a newly selected credential applies to open requests as well (the credential stored
+    with a request is only used if its ticket system was removed). A header that cannot be built when sending
     counts as a failed attempt of the request
   - the table import_credential (and its sequence) is renamed to credential, as credentials are no longer used for
     imports only; the GraphQL root fields change accordingly (credential, insert_credential, ...), the management

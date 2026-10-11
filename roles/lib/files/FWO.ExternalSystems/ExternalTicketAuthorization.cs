@@ -66,25 +66,43 @@ namespace FWO.ExternalSystems
         }
 
         /// <summary>
-        /// Sets the Authorization header string of a ticket system right before calls to it: built from the current
-        /// credential of the ticket system, so that changed passwords apply to open requests as well, or decrypted from
-        /// the legacy header string of an older request without credential.
+        /// Sets the Authorization header string of a ticket system right before calls to it: built from the credential
+        /// the ticket system currently references, so that changed passwords and newly selected credentials apply to
+        /// open requests as well, or decrypted from the legacy header string of an older request without credential.
         /// </summary>
         /// <param name="system">The ticket system, as configured or as stored with an external request.</param>
         /// <param name="apiConnection">Connection allowed to read credential secrets (middleware server).</param>
+        /// <param name="configuredTicketSystems">The currently configured ticket systems (JSON list) for a ticket system
+        /// stored with an external request; null if <paramref name="system"/> is taken from the configuration.</param>
         /// <exception cref="InvalidOperationException">If the credential is missing or unusable, or the header cannot be decrypted.</exception>
-        public static async Task ResolveHeader(ExternalTicketSystem system, ApiConnection apiConnection)
+        public static async Task ResolveHeader(ExternalTicketSystem system, ApiConnection apiConnection, string? configuredTicketSystems = null)
         {
-            if (system.CredentialId is > 0)
+            int? credentialId = CurrentCredentialId(system, configuredTicketSystems);
+            if (credentialId is > 0)
             {
-                Credential credential = await apiConnection.SendQueryAsync<Credential?>(DeviceQueries.getCredentialById, new { id = system.CredentialId })
-                    ?? throw new InvalidOperationException($"Credential {system.CredentialId} of external ticket system '{system.Name}' not found.");
+                Credential credential = await apiConnection.SendQueryAsync<Credential?>(DeviceQueries.getCredentialById, new { id = credentialId })
+                    ?? throw new InvalidOperationException($"Credential {credentialId} of external ticket system '{system.Name}' not found.");
                 system.AuthorizationHeader = BuildHeader(credential, AesEnc.GetMainKey());
             }
             else
             {
                 system.AuthorizationHeader = string.IsNullOrEmpty(system.Authorization) ? "" : DecryptHeader(system.Authorization, AesEnc.GetMainKey());
             }
+        }
+
+        /// <summary>
+        /// The credential a ticket system logs in with: that of its current configuration, so that open requests follow
+        /// a switch to another credential (and the old one can be deleted); the one stored with the request only if the
+        /// ticket system is no longer configured.
+        /// </summary>
+        private static int? CurrentCredentialId(ExternalTicketSystem system, string? configuredTicketSystems)
+        {
+            if (configuredTicketSystems == null)
+            {
+                return system.CredentialId;
+            }
+            ExternalTicketSystem? configured = ExternalTicketSystem.FindConfigured(configuredTicketSystems, system.Id);
+            return configured != null ? configured.CredentialId : system.CredentialId;
         }
     }
 }

@@ -18,6 +18,7 @@ namespace FWO.Test
     {
         private const string kMainKey = "0123456789ABCDEF0123456789ABCDEF";
         private const int kCredentialId = 7;
+        private const int kOldCredentialId = 5;
         private const int kMaxAttempts = 3;
         private const int kCyclesBetweenAttempts = 5;
         private const string kUsername = "probe_user";
@@ -25,6 +26,7 @@ namespace FWO.Test
         private const string kExtTicketId = "4711";
         private const string kTicketContent = "{ \"ticketText\": \"\" }";
         private static readonly Dictionary<string, (HttpStatusCode StatusCode, string Content)> NoResponses = [];
+        private static readonly List<string> ExpectedHeaders = [ExternalTicketAuthorization.BuildBasicHeader(kUsername, kRotatedPassword)];
 
         [Test]
         public async Task SendUsesCurrentPasswordOfCredential()
@@ -74,6 +76,53 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SendUsesCredentialNowConfiguredForTicketSystem()
+        {
+            using TestMainKeyScope mainKeyScope = new(kMainKey);
+            using AuthorizationCaptureServer server = new(new()
+            {
+                ["tickets.json"] = (HttpStatusCode.Created, "{\"ticket\": {\"id\": 11, \"status\": \"In Progress\" } }")
+            });
+            // the request was created while the ticket system still used another credential, which may be deleted by now
+            ExtRequestSenderTestApiConn apiConnection = new()
+            {
+                Credential = CreateCredential(),
+                OpenRequests = [CreateRequest(server.BaseUrl, ExtStates.ExtReqInitialized, credentialId: kOldCredentialId)]
+            };
+
+            await RunSender(apiConnection, server.BaseUrl);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.CredentialQueryVars, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.CredentialQueryVars[0], Does.Contain($"id = {kCredentialId}"));
+                Assert.That(server.Requests.Select(request => request.Authorization), Is.EqualTo(ExpectedHeaders));
+            });
+        }
+
+        [Test]
+        public async Task PollFallsBackToStoredCredentialOfUnconfiguredTicketSystem()
+        {
+            using TestMainKeyScope mainKeyScope = new(kMainKey);
+            using AuthorizationCaptureServer server = new(new()
+            {
+                [$"tickets/{kExtTicketId}"] = (HttpStatusCode.OK, "{\"ticket\": {\"id\": 4711, \"status\": \"In Progress\" } }")
+            });
+            ExternalRequest request = CreateRequest(server.BaseUrl, ExtStates.ExtReqInProgress);
+            request.ExtTicketId = kExtTicketId;
+            ExtRequestSenderTestApiConn apiConnection = new() { Credential = CreateCredential(), OpenRequests = [request] };
+
+            await RunSender(apiConnection, server.BaseUrl, ticketSystemConfigured: false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.CredentialQueryVars, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.CredentialQueryVars[0], Does.Contain($"id = {kCredentialId}"));
+                Assert.That(server.Requests.Select(request => request.Authorization), Is.EqualTo(ExpectedHeaders));
+            });
+        }
+
+        [Test]
         public async Task MissingCredentialCountsAsFailedAttempt()
         {
             using TestMainKeyScope mainKeyScope = new(kMainKey);
@@ -103,7 +152,7 @@ namespace FWO.Test
             request.Attempts = kMaxAttempts - 1;
             ExtRequestSenderTestApiConn apiConnection = new() { OpenRequests = [request] };
 
-            await RunSender(apiConnection, server.BaseUrl);
+            await RunSender(apiConnection, server.BaseUrl, configuredCredentialId: null);
 
             Assert.Multiple(() =>
             {
@@ -148,12 +197,14 @@ namespace FWO.Test
             };
         }
 
-        private static async Task<List<string>> RunSender(ExtRequestSenderTestApiConn apiConnection, string url)
+        private static async Task<List<string>> RunSender(ExtRequestSenderTestApiConn apiConnection, string url, int? configuredCredentialId = kCredentialId,
+            bool ticketSystemConfigured = true)
         {
+            List<ExternalTicketSystem> configuredSystems = ticketSystemConfigured ? [CreateTicketSystem(url, configuredCredentialId)] : [];
             SimulatedGlobalConfig globalConfig = new()
             {
                 ExternalRequestWaitCycles = 3,
-                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { CreateTicketSystem(url) })
+                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(configuredSystems)
             };
             ExternalRequestSender sender = new(apiConnection, globalConfig);
             return await sender.Run();

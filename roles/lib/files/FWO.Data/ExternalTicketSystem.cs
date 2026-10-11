@@ -114,12 +114,24 @@ namespace FWO.Data
         /// <returns>The external ticket systems referencing the credential.</returns>
         public static List<ExternalTicketSystem> UsingCredential(string? extTicketSystems, int credentialId)
         {
-            if (string.IsNullOrWhiteSpace(extTicketSystems))
-            {
-                return [];
-            }
-            List<ExternalTicketSystem> systems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(extTicketSystems) ?? [];
-            return [.. systems.Where(system => system.CredentialId == credentialId)];
+            return [.. ParseConfigured(extTicketSystems).Where(system => system.CredentialId == credentialId)];
+        }
+
+        /// <summary>
+        /// Finds a configured external ticket system by its id.
+        /// </summary>
+        /// <param name="extTicketSystems">The external ticket systems as stored in the config (JSON list).</param>
+        /// <param name="id">The id of the ticket system.</param>
+        /// <returns>The configured ticket system, null if there is none with this id.</returns>
+        public static ExternalTicketSystem? FindConfigured(string? extTicketSystems, int id)
+        {
+            return ParseConfigured(extTicketSystems).FirstOrDefault(system => system.Id == id);
+        }
+
+        private static List<ExternalTicketSystem> ParseConfigured(string? extTicketSystems)
+        {
+            return string.IsNullOrWhiteSpace(extTicketSystems) ? []
+                : System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(extTicketSystems) ?? [];
         }
 
         /// <summary>

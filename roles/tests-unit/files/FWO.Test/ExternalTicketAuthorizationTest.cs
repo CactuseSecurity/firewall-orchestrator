@@ -21,6 +21,7 @@ namespace FWO.Test
         private const string kRotatedPassword = "rotated:pw";
         private const string kPrivateKey = "-----BEGIN PRIVATE KEY-----probe-----END PRIVATE KEY-----";
         private const int kCredentialId = 7;
+        private const int kOldCredentialId = 5;
 
         [Test]
         public void BuildBasicHeader_EncodesUsernameAndPassword()
@@ -153,6 +154,73 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ResolveHeader_UsesCredentialOfConfiguredTicketSystem()
+        {
+            using TestMainKeyScope mainKeyScope = new(kMainKey);
+            ExtTicketHandlerTestApiConn apiConnection = new() { Credential = CreateCredential(kRotatedPassword) };
+            ExternalTicketSystem storedSystem = new() { Id = 1, Name = "probe", CredentialId = kOldCredentialId };
+            string configured = ConfiguredTicketSystems(new ExternalTicketSystem { Id = 1, Name = "probe", CredentialId = kCredentialId });
+
+            await ExternalTicketAuthorization.ResolveHeader(storedSystem, apiConnection, configured);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.CredentialQueryVars, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.CredentialQueryVars[0], Does.Contain($"id = {kCredentialId}"));
+                Assert.That(storedSystem.AuthorizationHeader, Is.EqualTo(ExternalTicketAuthorization.BuildBasicHeader(kUsername, kRotatedPassword)));
+            });
+        }
+
+        [Test]
+        public async Task ResolveHeader_UsesLegacyHeaderWhenConfiguredTicketSystemHasNoCredential()
+        {
+            using TestMainKeyScope mainKeyScope = new(kMainKey);
+            ExtTicketHandlerTestApiConn apiConnection = new() { Credential = CreateCredential(kRotatedPassword) };
+            ExternalTicketSystem storedSystem = new() { Id = 1, Name = "probe", CredentialId = kOldCredentialId, Authorization = AesEnc.Encrypt(kBasicHeader, kMainKey) };
+            string configured = ConfiguredTicketSystems(new ExternalTicketSystem { Id = 1, Name = "probe" });
+
+            await ExternalTicketAuthorization.ResolveHeader(storedSystem, apiConnection, configured);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.CredentialQueryVars, Is.Empty);
+                Assert.That(storedSystem.AuthorizationHeader, Is.EqualTo(kBasicHeader));
+            });
+        }
+
+        [Test]
+        public async Task ResolveHeader_UsesStoredCredentialWhenTicketSystemIsNoLongerConfigured()
+        {
+            using TestMainKeyScope mainKeyScope = new(kMainKey);
+            ExtTicketHandlerTestApiConn apiConnection = new() { Credential = CreateCredential(kPassword) };
+            ExternalTicketSystem storedSystem = new() { Id = 1, Name = "probe", CredentialId = kCredentialId };
+            string configured = ConfiguredTicketSystems(new ExternalTicketSystem { Id = 2, Name = "other", CredentialId = kOldCredentialId });
+
+            await ExternalTicketAuthorization.ResolveHeader(storedSystem, apiConnection, configured);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.CredentialQueryVars, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.CredentialQueryVars[0], Does.Contain($"id = {kCredentialId}"));
+                Assert.That(storedSystem.AuthorizationHeader, Is.EqualTo(kBasicHeader));
+            });
+        }
+
+        [Test]
+        public void FindConfigured_FindsTicketSystemById()
+        {
+            string configured = ConfiguredTicketSystems(new ExternalTicketSystem { Id = 1, Name = "first" }, new ExternalTicketSystem { Id = 2, Name = "second" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ExternalTicketSystem.FindConfigured(configured, 2)?.Name, Is.EqualTo("second"));
+                Assert.That(ExternalTicketSystem.FindConfigured(configured, 3), Is.Null);
+                Assert.That(ExternalTicketSystem.FindConfigured("", 1), Is.Null);
+                Assert.That(ExternalTicketSystem.FindConfigured(null, 1), Is.Null);
+            });
+        }
+
+        [Test]
         public void ResolveHeader_ThrowsForUnknownCredential()
         {
             using TestMainKeyScope mainKeyScope = new(kMainKey);
@@ -174,6 +242,11 @@ namespace FWO.Test
                 Assert.That(System.Text.Json.JsonSerializer.Serialize(system), Does.Not.Contain(kBasicHeader).And.Not.Contain("AuthorizationHeader"));
                 Assert.That(Newtonsoft.Json.JsonConvert.SerializeObject(system), Does.Not.Contain(kBasicHeader).And.Not.Contain("AuthorizationHeader"));
             });
+        }
+
+        private static string ConfiguredTicketSystems(params ExternalTicketSystem[] systems)
+        {
+            return System.Text.Json.JsonSerializer.Serialize(systems.ToList());
         }
 
         private static Credential CreateCredential(string password)

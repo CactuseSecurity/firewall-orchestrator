@@ -1,7 +1,8 @@
 -- Test of the data changes of upgrade/9.7.1.sql: the seeding of the certificate check switches for email servers and
 -- external ticket systems, the dating back of the rulebase links and gateway entries of the 9.0 migration (rule
 -- versions removed before the upgrade to v9 stay visible to the tenants of their gateways), and the move of the
--- external ticket system authorization into credentials (only stored encrypted with the external requests).
+-- external ticket system authorization into credentials (requests reference the credential of their ticket system
+-- while it is still the endpoint they are sent to, otherwise they keep their own authorization, encrypted).
 -- The test task inserts the upgrade file at the two run-upgrade markers below. It runs twice: first with email
 -- and ticket system endpoints configured, then without, which also shows that the upgrade can be repeated.
 --
@@ -89,9 +90,15 @@ SELECT pg_temp.set_config_value('extTicketSystems', '[{"Id":1,"TypeId":2,"Name":
     '{"Id":3,"TypeId":1,"Name":"probe_placeholder","Url":"","Authorization":"Basic xyz"}]');
 WITH request AS (
     INSERT INTO ext_request (ext_ticket_system, ext_request_state, finish_date)
-        VALUES ('{"Id":1,"TypeId":2,"Name":"probe","Authorization":"Basic cHJvYmVfdXNlcjpwdzp3aXRoOmNvbG9u"}', 'ExtReqDone', now())
+        VALUES ('{"Id":1,"TypeId":2,"Name":"probe","Url":"https://ticket.example.com","Authorization":"Basic cHJvYmVfdXNlcjpwdzp3aXRoOmNvbG9u"}', 'ExtReqDone', now())
         RETURNING id)
 INSERT INTO probe_id SELECT 'ext_request', id FROM request;
+-- a request created before ticket system 1 moved to its current server: it must not get the credential of that server
+WITH request AS (
+    INSERT INTO ext_request (ext_ticket_system, ext_request_state, finish_date)
+        VALUES ('{"Id":1,"TypeId":2,"Name":"probe","Url":"https://old-ticket.example.com","Authorization":"Basic b2xkX3VzZXI6b2xkX3B3"}', 'ExtReqDone', now())
+        RETURNING id)
+INSERT INTO probe_id SELECT 'ext_request_old_server', id FROM request;
 WITH request AS (
     INSERT INTO ext_request (ext_ticket_system, ext_request_state, finish_date)
         VALUES ('{"Id":2,"TypeId":2,"Name":"probe_token","Authorization":"Bearer probe-token"}', 'ExtReqDone', now())
@@ -127,6 +134,14 @@ BEGIN
         (SELECT (NOT ext_ticket_system::jsonb ? 'Authorization')::text FROM ext_request WHERE id = pg_temp.probe('ext_request')), 'true');
     PERFORM pg_temp.expect('request references the credential of its ticket system',
         (SELECT ext_ticket_system::jsonb ->> 'CredentialId' FROM ext_request WHERE id = pg_temp.probe('ext_request')), r_credential.id::text);
+    -- a request sent to another server than the one its ticket system is configured for now keeps its own authorization
+    PERFORM pg_temp.expect('request of a moved ticket system without credential',
+        (SELECT ext_ticket_system::jsonb ->> 'CredentialId' FROM ext_request WHERE id = pg_temp.probe('ext_request_old_server')), NULL);
+    PERFORM pg_temp.expect('request of a moved ticket system keeps its authorization encrypted',
+        (SELECT decryptText(ext_ticket_system::jsonb ->> 'Authorization', t_main_key) FROM ext_request WHERE id = pg_temp.probe('ext_request_old_server')),
+        'Basic b2xkX3VzZXI6b2xkX3B3');
+    PERFORM pg_temp.expect('request of a moved ticket system not in plain text',
+        (SELECT (ext_ticket_system NOT LIKE '%b2xkX3VzZXI6b2xkX3B3%')::text FROM ext_request WHERE id = pg_temp.probe('ext_request_old_server')), 'true');
     -- a request of a ticket system without credential keeps its authorization, encrypted
     PERFORM pg_temp.expect('token request authorization not in plain text',
         (SELECT (ext_ticket_system NOT LIKE '%probe-token%')::text FROM ext_request WHERE id = pg_temp.probe('ext_request_token')), 'true');

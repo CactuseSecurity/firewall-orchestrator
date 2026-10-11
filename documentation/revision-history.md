@@ -200,8 +200,8 @@
     the ticket system (also for the requester lookup) from the credential the ticket system currently references,
     so a changed password or a newly selected credential applies to open requests as well; the credential stored
     with a request is used if its ticket system was removed or no longer has the URL and type the request is sent to
-    (e.g. reused id, moved to another server), so a credential never goes to another endpoint. A header that cannot be built when sending
-    counts as a failed attempt of the request
+    (e.g. reused id, moved to another server), so a configured credential does not go to another endpoint. A header
+    that cannot be built when sending counts as a failed attempt of the request
   - the table import_credential (and its sequence) is renamed to credential, as credentials are no longer used for
     imports only; the GraphQL root fields change accordingly (credential, insert_credential, ...), the management
     relationships and columns keep their names. The UI calls them credentials, the C# class ImportCredential is
@@ -210,9 +210,10 @@
     the sample data
   - upgrades move a basic authentication header string of the form "Basic base64(username:password)" into a new
     credential named "<ticket system> (external ticket system <id>)", and existing requests of such a ticket system
-    reference it instead of their header string; other header strings (e.g. tokens) are removed from the ticket
-    systems, select a credential for them; the header strings of their existing requests are kept, encrypted with
-    the main key. The external request monitoring shows such a header as "****".
+    reference it instead of their header string if they are sent to the URL and type the ticket system has now;
+    other header strings (e.g. tokens) are removed from the ticket systems, select a credential for them; the header
+    strings of all other existing requests are kept, encrypted with the main key. The external request monitoring
+    shows such a header as "****".
     Rotate the passwords of the ticket system accounts, as they may already have been read
 - api: upgrade hasura graphql API to 2.50.3
 - importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call

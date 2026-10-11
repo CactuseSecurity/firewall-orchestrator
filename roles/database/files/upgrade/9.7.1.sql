@@ -158,19 +158,27 @@ END $$;
 
 -- External requests no longer keep the Authorization header string: the copy of the ticket system stored with a
 -- request references the credential its ticket system was given above, and the middleware builds the header from it
--- right before each call, so that a changed password applies to open requests as well. Only the header of a ticket
--- system without credential (e.g. a token) is kept, encrypted with the main key.
+-- right before each call, so that a changed password applies to open requests as well. The calls go to the URL stored
+-- with the request, so the credential is only assigned while the configured ticket system with the same id still has
+-- this URL and type (not after a move to another server or a reuse of the id; the middleware applies the same rule).
+-- Otherwise, and for a ticket system without credential (e.g. a token), the request keeps its own header, encrypted
+-- with the main key.
 DO $$
 DECLARE
     r_request RECORD;
     j_ticket_system jsonb;
-    j_credential_ids jsonb := '{}'::jsonb;
+    j_configured_systems jsonb := '{}'::jsonb;
+    j_configured jsonb;
     i_credential_id integer;
     t_encrypted text;
     t_main_key text;
 BEGIN
     BEGIN
-        SELECT COALESCE(jsonb_object_agg(s ->> 'Id', (s ->> 'CredentialId')::integer), '{}'::jsonb) INTO j_credential_ids
+        -- missing TypeId: the default the middleware assumes when reading the ticket system (generic, 1)
+        SELECT COALESCE(jsonb_object_agg(s ->> 'Id', jsonb_build_object(
+                'CredentialId', (s ->> 'CredentialId')::integer,
+                'Url', btrim(COALESCE(s ->> 'Url', '')),
+                'TypeId', COALESCE(s ->> 'TypeId', '1'))), '{}'::jsonb) INTO j_configured_systems
         FROM config c
         CROSS JOIN LATERAL jsonb_array_elements(
             CASE WHEN jsonb_typeof(c.config_value::jsonb) = 'array' THEN c.config_value::jsonb ELSE '[]'::jsonb END) s
@@ -178,7 +186,7 @@ BEGIN
             AND jsonb_typeof(s) = 'object' AND s ->> 'Id' IS NOT NULL AND s ->> 'CredentialId' ~ '^[1-9][0-9]*$';
     EXCEPTION WHEN OTHERS THEN
         RAISE WARNING 'upgrade 9.7.1: external ticket systems are no valid JSON, external requests keep their authorization';
-        j_credential_ids := '{}'::jsonb;
+        j_configured_systems := '{}'::jsonb;
     END;
 
     FOR r_request IN
@@ -194,9 +202,14 @@ BEGIN
             CONTINUE;
         END IF;
 
-        i_credential_id := CASE WHEN j_ticket_system ->> 'CredentialId' ~ '^[1-9][0-9]*$'
-            THEN (j_ticket_system ->> 'CredentialId')::integer
-            ELSE (j_credential_ids ->> (j_ticket_system ->> 'Id'))::integer END;
+        j_configured := j_configured_systems -> (j_ticket_system ->> 'Id');
+        i_credential_id := CASE
+            WHEN j_ticket_system ->> 'CredentialId' ~ '^[1-9][0-9]*$' THEN (j_ticket_system ->> 'CredentialId')::integer
+            WHEN j_configured IS NOT NULL
+                AND j_configured ->> 'Url' = btrim(COALESCE(j_ticket_system ->> 'Url', ''))
+                AND j_configured ->> 'TypeId' = COALESCE(j_ticket_system ->> 'TypeId', '1')
+                THEN (j_configured ->> 'CredentialId')::integer
+            END;
         IF i_credential_id IS NOT NULL THEN
             UPDATE ext_request
             SET ext_ticket_system = ((j_ticket_system - 'Authorization') || jsonb_build_object('CredentialId', i_credential_id))::text

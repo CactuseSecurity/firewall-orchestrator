@@ -195,19 +195,24 @@
   - a new job of the test install workflow builds all projects in Release configuration
 - security (GHSA-jhj7-f9vj-r9v8): auditors could read the Authorization header string of external ticket systems
   in the ticket system configuration and in every external request created with it (external request monitoring)
-  - external ticket systems now reference a credential (username and encrypted password) instead of keeping the
-    header string; the middleware builds the basic authentication header from it when it creates a request and
-    stores it with the request only encrypted with the main key; it is decrypted right before sending. The
-    external request monitoring shows it as "****"
+  - external ticket systems now reference a credential (username and encrypted password, no key pair) instead of
+    keeping the header string; requests store only this reference, and the middleware builds the basic
+    authentication header from the current credential right before each call to the ticket system (also for the
+    requester lookup), so a changed password applies to open requests as well. A header that cannot be built
+    counts as a failed attempt of the request
   - the table import_credential (and its sequence) is renamed to credential, as credentials are no longer used for
     imports only; the GraphQL root fields change accordingly (credential, insert_credential, ...), the management
     relationships and columns keep their names. The UI calls them credentials, the C# class ImportCredential is
     renamed to Credential
-  - credentials still used by an external ticket system cannot be deleted
+  - credentials still used by an external ticket system cannot be deleted, neither in the settings nor by removing
+    the sample data
   - upgrades move a basic authentication header string of the form "Basic base64(username:password)" into a new
-    credential named "<ticket system> (external ticket system <id>)" and encrypt the header strings of existing
-    requests; other header strings (e.g. tokens) are removed, select a credential for these ticket systems.
+    credential named "<ticket system> (external ticket system <id>)", and existing requests of such a ticket system
+    reference it instead of their header string; other header strings (e.g. tokens) are removed from the ticket
+    systems, select a credential for them; the header strings of their existing requests are kept, encrypted with
+    the main key. The external request monitoring shows such a header as "****".
     Rotate the passwords of the ticket system accounts, as they may already have been read
+- api: upgrade hasura graphql API to 2.50.3
 - importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
 
 ## 9.7.0 - 07.10.2026

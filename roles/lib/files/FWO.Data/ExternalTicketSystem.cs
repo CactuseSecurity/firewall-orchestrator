@@ -64,12 +64,19 @@ namespace FWO.Data
         public int? CredentialId { get; set; }
 
         /// <summary>
-        /// Authorization header string of an external request, encrypted with the main key.
-        /// Only set in the copy stored with the request, never in the ticket system configuration.
+        /// Legacy: Authorization header string, encrypted with the main key, of an external request created before the
+        /// ticket systems referenced credentials (kept by the upgrade only where no credential could be assigned).
+        /// Never set in the ticket system configuration or in new requests.
         /// </summary>
         [JsonProperty(nameof(Authorization), NullValueHandling = NullValueHandling.Ignore), JsonPropertyName(nameof(Authorization))]
         [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Authorization { get; set; }
+
+        /// <summary>
+        /// Authorization header string in plain text, built right before calls to the ticket system. Never serialized.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public string AuthorizationHeader { get; set; } = "";
 
         [JsonProperty(nameof(Name)), JsonPropertyName(nameof(Name))]
         public string Name { get; set; } = "";
@@ -125,6 +132,9 @@ namespace FWO.Data
             return AuthorizationValueRegex().Replace(ticketSystem, $"$1\"{kRedactedAuthorization}\"");
         }
 
+        /// <summary>
+        /// Matches the non-empty string value of the "Authorization" key in a serialized ticket system.
+        /// </summary>
         [GeneratedRegex(@"(""Authorization""\s*:\s*)""(?:[^""\\]|\\.)+""")]
         private static partial Regex AuthorizationValueRegex();
 

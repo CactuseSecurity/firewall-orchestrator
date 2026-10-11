@@ -92,6 +92,11 @@ WITH request AS (
         VALUES ('{"Id":1,"TypeId":2,"Name":"probe","Authorization":"Basic cHJvYmVfdXNlcjpwdzp3aXRoOmNvbG9u"}', 'ExtReqDone', now())
         RETURNING id)
 INSERT INTO probe_id SELECT 'ext_request', id FROM request;
+WITH request AS (
+    INSERT INTO ext_request (ext_ticket_system, ext_request_state, finish_date)
+        VALUES ('{"Id":2,"TypeId":2,"Name":"probe_token","Authorization":"Bearer probe-token"}', 'ExtReqDone', now())
+        RETURNING id)
+INSERT INTO probe_id SELECT 'ext_request_token', id FROM request;
 
 CREATE FUNCTION pg_temp.ticket_system(p_id integer) RETURNS jsonb AS $$
     SELECT s FROM jsonb_array_elements(pg_temp.config_value('extTicketSystems')::jsonb) s WHERE (s ->> 'Id')::integer = p_id
@@ -117,11 +122,17 @@ BEGIN
     PERFORM pg_temp.expect('no credential for a token authorization', pg_temp.ticket_system(2) ->> 'CredentialId', NULL);
     PERFORM pg_temp.expect('no credential for the placeholder authorization', pg_temp.ticket_system(3) ->> 'CredentialId', NULL);
 
-    PERFORM pg_temp.expect('request authorization not in plain text',
-        (SELECT (ext_ticket_system NOT LIKE '%cHJvYmVfdXNlcjpwdzp3aXRoOmNvbG9u%')::text FROM ext_request WHERE id = pg_temp.probe('ext_request')), 'true');
-    PERFORM pg_temp.expect('request authorization encrypted',
-        (SELECT decryptText(ext_ticket_system::jsonb ->> 'Authorization', t_main_key) FROM ext_request WHERE id = pg_temp.probe('ext_request')),
-        'Basic cHJvYmVfdXNlcjpwdzp3aXRoOmNvbG9u');
+    -- a request of a ticket system with credential references it and keeps no authorization (built for each call)
+    PERFORM pg_temp.expect('request without authorization',
+        (SELECT (NOT ext_ticket_system::jsonb ? 'Authorization')::text FROM ext_request WHERE id = pg_temp.probe('ext_request')), 'true');
+    PERFORM pg_temp.expect('request references the credential of its ticket system',
+        (SELECT ext_ticket_system::jsonb ->> 'CredentialId' FROM ext_request WHERE id = pg_temp.probe('ext_request')), r_credential.id::text);
+    -- a request of a ticket system without credential keeps its authorization, encrypted
+    PERFORM pg_temp.expect('token request authorization not in plain text',
+        (SELECT (ext_ticket_system NOT LIKE '%probe-token%')::text FROM ext_request WHERE id = pg_temp.probe('ext_request_token')), 'true');
+    PERFORM pg_temp.expect('token request authorization encrypted',
+        (SELECT decryptText(ext_ticket_system::jsonb ->> 'Authorization', t_main_key) FROM ext_request WHERE id = pg_temp.probe('ext_request_token')),
+        'Bearer probe-token');
 END;
 $$ LANGUAGE plpgsql;
 

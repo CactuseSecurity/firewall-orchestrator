@@ -447,6 +447,31 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DeleteCredentials_KeepsDemoCredentialUsedByTicketSystem()
+        {
+            await using MonitoringMainTestSetup setup = RenderComponent();
+            MonitoringMain monitoring = setup.Component;
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            SetPrivateProperty(monitoring, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
+                messages.Add((exception, title, message, errorFlag))));
+            setup.UserConfig.ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem>
+            {
+                new() { Id = 1, Name = "Tufin", CredentialId = 3 }
+            });
+            setup.ApiConn.Credentials.Clear();
+            setup.ApiConn.Credentials.Add(new Credential { Id = 3, Name = "used_demo" });
+            setup.ApiConn.Credentials.Add(new Credential { Id = 4, Name = "unused_demo" });
+
+            await InvokePrivateTask(monitoring, "DeleteCredentials");
+
+            Assert.That(setup.ApiConn.CredentialDeleteQueryCalls, Is.EqualTo(1));
+            Assert.That(GetPrivateField<int>(monitoring, "deletedSampleCredentials"), Is.EqualTo(1));
+            Assert.That(messages, Has.Count.EqualTo(1));
+            Assert.That(messages[0].ErrorFlag, Is.True);
+            Assert.That(messages[0].Message, Does.Contain(setup.UserConfig.GetText("E5113")).And.Contain("used_demo: Tufin"));
+        }
+
+        [Test]
         public void Cancel_ClosesAllModals()
         {
             using MonitoringMainTestSetup setup = RenderComponent();

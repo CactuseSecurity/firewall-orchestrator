@@ -241,9 +241,10 @@ else
             extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems) ? new List<ExternalTicketSystem>()
                                                         : JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems)
                                                         ?? new List<ExternalTicketSystem>();
-            // the authorization is only stored with the requests, the ticket systems reference a credential instead
+            // the ticket systems reference a credential, the authorization header is built for each call and never stored
             extTicketSystems.ForEach(system => system.Authorization = null);
-            credentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentialsWithoutSecrets);
+            // ticket systems log in with basic authentication, a key pair would send its private key as password
+            credentials = [.. (await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentialsWithoutSecrets)).Where(credential => !credential.IsKeyPair)];
 
             List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getUsedMgmDeviceTypes);
 
@@ -445,7 +446,8 @@ else
 
         newTemplate = new ExternalTicketTemplate();
         selectedType = ResolveSelectedType(editModel.TypeId);
-        selectedCredential = ResolveSelectedCredential(editModel.CredentialId);
+        // a credential that no longer exists or is a key pair is shown as none and not kept on saving
+        OnCredentialChanged(ResolveSelectedCredential(editModel.CredentialId));
         InitTaskTypeList();
         editMode = true;
     }
@@ -456,7 +458,8 @@ else
         editModel = Clone(externalTicketSystem);
         newTemplate = new ExternalTicketTemplate();
         selectedType = ResolveSelectedType(editModel.TypeId);
-        selectedCredential = ResolveSelectedCredential(editModel.CredentialId);
+        // a credential that no longer exists or is a key pair is shown as none and not kept on saving
+        OnCredentialChanged(ResolveSelectedCredential(editModel.CredentialId));
         InitTaskTypeList();
         editMode = true;
     }
@@ -590,12 +593,21 @@ else
         InitTaskTypeList();
     }
 
+    /// <summary>
+    /// Selects the credential the edited ticket system logs in with.
+    /// </summary>
+    /// <param name="credential">The selected credential, null for none.</param>
     private void OnCredentialChanged(Credential? credential)
     {
         selectedCredential = credential;
         editModel.CredentialId = credential?.Id;
     }
 
+    /// <summary>
+    /// Finds a credential among those selectable for ticket systems.
+    /// </summary>
+    /// <param name="credentialId">The id of the credential, null for none.</param>
+    /// <returns>The credential, null if it does not exist or cannot be selected.</returns>
     private Credential? ResolveSelectedCredential(int? credentialId)
     {
         return credentials.FirstOrDefault(credential => credential.Id == credentialId);

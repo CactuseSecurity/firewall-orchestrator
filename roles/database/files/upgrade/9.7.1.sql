@@ -156,14 +156,31 @@ BEGIN
     END LOOP;
 END $$;
 
--- External requests keep the Authorization header string they are sent with only in encrypted form.
+-- External requests no longer keep the Authorization header string: the copy of the ticket system stored with a
+-- request references the credential its ticket system was given above, and the middleware builds the header from it
+-- right before each call, so that a changed password applies to open requests as well. Only the header of a ticket
+-- system without credential (e.g. a token) is kept, encrypted with the main key.
 DO $$
 DECLARE
     r_request RECORD;
     j_ticket_system jsonb;
+    j_credential_ids jsonb := '{}'::jsonb;
+    i_credential_id integer;
     t_encrypted text;
     t_main_key text;
 BEGIN
+    BEGIN
+        SELECT COALESCE(jsonb_object_agg(s ->> 'Id', (s ->> 'CredentialId')::integer), '{}'::jsonb) INTO j_credential_ids
+        FROM config c
+        CROSS JOIN LATERAL jsonb_array_elements(
+            CASE WHEN jsonb_typeof(c.config_value::jsonb) = 'array' THEN c.config_value::jsonb ELSE '[]'::jsonb END) s
+        WHERE c.config_key = 'extTicketSystems' AND c.config_user = 0
+            AND jsonb_typeof(s) = 'object' AND s ->> 'Id' IS NOT NULL AND s ->> 'CredentialId' ~ '^[1-9][0-9]*$';
+    EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING 'upgrade 9.7.1: external ticket systems are no valid JSON, external requests keep their authorization';
+        j_credential_ids := '{}'::jsonb;
+    END;
+
     FOR r_request IN
         SELECT id, ext_ticket_system FROM ext_request WHERE ext_ticket_system LIKE '%"Authorization"%'
     LOOP
@@ -176,6 +193,17 @@ BEGIN
         IF jsonb_typeof(j_ticket_system) <> 'object' OR COALESCE(j_ticket_system ->> 'Authorization', '') = '' THEN
             CONTINUE;
         END IF;
+
+        i_credential_id := CASE WHEN j_ticket_system ->> 'CredentialId' ~ '^[1-9][0-9]*$'
+            THEN (j_ticket_system ->> 'CredentialId')::integer
+            ELSE (j_credential_ids ->> (j_ticket_system ->> 'Id'))::integer END;
+        IF i_credential_id IS NOT NULL THEN
+            UPDATE ext_request
+            SET ext_ticket_system = ((j_ticket_system - 'Authorization') || jsonb_build_object('CredentialId', i_credential_id))::text
+            WHERE id = r_request.id;
+            CONTINUE;
+        END IF;
+
         IF t_main_key IS NULL THEN
             t_main_key := getMainKey();
         END IF;

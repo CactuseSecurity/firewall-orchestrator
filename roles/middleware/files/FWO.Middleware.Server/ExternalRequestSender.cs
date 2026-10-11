@@ -174,6 +174,7 @@ namespace FWO.Middleware.Server
         {
             Log.WriteInfo(LogMessageTitle, $"Sending {RequestInfo(request)}");
             request.Attempts++;
+            await ResolveAuthorization(request, ticket.TicketSystem);
 
             RestResponse<int> ticketIdResponse = await ticket.CreateExternalTicket();
             request.LastMessage = ticketIdResponse.Content;
@@ -218,6 +219,27 @@ namespace FWO.Middleware.Server
                 throw new ProcessingFailedException(
                     $"External request failed for {RequestInfo(request)} with status {(int)ticketIdResponse.StatusCode} " +
                     $"{ticketIdResponse.StatusCode}: {ticketIdResponse.Content}");
+            }
+        }
+
+        /// <summary>
+        /// Builds the Authorization header string of the ticket system right before the call. A failure is reported as
+        /// a failed attempt (not as ProcessingFailedException), so the request is retried and finally rejected after the
+        /// configured number of attempts instead of being retried in every cycle.
+        /// </summary>
+        /// <param name="request">The external request, its last message is set on failure.</param>
+        /// <param name="ticketSystem">The ticket system stored with the request.</param>
+        private async Task ResolveAuthorization(ExternalRequest request, ExternalTicketSystem ticketSystem)
+        {
+            try
+            {
+                await ExternalTicketAuthorization.ResolveHeader(ticketSystem, apiConnection);
+            }
+            catch (Exception exception)
+            {
+                request.LastMessage = exception.Message;
+                Log.WriteError(LogMessageTitle, $"{RequestInfo(request)}: no authorization for the external ticket system.", exception);
+                throw new InvalidOperationException(exception.Message, exception);
             }
         }
 
@@ -404,6 +426,7 @@ namespace FWO.Middleware.Server
                 );
 
                 ticket.TicketId = request.ExtTicketId;
+                await ExternalTicketAuthorization.ResolveHeader(ExtTicketSystem, apiConnection);
 
                 return await ticket.GetNewState(request.ExtRequestState);
             }

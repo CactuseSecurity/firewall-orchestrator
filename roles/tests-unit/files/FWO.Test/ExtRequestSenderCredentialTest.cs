@@ -19,6 +19,7 @@ namespace FWO.Test
         private const string kMainKey = "0123456789ABCDEF0123456789ABCDEF";
         private const int kCredentialId = 7;
         private const int kOldCredentialId = 5;
+        private const string kOtherUrl = "https://other-ticket-system.example/";
         private const int kMaxAttempts = 3;
         private const int kCyclesBetweenAttempts = 5;
         private const string kUsername = "probe_user";
@@ -26,6 +27,7 @@ namespace FWO.Test
         private const string kExtTicketId = "4711";
         private const string kTicketContent = "{ \"ticketText\": \"\" }";
         private static readonly Dictionary<string, (HttpStatusCode StatusCode, string Content)> NoResponses = [];
+        private static readonly List<string> ExpectedPollPaths = [$"tickets/{kExtTicketId}"];
         private static readonly List<string> ExpectedHeaders = [ExternalTicketAuthorization.BuildBasicHeader(kUsername, kRotatedPassword)];
 
         [Test]
@@ -97,6 +99,29 @@ namespace FWO.Test
                 Assert.That(apiConnection.CredentialQueryVars, Has.Count.EqualTo(1));
                 Assert.That(apiConnection.CredentialQueryVars[0], Does.Contain($"id = {kCredentialId}"));
                 Assert.That(server.Requests.Select(request => request.Authorization), Is.EqualTo(ExpectedHeaders));
+            });
+        }
+
+        [Test]
+        public async Task PollKeepsStoredCredentialWhenConfiguredTicketSystemIsAnotherEndpoint()
+        {
+            using TestMainKeyScope mainKeyScope = new(kMainKey);
+            using AuthorizationCaptureServer server = new(new()
+            {
+                [$"tickets/{kExtTicketId}"] = (HttpStatusCode.OK, "{\"ticket\": {\"id\": 4711, \"status\": \"In Progress\" } }")
+            });
+            // the ticket system id was reused (or the system moved) with another credential: that one must not go to this server
+            ExternalRequest request = CreateRequest(server.BaseUrl, ExtStates.ExtReqInProgress, credentialId: kOldCredentialId);
+            request.ExtTicketId = kExtTicketId;
+            ExtRequestSenderTestApiConn apiConnection = new() { Credential = CreateCredential(), OpenRequests = [request] };
+
+            await RunSender(apiConnection, server.BaseUrl, configuredUrl: kOtherUrl);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.CredentialQueryVars, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.CredentialQueryVars[0], Does.Contain($"id = {kOldCredentialId}"));
+                Assert.That(server.Requests.Select(request => request.Path), Is.EqualTo(ExpectedPollPaths));
             });
         }
 
@@ -198,9 +223,9 @@ namespace FWO.Test
         }
 
         private static async Task<List<string>> RunSender(ExtRequestSenderTestApiConn apiConnection, string url, int? configuredCredentialId = kCredentialId,
-            bool ticketSystemConfigured = true)
+            bool ticketSystemConfigured = true, string? configuredUrl = null)
         {
-            List<ExternalTicketSystem> configuredSystems = ticketSystemConfigured ? [CreateTicketSystem(url, configuredCredentialId)] : [];
+            List<ExternalTicketSystem> configuredSystems = ticketSystemConfigured ? [CreateTicketSystem(configuredUrl ?? url, configuredCredentialId)] : [];
             SimulatedGlobalConfig globalConfig = new()
             {
                 ExternalRequestWaitCycles = 3,

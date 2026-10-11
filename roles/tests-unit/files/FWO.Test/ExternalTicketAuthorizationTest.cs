@@ -22,6 +22,7 @@ namespace FWO.Test
         private const string kPrivateKey = "-----BEGIN PRIVATE KEY-----probe-----END PRIVATE KEY-----";
         private const int kCredentialId = 7;
         private const int kOldCredentialId = 5;
+        private const string kStoredUrl = "https://ticket.example/";
 
         [Test]
         public void BuildBasicHeader_EncodesUsernameAndPassword()
@@ -203,6 +204,31 @@ namespace FWO.Test
                 Assert.That(apiConnection.CredentialQueryVars, Has.Count.EqualTo(1));
                 Assert.That(apiConnection.CredentialQueryVars[0], Does.Contain($"id = {kCredentialId}"));
                 Assert.That(storedSystem.AuthorizationHeader, Is.EqualTo(kBasicHeader));
+            });
+        }
+
+        [TestCase("https://other.example/", BuiltInExternalTicketSystemTypes.TufinSecureChangeId)]
+        [TestCase(kStoredUrl, BuiltInExternalTicketSystemTypes.GenericId)]
+        public async Task ResolveHeader_UsesStoredCredentialWhenConfiguredTicketSystemIsAnotherEndpoint(string configuredUrl, int configuredTypeId)
+        {
+            using TestMainKeyScope mainKeyScope = new(kMainKey);
+            ExtTicketHandlerTestApiConn apiConnection = new() { Credential = CreateCredential(kPassword) };
+            ExternalTicketSystem storedSystem = new()
+            {
+                Id = 1,
+                Name = "probe",
+                Url = kStoredUrl,
+                TypeId = BuiltInExternalTicketSystemTypes.TufinSecureChangeId,
+                CredentialId = kOldCredentialId
+            };
+            string configured = ConfiguredTicketSystems(new ExternalTicketSystem { Id = 1, Name = "new", Url = configuredUrl, TypeId = configuredTypeId, CredentialId = kCredentialId });
+
+            await ExternalTicketAuthorization.ResolveHeader(storedSystem, apiConnection, configured);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.CredentialQueryVars, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.CredentialQueryVars[0], Does.Contain($"id = {kOldCredentialId}"));
             });
         }
 

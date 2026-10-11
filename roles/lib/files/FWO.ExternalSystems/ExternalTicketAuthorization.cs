@@ -92,8 +92,9 @@ namespace FWO.ExternalSystems
 
         /// <summary>
         /// The credential a ticket system logs in with: that of its current configuration, so that open requests follow
-        /// a switch to another credential (and the old one can be deleted); the one stored with the request only if the
-        /// ticket system is no longer configured.
+        /// a switch to another credential (and the old one can be deleted). The calls go to the endpoint stored with the
+        /// request, so the configured credential is only taken while the configured ticket system still is that endpoint;
+        /// otherwise (ticket system removed, its id reused, or moved to another server) the one stored with the request.
         /// </summary>
         private static int? CurrentCredentialId(ExternalTicketSystem system, string? configuredTicketSystems)
         {
@@ -102,7 +103,12 @@ namespace FWO.ExternalSystems
                 return system.CredentialId;
             }
             ExternalTicketSystem? configured = ExternalTicketSystem.FindConfigured(configuredTicketSystems, system.Id);
-            return configured != null ? configured.CredentialId : system.CredentialId;
+            return configured != null && IsSameEndpoint(configured, system) ? configured.CredentialId : system.CredentialId;
+        }
+
+        private static bool IsSameEndpoint(ExternalTicketSystem configured, ExternalTicketSystem stored)
+        {
+            return configured.TypeId == stored.TypeId && string.Equals(configured.Url.Trim(), stored.Url.Trim(), StringComparison.Ordinal);
         }
     }
 }

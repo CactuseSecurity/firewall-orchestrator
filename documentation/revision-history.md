@@ -198,8 +198,9 @@
   - external ticket systems now reference a credential (username and encrypted password, no key pair) instead of
     keeping the header string; the middleware builds the basic authentication header right before each call to
     the ticket system (also for the requester lookup) from the credential the ticket system currently references,
-    so a changed password or a newly selected credential applies to open requests as well (the credential stored
-    with a request is only used if its ticket system was removed). A header that cannot be built when sending
+    so a changed password or a newly selected credential applies to open requests as well; the credential stored
+    with a request is used if its ticket system was removed or no longer has the URL and type the request is sent to
+    (e.g. reused id, moved to another server), so a credential never goes to another endpoint. A header that cannot be built when sending
     counts as a failed attempt of the request
   - the table import_credential (and its sequence) is renamed to credential, as credentials are no longer used for
     imports only; the GraphQL root fields change accordingly (credential, insert_credential, ...), the management

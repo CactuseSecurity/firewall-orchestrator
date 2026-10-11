@@ -128,6 +128,11 @@ namespace FWO.Data
             return ParseConfigured(extTicketSystems).FirstOrDefault(system => system.Id == id);
         }
 
+        /// <summary>
+        /// Reads the configured external ticket systems.
+        /// </summary>
+        /// <param name="extTicketSystems">The external ticket systems as stored in the config (JSON list).</param>
+        /// <returns>The ticket systems, empty if none are configured.</returns>
         private static List<ExternalTicketSystem> ParseConfigured(string? extTicketSystems)
         {
             return string.IsNullOrWhiteSpace(extTicketSystems) ? []

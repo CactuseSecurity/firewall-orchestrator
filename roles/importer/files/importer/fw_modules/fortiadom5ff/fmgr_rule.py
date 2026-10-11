@@ -1116,6 +1116,27 @@ def prepare_translated_nat_fields(
     )
 
 
+def resolve_nat_translated_destination(
+    is_dnat: bool,
+    rule_dst_list: list[str],
+    rule_dst_refs_list: list[str],
+    normalized_config_adom: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+) -> tuple[list[str], list[str]]:
+    """
+    Resolves the translated destination of a NAT rule, expanding virtual server vips
+    to their real servers (they translate to those, not to the vip itself).
+    """
+    translated_dst_list, translated_dst_refs_list = get_nat_translated_destination(
+        is_dnat, rule_dst_list, rule_dst_refs_list, normalized_config_adom, normalized_config_global
+    )
+    if not is_dnat:
+        return translated_dst_list, translated_dst_refs_list
+    return expand_vip_real_servers(
+        translated_dst_list, translated_dst_refs_list, normalized_config_adom, normalized_config_global
+    )
+
+
 def parse_nat_rules_in_rulebase(
     normalized_config_adom: dict[str, Any],
     normalized_config_global: dict[str, Any],
@@ -1169,16 +1190,11 @@ def parse_nat_rules_in_rulebase(
             FWOLogger.warning("NAT rule without UUID, skipping")
             continue
 
-        translated_dst_list, translated_dst_refs_list = get_nat_translated_destination(
+        translated_dst_list, translated_dst_refs_list = resolve_nat_translated_destination(
             is_dnat, rule_dst_list, rule_dst_refs_list, normalized_config_adom, normalized_config_global
         )
         translated_svc_list = list(rule_svc_list)
         translated_svc_refs_list = list(rule_svc_refs_list)
-
-        if is_dnat:  # virtual server vips translate to their real servers, not to the vip itself
-            translated_dst_list, translated_dst_refs_list = expand_vip_real_servers(
-                translated_dst_list, translated_dst_refs_list, normalized_config_adom, normalized_config_global
-            )
 
         (
             translated_src_list,

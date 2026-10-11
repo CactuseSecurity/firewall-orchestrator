@@ -1,7 +1,7 @@
 from typing import Any
 
 from fw_modules.fortiadom5ff.fmgr_network import normalize_vip_object, normalize_vip_object_nat_ip
-from fw_modules.fortiadom5ff.fmgr_rule import expand_vip_real_servers
+from fw_modules.fortiadom5ff.fmgr_rule import expand_vip_real_servers, resolve_nat_translated_destination
 from services.service_provider import ServiceProvider
 
 
@@ -299,3 +299,35 @@ class TestExpandVipRealServers:
         )
 
         assert dst_list == ["10.0.0.1_NatNwObj"]
+
+
+class TestResolveNatTranslatedDestination:
+    def test_dnat_rule_translates_virtual_server_vip_to_real_servers(self):
+        normalized_config_adom = _normalized_config(
+            [
+                {
+                    "obj_name": "LB-SSMTP",
+                    "obj_native_type": "firewall/vip",
+                    "obj_nat_real_server_refs": ["10.0.0.1_NatNwObj"],
+                }
+            ]
+        )
+
+        dst_list, dst_refs_list = resolve_nat_translated_destination(
+            True, ["LB-SSMTP"], ["lb-ssmtp-uid"], normalized_config_adom, _normalized_config()
+        )
+
+        assert dst_list == ["10.0.0.1_NatNwObj"]
+        assert dst_refs_list == ["10.0.0.1_NatNwObj"]
+
+    def test_non_dnat_rule_keeps_destination(self):
+        normalized_config_adom = _normalized_config(
+            [{"obj_name": "LB-SSMTP", "obj_nat_real_server_refs": ["10.0.0.1_NatNwObj"]}]
+        )
+
+        dst_list, dst_refs_list = resolve_nat_translated_destination(
+            False, ["LB-SSMTP"], ["lb-ssmtp-uid"], normalized_config_adom, _normalized_config()
+        )
+
+        assert dst_list == ["LB-SSMTP"]
+        assert dst_refs_list == ["lb-ssmtp-uid"]

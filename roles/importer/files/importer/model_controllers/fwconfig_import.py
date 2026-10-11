@@ -632,7 +632,10 @@ class FwConfigImport:
                 for device in rb_link_result["data"]["device"]
             }
 
-            for gw in management_state.previous_config.gateways:
+            previous_config = management_state.previous_config
+            if previous_config is None:
+                raise FwoImporterError(f"cannot update rulebase links: no previous config for mgm id {mgm_id!s}")
+            for gw in previous_config.gateways:
                 if gw.Uid not in rb_links_by_device:
                     raise FwoImporterError(
                         f"gateway with UID {gw.Uid!s} not found in rulebase links fetched from DB for mgm id {mgm_id!s}"

@@ -137,6 +137,10 @@ class TestResolveRequestsVerify:
         assert fwo_globals.cli_verify_certs is True
 
 
+def fake_system_ca_bundle(_candidates: list[str] | None = None) -> str:
+    return "/etc/ssl/certs/ca-certificates.crt"
+
+
 class TestApplyCertificateSettings:
     @staticmethod
     def create_import_state(mgm_id: int) -> ImportState:
@@ -156,9 +160,7 @@ class TestApplyCertificateSettings:
 
     def test_switched_on_uses_resolved_trust_store(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(fwo_globals, "suppress_cert_warnings", fwo_globals.suppress_cert_warnings)
-        monkeypatch.setattr(
-            fwo_globals, "find_system_ca_bundle", lambda _candidates=None: "/etc/ssl/certs/ca-certificates.crt"
-        )
+        monkeypatch.setattr(fwo_globals, "find_system_ca_bundle", fake_system_ca_bundle)
         mock_disable_warnings = MagicMock()
         monkeypatch.setattr("states.import_state.urllib3.disable_warnings", mock_disable_warnings)
         import_state = self.create_import_state(987657)

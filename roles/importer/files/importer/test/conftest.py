@@ -149,9 +149,8 @@ def global_state(
             90,
         ),
     ):
-        GlobalState.login_to_api = unittest.mock.Mock(return_value=None)
-        GlobalState.__init__ = unittest.mock.Mock(return_value=None)
-        global_state = GlobalState(FWO_CONFIG_FILENAME, force=True, clear=False, debug_level=0)
+        # bypass __init__, which would log in to the API
+        global_state = GlobalState.__new__(GlobalState)
         global_state.fwo_config_controller = FwoConfigController(
             FWO_CONFIG_FILENAME, force=True, clear=False, debug_level=0
         )

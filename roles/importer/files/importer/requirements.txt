@@ -25,7 +25,7 @@ pytest-cov==7.1.0
 PyYAML==6.0.3
 
 # Linting
-ruff==0.16.5
+ruff==0.16.7
 pre-commit==4.6.2
 pyright==1.1.414
 

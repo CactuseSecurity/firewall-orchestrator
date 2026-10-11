@@ -29,15 +29,16 @@ public class UserGroupResolver
     /// </summary>
     /// <param name="ldapUser">Ldap entry of the user.</param>
     /// <param name="hostingLdap">Ldap connection the entry was read from.</param>
+    /// <param name="cancellationToken">Cancels the lookups when the login request ends or runs out of time.</param>
     /// <returns>Distinct list of group dns the user belongs to.</returns>
-    public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap hostingLdap)
+    public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap hostingLdap, CancellationToken cancellationToken = default)
     {
         HashSet<string> userGroups = new(DistName.DnComparer);
         userGroups.UnionWith(hostingLdap.GetGroups(ldapUser));
-        AddResolvedGroupMemberships(userGroups, await GetGroupsForDn(hostingLdap, ldapUser.Dn), GetGroupPath(hostingLdap));
+        AddResolvedGroupMemberships(userGroups, await GetGroupsForDn(hostingLdap, ldapUser.Dn, cancellationToken), GetGroupPath(hostingLdap));
         if (!hostingLdap.IsInternal())
         {
-            await AddInternalLdapMemberships(userGroups, ldapUser.Dn);
+            await AddInternalLdapMemberships(userGroups, ldapUser.Dn, cancellationToken);
         }
         return userGroups.ToList();
     }
@@ -69,7 +70,7 @@ public class UserGroupResolver
         return [];
     }
 
-    private async Task AddInternalLdapMemberships(HashSet<string> userGroups, string userDn)
+    private async Task AddInternalLdapMemberships(HashSet<string> userGroups, string userDn, CancellationToken cancellationToken)
     {
         object groupsLock = new();
         List<Task> ldapRoleRequests = [];
@@ -78,20 +79,20 @@ public class UserGroupResolver
         {
             ldapRoleRequests.Add(Task.Run(async () =>
             {
-                List<string> currentGroups = await GetGroupsForDn(currentLdap, userDn);
+                List<string> currentGroups = await GetGroupsForDn(currentLdap, userDn, cancellationToken);
                 lock (groupsLock)
                 {
                     AddResolvedGroupMemberships(userGroups, currentGroups, GetGroupPath(currentLdap));
                 }
-            }));
+            }, cancellationToken));
         }
         await Task.WhenAll(ldapRoleRequests);
     }
 
-    private static async Task<List<string>> GetGroupsForDn(Ldap ldap, string userDn)
+    private static async Task<List<string>> GetGroupsForDn(Ldap ldap, string userDn, CancellationToken cancellationToken)
     {
         List<string> userDnList = [userDn];
-        return await ldap.GetGroups(userDnList);
+        return await LdapAuthenticationGate.RunInSlotAsync(token => ldap.GetGroups(userDnList, token), cancellationToken);
     }
 
     private static string? GetGroupPath(Ldap ldap)

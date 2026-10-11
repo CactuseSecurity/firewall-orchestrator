@@ -153,6 +153,7 @@ Adjust the settings in the config file /etc/fworch/secrets/customizingConfig.jso
 - username should be an admin user for Tufin RLM
 - under ldapPath enter your standard LDAP path and make sure the user id parameter [USERID] is at the right place
 - finally enter the path to your Tufin installation, e.g. https://tufin.cactus.de/ without any path informatin just ending with a "/"
+- checkCertificates validates the TLS certificate of the RLM API against the host trust store; add the issuing CA there if RLM uses a self-signed or internal certificate. A config file without this key keeps the previous unchecked behaviour and logs a warning on every run
 - for the Subnet Data import enter the path to the .csv-File
 
 ```json
@@ -161,6 +162,7 @@ Adjust the settings in the config file /etc/fworch/secrets/customizingConfig.jso
     "password": "pwd1",
     "ldapPath": "CN={USERID},OU=Benutzer,DC=CACTUS,DC=DE",
     "apiBaseUri": "https://tufin.cactus.de/",
+    "checkCertificates": true,
     "subnetData": "/usr/local/fworch/scripts/customizing/modelling/NwObjDataOrigExample.csv"
 }
 ```

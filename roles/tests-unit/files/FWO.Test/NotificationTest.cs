@@ -1,3 +1,4 @@
+using FWO.Mail;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Api.Client;
@@ -1157,5 +1158,21 @@ namespace FWO.Test
                 ?? throw new MissingMethodException(typeof(NotificationService).FullName, "CollectRecipients");
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void CreateEmailConnection_CarriesTheCertificateCheckOfTheEmailSettings(bool checkCertificates)
+        {
+            SimulatedGlobalConfig config = new()
+            {
+                EmailServerAddress = "smtp.example.test",
+                EmailPort = 587,
+                EmailCheckCertificates = checkCertificates
+            };
+
+            EmailConnection connection = NotificationService.CreateEmailConnection(config);
+
+            Assert.That(connection.CheckCertificates, Is.EqualTo(checkCertificates));
+            Assert.That(connection.ServerAddress, Is.EqualTo("smtp.example.test"));
+        }
     }
 }

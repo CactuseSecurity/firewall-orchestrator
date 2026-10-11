@@ -18,7 +18,7 @@ namespace FWO.Test
                 DeviceType = new DeviceType { Id = 12 }
             };
             SimulatedApiConnection apiConnection = new();
-            AutoDiscoveryFortiManager discovery = new(superManagement, apiConnection);
+            AutoDiscoveryFortiManager discovery = new(superManagement, apiConnection, checkCertificates: true);
 
             Adom adom = new()
             {
@@ -40,6 +40,47 @@ namespace FWO.Test
             Assert.That(managements[0].Devices[0].Uid, Is.EqualTo("gw-1"));
         }
 
+        [TestCase("root", true)]
+        [TestCase("customer-adom", true)]
+        [TestCase(null, true)]
+        [TestCase("https://attacker.example/config.json", false)]
+        [TestCase("file:///etc/fworch/fworch.json", false)]
+        public void IsAcceptableDomainName_RejectsNamesInUriForm(string? domainName, bool expected)
+        {
+            Assert.That(AutoDiscoveryBase.IsAcceptableDomainName(domainName), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void ConvertAdomsToManagements_SkipsAdomNamedLikeUri()
+        {
+            Management superManagement = new()
+            {
+                Name = "fmgr",
+                DeviceType = new DeviceType { Id = 12 }
+            };
+            AutoDiscoveryFortiManager discovery = new(superManagement, new SimulatedApiConnection(), checkCertificates: true);
+            List<Adom> adoms =
+            [
+                new Adom { Name = "root" },
+                new Adom { Name = "http://127.0.0.1:8880/" }
+            ];
+
+            MethodInfo? convertMethod = typeof(AutoDiscoveryFortiManager)
+                .GetMethod("ConvertAdomsToManagements", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(convertMethod, Is.Not.Null);
+
+            List<Management> managements = (List<Management>)convertMethod!.Invoke(discovery, InvocationArguments(adoms))!;
+
+            Assert.That(managements.Select(management => management.ConfigPath), Is.EqualTo(ExpectedConfigPaths));
+        }
+
+        private static readonly List<string> ExpectedConfigPaths = ["root"];
+
+        private static object[] InvocationArguments(params object[] arguments)
+        {
+            return arguments;
+        }
+
         [Test]
         public void BuildAdomDeviceVdomStructure_PreCanceledToken_StopsBeforeQueryingDevices()
         {
@@ -49,12 +90,12 @@ namespace FWO.Test
                 Hostname = "fmgr.invalid",
                 DeviceType = new DeviceType { Id = 12 }
             };
-            AutoDiscoveryFortiManager discovery = new(superManagement, new SimulatedApiConnection());
+            AutoDiscoveryFortiManager discovery = new(superManagement, new SimulatedApiConnection(), checkCertificates: true);
             List<FortiGate> existingDevices = [new FortiGate { Name = "gw-1" }];
             Adom adom = new() { Name = "root", DeviceList = existingDevices };
 
             Assert.ThrowsAsync<OperationCanceledException>(async () =>
-                await discovery.BuildAdomDeviceVdomStructure("session", [adom], new FortiManagerClient(superManagement), new CancellationToken(canceled: true)));
+                await discovery.BuildAdomDeviceVdomStructure("session", [adom], new FortiManagerClient(superManagement, checkCertificates: true), new CancellationToken(canceled: true)));
             Assert.That(adom.DeviceList, Is.SameAs(existingDevices));
         }
 
@@ -68,7 +109,7 @@ namespace FWO.Test
                 DeviceType = new DeviceType { Id = 12, Name = "FortiManager" }
             };
             RecordingQueryApiConnection apiConnection = new();
-            AutoDiscoveryBase discovery = new(superManagement, apiConnection);
+            AutoDiscoveryBase discovery = new(superManagement, apiConnection, checkCertificates: true);
 
             Assert.ThrowsAsync<OperationCanceledException>(async () => await discovery.Run(new CancellationToken(canceled: true)));
             Assert.That(apiConnection.QueryCount, Is.EqualTo(0), "no deltas may be calculated for a stopped discovery");

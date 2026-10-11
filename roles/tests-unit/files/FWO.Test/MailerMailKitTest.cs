@@ -246,6 +246,57 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void ConfigureCertificateValidation_WithChecking_UsesDefaultValidation()
+        {
+            using MailKit.Net.Smtp.SmtpClient smtp = new();
+            smtp.ServerCertificateValidationCallback = (_, _, _, _) => true;
+
+            MailKitMailer.ConfigureCertificateValidation(smtp, new EmailConnection { ServerAddress = "smtp.example.test", Port = 465 });
+
+            Assert.That(smtp.ServerCertificateValidationCallback, Is.Null);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ConfigureCertificateValidation_DoesNotCheckRevocationOnline(bool checkCertificates)
+        {
+            using MailKit.Net.Smtp.SmtpClient smtp = new();
+            Assert.That(smtp.CheckCertificateRevocation, Is.True, "MailKit default changed - revisit this test");
+
+            MailKitMailer.ConfigureCertificateValidation(smtp,
+                new EmailConnection { ServerAddress = $"revocation-{Guid.NewGuid():N}.example.test", Port = 465, CheckCertificates = checkCertificates });
+
+            Assert.That(smtp.CheckCertificateRevocation, Is.False);
+        }
+
+        [Test]
+        public void ConfigureCertificateValidation_WithoutChecking_AcceptsAnyCertificate()
+        {
+            using MailKit.Net.Smtp.SmtpClient smtp = new();
+            EmailConnection connection = new() { ServerAddress = $"unchecked-{Guid.NewGuid():N}.example.test", Port = 465, CheckCertificates = false };
+
+            MailKitMailer.ConfigureCertificateValidation(smtp, connection);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(smtp.ServerCertificateValidationCallback, Is.Not.Null);
+                Assert.That(smtp.ServerCertificateValidationCallback!(this, null, null, System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors), Is.True);
+            });
+        }
+
+        [Test]
+        public void WarnUncheckedServer_WarnsOncePerServer()
+        {
+            EmailConnection connection = new() { ServerAddress = $"unchecked-{Guid.NewGuid():N}.example.test", Port = 587, CheckCertificates = false };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(MailKitMailer.WarnUncheckedServer(connection), Is.True);
+                Assert.That(MailKitMailer.WarnUncheckedServer(connection), Is.False);
+            });
+        }
+
         private static async Task RunSmtpServer(TcpListener listener)
         {
             using TcpClient client = await listener.AcceptTcpClientAsync();

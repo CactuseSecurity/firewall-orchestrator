@@ -1,8 +1,10 @@
 # pyright: reportPrivateUsage=false
 
+from __future__ import annotations
+
 import json
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 import pytest
@@ -37,7 +39,9 @@ from fwo_exceptions import (
 )
 from models.rulebase import Rulebase
 from models.time_object import TimeObject
-from pytest_mock import MockerFixture
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 def _empty_normalized_config() -> dict[str, Any]:

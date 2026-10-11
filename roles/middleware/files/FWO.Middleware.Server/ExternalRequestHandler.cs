@@ -7,6 +7,7 @@ using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
+using FWO.Encryption;
 using FWO.ExternalSystems;
 using FWO.ExternalSystems.CheckPoint;
 using FWO.ExternalSystems.Tufin.SecureChange;
@@ -539,6 +540,7 @@ namespace FWO.Middleware.Server
             string extQueryVars = handledTaskNumbers.Count > 0
                 ? JsonSerializer.Serialize(handledTaskNumbers)
                 : "";
+            actSystem.Authorization = await GetEncryptedAuthorization(actSystem);
 
             var Variables = new
             {
@@ -555,6 +557,23 @@ namespace FWO.Middleware.Server
 
             await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addExtRequest, Variables);
             await LogRequestTasks(handledTasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
+        }
+
+        /// <summary>
+        /// Builds the Authorization header string of the ticket system from its credential, encrypted with the main key,
+        /// so that the request stored in the database never contains it in plain text.
+        /// </summary>
+        /// <param name="system">The external ticket system.</param>
+        /// <returns>The encrypted header string, null if the ticket system has no credential.</returns>
+        private async Task<string?> GetEncryptedAuthorization(ExternalTicketSystem system)
+        {
+            if (system.CredentialId is not > 0)
+            {
+                return null;
+            }
+            Credential? credential = await ApiConnection.SendQueryAsync<Credential?>(DeviceQueries.getCredentialById, new { id = system.CredentialId })
+                ?? throw new InvalidOperationException($"Credential {system.CredentialId} of external ticket system '{system.Name}' not found.");
+            return ExternalTicketAuthorization.BuildEncryptedHeader(credential, AesEnc.GetMainKey());
         }
 
         private static Dictionary<string, List<int>> BuildExtQueryVariables(List<WfReqTask> tasks, List<WfReqTask> handledTasks)

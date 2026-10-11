@@ -23,7 +23,11 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
         public virtual async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
         {
             request.AddHeader("Content-Type", "application/json");
-            request.AddHeader("Authorization", TicketSystem.Authorization);
+            string authorization = ExternalTicketAuthorization.DecryptHeader(TicketSystem.Authorization);
+            if (authorization != "")
+            {
+                request.AddHeader("Authorization", authorization);
+            }
             request.AddHeader("Accept", "application/json");
 
             // Debugging SecureChange API call

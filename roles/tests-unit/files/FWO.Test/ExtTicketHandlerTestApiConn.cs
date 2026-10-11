@@ -18,6 +18,8 @@ namespace FWO.Test
         public string? AddExtRequestVars { get; set; }
         public string? AddedExtTicketSystem { get; set; }
         public string? AddedExtQueryVariables { get; set; }
+        public Credential? Credential { get; set; }
+        public List<string> CredentialQueryVars { get; } = [];
         public bool OmitExtReqRequestedStateMapping { get; set; }
         public bool ApprovalPhaseActive { get; set; }
         public bool ApprovalPhaseActiveForMasterOnly { get; set; }
@@ -434,6 +436,12 @@ namespace FWO.Test
 
                 ReturnId returnId = new() { UpdatedIdLong = 1 };
                 GraphQLResponse<dynamic> response = new() { Data = returnId };
+                return response.Data;
+            }
+            else if (responseType == typeof(Credential) && query == DeviceQueries.getCredentialById)
+            {
+                CredentialQueryVars.Add(variables?.ToString() ?? "");
+                GraphQLResponse<dynamic> response = new() { Data = Credential! };
                 return response.Data;
             }
             else if (responseType == typeof(ReturnIdWrapper))

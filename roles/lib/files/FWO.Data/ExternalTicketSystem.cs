@@ -3,6 +3,7 @@ using FWO.Data.Workflow;
 using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace FWO.Data
 {
@@ -46,16 +47,29 @@ namespace FWO.Data
 
 
 
-    public class ExternalTicketSystem
+    public partial class ExternalTicketSystem
     {
+        private const string kRedactedAuthorization = "****";
+
         [JsonProperty(nameof(Id)), JsonPropertyName(nameof(Id))]
         public int Id { get; set; } = 0;
 
         [JsonProperty(nameof(TypeId)), JsonPropertyName(nameof(TypeId))]
         public int TypeId { get; set; } = BuiltInExternalTicketSystemTypes.GenericId;
 
-        [JsonProperty(nameof(Authorization)), JsonPropertyName(nameof(Authorization))]
-        public string Authorization { get; set; } = "Basic xyz"; // replace xyz with b64encode(username:password)
+        /// <summary>
+        /// Credential used to log into the ticket system (basic authentication)
+        /// </summary>
+        [JsonProperty(nameof(CredentialId)), JsonPropertyName(nameof(CredentialId))]
+        public int? CredentialId { get; set; }
+
+        /// <summary>
+        /// Authorization header string of an external request, encrypted with the main key.
+        /// Only set in the copy stored with the request, never in the ticket system configuration.
+        /// </summary>
+        [JsonProperty(nameof(Authorization), NullValueHandling = NullValueHandling.Ignore), JsonPropertyName(nameof(Authorization))]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Authorization { get; set; }
 
         [JsonProperty(nameof(Name)), JsonPropertyName(nameof(Name))]
         public string Name { get; set; } = "";
@@ -84,6 +98,35 @@ namespace FWO.Data
 
         [JsonProperty(nameof(CyclesBetweenAttempts)), JsonPropertyName(nameof(CyclesBetweenAttempts))]
         public int CyclesBetweenAttempts { get; set; } = 5;
+
+        /// <summary>
+        /// Lists the configured external ticket systems that log in with the given credential.
+        /// </summary>
+        /// <param name="extTicketSystems">The external ticket systems as stored in the config (JSON list).</param>
+        /// <param name="credentialId">The id of the credential.</param>
+        /// <returns>The external ticket systems referencing the credential.</returns>
+        public static List<ExternalTicketSystem> UsingCredential(string? extTicketSystems, int credentialId)
+        {
+            if (string.IsNullOrWhiteSpace(extTicketSystems))
+            {
+                return [];
+            }
+            List<ExternalTicketSystem> systems = System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(extTicketSystems) ?? [];
+            return [.. systems.Where(system => system.CredentialId == credentialId)];
+        }
+
+        /// <summary>
+        /// Hides the (encrypted) authorization of a ticket system stored with an external request, for display.
+        /// </summary>
+        /// <param name="ticketSystem">The ticket system as stored with the external request (JSON).</param>
+        /// <returns>The ticket system with the value of the authorization replaced by "****".</returns>
+        public static string RedactAuthorization(string ticketSystem)
+        {
+            return AuthorizationValueRegex().Replace(ticketSystem, $"$1\"{kRedactedAuthorization}\"");
+        }
+
+        [GeneratedRegex(@"(""Authorization""\s*:\s*)""(?:[^""\\]|\\.)+""")]
+        private static partial Regex AuthorizationValueRegex();
 
         public int MaxBundledTasks()
         {

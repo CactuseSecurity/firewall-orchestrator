@@ -406,8 +406,8 @@ namespace FWO.Test
             setup.ApiConn.Managements.Add(new Management { Id = 1, Name = "mgm_demo" });
             setup.ApiConn.Managements.Add(new Management { Id = 2, Name = "mgm_regular" });
             setup.ApiConn.Credentials.Clear();
-            setup.ApiConn.Credentials.Add(new ImportCredential { Id = 3, Name = "cred_demo" });
-            setup.ApiConn.Credentials.Add(new ImportCredential { Id = 4, Name = "cred_regular" });
+            setup.ApiConn.Credentials.Add(new Credential { Id = 3, Name = "cred_demo" });
+            setup.ApiConn.Credentials.Add(new Credential { Id = 4, Name = "cred_regular" });
             setup.ApiConn.Users.Clear();
             setup.ApiConn.Users.Add(new UiUser { DbId = 5, Name = "user_demo", LdapConnection = new UiLdapConnection { Id = 15 } });
             setup.ApiConn.Users.Add(new UiUser { DbId = 6, Name = "user_regular", LdapConnection = new UiLdapConnection { Id = 16 } });
@@ -509,7 +509,7 @@ namespace FWO.Test
         public int TenantDeleteQueryCalls { get; private set; }
         public int OwnerDeleteQueryCalls { get; private set; }
         public List<Management> Managements { get; } = new List<Management> { new Management { Id = 1, Name = "mgm_demo" } };
-        public List<ImportCredential> Credentials { get; } = new List<ImportCredential> { new ImportCredential { Id = 2, Name = "cred_demo" } };
+        public List<Credential> Credentials { get; } = new List<Credential> { new Credential { Id = 2, Name = "cred_demo" } };
         public List<UiUser> Users { get; } = new List<UiUser> { new UiUser { DbId = 3, Name = "user_demo", LdapConnection = new UiLdapConnection { Id = 13 } } };
         public List<Tenant> Tenants { get; } = new List<Tenant> { new Tenant { Id = 4, Name = "tenant_demo" } };
         public List<FwoOwner> Owners { get; } = new List<FwoOwner> { new FwoOwner { Id = 5, Name = "owner_demo" } };
@@ -529,10 +529,10 @@ namespace FWO.Test
                 return Task.FromResult((QueryResponseType)(object)new List<Alert>(OpenAlerts));
             }
 
-            if (typeof(QueryResponseType) == typeof(List<ImportCredential>) && query == DeviceQueries.getCredentials)
+            if (typeof(QueryResponseType) == typeof(List<Credential>) && query == DeviceQueries.getCredentials)
             {
                 CredentialQueryCalls++;
-                return Task.FromResult((QueryResponseType)(object)new List<ImportCredential>(Credentials));
+                return Task.FromResult((QueryResponseType)(object)new List<Credential>(Credentials));
             }
 
             if (typeof(QueryResponseType) == typeof(List<UiUser>) && query == AuthQueries.getUsers)

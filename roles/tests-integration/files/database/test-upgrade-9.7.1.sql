@@ -1,6 +1,7 @@
 -- Test of the data changes of upgrade/9.7.1.sql: the seeding of the certificate check switches for email servers and
--- external ticket systems, and the dating back of the rulebase links and gateway entries of the 9.0 migration (rule
--- versions removed before the upgrade to v9 stay visible to the tenants of their gateways).
+-- external ticket systems, the dating back of the rulebase links and gateway entries of the 9.0 migration (rule
+-- versions removed before the upgrade to v9 stay visible to the tenants of their gateways), and the move of the
+-- external ticket system authorization into credentials (only stored encrypted with the external requests).
 -- The test task inserts the upgrade file at the two run-upgrade markers below. It runs twice: first with email
 -- and ticket system endpoints configured, then without, which also shows that the upgrade can be repeated.
 --
@@ -82,7 +83,47 @@ $$ LANGUAGE plpgsql;
 DELETE FROM config WHERE config_key IN ('emailCheckCertificates', 'extTicketSystemsCheckCertificates') AND config_user = 0;
 SELECT pg_temp.set_config_value('emailServerAddress', 'mail.example.com');
 SELECT pg_temp.set_config_value('emailTls', 'StartTls');
-SELECT pg_temp.set_config_value('extTicketSystems', '[{"Id":1,"TypeId":2,"Name":"probe","Url":"https://ticket.example.com"}]');
+-- the basic authorization of ticket system 1 is "probe_user:pw:with:colon", the password containing the separator
+SELECT pg_temp.set_config_value('extTicketSystems', '[{"Id":1,"TypeId":2,"Name":"probe","Url":"https://ticket.example.com","Authorization":"Basic cHJvYmVfdXNlcjpwdzp3aXRoOmNvbG9u"},'
+    '{"Id":2,"TypeId":2,"Name":"probe_token","Url":"","Authorization":"Bearer probe-token"},'
+    '{"Id":3,"TypeId":1,"Name":"probe_placeholder","Url":"","Authorization":"Basic xyz"}]');
+WITH request AS (
+    INSERT INTO ext_request (ext_ticket_system, ext_request_state, finish_date)
+        VALUES ('{"Id":1,"TypeId":2,"Name":"probe","Authorization":"Basic cHJvYmVfdXNlcjpwdzp3aXRoOmNvbG9u"}', 'ExtReqDone', now())
+        RETURNING id)
+INSERT INTO probe_id SELECT 'ext_request', id FROM request;
+
+CREATE FUNCTION pg_temp.ticket_system(p_id integer) RETURNS jsonb AS $$
+    SELECT s FROM jsonb_array_elements(pg_temp.config_value('extTicketSystems')::jsonb) s WHERE (s ->> 'Id')::integer = p_id
+$$ LANGUAGE sql STABLE;
+
+CREATE FUNCTION pg_temp.expect_ticket_system_credentials() RETURNS void AS $$
+DECLARE
+    t_main_key text := getMainKey();
+    r_credential RECORD;
+BEGIN
+    PERFORM pg_temp.expect('credential table renamed',
+        (to_regclass('public.credential') IS NOT NULL AND to_regclass('public.import_credential') IS NULL)::text, 'true');
+    PERFORM pg_temp.expect('credential sequence renamed', (to_regclass('public.credential_id_seq') IS NOT NULL)::text, 'true');
+    PERFORM pg_temp.expect('ticket systems without authorization',
+        (SELECT count(*) FROM jsonb_array_elements(pg_temp.config_value('extTicketSystems')::jsonb) s WHERE s ? 'Authorization')::text, '0');
+
+    PERFORM pg_temp.expect('one credential per basic authorization',
+        (SELECT count(*) FROM credential WHERE credential_name = 'probe (external ticket system 1)')::text, '1');
+    SELECT * INTO r_credential FROM credential WHERE credential_name = 'probe (external ticket system 1)';
+    PERFORM pg_temp.expect('ticket system references its credential', pg_temp.ticket_system(1) ->> 'CredentialId', r_credential.id::text);
+    PERFORM pg_temp.expect('credential username', r_credential.username, 'probe_user');
+    PERFORM pg_temp.expect('credential password encrypted', decryptText(r_credential.secret, t_main_key), 'pw:with:colon');
+    PERFORM pg_temp.expect('no credential for a token authorization', pg_temp.ticket_system(2) ->> 'CredentialId', NULL);
+    PERFORM pg_temp.expect('no credential for the placeholder authorization', pg_temp.ticket_system(3) ->> 'CredentialId', NULL);
+
+    PERFORM pg_temp.expect('request authorization not in plain text',
+        (SELECT (ext_ticket_system NOT LIKE '%cHJvYmVfdXNlcjpwdzp3aXRoOmNvbG9u%')::text FROM ext_request WHERE id = pg_temp.probe('ext_request')), 'true');
+    PERFORM pg_temp.expect('request authorization encrypted',
+        (SELECT decryptText(ext_ticket_system::jsonb ->> 'Authorization', t_main_key) FROM ext_request WHERE id = pg_temp.probe('ext_request')),
+        'Basic cHJvYmVfdXNlcjpwdzp3aXRoOmNvbG9u');
+END;
+$$ LANGUAGE plpgsql;
 
 -- A management migrated from v8: rules carry dev_id, and the migration dated the gateway entries and the rulebase link
 -- with the last import before the upgrade ("migration"). Imports are numbered relative to import_base:
@@ -114,7 +155,7 @@ BEGIN
     SELECT min(action_id) INTO i_action_id FROM stm_action;
     SELECT min(track_id) INTO i_track_id FROM stm_track;
 
-    INSERT INTO import_credential (credential_name, username, secret)
+    INSERT INTO credential (credential_name, username, secret)
         VALUES ('upgrade_963_probe', 'probe', 'probe') RETURNING id INTO i_credential_id;
     INSERT INTO tenant (tenant_name) VALUES ('upgrade_963_probe_tenant') RETURNING tenant_id INTO i_tenant_id;
 
@@ -291,11 +332,14 @@ SELECT pg_temp.expect('current rule on its gateway', pg_temp.fully_visible('curr
 SELECT pg_temp.expect('v9 rule version removed before its gateway was added', pg_temp.fully_visible('v9_historic', 'gw_v9'), 'false');
 SELECT pg_temp.expect('v9 rule version simulated on a gateway added after its removal', pg_temp.simulated('v9_historic', 'gw_v9'), 'false');
 SELECT pg_temp.expect_restored_history_isolated();
+SELECT pg_temp.expect_ticket_system_credentials();
 
--- second run: no email server and no ticket system URL, so the certificates are checked; the rule data stays the same
+-- second run: no email server and no ticket system URL, so the certificates are checked; the rule data stays the same,
+-- and the ticket systems keep their credentials without further ones being created
 DELETE FROM config WHERE config_key IN ('emailCheckCertificates', 'extTicketSystemsCheckCertificates') AND config_user = 0;
 SELECT pg_temp.set_config_value('emailServerAddress', '');
-SELECT pg_temp.set_config_value('extTicketSystems', '[{"Id":1,"TypeId":2,"Name":"probe","Url":""}]');
+SELECT pg_temp.set_config_value('extTicketSystems',
+    (SELECT jsonb_agg(s || '{"Url":""}'::jsonb) FROM jsonb_array_elements(pg_temp.config_value('extTicketSystems')::jsonb) s)::text);
 
 -- @run-upgrade-9.7.1
 
@@ -307,5 +351,6 @@ SELECT pg_temp.expect('gateway entry of the current rule (repeated)', pg_temp.ga
 SELECT pg_temp.expect('rulebase link of the migration (repeated)', pg_temp.rulebase_link('gw'), '1-');
 SELECT pg_temp.expect('rulebase link of a gateway added after the upgrade (repeated)', pg_temp.rulebase_link('gw_added'), '4-');
 SELECT pg_temp.expect_restored_history_isolated();
+SELECT pg_temp.expect_ticket_system_credentials();
 
 ROLLBACK;

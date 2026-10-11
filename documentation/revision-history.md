@@ -193,7 +193,21 @@
   - an unexpected error while checking the report filter is now logged in every build configuration; the
     filter input is shown without error marker, details appear in the UI in debug builds only
   - a new job of the test install workflow builds all projects in Release configuration
-- api: upgrade hasura graphql API to 2.50.3
+- security (GHSA-jhj7-f9vj-r9v8): auditors could read the Authorization header string of external ticket systems
+  in the ticket system configuration and in every external request created with it (external request monitoring)
+  - external ticket systems now reference a credential (username and encrypted password) instead of keeping the
+    header string; the middleware builds the basic authentication header from it when it creates a request and
+    stores it with the request only encrypted with the main key; it is decrypted right before sending. The
+    external request monitoring shows it as "****"
+  - the table import_credential (and its sequence) is renamed to credential, as credentials are no longer used for
+    imports only; the GraphQL root fields change accordingly (credential, insert_credential, ...), the management
+    relationships and columns keep their names. The UI calls them credentials, the C# class ImportCredential is
+    renamed to Credential
+  - credentials still used by an external ticket system cannot be deleted
+  - upgrades move a basic authentication header string of the form "Basic base64(username:password)" into a new
+    credential named "<ticket system> (external ticket system <id>)" and encrypt the header strings of existing
+    requests; other header strings (e.g. tokens) are removed, select a credential for these ticket systems.
+    Rotate the passwords of the ticket system accounts, as they may already have been read
 - importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
 
 ## 9.7.0 - 07.10.2026

@@ -313,7 +313,7 @@
 
     private async Task DeleteCredentials()
     {
-        List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
+        List<Credential> credentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentials);
         deletedSampleCredentials = 0;
         foreach (var credential in credentials.Where(c => c.Name.EndsWith(GlobalConst.k_demo)))
         {
@@ -324,7 +324,7 @@
         }
     }
 
-    private async Task<bool> DeleteCredential(ImportCredential credential)
+    private async Task<bool> DeleteCredential(Credential credential)
     {
         try
         {

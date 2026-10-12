@@ -20,7 +20,9 @@ updates:
     directory: "/roles/"
     target-branch: "develop"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    ignore:
+      - dependency-name: "Scalar.AspNetCore"
     registries:
       - private-github
     assignees:

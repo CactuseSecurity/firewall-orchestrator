@@ -1,5 +1,10 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.2 - 12.10.2026
+- modelling: auditors and admins can open the add and edit dialog of app roles again to try it out (closes #4968)
+  - saving stays restricted to owning modellers: the save button is disabled and saving is rejected as well
+  - deleting app roles stays restricted to owning modellers
+
 ## 9.7.1 - 09.10.2026
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
   configurable with one switch per connection type, validated against the host trust store:

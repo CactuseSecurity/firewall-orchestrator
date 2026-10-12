@@ -18,6 +18,17 @@ namespace FWO.Services
                 return false;
             }
 
+            bool isSpecial1 = nwObject1.IsSpecialConfigObjectType();
+            bool isSpecial2 = nwObject2.IsSpecialConfigObjectType();
+
+            // When IP comparison is active, imported identity objects need type/name identity because their IP fields are placeholders.
+            if (option.NwRegardIp && (isSpecial1 || isSpecial2))
+            {
+                return isSpecial1 && isSpecial2
+                    && string.Equals(nwObject1.Type.Name, nwObject2.Type.Name, StringComparison.Ordinal)
+                    && string.Equals(nwObject1.Name, nwObject2.Name, StringComparison.Ordinal);
+            }
+
             return (!option.NwRegardIp || (string.Equals(nwObject1.IP, nwObject2.IP, StringComparison.Ordinal)
                     && string.Equals(nwObject1.IpEnd, nwObject2.IpEnd, StringComparison.Ordinal)))
                 && (!option.NwRegardName || string.Equals(nwObject1.Name, nwObject2.Name, StringComparison.Ordinal));
@@ -30,9 +41,15 @@ namespace FWO.Services
                 return 0;
             }
 
+            if (option.NwRegardIp && nwObject.IsSpecialConfigObjectType())
+            {
+                return HashCode.Combine(nwObject.Type.Name, nwObject.Name);
+            }
+
             return (option.NwRegardIp ? HashCode.Combine(nwObject.IP, nwObject.IpEnd) : 0)
                 ^ (option.NwRegardName ? HashCode.Combine(nwObject.Name) : 0);
         }
+
     }
 
     public class NetworkObjectGroupFlatComparer(RuleRecognitionOption option) : IEqualityComparer<NetworkObject?>

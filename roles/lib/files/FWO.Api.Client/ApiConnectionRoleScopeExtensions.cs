@@ -10,9 +10,9 @@ namespace FWO.Api.Client
     {
         private static readonly List<string> AdminOrAuditorRoles = [Roles.Admin, Roles.Auditor];
         private static readonly List<string> ModellingRoles = [Roles.Modeller, Roles.Admin, Roles.Auditor];
-        private static readonly List<string> MonitoringRoles = [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        private static readonly List<string> MonitoringRoles = [Roles.Admin, Roles.Auditor];
         private static readonly List<string> ReportingRoles =
-            [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin];
+            [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor];
         private static readonly List<string> RecertificationRoles = [Roles.Recertifier, Roles.Admin, Roles.Auditor];
         private static readonly List<string> WorkflowRoles =
         [
@@ -22,7 +22,6 @@ namespace FWO.Api.Client
             Roles.Implementer,
             Roles.Reviewer,
             Roles.Admin,
-            Roles.FwAdmin,
             Roles.Auditor
         ];
 
@@ -99,35 +98,58 @@ namespace FWO.Api.Client
         }
 
         /// <summary>
-        /// Sets the best available role for generating the given report type.
+        /// Sets the best available role for generating the given report type. Roles listed in
+        /// <paramref name="excludedRoles"/> (e.g. roles explicitly set to "Not Visible" for this
+        /// report type) are never selected, even if the user holds them.
         /// </summary>
         public static void SetBestRoleForReport(this ApiConnection apiConnection, ClaimsPrincipal user,
-            ReportType reportType)
+            ReportType reportType, IEnumerable<string>? excludedRoles = null)
         {
-            apiConnection.SetBestRole(user, GetReportRoles(reportType));
+            apiConnection.SetBestRole(user, GetReportRoles(reportType, excludedRoles));
         }
 
-        private static List<string> GetReportRoles(ReportType reportType)
+        /// <summary>
+        /// Runs an API operation with the best available role for the given report type. Roles listed
+        /// in <paramref name="excludedRoles"/> (e.g. roles explicitly set to "Not Visible" for this
+        /// report type) are never selected, even if the user holds them.
+        /// </summary>
+        public static Task<TResult> RunWithBestRoleForReport<TResult>(this ApiConnection apiConnection,
+            ClaimsPrincipal user, ReportType reportType, Func<Task<TResult>> action, IEnumerable<string>? excludedRoles = null)
         {
+            return apiConnection.RunWithBestRole(user, GetReportRoles(reportType, excludedRoles), action);
+        }
+
+        private static List<string> GetReportRoles(ReportType reportType, IEnumerable<string>? excludedRoles = null)
+        {
+            List<string> roles;
             if (reportType == ReportType.Owners || reportType.IsComplianceReport())
             {
-                return [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+                roles = [Roles.Admin, Roles.Auditor];
             }
-            if (reportType.IsModellingReport())
+            else if (reportType.IsModellingReport())
             {
-                return [Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Auditor];
+                roles = [Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Auditor];
             }
-            if (reportType.IsWorkflowReport())
+            else if (reportType.IsWorkflowReport())
             {
-                return [Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Requester,
+                roles = [Roles.Admin, Roles.Auditor, Roles.Requester,
                     Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer];
             }
-            if (reportType.IsDeviceRelatedReport())
+            else if (reportType.IsDeviceRelatedReport())
             {
-                return [Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
+                roles = [Roles.Admin, Roles.ReporterViewAll, Roles.Reporter,
                     Roles.Recertifier, Roles.Auditor];
             }
-            return ReportingRoles;
+            else
+            {
+                roles = [.. ReportingRoles];
+            }
+
+            if (excludedRoles != null)
+            {
+                roles = [.. roles.Where(role => !excludedRoles.Contains(role, StringComparer.OrdinalIgnoreCase))];
+            }
+            return roles;
         }
 
         /// <summary>

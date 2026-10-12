@@ -1,0 +1,45 @@
+# Log data import
+
+`import_log_data_from_git.py` is a standalone customization script for the middleware's independent log-data scheduler. It reads every CSV file in the configured Git repository, writes the normalized JSON file beside the script, and leaves the source CSV files untouched until the middleware completes the database import.
+
+Configure these keys in `customizingConfig.json`:
+
+- `logDataGitRepo`, `logDataGitUser`, `logDataGitPassword` (required)
+- `logDataGitRepoTargetDir` (optional; default `/usr/local/fworch/etc/logDataRepo`)
+- `logDataGitBranch` (optional)
+- `logDataGitRepoStartPath` (optional): repository-relative directory from which CSV files are searched recursively. If omitted or empty, the whole repository is searched. Symbolic links to CSV files outside the selected directory are rejected.
+
+The script uses `GitPython`, which is not part of the system python. The installer creates a virtual environment for the customizing scripts at `/usr/local/fworch/scripts/customizing-venv` from `scripts/requirements.txt` and rewrites the shebangs of the deployed scripts to that environment, so the middleware picks up the dependencies when it executes the script. Custom scripts placed below `scripts/customizing` are treated the same way; add their dependencies to `scripts/requirements.txt`.
+
+Set `importLogDataPath` to the extensionless full path of this script. The scheduler runs the script, then reads its sibling `.json` file. After a successful import it runs the script with `--acknowledge-import`; that deletes the source CSV files, commits their removal, pushes it to `origin`, and deletes the generated JSON file.
+
+The mandatory CSV headers are `App ID`, `Log count`, `Src IP`, `Dst IP`, and `Port`. Optional headers are `Protocol`, `Action`, `Log timestamp`, and `Rule name`. `Protocol` uses IP protocol numbers. A nonempty port is permitted only with TCP (`6`) or UDP (`17`).
+
+If any row cannot be converted, the complete CSV file is excluded from the generated JSON and from acknowledgement. Other valid CSV files in the same run are still imported and removed. The rejected file remains in the repository so it can be corrected and retried without losing the application IDs needed by replacement mode.
+
+At the end of a run the script logs an `INFO` summary of what it converted and what it had to leave behind: the number of skipped CSV files, the total number of lines which could not be imported, and one line per skipped file naming up to five of its not importable lines with their line number and reason. A file rejected before its rows were read - because a mandatory column is missing or the file cannot be read - is reported with that reason instead of example lines. The middleware reads the script output into its own log, so the summary appears in `middleware.log`.
+
+The database keeps one row per application, source, destination and service. Repeated entries for the same flow are not stored a second time: entries which are repeated inside one import file are merged into a single entry with the summed log count, and an entry which is already stored is updated with the imported log count, action, log time and rule name instead of being inserted again. An entry without a protocol or without a port counts as one distinct flow, not as a wildcard.
+
+The generated JSON interface is:
+
+```json
+{"import_time":"2026-07-28T11:00:00+00:00","logs":[{"app_id":"APP-1","log_count":42,"source":"192.0.2.1","destination":"198.51.100.10","protocol":6,"port":443,"action":"accept","log_time":"2026-07-28T10:30:00Z","rule_name":"web"}]}
+```
+
+CSV files do not name the period their log counts were aggregated over, so the generated JSON contains no `log_time_range_in_seconds` and the middleware uses the default log time range configured under Settings - Logging (7 days unless changed). The field is optional for every JSON import file: a file of another source may name its period in the top-level field `log_time_range_in_seconds`, which overrides the default for that file, and a file without the field uses the default as well. A value which is not positive rejects the file. The middleware stores period and import time on every imported log entry. The heading of the log table names them when all displayed entries share them, e.g. "Logs (aggregated over 1 Week(s) until 10/5/2026)", otherwise the table shows both per row. The time of the import can be added to the heading under Settings - Logging. The middleware logs a warning for every entry (up to 50 per file) whose `log_time` lies outside the period ending at `import_time`; such entries are imported anyway.
+
+## Generate test log data
+
+`generate_log_data.py` creates a CSV accepted by this importer from normalized app-data JSON (the
+`{"owners":[...]}` output of an app-data import script). It uses each eligible owner's
+`app_id_external` and first valid `app_servers[].ip`, distributing the requested number of distinct
+flows round-robin across the applications. Owners without a server IP are skipped.
+
+```bash
+python3 generate_log_data.py 500 /path/to/app-data.json /path/to/log-data.csv
+```
+
+Each generated flow has log count `1`, TCP port `443`, and action `accept`. Source addresses are
+unique test-network addresses so entries are not merged by the importer. The script refuses to
+replace an existing output file unless `--overwrite` is supplied.

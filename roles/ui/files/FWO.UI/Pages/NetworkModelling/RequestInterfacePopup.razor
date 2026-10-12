@@ -1,7 +1,9 @@
-@using FWO.Middleware.Client
-
+@using FWO.Data
+@using FWO.Api.Client.Queries
 @using FWO.Compliance
-
+@using FWO.Middleware.Client
+@using FWO.Services
+@using RestSharp
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
@@ -106,7 +108,7 @@
         {
             if(CheckInput())
             {
-                TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
+                TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient));
                 long ticketId = await ticketCreator.CreateRequestNewInterfaceTicket(SelectedOwner, RequestingOwner, InterfaceName, Reason);
 
                 if(ticketId > 0)
@@ -150,25 +152,28 @@
     }
 
     private async Task SendEmail(long connId)
-    {       
+    {
         try
         {
-            EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);         
-
-            await emailHelper.Init();
-
-            string interfaceUrl = $"{userConfig.UiHostName}/{PageName.Modelling}/{SelectedOwner.ExtAppId}/{connId}";
-            string subject = userConfig.ModReqEmailSubject;
-            string body = $"{RequestingOwner.Name} {userConfig.ModReqEmailBody} {SelectedOwner.Name} <br>" +
-                $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {InterfaceName}</a><br>"; 
-            List<string> legacyOtherAddresses = EmailHelper.SplitAddresses(userConfig.ModReqEmailOtherAddresses);
-            if(await emailHelper.SendEmailToOwnerResponsibles(SelectedOwner, subject, body, userConfig.ModReqEmailReceiver, userConfig.ModReqEmailRequesterInCc, legacyOtherAddresses))
+            RestResponse<NotificationDeliveryResult> response = await middlewareClient.SendInterfaceRequestNotification((int)connId);
+            if (!response.IsSuccessful)
             {
-                DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);
+                string responseDetails = response.ErrorMessage
+                    ?? response.Content
+                    ?? response.StatusDescription
+                    ?? response.StatusCode.ToString();
+                throw new InvalidOperationException(
+                    $"Middleware interface request notification failed with HTTP {(int)response.StatusCode}: {responseDetails}");
             }
-            else
+
+            NotificationDeliveryResult deliveryResult = response.Data;
+            if (deliveryResult is NotificationDeliveryResult.Failed or NotificationDeliveryResult.NoRecipients)
             {
                 DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("E9011"), true);
+            }
+            else if (deliveryResult == NotificationDeliveryResult.Delivered)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);
             }
         }
         catch (Exception exception)

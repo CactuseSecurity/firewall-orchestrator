@@ -84,15 +84,7 @@ namespace FWO.Test
 
         private static SimulatedUserConfig CreateUserConfig()
         {
-            SimulatedUserConfig userConfig = new();
-            SimulatedUserConfig.DummyTranslate["fetch_data"] = "fetch_data";
-            SimulatedUserConfig.DummyTranslate["edit_app_server"] = "edit_app_server";
-            SimulatedUserConfig.DummyTranslate["delete_app_server"] = "delete_app_server";
-            SimulatedUserConfig.DummyTranslate["reactivate"] = "reactivate";
-            SimulatedUserConfig.DummyTranslate["U9005"] = "Reactivate ";
-            SimulatedUserConfig.DummyTranslate["U9007"] = "Cannot delete used ";
-            SimulatedUserConfig.DummyTranslate["U9008"] = "Delete ";
-            return userConfig;
+            return new SimulatedUserConfig();
         }
 
         private static ModellingAppServer CreateServer(long id, string name, string ip, string importSource, bool inUse = false, bool deleted = false)

@@ -21,20 +21,6 @@ namespace FWO.Test
         private const int kDefaultInteropTimeoutMinutes = 1;
         private static readonly Action<Exception?, string, string, bool> IgnoreMessages = (_, _, _, _) => { };
 
-        [SetUp]
-        public void SetUpTranslations()
-        {
-            SimulatedUserConfig.DummyTranslate.TryAdd("export_report_download", "Download export");
-            SimulatedUserConfig.DummyTranslate.TryAdd("download_csv", "Download CSV");
-            SimulatedUserConfig.DummyTranslate.TryAdd("download_pdf", "Download PDF");
-            SimulatedUserConfig.DummyTranslate.TryAdd("download_html", "Download HTML");
-            SimulatedUserConfig.DummyTranslate.TryAdd("download_json", "Download JSON");
-            SimulatedUserConfig.DummyTranslate.TryAdd("close", "Close");
-            SimulatedUserConfig.DummyTranslate.TryAdd("exporting", "Exporting");
-            SimulatedUserConfig.DummyTranslate.TryAdd("download", "Download");
-            SimulatedUserConfig.DummyTranslate.TryAdd("download_failed", "Downloading the file failed");
-        }
-
         private static BunitContext CreateContext()
         {
             BunitContext context = new();

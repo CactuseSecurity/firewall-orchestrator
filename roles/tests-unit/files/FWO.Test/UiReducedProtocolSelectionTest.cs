@@ -31,7 +31,6 @@ namespace FWO.Test
                 new() { Id = 47, Name = "gre" }
             ];
             userConfig = new SimulatedUserConfig();
-            SimulatedUserConfig.DummyTranslate.TryAdd("select_visible_protocols", "Select visible protocols");
             context.Services.AddSingleton<ApiConnection>(apiConn);
             context.Services.AddSingleton<GlobalConfig>(globalConfig);
             context.Services.AddSingleton<UserConfig>(userConfig);

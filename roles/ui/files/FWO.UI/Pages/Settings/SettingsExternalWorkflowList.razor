@@ -42,6 +42,12 @@
                     </div>
                 </div>
             </div>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5593d"))">
+                <label for="cbx_ext_ticket_check_certificates" class="col-form-label col-sm-3">@(userConfig.GetText("check_certificates")):</label>
+                <div class="col-sm-1">
+                    <input id="cbx_ext_ticket_check_certificates" type="checkbox" @bind="configData!.ExtTicketSystemsCheckCertificates" />
+                </div>
+            </div>
             <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="SaveServiceData">@(userConfig.GetText("save"))</button>

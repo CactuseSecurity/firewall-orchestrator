@@ -1,5 +1,6 @@
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Enums;
 using FWO.Compliance;
 using FWO.Config.Api;
 using FWO.Data;
@@ -212,7 +213,7 @@ namespace FWO.Test
                     [new Management { Id = 2, Name = "Mgmt2" }]);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, Arg.Any<object>())
+                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>())
                 .Returns(permissiveZones, restrictiveZones);
 
             Rule rule = CreateSimpleRule(99, destinationHigh: true);
@@ -226,7 +227,7 @@ namespace FWO.Test
                 Assert.That(secondRunCompliant, Is.False);
                 Assert.That(ComplianceCheck.Managements!.Single().Id, Is.EqualTo(2));
                 ApiConnection.AsSub().Received(2).SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-                ApiConnection.AsSub().Received(2).SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, Arg.Any<object>());
+                ApiConnection.AsSub().Received(2).SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>());
             });
         }
 
@@ -274,12 +275,12 @@ namespace FWO.Test
                 .Returns(policy);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix,
+                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix,
                     Arg.Is<object>(vars => HasCriterionId(vars, 101)))
                 .Returns(matrixAZones);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix,
+                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix,
                     Arg.Is<object>(vars => HasCriterionId(vars, 102)))
                 .Returns(matrixBZones);
 
@@ -331,6 +332,24 @@ namespace FWO.Test
             Assert.That(ruleIsCompliant, Is.False);
             Assert.That(violations.Count, Is.EqualTo(1));
             Assert.That(violations.Single().Details, Does.Contain("443/TCP"));
+        }
+
+        [Test]
+        public async Task CheckRuleCompliance_ForbiddenServiceProtocolPortCriterion_MatchesCanonicalAnyService()
+        {
+            Rule rule = CreateRuleWithService("any-ip", "any ip", GlobalConst.kAnyIpProtocolId, "ANY");
+            ComplianceCriterion criterion = new()
+            {
+                Id = 1,
+                CriterionType = nameof(CriterionType.ForbiddenService),
+                Content = "443/TCP"
+            };
+            List<ComplianceCriterion> criteria = new() { criterion };
+
+            bool ruleIsCompliant = await ComplianceCheck.CheckRuleCompliance(rule, criteria);
+
+            Assert.That(ruleIsCompliant, Is.False);
+            Assert.That(GetCurrentViolations(), Has.Count.EqualTo(1));
         }
 
         [Test]
@@ -536,10 +555,10 @@ namespace FWO.Test
             reverseRule.Tos[0].Object.IP = forwardRule.Froms[0].Object.IP;
             reverseRule.Tos[0].Object.IpEnd = forwardRule.Froms[0].Object.IpEnd;
             reverseRule.Services[0].Content.ProtoId = 6;
-            reverseRule.Services[0].Content.SourcePort = 443;
-            reverseRule.Services[0].Content.SourcePortEnd = 443;
-            reverseRule.Services[0].Content.DestinationPort = 0;
-            reverseRule.Services[0].Content.DestinationPortEnd = 0;
+            reverseRule.Services[0].Content.SourcePort = 0;
+            reverseRule.Services[0].Content.SourcePortEnd = 0;
+            reverseRule.Services[0].Content.DestinationPort = 443;
+            reverseRule.Services[0].Content.DestinationPortEnd = 443;
 
             bool compliant = await ComplianceCheck.AreRulesCompliant([1], [forwardRule, reverseRule]);
 
@@ -603,6 +622,47 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RunComplianceCheck_CanceledWhileCheckingRules_PreparesNoViolationChanges()
+        {
+            // Arrange
+
+            await SetUpBasic(setupRelevantManagements: true, createPolicy: true, createRules: true);
+
+            AggregateCount count = new AggregateCount();
+            count.Aggregate.Count = ComplianceCheck.RulesInCheck!.Count;
+            ApiConnection
+                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules, Arg.Any<object>())
+                .Returns(Task.FromResult(count));
+            using CancellationTokenSource cancellationTokenSource = new();
+            List<Rule> rules = ComplianceCheck.RulesInCheck!;
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements, Arg.Any<object?>())
+                .Returns(_ =>
+                {
+                    cancellationTokenSource.Cancel();
+                    return Task.FromResult(rules);
+                });
+
+            // Act
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard, cancellationTokenSource.Token));
+
+            // Assert
+
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck, Is.Empty);
+            Assert.That(Logger.Logmessages.Values.Any(m => m.Contains("Compliance check completed.")), Is.False);
+        }
+
+        [Test]
+        public void RunComplianceCheck_PreCanceledToken_StopsBeforeQuerying()
+        {
+            Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Variable, new CancellationToken(canceled: true)));
+            Assert.That(ApiConnection.AsSub().ReceivedCalls(), Is.Empty);
+        }
+
+        [Test]
         public async Task CheckAll_BasicSetup_CompleteWithLog()
         {
             // Arrange
@@ -658,6 +718,33 @@ namespace FWO.Test
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.Count == 4, "There should be four violations for this test.");
             Assert.That(Logger.Logmessages.Values.Any(m => m.Contains(BasicSetup)), "Unexpected violations.");
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(violation => violation.Details == ExpectedViolationDetailsAutoCalcFalse));
+        }
+
+        [Test]
+        public async Task AreRulesCompliant_AccessRoleIsMappedToAutoCalculatedInternetZone()
+        {
+            Rule rule = CreateSimpleRule(1, destinationHigh: true);
+            NetworkObject accessRole = CreateNetworkObject(1, "access-role", ObjectType.AccessRole);
+            accessRole.IP = null!;
+            accessRole.IpEnd = null!;
+            rule.Froms[0] = new NetworkLocation(new NetworkUser(), accessRole);
+            ComplianceCriterion matrixCriterion = new()
+            {
+                Id = 1,
+                CriterionType = nameof(CriterionType.Matrix)
+            };
+            CompliancePolicy policy = new() { Id = 1 };
+            policy.Criteria.Add(new ComplianceCriterionWrapper { Content = matrixCriterion });
+            List<Rule> rulesToCheck = new();
+            rulesToCheck.Add(rule);
+            List<Management> managements = new();
+            managements.Add(new Management { Id = 1, Name = "Management" });
+            Dictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion = new();
+            networkZonesByCriterion.Add(matrixCriterion.Id, ComplianceCheck.NetworkZones);
+
+            bool isCompliant = await ComplianceCheck.AreRulesCompliant(policy, rulesToCheck, managements, networkZonesByCriterion);
+
+            Assert.That(isCompliant, Is.False);
         }
 
         private static bool HasCriterionId(object variables, int expectedCriterionId)

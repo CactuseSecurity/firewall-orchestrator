@@ -1,0 +1,22 @@
+# Returns the given Flow service object ids that still name a live catalog entry: one that is
+# offered in the request module, not retired, and in a state a request may still build on.
+# The predicate is carried by the query itself so that the answer does not depend on the select
+# permissions of the role it runs under.
+# ip_proto_id comes back with each entry rather than being filtered here: the canonical ANY service
+# is live - the flow creation attaches it itself for a protocol-agnostic request - but it may not be
+# picked in a request module. Which of the two questions is being asked depends on the caller, so
+# the caller decides it.
+
+query getLiveFlowSvcObjectIds($svcObjIds: [bigint!]!) {
+  svcobjects: flow_svcobject(
+    where: {
+      svcobj_id: { _in: $svcObjIds }
+      show_in_request_module: { _eq: true }
+      removed_date: { _is_null: true }
+      state: { _in: ["requested", "implemented"] }
+    }
+  ) {
+    svcobj_id
+    ip_proto_id
+  }
+}

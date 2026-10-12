@@ -17,7 +17,12 @@ namespace FWO.DeviceAutoDiscovery
         private readonly string ContentType = "Content-Type";
         private readonly string ApplicationJson = "application/json";
 
-        public CheckPointClient(Management manager) : base("https://" + manager.Hostname + ":" + manager.Port + "/web_api/")
+        /// <summary>
+        /// Creates a client for the CheckPoint management API of the given management.
+        /// </summary>
+        /// <param name="manager">The management to connect to.</param>
+        /// <param name="checkCertificates">Whether the server certificate is checked (global setting for firewall connections).</param>
+        public CheckPointClient(Management manager, bool checkCertificates) : base("https://" + manager.Hostname + ":" + manager.Port + "/web_api/", checkCertificates: checkCertificates)
         { }
 
         public async Task<RestResponse<CpSessionAuthInfo>> AuthenticateUser(string? user, string? pwd, string? domain)

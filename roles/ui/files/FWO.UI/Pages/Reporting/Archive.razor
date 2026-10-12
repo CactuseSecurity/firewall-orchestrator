@@ -6,7 +6,7 @@
 @inject UserConfig userConfig
 
 @page "/report/archive"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
 
 <Sidebar @ref="archiveSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
     <div class="p-3 mt-2">
@@ -83,7 +83,7 @@
 
 <ConfirmDelete @bind-Display="ShowDeleteReportFileDialog" PerformAction="DeleteGeneratedReport"
     Title="@userConfig.GetText("generated_report")" DeleteMessage="@(userConfig.GetText("U3002") + " \"" + reportFileContext.Name + "\" ?")"
-    AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}")"/>
+    AllowedRoles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}")"/>
 
 <ReportDownloadPopUp Title="@(userConfig.GetText("generated_report"))" ReportFile="reportFileContext"
     Show="ShowDownloadReportFileDialog" ShowJson="true" OnClose="() => ShowDownloadReportFileDialog = false" />
@@ -140,7 +140,7 @@
     /// Whether the user may see every user's archived reports. The archive query is restricted to the
     /// same set, so that the row limit counts within the reports the user can actually reach.
     /// </summary>
-    private bool CanSeeAllArchivedReports => userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.FwAdmin, Roles.ReporterViewAll);
+    private bool CanSeeAllArchivedReports => userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.ReporterViewAll);
 
     /// <summary>
     /// Limit and filter for the archive query and its subscription. Without the owner restriction the
@@ -219,7 +219,7 @@
 
     private List<ReportFile> FilterVisibleArchivedReports(List<ReportFile> reports)
     {
-        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.FwAdmin, Roles.ReporterViewAll))
+        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.ReporterViewAll))
         {
             return reports;
         }

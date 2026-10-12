@@ -1,0 +1,84 @@
+---
+# A renewed identity only takes effect once the process holding it is restarted, and
+# this role is reachable on its own through "--tags certificates". None of the plays
+# that restart certificate consumers - api/ui/middleware (apache), openldap-server
+# (slapd) and finalize (middleware, ui) - carries that tag, so a tag limited renewal
+# run would otherwise report success while every consumer kept the previous
+# certificate: GraphQlApiConnection caches its client identity for the process
+# lifetime, and apache and slapd hold theirs until reloaded. The stale identity keeps
+# working until it expires, which is exactly the failure the renewal was meant to
+# prevent.
+#
+# On a full run those other plays restart the same services again. That redundancy is
+# deliberate: it costs one extra restart in the rare run that actually renews an
+# identity, and it keeps the condition here independent of which tags were selected.
+#
+# The importer is absent on purpose. It reads the certificate paths from fworch.json
+# and hands them to requests, which re-reads the files on every handshake, so a
+# renewed identity applies there without a restart.
+
+- name: Look up the services holding a renewed identity
+  service_facts:
+  become: true
+
+# Which of the names service_facts returned are really installed here is decided by
+# fworch_installed_services in inventory/group_vars/all.yml - a name systemd only knows from
+# another unit's After=, and a masked unit, are both excluded there. The same expression decides
+# which services an upgrade may stop in roles/api and roles/common.
+
+# maintenance_apache_restart_deferred is the third condition on purpose: roles/common
+# skipped its own restart because the identity did not exist yet, and the maintenance
+# site it enabled - with the FWO web sites already disabled - only starts being served
+# once Apache picks the identity up here. That case does not always change the vhost
+# file, so it cannot be inferred from internalca_maintenance_identity_changed.
+- name: Reload Apache after its served identity was reconciled
+  systemd:
+    name: "{{ webserver_package_name }}"
+    # The deferred case is the restart roles/common skipped, and a restart also brings
+    # Apache up when the missing identity had left it stopped - reload fails on an
+    # inactive unit. A renewal on a running Apache stays a graceful reload.
+    state: >-
+      {{ 'restarted' if maintenance_apache_restart_deferred | default(false) | bool
+         else 'reloaded' }}
+  become: true
+  when:
+    # The deferred restart is conditional on the identity having arrived in the meantime.
+    # It has not when internalca_issue_apache_certificate is false: FWO then issues nothing,
+    # and the very reason roles/common deferred - the selected pair is not on disk - still
+    # holds. Restarting anyway would turn a web server that is still serving its previous
+    # configuration into a failed unit. Defaulted to true for every host that has no
+    # maintenance site, where reconcile-maintenance-certificate.yml never ran.
+    - >-
+      internalca_apache_identity_changed | default(false) | bool
+      or internalca_maintenance_identity_changed | default(false) | bool
+      or (maintenance_apache_restart_deferred | default(false) | bool
+          and internalca_maintenance_identity_available | default(true) | bool)
+    - (webserver_package_name ~ '.service') in fworch_installed_services
+
+- name: Restart slapd after its server identity was renewed
+  systemd:
+    name: slapd
+    state: restarted
+  become: true
+  when:
+    - internalca_ldap_identity_changed | default(false) | bool
+    - "'slapd.service' in fworch_installed_services"
+
+- name: Restart the middleware after its client identity was renewed
+  systemd:
+    name: "{{ middleware_service_name }}"
+    state: restarted
+  become: true
+  when:
+    - internalca_client_identity_changed | default(false) | bool
+    - (middleware_service_name ~ '.service') in fworch_installed_services
+
+- name: Restart the UI after its client identity was renewed
+  systemd:
+    name: "{{ ui_service_name }}"
+    state: restarted
+  become: true
+  when:
+    - internalca_client_identity_changed | default(false) | bool
+    - ui_service_name is defined
+    - (ui_service_name ~ '.service') in fworch_installed_services

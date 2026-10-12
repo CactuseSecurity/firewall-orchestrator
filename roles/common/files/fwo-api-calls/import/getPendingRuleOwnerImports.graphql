@@ -1,8 +1,14 @@
+# Imports whose rule_owner mapping is still missing.
+# Only rule (1) and owner (2) imports are mapped: every other import type - a log data import
+# for instance - would never get rule_owner_mapping_done, so it would stay in this backlog
+# forever, make the incremental processing fail on an unsupported import type and, past
+# MaxPendingImportsBeforeFullReinit rows, force a full reinitialize in every run.
 query getPendingRuleOwnerImports {
   import_control(where: {
     successful_import: {_eq: true}
     changes_found: {_eq: true}
     rule_owner_mapping_done: {_eq: false}
+    import_type_id: {_in: [1, 2]}
   } order_by: {control_id: asc}) {
     control_id
     mgm_id

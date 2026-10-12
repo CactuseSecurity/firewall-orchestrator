@@ -79,6 +79,7 @@ namespace FWO.Test
             Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("svc_uid"));
             Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("svc_port_end"));
             Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("flow_active"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("ip_proto_id: { _is_null: false, _neq: -1 }"));
             Assert.That(FlowQueries.getFlowCustomTimeObjectCandidates, Does.Contain("query getFlowCustomTimeObjectCandidates"));
         }
 

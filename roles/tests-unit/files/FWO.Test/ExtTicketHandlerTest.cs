@@ -7,6 +7,9 @@ using FWO.Data.Modelling;
 using FWO.ExternalSystems.CheckPoint;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using FWO.Middleware.Server;
+using FWO.Services;
+using FWO.Services.Workflow;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -14,6 +17,7 @@ namespace FWO.Test
     [Parallelizable]
     internal class ExtTicketHandlerTest
     {
+        private static readonly ExternalCertificateChecks CertificateChecks = new(FirewallConnections: true, TicketSystems: true);
         readonly static ExternalTicketSystem ticketSystem = new()
         {
             Id = 1,
@@ -159,7 +163,7 @@ namespace FWO.Test
         [Test]
         public async Task TestGetWaitCycles()
         {
-            SCTicket ticket = new(ticketSystem);
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
             using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
             ExternalRequest oldRquestGrp = new() { ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks[0]), ExtRequestContent = ticket.TicketText };
@@ -171,6 +175,54 @@ namespace FWO.Test
             ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRquestGrp));
             ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRquestGrp));
             ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles("any", oldRquestGrp));
+        }
+
+        [TestCase(nameof(WfTaskType.group_create))]
+        [TestCase(nameof(WfTaskType.group_modify))]
+        [TestCase("GROUP_CREATE")]
+        [TestCase("(networkobjectmodify, create)")]
+        [TestCase("(NETWORKOBJECTMODIFY, UPDATE)")]
+        public void GetWaitCyclesWaitsForAccessRequestAfterGroupChange(string oldRequestType)
+        {
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            ExternalRequest oldRequest = new() { ExtRequestType = oldRequestType, ExtRequestContent = "{}" };
+
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRequest));
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRequest));
+        }
+
+        [TestCase(nameof(WfTaskType.group_create))]
+        [TestCase(nameof(WfTaskType.group_modify))]
+        public void GetWaitCyclesWaitsAfterGroupChangeWithNewObjects(string oldRequestType)
+        {
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            ExternalRequest oldRequest = new() { ExtRequestType = oldRequestType, ExtRequestContent = "{\"object_updated_status\":\"NEW\"}" };
+
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRequest));
+        }
+
+        [TestCase(nameof(WfTaskType.access))]
+        [TestCase(nameof(WfTaskType.rule_delete))]
+        [TestCase("group_create_extra")]
+        [TestCase("")]
+        public void GetWaitCyclesDoesNotWaitAfterNonGroupChange(string oldRequestType)
+        {
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            ExternalRequest oldRequest = new() { ExtRequestType = oldRequestType, ExtRequestContent = "{\"object_updated_status\":\"NEW\"}" };
+
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRequest));
+        }
+
+        [Test]
+        public void GetWaitCyclesDoesNotWaitWithoutOldRequestOrConfiguredCycles()
+        {
+            SimulatedUserConfig noWaitConfig = new() { ExternalRequestWaitCycles = 0, ReqPriorities = reqPrios };
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            using ExternalRequestHandler noWaitHandler = new(noWaitConfig, apiConnection, null);
+            ExternalRequest oldRequest = new() { ExtRequestType = nameof(WfTaskType.group_create), ExtRequestContent = "{}" };
+
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), null));
+            ClassicAssert.AreEqual(0, noWaitHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRequest));
         }
 
         [Test]
@@ -522,7 +574,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task HandleStateChangeDonePromotesAllConsecutiveInternalWorkRuleTasksToPlanning()
+        public async Task HandleStateChangeDonePromotesAllConsecutiveInternalWorkRuleTasksToPlanningWhenApprovalIsInactive()
         {
             SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
             ExtTicketHandlerTestApiConn.ResetTicketTasks();
@@ -548,6 +600,101 @@ namespace FWO.Test
                 WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
                 ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
                 ClassicAssert.AreEqual(99, task!.StateId, $"Task {taskNumber} should be promoted to planning input state.");
+            }
+
+            WfReqTask? task9 = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(9);
+            ClassicAssert.IsNotNull(task9);
+            ClassicAssert.AreEqual(0, task9!.StateId);
+        }
+
+        [Test]
+        public async Task HandleStateChangeDonePromotesInternalWorkRuleTasksToPlanningWhenTaskTypeApprovalIsInactive()
+        {
+            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new()
+            {
+                ApprovalPhaseActiveForMasterOnly = true
+            };
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            await handler.HandleStateChange(new ExternalRequest
+            {
+                Id = 1,
+                TicketId = 123,
+                TaskNumber = 1,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtTicketId = "4711"
+            });
+
+            for (int taskNumber = 2; taskNumber <= 8; ++taskNumber)
+            {
+                WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
+                ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
+                ClassicAssert.AreEqual(99, task!.StateId, $"Task {taskNumber} should be promoted to planning input state.");
+            }
+        }
+
+        [Test]
+        public async Task HandleStateChangeDonePromotesInternalWorkRuleTasksToPlanningWhenMasterApprovalIsInactive()
+        {
+            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new()
+            {
+                ApprovalPhaseActiveForTaskTypesOnly = true
+            };
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            await handler.HandleStateChange(new ExternalRequest
+            {
+                Id = 1,
+                TicketId = 123,
+                TaskNumber = 1,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtTicketId = "4711"
+            });
+
+            for (int taskNumber = 2; taskNumber <= 8; ++taskNumber)
+            {
+                WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
+                ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
+                ClassicAssert.AreEqual(99, task!.StateId, $"Task {taskNumber} should be promoted to planning input state.");
+            }
+        }
+
+        [Test]
+        public async Task HandleStateChangeDonePromotesAllConsecutiveInternalWorkRuleTasksToApprovalWhenApprovalIsActive()
+        {
+            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
+            ExtTicketHandlerTestApiConn.ResetTicketTasks();
+            ExtTicketHandlerTestApiConn localApiConnection = new()
+            {
+                ApprovalPhaseActive = true
+            };
+
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+
+            await handler.HandleStateChange(new ExternalRequest
+            {
+                Id = 1,
+                TicketId = 123,
+                TaskNumber = 1,
+                ExtRequestState = ExtStates.ExtReqDone.ToString(),
+                ExtTicketId = "4711"
+            });
+
+            ClassicAssert.IsNull(localApiConnection.AddExtRequestVars);
+
+            for (int taskNumber = 2; taskNumber <= 8; ++taskNumber)
+            {
+                WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
+                ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
+                ClassicAssert.AreEqual(60, task!.StateId, $"Task {taskNumber} should be promoted to approval started state.");
+                ClassicAssert.AreEqual(ManagementFwConfigChangeTargets.InternalWork,
+                    task.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget));
             }
 
             WfReqTask? task9 = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(9);
@@ -632,7 +779,7 @@ namespace FWO.Test
             for (int taskId = 2; taskId <= 8; ++taskId)
             {
                 ExtTicketHandlerTestApiConn.MarkReqTaskAsInternalWork(taskId);
-                ExtTicketHandlerTestApiConn.SetReqTaskState(taskId, 99);
+                ExtTicketHandlerTestApiConn.SetReqTaskState(taskId, 60);
             }
 
             bool result = await handler.SendFirstRequest(123);
@@ -663,6 +810,81 @@ namespace FWO.Test
             ClassicAssert.IsTrue(result);
             ClassicAssert.IsNotNull(localApiConnection.AddExtRequestVars);
             StringAssert.Contains("taskNumber = 9", localApiConnection.AddExtRequestVars ?? "");
+        }
+
+        [Test]
+        public async Task RunInternalWorkStateChangeActionsSafe_ReturnsForEmptyCollector()
+        {
+            using ExternalRequestHandler handler = new(userConfig, apiConnection, null);
+            WorkflowEmailBundleCollector collector = new();
+
+            await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
+
+            ClassicAssert.IsEmpty(collector.PendingItems);
+        }
+
+        [Test]
+        public async Task RunInternalWorkStateChangeActionsSafe_ClearsCollectorWhenFallbackCannotRun()
+        {
+            WorkflowEmailBundleCollector collector = new();
+            collector.TryAdd(new WfStateAction { Id = 7, ExternalParams = "params" }, new WfReqTask { Id = 11, TicketId = 123, TaskType = WfTaskType.access.ToString() }, null, null);
+            using ExternalRequestHandler handler = new(userConfig, new FailingWorkflowInitApiConn(), null);
+
+            await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
+
+            ClassicAssert.IsEmpty(collector.PendingItems);
+        }
+
+        [Test]
+        public async Task RunInternalWorkStateChangeActionsSafe_ClearsCollectorWhenIndividualFallbackSucceeds()
+        {
+            WorkflowEmailBundleCollector collector = new();
+            WfStateAction action = new()
+            {
+                Id = 7,
+                ExternalParams = System.Text.Json.JsonSerializer.Serialize(new EmailActionParams
+                {
+                    Subject = "Internal work",
+                    Body = "done"
+                })
+            };
+            collector.TryAdd(action, new WfReqTask
+            {
+                Id = 2,
+                TicketId = 123,
+                TaskNumber = 2,
+                TaskType = WfTaskType.access.ToString()
+            }, null, null);
+            ExtTicketHandlerTestApiConn localApiConnection = new()
+            {
+                ReturnNullOnFirstTicketQuery = true
+            };
+            using ExternalRequestHandler handler = new(userConfig, localApiConnection, null);
+
+            await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
+
+            ClassicAssert.IsEmpty(collector.PendingItems);
+            ClassicAssert.IsTrue(localApiConnection.TicketQueryCount >= 2);
+        }
+
+        private static async Task InvokeRunInternalWorkStateChangeActionsSafe(ExternalRequestHandler handler, long ticketId, WorkflowEmailBundleCollector collector)
+        {
+            MethodInfo method = typeof(ExternalRequestHandler).GetMethod("RunInternalWorkStateChangeActionsSafe", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ExternalRequestHandler).FullName, "RunInternalWorkStateChangeActionsSafe");
+            object?[] arguments = new List<object?> { ticketId, collector }.ToArray();
+            await (Task)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException("RunInternalWorkStateChangeActionsSafe returned null."));
+        }
+
+        private sealed class FailingWorkflowInitApiConn : ExtTicketHandlerTestApiConn
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (typeof(QueryResponseType) == typeof(List<WfState>))
+                {
+                    throw new InvalidOperationException("state initialization failed");
+                }
+                return base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using FWO.Basics;
 
 namespace FWO.Data.Flow
 {
@@ -29,11 +30,17 @@ namespace FWO.Data.Flow
 
         /// <summary>
         /// Generates hash for service objects from protocol and port range.
-        /// SHA256 of "proto_id-port_start-port_end" if ports present.
-        /// Throws exception if either port is null.
+        /// SHA256 of "proto_id-port_start-port_end" if ports are present, or a
+        /// dedicated hash for the portless ANY IP protocol service.
+        /// Throws exception for all other service objects without both ports.
         /// </summary>
         public static string GenerateSvcObjectHash(int protoId, int? portStart, int? portEnd)
         {
+            if (protoId == GlobalConst.kAnyIpProtocolId && !portStart.HasValue && !portEnd.HasValue)
+            {
+                return ComputeSha256("any-svcobject");
+            }
+
             if (!portStart.HasValue || !portEnd.HasValue)
             {
                 // Protocol-only object (e.g. ICMP) - cannot generate deterministic hash based on ports

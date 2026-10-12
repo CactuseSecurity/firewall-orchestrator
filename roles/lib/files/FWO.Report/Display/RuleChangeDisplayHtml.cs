@@ -11,6 +11,9 @@ namespace FWO.Ui.Display
 {
     public class RuleChangeDisplayHtml : RuleDisplayHtml
     {
+        private const string kLineBreak = "<br>";
+        private static readonly string[] kLineBreakSeparators = [kLineBreak];
+
         public RuleChangeDisplayHtml(UserConfig userConfig) : base(userConfig)
         { }
 
@@ -427,8 +430,16 @@ namespace FWO.Ui.Display
             }
         }
 
-        private string DisplayDiff(string oldElement, string newElement)
+        /// <summary>
+        /// Renders the difference between two element texts.
+        /// </summary>
+        /// <param name="oldElement">Text before the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="newElement">Text after the change, may be null for columns that are nullable in the database.</param>
+        /// <returns>The rendered difference.</returns>
+        private string DisplayDiff(string? oldElement, string? newElement)
         {
+            oldElement ??= "";
+            newElement ??= "";
             if (oldElement == newElement)
             {
                 return oldElement;
@@ -440,59 +451,98 @@ namespace FWO.Ui.Display
             }
         }
 
-        private string DisplayArrayDiff(string oldElement, string newElement, bool oldNegated, bool newNegated)
+        /// <summary>
+        /// Renders the difference between two element lists.
+        /// </summary>
+        /// <param name="oldElement">List before the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="newElement">List after the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="oldNegated">Negation state before the change.</param>
+        /// <param name="newNegated">Negation state after the change.</param>
+        /// <returns>The rendered difference.</returns>
+        private string DisplayArrayDiff(string? oldElement, string? newElement, bool oldNegated, bool newNegated)
         {
+            oldElement ??= "";
+            newElement ??= "";
             if (oldElement == newElement)
             {
                 return oldElement;
             }
+
+            string oldText = StripParagraphMarkup(oldElement);
+            string newText = StripParagraphMarkup(newElement);
+            List<string> unchanged = [];
+            List<string> deleted = [];
+            List<string> added = [];
+
+            if (oldNegated != newNegated)
+            {
+                deleted.Add(SetStyle(oldText, GlobalConst.kStyleDeleted));
+                added.Add(SetStyle(newText, GlobalConst.kStyleAdded));
+            }
             else
             {
-                oldElement = oldElement.Replace("<p>", "");
-                oldElement = oldElement.Replace("</p>", "");
-                oldElement = oldElement.Replace("\r\n", "");
-                newElement = newElement.Replace("<p>", "");
-                newElement = newElement.Replace("</p>", "");
-                newElement = newElement.Replace("\r\n", "");
-                List<string> unchanged = [];
-                List<string> added = [];
-                List<string> deleted = [];
+                AnalyzeStyledElements(oldText, newText, unchanged, deleted, added);
+            }
 
-                if (oldNegated != newNegated)
+            return RenderDiffGroups(unchanged, deleted, added);
+        }
+
+        /// <summary>
+        /// Removes the paragraph markup and line breaks the comparison must ignore.
+        /// </summary>
+        /// <param name="element">Rendered element text.</param>
+        /// <returns>The text without paragraph markup.</returns>
+        private static string StripParagraphMarkup(string element)
+        {
+            return element.Replace("<p>", "").Replace("</p>", "").Replace("\r\n", "");
+        }
+
+        /// <summary>
+        /// Sorts the line break separated elements into unchanged, deleted and added, styling the changed ones.
+        /// </summary>
+        /// <param name="oldElement">List before the change.</param>
+        /// <param name="newElement">List after the change.</param>
+        /// <param name="unchanged">Receives the elements present before and after the change.</param>
+        /// <param name="deleted">Receives the styled elements only present before the change.</param>
+        /// <param name="added">Receives the styled elements only present after the change.</param>
+        private static void AnalyzeStyledElements(string oldElement, string newElement, List<string> unchanged, List<string> deleted, List<string> added)
+        {
+            string[] oldAr = oldElement.Split(kLineBreakSeparators, StringSplitOptions.RemoveEmptyEntries);
+            string[] newAr = newElement.Split(kLineBreakSeparators, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string item in oldAr)
+            {
+                if (newAr.Contains(item))
                 {
-                    deleted.Add(SetStyle(oldElement, GlobalConst.kStyleDeleted));
-                    added.Add(SetStyle(newElement, GlobalConst.kStyleAdded));
+                    unchanged.Add(item);
                 }
                 else
                 {
-                    string[] separatingStrings = ["<br>"];
-                    string[] oldAr = oldElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
-                    string[] newAr = newElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
-
-                    foreach (var item in oldAr)
-                    {
-                        if (newAr.Contains(item))
-                        {
-                            unchanged.Add(item);
-                        }
-                        else
-                        {
-                            deleted.Add(SetStyle(item, GlobalConst.kStyleDeleted));
-                        }
-                    }
-                    foreach (var item in newAr)
-                    {
-                        if (!oldAr.Contains(item))
-                        {
-                            added.Add(SetStyle(item, GlobalConst.kStyleAdded));
-                        }
-                    }
+                    deleted.Add(SetStyle(item, GlobalConst.kStyleDeleted));
                 }
-
-                return (unchanged.Count > 0 ? $"<p>{string.Join("<br>", unchanged)}<br></p>" : "")
-                       + (deleted.Count > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"{GlobalConst.kStyleDeleted}\">{string.Join("<br>", deleted)}<br></p>" : "")
-                       + (added.Count > 0 ? $"{userConfig.GetText("added")}: <p style=\"{GlobalConst.kStyleAdded}\">{string.Join("<br>", added)}</p>" : "");
             }
+            foreach (string item in newAr)
+            {
+                if (!oldAr.Contains(item))
+                {
+                    added.Add(SetStyle(item, GlobalConst.kStyleAdded));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Renders the sorted diff groups as report html.
+        /// </summary>
+        /// <param name="unchanged">Elements present before and after the change.</param>
+        /// <param name="deleted">Styled elements only present before the change.</param>
+        /// <param name="added">Styled elements only present after the change.</param>
+        /// <returns>The rendered difference.</returns>
+        private string RenderDiffGroups(List<string> unchanged, List<string> deleted, List<string> added)
+        {
+            string unchangedHtml = unchanged.Count > 0 ? $"<p>{string.Join(kLineBreak, unchanged)}<br></p>" : "";
+            string deletedHtml = deleted.Count > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"{GlobalConst.kStyleDeleted}\">{string.Join(kLineBreak, deleted)}<br></p>" : "";
+            string addedHtml = added.Count > 0 ? $"{userConfig.GetText("added")}: <p style=\"{GlobalConst.kStyleAdded}\">{string.Join(kLineBreak, added)}</p>" : "";
+            return unchangedHtml + deletedHtml + addedHtml;
         }
 
         private static string OutputHtmlDeleted(string? input)

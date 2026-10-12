@@ -91,76 +91,48 @@ namespace FWO.Services.Modelling
             await Save(true, true);
             await RemoveFromAllSelections();
 
-            List<FwoOwner> appsToNotify = [];
-            if (!string.IsNullOrWhiteSpace(userConfig.ModDecommEmailReceiver)
-                && !userConfig.ModDecommEmailReceiver.Equals(nameof(EmailRecipientOption.None), StringComparison.Ordinal))
+            List<FwoOwner> appsToNotify = UsingConnections
+                .Where(c => c.AppId != null && c.AppId != ActConn.AppId)
+                .Select(c => AllApps.FirstOrDefault(app => app.Id == c.AppId) ?? c.App)
+                .Distinct()
+                .ToList();
+            if (appsToNotify.Count > 0)
             {
-                appsToNotify = UsingConnections.Where(c => c.AppId != null && c.AppId != ActConn.AppId).Select(c => c.App).Distinct().ToList();
-                await NotifyUsers(appsToNotify, reason, proposedInterface, middlewareClient);
+                await NotifyUsers(reason, proposedInterface, middlewareClient);
             }
 
             await AddPermittedOwnersIfMissing(proposedInterface, appsToNotify);
             await AddToSelections(proposeAlternative, proposedInterface, appsToNotify);
         }
 
-        protected virtual async Task NotifyUsers(List<FwoOwner> appsToNotify, string reason, ModellingConnection? proposedInterface, MiddlewareClient middlewareClient)
+        protected virtual async Task NotifyUsers(string reason, ModellingConnection? proposedInterface, MiddlewareClient middlewareClient)
         {
             try
             {
-                EmailHelper emailHelper = CreateEmailHelper(middlewareClient);
-                await emailHelper.Init();
-
-                string subject = userConfig.ModDecommEmailSubject.Replace(Placeholder.INTERFACE_NAME, ActConn.Name);
-
-                int successCount = 0;
-                int failCount = 0;
-                List<string> legacyOtherAddresses = EmailHelper.SplitAddresses(userConfig.ModDecommEmailOtherAddresses);
-                foreach (var app in appsToNotify)
+                RestSharp.RestResponse<NotificationDeliveryResult> response = await middlewareClient.SendInterfaceDecommissionNotification(
+                    ActConn.Id, proposedInterface?.Id, reason);
+                if (!response.IsSuccessful)
                 {
-                    if (await emailHelper.SendEmailToOwnerResponsibles(app, subject, ConstructBody(app, reason, proposedInterface),
-                        userConfig.ModDecommEmailReceiver, false, legacyOtherAddresses))
-                    {
-                        successCount++;
-                    }
-                    else
-                    {
-                        failCount++;
-                    }
+                    throw new InvalidOperationException("Middleware interface decommission notification failed.");
                 }
-                if (successCount > 0)
+
+                switch (response.Data)
                 {
-                    string msgText = userConfig.GetText("U9033").Replace(Placeholder.OK_NUMBER, successCount.ToString());
-                    DisplayMessageInUi(null, userConfig.GetText("send_email"), msgText, false);
-                }
-                if (failCount > 0)
-                {
-                    string msgText = userConfig.GetText("E9019").Replace(Placeholder.FAIL_NUMBER, failCount.ToString());
-                    DisplayMessageInUi(null, userConfig.GetText("send_email"), msgText, true);
+                    case NotificationDeliveryResult.Delivered:
+                        string successText = userConfig.GetText("U9044");
+                        DisplayMessageInUi(null, userConfig.GetText("send_email"), successText, false);
+                        break;
+                    case NotificationDeliveryResult.Failed:
+                    case NotificationDeliveryResult.NoRecipients:
+                        string failureText = userConfig.GetText("E9031");
+                        DisplayMessageInUi(null, userConfig.GetText("send_email"), failureText, true);
+                        break;
                 }
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("notification"), "", true);
             }
-        }
-
-        protected virtual EmailHelper CreateEmailHelper(MiddlewareClient middlewareClient)
-        {
-            return new EmailHelper(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);
-        }
-
-        private string ConstructBody(FwoOwner app, string reason, ModellingConnection? proposedInterface)
-        {
-            string interfaceUrl = $"{userConfig.UiHostName}/{PageName.Modelling}/{proposedInterface?.App.ExtAppId}/{proposedInterface?.Id}";
-            string interfacelink = $"<a target=\"_blank\" href=\"{interfaceUrl}\">{userConfig.GetText("interface")}: {proposedInterface?.Name}</a><br>";
-            string body = userConfig.ModDecommEmailBody
-                .Replace(Placeholder.INTERFACE_NAME, $"<b>{ActConn.Name}</b>")
-                .Replace(Placeholder.NEW_INTERFACE_NAME, $"<b>{proposedInterface?.Name}</b>")
-                .Replace(Placeholder.NEW_INTERFACE_LINK, $"<b>{interfacelink}</b>")
-                .Replace(Placeholder.REASON, $"<b>{reason}</b>")
-                .Replace(Placeholder.USER_NAME, $"<b>{userConfig.User.Name}</b>");
-            string connList = string.Join("<br>", UsingConnections.Where(c => c.AppId != null && c.AppId == app.Id).Select(a => a.Name));
-            return $"{body}<br><b>{connList}</b>";
         }
 
         private async Task AddToSelections(bool proposeAlternative, ModellingConnection? proposedInterface, List<FwoOwner> appsToNotify)
@@ -539,6 +511,11 @@ namespace FWO.Services.Modelling
             {
                 if (requestedInterface != null)
                 {
+                    if (PreselectedInterfaces.Any(selected => selected.Id == requestedInterface.Id))
+                    {
+                        return;
+                    }
+
                     var Variables = new
                     {
                         appId = requestedInterface.AppId,

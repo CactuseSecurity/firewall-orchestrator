@@ -1,8 +1,9 @@
 # mapping the opnsense model into normalized import model
 
+from __future__ import annotations
+
 import json
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fw_modules.opnsense25ff.opnsense_helper as os_helper
 from fw_modules.opnsense25ff.opnsense_constants import (
@@ -23,22 +24,31 @@ from fw_modules.opnsense25ff.opnsense_model import (
     OPNsenseNetwork,
     OPNsenseNetworkAlias,
 )
-from fw_modules.opnsense25ff.opnsense_normalize_services import normalize_services, rule_service_names
+from fw_modules.opnsense25ff.opnsense_normalize_services import (
+    get_synthetic_any_service_name,
+    normalize_services,
+    rule_service_names,
+)
 from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
-from fwo_base import ConfigAction, sort_and_join
 from fwo_base import generate_hash_from_dict as fwo_base_generate_hash_from_dict
+from fwo_base import sort_and_join
+from fwo_enums import ConfigAction
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
-from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.gateway import Gateway
 from models.networkobject import NetworkObject
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 from models.rulebase import Rulebase
 from models.rulebase_link import RulebaseLinkUidBased
-from models.serviceobject import ServiceObject
 from netaddr import IPAddress, IPNetwork
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+    from model_controllers.import_state_controller import ImportStateController
+    from models.serviceobject import ServiceObject
 
 # ───────────────────────── helper ────────────────────────
 
@@ -202,7 +212,9 @@ def _create_network_object_from_alias(
     )
 
 
-def _create_normalized_rule_from_access_rule(rule: OPNsenseAccessRule) -> RuleNormalized:
+def _create_normalized_rule_from_access_rule(
+    rule: OPNsenseAccessRule, synthetic_any_service_name: str | None = None
+) -> RuleNormalized:
     rule_action: RuleAction = RuleAction.ACCEPT
     if rule.action == FilterRuleActionEnum.PASS:
         rule_action = RuleAction.ACCEPT
@@ -220,7 +232,7 @@ def _create_normalized_rule_from_access_rule(rule: OPNsenseAccessRule) -> RuleNo
 
     rule_source_objects = [_network_ref_name(ref) for ref in rule.source_address + rule.source_network]
     rule_dest_objects = [_network_ref_name(ref) for ref in rule.dest_address + rule.dest_network]
-    rule_service_objects = rule_service_names(rule)
+    rule_service_objects = rule_service_names(rule, synthetic_any_service_name)
     rule_name = rule.description or ""
 
     return RuleNormalized(
@@ -584,11 +596,13 @@ def _sort_rulebases(rbs_dict: dict[str, Rulebase], os_config: OPNsenseConfig) ->
     return [rbs_dict[name] for name in sorted_names]
 
 
-def _create_rulebases_from_access_rules(os_config: OPNsenseConfig, mgm_uid: str) -> list[Rulebase]:
+def _create_rulebases_from_access_rules(
+    os_config: OPNsenseConfig, mgm_uid: str, synthetic_any_service_name: str | None = None
+) -> list[Rulebase]:
     rbs_dict: dict[str, Rulebase] = {}
 
     for rule in os_config.access_rules:
-        r_normalized = _create_normalized_rule_from_access_rule(rule)
+        r_normalized = _create_normalized_rule_from_access_rule(rule, synthetic_any_service_name)
         rule_uid = r_normalized.rule_uid
         if rule_uid is None:
             FWOLogger.warning(f"[*] skipping OPNsense rule without uid:\n    {rule}")
@@ -719,7 +733,11 @@ def normalize_opnsense_config(
     network_objects = _normalize_network_objects(native_config)
     FWOLogger.debug(f"[*] normalized {len(network_objects)} network objects...")
     FWOLogger.debug("[*] normalizing access rules...")
-    rulebases = _create_rulebases_from_access_rules(native_config, import_state.state.mgm_details.uid)
+    rulebases = _create_rulebases_from_access_rules(
+        native_config,
+        import_state.state.mgm_details.uid,
+        get_synthetic_any_service_name(svc_objects),
+    )
     [FWOLogger.debug(f"[*] normalized {len(rb.rules)} access rules in Rulebase {rb.name}...") for rb in rulebases]
     FWOLogger.debug("[*] normalizing interfaces for gateway definition...")
     interfaces = _normalize_interfaces(native_config)

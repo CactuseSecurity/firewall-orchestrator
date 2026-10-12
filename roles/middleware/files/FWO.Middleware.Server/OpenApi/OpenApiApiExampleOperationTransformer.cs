@@ -27,7 +27,7 @@ public sealed class OpenApiApiExampleOperationTransformer : IOpenApiOperationTra
         IEnumerable<IOpenApiEndpointDocumentationProvider> documentationProviders)
     {
         this.catalog = catalog;
-        jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
+        jsonSerializerOptions = ApiDocumentationJsonOptions.CreateExampleSerializerOptions(jsonOptions.Value.JsonSerializerOptions);
         this.documentationProviders = documentationProviders.ToList();
     }
 

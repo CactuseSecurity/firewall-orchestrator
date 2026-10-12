@@ -8,6 +8,23 @@ namespace FWO.Test
     public class ApproverAllowedChangesConfigTest
     {
         [Test]
+        public void Catalog_OffersNoObjectReferenceFieldsForObjectTasks()
+        {
+            List<string> createFields = ApproverAllowedChangesCatalog.TaskTypeFields[WfTaskType.object_create].ConvertAll(field => field.Key);
+            List<string> modifyFields = ApproverAllowedChangesCatalog.TaskTypeFields[WfTaskType.object_modify].ConvertAll(field => field.Key);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(createFields, Does.Contain(WorkflowEditableFieldKeys.Title));
+                Assert.That(createFields, Does.Contain(WorkflowEditableFieldKeys.Management));
+                Assert.That(createFields, Does.Not.Contain(WorkflowEditableFieldKeys.Name));
+                Assert.That(modifyFields, Does.Contain(WorkflowEditableFieldKeys.Reason));
+                Assert.That(modifyFields, Does.Not.Contain(WorkflowEditableFieldKeys.Management));
+                Assert.That(modifyFields, Does.Not.Contain(WorkflowEditableFieldKeys.Name));
+            });
+        }
+
+        [Test]
         public void Parse_ReturnsDefaults_WhenConfigIsEmpty()
         {
             ApproverAllowedChangesConfig config = ApproverAllowedChangesConfig.Parse("");

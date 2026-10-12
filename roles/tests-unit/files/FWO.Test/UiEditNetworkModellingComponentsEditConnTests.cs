@@ -15,6 +15,7 @@ using FWO.Services.EventMediator.Interfaces;
 using FWO.Services.Modelling;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.NetworkModelling;
+using FWO.Ui.Shared;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
@@ -507,6 +508,44 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<WfHandler>(component.Instance, "wfHandler").ReadOnlyMode, Is.True);
                 Assert.That(GetPrivateField<WfHandler>(component.Instance, "wfHandler").ActReqTask.Id, Is.EqualTo(reqTask.Id));
             });
+        }
+
+        [Test]
+        public async Task EditConn_ShowsLogDataWhenEnabled()
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            userConfig.ModNamingConvention = "{}";
+            userConfig.ModAppServerTypes = "[]";
+            userConfig.ShowLogDataInConnections = true;
+            ModellingConnectionHandler handler = CreateConnectionHandler(
+                new SimulatedApiConnection(),
+                userConfig,
+                new ModellingConnection { Name = "conn", Reason = "reason" },
+                readOnly: false);
+
+            IRenderedComponent<EditConn> component = RenderEditConn(context, handler, display: true);
+
+            Assert.That(component.FindComponents<LogDataTable>(), Has.Count.EqualTo(1));
+            await Task.CompletedTask;
+        }
+
+        [Test]
+        public async Task EditConn_HidesLogDataWhenDisabled()
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            userConfig.ModNamingConvention = "{}";
+            userConfig.ModAppServerTypes = "[]";
+            userConfig.ShowLogDataInConnections = false;
+            ModellingConnectionHandler handler = CreateConnectionHandler(
+                new SimulatedApiConnection(),
+                userConfig,
+                new ModellingConnection { Name = "conn", Reason = "reason" },
+                readOnly: false);
+
+            IRenderedComponent<EditConn> component = RenderEditConn(context, handler, display: true);
+
+            Assert.That(component.FindComponents<LogDataTable>(), Is.Empty);
+            await Task.CompletedTask;
         }
     }
 }

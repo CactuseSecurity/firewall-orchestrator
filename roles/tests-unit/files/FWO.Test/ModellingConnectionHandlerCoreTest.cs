@@ -18,12 +18,6 @@ namespace FWO.Test
         static readonly Action<Exception?, string, string, bool> DisplayMessageInUi = DefaultInit.DoNothing;
         static readonly FwoOwner Application = new() { Id = 1, Name = "TestApp" };
 
-        [OneTimeSetUp]
-        public void EnsureRequiredTranslationKeys()
-        {
-            SimulatedUserConfig.DummyTranslate.TryAdd("save_connection", "Save Connection");
-        }
-
         [Test]
         public void CalcVisibility_InterfaceWithDestinationFilled_ReadonlyFlags()
         {

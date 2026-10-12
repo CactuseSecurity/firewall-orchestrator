@@ -9,7 +9,7 @@ mutation replaceStateMatrixConfiguration(
     objects: $phaseMatrices
     on_conflict: {
       constraint: state_matrix_phase_pkey
-      update_columns: [active, lowest_input_state, lowest_start_state, lowest_end_state]
+      update_columns: [active, phase_visibility_mode, lowest_input_state, lowest_start_state, lowest_end_state]
     }
   ) {
     affected_rows

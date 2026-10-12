@@ -28,22 +28,23 @@ add all hosts involved, e.g.
     fworch-side
 
 
-## inventory/all
+## inventory/group_vars/all.yml
 
-set specific IP or hostname for database host, e.g.
+Enable the existing network listener behavior for services split across hosts:
 
-replace
+    distributed_install: true
 
-    fworch_db_host: 127.0.0.1
-
-with
-
-    fworch_db_host: 10.1.1.83
+Nothing else has to be set here. Every endpoint name - the database host, the API, the
+middleware and the UI - is derived from the host names in `inventory/hosts.yml` above,
+and `distributed_install: true` is what makes the internal clients address those names
+instead of loopback. Name the hosts there by the DNS names their certificates are
+issued for; see `documentation/certificates.md`.
 
 ## roles/database/tasks/main.yml
 
 - change pg_hba.conf entries to allow acces via network
-- change postgresql.conf entries to make server listen on ip other than localhost
+- `distributed_install: true` makes PostgreSQL listen on the configured API
+  network address; no manual postgresql.conf listener change is needed
 
 ## roles/auth/tasks/main.yml - needs some work
 

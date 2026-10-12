@@ -14,6 +14,8 @@ namespace FWO.Data.Workflow
         group_create = 5,
         group_modify = 6,
         group_delete = 7,
+        object_create = 8,
+        object_modify = 9,
         new_interface = 11
     }
 

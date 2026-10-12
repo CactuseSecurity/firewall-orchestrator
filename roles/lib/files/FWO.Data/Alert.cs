@@ -27,8 +27,10 @@ namespace FWO.Data
         ImportAppData = 41,
         ImportAreaSubnetData = 42,
         AdjustAppServerNames = 43,
+        ImportLogData = 44,
 
         ImportChangeNotify = 51,
+        RuleOwnerMapping = 52,
 
         ExternalRequest = 61,
 

@@ -2,6 +2,9 @@ using Bunit;
 using AngleSharp.Dom;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Middleware.Client;
 using FWO.Services.SystemUsage;
 using FWO.Ui.Pages.Monitoring;
 using FWO.Ui.Services;
@@ -10,7 +13,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using RestSharp;
+using System.Net;
 using System.Reflection;
+using System.Text.Json;
 
 namespace FWO.Test
 {
@@ -19,6 +25,7 @@ namespace FWO.Test
     internal class UiMonitorSystemUsageTest
     {
         private const long kMegaByte = 1024 * 1024;
+        private static readonly TimeSpan kAsyncOperationTimeout = TimeSpan.FromSeconds(5);
 
         private static SystemUsageSnapshot CreateSnapshot(double cpuPercent = 25)
         {
@@ -82,6 +89,13 @@ namespace FWO.Test
             FakeSystemUsageCollector collector, UiSessionTracker tracker,
             FakePeriodicTaskRunnerFactory runnerFactory, params string[] roles)
         {
+            return Render(context, collector, tracker, runnerFactory, new FakeMonitoringMiddlewareClient(), roles);
+        }
+
+        private static IRenderedComponent<MonitorSystemUsage> Render(BunitContext context,
+            FakeSystemUsageCollector collector, UiSessionTracker tracker, FakePeriodicTaskRunnerFactory runnerFactory,
+            FakeMonitoringMiddlewareClient middlewareClient, params string[] roles)
+        {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
@@ -89,7 +103,8 @@ namespace FWO.Test
             SimulatedUserConfig userConfig = new();
             userConfig.User.Roles = [.. roles];
             context.Services.AddSingleton<UserConfig>(userConfig);
-            context.Services.AddSingleton<ISystemUsageCollector>(collector);
+            context.Services.AddSingleton<ISystemUsageSnapshotProvider>(collector);
+            context.Services.AddSingleton<MiddlewareClient>(middlewareClient);
             context.Services.AddSingleton(tracker);
             context.Services.AddSingleton<IPeriodicTaskRunnerFactory>(runnerFactory);
 
@@ -106,6 +121,14 @@ namespace FWO.Test
             return (T)property.GetValue(page)!;
         }
 
+        private static T GetPrivateField<T>(MonitorSystemUsage page, string fieldName)
+        {
+            FieldInfo field = typeof(MonitorSystemUsage).GetField(fieldName,
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMemberException(typeof(MonitorSystemUsage).FullName, fieldName);
+            return (T)field.GetValue(page)!;
+        }
+
         private static void SetPrivateProperty<T>(MonitorSystemUsage page, string propertyName, T value)
         {
             PropertyInfo property = typeof(MonitorSystemUsage).GetProperty(propertyName,
@@ -120,6 +143,23 @@ namespace FWO.Test
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingMethodException(typeof(MonitorSystemUsage).FullName, methodName);
             method.Invoke(page, null);
+        }
+
+        private static async Task WaitForExecutionModeUpdate(IRenderedComponent<MonitorSystemUsage> page)
+        {
+            try
+            {
+                await page.InvokeAsync(async () =>
+                {
+                    SemaphoreSlim semaphore = GetPrivateField<SemaphoreSlim>(page.Instance, "monitoringStateSemaphore");
+                    await semaphore.WaitAsync();
+                    semaphore.Release();
+                }).WaitAsync(kAsyncOperationTimeout);
+            }
+            catch (TimeoutException)
+            {
+                Assert.Fail("The execution-mode update did not complete within the expected time.");
+            }
         }
 
         [Test]
@@ -163,86 +203,112 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 // 8000 MB available, the free memory of 2000 MB would only be confusing next to it
-                Assert.That(page.Markup, Does.Contain("memory_available: 7.8 GB"));
+                Assert.That(page.Markup, Does.Match(@"memory_available:\s+7\.8 GB"));
                 Assert.That(page.Markup, Does.Not.Contain("memory_free"));
             });
         }
 
+        private static readonly List<SchedulerJobInfo> kSchedulerJobs =
+        [
+            new SchedulerJobInfo
+            {
+                JobName = "ImportJob",
+                LastFireTimeUtc = new DateTimeOffset(2026, 7, 29, 9, 0, 0, TimeSpan.Zero),
+                LastExecutionStatus = SchedulerJobExecutionStatus.Success
+            },
+            new SchedulerJobInfo
+            {
+                JobName = "ReportJob",
+                LastFireTimeUtc = new DateTimeOffset(2026, 7, 29, 9, 30, 0, TimeSpan.Zero),
+                LastExecutionStatus = SchedulerJobExecutionStatus.Failed,
+                LastExecutionError = "report generation failed"
+            },
+            new SchedulerJobInfo { JobName = "ComplianceJob" }
+        ];
+
+        private static readonly List<string> kAllServicesReachable =
+            ["monitoring_reachable", "monitoring_reachable", "monitoring_reachable"];
+
+        private static readonly List<int> kOneJobPerOutcome = [1, 1, 1];
+
+        private static List<string> GetServiceStatusTexts(IRenderedComponent<MonitorSystemUsage> page)
+        {
+            return [.. page.FindAll("tbody")[0].QuerySelectorAll("tr")
+                .Select(row => row.QuerySelectorAll("td")[2].TextContent.Trim())];
+        }
+
         [Test]
-        public void Page_ShowsUsageOfTheOtherServicesOnThisHost()
+        public void Page_ShowsAllServicesReachable()
         {
             using BunitContext context = new();
             FakeSystemUsageCollector collector = new(CreateSnapshot());
-            UiSessionTracker tracker = new();
-
-            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, tracker, Roles.Admin);
-            List<string> serviceCells = [.. page.FindAll("tbody tr td").Select(cell => cell.TextContent.Trim())];
-
-            Assert.Multiple(() =>
-            {
-                // one row per service: name, cpu, memory, memory share, threads, processes, uptime
-                Assert.That(serviceCells, Has.Count.EqualTo(14));
-                Assert.That(serviceCells.GetRange(0, 7),
-                    Is.EqualTo(new List<string> { "middleware", "12.5 %", "200 MB", "1.3 %", "25", "1", "01:30" }));
-                Assert.That(serviceCells.GetRange(7, 7),
-                    Is.EqualTo(new List<string> { "database", "3 %", "800 MB", "5 %", "7", "7", "1d 02:00" }));
-                Assert.That(page.Markup, Does.Not.Contain("no_services_found"));
-            });
-        }
-
-        [Test]
-        public void Page_WithoutOtherServicesShowsHintInsteadOfTable()
-        {
-            using BunitContext context = new();
-            SystemUsageSnapshot snapshot = CreateSnapshot();
-            snapshot.Services = [];
-            FakeSystemUsageCollector collector = new(snapshot);
-            UiSessionTracker tracker = new();
-
-            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, tracker, Roles.Admin);
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(page.Markup, Does.Contain("no_services_found"));
-                Assert.That(page.FindAll("tbody tr"), Is.Empty);
-            });
-        }
-
-        [Test]
-        public void Page_WithHiddenProcessesDoesNotClaimThatNoServicesRun()
-        {
-            using BunitContext context = new();
-            SystemUsageSnapshot snapshot = CreateSnapshot();
-            snapshot.Services = [];
-            snapshot.ServicesVisible = false;
-            FakeSystemUsageCollector collector = new(snapshot);
 
             IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(), Roles.Admin);
 
-            Assert.Multiple(() =>
-            {
-                Assert.That(page.Markup, Does.Contain("services_not_visible"));
-                // stating that nothing runs here would be wrong, the services are only invisible
-                Assert.That(page.Markup, Does.Not.Contain("no_services_found"));
-            });
+            page.WaitForAssertion(() => Assert.That(GetServiceStatusTexts(page), Is.EqualTo(kAllServicesReachable)),
+                kAsyncOperationTimeout);
         }
 
         [Test]
-        public void Page_WithHiddenProcessesStillShowsTheServicesItFound()
+        public void Page_WithFailingMiddlewareShowsItUnreachable()
         {
             using BunitContext context = new();
-            SystemUsageSnapshot snapshot = CreateSnapshot();
-            snapshot.ServicesVisible = false;
-            FakeSystemUsageCollector collector = new(snapshot);
+            FakeSystemUsageCollector collector = new(CreateSnapshot());
+            FakeMonitoringMiddlewareClient middlewareClient = new() { SystemUsageStatus = HttpStatusCode.InternalServerError };
 
-            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(), Roles.Admin);
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(),
+                new FakePeriodicTaskRunnerFactory(), middlewareClient, Roles.Admin);
 
-            Assert.Multiple(() =>
+            page.WaitForAssertion(() => Assert.Multiple(() =>
             {
-                // the list is incomplete, but what could be read stays visible next to the warning
-                Assert.That(page.Markup, Does.Contain("services_not_visible"));
-                Assert.That(page.FindAll("tbody tr"), Has.Count.EqualTo(2));
-            });
+                Assert.That(GetServiceStatusTexts(page)[0], Is.EqualTo("monitoring_reachable"));
+                Assert.That(GetServiceStatusTexts(page)[1], Is.EqualTo("monitoring_unreachable"));
+                Assert.That(page.Markup, Does.Contain("status 500"));
+            }), kAsyncOperationTimeout);
+        }
+
+        [Test]
+        public void Page_WithUnreachableSchedulerShowsItUnreachable()
+        {
+            using BunitContext context = new();
+            FakeSystemUsageCollector collector = new(CreateSnapshot());
+            FakeMonitoringMiddlewareClient middlewareClient = new() { SchedulerAvailable = false };
+
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(),
+                new FakePeriodicTaskRunnerFactory(), middlewareClient, Roles.Admin);
+
+            page.WaitForAssertion(() => Assert.Multiple(() =>
+            {
+                Assert.That(GetServiceStatusTexts(page)[2], Is.EqualTo("monitoring_unreachable"));
+                Assert.That(page.Markup, Does.Contain("scheduler_no_jobs"));
+            }), kAsyncOperationTimeout);
+        }
+
+        [Test]
+        public void Page_ShowsSchedulerJobsWithTheirLastError()
+        {
+            using BunitContext context = new();
+            FakeSystemUsageCollector collector = new(CreateSnapshot());
+            FakeMonitoringMiddlewareClient middlewareClient = new() { SchedulerJobs = kSchedulerJobs };
+
+            IRenderedComponent<MonitorSystemUsage> page = Render(context, collector, new UiSessionTracker(),
+                new FakePeriodicTaskRunnerFactory(), middlewareClient, Roles.Admin);
+
+            page.WaitForAssertion(() =>
+            {
+                List<int> counts = [.. page.FindAll(".usage-tile-value.text-success, .usage-tile-value.text-danger, .usage-tile-value.text-muted")
+                    .Select(tile => int.Parse(tile.TextContent.Trim()))];
+                List<string> jobNames = [.. page.FindAll("table.table-bordered tbody tr td:first-child")
+                    .Select(cell => cell.TextContent.Trim())];
+                Assert.Multiple(() =>
+                {
+                    // successful, failed and never run jobs
+                    Assert.That(counts, Is.EqualTo(kOneJobPerOutcome));
+                    Assert.That(jobNames, Does.Contain("ComplianceJob").And.Contain("ImportJob").And.Contain("ReportJob"));
+                    Assert.That(page.Markup, Does.Contain("scheduler_last_error"));
+                    Assert.That(page.Markup, Does.Contain("report generation failed"));
+                });
+            }, kAsyncOperationTimeout);
         }
 
         [Test]
@@ -416,7 +482,8 @@ namespace FWO.Test
             IReadOnlyList<IElement> timeRanges = page.FindAll(".usage-sparkline-time");
             Assert.Multiple(() =>
             {
-                Assert.That(timeRanges, Has.Count.EqualTo(2));
+                // memory and cpu history of the ui service, followed by those of the middleware
+                Assert.That(timeRanges, Has.Count.EqualTo(4));
                 Assert.That(timeRanges[0].TextContent, Does.Contain(expectedStart));
                 Assert.That(timeRanges[0].TextContent, Does.Contain(expectedEnd));
             });
@@ -491,7 +558,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Page_ExecutionModeChangeStartsAndStopsMonitoring()
+        public async Task Page_ExecutionModeChangeStartsAndStopsMonitoring()
         {
             using BunitContext context = new();
             FakeSystemUsageCollector collector = new(CreateSnapshot());
@@ -507,7 +574,8 @@ namespace FWO.Test
             });
 
             userConfig.SetExecutionMode(Roles.Admin);
-            page.WaitForAssertion(() =>
+            await WaitForExecutionModeUpdate(page);
+            Assert.Multiple(() =>
             {
                 Assert.That(collector.CollectCount, Is.EqualTo(1));
                 Assert.That(factory.CreateCount, Is.EqualTo(1));
@@ -517,9 +585,14 @@ namespace FWO.Test
             FakePeriodicTaskRunner activeRunner = factory.LastRunner!;
 
             userConfig.SetExecutionMode(GlobalConst.kUserRolesSelection);
-            page.WaitForAssertion(() =>
+            await WaitForExecutionModeUpdate(page);
+
+            Assert.Multiple(() =>
             {
                 Assert.That(activeRunner.Disposed, Is.True);
+                Assert.That(factory.CreateCount, Is.EqualTo(1));
+                Assert.That(factory.LastRunner, Is.SameAs(activeRunner));
+                Assert.That(page.Markup, Does.Not.Contain("usage-sparkline"));
             });
         }
 
@@ -586,7 +659,7 @@ namespace FWO.Test
             });
         }
 
-        internal sealed class FakeSystemUsageCollector(SystemUsageSnapshot snapshot) : ISystemUsageCollector
+        internal sealed class FakeSystemUsageCollector(SystemUsageSnapshot snapshot) : ISystemUsageSnapshotProvider
         {
             public SystemUsageSnapshot Snapshot { get; set; } = snapshot;
 
@@ -601,6 +674,44 @@ namespace FWO.Test
                 CollectCount++;
                 LastSynchronizationContext = SynchronizationContext.Current;
                 return ThrowOnCollect ? throw new InvalidOperationException("counters unavailable") : Snapshot;
+            }
+        }
+
+        /// <summary>
+        /// Middleware client answering the monitoring requests without a running middleware.
+        /// </summary>
+        internal sealed class FakeMonitoringMiddlewareClient() : MiddlewareClient("https://middleware.example/")
+        {
+            public SystemUsageSnapshot MiddlewareSnapshot { get; set; } = CreateSnapshot();
+
+            public List<SchedulerJobInfo> SchedulerJobs { get; set; } = [];
+
+            public HttpStatusCode SystemUsageStatus { get; set; } = HttpStatusCode.OK;
+
+            public bool SchedulerAvailable { get; set; } = true;
+
+            public override Task<RestResponse> GetSystemUsage()
+            {
+                RestResponse response = new(new RestRequest())
+                {
+                    Content = JsonSerializer.Serialize(MiddlewareSnapshot),
+                    StatusCode = SystemUsageStatus,
+                    ResponseStatus = ResponseStatus.Completed,
+                    IsSuccessStatusCode = SystemUsageStatus == HttpStatusCode.OK
+                };
+                return Task.FromResult(response);
+            }
+
+            public override Task<RestResponse<List<SchedulerJobInfo>>> GetSchedulerJobs()
+            {
+                RestResponse<List<SchedulerJobInfo>> response = new(new RestRequest())
+                {
+                    Data = SchedulerAvailable ? SchedulerJobs : null,
+                    StatusCode = SchedulerAvailable ? HttpStatusCode.OK : HttpStatusCode.ServiceUnavailable,
+                    ResponseStatus = ResponseStatus.Completed,
+                    IsSuccessStatusCode = SchedulerAvailable
+                };
+                return Task.FromResult(response);
             }
         }
 

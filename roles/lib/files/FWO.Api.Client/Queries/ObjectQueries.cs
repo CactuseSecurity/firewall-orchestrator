@@ -17,6 +17,10 @@ namespace FWO.Api.Client.Queries
         public static readonly string getReportFilteredNetworkObjectDetails;
         public static readonly string getReportFilteredNetworkServiceDetails;
         public static readonly string getReportFilteredUserDetails;
+        public static readonly string searchNetworkObjectsForRequestByName;
+        public static readonly string searchNetworkObjectsForRequestByIp;
+        public static readonly string searchNetworkServicesForRequestByName;
+        public static readonly string searchNetworkServicesForRequestByPort;
 
         static ObjectQueries()
         {
@@ -74,6 +78,16 @@ namespace FWO.Api.Client.Queries
                 getReportFilteredUserDetails =
                     userDetailsFragment +
                     GetQueryText("report/getReportFilteredUserDetails.graphql");
+
+                // lean searches offering a single object or service to the object_modify request task
+                searchNetworkObjectsForRequestByName =
+                    GetQueryText("networkObject/searchNetworkObjectsForRequestByName.graphql");
+                searchNetworkObjectsForRequestByIp =
+                    GetQueryText("networkObject/searchNetworkObjectsForRequestByIp.graphql");
+                searchNetworkServicesForRequestByName =
+                    GetQueryText("networkService/searchNetworkServicesForRequestByName.graphql");
+                searchNetworkServicesForRequestByPort =
+                    GetQueryText("networkService/searchNetworkServicesForRequestByPort.graphql");
             }
             catch (Exception exception)
             {

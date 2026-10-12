@@ -1,0 +1,99 @@
+---
+# Drives roles/common/tasks/validate-upgrade-source-version.yml itself rather than a copy
+# of its expressions. The defect this guard exists for is an upgrade that starts on a
+# source version whose migration files have been removed: upgrade-database.yml then runs
+# the files it finds instead of the files that version needs, so the run mutates the
+# installation and leaves a schema the API cannot work with, and a test reimplementing the
+# version comparison would stay green through a regression in the real one.
+#
+# Runs unprivileged and touches nothing: the guard is a version comparison.
+- name: Set the upgrade source version guard test inputs
+  set_fact:
+    upgrade_source_version_guard: "{{ role_path }}/../common/tasks/validate-upgrade-source-version.yml"
+    # The floor itself and the version being installed are the two boundaries that must
+    # stay upgradable: the floor because it is declared supported, and the current version
+    # because re-running the installer on an up to date host is the normal case and must
+    # not be mistaken for an unsupported source.
+    upgrade_source_versions_supported:
+      - "{{ minimum_upgrade_source_version }}"
+      - "{{ product_version }}"
+    # A real version from below the floor, whose own remaining migration (7.3.6.sql) is
+    # among the removed files. Deliberately not derived from the floor: raising the floor
+    # later must not turn this case green.
+    upgrade_source_version_unsupported: "7.3.5"
+
+- name: Verify the guard lets every still supported source version through
+  block:
+    - include_tasks: "{{ upgrade_source_version_guard }}"
+      loop: "{{ upgrade_source_versions_supported }}"
+      loop_control:
+        loop_var: upgrade_source_version
+    - set_fact:
+        upgrade_source_version_guard_blocked: false
+  rescue:
+    - set_fact:
+        upgrade_source_version_guard_blocked: true
+        upgrade_source_version_guard_block_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert that no supported source version was blocked
+  assert:
+    that:
+      - not upgrade_source_version_guard_blocked | bool
+    fail_msg: >-
+      The upgrade source version guard refused an upgrade from one of
+      {{ upgrade_source_versions_supported | join(', ') }}, which are supported:
+      {{ upgrade_source_version_guard_block_message | default('no message') }}
+
+- name: Verify the guard stops an upgrade from below the supported floor
+  block:
+    - include_tasks: "{{ upgrade_source_version_guard }}"
+      vars:
+        upgrade_source_version: "{{ upgrade_source_version_unsupported }}"
+    - set_fact:
+        upgrade_source_version_rejected: false
+  rescue:
+    - set_fact:
+        upgrade_source_version_rejected: true
+        upgrade_source_version_reject_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert that the unsupported source version was rejected with a usable message
+  assert:
+    that:
+      - upgrade_source_version_rejected | bool
+      # Both versions have to be named: the operator has to see what is installed here and
+      # what the installer expects, or the only actionable content is a git command.
+      - upgrade_source_version_unsupported in upgrade_source_version_reject_message
+      - minimum_upgrade_source_version in upgrade_source_version_reject_message
+      # The way out. Without it this guard only converts a broken database into a stopped
+      # upgrade, which still leaves the installation stranded.
+      - minimum_upgrade_source_release in upgrade_source_version_reject_message
+      - "'server-upgrade.md' in upgrade_source_version_reject_message"
+      # A folded scalar keeps the newlines of a more indented continuation line, so an
+      # operator facing message has to be asserted free of them.
+      - "'\n' not in upgrade_source_version_reject_message"
+    fail_msg: >-
+      The upgrade source version guard did not usably reject an upgrade from
+      {{ upgrade_source_version_unsupported }}:
+      {{ upgrade_source_version_reject_message | default('it did not fail at all') }}
+
+# The floor is only as good as its agreement with the files on disk: removing further
+# upgrade files without raising it would restore exactly the silent skipping the guard was
+# added against, and nothing else in the repository relates the two.
+- name: Assert that the supported floor still matches the oldest available migration
+  assert:
+    that:
+      - oldest_available_migration | regex_replace('^(\d+\.\d+).*$', '\1') == minimum_upgrade_source_version | regex_replace('^(\d+\.\d+).*$', '\1')
+    fail_msg: >-
+      The oldest database migration still present is {{ oldest_available_migration }}, but
+      upgrades are declared supported from {{ minimum_upgrade_source_version }} on, so a
+      source version between the two would skip migrations silently. Raise
+      minimum_upgrade_source_version in inventory/group_vars/all.yml to the release the
+      oldest remaining migration belongs to, and say so in
+      documentation/installer/server-upgrade.md.
+  vars:
+    oldest_available_migration: >-
+      {{
+        (lookup('fileglob', role_path ~ '/../database/files/upgrade/*.sql', wantlist=True)
+         | map('basename') | map('regex_replace', '\.sql$', '')
+         | community.general.version_sort | first)
+      }}

@@ -440,6 +440,11 @@
                     }
                 }
             </div>
+            @* the popup shows the interface provider's connection, whose owner is not the one the user works on *@
+            @if(!PopupMode && userConfig.ShowLogDataInConnections && ConnHandler.Application.Id > 0)
+            {
+                <LogDataTable OwnerId="ConnHandler.Application.Id" />
+            }
         </div>
     }
     <InProgress Display="workInProgress"/>
@@ -721,7 +726,7 @@
 
     private async Task ReplaceInterface()
     {
-        await ConnHandler!.ReplaceInterface(authenticationStateTask!, middlewareClient, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
+        await ConnHandler!.ReplaceInterface(authenticationStateTask!, middlewareClient, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient));
         Close();
     }
 
@@ -736,7 +741,7 @@
         {
             try
             {
-                TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
+                TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient));
                 if(await ticketCreator.PromoteNewInterfaceImplTask((long)(ConnHandler!.ActConn.TicketId), ExtStates.Done))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);

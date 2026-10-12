@@ -40,18 +40,6 @@ namespace FWO.Test
             }
         }
 
-        [SetUp]
-        public void SetUpTranslations()
-        {
-            SimulatedUserConfig.DummyTranslate.TryAdd("report_type", "Report type");
-            SimulatedUserConfig.DummyTranslate.TryAdd("generate_report", "Generate report");
-            SimulatedUserConfig.DummyTranslate.TryAdd("no_device_selected", "No device selected");
-            SimulatedUserConfig.DummyTranslate.TryAdd("E1001", "Select a device");
-            SimulatedUserConfig.DummyTranslate.TryAdd("E1003", "Cancelled");
-            SimulatedUserConfig.DummyTranslate.TryAdd("report_data_fetch", "Fetching");
-            SimulatedUserConfig.DummyTranslate.TryAdd("report_elements", "Elements");
-        }
-
         private static BunitContext CreateContext()
         {
             BunitContext context = new();

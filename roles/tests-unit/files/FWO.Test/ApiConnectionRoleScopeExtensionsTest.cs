@@ -9,10 +9,14 @@ namespace FWO.Test
     [TestFixture]
     internal class ApiConnectionRoleScopeExtensionsTest
     {
+        private static readonly List<string> AppRulesRoles = [Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Auditor];
+        private static readonly List<string> DeniedAdminRoles = [Roles.Admin];
+        private static readonly List<string> DeniedModellerRole = [Roles.Modeller];
+
         [Test]
         public async Task RunWithNamedRoleScopeUsesExpectedRoles()
         {
-            ClaimsPrincipal user = CreateUser(Roles.Admin, Roles.Auditor, Roles.Modeller, Roles.FwAdmin,
+            ClaimsPrincipal user = CreateUser(Roles.Admin, Roles.Auditor, Roles.Modeller,
                 Roles.Reporter, Roles.ReporterViewAll, Roles.Recertifier, Roles.Requester,
                 Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer);
 
@@ -21,14 +25,14 @@ namespace FWO.Test
             await AssertRoleScope(user, (connection, principal) => connection.RunWithModellingRole(principal, CompletedAction),
                 [Roles.Modeller, Roles.Admin, Roles.Auditor]);
             await AssertRoleScope(user, (connection, principal) => connection.RunWithMonitoringRole(principal, CompletedAction),
-                [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
+                [Roles.Admin, Roles.Auditor]);
             await AssertRoleScope(user, (connection, principal) => connection.RunWithReportingRole(principal, CompletedAction),
-                [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin]);
+                [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor]);
             await AssertRoleScope(user, (connection, principal) => connection.RunWithRecertificationRole(principal, CompletedAction),
                 [Roles.Recertifier, Roles.Admin, Roles.Auditor]);
             await AssertRoleScope(user, (connection, principal) => connection.RunWithWorkflowRole(principal, CompletedAction),
                 [Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer,
-                    Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
+                    Roles.Admin, Roles.Auditor]);
         }
 
         [Test]
@@ -46,7 +50,7 @@ namespace FWO.Test
             Assert.That(connection.LastTargetRoles, Is.EqualTo(new[]
             {
                 Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer,
-                Roles.Admin, Roles.FwAdmin, Roles.Auditor
+                Roles.Admin, Roles.Auditor
             }));
             Assert.That(connection.ActiveRole, Is.Empty);
             Assert.That(connection.SwitchBackCount, Is.EqualTo(1));
@@ -55,15 +59,65 @@ namespace FWO.Test
         [Test]
         public void SetBestRoleForReportUsesExpectedRoles()
         {
-            AssertReportRoles(ReportType.Owners, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
-            AssertReportRoles(ReportType.ComplianceReport, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
+            AssertReportRoles(ReportType.Owners, [Roles.Admin, Roles.Auditor]);
+            AssertReportRoles(ReportType.ComplianceReport, [Roles.Admin, Roles.Auditor]);
             AssertReportRoles(ReportType.AppRules, [Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Auditor]);
-            AssertReportRoles(ReportType.TicketReport, [Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Requester,
+            AssertReportRoles(ReportType.TicketReport, [Roles.Admin, Roles.Auditor, Roles.Requester,
                 Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer]);
-            AssertReportRoles(ReportType.Rules, [Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
+            AssertReportRoles(ReportType.Rules, [Roles.Admin, Roles.ReporterViewAll, Roles.Reporter,
                 Roles.Recertifier, Roles.Auditor]);
             AssertReportRoles(ReportType.Undefined, [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
-                Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin]);
+                Roles.Recertifier, Roles.Admin, Roles.Auditor]);
+        }
+
+        [Test]
+        public void SetBestRoleForReportExcludesDeniedRoles()
+        {
+            TrackingApiConnection connection = new();
+            ClaimsPrincipal user = CreateUser(Roles.Admin, Roles.ReporterViewAll, Roles.Reporter, Roles.Recertifier, Roles.Auditor);
+
+            connection.SetBestRoleForReport(user, ReportType.Rules, DeniedAdminRoles);
+
+            Assert.That(connection.LastTargetRoles, Is.EqualTo(new List<string>
+            {
+                Roles.ReporterViewAll, Roles.Reporter, Roles.Recertifier, Roles.Auditor
+            }));
+        }
+
+        [Test]
+        public async Task RunWithBestRoleForReport_FallsBackWhenPreferredRoleExcluded()
+        {
+            TrackingApiConnection connection = new();
+            ClaimsPrincipal user = CreateUser(Roles.Modeller, Roles.Recertifier);
+
+            await connection.RunWithBestRoleForReport(user, ReportType.AppRules, async () =>
+            {
+                Assert.That(connection.ActiveRole, Is.EqualTo(Roles.Recertifier));
+                await Task.CompletedTask;
+                return true;
+            }, DeniedModellerRole);
+
+            Assert.That(connection.LastTargetRoles, Is.EqualTo(new List<string> { Roles.Admin, Roles.Recertifier, Roles.Auditor }));
+            Assert.That(connection.ActiveRole, Is.Empty);
+            Assert.That(connection.SwitchBackCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task RunWithBestRoleForReportUsesAppRulesRoleAndSwitchesBack()
+        {
+            TrackingApiConnection connection = new();
+            ClaimsPrincipal user = CreateUser(Roles.Modeller);
+
+            await connection.RunWithBestRoleForReport(user, ReportType.AppRules, async () =>
+            {
+                Assert.That(connection.ActiveRole, Is.EqualTo(Roles.Modeller));
+                await Task.CompletedTask;
+                return true;
+            });
+
+            Assert.That(connection.LastTargetRoles, Is.EqualTo(AppRulesRoles));
+            Assert.That(connection.ActiveRole, Is.Empty);
+            Assert.That(connection.SwitchBackCount, Is.EqualTo(1));
         }
 
         private static async Task AssertRoleScope(ClaimsPrincipal user,

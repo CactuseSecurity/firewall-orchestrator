@@ -1,0 +1,7 @@
+query getTicketRequesterId($id: bigint!) {
+  request_ticket_by_pk(id: $id) {
+    requester: uiuser {
+      uiuser_id
+    }
+  }
+}

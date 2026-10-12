@@ -1,0 +1,23 @@
+---
+# The second way to arrive at "FWO does not issue this Apache identity". The first is
+# ownership detection concluding the installed pair is customer managed, which rewrites
+# these two paths itself. This one is the operator setting internalca_issue_apache_certificate
+# to false - what both ownership guards in detect-existing-certificates.yml tell them to do
+# when their identity cannot be classified: a passphrase protected key, or a certificate
+# whose key has gone missing. Nothing rewrites the paths on that route, so without this task
+# internalca_apache_certificate keeps its group_vars default and roles/api, roles/middleware,
+# roles/ui and the maintenance vhost all render a path this very run has been told not to
+# create - and Apache refuses to start. Whatever the installed vhost names is by definition
+# the identity the operator maintains, so that is what every FWO vhost has to keep naming.
+#
+# Split out of detect-existing-certificates.yml so the rule can be exercised for each of its
+# three inputs without standing up the whole detection chain, the same way
+# classify-existing-certificate.yml is.
+- name: Use the installed Apache identity when FWO must not issue one
+  set_fact:
+    internalca_apache_certificate: "{{ internalca_existing_apache_certificate }}"
+    internalca_apache_private_key: "{{ internalca_existing_apache_private_key }}"
+  when:
+    - internalca_existing_apache_configuration is defined
+    - not (internalca_issue_apache_certificate | bool)
+    - not (internalca_preserve_apache_certificate | default(false) | bool)

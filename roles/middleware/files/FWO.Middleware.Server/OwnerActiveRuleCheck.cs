@@ -13,14 +13,17 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Fetches owners with a decommission date and sends due decommission notifications for each of them.
         /// </summary>
+        /// <param name="cancellationToken">Stops before the next owner.</param>
         /// <returns>The number of sent notifications.</returns>
-        public async Task<int> CheckActiveRulesByScheduler()
+        public async Task<int> CheckActiveRulesByScheduler(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             int emailsSent = 0;
 
             foreach (FwoOwner owner in owners.Where(o => o.DecommDate != null))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 emailsSent += await CheckActiveRules(owner, NotificationDeadline.DecommissionDate);
             }
 
@@ -56,9 +59,8 @@ namespace FWO.Middleware.Server
                 return 0;
             }
 
-            List<UserGroup> ownerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
             NotificationService notificationService = await NotificationService.CreateAsync(
-                NotificationClient.AppDecomm, GlobalConfig, apiConnection, ownerGroups);
+                NotificationClient.AppDecomm, GlobalConfig, apiConnection);
 
             IOrderedEnumerable<Rule> orderedRules = activeRules.OrderBy(rule => rule.Uid, StringComparer.OrdinalIgnoreCase);
             string textBody = BuildRuleTextBody(owner, GlobalConfig.OwnerActiveRuleEmailBody, "", orderedRules);

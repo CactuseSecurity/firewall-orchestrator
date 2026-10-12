@@ -706,7 +706,7 @@ namespace FWO.Test
                 UserSearchPath = "ou=users,dc=fworch,dc=internal"
             };
             handler.SelectedRole = new Role { Name = "auditor", Dn = "cn=auditor,ou=roles,dc=fworch,dc=internal" };
-            handler.UiUsers = [new UiUser { Dn = "cn=alice,ou=users,dc=fworch,dc=internal" }];
+            handler.UiUsers = [new UiUser { Dn = "cn=alice,ou=users,dc=fworch,dc=internal", LdapConnection = handler.SelectedLdap }];
             handler.ActUser = new UiUser
             {
                 Name = "alice",
@@ -1096,7 +1096,7 @@ namespace FWO.Test
                 Queries.Add((query, variables));
                 object result = query switch
                 {
-                    var value when value == AuthQueries.getLdapConnections => ConnectedLdaps,
+                    var value when value == AuthQueries.getLdapConnectionsWithoutSecrets => ConnectedLdaps,
                     var value when value == AuthQueries.getTenants => Tenants,
                     var value when value == AuthQueries.updateUserEmail => new ReturnId { UpdatedId = GetVariable<int>(variables, "id") },
                     var value when value == AuthQueries.upsertUiUser => new ReturnIdWrapper { ReturnIds = [new ReturnId { NewId = NextNewUserId }] },

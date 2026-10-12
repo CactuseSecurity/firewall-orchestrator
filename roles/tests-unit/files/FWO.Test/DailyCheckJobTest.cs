@@ -1,11 +1,18 @@
+using System.IO;
 using System.Reflection;
+using System.Text.Json;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Jobs;
+using FWO.Services;
+using FWO.Services.Workflow;
 using NUnit.Framework;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {
@@ -13,6 +20,17 @@ namespace FWO.Test
     [Parallelizable]
     internal class DailyCheckJobTest
     {
+        private static readonly string[] ExpectedModUnansweredReqEmailBodyPlaceholders =
+        [
+            Placeholder.REQUESTER,
+            Placeholder.REQUESTDATE,
+            Placeholder.REQUESTING_APPNAME,
+            Placeholder.REQUESTING_APPID,
+            Placeholder.APPNAME,
+            Placeholder.APPID,
+            Placeholder.INTERFACE_LINK
+        ];
+
         private static readonly DailyCheckModule[] ExpectedImportsModules =
         [
             DailyCheckModule.Imports,
@@ -39,7 +57,12 @@ namespace FWO.Test
 
         private static readonly int[] ExpectedSuccessLogSeverities = [1];
         private static readonly int[] ExpectedNoAlertLogSeverities = [0];
-
+        private static readonly (NotificationLogStatus Status, string Error)[] kInactiveOwnerSuppression =
+            [(NotificationLogStatus.Suppressed, "Requested owner is not active.")];
+        private static readonly (NotificationLogStatus Status, string Error)[] kIncompleteRequestSuppression =
+            [(NotificationLogStatus.Suppressed, "Interface request is incomplete.")];
+        private static readonly (NotificationLogStatus Status, string Error)[] kUnresolvedOwnerSuppression =
+            [(NotificationLogStatus.Suppressed, "Requesting owner could not be resolved.")];
         [Test]
         public void LoadEnabledModules_ReturnsAllModules_WhenConfigIsBlank()
         {
@@ -106,6 +129,39 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetInterfaceRequestCutOffPeriod_UsesInitialPlusRepeatTimesRepetitionsPlusOne()
+        {
+            MethodInfo helper = typeof(DailyCheckJob).GetMethod("GetInterfaceRequestCutOffPeriod", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("GetInterfaceRequestCutOffPeriod method not found.");
+
+            object?[] noRepeatsArgs = [new FwoNotification
+            {
+                InitialOffsetAfterDeadline = 3,
+                RepeatOffsetAfterDeadline = 7,
+                RepetitionsAfterDeadline = 0
+            }, SchedulerInterval.Days];
+            int noRepeats = (int)(helper.Invoke(null, noRepeatsArgs) ?? throw new InvalidOperationException("Helper returned null."));
+
+            object?[] oneRepeatArgs = [new FwoNotification
+            {
+                InitialOffsetAfterDeadline = 3,
+                RepeatOffsetAfterDeadline = 7,
+                RepetitionsAfterDeadline = 1
+            }, SchedulerInterval.Days];
+            int oneRepeat = (int)(helper.Invoke(null, oneRepeatArgs) ?? throw new InvalidOperationException("Helper returned null."));
+
+            object?[] nullableArgs = [new FwoNotification(), SchedulerInterval.Days];
+            int nullableValues = (int)(helper.Invoke(null, nullableArgs) ?? throw new InvalidOperationException("Helper returned null."));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(noRepeats, Is.EqualTo(10));
+                Assert.That(oneRepeat, Is.EqualTo(17));
+                Assert.That(nullableValues, Is.Zero);
+            });
+        }
+
+        [Test]
         public async Task Execute_DoesNotRunChecks_WhenNoModulesAreEnabled()
         {
             CountingApiConnection apiConnection = new();
@@ -118,6 +174,19 @@ namespace FWO.Test
             DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
 
             await dailyCheckJob.Execute(null!);
+
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            CountingApiConnection apiConnection = new();
+            DailyCheckJob dailyCheckJob = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await dailyCheckJob.Execute(null!, cancellationTokenSource.Token);
 
             Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
         }
@@ -137,6 +206,84 @@ namespace FWO.Test
             await dailyCheckJob.Execute(null!);
 
             Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task CheckRecerts_DoesNothingWhenDisabled()
+        {
+            CountingApiConnection apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                RecCheckActive = false
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            MethodInfo checkRecerts = typeof(DailyCheckJob).GetMethod("CheckRecerts", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckRecerts method not found.");
+
+            Task task = (Task)(checkRecerts.Invoke(dailyCheckJob, [CancellationToken.None])
+                ?? throw new InvalidOperationException("CheckRecerts returned null task."));
+            await task;
+
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task CheckRecerts_SkipsInactiveOwnersWithoutSendingOrUpdatingNotifications()
+        {
+            RecordingRecertCheckApiConnection apiConnection = new()
+            {
+                Owners =
+                [
+                    new FwoOwner { Id = 1, Name = "Owner A", RecertActive = false }
+                ]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                RecCheckActive = true,
+                RecertificationMode = RecertificationMode.OwnersAndRules,
+                RecCheckParams = JsonSerializer.Serialize(new RecertCheckParams
+                {
+                    RecertCheckInterval = SchedulerInterval.Days,
+                    RecertCheckOffset = 7
+                }),
+                RecCheckEmailSubject = "Recertification check",
+                RecCheckEmailUpcomingText = "upcoming",
+                RecCheckEmailOverdueText = "overdue",
+                DefaultLanguage = GlobalConst.kEnglish,
+                UseDummyEmailAddress = true,
+                DummyEmailAddress = "dummy@example.test"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            MethodInfo checkRecerts = typeof(DailyCheckJob).GetMethod("CheckRecerts", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckRecerts method not found.");
+
+            Task task = (Task)(checkRecerts.Invoke(dailyCheckJob, [CancellationToken.None])
+                ?? throw new InvalidOperationException("CheckRecerts returned null task."));
+            await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.CountQuery(OwnerQueries.getOwners), Is.EqualTo(1));
+                Assert.That(apiConnection.CountQuery(NotificationQueries.getNotifications), Is.EqualTo(1));
+                Assert.That(apiConnection.CountQuery(NotificationQueries.updateNotificationsLastSent), Is.Zero);
+                Assert.That(apiConnection.CountQuery(MonitorQueries.addLogEntry), Is.EqualTo(1));
+            });
+        }
+
+        private static TestableLdap CreateInternalTestLdap()
+        {
+            RecordingLdapClient client = new()
+            {
+                SearchResults = LdapTestSupport.CreateSearchResults()
+            };
+
+            return new TestableLdap(client)
+            {
+                TenantLevel = 1,
+                UserSearchPath = "ou=users,dc=fworch,dc=internal",
+                GroupSearchPath = "ou=groups,dc=fworch,dc=internal",
+                Active = true
+            };
         }
 
         [Test]
@@ -190,7 +337,9 @@ namespace FWO.Test
             await dailyCheckJob.Execute(null!);
 
             Assert.That(apiConnection.AlertCodes, Is.EquivalentTo(ExpectedEnabledCheckAlertCodes));
-            Assert.That(apiConnection.LogSeverities, Is.EqualTo([1, 1]));
+            Assert.That(apiConnection.LogSeverities, Has.Count.EqualTo(2));
+            Assert.That(apiConnection.LogSeverities[0], Is.EqualTo(1));
+            Assert.That(apiConnection.LogSeverities[1], Is.EqualTo(1));
         }
 
         [Test]
@@ -243,6 +392,253 @@ namespace FWO.Test
             Assert.That(apiConnection.OwnerLookupCount, Is.EqualTo(1));
             Assert.That(apiConnection.LogEntryCount, Is.EqualTo(1));
             Assert.That(apiConnection.AlertCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_LogsWarningAndSkipsTicketWithoutOwner()
+        {
+            DailyCheckInterfaceRequestsApiConnection apiConnection = new()
+            {
+                LdapConnections =
+                [
+                    CreateInternalTestLdap()
+                ],
+                Notifications =
+                [
+                    CreateInterfaceRequestNotification(11)
+                ],
+                OpenTickets =
+                [
+                    CreateInterfaceRequestTicket(501, null)
+                ]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UseDummyEmailAddress = true,
+                DummyEmailAddress = "dummy@example.test"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                await InvokeCheckUnansweredInterfaceRequests(dailyCheckJob);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(apiConnection.LdapQueryCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_SuppressesInactiveOwner()
+        {
+            DailyCheckInterfaceRequestsApiConnection apiConnection = CreateInterfaceRequestCheckConnection(
+                CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Inactive owner", Active = false },
+                    DateTime.Now));
+            await InvokeCheckUnansweredInterfaceRequests(apiConnection);
+
+            Assert.That(apiConnection.NotificationLogUpdates,
+                Is.EqualTo(kInactiveOwnerSuppression));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_SuppressesIncompleteRequest()
+        {
+            FwoOwner owner = new() { Id = 7, Name = "Owner A", ExtAppId = "APP-7" };
+            WfTicket ticket = CreateInterfaceRequestTicket(501, owner, DateTime.Now);
+            ticket.Tasks[0].AdditionalInfo = null;
+            DailyCheckInterfaceRequestsApiConnection apiConnection = CreateInterfaceRequestCheckConnection(ticket);
+            await InvokeCheckUnansweredInterfaceRequests(apiConnection);
+
+            Assert.That(apiConnection.NotificationLogUpdates,
+                Is.EqualTo(kIncompleteRequestSuppression));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_SuppressesWhenRequestingOwnerCannotBeResolved()
+        {
+            DailyCheckInterfaceRequestsApiConnection apiConnection = CreateInterfaceRequestCheckConnection(
+                CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Owner A", ExtAppId = "APP-7" },
+                    DateTime.Now));
+            apiConnection.ReturnNullRequestingOwner = true;
+            await InvokeCheckUnansweredInterfaceRequests(apiConnection);
+
+            Assert.That(apiConnection.NotificationLogUpdates,
+                Is.EqualTo(kUnresolvedOwnerSuppression));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_SkipsNotificationThatIsNotDue()
+        {
+            DailyCheckInterfaceRequestsApiConnection apiConnection = CreateInterfaceRequestCheckConnection(
+                CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Inactive owner", Active = false },
+                    DateTime.Now.AddDays(1)));
+            await InvokeCheckUnansweredInterfaceRequests(apiConnection);
+
+            Assert.That(apiConnection.NotificationLogUpdates, Is.Empty);
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_UpdatesLastSentForLogOnlyNotification()
+        {
+            DailyCheckInterfaceRequestsApiConnection apiConnection = new()
+            {
+                LdapConnections =
+                [
+                    CreateInternalTestLdap()
+                ],
+                Notifications =
+                [
+                    CreateInterfaceRequestNotification(11)
+                ],
+                OpenTickets =
+                [
+                    CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Owner A", ExtAppId = "APP-7" }, DateTime.Now.AddDays(-1))
+                ]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UseDummyEmailAddress = true,
+                DummyEmailAddress = "dummy@example.test"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                await InvokeCheckUnansweredInterfaceRequests(dailyCheckJob);
+                List<long> expectedUpdatedNotificationIds = [11];
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(apiConnection.LdapQueryCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(expectedUpdatedNotificationIds));
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_IgnoresImmediateRequestNotification()
+        {
+            FwoNotification immediateNotification = CreateInterfaceRequestNotification(10);
+            immediateNotification.Deadline = NotificationDeadline.None;
+            DailyCheckInterfaceRequestsApiConnection apiConnection = new()
+            {
+                LdapConnections =
+                [
+                    CreateInternalTestLdap()
+                ],
+                Notifications =
+                [
+                    immediateNotification,
+                    CreateInterfaceRequestNotification(11)
+                ],
+                OpenTickets =
+                [
+                    CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Owner A", ExtAppId = "APP-7" }, DateTime.Now.AddDays(-1))
+                ]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UseDummyEmailAddress = true,
+                DummyEmailAddress = "dummy@example.test"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                await InvokeCheckUnansweredInterfaceRequests(dailyCheckJob);
+                List<long> expectedUpdatedNotificationIds = [11];
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(expectedUpdatedNotificationIds));
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_LogsWarningWhenRecipientsCannotBeResolved()
+        {
+            DailyCheckInterfaceRequestsApiConnection apiConnection = new()
+            {
+                LdapConnections =
+                [
+                    CreateInternalTestLdap()
+                ],
+                Notifications =
+                [
+                    CreateInterfaceRequestNotificationWithoutRecipients(11)
+                ],
+                OpenTickets =
+                [
+                    CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Owner A", ExtAppId = "APP-7" }, DateTime.Now.AddDays(-1))
+                ]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UseDummyEmailAddress = false,
+                DummyEmailAddress = "dummy@example.test"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                string output = await ConsoleOutput.CaptureAsync(async () =>
+                {
+                    await InvokeCheckUnansweredInterfaceRequests(dailyCheckJob);
+                });
+                List<long> expectedUpdatedNotificationIds = [11];
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(apiConnection.LdapQueryCount, Is.EqualTo(1));
+                    Assert.That(output, Does.Contain("No recipients resolved for configured responsibles while preparing notification client InterfaceRequest."));
+                    Assert.That(output, Does.Contain("Reminder notification 11 was due for unanswered interface request ticket 501, but no email was sent. Check recipient resolution and due settings."));
+                    Assert.That(output, Does.Contain("Unanswered Interface Requests Check: Sent 0 emails."));
+                    Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(expectedUpdatedNotificationIds));
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
         }
 
         [Test]
@@ -305,7 +701,7 @@ namespace FWO.Test
             string link = (string)(constructLink.Invoke(dailyCheckJob, [owner, reqTask])
                 ?? throw new InvalidOperationException("ConstructLink returned null."));
 
-            Assert.That(link, Is.EqualTo($"<a target=\"_blank\" href=\"https://fwo.example/{PageName.Modelling}/APP-42/123\">Interface Request</a>"));
+            Assert.That(link, Is.EqualTo($"https://fwo.example/{PageName.Modelling}/APP-42/123"));
         }
 
         [Test]
@@ -323,11 +719,11 @@ namespace FWO.Test
             string link = (string)(constructLink.Invoke(dailyCheckJob, [owner, null])
                 ?? throw new InvalidOperationException("ConstructLink returned null."));
 
-            Assert.That(link, Is.EqualTo($"<a target=\"_blank\" href=\"https://fwo.example/{PageName.Modelling}/APP-42/\">Interface</a>"));
+            Assert.That(link, Is.EqualTo($"https://fwo.example/{PageName.Modelling}/APP-42/"));
         }
 
         [Test]
-        public async Task PrepareBody_ReplacesAllKnownPlaceholders()
+        public async Task BuildRequestPlaceholderValues_ReplacesAllKnownPlaceholders()
         {
             OwnerLookupApiConnection apiConnection = new()
             {
@@ -336,20 +732,11 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new()
             {
                 UiHostName = "https://fwo.example",
-                ModUnansweredReqEmailBody = string.Join("|", new[]
-                {
-                    Placeholder.REQUESTER,
-                    Placeholder.REQUESTDATE,
-                    Placeholder.REQUESTING_APPNAME,
-                    Placeholder.REQUESTING_APPID,
-                    Placeholder.APPNAME,
-                    Placeholder.APPID,
-                    Placeholder.INTERFACE_LINK
-                })
+                ModReqInterfaceName = "Interface"
             };
             DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
-            MethodInfo prepareBody = typeof(DailyCheckJob).GetMethod("PrepareBody", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("PrepareBody method not found.");
+            MethodInfo buildPlaceholderValues = typeof(DailyCheckJob).GetMethod("BuildRequestPlaceholderValues", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("BuildRequestPlaceholderValues method not found.");
             WfReqTask reqTask = new()
             {
                 Title = "Interface Request",
@@ -365,12 +752,58 @@ namespace FWO.Test
             };
             FwoOwner owner = new() { Name = "Owner A", ExtAppId = "APP-42" };
 
-            Task<string> task = (Task<string>)(prepareBody.Invoke(dailyCheckJob, [ticket, owner])
-                ?? throw new InvalidOperationException("PrepareBody returned null task."));
-            string body = await task;
+            NotificationPlaceholderResolver.NotificationPlaceholderValues values = (NotificationPlaceholderResolver.NotificationPlaceholderValues)
+                (await (Task<NotificationPlaceholderResolver.NotificationPlaceholderValues>)(buildPlaceholderValues.Invoke(dailyCheckJob, [ticket, owner])
+                    ?? throw new InvalidOperationException("BuildRequestPlaceholderValues returned null task.")));
+            string body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
+                string.Join("|", ExpectedModUnansweredReqEmailBodyPlaceholders), values, renderHtmlLinks: true);
 
             Assert.That(body, Is.EqualTo(
-                $"Requester A|02.01.2025|Requesting App|REQ-7|Owner A|APP-42|<a target=\"_blank\" href=\"https://fwo.example/{PageName.Modelling}/APP-42/123\">Interface Request</a>"));
+                $"Requester A|02.01.2025|Requesting App|REQ-7|Owner A|APP-42|<a target=\"_blank\" href=\"https://fwo.example/{PageName.Modelling}/APP-42/123\">Request Interface</a>"));
+        }
+
+        [Test]
+        public async Task BuildRequestPlaceholderValues_UsesFallbackValuesWhenRequestContextIsIncomplete()
+        {
+            OwnerLookupApiConnection apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UiHostName = "https://fwo.example",
+                ModReqInterfaceName = "Interface"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            MethodInfo buildPlaceholderValues = typeof(DailyCheckJob).GetMethod("BuildRequestPlaceholderValues", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("BuildRequestPlaceholderValues method not found.");
+            WfReqTask reqTask = new()
+            {
+                Title = "Interface Request",
+                TaskType = WfTaskType.new_interface.ToString()
+            };
+            reqTask.SetAddInfo(AdditionalInfoKeys.ConnId, "123");
+            WfTicket ticket = new()
+            {
+                CreationDate = new DateTime(2025, 1, 2),
+                Requester = new UiUser { Name = "Requester A", Dn = "cn=requester,dc=test" },
+                Tasks = new List<WfReqTask> { reqTask }
+            };
+            FwoOwner owner = new() { Name = "Owner A", ExtAppId = "APP-42" };
+            NotificationPlaceholderResolver.NotificationPlaceholderValues values = (NotificationPlaceholderResolver.NotificationPlaceholderValues)
+                (await (Task<NotificationPlaceholderResolver.NotificationPlaceholderValues>)(buildPlaceholderValues.Invoke(dailyCheckJob, [ticket, owner])
+                    ?? throw new InvalidOperationException("BuildRequestPlaceholderValues returned null task.")));
+            string body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
+                string.Join("|", new List<string>
+                {
+                    Placeholder.REQUESTER,
+                    Placeholder.INTERFACE_NAME,
+                    Placeholder.REQUESTING_APPNAME,
+                    Placeholder.REQUESTING_APPID,
+                    Placeholder.USER_NAME,
+                    Placeholder.REQUESTDATE,
+                    Placeholder.INTERFACE_LINK
+                }), values, renderHtmlLinks: true);
+
+            Assert.That(body, Is.EqualTo(
+                $"Requester A|Interface Request|||Requester A|02.01.2025|<a target=\"_blank\" href=\"https://fwo.example/{PageName.Modelling}/APP-42/123\">Request Interface</a>"));
         }
 
         [Test]
@@ -439,6 +872,107 @@ namespace FWO.Test
                 ?? throw new InvalidOperationException("LoadEnabledModules returned null."));
         }
 
+        private static Task InvokeCheckUnansweredInterfaceRequests(DailyCheckJob dailyCheckJob)
+        {
+            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequestsCore", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequestsCore method not found.");
+
+            return (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, [CancellationToken.None])
+                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequestsCore returned null task."));
+        }
+
+        private static DailyCheckInterfaceRequestsApiConnection CreateInterfaceRequestCheckConnection(WfTicket ticket)
+        {
+            return new DailyCheckInterfaceRequestsApiConnection
+            {
+                LdapConnections = [CreateInternalTestLdap()],
+                Notifications = [CreateInterfaceRequestNotification(11)],
+                OpenTickets = [ticket]
+            };
+        }
+
+        private static async Task InvokeCheckUnansweredInterfaceRequests(DailyCheckInterfaceRequestsApiConnection apiConnection)
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UseDummyEmailAddress = true,
+                DummyEmailAddress = "dummy@example.test"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                await InvokeCheckUnansweredInterfaceRequests(dailyCheckJob);
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        private static FwoNotification CreateInterfaceRequestNotification(int id, string logging = NotificationLoggingMode.LogOnly)
+        {
+            return new FwoNotification
+            {
+                Id = id,
+                NotificationClient = NotificationClient.InterfaceRequest,
+                Logging = logging,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "notify@example.test",
+                EmailSubject = "subject",
+                EmailBody = "body",
+                Deadline = NotificationDeadline.RequestDate,
+                OffsetBeforeDeadline = 0,
+                RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+                InitialOffsetAfterDeadline = 0,
+                RepeatOffsetAfterDeadline = 1,
+                RepetitionsAfterDeadline = 3
+            };
+        }
+
+        private static WfTicket CreateInterfaceRequestTicket(long ticketId, FwoOwner? owner, DateTime? creationDate = null)
+        {
+            WfReqTask reqTask = new()
+            {
+                Id = ticketId + 1,
+                TaskType = WfTaskType.new_interface.ToString(),
+                Title = "Interface request"
+            };
+            if (owner != null)
+            {
+                reqTask.Owners = [new FwoOwnerDataHelper { Owner = owner }];
+                reqTask.SetAddInfo(AdditionalInfoKeys.ReqOwner, owner.Id.ToString());
+            }
+
+            return new WfTicket
+            {
+                Id = ticketId,
+                CreationDate = creationDate ?? DateTime.Now.AddDays(-7),
+                Requester = new UiUser { Name = "Requester A" },
+                Tasks = [reqTask]
+            };
+        }
+
+        private static FwoNotification CreateInterfaceRequestNotificationWithoutRecipients(int id)
+        {
+            return new FwoNotification
+            {
+                Id = id,
+                NotificationClient = NotificationClient.InterfaceRequest,
+                RecipientTo = EmailRecipientOption.ConfiguredResponsibles,
+                EmailAddressTo = "",
+                EmailSubject = "subject",
+                EmailBody = "body",
+                Deadline = NotificationDeadline.RequestDate,
+                RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+                InitialOffsetAfterDeadline = 0,
+                RepeatOffsetAfterDeadline = 1,
+                RepetitionsAfterDeadline = 3
+            };
+        }
+
         private sealed class CountingApiConnection : SimulatedApiConnection
         {
             public int QueryCount { get; private set; }
@@ -447,6 +981,208 @@ namespace FWO.Test
             {
                 QueryCount++;
                 throw new InvalidOperationException("No query should be executed in this test.");
+            }
+        }
+
+        private sealed class TestGlobalStateMatrix : GlobalStateMatrix
+        {
+            public override async Task Init(ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master)
+            {
+                await Task.CompletedTask;
+                Dictionary<WorkflowPhases, StateMatrix> matrices = [];
+                foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
+                {
+                    matrices[phase] = new StateMatrix
+                    {
+                        Active = true,
+                        LowestInputState = 1,
+                        LowestEndState = 10
+                    };
+                }
+                GlobalMatrix = matrices;
+            }
+        }
+
+        private sealed class DailyCheckInterfaceRequestsApiConnection : SimulatedApiConnection
+        {
+            public List<FWO.Middleware.Server.Ldap> LdapConnections { get; set; } = [];
+            public List<FwoNotification> Notifications { get; set; } = [];
+            public List<WfTicket> OpenTickets { get; set; } = [];
+            public int LdapQueryCount { get; private set; }
+            public int NotificationLoadCount { get; private set; }
+            public int OpenTicketQueryCount { get; private set; }
+            public List<long> UpdatedNotificationIds { get; private set; } = [];
+            public List<(NotificationLogStatus Status, string Error)> NotificationLogUpdates { get; } = [];
+            public bool ReturnNullRequestingOwner { get; set; }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<FWO.Middleware.Server.Ldap>))
+                {
+                    LdapQueryCount++;
+                    return Task.FromResult((QueryResponseType)(object)LdapConnections);
+                }
+
+                if (query == AuthQueries.getUserEmails && typeof(QueryResponseType) == typeof(List<UiUser>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<UiUser>());
+                }
+
+                if (query == ConfigQueries.getCustomTextsPerLanguage && typeof(QueryResponseType) == typeof(List<UiText>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<UiText>());
+                }
+
+                if (query == OwnerQueries.getOwnerResponsibleTypes && typeof(QueryResponseType) == typeof(List<OwnerResponsibleType>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<OwnerResponsibleType>());
+                }
+
+                if (query == ConfigQueries.getConfigItemsByUser && typeof(QueryResponseType) == typeof(ConfigItem[]))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Array.Empty<ConfigItem>());
+                }
+
+                if (query == RequestQueries.getStates && typeof(QueryResponseType) == typeof(List<WfState>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<WfState>());
+                }
+
+                if (query == DeviceQueries.getDeviceDetails && typeof(QueryResponseType) == typeof(List<Device>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<Device>());
+                }
+
+                if (query == OwnerQueries.getOwners && typeof(QueryResponseType) == typeof(List<FwoOwner>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<FwoOwner>());
+                }
+
+                if (query == NotificationQueries.getNotifications && typeof(QueryResponseType) == typeof(List<FwoNotification>))
+                {
+                    NotificationLoadCount++;
+                    return Task.FromResult((QueryResponseType)(object)Notifications);
+                }
+
+                if (query == RequestQueries.getTicketsByParameters && typeof(QueryResponseType) == typeof(List<WfTicket>))
+                {
+                    OpenTicketQueryCount++;
+                    return Task.FromResult((QueryResponseType)(object)OpenTickets);
+                }
+
+                if (query == OwnerQueries.getOwnerById && typeof(QueryResponseType) == typeof(FwoOwner))
+                {
+                    int ownerId = variables?.GetType().GetProperty("id")?.GetValue(variables) is int id ? id : 0;
+                    if (ReturnNullRequestingOwner)
+                    {
+                        return Task.FromResult(default(QueryResponseType)!);
+                    }
+                    return Task.FromResult((QueryResponseType)(object)new FwoOwner { Id = ownerId, Name = "Requesting owner" });
+                }
+
+                if (query == NotificationQueries.insertNotificationLog && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = 1 }]
+                    });
+                }
+
+                if (query == NotificationQueries.updateNotificationLog && typeof(QueryResponseType) == typeof(ReturnId))
+                {
+                    string status = variables?.GetType().GetProperty("status")?.GetValue(variables)?.ToString() ?? "";
+                    string error = variables?.GetType().GetProperty("error")?.GetValue(variables)?.ToString() ?? "";
+                    NotificationLogUpdates.Add((Enum.Parse<NotificationLogStatus>(status), error));
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
+                }
+
+                if (query == NotificationQueries.updateNotificationsLastSent && typeof(QueryResponseType) == typeof(ReturnId))
+                {
+                    object vars = variables ?? throw new InvalidOperationException("Update notification variables missing.");
+                    IEnumerable<int> ids = (IEnumerable<int>?)vars.GetType().GetProperty("ids")?.GetValue(vars) ?? [];
+                    UpdatedNotificationIds = [.. ids.Select(id => (long)id)];
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = UpdatedNotificationIds.Count });
+                }
+
+                if (query == MonitorQueries.getOpenAlerts && typeof(QueryResponseType) == typeof(List<Alert>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<Alert>());
+                }
+
+                throw new InvalidOperationException($"Unexpected query: {query}");
+            }
+        }
+
+        private sealed class RecordingRecertCheckApiConnection : SimulatedApiConnection
+        {
+            public List<(string Query, object? Variables)> Queries { get; } = [];
+            public List<FWO.Middleware.Server.Ldap> Ldaps { get; set; } = [];
+            public List<UiUser> Users { get; set; } = [];
+            public List<FwoOwner> Owners { get; set; } = [];
+
+            public int CountQuery(string query)
+            {
+                return Queries.Count(item => item.Query == query);
+            }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                Queries.Add((query, variables));
+
+                if (query == ConfigQueries.getCustomTextsPerLanguage && typeof(QueryResponseType) == typeof(List<UiText>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<UiText>());
+                }
+
+                if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<FWO.Middleware.Server.Ldap>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Ldaps);
+                }
+
+                if (query == AuthQueries.getUsers && typeof(QueryResponseType) == typeof(List<UiUser>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Users);
+                }
+
+                if (query == OwnerQueries.getOwners && typeof(QueryResponseType) == typeof(List<FwoOwner>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Owners);
+                }
+
+                if (query == MonitorQueries.getOpenAlerts && typeof(QueryResponseType) == typeof(List<Alert>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<Alert>());
+                }
+
+                if (query == MonitorQueries.addLogEntry && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = new ReturnId[] { new ReturnId { NewIdLong = 1 } }
+                    });
+                }
+
+                if (query == NotificationQueries.getNotifications && typeof(QueryResponseType) == typeof(List<FwoNotification>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<FwoNotification>());
+                }
+
+                if (query == NotificationQueries.updateNotificationsLastSent && typeof(QueryResponseType) == typeof(ReturnId))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 0 });
+                }
+
+                if (query == ConfigQueries.getConfigItemsByUser && typeof(QueryResponseType) == typeof(ConfigItem[]))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Array.Empty<ConfigItem>());
+                }
+
+                if (query == DeviceQueries.getDevicesByManagement && typeof(QueryResponseType) == typeof(List<ManagementSelect>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<ManagementSelect>());
+                }
+
+                throw new InvalidOperationException($"Unexpected query: {query}");
             }
         }
 

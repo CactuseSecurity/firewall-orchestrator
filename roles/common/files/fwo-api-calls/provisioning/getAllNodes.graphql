@@ -1,0 +1,16 @@
+query getAllNodes {
+  provisioning_config_node(
+    order_by: [
+      {sort_order: asc_nulls_last}
+      {display_name: asc}
+      {id: asc}
+    ]
+  ) {
+    id
+    node_type
+    object_key
+    parent_id
+    display_name
+    sort_order
+  }
+}

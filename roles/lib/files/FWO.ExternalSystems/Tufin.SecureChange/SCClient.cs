@@ -10,7 +10,12 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
     {
         readonly ExternalTicketSystem TicketSystem;
 
-        public SCClient(ExternalTicketSystem ticketSystem) : base(ticketSystem.Url, ticketSystem.ResponseTimeout)
+        /// <summary>
+        /// Creates a client for the SecureChange API of the given ticket system.
+        /// </summary>
+        /// <param name="ticketSystem">The ticket system to connect to.</param>
+        /// <param name="checkCertificates">Whether the server certificate is checked (global setting for ticket systems).</param>
+        public SCClient(ExternalTicketSystem ticketSystem, bool checkCertificates) : base(ticketSystem.Url, ticketSystem.ResponseTimeout, checkCertificates: checkCertificates)
         {
             TicketSystem = ticketSystem;
         }

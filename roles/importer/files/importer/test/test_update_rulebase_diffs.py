@@ -237,4 +237,5 @@ class TestFwconfigImportRuleUpdateRulebaseDiffOldMigration:
         assert import_state_controller.state.stats.statistics.rule_add_count == 1
         assert import_state_controller.state.stats.statistics.rule_delete_count == 1
         assert import_state_controller.state.stats.statistics.rule_change_count == 1
+        assert import_state_controller.state.stats.statistics.rule_change_count_security_relevant == 1
         assert import_state_controller.state.stats.statistics.rule_move_count == 1

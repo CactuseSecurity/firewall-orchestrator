@@ -128,6 +128,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void NetworkObject_NullAddressFields_AreDeserialized()
+        {
+            const string serializedNetworkObject = """
+                {
+                    "obj_id": 4001,
+                    "obj_ip": null,
+                    "obj_ip_end": null
+                }
+                """;
+
+            NetworkObject? networkObject = JsonConvert.DeserializeObject<NetworkObject>(serializedNetworkObject);
+
+            Assert.That(networkObject, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(networkObject!.IP, Is.Null);
+                Assert.That(networkObject.IpEnd, Is.Null);
+            });
+        }
+
+        [Test]
         public void WorkflowRequestFlowLinkFields_AreDeserialized()
         {
             const string serialized = """
@@ -155,6 +176,44 @@ namespace FWO.Test
             Assert.That(reqTask.Elements[0].FlowNetworkGroupId, Is.EqualTo(7003));
             Assert.That(reqTask.Elements[0].FlowServiceObjectId, Is.EqualTo(7004));
             Assert.That(reqTask.Elements[0].FlowServiceGroupId, Is.EqualTo(7005));
+        }
+
+        [Test]
+        public void NormalizedRule_FromRule_PreservesNatAndTranslationFlags()
+        {
+            Rule rule = new()
+            {
+                NatRule = true,
+                AccessRule = false,
+                XlateRule = 1366,
+                TranslatedRule = new Rule { Uid = "translated-rule" },
+                OrderNumber = 7,
+                Disabled = false,
+                SourceNegated = false,
+                Source = "any",
+                SourceRefs = "",
+                DestinationNegated = false,
+                Destination = "any",
+                DestinationRefs = "",
+                ServiceNegated = false,
+                Service = "any",
+                ServiceRefs = "",
+                Action = "accept",
+                Track = "none",
+                Implied = false,
+                Metadata = new RuleMetadata()
+            };
+
+            NormalizedRule normalizedRule = NormalizedRule.FromRule(rule);
+
+            Assert.That(normalizedRule.NatRule, Is.True);
+            Assert.That(normalizedRule.AccessRule, Is.False);
+            Assert.That(normalizedRule.XlateRule, Is.EqualTo("translated-rule"));
+
+            string serialized = JsonConvert.SerializeObject(normalizedRule);
+            Assert.That(serialized, Does.Contain("\"nat_rule\":true"));
+            Assert.That(serialized, Does.Contain("\"access_rule\":false"));
+            Assert.That(serialized, Does.Contain("\"xlate_rule_uid\":\"translated-rule\""));
         }
     }
 }

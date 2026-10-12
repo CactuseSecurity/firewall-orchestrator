@@ -4,7 +4,7 @@
 
 @page "/monitoring"
 @page "/monitoring/system_usage"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject UserConfig userConfig
 @inject ISystemUsageSnapshotProvider systemUsageProvider
@@ -21,7 +21,7 @@
 @(userConfig.GetText("U7001"))
 <hr />
 
-<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
+<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
     <div class="input-group">
         <h5>@(userConfig.GetText("system_usage"))</h5>
         <HelpLink Page="monitoring/system_usage" />
@@ -272,6 +272,7 @@
                 </div>
             </div>
         </div>
+        }
 
         <div class="row">
             <div class="col-12 mb-3">
@@ -464,7 +465,6 @@
                 </div>
             </div>
         </div>
-    }
 </ExecutionModeAuthorizeView>
 
 @code
@@ -524,7 +524,7 @@ MiddlewareHistoryTimes[0].ToLocalTime().ToString("T") : "";
     private string MiddlewareHistoryEndTime => MiddlewareHistoryTimes.Count > 0 ?
 MiddlewareHistoryTimes[^1].ToLocalTime().ToString("T") : "";
 
-    private bool CanViewUsage => userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor);
+    private bool CanViewUsage => userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor);
 
     private bool LocalUsageHealthy => Usage.CollectedAt != DateTime.MinValue && Usage.SourceAvailable;
 

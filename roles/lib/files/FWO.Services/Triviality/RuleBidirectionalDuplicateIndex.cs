@@ -7,6 +7,7 @@ namespace FWO.Services.Triviality
 {
     /// <summary>
     /// Builds a reusable lookup for detecting reverse-direction duplicate rules within one specific rule list.
+    /// Only network source and destination are reversed; service ports retain their direction.
     /// Create a new instance whenever the caller receives a new list snapshot.
     /// </summary>
     public sealed class RuleBidirectionalDuplicateIndex
@@ -21,8 +22,7 @@ namespace FWO.Services.Triviality
                     rule.MgmtId,
                     rule.Froms.Select(source => source.Object),
                     rule.Tos.Select(destination => destination.Object),
-                    rule.Services.Select(service => service.Content),
-                    reverseServices: false);
+                    rule.Services.Select(service => service.Content));
                 if (!_ruleKeysBySignature.TryGetValue(signature, out List<string>? ruleKeys))
                 {
                     ruleKeys = [];
@@ -44,8 +44,7 @@ namespace FWO.Services.Triviality
                 rule.MgmtId,
                 rule.Tos.Select(destination => destination.Object),
                 rule.Froms.Select(source => source.Object),
-                rule.Services.Select(service => service.Content),
-                reverseServices: true);
+                rule.Services.Select(service => service.Content));
             if (!_ruleKeysBySignature.TryGetValue(reverseSignature, out List<string>? matchingRuleKeys))
             {
                 return false;
@@ -61,13 +60,13 @@ namespace FWO.Services.Triviality
             return rule is { Disabled: false, Action: RuleActions.Accept };
         }
 
-        private static RuleDirectionSignature CreateSignature(int managementId, IEnumerable<NetworkObject> from, IEnumerable<NetworkObject> to, IEnumerable<NetworkService> services, bool reverseServices)
+        private static RuleDirectionSignature CreateSignature(int managementId, IEnumerable<NetworkObject> from, IEnumerable<NetworkObject> to, IEnumerable<NetworkService> services)
         {
             return new(
                 managementId,
                 CreateNetworkObjectSetSignature(from),
                 CreateNetworkObjectSetSignature(to),
-                CreateServiceSetSignature(services, reverseServices));
+                CreateServiceSetSignature(services));
         }
 
         private static ImmutableArray<NetworkObjectSignature> CreateNetworkObjectSetSignature(IEnumerable<NetworkObject> objects)
@@ -80,11 +79,11 @@ namespace FWO.Services.Triviality
                     .ThenBy(signature => signature.EndIp, StringComparer.Ordinal)];
         }
 
-        private static ImmutableArray<ServiceSignature> CreateServiceSetSignature(IEnumerable<NetworkService> services, bool reverseServices)
+        private static ImmutableArray<ServiceSignature> CreateServiceSetSignature(IEnumerable<NetworkService> services)
         {
             return [..
                 NetworkService.FlattenRuleServices(services)
-                    .Select(service => CreateServiceSignature(service, reverseServices))
+                    .Select(CreateServiceSignature)
                     .Distinct()
                     .OrderBy(signature => signature.ProtocolId ?? -1)
                     .ThenBy(signature => signature.SourcePortStart)
@@ -93,21 +92,16 @@ namespace FWO.Services.Triviality
                     .ThenBy(signature => signature.DestinationPortEnd)];
         }
 
-        private static ServiceSignature CreateServiceSignature(NetworkService service, bool reverseServices)
+        private static ServiceSignature CreateServiceSignature(NetworkService service)
         {
-            int? protocolId = service.Protocol?.Id ?? service.ProtoId;
-            int sourcePortStart = reverseServices ? service.DestinationPort ?? 0 : service.SourcePort ?? 0;
-            int sourcePortEnd = reverseServices ? service.DestinationPortEnd ?? service.DestinationPort ?? 0 : service.SourcePortEnd ?? service.SourcePort ?? 0;
-            int destinationPortStart = reverseServices ? service.SourcePort ?? 0 : service.DestinationPort ?? 0;
-            int destinationPortEnd = reverseServices ? service.SourcePortEnd ?? service.SourcePort ?? 0 : service.DestinationPortEnd ?? service.DestinationPort ?? 0;
-
-            if (protocolId.HasValue)
-            {
-                return new(protocolId.Value, sourcePortStart, sourcePortEnd, destinationPortStart, destinationPortEnd);
-            }
-
-            return new(null, sourcePortStart, sourcePortEnd, destinationPortStart, destinationPortEnd);
+            return new(
+                service.Protocol?.Id ?? service.ProtoId,
+                service.SourcePort ?? 0,
+                service.SourcePortEnd ?? service.SourcePort ?? 0,
+                service.DestinationPort ?? 0,
+                service.DestinationPortEnd ?? service.DestinationPort ?? 0);
         }
+
         private static string CreateRuleKey(Rule rule)
         {
             if (!string.IsNullOrWhiteSpace(rule.Uid))

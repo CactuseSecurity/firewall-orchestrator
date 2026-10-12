@@ -2,6 +2,7 @@ using BlazorTable;
 using FWO.Api.Client;
 using FWO.Config.Api;
 using FWO.Config.File;
+using FWO.Compliance;
 using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Client;
@@ -9,6 +10,7 @@ using FWO.Services;
 using FWO.Services.EventMediator;
 using FWO.Services.EventMediator.Interfaces;
 using FWO.Services.RuleTreeBuilder;
+using FWO.Services.Workflow;
 using FWO.Services.SystemUsage;
 using FWO.Ui.Auth;
 using FWO.Ui.Services;
@@ -53,6 +55,7 @@ builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 builder.Services.AddScoped<KeyboardInputService, KeyboardInputService>();
 builder.Services.AddScoped<IEventMediator, EventMediator>();
 builder.Services.AddScoped<IRuleTreeBuilder>(_ => new RuleTreeBuilder());
+builder.Services.AddSingleton<IRequestedRulePolicyCheckerFactory, ComplianceRequestedRulePolicyCheckerFactory>();
 
 string ApiUri = ConfigFile.ApiServerUri;
 string MiddlewareUri = ConfigFile.MiddlewareServerUri;
@@ -65,6 +68,7 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<ITokenRefreshCoordinator, TokenRefreshCoordinator>();
 builder.Services.AddSingleton<IPeriodicTaskRunnerFactory, PeriodicTaskRunnerFactory>();
 builder.Services.AddScoped<ExecutionModeStorage>();
+builder.Services.AddSingleton<IInternalCaCertificateProvider, InternalCaCertificateProvider>();
 
 // system usage monitoring: track the open circuits and sample the resource usage of this UI server
 builder.Services.AddSingleton<UiSessionTracker>();

@@ -129,7 +129,11 @@
             }
             @if (reportTypeInEdit == ReportType.OwnerRecertification)
             {
-                <ReportOwnerRecertParamSelection @bind-ModellingFilter="reportTemplateInEdit.ReportParams.ModellingFilter" UseLightText="false" UseFormLayout="true" />
+                <ReportOwnerRecertParamSelection @bind-ModellingFilter="reportTemplateInEdit.ReportParams.ModellingFilter"
+                                                  AvailableAddInfoNames="availableAddInfoNames"
+                                                  IdPrefix="templateOwnerAddInfo"
+                                                  UseLightText="false"
+                                                  UseFormLayout="true" />
                 <ReportRecertParamSelection @bind-FilterInput="reportTemplateInEdit.Filter"
                                             @bind-RecertFilter="reportTemplateInEdit.ReportParams.RecertFilter"
                                             ReportType="reportTypeInEdit"
@@ -172,7 +176,7 @@
             }
             @if (reportTypeInEdit.IsWorkflowReport())
             {
-                <ReportWorkflowParamSelection @bind-WorkflowFilter="reportTemplateInEdit.ReportParams.WorkflowFilter" SelectedReportType="reportTypeInEdit" UseLightText="false" UseFormLayout="true" />
+                <ReportWorkflowParamSelection @bind-WorkflowFilter="reportTemplateInEdit.ReportParams.WorkflowFilter" SelectedReportType="reportTypeInEdit" UseLightText="false" UseFormLayout="true" IdPrefix="templateWorkflowAddInfo" />
             }
 
             @if (reportTemplateInEdit.ReportParams.TenantFilter.IsActive)
@@ -196,9 +200,9 @@
             @if (reportTypeInEdit.IsDeviceRelatedReport() && (ReportType)reportTypeInEdit != ReportType.RecertEventReport)
             {
                 <div class="form-group row mt-2">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText(reportTypeInEdit == ReportType.AppRules || reportTypeInEdit == ReportType.Recertification ? "managements" : "devices")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText(DeviceSelectionLabelKey())):</label>
                     <div class="form-group row col-sm-9">
-                        <label class="col-sm-9">@(reportTypeInEdit == ReportType.AppRules || reportTypeInEdit == ReportType.Recertification ? reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedManagements() : reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedDevices())</label>
+                        <label class="col-sm-9">@(SelectedDevicesText())</label>
                         <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">
                             @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
                         </button>
@@ -220,13 +224,15 @@
     </Footer>
 </PopUp>
 
-<ReportTemplateSelectDevice @bind-Display="ShowSelectDeviceDialog" @bind-DeviceFilter="reportTemplateInEdit.ReportParams.DeviceFilter" SelectedReportType="reportTypeInEdit" />
+<ReportTemplateSelectDevice @bind-Display="ShowSelectDeviceDialog" @bind-DeviceFilter="reportTemplateInEdit.ReportParams.DeviceFilter"
+                            @bind-SelectedRulebases="reportTemplateInEdit.ReportParams.SelectedRulebases"
+                            ManagementRulebaseView="reportTemplateInEdit.ReportParams.ManagementRulebaseView" SelectedReportType="reportTypeInEdit" />
 <ReportSelectTime @bind-Display="ShowSelectTimeDialog" SelectedReportType="reportTypeInEdit" @bind-ActTimeFilter="templateActTimeFilter"
                   @bind-SavedTimeFilter="reportTemplateInEdit.ReportParams.TimeFilter" DisplayTime="RefreshTimeSelection" />
 
 <ConfirmDelete @bind-Display="ShowDeleteTemplateDialog" PerformAction="DeleteTemplate" Title="@(userConfig.GetText("report_template"))"
                DeleteMessage="@(userConfig.GetText("U1002") + " " + reportTemplateInEdit.Name + " ?")"
-               AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}")" />
+               AllowedRoles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}")" />
 
 
 @code
@@ -244,10 +250,38 @@
     public ReportTemplate reportTemplateInEdit = new();
     private ReportType reportTypeInEdit = ReportType.Rules;
     private List<FwoOwner> recertOwnerList = [];
+    private List<string>? availableAddInfoNames;
     private List<FwoOwner> modOwnerList = [];
 
     private string tmpTemplateCommentKey = "";
     private string tmpTemplateComment = "";
+
+    private bool IsManagementSelectionInEdit => reportTypeInEdit == ReportType.AppRules || reportTypeInEdit == ReportType.Recertification;
+
+    /// <summary>
+    /// Returns the text key labelling the rulebase, management or device selection of the template in edit.
+    /// </summary>
+    private string DeviceSelectionLabelKey()
+    {
+        if (reportTemplateInEdit.ReportParams.ManagementRulebaseView)
+        {
+            return "rulebases";
+        }
+        return IsManagementSelectionInEdit ? "managements" : "devices";
+    }
+
+    /// <summary>
+    /// Returns the selected rulebases, managements or devices of the template in edit as display text.
+    /// </summary>
+    private string SelectedDevicesText()
+    {
+        ReportParams reportParams = reportTemplateInEdit.ReportParams;
+        if (reportParams.ManagementRulebaseView)
+        {
+            return string.Join(", ", reportParams.SelectedRulebases);
+        }
+        return IsManagementSelectionInEdit ? reportParams.DeviceFilter.ListAllSelectedManagements() : reportParams.DeviceFilter.ListAllSelectedDevices();
+    }
 
     private bool ShowAddTemplateDialog = false;
     private bool ShowUpdateTemplateDialog = false;
@@ -257,6 +291,7 @@
 
     private Collapse collapseControl = new();
     private DeviceFilter DeviceFilterOrig = new();
+    private List<SelectedRulebase> SelectedRulebasesOrig = [];
     private TimeFilter templateActTimeFilter = new();
 
     private ReportVisibility reportVisibility => userConfig.GetReportVisibility();
@@ -266,6 +301,7 @@
         try
         {
             recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            RefreshAvailableAddInfoNames();
             if (reportVisibility.ModellingRelated)
             {
                 modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection,
@@ -298,6 +334,18 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("template_fetch"), "", true);
         }
+    }
+
+    private void RefreshAvailableAddInfoNames()
+    {
+        List<string> addInfoNames = recertOwnerList
+            .SelectMany(owner => owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>())
+            .Where(key => !string.IsNullOrWhiteSpace(key))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(key => key, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        availableAddInfoNames = addInfoNames.Count > 0 ? addInfoNames : null;
     }
 
     public void Collapse()
@@ -393,12 +441,14 @@
         reportTemplateInEdit = decodeComment(reportTemplate);
         reportTypeInEdit = (ReportType)reportTemplateInEdit.ReportParams.ReportType;
         DeviceFilterOrig = reportTemplateInEdit.ReportParams.DeviceFilter.Clone();
+        SelectedRulebasesOrig = [.. reportTemplateInEdit.ReportParams.SelectedRulebases];
         ShowUpdateTemplateDialog = true;
     }
 
     private void CancelEdit()
     {
         reportTemplateInEdit.ReportParams.DeviceFilter = DeviceFilterOrig;
+        reportTemplateInEdit.ReportParams.SelectedRulebases = SelectedRulebasesOrig;
         ShowUpdateTemplateDialog = false;
         ShowAddTemplateDialog = false;
     }

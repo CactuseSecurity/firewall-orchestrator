@@ -12,7 +12,7 @@
 @inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>@(userConfig.GetText("modelling_settings"))</h3>
+    <h3>@(userConfig.GetText("modelling_general_settings"))</h3>
     @(Html.Raw(userConfig.GetText("H5601")))
     <br><br>
     @(Html.Raw(userConfig.GetText("general")))
@@ -21,7 +21,6 @@
         <li>@(Html.Raw(userConfig.GetText("H5603")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5604")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5605")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5618")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5617")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5627")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5620")))</li>
@@ -45,23 +44,6 @@
         <li>@(Html.Raw(userConfig.GetText("H5643")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5644")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5647")))</li>
-    </ul>
-    @(Html.Raw(userConfig.GetText("request_interface")))
-    <ul>
-        <li>@(Html.Raw(userConfig.GetText("H5622")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5630")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5623")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5624")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5625")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5626")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5629")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5624a")))</li>
-    </ul>
-    @(Html.Raw(userConfig.GetText("decommission")))
-    <ul>
-        <li>@(Html.Raw(userConfig.GetText("H5660")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5661")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5662")))</li>
     </ul>
     @(Html.Raw(userConfig.GetText("external_request")))
     <ul>

@@ -5,6 +5,7 @@ query getTimeBasedRulesByOwner {
       owner: { active: { _eq: true } }
       rule: {
         removed: { _is_null: true }
+        access_rule: { _eq: true }
         rule_times: {
           removed: { _is_null: true }
           time_object: { removed: { _is_null: true }, end_time: { _is_null: false } }
@@ -16,6 +17,10 @@ query getTimeBasedRulesByOwner {
       id
       name
       app_id_external
+      owner_responsibles {
+        dn
+        responsible_type
+      }
     }
     rule {
       rule_id

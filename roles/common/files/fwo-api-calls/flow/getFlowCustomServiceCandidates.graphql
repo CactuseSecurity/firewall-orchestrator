@@ -17,7 +17,7 @@ query getFlowCustomServiceCandidates($management_id: [Int!]) {
         active: { _eq: true }
         removed: { _is_null: true }
         svc_port: { _is_null: true }
-        ip_proto_id: { _is_null: false }
+        ip_proto_id: { _is_null: false, _neq: -1 }
         flow_svcobj_id: { _is_null: true }
         svc_typ_id: { _neq: 2 }
       }

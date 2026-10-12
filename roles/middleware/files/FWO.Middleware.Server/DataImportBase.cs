@@ -15,6 +15,14 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class DataImportBase
     {
+        private static readonly TimeSpan kDefaultImportScriptTimeout = TimeSpan.FromMinutes(60);
+        private static readonly TimeSpan kStoppedScriptOutputTimeout = TimeSpan.FromSeconds(10);
+
+        // Severity markers of the log format the customizing scripts use (see get_logger in
+        // basic_helpers.py). Python truncates the level name to five characters.
+        private static readonly List<string> kScriptErrorMarkers = ["[ERROR]", "[CRITI]"];
+        private static readonly List<string> kScriptWarningMarkers = ["[WARNI]"];
+
         /// <summary>
         /// Api Connection
         /// </summary>
@@ -29,6 +37,30 @@ namespace FWO.Middleware.Server
         /// Import File
         /// </summary>
         protected string importFile { get; set; } = "";
+
+        /// <summary>
+        /// Time an import script may run before it is stopped, configurable as importScriptTimeout
+        /// (in minutes). A script which waits for input it can never get - a git credential prompt
+        /// for instance - would otherwise keep the calling scheduler job blocked until the
+        /// middleware is restarted. An installation with a legitimately long running script raises
+        /// the setting; a value below one minute falls back to the default, so a misconfiguration
+        /// cannot stop every script right after it was started. A value above
+        /// GlobalConst.kMaxImportScriptTimeoutMinutes is capped there, since the wait is expressed
+        /// in milliseconds as an int and a larger value would make every script run fail.
+        /// </summary>
+        protected virtual TimeSpan ImportScriptTimeout => GetImportScriptTimeout(globalConfig.ImportScriptTimeout);
+
+        /// <summary>
+        /// Turn the configured timeout in minutes into a waitable time span.
+        /// </summary>
+        private static TimeSpan GetImportScriptTimeout(int configuredMinutes)
+        {
+            if (configuredMinutes < 1)
+            {
+                return kDefaultImportScriptTimeout;
+            }
+            return TimeSpan.FromMinutes(Math.Min(configuredMinutes, GlobalConst.kMaxImportScriptTimeoutMinutes));
+        }
 
 
         /// <summary>
@@ -79,16 +111,39 @@ namespace FWO.Middleware.Server
                     {
                         FileName = importScriptFile,
                         UseShellExecute = false,
-                        RedirectStandardOutput = true
+                        RedirectStandardInput = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
                     };
                     AddScriptArguments(start, scriptArguments);
                     Process? process = Process.Start(start);
-                    StreamReader? reader = process?.StandardOutput;
-                    string? result = reader?.ReadToEnd();
-                    process?.WaitForExit();
-                    process?.Close();
-                    Log.WriteInfo("Run Import Script", $"Executed Import Script {importScriptFile}. Result: {result ?? ""}");
-                    return true;
+                    if (process is null)
+                    {
+                        Log.WriteError("Run Import Script", $"Import Script {importScriptFile} could not be started.");
+                        return false;
+                    }
+
+                    // a script must not be able to wait for input: with the standard input of the
+                    // middleware a tool asking for credentials would block the import instead of failing
+                    process.StandardInput.Close();
+                    // both streams have to be read before waiting, otherwise a script writing more
+                    // than the pipe buffer holds blocks forever. Scripts log to stderr, so the
+                    // error output is the interesting part when a script fails.
+                    Task<string> outputReader = process.StandardOutput.ReadToEndAsync();
+                    Task<string> errorReader = process.StandardError.ReadToEndAsync();
+                    if (!process.WaitForExit((int)ImportScriptTimeout.TotalMilliseconds))
+                    {
+                        return StopTimedOutScript(process, importScriptFile, outputReader, errorReader);
+                    }
+
+                    string output = outputReader.GetAwaiter().GetResult();
+                    string errorOutput = errorReader.GetAwaiter().GetResult();
+                    int exitCode = process.ExitCode;
+                    process.Close();
+
+                    Log.WriteInfo("Run Import Script", $"Executed Import Script {importScriptFile}. Exit code: {exitCode}. Result: {output}");
+                    LogScriptOutput(importScriptFile, errorOutput, exitCode);
+                    return exitCode == 0;
                 }
             }
             catch (Exception Exception)
@@ -96,6 +151,100 @@ namespace FWO.Middleware.Server
                 Log.WriteError("Run Import Script", $"File {importScriptFile} could not be executed.", Exception);
             }
             return false;
+        }
+
+        /// <summary>
+        /// Stop a script which did not finish in time and report it as a failed run.
+        /// The whole process tree is stopped, otherwise a git command left behind by the script
+        /// would keep waiting for an answer nobody can give it. What the script reported before it
+        /// got stuck is logged as well: that output usually names the reason it never finished.
+        /// </summary>
+        private bool StopTimedOutScript(Process process, string importScriptFile, Task<string> outputReader, Task<string> errorReader)
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Run Import Script", $"Import Script {importScriptFile} could not be stopped after its timeout.", exception);
+            }
+
+            // the readers finish as soon as the stopped process closes its pipes; the wait is
+            // bounded anyway, a pipe kept open by something the kill did not reach must not
+            // block the calling import a second time
+            string output = ReadRemainingOutput(outputReader, importScriptFile);
+            string errorOutput = ReadRemainingOutput(errorReader, importScriptFile);
+            process.Close();
+
+            Log.WriteError("Run Import Script", $"Import Script {importScriptFile} did not finish within" +
+                $" {ImportScriptTimeout.TotalMinutes} minutes and was stopped. Result: {output}. Reported: {errorOutput}");
+            return false;
+        }
+
+        /// <summary>
+        /// Collect what a stopped script had written so far.
+        /// </summary>
+        private static string ReadRemainingOutput(Task<string> reader, string importScriptFile)
+        {
+            try
+            {
+                return reader.Wait(kStoppedScriptOutputTimeout) ? reader.GetAwaiter().GetResult() : "";
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("Run Import Script", $"Output of the stopped Import Script {importScriptFile}" +
+                    $" could not be read: {exception.Message}");
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// Report what a script wrote to its error output. The customizing scripts log everything
+        /// there, so a run ending with exit code 0 can still report that it could not do its work -
+        /// a failed git login while pushing for instance. Such a run must not stay silent, so the
+        /// severity the script itself reported decides how the output is logged.
+        /// </summary>
+        private static void LogScriptOutput(string importScriptFile, string errorOutput, int exitCode)
+        {
+            if (exitCode != 0)
+            {
+                Log.WriteError("Run Import Script", $"Import Script {importScriptFile} failed with exit code {exitCode}: {errorOutput}");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(errorOutput))
+            {
+                return;
+            }
+
+            string message = $"Import Script {importScriptFile} reported: {errorOutput}";
+            switch (GetScriptOutputLogType(errorOutput))
+            {
+                case LogType.Error:
+                    Log.WriteError("Run Import Script", message);
+                    break;
+                case LogType.Warning:
+                    Log.WriteWarning("Run Import Script", message);
+                    break;
+                default:
+                    Log.WriteInfo("Run Import Script", message);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Determine how severe a script reported its own output to be.
+        /// </summary>
+        protected static LogType GetScriptOutputLogType(string errorOutput)
+        {
+            if (kScriptErrorMarkers.Exists(marker => errorOutput.Contains(marker, StringComparison.Ordinal)))
+            {
+                return LogType.Error;
+            }
+            return kScriptWarningMarkers.Exists(marker => errorOutput.Contains(marker, StringComparison.Ordinal))
+                ? LogType.Warning
+                : LogType.Info;
         }
 
         /// <summary>

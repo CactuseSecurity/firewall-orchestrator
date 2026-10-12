@@ -33,15 +33,6 @@ namespace FWO.Test.Fixtures
             GlobalConfig = new SimulatedGlobalConfig { AutoCalculateInternetZone = true, AutoCalculateUndefinedInternalZone = true, TreatDynamicAndDomainObjectsAsInternet = true };
             UserConfig = UserConfig.ForTextOnly(GlobalConfig, false);
 
-            SimulatedUserConfig.DummyTranslate["internet_local_zone"] = "Internet/Local";
-            SimulatedUserConfig.DummyTranslate["assess_broadcast"] = "Network objects in source or destination with 255.255.255.255/32";
-            SimulatedUserConfig.DummyTranslate["assess_host_address"] = "Network objects in source or destination with 0.0.0.0/32";
-            SimulatedUserConfig.DummyTranslate["assess_all_ips"] = "Network objects in source or destination with 0.0.0.0/0 or ::/0";
-            SimulatedUserConfig.DummyTranslate["assess_ip_null"] = "Network objects in source or destination without IP";
-            SimulatedUserConfig.DummyTranslate["H5839"] = "Matrix violation";
-            SimulatedUserConfig.DummyTranslate["H5840"] = "Restricted Service";
-            SimulatedUserConfig.DummyTranslate["H5841"] = "Assessability issue";
-
             ComplianceCheck = new ComplianceCheck(UserConfig, ApiConnection, Logger.AsSub());
             ComplianceCheck.NetworkZones = CreateNetworkZones(true, true);
         }
@@ -76,7 +67,7 @@ namespace FWO.Test.Fixtures
                     .Returns(Policy); // Policy with criteria
 
                 ApiConnection.AsSub()
-                    .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, Arg.Any<object>())
+                    .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>())
                         .Returns(ComplianceCheck.NetworkZones);
             }
 

@@ -46,6 +46,17 @@ namespace FWO.Services.Workflow
         public List<FlowServiceSnapshot> Services { get; set; } = [];
     }
 
+    /// <summary>
+    /// A request element the flow creation refused because of its own content, with the text key naming the
+    /// reason and the value it was refused for. The flow creation runs without a user configuration, so the
+    /// key is resolved by the caller that has one.
+    /// </summary>
+    public class FlowCreationRefusal
+    {
+        public string ReasonTextKey { get; set; } = "";
+        public string RefusedValue { get; set; } = "";
+    }
+
     public class FlowObjectSnapshot
     {
         public long WorkflowElementId { get; set; }

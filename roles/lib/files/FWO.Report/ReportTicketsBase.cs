@@ -84,9 +84,9 @@ namespace FWO.Report
             {
                 report.Append($",\"{userConfig.GetText(ReportData.WorkflowFilter.ReferenceDate.ToString())}\"");
             }
-            if (HasLabelColumn())
+            if (HasAddInfoColumn())
             {
-                report.Append($",\"{workflowFilter.LabelFilter.Name}\"");
+                report.Append($",\"{workflowFilter.AddInfoFilter.Name}\"");
             }
             report.AppendLine("");
 
@@ -103,9 +103,9 @@ namespace FWO.Report
                 {
                     report.Append(OutputCsv(GetTicketReferenceDateValue(ticket)));
                 }
-                if (HasLabelColumn())
+                if (HasAddInfoColumn())
                 {
-                    report.Append(OutputCsv(GetLabelValue(ticket)));
+                    report.Append(OutputCsv(GetAddInfoValue(ticket)));
                 }
                 report.Length--;
                 report.AppendLine("");
@@ -134,7 +134,10 @@ namespace FWO.Report
             }
 
             report.AppendLine("</table>");
-            return GenerateHtmlFrameBase(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report, BuildWorkflowFilterSummary());
+            return GenerateHtmlFrameBase(userConfig.GetText(ReportType.ToString()), Query.RawFilter, DateTime.Now, report, new HtmlFrameOptions
+            {
+                OtherFilter = BuildWorkflowFilterSummary()
+            });
         }
 
         /// <inheritdoc />
@@ -211,9 +214,9 @@ namespace FWO.Report
             {
                 report.AppendLine($"<th>{userConfig.GetText(ReportData.WorkflowFilter.ReferenceDate.ToString())}</th>");
             }
-            if (HasLabelColumn())
+            if (HasAddInfoColumn())
             {
-                report.AppendLine($"<th>{workflowFilter.LabelFilter.Name}</th>");
+                report.AppendLine($"<th>{workflowFilter.AddInfoFilter.Name}</th>");
             }
             report.AppendLine("</tr>");
         }
@@ -232,9 +235,9 @@ namespace FWO.Report
             {
                 report.AppendLine($"<td>{GetTicketReferenceDateValue(ticket)}</td>");
             }
-            if (HasLabelColumn())
+            if (HasAddInfoColumn())
             {
-                report.AppendLine($"<td>{GetLabelValue(ticket)}</td>");
+                report.AppendLine($"<td>{GetAddInfoValue(ticket)}</td>");
             }
             report.AppendLine("</tr>");
         }
@@ -363,9 +366,9 @@ namespace FWO.Report
             report.AppendLine("</table></td></tr>");
         }
 
-        private bool HasLabelColumn()
+        private bool HasAddInfoColumn()
         {
-            return !string.IsNullOrWhiteSpace(workflowFilter.LabelFilter.Name);
+            return !string.IsNullOrWhiteSpace(workflowFilter.AddInfoFilter.Name);
         }
 
         private bool HasReferenceDateColumn()
@@ -439,7 +442,7 @@ namespace FWO.Report
 
         private int GetTicketColumnCount()
         {
-            int ticketColumnCount = HasLabelColumn() ? 8 : 7;
+            int ticketColumnCount = HasAddInfoColumn() ? 8 : 7;
             return HasReferenceDateColumn() ? ticketColumnCount + 1 : ticketColumnCount;
         }
 
@@ -470,12 +473,12 @@ namespace FWO.Report
                 filterParts.Add($"{userConfig.GetText("state")}: {states}");
             }
 
-            if (!string.IsNullOrWhiteSpace(ReportData.WorkflowFilter.LabelFilter.Name))
+            if (!string.IsNullOrWhiteSpace(ReportData.WorkflowFilter.AddInfoFilter.Name))
             {
-                string labelFilter = ReportData.WorkflowFilter.LabelFilter.Mode == WorkflowLabelFilterMode.value
-                    ? $"{ReportData.WorkflowFilter.LabelFilter.Name}={ReportData.WorkflowFilter.LabelFilter.Value}"
-                    : $"{ReportData.WorkflowFilter.LabelFilter.Name} ({userConfig.GetText(ReportData.WorkflowFilter.LabelFilter.Mode.ToString())})";
-                filterParts.Add($"{userConfig.GetText("label")}: {labelFilter}");
+                string addInfoFilter = ReportData.WorkflowFilter.AddInfoFilter.Mode == AddInfoFilterMode.value
+                    ? $"{ReportData.WorkflowFilter.AddInfoFilter.Name}={ReportData.WorkflowFilter.AddInfoFilter.Value}"
+                    : $"{ReportData.WorkflowFilter.AddInfoFilter.Name} ({userConfig.GetText(ReportData.WorkflowFilter.AddInfoFilter.Mode.ToString())})";
+                filterParts.Add($"{userConfig.GetText("add_info")}: {addInfoFilter}");
             }
 
             return string.Join("; ", filterParts);
@@ -507,14 +510,14 @@ namespace FWO.Report
             return report.ToString();
         }
 
-        private string GetLabelValue(WfTicket ticket)
+        private string GetAddInfoValue(WfTicket ticket)
         {
-            if (!HasLabelColumn())
+            if (!HasAddInfoColumn())
             {
                 return "";
             }
 
-            return WorkflowTicketSelectionHelper.GetLabelValue(ticket, workflowFilter.LabelFilter.Name);
+            return WorkflowTicketSelectionHelper.GetAddInfoValue(ticket, workflowFilter.AddInfoFilter.Name);
         }
 
         /// <summary>

@@ -17,16 +17,6 @@ namespace FWO.Test
     [TestFixture]
     public class RecertEventReportTest
     {
-        [SetUp]
-        public void SetupTranslations()
-        {
-            SimulatedUserConfig.DummyTranslate.TryAdd("by", "by");
-            SimulatedUserConfig.DummyTranslate.TryAdd("recertification", "Recertification");
-            SimulatedUserConfig.DummyTranslate.TryAdd("recertified_rules", "Recertified rules");
-            SimulatedUserConfig.DummyTranslate.TryAdd("RecertificationEvent", "Recertification Event");
-            SimulatedUserConfig.DummyTranslate.TryAdd("RecertEventReport", "Recertification Event Report");
-        }
-
         [Test]
         public void RecertificateOwner_GetRecertText_UsesDateAndRecertifier()
         {

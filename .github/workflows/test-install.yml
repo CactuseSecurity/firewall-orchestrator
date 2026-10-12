@@ -1,11 +1,20 @@
 name: FWO Test Install
+# NOTE: this workflow's behavior (trigger/matrix logic) is documented in
+# documentation/developer-docs/github/test-install-workflow.md - please
+# keep that doc in sync when changing triggers, matrix, or job logic here.
 
 on:
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Run Full Test Matrix
+        type: boolean
+        default: false
+        required: true
   push:
     branches:
       - main
       - develop
-
   pull_request:
 
 concurrency:
@@ -13,8 +22,81 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  setup:
+    name: Determine test matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Select matrix based on event
+        id: set-matrix
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          INPUT_FULL: ${{ inputs.full }}
+        run: |
+          set -euo pipefail
+
+          full=false
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            full="$INPUT_FULL"
+          elif [ "$EVENT_NAME" = "push" ] && [[ "$REF" =~ ^refs/heads/(main|develop)$ ]]; then
+            full=true
+          elif [ "$EVENT_NAME" = "pull_request" ] && [[ "$HEAD_REF" == dependabot/pip/* ]]; then
+            full=true
+          fi
+
+          if [ "$full" = "true" ]; then
+            matrix='{"include":[
+              {"os":"ubuntu-26.04","python":"3.10","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.10"},
+              {"os":"ubuntu-26.04","python":"3.11","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.11"},
+              {"os":"ubuntu-26.04","python":"3.12","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.12"},
+              {"os":"ubuntu-26.04","python":"3.13","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.13"},
+              {"os":"ubuntu-26.04","python":"3.14","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.14"},
+              {"os":"ubuntu-24.04","python":"3.10","integration":true,"label":"Test install on ubuntu-24.04 with Python 3.10"},
+              {"os":"ubuntu-24.04","python":"3.11","integration":true,"label":"Test install on ubuntu-latest"},
+              {"os":"ubuntu-24.04","python":"3.12","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.12"},
+              {"os":"ubuntu-24.04","python":"3.13","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.13"},
+              {"os":"ubuntu-24.04","python":"3.14","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.14"},
+              {"os":"ubuntu-22.04","python":"3.10","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.10"},
+              {"os":"ubuntu-22.04","python":"3.11","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.11"},
+              {"os":"ubuntu-22.04","python":"3.12","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.12"},
+              {"os":"ubuntu-22.04","python":"3.13","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.13"},
+              {"os":"ubuntu-22.04","python":"3.14","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.14"}
+            ]}'
+          else
+            # Both pinned ansible generations, and both with the integration tests, because
+            # requirements.txt installs ansible 10.7.0 (ansible-core 2.18) below python 3.11
+            # and 12.3.0 (core 2.19) from 3.11 up, and the two do not evaluate a "when" or
+            # "assert.that" the same way: core 2.18 wraps the expression as
+            # "{% if <expr> %}", where Jinja's if-statement parser rejects a bare
+            # conditional expression that core 2.19 accepts as an expression. A matrix that
+            # runs the roles/tests-integration suite on one generation only cannot see that
+            # class of defect at all - it reached a customer installation once already.
+            # Keep an integration run on each generation, or the older one is untested.
+            matrix='{"include":[
+              {"os":"ubuntu-24.04","python":"3.11","integration":true,"label":"Test install on ubuntu-latest"},
+              {"os":"ubuntu-24.04","python":"3.10","integration":true,"label":"Test install on ubuntu-latest with ansible-core 2.18"}
+            ]}'
+          fi
+
+          # Collapse to a single line for the step output.
+          matrix="$(echo "$matrix" | tr -d '\n' | tr -s ' ')"
+
+          if ! echo "$matrix" | jq empty; then
+            echo "::error::Generated matrix is not valid JSON: $matrix"
+            exit 1
+          fi
+
+          combos=$(echo "$matrix" | jq '.include | length')
+          echo "::notice::full=$full, selected $combos matrix combo(s)"
+
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
   test-install:
-    name: Test install on ${{ matrix.os }}
+    needs: setup
+    name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
     env:
       RUNNING_ON_GITHUB_ACTIONS: true
@@ -22,10 +104,10 @@ jobs:
       FWO_TEST_USERNAME: "integration_user_jwt_refresh_test"
       FWO_TEST_PASSWORD: "testpassword"
     strategy:
-      matrix:
-        os: [ubuntu-latest]
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
       - uses: actions/setup-dotnet@v6
         with:
@@ -33,12 +115,12 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python }}
 
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo DEBIAN_FRONTEND=noninteractive apt install build-essential libldap2-dev libsasl2-dev -y
+          sudo DEBIAN_FRONTEND=noninteractive apt install build-essential ldap-utils libldap2-dev libsasl2-dev -y
           python -m pip install -r requirements.txt
 
       - name: Install Ansible collections
@@ -46,21 +128,31 @@ jobs:
           cd ${{ github.workspace }}
           ansible-galaxy collection install -r collections/requirements.yml -p collections --force
 
+      # Demo data is off by default since GHSA-3v53-q5h9-pvfh, but the tests rely on it: sample-auth-data
+      # creates the LDAP user of the JWT integration tests (integration_user_jwt_refresh_test), and the
+      # integration tests use the sample devices, tenants and users. So every run requests it explicitly.
       - name: Run Ansible test install without integration cleanup
+        if: ${{ matrix.integration }}
         run: |
           cd ${{ github.workspace }}
-          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true --skip-tags integrationtests
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes --skip-tags integrationtests
+
+      - name: Run Ansible test install
+        if: ${{ !matrix.integration }}
+        run: |
+          cd ${{ github.workspace }}
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes -e "ansible_python_interpreter=$(which python)"
 
       - name: Running in GitHub actions requires testing puppeteer pdf creation separately
         if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
         run: |
-          cd /home/runner/work/firewall-orchestrator/firewall-orchestrator/roles/tests-unit/files/FWO.Test
+          cd ${{ github.workspace }}/roles/tests-unit/files/FWO.Test
           dotnet restore
           dotnet build
           dotnet test --filter "Name=HtmlToPdfTest"
 
       - name: Run JWT refresh integration tests
-        if: ${{ env.FWO_RUN_INTEGRATION_TESTS == 'true' }}
+        if: ${{ matrix.integration }}
         run: |
           sudo -u fworch env \
             RUNNING_ON_GITHUB_ACTIONS=true \
@@ -69,22 +161,65 @@ jobs:
             FWO_TEST_PASSWORD=testpassword \
             dotnet test /usr/local/fworch/test/csharp/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
 
+      - name: Collect middleware diagnostics after JWT test failure
+        if: ${{ matrix.integration && failure() }}
+        run: |
+          sudo systemctl status fworch-middleware --no-pager || true
+          sudo journalctl -u fworch-middleware --no-pager -n 200 || true
+          sudo tail -n 200 /var/log/fworch/middleware.log || true
+          sudo tail -n 200 /var/log/apache2/error.log || true
+
       - name: Run Ansible integration tests with cleanup
-        if: ${{ success() }}
+        if: ${{ matrix.integration && success() }}
         run: |
           cd ${{ github.workspace }}
-          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true --tags integrationtests
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes --tags integrationtests
 
+      # A full run rather than "--tags integrationtests", because roles/tests-integration
+      # asserts on facts the reset itself produces - the retired CA names, which identities
+      # were reissued, which customer-managed pairs were left untouched - and those exist
+      # only inside the invocation that performed the rotation. This is also the only run
+      # that exercises the force-regeneration paths in create-ca.yml and
+      # issue-certificates.yml, and that proves every service still comes up against a CA
+      # anchor that changed underneath it.
+      - name: Run Ansible certificate reset upgrade with integration tests
+        if: ${{ matrix.integration && success() }}
+        run: |
+          cd ${{ github.workspace }}
+          ./scripts/run-playbook-with-sudo.sh site.yml \
+            -e force_install=true \
+            -e add_demo_data=yes \
+            -e "installation_mode=upgrade internalca_reset_certificates=true"
+
+      - name: Collect certificate diagnostics after a failed reset upgrade
+        if: ${{ matrix.integration && failure() }}
+        run: |
+          sudo ls -la /usr/local/fworch/etc/secrets/ca/ || true
+          sudo cat /usr/local/fworch/etc/secrets/ca/retired-ca-names || true
+          sudo openssl x509 -in /usr/local/fworch/etc/fworch-internal-ca.crt -noout -subject -dates || true
+          sudo apachectl configtest || true
+          sudo tail -n 100 /var/log/apache2/error.log || true
+
+
+  launcher-guard-tests:
+    name: Launcher guard regression tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      # Stubbed ansible/ansible-galaxy, so no real Ansible install is needed.
+      - name: Run run-playbook-with-sudo.sh guard tests
+        run: ./scripts/tests/test-run-playbook-with-sudo.sh
 
   python-code-check:
     name: Python Code Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.11' 
+          python-version: '3.11'
 
       - run: python -m venv .venv
 
@@ -102,5 +237,8 @@ jobs:
           .venv/bin/pyright
 
       - run: ruff check
-      
+
       - run: ruff format --exit-non-zero-on-format
+
+      - name: Version gate unit tests
+        run: ".venv/bin/python -m pytest -q scripts/ci"

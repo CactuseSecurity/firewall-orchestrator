@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net.Http.Json;
 using FWO.Data.Middleware;
 using FWO.Logging;
@@ -7,8 +6,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net;
 using FWO.Test.DataGenerators;
-using Microsoft.Extensions.Configuration;
 using FWO.Test.Helpers;
+using FWO.Config.File;
 
 namespace FWO.Test
 {
@@ -21,9 +20,15 @@ namespace FWO.Test
     [RequiresIntegrationEnvironment]
     internal class AuthenticationTokenIntegrationTest
     {
+        // High enough that the requests genuinely overlap on the single-use token.
+        private const int kConcurrentRefreshRequests = 18;
+        // A burst this size can lose a call to a transport blip, which is a failure to
+        // complete rather than a second token being spent. Tolerated, but bounded: without
+        // a ceiling the test would also pass when every loser failed to reach the API, and
+        // a reachability regression would read as a green run carrying a warning.
+        private const int kMaxToleratedUpstreamFailures = 2;
         private const string DefaultCiUsername = "integration_user_jwt_refresh_test";
         private const string DefaultCiPassword = "testpassword";
-        private WebApplicationFactory<Middleware.ServerTest.Program>? factory;
         private HttpClient? client;
         private JwtSecurityTokenHandler? tokenHandler;
         private TokenTestDataBuilder defaultCredentialsBuilder = null!;
@@ -56,23 +61,12 @@ namespace FWO.Test
                 .WithUsername(username)
                 .WithPassword(password);
 
-            // Spin up local test server using WebApplicationFactory
-            Log.WriteInfo("Test Setup", "Creating WebApplicationFactory for local testing");
-
-            factory = new WebApplicationFactory<Middleware.ServerTest.Program>()
-                .WithWebHostBuilder(builder =>
-                {
-                    builder.ConfigureAppConfiguration((context, config) =>
-                    {
-                        var testConfig = new Dictionary<string, string?>
-                        {
-                                { "Logging:LogLevel:Default", "Debug" }
-                        };
-                        config.AddInMemoryCollection(testConfig);
-                    });
-                });
-
-            client = factory.CreateClient();
+            // Exercise the middleware service that the installer deployed. Starting a
+            // second host here can wait forever for its startup dependencies and does
+            // not verify the installed reverse proxy.
+            Uri middlewareUri = new(ConfigFile.MiddlewareServerUri);
+            Log.WriteInfo("Test Setup", $"Using installed middleware at '{middlewareUri}'.");
+            client = new HttpClient { BaseAddress = middlewareUri };
 
             tokenHandler = new JwtSecurityTokenHandler();
         }
@@ -82,7 +76,6 @@ namespace FWO.Test
         {
             Log.WriteInfo("Test Cleanup", "Disposing JWT integration test resources");
             client?.Dispose();
-            factory?.Dispose();
         }
 
         #endregion
@@ -94,18 +87,18 @@ namespace FWO.Test
         [Category("TokenGeneration")]
         public async Task GetTokenPair_WithValidCredentials_ReturnsValidTokens()
         {
-            // Arrange - use default credentials
+            // Arrange - use the integration-test credentials and assert the login still works in this environment
             AuthenticationTokenGetParameters parameters = defaultCredentialsBuilder.BuildGetParameters();
 
             // Act
             HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetTokenPair", parameters);
+            Assert.That(response.IsSuccessStatusCode, Is.True,
+                $"Expected /api/AuthenticationToken/GetTokenPair to succeed for the configured integration credentials, but got {(int)response.StatusCode} {response.StatusCode}. Content: {await response.Content.ReadAsStringAsync()}");
+            TokenPair tokenPair = (await response.Content.ReadFromJsonAsync<TokenPair>())!;
 
             // Asserts
-            AuthTestHelpers.AssertSuccessResponse(response);
-            TokenPair? tokenPair = await response.Content.ReadFromJsonAsync<TokenPair>();
-
             AuthTestHelpers.AssertValidTokenPair(tokenPair);
-            AuthTestHelpers.AssertJwtStructure(tokenPair!.AccessToken, tokenHandler!);
+            AuthTestHelpers.AssertJwtStructure(tokenPair.AccessToken, tokenHandler!);
             AuthTestHelpers.AssertTokenClaims(tokenPair.AccessToken, parameters.Username!, tokenHandler!);
         }
 
@@ -216,6 +209,20 @@ namespace FWO.Test
             Assert.That(secondResponse.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Unauthorized));
         }
 
+        /// <summary>
+        /// The security property under test is that a refresh token can be spent exactly
+        /// once, however many requests race for it: the endpoint consumes it with a single
+        /// conditional update and only that one caller gets a new pair.
+        /// </summary>
+        /// <remarks>
+        /// The losers are expected to be rejected with 401. A burst this size against the
+        /// installed middleware also makes every request authenticate against LDAP and query
+        /// the API, so a single call can fail at the transport level; the endpoint answers
+        /// 503 for that, and this test tolerates it while warning, because it is a failure to
+        /// complete rather than a second token being spent. Any other status is a defect and
+        /// fails, with every status and body in the message - a bare count comparison here
+        /// cost a CI run that could not be diagnosed from its own output.
+        /// </remarks>
         [Test]
         [Category("Authentication")]
         [Category("TokenRefresh")]
@@ -227,36 +234,38 @@ namespace FWO.Test
             RefreshTokenRequest refreshRequest = new() { RefreshToken = initialTokens.RefreshToken };
 
             // Act
-            Task<HttpResponseMessage>[] refreshTasks =
-            [
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest)
-            ];
+            HttpResponseMessage[] responses = await Task.WhenAll(Enumerable
+                .Range(0, kConcurrentRefreshRequests)
+                .Select(_ => client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest)));
 
-            HttpResponseMessage[] responses = await Task.WhenAll(refreshTasks);
+            string[] outcomes = await Task.WhenAll(responses
+                .Select(async response => $"{(int)response.StatusCode} {response.StatusCode}: " +
+                    $"{(await response.Content.ReadAsStringAsync()).Trim()}"));
+            string report = string.Join(Environment.NewLine, outcomes);
 
             // Assert
             int successCount = responses.Count(response => response.IsSuccessStatusCode);
             int unauthorizedCount = responses.Count(response => response.StatusCode == HttpStatusCode.Unauthorized);
+            int upstreamFailureCount = responses.Count(response => response.StatusCode == HttpStatusCode.ServiceUnavailable);
 
-            Assert.That(successCount, Is.EqualTo(1), "Exactly one concurrent refresh request should succeed.");
-            Assert.That(unauthorizedCount, Is.EqualTo(refreshTasks.Length - 1), "All other concurrent refresh requests should be rejected.");
+            Assert.Multiple(() =>
+            {
+                Assert.That(successCount, Is.EqualTo(1),
+                    $"Exactly one concurrent refresh request must succeed. Responses:{Environment.NewLine}{report}");
+                Assert.That(unauthorizedCount + upstreamFailureCount, Is.EqualTo(kConcurrentRefreshRequests - 1),
+                    "Every other concurrent refresh request must be rejected with 401, or report 503 when it " +
+                    $"could not reach the API. Responses:{Environment.NewLine}{report}");
+                Assert.That(upstreamFailureCount, Is.LessThanOrEqualTo(kMaxToleratedUpstreamFailures),
+                    $"At most {kMaxToleratedUpstreamFailures} of {kConcurrentRefreshRequests} requests may fail to " +
+                    $"reach the API; more than that is a reachability problem, not a blip. " +
+                    $"Responses:{Environment.NewLine}{report}");
+            });
+
+            if (upstreamFailureCount > 0)
+            {
+                Assert.Warn($"{upstreamFailureCount} of {kConcurrentRefreshRequests} concurrent refresh requests " +
+                    $"could not reach the API and answered 503. Responses:{Environment.NewLine}{report}");
+            }
         }
 
         #endregion
@@ -330,7 +339,16 @@ namespace FWO.Test
         [Category("Security")]
         public async Task GetForUser_WithNonAdminCredentials_ReturnsBadRequest()
         {
-            // Arrange - use regular user credentials (not admin)
+            // Arrange - ensure the configured integration user is valid and not admin
+            TokenPair tokenPair = await GetValidTokenPair();
+            var accessToken = tokenHandler!.ReadJwtToken(tokenPair.AccessToken);
+            string? defaultRole = accessToken.Claims.SingleOrDefault(claim => claim.Type == "x-hasura-default-role")?.Value;
+            if (string.Equals(defaultRole, "admin", StringComparison.OrdinalIgnoreCase))
+            {
+                Assert.Ignore("Configured JWT integration test user has admin role in this environment; non-admin coverage requires a non-admin user.");
+            }
+
+            // Use regular user credentials (not admin)
             AuthenticationTokenGetForUserParameters parameters = defaultCredentialsBuilder
                 .WithTargetUser(defaultCredentialsBuilder.Username!)
                 .BuildGetForUserParameters();
@@ -342,7 +360,7 @@ namespace FWO.Test
 
             // Assert
             Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.BadRequest));
-            Assert.That(responseText.Contains("Provided credentials do not belong to a user with role admin"), Is.True);
+            Assert.That(responseText, Does.Contain("Provided credentials do not belong to a user with role admin"));
         }
 
         #endregion
@@ -373,7 +391,7 @@ namespace FWO.Test
 
             if (!response.IsSuccessStatusCode)
             {
-                Assert.Ignore($"JWT integration test credentials are not valid in this environment. Status: {response.StatusCode}");
+                Assert.Ignore($"Configured integration credentials are not accepted in this environment. Got {(int)response.StatusCode} {response.StatusCode}. Content: {await response.Content.ReadAsStringAsync()}");
             }
 
             return (await response.Content.ReadFromJsonAsync<TokenPair>())!;

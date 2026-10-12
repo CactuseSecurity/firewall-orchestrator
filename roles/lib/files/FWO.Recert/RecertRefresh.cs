@@ -8,21 +8,31 @@ namespace FWO.Recert
 {
     public static class RecertRefresh
     {
-        public static async Task<bool> RecalcRecerts(ApiConnection apiConnection)
+        /// <summary>
+        /// Recalculates the open recertifications of all owners.
+        /// </summary>
+        /// <param name="apiConnection">API connection used for all queries.</param>
+        /// <param name="cancellationToken">Only checked before the open recertifications are cleared, so a started refresh always completes for all owners.</param>
+        /// <returns>True if the refresh failed.</returns>
+        public static async Task<bool> RecalcRecerts(ApiConnection apiConnection, CancellationToken cancellationToken = default)
         {
             Stopwatch watch = new();
 
             try
             {
                 watch.Start();
+                cancellationToken.ThrowIfCancellationRequested();
                 List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                 List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
+                // last checkpoint: after clearing, the open recertifications of every owner have to be rebuilt
+                cancellationToken.ThrowIfCancellationRequested();
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.clearOpenRecerts)).ReturnIds;
                 Log.WriteDebug("Delete open recerts", $"deleted Ids: {(returnIds != null ? string.Join(",", Array.ConvertAll(returnIds, Id => Id.DeletedIdLong)) : "")}");
                 OwnerRefresh? refreshResult = (await apiConnection.SendQueryAsync<List<OwnerRefresh>>(RecertQueries.refreshViewRuleWithOwner)).FirstOrDefault();
                 if (refreshResult == null || refreshResult.GetStatus() != "Materialized view refreshed successfully")
                 {
-                    Log.WriteError("Refresh materialized view view_rule_with_owner", "refresh failed");
+                    string status = refreshResult?.GetStatus() ?? "No refresh result returned";
+                    Log.WriteError("Refresh materialized view view_rule_with_owner", $"refresh failed: {status}");
                     return true;
                 }
                 watch.Stop();
@@ -33,8 +43,13 @@ namespace FWO.Recert
                     await RecalcRecertsOfOwner(owner, managements, apiConnection);
                 }
             }
-            catch (Exception)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Refresh recertification data", "Recertification refresh failed unexpectedly.", exception);
                 return true;
             }
             return false;

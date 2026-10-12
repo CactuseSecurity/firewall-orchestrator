@@ -18,7 +18,7 @@ namespace FWO.Middleware.Server.Controllers
         /// </summary>
         /// <returns>The current resource usage snapshot.</returns>
         [HttpGet("SystemUsage")]
-        [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public ActionResult<SystemUsageSnapshot> GetSystemUsage()
         {
             return Ok(systemUsageProvider.Collect());

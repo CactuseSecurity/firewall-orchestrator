@@ -22,6 +22,7 @@ namespace FWO.Test
         private static readonly string[] ExpectedStandardStructureVariableKeys = [QueryVar.MgmId, QueryVar.ImportIdStart, QueryVar.ImportIdEnd];
         private static readonly int[] ExpectedStandardManagementIds = [1];
         private static readonly int[] ExpectedStandardRulebaseIds = [10, 20];
+        private static readonly List<int> SelectedStandardRulebaseIds = [10, 20];
         private static readonly long[] ExpectedFirstStandardRulebaseRuleIds = [100, 101];
         private static readonly long[] ExpectedSecondStandardRulebaseRuleIds = [200];
         private static readonly long[] ExpectedSingleAttachedFirstRulebaseRuleIds = [100];
@@ -788,6 +789,29 @@ namespace FWO.Test
             Assert.That(apiConnection.RulePageOffsets, Is.Empty);
             Assert.That(callbackCount, Is.EqualTo(0));
             Assert.That(reportRules.ReportData.ElementsCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task Test_Generate_ManagementRulebases_IncludesRulebasesWithoutGatewayLinks()
+        {
+            DynGraphqlQuery query = new("")
+            {
+                ManagementRulebaseView = true,
+                StandardRulesStructureQuery = "standard-rules-structure-query $import_id_start $import_id_end",
+                StandardRulesPageQuery = "standard-rules-page-query",
+                RelevantManagementIds = [1],
+                SelectedRulebaseIds = [.. SelectedStandardRulebaseIds]
+            };
+            ReportRules reportRules = new(query, new SimulatedUserConfig(), ReportType.Rules, new RuleTreeBuilder());
+            StandardRulesSplitApiConnection apiConnection = new(includeSelectedRulebaseLinks: false);
+
+            await reportRules.Generate(2, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(apiConnection.RulePageRulebaseIds, Has.Count.EqualTo(2));
+            Assert.That(apiConnection.RulePageRulebaseIds[0], Is.EqualTo(ExpectedStandardRulebaseIds));
+            Assert.That(reportRules.ReportData.ManagementData.Single().Rulebases[0].Rules, Has.Length.EqualTo(2));
+            Assert.That(reportRules.NoRuleFound(), Is.False);
+            Assert.That(reportRules.SetDescription(), Does.Contain("3"));
         }
 
         [Test]

@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import traceback
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 import fwo_globals
 import urllib3
 from dateutil import parser
 from fwo_api import FwoApi
-from fwo_api_call import FwoApiCall
 from fwo_config import read_config
 from fwo_const import FWO_CONFIG_FILENAME, GRAPHQL_QUERY_PATH
 from fwo_exceptions import FwoImporterError
@@ -21,7 +23,30 @@ from model_controllers.management_controller import (
 )
 from models.import_state import ImportState
 
+if TYPE_CHECKING:
+    from fwo_api_call import FwoApiCall
+
 """Used for storing state during import process per management"""
+
+# managements already reported as imported without certificate checking, so a long running
+# import loop says so once per management instead of on every cycle
+_unchecked_mgm_ids_warned: set[int] = set()
+
+
+def resolve_management_verify(mgm_details: ManagementController, check_certificates: bool) -> bool | str:
+    """
+    Return the value for requests' verify for the management API and say so in the log when it is unchecked.
+
+    check_certificates is the global switch for firewall connections, possibly forced on from the command line.
+    """
+    if not check_certificates and mgm_details.mgm_id not in _unchecked_mgm_ids_warned:
+        _unchecked_mgm_ids_warned.add(mgm_details.mgm_id)
+        FWOLogger.warning(
+            f"certificate checking is switched off for management {mgm_details.name} ({mgm_details.hostname}): "
+            "any server certificate is accepted, so the import credentials can be intercepted. "
+            'Add the issuing CA to the host trust store and switch on "check certificates of firewall connections".'
+        )
+    return fwo_globals.resolve_requests_verify(check_certificates)
 
 
 class ImportStateController:
@@ -56,14 +81,6 @@ class ImportStateController:
     ):
         fwo_config = FworchConfigController.from_json(read_config(FWO_CONFIG_FILENAME))
 
-        # set global https connection values
-        fwo_globals.set_global_values(
-            suppress_cert_warnings_in=suppress_cert_warnings,
-            verify_certs_in=ssl_verification,
-        )
-        if fwo_globals.suppress_cert_warnings:
-            urllib3.disable_warnings()  # suppress ssl warnings only
-
         try:  # get mgm_details (fw-type, port, ip, user credentials):
             mgm_controller = ManagementController(
                 mgm_id,
@@ -97,7 +114,14 @@ class ImportStateController:
         state.import_version = version
         state.is_clearing_import = is_clearing_import
         state.is_initial_import = last_import_date == ""
-        state.verify_certs = ssl_verification
+        # global https connection values for the outbound calls to the firewall management
+        state.verify_certs = resolve_management_verify(state.mgm_details, ssl_verification)
+        fwo_globals.set_global_values(
+            suppress_cert_warnings_in=suppress_cert_warnings,
+            verify_certs_in=state.verify_certs,
+        )
+        if fwo_globals.suppress_cert_warnings:
+            urllib3.disable_warnings()  # suppress ssl warnings only
         state.last_successful_import = last_import_date
 
         result = cls(state, api_call)

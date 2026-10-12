@@ -1,8 +1,9 @@
 # mapping the opnsense model into normalized import model
 
+from __future__ import annotations
+
 import json
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fw_modules.opnsense25ff.opnsense_helper as os_helper
 from fw_modules.opnsense25ff.opnsense_constants import (
@@ -29,20 +30,25 @@ from fw_modules.opnsense25ff.opnsense_normalize_services import (
     rule_service_names,
 )
 from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
-from fwo_base import ConfigAction, sort_and_join
 from fwo_base import generate_hash_from_dict as fwo_base_generate_hash_from_dict
+from fwo_base import sort_and_join
+from fwo_enums import ConfigAction
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
-from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.gateway import Gateway
 from models.networkobject import NetworkObject
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 from models.rulebase import Rulebase
 from models.rulebase_link import RulebaseLinkUidBased
-from models.serviceobject import ServiceObject
 from netaddr import IPAddress, IPNetwork
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+    from model_controllers.import_state_controller import ImportStateController
+    from models.serviceobject import ServiceObject
 
 # ───────────────────────── helper ────────────────────────
 

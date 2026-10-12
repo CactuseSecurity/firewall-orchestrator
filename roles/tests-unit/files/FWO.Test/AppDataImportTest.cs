@@ -2040,7 +2040,7 @@ namespace FWO.Test
                 "ImportApps",
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("ImportApps helper not found.");
-            await (Task)method.Invoke(import, [importfileName, tracker])!;
+            await (Task)method.Invoke(import, [importfileName, tracker, CancellationToken.None])!;
         }
 
         private static async Task<bool> InvokeSaveApp(AppDataImport import, ModellingImportAppData incomingApp, OwnerChangeImportTracker tracker)

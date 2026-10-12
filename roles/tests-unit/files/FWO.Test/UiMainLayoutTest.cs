@@ -32,9 +32,9 @@ namespace FWO.Test
         private static readonly IEnumerable<string> AdminRequesterRoles = [Roles.Admin, Roles.Requester];
         private static readonly List<string> WorkflowRoles = [Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer];
         private static readonly List<string> PersonalSettingsAmbientRoles = [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
-            Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+            Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.Auditor];
         private static readonly string[] ReportAmbientRoles = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
-            Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin];
+            Roles.Recertifier, Roles.Admin, Roles.Auditor];
 
         private static MethodInfo GetPrivateMethod(string name)
         {
@@ -146,29 +146,29 @@ namespace FWO.Test
             {
                 ["/settings/user"] = [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
                     Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer,
-                    Roles.Admin, Roles.FwAdmin, Roles.Auditor],
+                    Roles.Admin, Roles.Auditor],
                 ["/settings/personal"] = PersonalSettingsAmbientRoles,
                 ["/report/generation"] = ReportAmbientRoles.ToList(),
                 ["/report/schedule"] = ReportAmbientRoles.ToList(),
                 ["/report/archive"] = ReportAmbientRoles.ToList(),
                 ["/networkmodelling"] = [Roles.Modeller, Roles.Admin, Roles.Auditor],
                 ["/certification"] = [Roles.Recertifier, Roles.Modeller, Roles.Admin, Roles.Auditor],
-                ["/request/tickets"] = [Roles.Requester, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/request/ticketsoverview"] = [Roles.Requester, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/request/approvals"] = [Roles.Approver, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/request/plannings"] = [Roles.Planner, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/request/implementations"] = [Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin,
+                ["/request/tickets"] = [Roles.Requester, Roles.Admin, Roles.Auditor],
+                ["/request/ticketsoverview"] = [Roles.Requester, Roles.Admin, Roles.Auditor],
+                ["/request/approvals"] = [Roles.Approver, Roles.Admin, Roles.Auditor],
+                ["/request/plannings"] = [Roles.Planner, Roles.Admin, Roles.Auditor],
+                ["/request/implementations"] = [Roles.Implementer, Roles.Reviewer, Roles.Admin,
                     Roles.Auditor],
-                ["/request/reviews"] = [Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/monitoring"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/monitoring/import_status"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/monitoring/alerts"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/monitoring/modelling_requests"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/monitoring/requested_interfaces"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/compliance/checks"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/compliance/matrix"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/compliance/policies"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/network_analysis"] = [Roles.Planner, Roles.FwAdmin, Roles.Admin, Roles.Auditor],
+                ["/request/reviews"] = [Roles.Reviewer, Roles.Admin, Roles.Auditor],
+                ["/monitoring"] = [Roles.Admin, Roles.Auditor],
+                ["/monitoring/import_status"] = [Roles.Admin, Roles.Auditor],
+                ["/monitoring/alerts"] = [Roles.Admin, Roles.Auditor],
+                ["/monitoring/modelling_requests"] = [Roles.Admin, Roles.Auditor],
+                ["/monitoring/requested_interfaces"] = [Roles.Admin, Roles.Auditor],
+                ["/compliance/checks"] = [Roles.Admin, Roles.Auditor],
+                ["/compliance/matrix"] = [Roles.Admin, Roles.Auditor],
+                ["/compliance/policies"] = [Roles.Admin, Roles.Auditor],
+                ["/network_analysis"] = [Roles.Planner, Roles.Admin, Roles.Auditor],
             };
 
             Assert.Multiple(() =>

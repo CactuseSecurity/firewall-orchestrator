@@ -1,0 +1,5 @@
+mutation addPathItemsInternet($objects: [network_zone_device_ip_range_internet_insert_input!]!) {
+  insert_network_zone_device_ip_range_internet(objects: $objects) {
+    affected_rows
+  }
+}

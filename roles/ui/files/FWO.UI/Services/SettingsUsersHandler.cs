@@ -294,7 +294,7 @@ namespace FWO.Ui.Services
             {
                 foreach (UiUser ldapUser in LdapUsers)
                 {
-                    UiUser? relatedUiUser = UiUsers.FirstOrDefault(x => DistName.DnEquals(x.Dn, ldapUser.Dn));
+                    UiUser? relatedUiUser = UiUsers.FirstOrDefault(x => x.IsSameDirectoryAccount(ldapUser));
                     if (relatedUiUser != null)
                     {
                         // Update related user
@@ -715,7 +715,7 @@ namespace FWO.Ui.Services
                 displayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
                 return false;
             }
-            if (UiUsers.Exists(x => DistName.DnEquals(x.Dn, ActUser.Dn)))
+            if (UiUsers.Exists(x => x.IsSameDirectoryAccount(ActUser)))
             {
                 displayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5210"), true);
                 return false;

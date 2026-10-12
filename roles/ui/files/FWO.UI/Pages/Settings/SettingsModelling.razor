@@ -26,10 +26,14 @@
 @if(configData != null && initComplete)
 {
     <form onsubmit="return false">
-        <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
-        @onclick="PredefServices">
-            @(DisplayService.DisplayButton(userConfig, "predef_services", Icons.ServiceGroup))
-        </button>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("predef_services")):</label>
+            <div class="col-sm-6">
+                <button type="button" class="btn btn-sm btn-dark" @onclick="PredefServices">
+                    @(DisplayService.DisplayButton(userConfig, "predef_services", Icons.ServiceGroup))
+                </button>
+            </div>
+        </div>
         <hr />
         <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5603"))">

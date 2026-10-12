@@ -27,6 +27,13 @@ namespace FWO.Config.Api
 
         protected readonly SemaphoreSlim semaphoreSlim = new(1, 1);
 
+        private static readonly HashSet<string> ignoredLegacyConfigKeys =
+        [
+            "manageOwnerLdapGroups",
+            "ownerLdapId",
+            "ownerLdapGroupNames"
+        ];
+
         // To detect redundant dispose calls
         private bool _isDisposed;
         protected bool IsDisposed => _isDisposed;
@@ -127,7 +134,7 @@ namespace FWO.Config.Api
                     ApplyConfigValue(property, resolvedKey, configItem, remainingConfigItemNames);
                 }
             }
-            foreach (var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix"))) // StateMatrix ConfigItems are handled separately
+            foreach (var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix") && !ignoredLegacyConfigKeys.Contains(n))) // StateMatrix and retired settings are handled separately
             {
                 Log.WriteDebug($"Load {(UserId == 0 ? "Global " : "")}Config Items", $"Config item with key \"{name}\" could not be found. {(UserId == 0 ? "" : "User might not have customized the setting. ")}Using default value.");
             }

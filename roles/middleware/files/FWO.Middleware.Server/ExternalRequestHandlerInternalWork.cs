@@ -230,7 +230,7 @@ namespace FWO.Middleware.Server
 
             try
             {
-                if (wfHandler.ActionHandler == null && !await wfHandler.Init())
+                if (wfHandler.ActionHandler == null && !await wfHandler.InitForActionExecution())
                 {
                     return false;
                 }

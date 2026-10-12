@@ -123,7 +123,7 @@ namespace FWO.Test
             ], "test", ClaimTypes.Name, ClaimTypes.Role));
             connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
 
-            connection.SetAmbientRole(user, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
+            connection.SetAmbientRole(user, [Roles.Admin, Roles.Auditor]);
 
             Assert.That(connection.GetActRole(), Is.Empty);
         }
@@ -138,7 +138,7 @@ namespace FWO.Test
             ], "test", ClaimTypes.Name, ClaimTypes.Role));
             connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
 
-            connection.SetAmbientRole(user, [Roles.Admin, Roles.FwAdmin, Roles.Auditor]);
+            connection.SetAmbientRole(user, [Roles.Admin, Roles.Auditor]);
 
             Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Auditor));
         }

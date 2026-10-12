@@ -503,7 +503,33 @@ Keep the original encrypted key in a secure backup location, then provide Apache
 
 After the change restart apache2
 
-The Guardicore provisioning scripts load these three TLS paths from the local
+```
+ sudo systemctl restart apache2
+```
+
+
+## Change Root Certificate
+
+To make a host trust an additional root certificate system-wide, copy the root
+certificate (PEM, file extension `.crt`) into the distribution's anchor directory
+and rebuild the system trust store:
+
+- Debian / Ubuntu: copy it to `/usr/local/share/ca-certificates/`, then run
+
+  ```
+  sudo update-ca-certificates
+  ```
+
+- Red Hat / Rocky: copy it to `/etc/pki/ca-trust/source/anchors/`, then run
+
+  ```
+  sudo update-ca-trust
+  ```
+
+## Dealing with Client Certificates in Scripts
+
+The Guardicore provisioning scripts load the three TLS paths `tls_ca_certificate`,
+`tls_client_certificate` and `tls_client_private_key` from the local
 `fworch.json`. When they run on another host, pass `--fwo-ca-cert`,
 `--fwo-client-cert`, and `--fwo-client-key` explicitly. The certificate and key
 options must always be supplied together.

@@ -1,0 +1,352 @@
+@using FWO.Data
+@using FWO.Data.Workflow
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+@if (EditMode)
+{
+    <div class="form-group row mt-2">
+        <div class="col-sm-2">
+            <input class="form-check-input" type="radio" checked="@(!isService)" name="objectKind" id="objKindNetwork" @onchange="() => SetKind(false)">
+            <label class="col-form-label col-form-label-sm" for="objKindNetwork">@(userConfig.GetText("network_object"))</label>
+        </div>
+        <div class="col-sm-2">
+            <input class="form-check-input" type="radio" checked="@(isService)" name="objectKind" id="objKindService" @onchange="() => SetKind(true)">
+            <label class="col-form-label col-form-label-sm" for="objKindService">@(userConfig.GetText("service"))</label>
+        </div>
+    </div>
+    @if (IsModify)
+    {
+        <div class="form-group row mt-2">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("object"))*:</label>
+            <div class="col-sm-6">
+                @if (ManagementId is > 0)
+                {
+                    <ObjectSelector @key="@($"{ManagementId}-{isService}")" ManagementId="ManagementId.Value" IsService="isService" IpProtos="DisplayIpProtos"
+                        SelectedNetworkObject="selectedNetworkObject" SelectedNetworkObjectChanged="SelectNetworkObject"
+                        SelectedService="selectedService" SelectedServiceChanged="SelectService" />
+                }
+                else
+                {
+                    <label class="col-form-label col-form-label-sm text-muted">@(userConfig.GetText("select_management_first"))</label>
+                }
+            </div>
+        </div>
+    }
+    <div class="form-group row mt-2">
+        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+        <div class="col-sm-3">
+            <input type="text" class="form-control form-control-sm" @bind="objectName" />
+        </div>
+        @if (!isService)
+        {
+            <div class="col-sm-4">
+                <input type="text" class="form-control form-control-sm @(ValidationClass(networkInputValid))" placeholder="@(userConfig.GetText("ip_addresses"))"
+                    @bind="NetworkInput" @bind:event="oninput" />
+            </div>
+        }
+        else
+        {
+            <div class="col-sm-2">
+                <Dropdown ElementType="int" @bind-SelectedElement="ProtoId"
+                    ElementToString="@(protoId => SelectableIpProtos.FirstOrDefault(x => x.Id == protoId)?.Name ?? "")" Elements="SelectableIpProtos.ConvertAll(x => x.Id)">
+                    <ElementTemplate Context="proto">
+                        @(SelectableIpProtos.FirstOrDefault(x => x.Id == proto)?.Name)
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+            @if (IpProtocol.HasPorts(protoId))
+            {
+                <div class="col-sm-2">
+                    <input type="text" class="form-control form-control-sm @(ValidationClass(portInputValid))" placeholder="@(userConfig.GetText("port_range"))"
+                        @bind="PortInput" @bind:event="oninput" />
+                </div>
+            }
+        }
+    </div>
+    @if (IsModify && original != null)
+    {
+        <div class="form-group row">
+            <div class="offset-sm-1 col-sm-10">
+                <small class="text-muted">@(userConfig.GetText("previous_state")): @DisplayElement(original)</small>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="form-group row mt-2">
+        <div class="list-group col-sm-6">
+            @if (original != null)
+            {
+                <div class="list-group-item border bg-secondary">
+                    <label>@(userConfig.GetText("previous_state")): @DisplayElement(original)</label>
+                </div>
+            }
+            @if (requested != null)
+            {
+                <div class="list-group-item border bg-secondary">
+                    <label>@(userConfig.GetText("requested_state")): @DisplayElement(requested)</label>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public WfReqTask ReqTask { get; set; } = new();
+
+    [Parameter]
+    public bool IsModify { get; set; }
+
+    [Parameter]
+    public int? ManagementId { get; set; }
+
+    [Parameter]
+    public bool EditMode { get; set; }
+
+    [Parameter]
+    public List<IpProtocol> SelectableIpProtos { get; set; } = [];
+
+    [Parameter]
+    public List<IpProtocol> DisplayIpProtos { get; set; } = [];
+
+    private WfReqTask? initializedTask;
+    private bool isService;
+    private WfReqElement? original;
+    private int? selectionManagementId;
+    private WfReqElement? requested;
+    private NetworkObject? selectedNetworkObject;
+    private NetworkService? selectedService;
+    private string? objectName;
+    private string networkInput = "";
+    private bool? networkInputValid;
+    private int protoId;
+    private string portInput = "";
+    private bool? portInputValid;
+
+    private string NetworkInput
+    {
+        get => networkInput;
+        set
+        {
+            networkInput = value;
+            networkInputValid = string.IsNullOrWhiteSpace(value) ? null : WfObjectTaskHelper.TryParseNetworkInput(value, ReqTask.Id, out _);
+        }
+    }
+
+    private string PortInput
+    {
+        get => portInput;
+        set
+        {
+            portInput = value;
+            portInputValid = string.IsNullOrWhiteSpace(value) ? null : WfObjectTaskHelper.TryParsePortInput(value, out _, out _);
+        }
+    }
+
+    private int ProtoId
+    {
+        get => protoId;
+        set
+        {
+            protoId = value;
+            if (!IpProtocol.HasPorts(protoId))
+            {
+                PortInput = "";
+            }
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(initializedTask, ReqTask))
+        {
+            initializedTask = ReqTask;
+            InitFromTask();
+        }
+        else if (IsModify && original != null && selectionManagementId != ManagementId)
+        {
+            // the selected object belongs to the previous management and is no longer offered by the search
+            ClearSelection();
+        }
+    }
+
+    private void InitFromTask()
+    {
+        original = WfObjectTaskHelper.GetOriginalElement(ReqTask);
+        requested = WfObjectTaskHelper.GetRequestedElement(ReqTask);
+        isService = (requested ?? original)?.Field == ElemFieldType.service.ToString();
+        selectedNetworkObject = null;
+        selectedService = null;
+        objectName = requested?.Name;
+        protoId = requested?.ProtoId ?? SelectableIpProtos.FirstOrDefault()?.Id ?? 0;
+        networkInput = requested != null && !isService ? WfObjectTaskHelper.FormatNetworkInput(ToNwObjectElement(requested)) : "";
+        portInput = requested != null && isService ? WfObjectTaskHelper.FormatPortInput(requested.Port, requested.PortEnd) : "";
+        networkInputValid = null;
+        portInputValid = null;
+        if (original != null)
+        {
+            selectedNetworkObject = isService ? null : new() { Id = original.NetworkId ?? 0, Name = original.Name ?? "", IP = original.IpString, IpEnd = original.IpEnd };
+            selectedService = isService ? new() { Id = original.ServiceId ?? 0, Name = original.Name ?? "", ProtoId = original.ProtoId,
+                DestinationPort = original.Port, DestinationPortEnd = original.PortEnd } : null;
+        }
+        // stored elements reference an object of the management stored with the task
+        selectionManagementId = original != null ? ReqTask.ManagementId ?? ManagementId : null;
+    }
+
+    private void SetKind(bool service)
+    {
+        if (isService == service)
+        {
+            return;
+        }
+        isService = service;
+        ClearSelection();
+    }
+
+    private void ClearSelection()
+    {
+        original = null;
+        selectedNetworkObject = null;
+        selectedService = null;
+        selectionManagementId = null;
+        if (IsModify)
+        {
+            // the name was prefilled from the dropped object
+            objectName = null;
+        }
+        NetworkInput = "";
+        PortInput = "";
+    }
+
+    private void SelectNetworkObject(NetworkObject? networkObject)
+    {
+        selectionManagementId = ManagementId;
+        selectedNetworkObject = networkObject;
+        original = networkObject == null ? null
+            : WfObjectTaskHelper.ToNwObjectElement(networkObject, RequestAction.unchanged.ToString(), ReqTask.Id).ToReqElement(ElemFieldType.source);
+        objectName = networkObject?.Name;
+        NetworkInput = original != null ? WfObjectTaskHelper.FormatNetworkInput(ToNwObjectElement(original)) : "";
+    }
+
+    private void SelectService(NetworkService? service)
+    {
+        selectionManagementId = ManagementId;
+        selectedService = service;
+        original = service == null ? null
+            : WfObjectTaskHelper.ToNwServiceElement(service, RequestAction.unchanged.ToString(), ReqTask.Id).ToReqElement();
+        objectName = service?.Name;
+        protoId = service?.ProtoId ?? protoId;
+        PortInput = WfObjectTaskHelper.FormatPortInput(service?.DestinationPort, service?.DestinationPortEnd);
+    }
+
+    /// <summary>
+    /// Checks the entered object and writes it into the request task. Returns the text key of the
+    /// error message when the input is incomplete or invalid, otherwise null.
+    /// </summary>
+    public string? ApplyToTask()
+    {
+        // like group_create, an object to be created may be requested for all managements ("All");
+        // a modified object references an imported object of exactly one management
+        if (IsModify && ManagementId is not > 0)
+        {
+            return "E5127";
+        }
+        if (IsModify && (original == null || selectionManagementId != ManagementId))
+        {
+            return "E5126";
+        }
+        string requestAction = IsModify ? RequestAction.modify.ToString() : RequestAction.create.ToString();
+        WfReqElement? requestedElement = isService ? BuildServiceElement(requestAction) : BuildNetworkElement(requestAction);
+        if (requestedElement == null)
+        {
+            return "E5124";
+        }
+        if (IsModify && IsUnchanged(original!, requestedElement))
+        {
+            return "E5125";
+        }
+        List<WfReqElement> elements = IsModify ? [new WfReqElement(original!) { RequestAction = RequestAction.unchanged.ToString() }, requestedElement] : [requestedElement];
+        WfObjectTaskHelper.ReplaceElements(ReqTask, elements);
+        requested = requestedElement;
+        return null;
+    }
+
+    private WfReqElement? BuildNetworkElement(string requestAction)
+    {
+        if (!WfObjectTaskHelper.TryParseNetworkInput(networkInput, ReqTask.Id, out NwObjectElement element)
+            || !WfObjectTaskHelper.HasNetworkMinimum(element))
+        {
+            return null;
+        }
+        element.Name = string.IsNullOrWhiteSpace(objectName) ? null : objectName.Trim();
+        element.RequestAction = requestAction;
+        element.NetworkId = IsModify ? original?.NetworkId : null;
+        return element.ToReqElement(ElemFieldType.source);
+    }
+
+    private WfReqElement? BuildServiceElement(string requestAction)
+    {
+        int? port = null;
+        int? portEnd = null;
+        if (IpProtocol.HasPorts(protoId) && !WfObjectTaskHelper.TryParsePortInput(portInput, out port, out portEnd))
+        {
+            return null;
+        }
+        NwServiceElement element = new()
+        {
+            TaskId = ReqTask.Id,
+            ProtoId = protoId,
+            Port = port,
+            PortEnd = portEnd,
+            Name = string.IsNullOrWhiteSpace(objectName) ? null : objectName.Trim(),
+            ServiceId = IsModify ? original?.ServiceId : null,
+            RequestAction = requestAction
+        };
+        return WfObjectTaskHelper.HasServiceMinimum(element) ? element.ToReqElement() : null;
+    }
+
+    private bool IsUnchanged(WfReqElement previous, WfReqElement current)
+    {
+        return isService
+            ? WfObjectTaskHelper.IsUnchanged(ToNwServiceElement(previous), ToNwServiceElement(current))
+            : WfObjectTaskHelper.IsUnchanged(ToNwObjectElement(previous), ToNwObjectElement(current));
+    }
+
+    private NwObjectElement ToNwObjectElement(WfReqElement element)
+    {
+        WfReqTask singleElementTask = new() { Elements = [element] };
+        return singleElementTask.GetNwObjectElements(ElemFieldType.source).FirstOrDefault() ?? new();
+    }
+
+    private static NwServiceElement ToNwServiceElement(WfReqElement element)
+    {
+        WfReqTask singleElementTask = new() { Elements = [element] };
+        return singleElementTask.GetServiceElements().FirstOrDefault() ?? new();
+    }
+
+    private string DisplayElement(WfReqElement element)
+    {
+        string name = string.IsNullOrWhiteSpace(element.Name) ? "" : element.Name + " ";
+        if (element.Field == ElemFieldType.service.ToString())
+        {
+            return name + DisplayBase.DisplayService(ToNwServiceElement(element), DisplayIpProtos);
+        }
+        NwObjectElement nwObject = ToNwObjectElement(element);
+        return name + NwObjDisplay.DisplayIp(nwObject.IpString, nwObject.IpEndString);
+    }
+
+    private static string ValidationClass(bool? valid)
+    {
+        return valid switch
+        {
+            true => "is-valid",
+            false => "is-invalid",
+            _ => ""
+        };
+    }
+}

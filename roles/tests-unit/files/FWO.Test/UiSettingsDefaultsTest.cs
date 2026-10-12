@@ -25,7 +25,6 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsDefaultsTest
     {
-        private const long kNetworkZoneTreeId = 2;
         private const string kNoneName = "None";
         private const string kNetworkZoneTreeName = "Network Zone Tree";
         private const string kCertificatePem = """
@@ -42,7 +41,7 @@ namespace FWO.Test
             return
             [
                 new PathAnalysisAlgorithm { Id = GlobalConst.kPathAnalysisAlgorithmNone, Name = kNoneName },
-                new PathAnalysisAlgorithm { Id = kNetworkZoneTreeId, Name = kNetworkZoneTreeName }
+                new PathAnalysisAlgorithm { Id = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree, Name = kNetworkZoneTreeName }
             ];
         }
 
@@ -174,7 +173,7 @@ namespace FWO.Test
                     Assert.That(options, Has.Count.EqualTo(2));
                     Assert.That(options[0].GetAttribute("value"), Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNone.ToString()));
                     Assert.That(options[0].TextContent, Is.EqualTo(kNoneName));
-                    Assert.That(options[1].GetAttribute("value"), Is.EqualTo(kNetworkZoneTreeId.ToString()));
+                    Assert.That(options[1].GetAttribute("value"), Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()));
                     Assert.That(options[1].TextContent, Is.EqualTo(kNetworkZoneTreeName));
                 });
             });
@@ -188,7 +187,7 @@ namespace FWO.Test
                 out SimulatedGlobalConfig globalConfig);
 
             apiConnection.PathAnalysisAlgorithms = BuildPathAnalysisAlgorithms();
-            globalConfig.PathAnalysisAlgorithm = kNetworkZoneTreeId;
+            globalConfig.PathAnalysisAlgorithm = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree;
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
 
@@ -199,7 +198,7 @@ namespace FWO.Test
 
                 Assert.Multiple(() =>
                 {
-                    Assert.That(boundValue, Is.EqualTo(kNetworkZoneTreeId.ToString()));
+                    Assert.That(boundValue, Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()));
                     Assert.That(
                         wrapper.FindAll("#pathAnalysisAlgorithm option")
                             .Any(option => option.GetAttribute("value") == boundValue),
@@ -223,14 +222,14 @@ namespace FWO.Test
             wrapper.WaitForAssertion(() =>
                 Assert.That(wrapper.Find("#pathAnalysisAlgorithm"), Is.Not.Null));
 
-            wrapper.Find("#pathAnalysisAlgorithm").Change(kNetworkZoneTreeId.ToString());
+            wrapper.Find("#pathAnalysisAlgorithm").Change(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString());
 
             SettingsDefaults component = wrapper.FindComponent<SettingsDefaults>().Instance;
             ConfigData configData = GetPrivateField<ConfigData>(component, "configData");
 
             Assert.That(
                 configData.PathAnalysisAlgorithm,
-                Is.EqualTo(kNetworkZoneTreeId),
+                Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree),
                 "the option value has to be parsable into the bound property");
 
             await InvokePrivateAsync(component, "Save");
@@ -241,7 +240,7 @@ namespace FWO.Test
                 Assert.That(
                     apiConnection.LastUpsertConfigItems.Any(item =>
                         item.Key == "pathAnalysisAlgorithm"
-                        && item.Value == kNetworkZoneTreeId.ToString()),
+                        && item.Value == GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()),
                     Is.True);
             });
         }

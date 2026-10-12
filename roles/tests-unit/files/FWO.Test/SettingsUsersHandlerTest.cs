@@ -706,7 +706,7 @@ namespace FWO.Test
                 UserSearchPath = "ou=users,dc=fworch,dc=internal"
             };
             handler.SelectedRole = new Role { Name = "auditor", Dn = "cn=auditor,ou=roles,dc=fworch,dc=internal" };
-            handler.UiUsers = [new UiUser { Dn = "cn=alice,ou=users,dc=fworch,dc=internal" }];
+            handler.UiUsers = [new UiUser { Dn = "cn=alice,ou=users,dc=fworch,dc=internal", LdapConnection = handler.SelectedLdap }];
             handler.ActUser = new UiUser
             {
                 Name = "alice",

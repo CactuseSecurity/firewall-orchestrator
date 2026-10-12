@@ -787,7 +787,7 @@ namespace FWO.Test
             };
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateActTicketStateFromReqTasks", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [true, true]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, [true, true, null]) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(handler.ActTicket.StateId, Is.EqualTo(1));
         }

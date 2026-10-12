@@ -7,7 +7,7 @@
   listen: "test importer handler"
 
 - block:
-  - name: delete test checkpoint R8x credentials cascading to deletion of mgmt and gw 
+  - name: delete test checkpoint R8x mgmt (cascading to gw) and its credentials
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
@@ -26,6 +26,9 @@
         DELETE FROM rule_metadata
         WHERE mgm_id IN (SELECT mgm_id FROM target_mgm)
            OR rule_created IN (SELECT control_id FROM target_imports);
+        DELETE FROM management
+        WHERE import_credential_id IN (SELECT id FROM import_credential WHERE credential_name='{{ test_credential_name }}')
+           OR export_credential_id IN (SELECT id FROM import_credential WHERE credential_name='{{ test_credential_name }}');
         DELETE FROM import_credential WHERE credential_name='{{ test_credential_name }}'; 
         END $do$
     listen: "test importer handler"

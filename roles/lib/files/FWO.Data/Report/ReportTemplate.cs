@@ -59,6 +59,12 @@ namespace FWO.Data.Report
         [JsonProperty("device_filter"), JsonPropertyName("device_filter")]
         public DeviceFilter DeviceFilter { get; set; } = new();
 
+        [JsonProperty("management_rulebase_view"), JsonPropertyName("management_rulebase_view")]
+        public bool ManagementRulebaseView { get; set; }
+
+        [JsonProperty("selected_rulebases"), JsonPropertyName("selected_rulebases")]
+        public List<SelectedRulebase> SelectedRulebases { get; set; } = [];
+
         [JsonProperty("time_filter"), JsonPropertyName("time_filter")]
         public TimeFilter TimeFilter { get; set; } = new();
 
@@ -90,6 +96,14 @@ namespace FWO.Data.Report
         {
             ReportType = reportType;
             DeviceFilter = deviceFilter;
+        }
+
+        /// <summary>
+        /// Checks whether a Rules report is scoped by selected rulebases (management rulebases view) instead of the device filter.
+        /// </summary>
+        public bool IsManagementRulebaseView()
+        {
+            return ReportType == (int)FWO.Basics.ReportType.Rules && ManagementRulebaseView;
         }
     }
 }

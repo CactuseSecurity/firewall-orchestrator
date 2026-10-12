@@ -10,12 +10,20 @@ namespace FWO.Data
 {
     public class ComplianceNetworkZone
     {
+        /// <summary>
+        /// Database (network_zone.zone.id) key of zone.
+        /// </summary>
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; } = -1;
 
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        /// <summary>
+        /// Key supplied by the matrix import file (network_zone.zone.id_string).
+        /// Zones reference each other by this value inside an import or re-import.
+        /// Uniqueness is enforced by the importer per file only, not by a database constraint.
+        /// </summary>
         [JsonProperty("id_string"), JsonPropertyName("id_string")]
         public string IdString { get; set; } = "";
 

@@ -10,7 +10,7 @@
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="PuppeteerSharp" Version="25.10.0" />
+		<PackageReference Include="PuppeteerSharp" Version="25.12.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\FWO.Api.Client\FWO.Api.Client.csproj" />
@@ -19,6 +19,7 @@
 		<ProjectReference Include="..\FWO.Middleware.Client\FWO.Middleware.Client.csproj" />
 		<ProjectReference Include="..\FWO.ExternalSystems\FWO.ExternalSystems.csproj" />
 		<ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
+		<ProjectReference Include="..\FWO.NetworkTopology\FWO.NetworkTopology.csproj" />
 	</ItemGroup>
 
 </Project>

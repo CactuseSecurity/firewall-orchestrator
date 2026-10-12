@@ -3,7 +3,7 @@
 @using FWO.Middleware.Client
 
 @page "/request/implementations/{ticketId?}"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Implementer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Implementer}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -151,7 +151,7 @@ else
     {
         try
         {
-            wfHandler.ReadOnlyMode = !userConfig.CanUseAnyRole(Roles.Implementer, Roles.FwAdmin, Roles.Admin);
+            wfHandler.ReadOnlyMode = !userConfig.CanUseAnyRole(Roles.Implementer, Roles.Admin);
             await wfHandler.Init(true, userConfig.ReqOwnerBased ? Owners.ConvertAll(x => x.Id) : null, false, true);
         }
         catch (Exception exception)

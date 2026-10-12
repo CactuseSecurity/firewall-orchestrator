@@ -3,7 +3,7 @@
 
 @page "/compliance/checks"
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 @layout ComplianceLayout
 
 @inject UserConfig userConfig
@@ -87,7 +87,7 @@
                     int? matrixId = Policy.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content.Id;
                     if (matrixId != null)
                     {
-                        networkZoneService.NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+                        networkZoneService.NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
                     }
                 }
             }

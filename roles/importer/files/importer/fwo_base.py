@@ -6,13 +6,11 @@ import json
 import re
 import time
 import traceback
-from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 import fwo_config
 import fwo_const
 from fwo_const import IMPORT_TMP_PATH
-from fwo_enums import ConfFormat, ConfigAction
 
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
@@ -52,42 +50,6 @@ def extend_string_list(list_string: str | None, src_dict: dict[str, list[str]], 
 
 def string_is_uri(s: str) -> re.Match[str] | None:  # TODO: should return bool?
     return re.match("http://.+", s) or re.match("https://.+", s) or re.match("file://.+", s)
-
-
-def deserialize_class_to_dict_rec(
-    obj: Any, seen: set[int] | None = None
-) -> dict[str, Any] | list[Any] | Any | str | int | float | bool | None:  # TYPING: using model is forbidden?
-    if seen is None:
-        seen = set()
-
-    # Handle simple immutable types directly (int, float, bool, str) and None
-    if obj is None or isinstance(obj, (int, float, bool, str, ConfFormat, ConfigAction)):
-        return obj
-
-    # Check for circular references
-    if id(obj) in seen:
-        return f"<Circular reference to {obj.__class__.__name__}>"
-
-    seen.add(id(obj))
-
-    if isinstance(obj, list):
-        # If the object is a list, deserialize each item
-        return [deserialize_class_to_dict_rec(item, seen) for item in obj]  # type: ignore  # noqa: PGH003
-    if isinstance(obj, dict):
-        # If the object is a dictionary, deserialize each key-value pair
-        return {key: deserialize_class_to_dict_rec(value, seen) for key, value in obj.items()}  # type: ignore  # noqa: PGH003
-    if isinstance(obj, Enum):
-        # If the object is an Enum, convert it to its value
-        return obj.value
-    if hasattr(obj, "__dict__"):
-        # If the object is a class instance, deserialize its attributes
-        return {
-            key: deserialize_class_to_dict_rec(value, seen)
-            for key, value in obj.__dict__.items()
-            if not callable(value) and not key.startswith("__")
-        }
-    # For other types, return the value as is
-    return obj
 
 
 def cidr_to_range(

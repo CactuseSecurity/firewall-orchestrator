@@ -23,8 +23,10 @@
 
 - name: test if distinguished name exists
   # error code 32, when searchbase not existing
-  command: "ldapsearch {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -b {{ distinguished_name }}"
-  #become: true
+  # -x binds with the manager password like every ldapmodify call here; without it ldapsearch tries a SASL bind and fails
+  # become: the manager password file read via -y is readable by the fworch user only (mode 0600)
+  command: "ldapsearch {{ fwo_ldap_tls_opts }} -o ldif-wrap=no -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -b {{ distinguished_name }}"
+  become: true
   register: search_existence
   no_log: true
   failed_when: (search_existence.rc != 0) and (search_existence.rc != 32)
@@ -33,20 +35,31 @@
   command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
   when: (changetype == 'add') and (search_existence.stdout.split('result:')[1].splitlines()[0] is match('.*No such object'))
   no_log: true
-  #become: true
+  become: true
+
+- name: set members of ldap entry to be deleted
+  set_fact:
+    deleted_entry_members: "{{ search_existence.stdout_lines | select('match', '^uniqueMember: .+') | map('regex_replace', '^uniqueMember: ', '') | list }}"
+  when: changetype == 'delete'
+
+- name: report members losing the ldap entry to be deleted
+  debug:
+    msg: "{{ distinguished_name }} is removed. Its members lose what it granted and need another role or group: {{ deleted_entry_members | join('; ') }}"
+  when: (changetype == 'delete') and (deleted_entry_members | length > 0)
 
 - name: delete ldap entry if existing
   # dont delete in case numEntries > 1, otherwise ldap nodes are disconected
+  # an entry that is already gone has no numEntries line, which keeps a repeated upgrade from failing
   command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
-  when: (changetype == 'delete') and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
+  when: (changetype == 'delete') and ('# numEntries:' in search_existence.stdout) and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
   no_log: true
-  #become: true
+  become: true
 
 - name: modify ldap entry if existing
   # error code 20, when attribute already exists
   command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/{{ outer_item }}_{{ item.split(',')[0] }}.ldif"
   register: modify_out
-  when: (changetype == 'modify') and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
+  when: (changetype == 'modify') and ('# numEntries:' in search_existence.stdout) and (search_existence.stdout.split('# numEntries:')[1].splitlines()[0] is match('\s1'))
   no_log: true
-  #become: true
+  become: true
   failed_when: (modify_out.rc != 0) and (modify_out.rc != 16) and (modify_out.rc != 20)

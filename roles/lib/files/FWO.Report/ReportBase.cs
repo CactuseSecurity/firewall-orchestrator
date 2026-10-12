@@ -59,6 +59,7 @@ namespace FWO.Report
             public string? OwnerFilter { get; set; }
             public TimeFilter? TimeFilter { get; set; }
             public string FilterTextKey { get; set; } = "filter";
+            public string? OtherFilterTextKey { get; set; }
         }
 
         private static readonly string HtmlTemplateSource = $@"
@@ -66,6 +67,7 @@ namespace FWO.Report
 <html>
 <head>
     <meta charset=""utf-8""/>
+    <meta http-equiv=""Content-Security-Policy"" content=""{GlobalConst.kExportContentSecurityPolicy}""/>
       <title>##Title##</title>
          {NotificationTableBodyBuilder.HtmlTableStyleBlock}
     </head>
@@ -252,9 +254,22 @@ namespace FWO.Report
             return $"{link}{type}{chapterNumber}x{id}";
         }
 
+        /// <summary>
+        /// Builds the link a report uses to point at an object of its own document.
+        /// Every part is encoded for the place it is written into: the icon class and the style land in
+        /// double quoted attributes, the target is refused unless it stays on the document, and the name -
+        /// which is a stored value and the part an attacker can reach - is written as text.
+        /// </summary>
+        /// <param name="symbol">Icon class of the linked object kind.</param>
+        /// <param name="name">Display name of the linked object.</param>
+        /// <param name="style">Inline style of the link.</param>
+        /// <param name="linkAddress">Target of the link, an anchor of this document or a page of this application.</param>
+        /// <returns>The html of the link.</returns>
         public static string ConstructLink(string symbol, string name, string style, string linkAddress)
         {
-            return $"<span class=\"{symbol}\">&nbsp;</span><a onclick=\"event.stopPropagation();\" href=\"{linkAddress}\" target=\"_top\" style=\"{style}\">{name}</a>";
+            return $"<span class=\"{HtmlOutputEncoder.EncodeAttribute(symbol)}\">&nbsp;</span>" +
+                $"<a onclick=\"event.stopPropagation();\" href=\"{HtmlOutputEncoder.EncodeLocalUrl(linkAddress)}\" " +
+                $"target=\"_top\" style=\"{HtmlOutputEncoder.EncodeAttribute(style)}\">{HtmlOutputEncoder.EncodeText(name)}</a>";
         }
 
         protected static string OutputCsv(string? input)
@@ -289,7 +304,7 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 ReplaceDateOfConfig(frameOptions.TimeFilter);
                 ReplaceOwnerFilter(frameOptions.OwnerFilter);
-                ReplaceOtherFilter(frameOptions.OtherFilter);
+                ReplaceOtherFilter(frameOptions.OtherFilter, frameOptions.OtherFilterTextKey);
 
                 string htmlToC = BuildHTMLToC(body);
                 HtmlTemplate = HtmlTemplate.Replace("##ToC##", htmlToC);
@@ -348,11 +363,15 @@ namespace FWO.Report
             }
         }
 
-        private void ReplaceOtherFilter(string? otherFilter)
+        private void ReplaceOtherFilter(string? otherFilter, string? otherFilterTextKey)
         {
             if (!string.IsNullOrWhiteSpace(otherFilter) && ReportType != ReportType.RecertEventReport)
             {
-                if (ReportType.IsWorkflowReport())
+                if (otherFilterTextKey != null)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText(otherFilterTextKey))}: {EncodeHtml(otherFilter)}");
+                }
+                else if (ReportType.IsWorkflowReport())
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText("workflow_filters"))}: {EncodeHtml(otherFilter)}");
                 }
@@ -418,6 +437,7 @@ namespace FWO.Report
             try
             {
                 using IPage page = await browser.NewPageAsync();
+                await PdfRenderSecurity.HardenPageAsync(page);
                 await page.SetContentAsync(html, new SetContentOptions { Timeout = kPageOperationTimeoutMs });
 
                 PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new KeyNotFoundException();
@@ -530,6 +550,7 @@ namespace FWO.Report
                     {
                         ExecutablePath = executablePath,
                         Headless = true,
+                        Args = PdfRenderSecurity.GetHardenedBrowserArgs(),
                         Timeout = kBrowserLaunchTimeoutMs,
                         ProtocolTimeout = kBrowserProtocolTimeoutMs
                     });
@@ -614,7 +635,7 @@ namespace FWO.Report
 
         private static void AppendHeader(StringBuilder sb, ToCHeader toCHeader)
         {
-            sb.AppendLine($"<li><a href=\"#{toCHeader.Id}\">{toCHeader.Title}</a></li>");
+            sb.AppendLine($"<li><a href=\"#{HtmlOutputEncoder.EncodeAttribute(toCHeader.Id)}\">{HtmlOutputEncoder.EncodeText(toCHeader.Title)}</a></li>");
 
             if (toCHeader.Items.Count > 0)
             {
@@ -630,7 +651,7 @@ namespace FWO.Report
 
         private static void AppendItem(StringBuilder sb, ToCItem tocItem)
         {
-            sb.AppendLine($"<li class=\"subli\"><a href=\"#{tocItem.Id}\">{tocItem.Title}</a></li>");
+            sb.AppendLine($"<li class=\"subli\"><a href=\"#{HtmlOutputEncoder.EncodeAttribute(tocItem.Id)}\">{HtmlOutputEncoder.EncodeText(tocItem.Title)}</a></li>");
             if (tocItem.SubItems.Count > 0)
             {
                 sb.AppendLine("<ul>");
@@ -644,13 +665,13 @@ namespace FWO.Report
 
         private static void AppendSubItem(StringBuilder sb, ToCItem subItem)
         {
-            sb.AppendLine($"<li class=\"subli\"><a href=\"#{subItem.Id}\">{subItem.Title}</a></li>");
+            sb.AppendLine($"<li class=\"subli\"><a href=\"#{HtmlOutputEncoder.EncodeAttribute(subItem.Id)}\">{HtmlOutputEncoder.EncodeText(subItem.Title)}</a></li>");
             if (subItem.SubItems.Count > 0)
             {
                 sb.AppendLine("<ul>");
                 foreach (ToCItem subsubItem in subItem.SubItems)
                 {
-                    sb.AppendLine($"<li class=\"subli\"><a href=\"#{subsubItem.Id}\">{subsubItem.Title}</a></li>");
+                    sb.AppendLine($"<li class=\"subli\"><a href=\"#{HtmlOutputEncoder.EncodeAttribute(subsubItem.Id)}\">{HtmlOutputEncoder.EncodeText(subsubItem.Title)}</a></li>");
                 }
                 sb.AppendLine("</ul>");
             }
@@ -658,7 +679,15 @@ namespace FWO.Report
 
         protected string Headline(string? title, int level)
         {
-            return $"<h{level + Levelshift} id=\"{Guid.NewGuid()}\">{title}</h{level + Levelshift}>";
+            return Headline(title, level, Guid.NewGuid().ToString());
+        }
+
+        /// <summary>
+        /// Returns a headline with a fixed html id, e.g. as target of links within the report.
+        /// </summary>
+        protected string Headline(string? title, int level, string id)
+        {
+            return $"<h{level + Levelshift} id=\"{id}\">{HtmlOutputEncoder.EncodeText(title)}</h{level + Levelshift}>";
         }
 
         public static bool IsValidHTML(string html)

@@ -59,13 +59,16 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SendEmailToOwnerResponsiblesStillReportsFalseWhenNothingCouldBeSent()
+        public async Task SendEmailToNotificationRecipientsReportsFalseWhenNothingCouldBeSent()
         {
-            // The boolean overload is what the non-workflow callers use. Only a delivered email may come
-            // back as true, so an unresolvable recipient list has to stay false.
+            // Only a delivered email may come back as true, so an unresolvable recipient list has to stay false.
             EmailHelper helper = CreateEmailHelper();
 
-            bool sent = await helper.SendEmailToOwnerResponsibles(new FwoOwner(), "subject", "body", EmailRecipientOption.None);
+            bool sent = await helper.SendEmailToNotificationRecipients(
+                new FwoNotification { RecipientTo = EmailRecipientOption.None },
+                new FwoOwner(),
+                "subject",
+                "body");
 
             Assert.That(sent, Is.False);
         }

@@ -39,6 +39,16 @@ namespace FWO.Test
             public int UpdateNotificationsLastSentAffectedRows { get; set; }
             public List<int> UpdatedNotificationLastSentIds { get; private set; } = [];
             public bool ThrowOnAddAlert { get; set; }
+
+            /// <summary>
+            /// Lets the record of the executed state change fail the way a transient api error would.
+            /// </summary>
+            public bool ThrowOnRecordStateChangeExecution { get; set; }
+
+            /// <summary>
+            /// Variables of every recorded state change, so a test can check what was written.
+            /// </summary>
+            public List<object?> RecordedStateChangeVariables { get; } = [];
             public bool ThrowOnGetTicketById { get; set; }
             public bool ThrowOnUpdateNotificationsLastSent { get; set; }
             public List<string> Queries { get; } = [];
@@ -106,6 +116,15 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)States);
                 }
+                if (query == RequestQueries.recordStateChangeExecution)
+                {
+                    if (ThrowOnRecordStateChangeExecution)
+                    {
+                        throw new InvalidOperationException("recording the executed state change failed");
+                    }
+                    RecordedStateChangeVariables.Add(variables);
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
+                }
                 if (query == MonitorQueries.addAlert)
                 {
                     if (ThrowOnAddAlert)
@@ -126,6 +145,17 @@ namespace FWO.Test
                     }
                     UpdatedNotificationLastSentIds = GetVariable<List<int>>(variables, "ids");
                     return Task.FromResult((T)(object)new ReturnId { AffectedRows = UpdateNotificationsLastSentAffectedRows });
+                }
+                if (query == NotificationQueries.insertNotificationLog)
+                {
+                    return Task.FromResult((T)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = 1 }]
+                    });
+                }
+                if (query == NotificationQueries.updateNotificationLog)
+                {
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
                 }
                 if (query == OwnerQueries.getOwnerResponsibleTypes)
                 {
@@ -216,7 +246,7 @@ namespace FWO.Test
                         ? compliantPolicy
                         : policyId == matrixPolicy.Id ? matrixPolicy : nonCompliantPolicy));
                 }
-                if (query == ComplianceQueries.getNetworkZonesForMatrix)
+                if (query == NetworkZoneQueries.getNetworkZonesForMatrix)
                 {
                     return Task.FromResult((T)(object)MatrixNetworkZones);
                 }
@@ -1012,13 +1042,60 @@ namespace FWO.Test
             };
 
             await handler.SendEmail(action, new WfTicket(), WfObjectScopes.Ticket, null);
-
             Assert.Multiple(() =>
             {
                 Assert.That(messages, Has.Count.EqualTo(1));
                 Assert.That(messages[0].Exception, Is.TypeOf<JsonException>());
                 Assert.That(messages[0].Title, Is.EqualTo("Send Email"));
                 Assert.That(messages[0].ErrorFlag, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task SendEmail_LogOnlyWritesLogAndUpdatesTimestampWithoutConfirmingSend()
+        {
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                Notifications = new List<FwoNotification>
+                {
+                    new FwoNotification
+                    {
+                        Id = 42,
+                        NotificationClient = NotificationClient.WfAction,
+                        RecipientTo = EmailRecipientOption.OtherAddresses,
+                        EmailAddressTo = "recipient@example.test",
+                        EmailSubject = "Interface requested",
+                        EmailBody = "The interface was requested.",
+                        Logging = NotificationLoggingMode.LogOnly
+                    }
+                },
+                UpdateNotificationsLastSentAffectedRows = 1
+            };
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            WfHandler wfHandler = new(new SimulatedUserConfig(), apiConn, WorkflowPhases.request, null,
+                displayMessage: (exception, title, message, errorFlag) => messages.Add((exception, title, message, errorFlag)));
+            ActionHandler handler = new(apiConn, wfHandler, useInMwServer: true);
+            WfStateAction action = new()
+            {
+                ExternalParams = JsonSerializer.Serialize(new EmailActionParams
+                {
+                    NotificationIds = new List<int> { 42 },
+                    ConfirmSentMail = true,
+                    AttachedContent = EmailAttachedContent.RequestedConnections
+                })
+            };
+
+            await handler.SendEmail(action, new WfTicket(), WfObjectScopes.Ticket, null);
+            List<int> expectedUpdatedNotificationIds = [42];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.getNotifications), Is.EqualTo(1));
+                Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.insertNotificationLog), Is.EqualTo(1));
+                Assert.That(apiConn.Queries.Count(query => query == StmQueries.getIpProtocols), Is.EqualTo(1));
+                Assert.That(apiConn.UpdatedNotificationLastSentIds, Is.EqualTo(expectedUpdatedNotificationIds));
+                Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.updateNotificationLog), Is.EqualTo(1));
+                Assert.That(messages, Is.Empty);
             });
         }
 
@@ -1311,6 +1388,108 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// SEC-06: the replay guard refuses a request naming the state an object's actions last ran for,
+        /// so a state change executed inside the middleware has to write that state even though it never
+        /// passes through the action endpoint. Otherwise the record lags behind the object and the next
+        /// legitimate move back into the state is taken for a replay.
+        /// </summary>
+        [Test]
+        public async Task DoStateChangeActions_RecordsTheExecutedStateChangeWhenRunningInTheMiddleware()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            WfHandler wfHandler = new();
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
+            WfReqTask task = CreateStateChangedReqTask(77, 200, 300);
+
+            await handler.DoStateChangeActions(task, WfObjectScopes.RequestTask);
+
+            Assert.That(apiConn.RecordedStateChangeVariables, Has.Count.EqualTo(1));
+            object variables = apiConn.RecordedStateChangeVariables[0]!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(ReadVariable(variables, "objectScope"), Is.EqualTo(WfObjectScopes.RequestTask.ToString()));
+                Assert.That(ReadVariable(variables, "objectId"), Is.EqualTo(77L));
+                Assert.That(ReadVariable(variables, "fromStateId"), Is.EqualTo(200));
+                Assert.That(ReadVariable(variables, "toStateId"), Is.EqualTo(300));
+            });
+        }
+
+        /// <summary>
+        /// Outside the middleware server the table is not writable at all, and a client that delegates to
+        /// the action endpoint has its transition recorded by the claim there.
+        /// </summary>
+        [Test]
+        public async Task DoStateChangeActions_DoesNotRecordTheStateChangeOutsideTheMiddleware()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            ActionHandler handler = new(apiConn, new WfHandler());
+            WfReqTask task = CreateStateChangedReqTask(77, 200, 300);
+
+            await handler.DoStateChangeActions(task, WfObjectScopes.RequestTask);
+
+            Assert.That(apiConn.Queries, Has.None.EqualTo(RequestQueries.recordStateChangeExecution));
+        }
+
+        /// <summary>
+        /// The state is already persisted and the actions are about to run, so a failed bookkeeping write
+        /// must not turn into a broken promote.
+        /// </summary>
+        [Test]
+        public async Task DoStateChangeActions_StillRunsItsActionsWhenTheRecordFails()
+        {
+            ActionHandlerTestApiConn apiConn = new() { ThrowOnRecordStateChangeExecution = true };
+            apiConn.States =
+            [
+                new WfState
+                {
+                    Id = 300,
+                    Actions =
+                    [
+                        CreateAction(StateActionEvents.OnSet.ToString(), StateActionTypes.SetAlert.ToString(), WfObjectScopes.RequestTask.ToString())
+                    ]
+                }
+            ];
+            WfHandler wfHandler = new();
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
+            await handler.Init();
+            WfReqTask task = CreateStateChangedReqTask(77, 200, 300);
+
+            Assert.DoesNotThrowAsync(async () => await handler.DoStateChangeActions(task, WfObjectScopes.RequestTask));
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries.Count(query => query == MonitorQueries.addAlert), Is.EqualTo(1));
+                Assert.That(task.StateChanged(), Is.False);
+            });
+        }
+
+        /// <summary>
+        /// Builds a request task that stands in one state having just left another, the way a persisted
+        /// state change reaches the action handler.
+        /// </summary>
+        /// <param name="id">Id of the request task.</param>
+        /// <param name="fromStateId">State the task left.</param>
+        /// <param name="toStateId">State the task now stands in.</param>
+        /// <returns>The task, marked as state changed.</returns>
+        private static WfReqTask CreateStateChangedReqTask(long id, int fromStateId, int toStateId)
+        {
+            WfReqTask task = new() { Id = id, StateId = fromStateId };
+            task.ResetStateChanged();
+            task.StateId = toStateId;
+            return task;
+        }
+
+        /// <summary>
+        /// Reads one property of the anonymous variables object handed to the api connection.
+        /// </summary>
+        /// <param name="variables">The variables object of a recorded query.</param>
+        /// <param name="name">Name of the property to read.</param>
+        /// <returns>The property value, or null when the variables carry no such property.</returns>
+        private static object? ReadVariable(object variables, string name)
+        {
+            return variables.GetType().GetProperty(name)?.GetValue(variables);
+        }
+
         [Test]
         public async Task DoStateChangeActions_SetsTicketEnvironmentForTicketScope()
         {
@@ -1333,7 +1512,7 @@ namespace FWO.Test
             ticket.MarkCreatedStateChanged(1);
 
             WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [ticket, WfObjectScopes.Ticket, null, 0])!;
+                .Invoke(handler, [ticket, WfObjectScopes.Ticket, null, 0, null])!;
 
             Assert.Multiple(() =>
             {
@@ -1344,6 +1523,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildWorkflowActionParameters_PropagatesNotificationPlaceholderData()
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
+            WfImplTask implTask = new() { Id = 12, TicketId = 42, StateId = 5 };
+            NotificationPlaceholderData placeholderData = new() { Content = "Rejected because the interface is obsolete." };
+
+            WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
+                .Invoke(handler, [implTask, WfObjectScopes.ImplementationTask, null, 66, placeholderData])!;
+
+            Assert.That(parameters.NotificationPlaceholders, Is.SameAs(placeholderData));
+            Assert.That(parameters.NotificationPlaceholders!.Content, Is.EqualTo("Rejected because the interface is obsolete."));
+        }
+
+        [Test]
         public void BuildWorkflowActionParameters_IncludesWorkflowEmailBundleId()
         {
             WfHandler wfHandler = new();
@@ -1351,7 +1544,7 @@ namespace FWO.Test
             ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
 
             WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [new WfTicket { Id = 42 }, WfObjectScopes.Ticket, null, 0])!;
+                .Invoke(handler, [new WfTicket { Id = 42 }, WfObjectScopes.Ticket, null, 0, null])!;
 
             Assert.Multiple(() =>
             {
@@ -1371,13 +1564,13 @@ namespace FWO.Test
             WfApproval approval = new() { Id = 13, StateId = 4 };
 
             WorkflowActionParameters reqParams = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [reqTask, WfObjectScopes.RequestTask, null, 5])!;
+                .Invoke(handler, [reqTask, WfObjectScopes.RequestTask, null, 5, null])!;
             WorkflowActionParameters implParams = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [implTask, WfObjectScopes.ImplementationTask, null, 6])!;
+                .Invoke(handler, [implTask, WfObjectScopes.ImplementationTask, null, 6, null])!;
             WorkflowActionParameters approvalParams = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [approval, WfObjectScopes.Approval, null, 7])!;
+                .Invoke(handler, [approval, WfObjectScopes.Approval, null, 7, null])!;
             WorkflowActionParameters explicitTicketParams = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [reqTask, WfObjectScopes.RequestTask, 999L, 8])!;
+                .Invoke(handler, [reqTask, WfObjectScopes.RequestTask, 999L, 8, null])!;
 
             Assert.Multiple(() =>
             {
@@ -1402,7 +1595,10 @@ namespace FWO.Test
             List<WorkflowActionMessage> middlewareMessages =
             [
                 new() { Title = "Info", Message = "ok", ErrorFlag = false },
-                new() { Title = "Warning", Message = "check", ErrorFlag = true }
+                new() { Title = "Warning", Message = "check", ErrorFlag = true },
+                // resolved by the middleware in its default language; the keys have to win
+                new() { Title = "Aktionen", Message = "Die Aktionen wurden nicht ausgeführt", ErrorFlag = true,
+                    TitleTextKey = "actions", MessageTextKey = "E8018" }
             ];
 
             GetPrivateMethod("DisplayWorkflowActionMessages").Invoke(handler, [middlewareMessages]);
@@ -1410,9 +1606,14 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(messages, Has.Count.EqualTo(2));
+                Assert.That(messages, Has.Count.EqualTo(3));
                 Assert.That(messages[0].Title, Is.EqualTo("Info"));
+                Assert.That(messages[0].Message, Is.EqualTo("ok"), "a message without a text key is shown as sent");
                 Assert.That(messages[1].ErrorFlag, Is.True);
+                Assert.That(messages[2].Title, Is.EqualTo("Actions"),
+                    "a message with a text key is shown in the language of the ui user, not the middleware default");
+                Assert.That(messages[2].Message, Is.EqualTo("The actions of this state change were not executed"));
+                Assert.That(messages[2].ErrorFlag, Is.True);
             });
         }
 
@@ -1818,7 +2019,7 @@ namespace FWO.Test
             public List<long> AttemptedTaskIds { get; } = [];
 
             public override Task<bool> TrySendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
-                FwoOwner? owner, string? userGrpDn = null)
+                FwoOwner? owner, string? userGrpDn = null, NotificationPlaceholderData? placeholderData = null)
             {
                 long taskId = statefulObject is WfReqTask reqTask ? reqTask.Id : 0;
                 AttemptedTaskIds.Add(taskId);
@@ -2429,6 +2630,30 @@ namespace FWO.Test
             Assert.That(result, Is.True);
         }
 
+        [TestCase(WfTaskType.object_create)]
+        [TestCase(WfTaskType.object_modify)]
+        public async Task ExecutePolicyCheck_ReturnsTrueForObjectOnlyTicket(WfTaskType taskType)
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true);
+            WfTicket ticket = CreateTicket(new WfReqTask
+            {
+                Id = 26,
+                TaskType = taskType.ToString(),
+                Elements = [new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    RequestAction = RequestAction.create.ToString(),
+                    IpString = "10.0.0.1/32"
+                }]
+            });
+            List<object?> arguments = [new List<int> { 5 }, "policy_check", ticket, WfObjectScopes.Ticket];
+
+            Task<bool> task = (Task<bool>)GetPrivateMethod("ExecutePolicyCheck").Invoke(handler, arguments.ToArray())!;
+            bool result = await task;
+
+            Assert.That(result, Is.True);
+        }
+
         [Test]
         public async Task ExecutePolicyCheck_ReturnsFalseWhenPolicyCheckerThrows()
         {
@@ -2943,7 +3168,7 @@ namespace FWO.Test
             await handler.BundleTasks(action, ticket, WfObjectScopes.Ticket, null, null);
 
             Assert.That(apiConn.Queries, Has.Member(ComplianceQueries.getPolicyById));
-            Assert.That(apiConn.Queries, Has.Member(ComplianceQueries.getNetworkZonesForMatrix));
+            Assert.That(apiConn.Queries, Has.Member(NetworkZoneQueries.getNetworkZonesForMatrix));
             Assert.That(first.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.EqualTo("bundle-1-2"));
             Assert.That(second.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.EqualTo("bundle-1-2"));
             Assert.That(differentZone.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.Empty);
@@ -2974,7 +3199,7 @@ namespace FWO.Test
             await handler.BundleTasks(action, ticket, WfObjectScopes.Ticket, null, null);
 
             Assert.That(apiConn.Queries, Has.Member(ComplianceQueries.getPolicyById));
-            Assert.That(apiConn.Queries, Has.No.Member(ComplianceQueries.getNetworkZonesForMatrix));
+            Assert.That(apiConn.Queries, Has.No.Member(NetworkZoneQueries.getNetworkZonesForMatrix));
             Assert.That(first.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.Empty);
             Assert.That(second.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.Empty);
         }

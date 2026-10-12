@@ -20,6 +20,10 @@ namespace FWO.Test
         private static readonly string[] kExpectedSectionHeaderDisplayOrderNumbers = ["1", string.Empty, string.Empty];
         private static readonly string[] kExpectedSectionRuleDisplayOrderNumbers = ["1.1", "1.2", "1.3", "1.4"];
         private static readonly string[] kExpectedSuppressedSectionRuleDisplayOrderNumbers = ["1.1", "1.2"];
+        private static readonly string[] kExpectedReferencedLayerDisplayOrderNumbers = [string.Empty, "1", "1.1"];
+        private static readonly string[] kExpectedReferencedInlineDisplayOrderNumbers = ["1", "1.1", string.Empty, "1.2"];
+        private static readonly HashSet<int> kReferencedFirstLayer = [1];
+        private static readonly HashSet<int> kReferencedInlineLayer = [3];
 
         private RuleTreeBuilder _ruleTreeBuilder = default!;
 
@@ -507,6 +511,53 @@ namespace FWO.Test
             Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Not.Contain("Empty-Layer"));
             Assert.That(flattenedRules.Select(rule => rule.SectionHeader), Does.Contain("Matching-Layer"));
             Assert.That(flattenedRules.Single(rule => string.IsNullOrEmpty(rule.SectionHeader)).DisplayOrderNumberString, Is.EqualTo("1.1"));
+        }
+
+        [Test]
+        public void BuildRuleTree_ReferencedOrderedLayer_ShowsReferenceRowAndContinuesWithNextLayer()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10, 11),
+                Rulebase(2, "Layer-2", 20)
+            ];
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                OrderedLayerLink(gatewayId: 1, fromRulebaseId: 1, nextRulebaseId: 2)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1, referencedRulebaseIds: kReferencedFirstLayer);
+
+            RuleTreeItem referenceRow = _ruleTreeBuilder.RuleTree.ElementsFlat[0];
+            Assert.That(referenceRow.IsRulebaseReference, Is.True);
+            Assert.That(referenceRow.ReferencedRulebaseId, Is.EqualTo(1));
+            Assert.That(referenceRow.Children, Is.Empty);
+            Assert.That(flattenedRules[0].SectionHeader, Is.EqualTo("Layer-1"));
+            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedReferencedLayerDisplayOrderNumbers));
+            Assert.That(flattenedRules.Any(rule => rule.Id == 10 || rule.Id == 11), Is.False);
+        }
+
+        [Test]
+        public void BuildRuleTree_ReferencedInlineLayer_ShowsReferenceRowBelowCallingRule()
+        {
+            RulebaseReport[] rulebases =
+            [
+                Rulebase(1, "Layer-1", 10, 11),
+                Rulebase(3, "Inline-3", 30)
+            ];
+            RulebaseLink[] links =
+            [
+                OrderedLayerInitialLink(gatewayId: 1, nextRulebaseId: 1),
+                InlineLayerLink(gatewayId: 1, fromRulebaseId: 1, fromRuleId: 10, nextRulebaseId: 3)
+            ];
+
+            List<Rule> flattenedRules = _ruleTreeBuilder.BuildRuleTree(rulebases, links, 1, 1, suppressEmptyHeaders: true, referencedRulebaseIds: kReferencedInlineLayer);
+
+            Assert.That(flattenedRules.Select(rule => rule.DisplayOrderNumberString), Is.EqualTo(kExpectedReferencedInlineDisplayOrderNumbers));
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat[2].IsRulebaseReference, Is.True);
+            Assert.That(_ruleTreeBuilder.RuleTree.ElementsFlat[2].Parent!.Data.Id, Is.EqualTo(10));
+            Assert.That(flattenedRules.Any(rule => rule.Id == 30), Is.False);
         }
 
         private static RulebaseReport Rulebase(int id, string name, params int[] ruleIds)

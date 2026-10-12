@@ -3,6 +3,15 @@
 @inject UserConfig userConfig
 
 <div class="d-flex flex-column gap-1">
+    @if (ShowRequesterOption)
+    {
+        <div class="form-check">
+            <input id="@($"{CheckboxIdPrefix}_requester")" class="form-check-input" type="checkbox"
+                checked="@Selection.Requester"
+                @onchange="ToggleRequesterSelection" />
+            <label class="form-check-label" for="@($"{CheckboxIdPrefix}_requester")">@(userConfig.GetText(nameof(EmailRecipientOption.Requester)))</label>
+        </div>
+    }
     @if (ShowOwnerResponsibleTypes)
     {
         @foreach (OwnerResponsibleType ownerResponsibleType in GetOrderedOwnerResponsibleTypes())
@@ -55,6 +64,9 @@
     [Parameter]
     public NotificationClient Client { get; set; } = NotificationClient.None;
 
+    [Parameter]
+    public bool ShowRequesterOption { get; set; } = false;
+
     private bool ShowOwnerResponsibleTypes => Client == NotificationClient.None || Client.IsModellingRecipientClient();
     private bool ShowEnsureAtLeastOneNotification => ShowOwnerResponsibleTypes;
     private List<OwnerResponsibleType> GetOrderedOwnerResponsibleTypes()
@@ -69,6 +81,20 @@
     {
         bool isChecked = IsChecked(args);
         Selection.OtherAddresses = isChecked;
+        if (isChecked)
+        {
+            Selection.None = false;
+        }
+        else
+        {
+            UpdateDerivedNone();
+        }
+    }
+
+    private void ToggleRequesterSelection(ChangeEventArgs args)
+    {
+        bool isChecked = IsChecked(args);
+        Selection.Requester = isChecked;
         if (isChecked)
         {
             Selection.None = false;
@@ -111,7 +137,7 @@
 
     private void UpdateDerivedNone()
     {
-        Selection.None = !Selection.OtherAddresses && Selection.OwnerResponsibleTypeIds.Count == 0;
+        Selection.None = !Selection.Requester && !Selection.OtherAddresses && Selection.OwnerResponsibleTypeIds.Count == 0;
     }
 
     private static bool IsChecked(ChangeEventArgs args)

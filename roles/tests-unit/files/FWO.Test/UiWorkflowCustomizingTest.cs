@@ -47,6 +47,32 @@ namespace FWO.Test
             throw new MissingFieldException(type.FullName, memberName);
         }
 
+        private static AngleSharp.Dom.IElement FindElementByText(List<AngleSharp.Dom.IElement> elements, string text)
+        {
+            foreach (AngleSharp.Dom.IElement element in elements)
+            {
+                if (element.TextContent.Contains(text))
+                {
+                    return element;
+                }
+            }
+
+            throw new InvalidOperationException($"Element containing '{text}' was not found.");
+        }
+
+        private static ConfigItem FindConfigItem(List<ConfigItem> configItems, string key)
+        {
+            foreach (ConfigItem configItem in configItems)
+            {
+                if (configItem.Key == key)
+                {
+                    return configItem;
+                }
+            }
+
+            throw new InvalidOperationException($"Config item '{key}' was not found.");
+        }
+
         [Test]
         public async Task HandleAllowedChangesByApproverChanged_PersistsConfigImmediately()
         {
@@ -103,7 +129,7 @@ namespace FWO.Test
             await saveTask;
 
             Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
-            ConfigItem flowDbConfig = apiConnection.LastConfigItems.Single(item => item.Key == "reqUseFlowDb");
+            ConfigItem flowDbConfig = FindConfigItem(apiConnection.LastConfigItems, "reqUseFlowDb");
             Assert.That(flowDbConfig.Value, Is.EqualTo("True"));
         }
 
@@ -144,7 +170,7 @@ namespace FWO.Test
             await saveTask;
 
             Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
-            ConfigItem stateConfig = apiConnection.LastConfigItems.Single(item => item.Key == "reqApiTicketInitialStateId");
+            ConfigItem stateConfig = FindConfigItem(apiConnection.LastConfigItems, "reqApiTicketInitialStateId");
             Assert.That(stateConfig.Value, Is.EqualTo("17"));
         }
 
@@ -196,6 +222,32 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SettingsCustomizing_StateDisplayNameIncludesStateId()
+        {
+            SettingsCustomizing component = new();
+            SimulatedUserConfig userConfig = new();
+            List<WfState> states =
+            [
+                new WfState { Id = 17, Name = "requested" }
+            ];
+
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, "states", states);
+            MethodInfo stateDisplayName = GetPrivateMethod(typeof(SettingsCustomizing), "StateDisplayName");
+
+            string defaultText = (string)stateDisplayName.Invoke(component, new List<object?> { null }.ToArray())!;
+            string knownStateText = (string)stateDisplayName.Invoke(component, new List<object?> { 17 }.ToArray())!;
+            string unknownStateText = (string)stateDisplayName.Invoke(component, new List<object?> { 99 }.ToArray())!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(defaultText, Is.EqualTo(userConfig.GetText("use_default")));
+                Assert.That(knownStateText, Is.EqualTo("requested (17)"));
+                Assert.That(unknownStateText, Is.EqualTo("99"));
+            });
+        }
+
+        [Test]
         public async Task Save_PersistsReqConsiderBundling()
         {
             SettingsCustomizing component = new();
@@ -221,7 +273,7 @@ namespace FWO.Test
             await saveTask;
 
             Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
-            ConfigItem considerBundlingConfig = apiConnection.LastConfigItems.Single(item => item.Key == "reqConsiderBundling");
+            ConfigItem considerBundlingConfig = FindConfigItem(apiConnection.LastConfigItems, "reqConsiderBundling");
             Assert.That(considerBundlingConfig.Value, Is.EqualTo("True"));
         }
 
@@ -258,6 +310,493 @@ namespace FWO.Test
             Assert.That(apiConnection.LastConfigItems[0].Key, Is.EqualTo("reqFlowIntegration"));
             Assert.That(apiConnection.LastConfigItems[0].Value, Is.EqualTo(newValue));
             Assert.That(editableConfig.ReqFlowIntegration, Is.EqualTo(newValue));
+        }
+
+        [Test]
+        public async Task HandleCreateRequestTaskSortConfigChanged_UpdatesLocalStateOnly()
+        {
+            SettingsCustomizing component = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig
+                {
+                    GroupCreatePriority = 99,
+                    GroupModifyAddPriority = 98,
+                    AccessPriority = 97,
+                    RuleModifyPriority = 96,
+                    RuleDeletePriority = 95,
+                    GroupModifyRemovePriority = 94,
+                    GroupDeletePriority = 93,
+                    AllowTaskSplit = false
+                }.ToConfigValue()
+            };
+            SimulatedUserConfig userConfig = new();
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            CreateRequestTaskSortConfig newConfig = new()
+            {
+                GroupCreatePriority = 6,
+                GroupModifyAddPriority = 5,
+                AccessPriority = 4,
+                RuleModifyPriority = 3,
+                RuleDeletePriority = 2,
+                GroupModifyRemovePriority = 1,
+                GroupDeletePriority = 0,
+                AllowTaskSplit = false
+            };
+
+            SetMember(component, "apiConnection", apiConnection);
+            SetMember(component, "globalConfig", globalConfig);
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, "configData", editableConfig);
+
+            Task handlerTask = (Task)GetPrivateMethod(typeof(SettingsCustomizing), "HandleCreateRequestTaskSortConfigChanged")
+                .Invoke(component, [newConfig.ToConfigValue()])!;
+            await handlerTask;
+
+            Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(0));
+            Assert.That(editableConfig.ReqCreateRequestTaskSortConfig, Is.EqualTo(newConfig.ToConfigValue()));
+        }
+
+        [Test]
+        public async Task SettingsCustomizing_ShowsTaskSortConfigTooltipAndOpensPopup()
+        {
+            await using BunitContext context = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedUserConfig userConfig = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig().ToConfigValue()
+            };
+
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddLocalization();
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new WorkflowCustomizingAuthStateProvider(Roles.Admin));
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<SettingsCustomizing>());
+
+            wrapper.WaitForAssertion(() =>
+            {
+                IRenderedComponent<SettingsCustomizing> settings = wrapper.FindComponent<SettingsCustomizing>();
+                string sortLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
+                List<AngleSharp.Dom.IElement> sortLabels = [.. settings.FindAll("label")];
+                AngleSharp.Dom.IElement sortLabel = FindElementByText(sortLabels, sortLabelText);
+                Assert.That(sortLabel.GetAttribute("title"), Is.EqualTo(userConfig.PureLine("C9034")));
+                IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = settings.FindComponent<CreateRequestTaskSortConfigPopup>();
+                Assert.That(popup.Instance.Display, Is.False);
+            });
+
+            IRenderedComponent<SettingsCustomizing> settingsComponent = wrapper.FindComponent<SettingsCustomizing>();
+            string expectedLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
+            List<AngleSharp.Dom.IElement> labels = [.. settingsComponent.FindAll("label")];
+            AngleSharp.Dom.IElement label = FindElementByText(labels, expectedLabelText);
+            label.ParentElement!.ParentElement!.QuerySelector("button")!.Click();
+
+            wrapper.WaitForAssertion(() =>
+            {
+                IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = settingsComponent.FindComponent<CreateRequestTaskSortConfigPopup>();
+                Assert.That(popup.Instance.Display, Is.True);
+                Assert.That(popup.Markup, Does.Contain(userConfig.GetText("allow_task_split")));
+                Assert.That(popup.Markup, Does.Contain(userConfig.PureLine("C9033")));
+            });
+        }
+
+        [Test]
+        public async Task SettingsCustomizing_DisablesTaskSortSaveForAuditor()
+        {
+            await using BunitContext context = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [Roles.Auditor];
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig().ToConfigValue()
+            };
+
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddLocalization();
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new WorkflowCustomizingAuthStateProvider(Roles.Auditor));
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<SettingsCustomizing>());
+
+            wrapper.WaitForAssertion(() =>
+            {
+                IRenderedComponent<SettingsCustomizing> settings = wrapper.FindComponent<SettingsCustomizing>();
+                string sortLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
+                List<AngleSharp.Dom.IElement> sortLabels = [.. settings.FindAll("label")];
+                AngleSharp.Dom.IElement sortLabel = FindElementByText(sortLabels, sortLabelText);
+                sortLabel.ParentElement!.ParentElement!.QuerySelector("button")!.Click();
+            });
+
+            IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = wrapper.FindComponent<CreateRequestTaskSortConfigPopup>();
+            AngleSharp.Dom.IElement saveButton = popup.Find("button.btn.btn-primary");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(saveButton.HasAttribute("disabled"), Is.True);
+                saveButton.Click();
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task CreateRequestTaskSortConfigPopup_RendersRowsAndAllowSplitTooltip()
+        {
+            await using BunitContext context = new();
+            SimulatedUserConfig userConfig = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig().ToConfigValue()
+            };
+
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = context.Render<CreateRequestTaskSortConfigPopup>(parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.ConfigValue, new CreateRequestTaskSortConfig().ToConfigValue()));
+
+            List<AngleSharp.Dom.IElement> rows = [.. popup.FindAll(".form-group.row.mt-2.align-items-center")];
+            List<AngleSharp.Dom.IElement> allRows = [.. popup.FindAll("div.form-group.row.mt-2")];
+            AngleSharp.Dom.IElement allowSplitRow = FindElementByText(allRows, userConfig.GetText("allow_task_split"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rows, Has.Count.EqualTo(7));
+                Assert.That(rows[0].TextContent, Does.Contain(userConfig.GetText("create_group")));
+                Assert.That(rows[1].TextContent, Does.Contain(userConfig.GetText("group_modify") + userConfig.GetText("add_members")));
+                Assert.That(rows[6].TextContent, Does.Contain(userConfig.GetText("delete_group")));
+                Assert.That(allowSplitRow.GetAttribute("title"), Is.EqualTo(userConfig.PureLine("C9033")));
+                Assert.That(allowSplitRow.QuerySelector("input[type=checkbox]")!.HasAttribute("checked"), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task CreateRequestTaskSortConfigPopup_ReordersAndSavesUpdatedPriorities()
+        {
+            await using BunitContext context = new();
+            SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [Roles.Admin];
+            WorkflowCustomizingApiConn apiConnection = new()
+            {
+                States = [new WfState { Id = 0, Name = "draft" }]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig().ToConfigValue()
+            };
+            bool display = true;
+            string? savedValue = null;
+
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = context.Render<CreateRequestTaskSortConfigPopup>(parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.DisplayChanged, EventCallback.Factory.Create<bool>(this, value => display = value))
+                .Add(p => p.ConfigValue, new CreateRequestTaskSortConfig().ToConfigValue())
+                .Add(p => p.ConfigValueChanged, EventCallback.Factory.Create<string>(this, value => savedValue = value)));
+
+            popup.FindAll(".form-group.row.mt-2.align-items-center")[0].QuerySelectorAll("button")[1].Click();
+
+            popup.WaitForAssertion(() =>
+            {
+                Assert.That(popup.FindAll(".form-group.row.mt-2.align-items-center")[0].TextContent,
+                    Does.Contain(userConfig.GetText("group_modify") + userConfig.GetText("add_members")));
+            });
+
+            popup.Find("button.btn.btn-primary").Click();
+
+            CreateRequestTaskSortConfig saved = CreateRequestTaskSortConfig.Parse(savedValue);
+            Assert.Multiple(() =>
+            {
+                Assert.That(display, Is.False);
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(FindConfigItem(apiConnection.LastConfigItems, "reqCreateRequestTaskSortConfig").Value, Is.EqualTo(savedValue));
+                Assert.That(saved.GroupModifyAddPriority, Is.EqualTo(0));
+                Assert.That(saved.GroupCreatePriority, Is.EqualTo(1));
+                Assert.That(saved.AccessPriority, Is.EqualTo(2));
+                Assert.That(saved.RuleModifyPriority, Is.EqualTo(3));
+                Assert.That(saved.RuleDeletePriority, Is.EqualTo(4));
+                Assert.That(saved.GroupModifyRemovePriority, Is.EqualTo(5));
+                Assert.That(saved.GroupDeletePriority, Is.EqualTo(6));
+                Assert.That(saved.AllowTaskSplit, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task CreateRequestTaskSortConfigPopup_CancelClosesWithoutSaving()
+        {
+            await using BunitContext context = new();
+            SimulatedUserConfig userConfig = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig().ToConfigValue()
+            };
+            bool display = true;
+            bool configChangedCalled = false;
+
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = context.Render<CreateRequestTaskSortConfigPopup>(parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.DisplayChanged, EventCallback.Factory.Create<bool>(this, value => display = value))
+                .Add(p => p.ConfigValue, new CreateRequestTaskSortConfig().ToConfigValue())
+                .Add(p => p.ConfigValueChanged, EventCallback.Factory.Create<string>(this, _ => configChangedCalled = true)));
+
+            List<AngleSharp.Dom.IElement> buttonGroups = [.. popup.FindAll(".btn-group")];
+            List<AngleSharp.Dom.IElement> buttons = [.. buttonGroups[^1].QuerySelectorAll("button")];
+            buttons[^1].Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(display, Is.False);
+                Assert.That(configChangedCalled, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task CreateRequestTaskSortConfigPopup_AllowsAccessBeforeCreateGroup()
+        {
+            await using BunitContext context = new();
+            SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [Roles.Admin];
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig
+                {
+                    GroupCreatePriority = 99,
+                    GroupModifyAddPriority = 98,
+                    AccessPriority = 97,
+                    RuleModifyPriority = 96,
+                    RuleDeletePriority = 95,
+                    GroupModifyRemovePriority = 94,
+                    GroupDeletePriority = 93,
+                    AllowTaskSplit = false
+                }.ToConfigValue()
+            };
+            CreateRequestTaskSortConfig invalidSortConfig = new()
+            {
+                AccessPriority = 0,
+                GroupCreatePriority = 1,
+                GroupModifyAddPriority = 2,
+                RuleModifyPriority = 3,
+                RuleDeletePriority = 4,
+                GroupModifyRemovePriority = 5,
+                GroupDeletePriority = 6,
+                AllowTaskSplit = true
+            };
+            bool display = true;
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = context.Render<CreateRequestTaskSortConfigPopup>(parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.DisplayChanged, EventCallback.Factory.Create<bool>(this, value => display = value))
+                .Add(p => p.ConfigValue, invalidSortConfig.ToConfigValue()));
+
+            popup.Find("button.btn.btn-primary").Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(display, Is.False);
+            });
+
+            CreateRequestTaskSortConfig saved = CreateRequestTaskSortConfig.Parse(
+                FindConfigItem(apiConnection.LastConfigItems, "reqCreateRequestTaskSortConfig").Value);
+            Assert.That(saved.AccessPriority, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task CreateRequestTaskSortConfigPopup_ShowsErrorWhenSavingFails()
+        {
+            await using BunitContext context = new();
+            SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [Roles.Admin];
+            WorkflowCustomizingApiConn apiConnection = new()
+            {
+                ThrowOnUpsertConfig = true
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig
+                {
+                    GroupCreatePriority = 99,
+                    GroupModifyAddPriority = 98,
+                    AccessPriority = 97,
+                    RuleModifyPriority = 96,
+                    RuleDeletePriority = 95,
+                    GroupModifyRemovePriority = 94,
+                    GroupDeletePriority = 93,
+                    AllowTaskSplit = false
+                }.ToConfigValue()
+            };
+            bool display = true;
+            string? savedValue = null;
+            Exception? displayedException = null;
+
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = context.Render<CreateRequestTaskSortConfigPopup>(parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.DisplayChanged, EventCallback.Factory.Create<bool>(this, value => display = value))
+                .Add(p => p.ConfigValue, new CreateRequestTaskSortConfig().ToConfigValue())
+                .Add(p => p.ConfigValueChanged, EventCallback.Factory.Create<string>(this, value => savedValue = value))
+                .Add(p => p.DisplayMessageInUi, (Exception? exception, string _, string __, bool ___) => displayedException = exception));
+
+            popup.Find("button.btn.btn-primary").Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(display, Is.True);
+                Assert.That(savedValue, Is.Null);
+                Assert.That(displayedException, Is.Not.Null);
+                Assert.That(displayedException!.Message, Does.Contain("upsert failed"));
+            });
+        }
+
+        [Test]
+        public async Task CreateRequestTaskSortConfigPopup_MoveItemUpMovesRowAndKeepsSavedOrder()
+        {
+            await using BunitContext context = new();
+            SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [Roles.Admin];
+            WorkflowCustomizingApiConn apiConnection = new()
+            {
+                States = [new WfState { Id = 0, Name = "draft" }]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig().ToConfigValue()
+            };
+            string? savedValue = null;
+
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = context.Render<CreateRequestTaskSortConfigPopup>(parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.ConfigValue, new CreateRequestTaskSortConfig().ToConfigValue())
+                .Add(p => p.ConfigValueChanged, EventCallback.Factory.Create<string>(this, value => savedValue = value)));
+
+            popup.FindAll(".form-group.row.mt-2.align-items-center")[1].QuerySelectorAll("button")[0].Click();
+
+            popup.WaitForAssertion(() =>
+            {
+                List<AngleSharp.Dom.IElement> rows = [.. popup.FindAll(".form-group.row.mt-2.align-items-center")];
+                Assert.That(rows[0].TextContent, Does.Contain(userConfig.GetText("group_modify") + userConfig.GetText("add_members")));
+                Assert.That(rows[1].TextContent, Does.Contain(userConfig.GetText("create_group")));
+            });
+
+            popup.Find("button.btn.btn-primary").Click();
+
+            CreateRequestTaskSortConfig saved = CreateRequestTaskSortConfig.Parse(savedValue);
+            Assert.That(saved.GroupModifyAddPriority, Is.EqualTo(0));
+            Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+            Assert.That(FindConfigItem(apiConnection.LastConfigItems, "reqCreateRequestTaskSortConfig").Value, Is.EqualTo(savedValue));
+        }
+
+        [Test]
+        public async Task CreateRequestTaskSortConfigPopup_UsesConfiguredPriorityOrder()
+        {
+            await using BunitContext context = new();
+            SimulatedUserConfig userConfig = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig().ToConfigValue()
+            };
+            CreateRequestTaskSortConfig sortConfig = new()
+            {
+                GroupCreatePriority = 60,
+                GroupModifyAddPriority = 10,
+                AccessPriority = 40,
+                RuleModifyPriority = 20,
+                RuleDeletePriority = 30,
+                GroupModifyRemovePriority = 50,
+                GroupDeletePriority = 0,
+                AllowTaskSplit = true
+            };
+
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = context.Render<CreateRequestTaskSortConfigPopup>(parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.ConfigValue, sortConfig.ToConfigValue()));
+
+            List<AngleSharp.Dom.IElement> rows = [.. popup.FindAll(".form-group.row.mt-2.align-items-center")];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rows[0].TextContent, Does.Contain(userConfig.GetText("group_delete")));
+                Assert.That(rows[1].TextContent, Does.Contain(userConfig.GetText("group_modify") + userConfig.GetText("add_members")));
+                Assert.That(rows[2].TextContent, Does.Contain(userConfig.GetText("modify_rule")));
+                Assert.That(rows[3].TextContent, Does.Contain(userConfig.GetText("remove_rule")));
+                Assert.That(rows[4].TextContent, Does.Contain(userConfig.GetText("access")));
+                Assert.That(rows[5].TextContent, Does.Contain(userConfig.GetText("group_modify") + userConfig.GetText("remove_members")));
+                Assert.That(rows[6].TextContent, Does.Contain(userConfig.GetText("create_group")));
+            });
         }
 
         [Test]
@@ -318,7 +857,7 @@ namespace FWO.Test
                 .Add(p => p.Display, true)
                 .Add(p => p.ConfigValue, configValue));
 
-            IReadOnlyList<IRenderedComponent<Dropdown<string>>> dropdowns = component.FindComponents<Dropdown<string>>();
+            List<IRenderedComponent<Dropdown<string>>> dropdowns = [.. component.FindComponents<Dropdown<string>>()];
 
             Assert.Multiple(() =>
             {
@@ -372,10 +911,8 @@ namespace FWO.Test
         {
             public int UpsertConfigCallCount { get; private set; }
             public List<ConfigItem> LastConfigItems { get; private set; } = [];
-            public List<WfState> States { get; set; } = new List<WfState>
-            {
-                new() { Id = 0, Name = "draft" }
-            };
+            public List<WfState> States { get; set; } = [new WfState { Id = 0, Name = "draft" }];
+            public bool ThrowOnUpsertConfig { get; set; } = false;
             public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } = new List<WorkflowConfiguration>
             {
                 new()
@@ -418,6 +955,11 @@ namespace FWO.Test
                 if (query == ConfigQueries.upsertConfigItems)
                 {
                     UpsertConfigCallCount++;
+                    if (ThrowOnUpsertConfig)
+                    {
+                        return Task.FromException<QueryResponseType>(new InvalidOperationException("upsert failed"));
+                    }
+
                     PropertyInfo configItemsProperty = variables?.GetType().GetProperty("config_items")
                         ?? throw new MissingFieldException("config_items");
                     LastConfigItems = ((IEnumerable<ConfigItem>)configItemsProperty.GetValue(variables)!).ToList();
@@ -479,7 +1021,12 @@ namespace FWO.Test
         {
             public override Task<AuthenticationState> GetAuthenticationStateAsync()
             {
-                List<Claim> claims = roles.Select(role => new Claim(ClaimTypes.Role, role)).ToList();
+                List<Claim> claims = [];
+                foreach (string role in roles)
+                {
+                    claims.Add(new Claim(ClaimTypes.Role, role));
+                }
+
                 ClaimsIdentity identity = new(claims, "Test");
                 return Task.FromResult(new AuthenticationState(new ClaimsPrincipal(identity)));
             }

@@ -89,7 +89,7 @@ internal class FlowComplianceServiceTest
             Assert.That(apiConnection.CountQueries(ConfigQueries.getLanguages), Is.EqualTo(0));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getTextsPerLanguage), Is.EqualTo(0));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getPolicyById));
-            Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getNetworkZonesForMatrix));
+            Assert.That(apiConnection.SentQueries, Does.Contain(NetworkZoneQueries.getNetworkZonesForMatrix));
             Assert.That(apiConnection.SentQueries, Does.Contain(DeviceQueries.getManagementNames));
         });
     }
@@ -158,7 +158,7 @@ internal class FlowComplianceServiceTest
             Assert.That(result[1].Policy.Id, Is.EqualTo(8));
             Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix" }));
             Assert.That(apiConnection.CountQueries(DeviceQueries.getManagementNames), Is.EqualTo(1));
-            Assert.That(apiConnection.CountQueries(ComplianceQueries.getNetworkZonesForMatrix), Is.EqualTo(1));
+            Assert.That(apiConnection.CountQueries(NetworkZoneQueries.getNetworkZonesForMatrix), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getPolicyById), Is.EqualTo(2));
         });
     }
@@ -504,7 +504,7 @@ internal class FlowComplianceServiceTest
                 return Task.FromResult((QueryResponseType)(object)Managements);
             }
 
-            if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == ComplianceQueries.getNetworkZonesForMatrix)
+            if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
             {
                 return Task.FromResult((QueryResponseType)(object)NetworkZones);
             }

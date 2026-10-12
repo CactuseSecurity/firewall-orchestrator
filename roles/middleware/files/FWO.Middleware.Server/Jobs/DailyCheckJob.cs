@@ -25,6 +25,7 @@ namespace FWO.Middleware.Server.Jobs
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
+        private readonly TimeProvider timeProvider;
 
         /// <summary>
         /// Creates a new daily check job.
@@ -32,48 +33,62 @@ namespace FWO.Middleware.Server.Jobs
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="globalConfig">Global configuration.</param>
         /// <param name="tokenLifetimeProvider">Provider for internal token lifetime defaults.</param>
-        public DailyCheckJob(ApiConnection apiConnection, GlobalConfig globalConfig, TokenLifetimeProvider? tokenLifetimeProvider = null)
+        /// <param name="timeProvider">Clock used for import age checks.</param>
+        public DailyCheckJob(ApiConnection apiConnection, GlobalConfig globalConfig, TokenLifetimeProvider? tokenLifetimeProvider = null, TimeProvider? timeProvider = null)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
             this.tokenLifetimeProvider = tokenLifetimeProvider ?? new TokenLifetimeProvider();
+            this.timeProvider = timeProvider ?? TimeProvider.System;
         }
 
         /// <inheritdoc />
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 HashSet<DailyCheckModule> enabledModules = LoadEnabledModules();
 
                 if (enabledModules.Contains(DailyCheckModule.DemoData))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await CheckDemoData();
                 }
                 if (enabledModules.Contains(DailyCheckModule.Imports))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await CheckImports();
                 }
                 if (enabledModules.Contains(DailyCheckModule.RecertRefresh) && globalConfig.RecRefreshDaily)
                 {
-                    await RefreshRecert();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await RefreshRecert(cancellationToken);
                 }
                 if (enabledModules.Contains(DailyCheckModule.RecertCheck))
                 {
-                    await CheckRecerts();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await CheckRecerts(cancellationToken);
                 }
                 if (enabledModules.Contains(DailyCheckModule.UnansweredInterfaceRequests))
                 {
-                    await CheckUnansweredInterfaceRequests();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await CheckUnansweredInterfaceRequestsCore(cancellationToken);
                 }
                 if (enabledModules.Contains(DailyCheckModule.RuleExpiryCheck))
                 {
-                    await CheckRuleExpiry();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await CheckRuleExpiry(cancellationToken);
                 }
                 if (enabledModules.Contains(DailyCheckModule.OwnerActiveRules))
                 {
-                    await CheckOwnerActiveRules();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await CheckOwnerActiveRules(cancellationToken);
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(DailyCheckJob)} stopped.");
             }
             catch (Exception exc)
             {
@@ -102,35 +117,35 @@ namespace FWO.Middleware.Server.Jobs
             }
         }
 
-        private async Task RefreshRecert()
+        private async Task RefreshRecert(CancellationToken cancellationToken)
         {
             Log.WriteDebug(LogMessageTitle, "Refresh recert ownerships");
-            await RecertRefresh.RecalcRecerts(apiConnection);
+            await RecertRefresh.RecalcRecerts(apiConnection, cancellationToken);
         }
 
-        private async Task CheckRecerts()
+        private async Task CheckRecerts(CancellationToken cancellationToken)
         {
             if (globalConfig.RecCheckActive)
             {
                 RecertCheck recertCheck = new(apiConnection, globalConfig, tokenLifetimeProvider);
-                int emailsSent = await recertCheck.CheckRecertifications();
+                int emailsSent = await recertCheck.CheckRecertifications(cancellationToken);
                 Log.WriteDebug(LogMessageTitle, $"Recert Check: Sent {emailsSent} emails.");
                 await AlertHelper.AddLogEntry(apiConnection, 0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
             }
         }
 
-        private async Task CheckRuleExpiry()
+        private async Task CheckRuleExpiry(CancellationToken cancellationToken)
         {
             RuleExpiryCheck ruleExpiryCheck = new(apiConnection, globalConfig);
-            int ruleExpiryEmailsSent = await ruleExpiryCheck.CheckRuleExpiry();
+            int ruleExpiryEmailsSent = await ruleExpiryCheck.CheckRuleExpiry(cancellationToken);
             Log.WriteDebug(LogMessageTitle, $"Rule Expiry Check: Sent {ruleExpiryEmailsSent} emails.");
             await AlertHelper.AddLogEntry(apiConnection, 0, "Scheduled Daily Rule Expiry Check", ruleExpiryEmailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
         }
 
-        private async Task CheckOwnerActiveRules()
+        private async Task CheckOwnerActiveRules(CancellationToken cancellationToken)
         {
             OwnerActiveRuleCheck ownerActiveRuleCheck = new(apiConnection, globalConfig);
-            int ownerActiveRuleEmailsSent = await ownerActiveRuleCheck.CheckActiveRulesByScheduler();
+            int ownerActiveRuleEmailsSent = await ownerActiveRuleCheck.CheckActiveRulesByScheduler(cancellationToken);
             Log.WriteDebug(LogMessageTitle, $"Owner Active Rule Check: Sent {ownerActiveRuleEmailsSent} emails.");
             await AlertHelper.AddLogEntry(apiConnection, 0, "Scheduled Daily Owner Active Rule Check", ownerActiveRuleEmailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
         }
@@ -210,7 +225,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 if (imp.LastIncompleteImport != null && imp.LastIncompleteImport.Length > 0)
                 {
-                    if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-globalConfig.MaxImportDuration))
+                    if (imp.LastIncompleteImport[0].StartTime < timeProvider.GetUtcNow().LocalDateTime.AddHours(-globalConfig.MaxImportDuration))
                     {
                         jsonData = imp.LastIncompleteImport;
                         await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7011"), GlobalConst.kDailyCheck, AlertCode.ImportRunningTooLong, new AlertHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
@@ -223,7 +238,7 @@ namespace FWO.Middleware.Server.Jobs
                     await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7012"), GlobalConst.kDailyCheck, AlertCode.NoImport, new AlertHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
                     importIssues++;
                 }
-                else if (imp.LastImportAttempt != null && imp.LastImportAttempt < DateTime.Now.AddHours(-globalConfig.MaxImportInterval))
+                else if (imp.LastImportAttempt != null && imp.LastImportAttempt < timeProvider.GetUtcNow().LocalDateTime.AddHours(-globalConfig.MaxImportInterval))
                 {
                     jsonData = imp;
                     await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7013"), GlobalConst.kDailyCheck, AlertCode.SuccessfulImportOverdue, new AlertHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
@@ -234,7 +249,7 @@ namespace FWO.Middleware.Server.Jobs
                 importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found"), GlobalConst.kDailyCheck);
         }
 
-        private async Task CheckUnansweredInterfaceRequests()
+        private async Task CheckUnansweredInterfaceRequestsCore(CancellationToken cancellationToken)
         {
             int emailsSent = 0;
             List<Ldap> connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
@@ -251,42 +266,119 @@ namespace FWO.Middleware.Server.Jobs
                 connectedLdaps,
                 OwnerGroups);
 
-            foreach (var notification in notificationService.Notifications)
+            foreach (var notification in notificationService.Notifications
+                .Where(notification => notification.Deadline == NotificationDeadline.RequestDate))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 SchedulerInterval repeatInterval = notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days;
                 int cutOffPeriod = GetInterfaceRequestCutOffPeriod(notification, repeatInterval);
-                List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
+                List<WfTicket> unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
                     cutOffPeriod,
                     repeatInterval);
-                foreach (var ticket in unansweredTickets)
-                {
-                    FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
-                    if (owner == null)
-                    {
-                        Log.WriteWarning(LogMessageTitle,
-                            $"No owner could be resolved for unanswered interface request ticket {ticket.Id} in notification {notification.Id}.");
-                        continue;
-                    }
-
-                    bool notificationDue = NotificationService.IsNotificationDue(owner, ticket.CreationDate, notification);
-                    if (!notificationDue)
-                    {
-                        Log.WriteDebug(LogMessageTitle,
-                            $"Reminder notification {notification.Id} is not due for unanswered interface request ticket {ticket.Id}.");
-                        continue;
-                    }
-
-                    int sentForTicket = await notificationService.SendNotification(notification, owner, await PrepareBody(ticket, owner));
-                    emailsSent += sentForTicket;
-                    if (sentForTicket == 0)
-                    {
-                        Log.WriteWarning(LogMessageTitle,
-                            $"Reminder notification {notification.Id} was due for unanswered interface request ticket {ticket.Id}, but no email was sent. Check recipient resolution and due settings.");
-                    }
-                }
+                emailsSent += await ProcessUnansweredInterfaceRequestNotification(notification, unansweredTickets, notificationService, cancellationToken);
             }
             await notificationService.UpdateNotificationsLastSent();
             Log.WriteDebug(LogMessageTitle, $"Unanswered Interface Requests Check: Sent {emailsSent} emails.");
+        }
+
+        /// <summary>
+        /// Processes all unanswered interface-request tickets for one notification definition.
+        /// </summary>
+        /// <param name="notification">Notification definition to process.</param>
+        /// <param name="unansweredTickets">Open interface-request tickets to evaluate.</param>
+        /// <param name="notificationService">Service used to deliver or suppress notifications.</param>
+        /// <param name="cancellationToken">Token used to cancel processing between tickets.</param>
+        /// <returns>Number of emails sent for the supplied tickets.</returns>
+        private async Task<int> ProcessUnansweredInterfaceRequestNotification(FwoNotification notification,
+            List<WfTicket> unansweredTickets, NotificationService notificationService, CancellationToken cancellationToken)
+        {
+            int emailsSent = 0;
+            foreach (WfTicket ticket in unansweredTickets)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                emailsSent += await ProcessUnansweredInterfaceRequestTicket(notification, ticket, notificationService);
+            }
+            return emailsSent;
+        }
+
+        /// <summary>
+        /// Processes one unanswered interface-request ticket.
+        /// </summary>
+        /// <param name="notification">Notification definition to process.</param>
+        /// <param name="ticket">Unanswered interface-request ticket.</param>
+        /// <param name="notificationService">Service used to deliver or suppress the notification.</param>
+        /// <returns>Number of emails sent for the ticket.</returns>
+        private async Task<int> ProcessUnansweredInterfaceRequestTicket(FwoNotification notification, WfTicket ticket,
+            NotificationService notificationService)
+        {
+            WfReqTask? requestTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
+            FwoOwner? owner = requestTask?.Owners.FirstOrDefault()?.Owner;
+            if (owner == null)
+            {
+                Log.WriteWarning(LogMessageTitle,
+                    $"No owner could be resolved for unanswered interface request ticket {ticket.Id} in notification {notification.Id}.");
+                return 0;
+            }
+
+            if (!NotificationService.IsNotificationDue(owner, ticket.CreationDate, notification))
+            {
+                Log.WriteDebug(LogMessageTitle,
+                    $"Reminder notification {notification.Id} is not due for unanswered interface request ticket {ticket.Id}.");
+                return 0;
+            }
+
+            if (!InterfaceRequestNotificationGuard.IsActiveOwner(owner))
+            {
+                await SuppressInterfaceRequestNotification(notification, ticket, owner, notificationService,
+                    "Requested owner is not active.", includePlaceholders: true);
+                return 0;
+            }
+
+            if (!InterfaceRequestNotificationGuard.HasRequiredRequestContext(ticket, requestTask))
+            {
+                await SuppressInterfaceRequestNotification(notification, ticket, owner, notificationService,
+                    "Interface request is incomplete.");
+                return 0;
+            }
+
+            FwoOwner? requestingOwner = await GetRequestingOwner(requestTask!.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
+            if (requestingOwner == null)
+            {
+                await SuppressInterfaceRequestNotification(notification, ticket, owner, notificationService,
+                    "Requesting owner could not be resolved.");
+                return 0;
+            }
+
+            NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues =
+                BuildRequestPlaceholderValuesFromOwner(ticket, owner, requestingOwner);
+            int sentForTicket = await notificationService.SendNotification(notification, owner,
+                resolvedDeadline: ticket.CreationDate, placeholderValues: placeholderValues);
+            if (sentForTicket == 0)
+            {
+                Log.WriteWarning(LogMessageTitle,
+                    $"Reminder notification {notification.Id} was due for unanswered interface request ticket {ticket.Id}, but no email was sent. Check recipient resolution and due settings.");
+            }
+            return sentForTicket;
+        }
+
+        /// <summary>
+        /// Records an intentionally suppressed interface-request notification.
+        /// </summary>
+        /// <param name="notification">Notification definition being suppressed.</param>
+        /// <param name="ticket">Ticket associated with the notification.</param>
+        /// <param name="owner">Requested owner associated with the ticket.</param>
+        /// <param name="notificationService">Service used to write the suppression record.</param>
+        /// <param name="reason">Reason why delivery was suppressed.</param>
+        /// <param name="includePlaceholders">Whether request-specific subject placeholders should be resolved.</param>
+        private async Task SuppressInterfaceRequestNotification(FwoNotification notification, WfTicket ticket, FwoOwner owner,
+            NotificationService notificationService, string reason, bool includePlaceholders = false)
+        {
+            NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = includePlaceholders
+                ? await BuildRequestPlaceholderValues(ticket, owner)
+                : null;
+            Log.WriteDebug(LogMessageTitle,
+                $"Skipping notification {notification.Id} for unanswered interface request ticket {ticket.Id}. Reason: {reason}");
+            await notificationService.LogSuppressedNotification(notification, reason, owner, placeholderValues, ticket.CreationDate);
         }
 
         /// <summary>
@@ -322,19 +414,42 @@ namespace FWO.Middleware.Server.Jobs
             };
         }
 
-        private async Task<string> PrepareBody(WfTicket ticket, FwoOwner owner)
+        private async Task<NotificationPlaceholderResolver.NotificationPlaceholderValues> BuildRequestPlaceholderValues(WfTicket ticket, FwoOwner owner)
         {
             WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
             FwoOwner? requestingOwner = await GetRequestingOwner(reqTask?.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
+            return BuildRequestPlaceholderValuesFromOwner(ticket, owner, requestingOwner);
+        }
 
-            return globalConfig.ModUnansweredReqEmailBody
-                .Replace(Placeholder.REQUESTER, ticket.Requester?.Name)
-                .Replace(Placeholder.REQUESTDATE, ticket.CreationDate.ToString("dd.MM.yyyy"))
-                .Replace(Placeholder.REQUESTING_APPNAME, requestingOwner?.Name)
-                .Replace(Placeholder.REQUESTING_APPID, requestingOwner?.ExtAppId)
-                .Replace(Placeholder.APPNAME, owner.Name)
-                .Replace(Placeholder.APPID, owner.ExtAppId)
-                .Replace(Placeholder.INTERFACE_LINK, ConstructLink(owner, reqTask));
+        /// <summary>
+        /// Builds interface-request placeholder values using an already resolved requesting owner.
+        /// </summary>
+        /// <param name="ticket">Workflow ticket containing the interface request.</param>
+        /// <param name="owner">Requested owner associated with the interface.</param>
+        /// <param name="requestingOwner">Owner representing the requesting application, if resolved.</param>
+        /// <returns>Resolved placeholder values for the interface-request notification.</returns>
+        private NotificationPlaceholderResolver.NotificationPlaceholderValues BuildRequestPlaceholderValuesFromOwner(
+            WfTicket ticket, FwoOwner owner, FwoOwner? requestingOwner)
+        {
+            WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
+            FwoOwner effectiveRequestingOwner = requestingOwner ?? new FwoOwner();
+            string interfaceName = reqTask?.Title ?? globalConfig.GetText("interface");
+            string interfaceUrl = ConstructLink(owner, reqTask);
+            return new NotificationPlaceholderResolver.NotificationPlaceholderValues
+            {
+                Application = owner,
+                RequestingOwner = effectiveRequestingOwner,
+                InterfaceName = interfaceName,
+                InterfaceLinkText = globalConfig.GetText("request_interface"),
+                InterfaceLinkUrl = interfaceUrl,
+                NewInterfaceName = interfaceName,
+                NewInterfaceLinkText = globalConfig.GetText("request_interface"),
+                NewInterfaceLinkUrl = interfaceUrl,
+                Reason = reqTask?.Reason ?? ticket.Reason ?? "",
+                UserName = ticket.Requester?.Name ?? "",
+                RequesterName = ticket.Requester?.Name ?? ticket.RequesterDn ?? "",
+                RequestDate = ticket.CreationDate.ToString("dd.MM.yyyy")
+            };
         }
 
         private async Task<FwoOwner?> GetRequestingOwner(int? ownerId)
@@ -357,8 +472,7 @@ namespace FWO.Middleware.Server.Jobs
         private string ConstructLink(FwoOwner owner, WfReqTask? reqTask)
         {
             int? connId = reqTask?.GetAddInfoIntValue(AdditionalInfoKeys.ConnId);
-            string interfaceUrl = $"{globalConfig.UiHostName}/{PageName.Modelling}/{owner.ExtAppId}/{connId}";
-            return $"<a target=\"_blank\" href=\"{interfaceUrl}\">{reqTask?.Title ?? globalConfig.GetText("interface")}</a>";
+            return $"{globalConfig.UiHostName}/{PageName.Modelling}/{owner.ExtAppId}/{connId}";
         }
     }
 }

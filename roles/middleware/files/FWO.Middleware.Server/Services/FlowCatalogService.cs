@@ -275,27 +275,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
 
     private static bool IsActiveAndVisible(FlowGroup group)
     {
-        return !string.IsNullOrWhiteSpace(group.Name)
-            && group.ShowInRequestModule
-            && !string.Equals(group.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(group.State, FlowState.Denied, StringComparison.OrdinalIgnoreCase)
-            && group.RemovedDate == null;
-    }
-
-    private static bool IsActiveAndVisible(FlowNwObject flowObject)
-    {
-        return flowObject.ShowInRequestModule
-            && !string.Equals(flowObject.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(flowObject.State, FlowState.Denied, StringComparison.OrdinalIgnoreCase)
-            && flowObject.RemovedDate == null;
-    }
-
-    private static bool IsActiveAndVisible(FlowSvcObject flowObject)
-    {
-        return flowObject.ShowInRequestModule
-            && !string.Equals(flowObject.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(flowObject.State, FlowState.Denied, StringComparison.OrdinalIgnoreCase)
-            && flowObject.RemovedDate == null;
+        return FlowObjectEligibility.IsRequestable(group);
     }
 
     private static FlowNetworkGroupResolution ToNetworkGroupResolution(FlowNwGroup group)
@@ -305,7 +285,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
             Id = group.Id,
             Name = group.Name,
             Members = group.NwGroupMembers
-                .Where(member => IsActiveAndVisible(member.NwObject))
+                .Where(member => FlowObjectEligibility.IsRequestable(member.NwObject))
                 .Select(member => new FlowNetworkMemberResolution
                 {
                     Id = member.NwObject.Id,
@@ -324,7 +304,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
             Id = group.Id,
             Name = group.Name,
             Members = group.SvcGroupMembers
-                .Where(member => IsActiveAndVisible(member.SvcObject))
+                .Where(member => FlowObjectEligibility.IsRequestable(member.SvcObject))
                 .Select(member => new FlowServiceMemberResolution
                 {
                     Id = member.SvcObject.Id,

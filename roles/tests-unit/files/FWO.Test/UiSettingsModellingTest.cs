@@ -1,4 +1,5 @@
 using Bunit;
+using AngleSharp.Dom;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -534,6 +535,41 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SettingsModelling_RendersPredefinedServicesLabelAndAction()
+        {
+            SimulatedGlobalConfig globalConfig = CreateLoadedGlobalConfig();
+            RecordingSettingsApiConn apiConnection = new()
+            {
+                IpProtocols = [],
+                ModellingGroups = []
+            };
+            SimulatedUserConfig userConfig = CreateUserConfig(Roles.Admin);
+
+            await using BunitContext context = CreateContext(globalConfig, apiConnection, userConfig);
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+            wrapper.WaitForAssertion(() =>
+            {
+                IRenderedComponent<SettingsModelling> page = wrapper.FindComponent<SettingsModelling>();
+                Assert.That(page.Find("#cbx_allow_server_in_conn"), Is.Not.Null);
+            });
+
+            IRenderedComponent<SettingsModelling> component = wrapper.FindComponent<SettingsModelling>();
+            IElement predefinedServicesLabel = component.Find("div.form-group label");
+            IElement predefinedServicesButton = component.Find("div.form-group button");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(predefinedServicesLabel.TextContent.Trim(), Is.EqualTo("Predefined Services:"));
+                Assert.That(predefinedServicesButton, Is.Not.Null);
+            });
+
+            predefinedServicesButton.Click();
+
+            Assert.That(GetPrivateField<bool>(component.Instance, "predefServices"), Is.True);
+        }
+
+        [Test]
         public async Task SettingsModelling_RendersLoadingAndReportsInitErrors_WhenConfigLoadFails()
         {
             SimulatedGlobalConfig globalConfig = CreateLoadedGlobalConfig();
@@ -616,6 +652,7 @@ namespace FWO.Test
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(Roles.Admin));
             context.Services.AddSingleton<DomEventService>();

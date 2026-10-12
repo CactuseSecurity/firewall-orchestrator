@@ -20,7 +20,7 @@ namespace FWO.Test
     {
         private const long kTicketId = 123;
 
-        private static readonly SimulatedUserConfig kUserConfig = new();
+        private static readonly SimulatedUserConfig kUserConfig = new() { ReqPriorities = "[]" };
 
         /// <summary>
         /// Builds a request task, optionally marked as internal work the way the promotion does it.
@@ -143,6 +143,33 @@ namespace FWO.Test
             using ExternalRequestHandler handler = new(kUserConfig, new ExtTicketHandlerTestApiConn(), null);
 
             bool configured = InvokeIsInternalWorkConfiguredForTask(handler, Task(1, 1, false, "unsupported_type"));
+
+            Assert.That(configured, Is.False);
+        }
+
+        [TestCase(nameof(WfTaskType.object_create))]
+        [TestCase(nameof(WfTaskType.object_modify))]
+        public void GetChangeCategory_RejectsObjectTasks(string taskType)
+        {
+            // Object tasks are not passed to any external ticket system yet. The rejection of the change
+            // category is what keeps them away from it, Tufin would otherwise send them as access request.
+            MethodInfo method = typeof(ExternalRequestHandler).GetMethod("GetChangeCategory",
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingMethodException(typeof(ExternalRequestHandler).FullName, "GetChangeCategory");
+            List<object?> arguments = [Task(1, 1, false, taskType)];
+
+            TargetInvocationException? exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, arguments.ToArray()));
+
+            Assert.That(exception?.InnerException, Is.TypeOf<InvalidOperationException>());
+        }
+
+        [TestCase(nameof(WfTaskType.object_create))]
+        [TestCase(nameof(WfTaskType.object_modify))]
+        public void IsInternalWorkConfiguredForTask_IsFalseForObjectTasks(string taskType)
+        {
+            using ExternalRequestHandler handler = new(kUserConfig, new ExtTicketHandlerTestApiConn(), null);
+
+            bool configured = InvokeIsInternalWorkConfiguredForTask(handler, Task(1, 1, false, taskType));
 
             Assert.That(configured, Is.False);
         }

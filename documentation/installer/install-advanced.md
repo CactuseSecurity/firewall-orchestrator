@@ -141,6 +141,16 @@ e.g. if your hasura metadata file needs to be re-created from scratch, then use 
 ./scripts/run-playbook-with-sudo.sh site.yml -e "force_install=yes"
 ```
 
+### Parameter "allow_unsupported_os" to install on an unsupported operating system release
+
+The installer stops before changing anything on an operating system release it does not support (supported are Red Hat 9+, Rocky 9+, Debian 12+ including Debian testing, and Ubuntu 22.04+ LTS). For development or for testing a new release, install anyway with a warning instead:
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml -e "allow_unsupported_os=true"
+```
+
+The resulting installation is not supported. The supported releases are defined by `supported_os_minimum_major_versions` in `inventory/group_vars/all.yml`.
+
 ### Parameter "internalca_reset_certificates" to rotate FWO-managed certificates
 
 Use this one-shot switch only with `installation_mode=upgrade` to generate a new
@@ -391,6 +401,10 @@ distributed_install: true
 ```
 
 You then have to edit inventory/hosts.yml according to your needs.
+
+In a distributed setup, all logins through the UI reach the middleware from the UI server's address. The installer
+therefore exempts the hosts of the `frontends` group from the middleware's per-client login limit, see
+[login limits](../auth/README.md#login-limits).
 
 install-srv is the local machine the installation is started from. By default FWO is installed on this server
 

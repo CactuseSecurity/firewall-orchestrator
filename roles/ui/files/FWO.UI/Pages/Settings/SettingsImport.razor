@@ -123,7 +123,7 @@ else
     private async Task<bool> TriggerFullRuleOwnerReinitialize()
     {
         var tcs = new TaskCompletionSource<bool>();
-        var args = new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true, Completion = tcs };
+        var args = new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true, TriggeredByChange = true, Changes = ownerMappingSourceHandler.AppliedChanges, Completion = tcs };
         EventMediator.Publish("UpdateOwnerRuleMappings", new UpdateRuleOwnerMappingEvent(args));
         return await tcs.Task;
     }
@@ -158,6 +158,11 @@ else
 
                 if (ruleOwnerReinitializeNeeded)
                 {
+                    // recorded before the rebuild is triggered: the configuration is already saved, so if the
+                    // rebuild fails the note is what keeps the later rebuild from reporting the intended
+                    // change as drift - whichever path finally runs it
+                    await new RuleOwnerMappingRunHistory(apiConnection).RecordPendingChanges(ownerMappingSourceHandler.AppliedChanges);
+
                     bool rebuildSuccess = await TriggerFullRuleOwnerReinitialize();
                     if (!rebuildSuccess)
                     {

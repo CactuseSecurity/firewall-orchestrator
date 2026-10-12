@@ -36,7 +36,7 @@ namespace FWO.Middleware.Server.Controllers
         /// </summary>
         /// <returns>List of tenants</returns>
         [HttpGet]
-        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public async Task<List<TenantGetReturnParameters>> Get()
         {
             Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenants);
@@ -128,7 +128,7 @@ namespace FWO.Middleware.Server.Controllers
         /// <param name="parameters">TenantEditParameters</param>
         /// <returns>true if updated</returns>
         [HttpPut]
-        [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<bool> Change([FromBody] TenantEditParameters parameters)
         {
             bool tenantUpdated = false;

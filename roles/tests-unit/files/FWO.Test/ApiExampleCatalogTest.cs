@@ -38,7 +38,7 @@ public class ApiExampleCatalogTest
     [Test]
     public void TypedExamplesUseProductionJsonPropertyNames()
     {
-        Assert.That(catalog.TryGetExample(typeof(CreateRequestRequest), out object? example), Is.True);
+        Assert.That(catalog.TryGetExample(typeof(CreateTicketRequest), out object? example), Is.True);
 
         string json = JsonSerializer.Serialize(example, example!.GetType(), serializerOptions);
 

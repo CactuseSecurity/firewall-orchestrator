@@ -14,6 +14,7 @@ namespace FWO.Test
     /// </summary>
     [TestFixture]
     [NonParallelizable]
+    [UseSystemTimeZone] // X509Chain.Build needs it to set its verification time
     internal class LdapTlsCertificateTest
     {
         private static readonly string kCertificateAuthorityPath = Path.Combine(Path.GetTempPath(), "fwo_ldap_ca_test.crt");

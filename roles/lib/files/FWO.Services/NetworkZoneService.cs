@@ -116,7 +116,7 @@ namespace FWO.Services
                 isAutoCalculatedUndefinedInternalZone = networkZone.IsAutoCalculatedUndefinedInternalZone
             };
 
-            await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addNetworkZone, variables);
+            await apiConnection.SendQueryAsync<dynamic>(NetworkZoneQueries.addNetworkZone, variables);
         }
 
         public static async Task UpdateZone(ComplianceNetworkZone networkZone, AdditionsDeletions addDel, ApiConnection apiConnection)
@@ -196,7 +196,7 @@ namespace FWO.Services
                 isAutoCalculatedInternetZone = networkZone.IsAutoCalculatedInternetZone
             };
 
-            await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateNetworkZone, variables);
+            await apiConnection.SendQueryAsync<dynamic>(NetworkZoneQueries.updateNetworkZone, variables);
         }
 
         public static async Task RemoveZone(ComplianceNetworkZone networkZone, ApiConnection apiConnection)
@@ -228,7 +228,7 @@ namespace FWO.Services
                 id = networkZone.Id,
                 removed = DateTime.UtcNow
             };
-            await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeNetworkZone, variables);
+            await apiConnection.SendQueryAsync<dynamic>(NetworkZoneQueries.removeNetworkZone, variables);
         }
 
         /// <summary>
@@ -239,8 +239,12 @@ namespace FWO.Services
         /// <param name="globalConfig">Global configuration that defines the internal address ranges.</param>
         public static async Task AddAutoCalculatedInternetZone(int matrixId, ApiConnection apiConnection, GlobalConfig globalConfig)
         {
+            if (!globalConfig.AutoCalculateInternetZone)
+            {
+                return;
+            }
             List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
-                ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+                NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
             if (existingZones.Any(zone => zone.IsAutoCalculatedInternetZone))
             {
                 return;
@@ -258,7 +262,7 @@ namespace FWO.Services
         {
             // Get all zones of the matrix.
 
-            List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+            List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
 
             // Remove existing special zones.
 
@@ -339,6 +343,10 @@ namespace FWO.Services
             existingZones.Add(undefinedInternalZone);
         }
 
+        /// <summary>
+        /// Returns the internet zone object to persist. A pre-existing zone with the reserved id string
+        /// (legacy imports before 9.5 without auto-calculation) is adopted instead of creating a duplicate.
+        /// </summary>
         private static bool TryUpdateInternetZoneObject(List<ComplianceNetworkZone> existingZones, int matrixId, out ComplianceNetworkZone internetZone)
         {
             bool updated = false;

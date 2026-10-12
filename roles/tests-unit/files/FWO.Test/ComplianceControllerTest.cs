@@ -4,14 +4,19 @@ using FWO.Basics;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Middleware.Server;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using NetTools;
 using System.Net;
+using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Threading;
 
 namespace FWO.Test
@@ -19,6 +24,9 @@ namespace FWO.Test
     [TestFixture]
     internal class ComplianceControllerTest
     {
+        private static readonly List<int> kSingleManagement = [1];
+        private static readonly List<Ldap> kNoLdaps = [];
+
         [Test]
         public async Task StartInitialComplianceCheck_ReturnsAcceptedAndMarksJobSucceeded()
         {
@@ -143,7 +151,7 @@ namespace FWO.Test
         [Test]
         public async Task Post_ReturnsExceptionMessageWhenImportFails()
         {
-            ComplianceController controller = new(new DummyApiConnection());
+            ComplianceController controller = CreateComplianceController();
 
             string result = await controller.Post(new ImportMatrixParameters
             {
@@ -157,23 +165,70 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Get_ReturnsEmptyStringWhenReportGenerationFails()
+        public async Task Get_ReturnsServerErrorInsteadOfAnEmptyReportWhenReportGenerationFails()
         {
-            ComplianceController controller = new(new DummyApiConnection());
+            ComplianceController controller = CreateComplianceController();
 
-            string result = await controller.Get(new ComplianceReportParameters
+            ActionResult<string> result = await controller.Get(new ComplianceReportParameters
             {
-                ManagementIds = [1]
+                ManagementIds = kSingleManagement
             });
 
-            Assert.That(result, Is.Empty);
+            Assert.That(result.Value, Is.Null);
+            Assert.That(result.Result, Is.InstanceOf<ObjectResult>());
+            Assert.That(((ObjectResult)result.Result!).StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+        }
+
+        [TestCase(StatusCodes.Status429TooManyRequests, LoginCapacityException.kTooManyAttempts)]
+        [TestCase(StatusCodes.Status503ServiceUnavailable, LoginCapacityException.kUnavailable)]
+        public void ReportErrorResult_DirectoriesAtCapacity_AnswersTheCapacityStatusWithRetryAfter(int statusCode, string message)
+        {
+            ComplianceController controller = CreateComplianceControllerWithHttpContext(out DefaultHttpContext httpContext);
+
+            ObjectResult result = controller.ReportErrorResult(new LoginCapacityException(message, statusCode));
+
+            Assert.That(result.StatusCode, Is.EqualTo(statusCode));
+            Assert.That(result.Value, Is.EqualTo(message));
+            Assert.That(httpContext.Response.Headers.RetryAfter.ToString(), Is.EqualTo(LoginThrottle.kRetryAfterSeconds.ToString()));
+        }
+
+        [Test]
+        public void ReportErrorResult_CallerNotFoundInDirectories_AnswersUnauthorized()
+        {
+            ComplianceController controller = CreateComplianceControllerWithHttpContext(out _);
+
+            ObjectResult result = controller.ReportErrorResult(new AuthenticationException("A0002 Invalid credentials"));
+
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status401Unauthorized));
+        }
+
+        [Test]
+        public void ReportErrorResult_RequestAbortedByCaller_AnswersClientClosedRequest()
+        {
+            ComplianceController controller = CreateComplianceControllerWithHttpContext(out DefaultHttpContext httpContext);
+            using CancellationTokenSource aborted = new();
+            aborted.Cancel();
+            httpContext.RequestAborted = aborted.Token;
+
+            ObjectResult result = controller.ReportErrorResult(new OperationCanceledException(aborted.Token));
+
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status499ClientClosedRequest));
+        }
+
+        [Test]
+        public void ReportErrorResult_CancellationWithoutAbortedRequestAndOtherErrors_AnswerServerError()
+        {
+            ComplianceController controller = CreateComplianceControllerWithHttpContext(out _);
+
+            Assert.That(controller.ReportErrorResult(new OperationCanceledException()).StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+            Assert.That(controller.ReportErrorResult(new InvalidOperationException("boom")).StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
         }
 
         [Test]
         public async Task GetDesignatedZoneMatrixZones_ReturnsZonesForConfiguredMatrix()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [new ComplianceNetworkZone
                 {
@@ -204,7 +259,7 @@ namespace FWO.Test
         public async Task GetDesignatedZoneMatrixZones_PassesConfiguredMatrixIdToGraphQl()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }]);
             ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
@@ -213,7 +268,7 @@ namespace FWO.Test
 
             Assert.That(apiConnection.LastMatrixQuery, Is.EqualTo(ComplianceQueries.getMatrixById));
             Assert.That(GetAnonymousProperty<int>(apiConnection.LastMatrixQueryVariables, "criterionId"), Is.EqualTo(12));
-            Assert.That(apiConnection.LastNetworkZoneQuery, Is.EqualTo(ComplianceQueries.getNetworkZonesForMatrix));
+            Assert.That(apiConnection.LastNetworkZoneQuery, Is.EqualTo(NetworkZoneQueries.getNetworkZonesForMatrix));
             Assert.That(GetAnonymousProperty<int>(apiConnection.LastNetworkZoneQueryVariables, "criterionId"), Is.EqualTo(12));
         }
 
@@ -221,7 +276,7 @@ namespace FWO.Test
         public async Task GetDesignatedZoneMatrixZones_ReturnsEmptyListWhenConfiguredMatrixWasDeleted()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [],
                 [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }]);
             ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
@@ -256,7 +311,7 @@ namespace FWO.Test
         public async Task GetDesignatedZoneMatrixZones_ReturnsServerErrorWhenServiceFails()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }],
                 throwOnNetworkZoneQuery: true);
@@ -272,7 +327,7 @@ namespace FWO.Test
         public async Task ResolveZonesForObjects_ReturnsZonesForNestedGroups()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [
                     new ComplianceNetworkZone
@@ -346,7 +401,7 @@ namespace FWO.Test
         public async Task ResolveZonesForObjects_ReturnsServerErrorWhenServiceFails()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }],
                 throwOnNetworkZoneQuery: true);
@@ -373,7 +428,7 @@ namespace FWO.Test
         [Test]
         public async Task ResolveZonesForObjects_ReturnsBadRequestListingUnassignableRanges()
         {
-            ConfigItem[] configItems = [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }];
+            ConfigItem[] configItems = [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }];
             List<ComplianceCriterion> matrices = [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }];
             IPAddressRange[] ipv4ZoneRanges = [new IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))];
             List<ComplianceNetworkZone> zones =
@@ -414,7 +469,7 @@ namespace FWO.Test
         {
             // Only the deliberate unassignable-ranges signal may reach the client. Any other argument exception
             // raised inside the service is a defect and must be logged as a server error instead of echoed as 400.
-            ConfigItem[] configItems = [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }];
+            ConfigItem[] configItems = [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }];
             List<ComplianceCriterion> matrices = [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }];
             List<ComplianceNetworkZone> zones = [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }];
             DummyApiConnection apiConnection = new(
@@ -455,6 +510,19 @@ namespace FWO.Test
 
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
             Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("must contain at least one entry"));
+        }
+
+        private static ComplianceController CreateComplianceController()
+        {
+            return new ComplianceController(new DummyApiConnection(), new JwtWriter(new RsaSecurityKey(RSA.Create(2048))), kNoLdaps);
+        }
+
+        private static ComplianceController CreateComplianceControllerWithHttpContext(out DefaultHttpContext httpContext)
+        {
+            ComplianceController controller = CreateComplianceController();
+            httpContext = new DefaultHttpContext();
+            controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+            return controller;
         }
 
         private sealed class DummyApiConnection : ApiConnection
@@ -558,7 +626,7 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)matrices);
                 }
 
-                if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == ComplianceQueries.getNetworkZonesForMatrix)
+                if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
                 {
                     if (throwOnNetworkZoneQuery)
                     {
@@ -592,7 +660,7 @@ namespace FWO.Test
         {
             SimulatedGlobalConfig globalConfig = new()
             {
-                ComplianceDesignatedZoneMatrixId = matrixId
+                DesignatedZoneMatrixId = matrixId
             };
 
             return new ComplianceZoneService(apiConnection, globalConfig);

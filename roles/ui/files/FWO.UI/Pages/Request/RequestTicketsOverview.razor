@@ -4,7 +4,7 @@
 @using FWO.Api.Client
 
 @page "/request/ticketsoverview"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Requester}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Requester}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -45,7 +45,7 @@ else
     {
         try
         {
-            accessAllowed = userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Auditor);
+            accessAllowed = userConfig.CanUseAnyRole(Roles.Admin, Roles.Requester, Roles.Auditor);
             if (!accessAllowed)
             {
                 InitComplete = true;
@@ -74,7 +74,7 @@ else
         {
             wfHandler.ReadOnlyMode = true;
             await wfHandler.Init(true, OwnerIds, true);
-            if(!userConfig.ReqOwnerBased && userConfig.CanUseAnyRole(Roles.Requester) && !userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin))
+            if(!userConfig.ReqOwnerBased && userConfig.CanUseAnyRole(Roles.Requester) && !userConfig.CanUseAnyRole(Roles.Admin))
             {
                 wfHandler.FilterForRequester();
             }

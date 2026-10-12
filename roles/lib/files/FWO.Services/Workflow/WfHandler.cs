@@ -139,7 +139,7 @@ namespace FWO.Services.Workflow
                     }
                     else if (AuthUser != null)
                     {
-                        await apiConnection.RunWithBestRole(AuthUser, [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Modeller, Roles.Auditor],
+                        await apiConnection.RunWithBestRole(AuthUser, [Roles.Admin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Modeller, Roles.Auditor],
                             async () => await LoadInitialData(apiConnection, fetchData, ownerIds, allStates, fullTickets));
                     }
                     else
@@ -248,6 +248,30 @@ namespace FWO.Services.Workflow
                 DisplayMessageInUi(exception, userConfig.GetText("state_matrix"), "", true);
                 return new();
             }
+        }
+
+        /// <summary>
+        /// Determines whether a request task is within the actionable state range of its current phase.
+        /// </summary>
+        /// <param name="reqTask">The request task to evaluate.</param>
+        /// <returns><c>true</c> when the task has reached the phase input state and has not reached the phase end state; otherwise, <c>false</c>.</returns>
+        public bool CanActOnReqTaskInCurrentPhase(WfReqTask reqTask)
+        {
+            StateMatrix taskStateMatrix = StateMatrix(reqTask.TaskType);
+            return reqTask.StateId >= taskStateMatrix.LowestInputState
+                && reqTask.StateId < taskStateMatrix.LowestEndState;
+        }
+
+        /// <summary>
+        /// Determines whether an implementation task is within the actionable state range of its current phase.
+        /// </summary>
+        /// <param name="implTask">The implementation task to evaluate.</param>
+        /// <returns><c>true</c> when the task has reached the phase input state and has not reached the phase end state; otherwise, <c>false</c>.</returns>
+        public bool CanActOnImplTaskInCurrentPhase(WfImplTask implTask)
+        {
+            StateMatrix taskStateMatrix = StateMatrix(implTask.TaskType);
+            return implTask.StateId >= taskStateMatrix.LowestInputState
+                && implTask.StateId < taskStateMatrix.LowestEndState;
         }
 
         public HashSet<int> GetWorkflowExclusiveVisibilityGroupIds()

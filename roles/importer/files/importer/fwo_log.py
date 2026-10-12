@@ -255,6 +255,7 @@ class ChangeLogger:
         import_time: str,
         rule_id: int,
         rule_id_alternative: int = 0,
+        security_relevant: bool = True,
     ) -> dict[str, Any]:
         unique_name = self._get_changelog_import_object_unique_name(rule_id)
         old_rule_id = None
@@ -279,6 +280,7 @@ class ChangeLogger:
             "change_type_id": change_typ,
             "change_time": import_time,
             "unique_name": unique_name,
+            "security_relevant": security_relevant,
         }
 
         return rule_changelog_object

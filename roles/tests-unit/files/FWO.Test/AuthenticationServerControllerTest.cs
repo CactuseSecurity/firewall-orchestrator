@@ -1,11 +1,14 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Middleware.Server.Controllers;
 using MiddlewareLdap = FWO.Middleware.Server.Ldap;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -45,6 +48,66 @@ namespace FWO.Test
             Assert.That(result[0].WriteUserPwd, Is.Null.Or.Empty);
             Assert.That(apiConnection.LastQuery, Is.EqualTo(AuthQueries.getAllLdapConnectionsWithoutSecrets));
             Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
+        }
+
+        /// <summary>
+        /// SEC-04: the connection test reaches a server named by the caller and carries the
+        /// credentials entered for it in the request body. A GET with a body is handled
+        /// inconsistently by proxies and http clients, and its url and body risk being cached or
+        /// written to an access log on the way, so the test has to be a POST even though it changes
+        /// nothing. Asserted on the attributes because nothing but a live proxy would report it.
+        /// </summary>
+        [Test]
+        public void TestConnection_IsAPostSoItsBodyIsNotSentOnAGet()
+        {
+            MethodInfo testConnection = GetTestConnectionMethod();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(testConnection.GetCustomAttributes<HttpGetAttribute>(), Is.Empty,
+                    "a body on a GET is dropped by some http clients and logged by some proxies");
+                HttpPostAttribute? post = testConnection.GetCustomAttribute<HttpPostAttribute>();
+                Assert.That(post, Is.Not.Null);
+                Assert.That(post!.Template, Is.EqualTo("TestConnection"));
+                Assert.That(testConnection.GetParameters()[0].GetCustomAttribute<FromBodyAttribute>(), Is.Not.Null,
+                    "the credentials entered for the test belong in the body, not in the url");
+            });
+        }
+
+        /// <summary>
+        /// SEC-04: the test binds to a server and port chosen by the caller, so it must stay with
+        /// the role that may already configure those. An auditor is read-only and has to be refused.
+        /// </summary>
+        [Test]
+        public void TestConnection_IsRestrictedToAdmin()
+        {
+            AuthorizeAttribute? authorize = GetTestConnectionMethod().GetCustomAttribute<AuthorizeAttribute>();
+
+            Assert.That(authorize, Is.Not.Null);
+            List<string> roles = (authorize!.Roles ?? "")
+                .Split(',')
+                .Select(role => role.Trim())
+                .Where(role => role.Length > 0)
+                .ToList();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(roles, Is.EqualTo(new List<string> { Roles.Admin }));
+                Assert.That(roles, Has.No.Member(Roles.Auditor),
+                    "an auditor may read the connections but must not make the product bind anywhere");
+            });
+        }
+
+        /// <summary>
+        /// Locates the connection test endpoint, so a rename cannot make the two checks above pass
+        /// against a method that no longer exists.
+        /// </summary>
+        private static MethodInfo GetTestConnectionMethod()
+        {
+            MethodInfo? testConnection = typeof(AuthenticationServerController)
+                .GetMethod(nameof(AuthenticationServerController.TestConnection));
+            Assert.That(testConnection, Is.Not.Null, "the connection test endpoint was renamed or removed");
+            return testConnection!;
         }
 
         [Test]

@@ -4,6 +4,7 @@
 @using FWO.Services.RuleTreeBuilder
 @inject UserConfig userConfig
 @inject IRuleTreeBuilder ruleTreeBuilder
+@inject IJSRuntime jsRuntime
 
 @foreach (var management in Managements)
 {
@@ -30,6 +31,7 @@
                 {
                     @if (device.ContainsRules())
                     {
+                        <div id="@DeviceReportExtensions.GetRuleTreeAnchorId(management.Id, device.Id)">
                         <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false" Class="py-1">
                             <FancyTreeTable TItem="RuleReportTreeRow"
                                             Items="@GetRuleRows(management, device)"
@@ -40,11 +42,12 @@
                                             Texts="RuleTableTexts"
                                             TreeActionsContainerClass="sticky-collapse"
                                             TreeActionsTemplate="RuleTreeActionsTemplate"
-                                            RowTemplate="SectionHeaderTemplate"
-                                            RowTemplateSelector="context => context.Item.IsSectionHeader"
+                                            RowTemplate="CustomRowTemplate"
+                                            RowTemplateSelector="context => context.Item.IsSectionHeader || context.Item.IsRulebaseReference"
                                             EnableColumnReordering="true"
                                             EnableColumnResizing="true" />
                         </Collapse>
+                        </div>
                     }
                 }
             }
@@ -70,6 +73,20 @@
         </button>
     </div>;
 
+    private RenderFragment<FancyRowContext<RuleReportTreeRow>> CustomRowTemplate => context =>
+        context.Item.IsRulebaseReference ? RulebaseReferenceTemplate(context) : SectionHeaderTemplate(context);
+
+    private RenderFragment<FancyRowContext<RuleReportTreeRow>> RulebaseReferenceTemplate => context => @<tr>
+        <td class="bg-light" colspan="@context.VisibleColumnCount">
+            <span class="font-weight-bold">@(context.Item.Node.Header)</span> -
+            @(userConfig.GetText("rulebase_listed_above")):
+            <button type="button" class="btn btn-link btn-sm p-0 align-baseline"
+                    @onclick="() => ScrollToRuleTree(context.Item.ManagementId, context.Item.ReferencedTreeId)">
+                @(context.Item.ReferencedTreeName)
+            </button>
+        </td>
+    </tr>;
+
     private RenderFragment<FancyRowContext<RuleReportTreeRow>> SectionHeaderTemplate => context => @<tr class="table-warning fw-bold">
         <td colspan="@context.VisibleColumnCount">
             <button type="button"
@@ -94,6 +111,22 @@
 
     [Parameter]
     public bool Recertification { get; set; } = false;
+
+    /// <summary>
+    /// Scrolls to the rule tree that lists a referenced rulebase completely (management rulebases view).
+    /// </summary>
+    private async Task ScrollToRuleTree(int managementId, int treeId)
+    {
+        await jsRuntime.InvokeVoidAsync("scrollToElementAndHighlight", DeviceReportExtensions.GetRuleTreeAnchorId(managementId, treeId));
+    }
+
+    /// <summary>
+    /// Returns the name of a rule tree (start rulebase in management rulebases view) of the management.
+    /// </summary>
+    private static string GetRuleTreeName(ManagementReport management, int treeId)
+    {
+        return management.Devices.FirstOrDefault(device => device.Id == treeId)?.Name ?? "";
+    }
 
     [Parameter]
     public int RulesPerPage { get; set; }
@@ -467,10 +500,10 @@
             return [];
         }
 
-        return MapTreeNodes(ruleTree.Children, deviceReport.Name);
+        return MapTreeNodes(ruleTree.Children, managementReport, deviceReport);
     }
 
-    private IReadOnlyList<RuleReportTreeRow> MapTreeNodes(IEnumerable<RuleTreeItem> nodes, string? deviceName)
+    private IReadOnlyList<RuleReportTreeRow> MapTreeNodes(IEnumerable<RuleTreeItem> nodes, ManagementReport managementReport, DeviceReport deviceReport)
     {
         List<RuleReportTreeRow> rows = [];
 
@@ -478,7 +511,7 @@
         {
             if (node.IsInlineLayerRoot)
             {
-                rows.AddRange(MapTreeNodes(node.Children, deviceName));
+                rows.AddRange(MapTreeNodes(node.Children, managementReport, deviceReport));
                 continue;
             }
 
@@ -487,8 +520,14 @@
                 continue;
             }
 
-            node.Data.DeviceName = deviceName ?? string.Empty;
-            rows.Add(new RuleReportTreeRow(node, MapTreeNodes(node.Children, deviceName)));
+            node.Data.DeviceName = deviceReport.Name ?? string.Empty;
+            int referencedTreeId = node.IsRulebaseReference ? deviceReport.ReferencedRulebaseTreeIds.GetValueOrDefault(node.ReferencedRulebaseId) : 0;
+            rows.Add(new RuleReportTreeRow(node, MapTreeNodes(node.Children, managementReport, deviceReport))
+            {
+                ManagementId = managementReport.Id,
+                ReferencedTreeId = referencedTreeId,
+                ReferencedTreeName = node.IsRulebaseReference ? GetRuleTreeName(managementReport, referencedTreeId) : string.Empty
+            });
         }
 
         return rows;
@@ -496,7 +535,7 @@
 
     private static int CountRealRuleDescendants(RuleReportTreeRow row)
     {
-        int count = row.IsSectionHeader ? 0 : 1;
+        int count = row.IsSectionHeader || row.IsRulebaseReference ? 0 : 1;
 
         foreach (RuleReportTreeRow child in row.Children)
         {
@@ -520,7 +559,11 @@
         public IReadOnlyList<RuleReportTreeRow> Children { get; }
         public bool IsInitiallyExpanded => Node.IsExpanded;
         public bool IsSectionHeader => Node.IsSectionHeader;
-        public string DisplayName => IsSectionHeader ? string.Empty : Rule.Name ?? string.Empty;
+        public bool IsRulebaseReference => Node.IsRulebaseReference;
+        public int ManagementId { get; init; }
+        public int ReferencedTreeId { get; init; }
+        public string ReferencedTreeName { get; init; } = string.Empty;
+        public string DisplayName => IsSectionHeader || IsRulebaseReference ? string.Empty : Rule.Name ?? string.Empty;
         public string SectionHeaderTitle => Rule.SectionHeader ?? string.Empty;
     }
 

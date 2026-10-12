@@ -1,0 +1,29 @@
+query getManagementsForRulebaseReporting {
+  management(
+    where: {
+      hide_in_gui: { _eq: false }
+      stm_dev_typ: {
+        dev_typ_is_multi_mgmt: { _eq: false }
+        is_pure_routing_device: { _eq: false }
+      }
+    }
+    order_by: { mgm_name: asc }
+  ) {
+    id: mgm_id
+    name: mgm_name
+    rulebases(where: { removed: { _is_null: true } }, order_by: { name: asc }) {
+      id
+      name
+      rulebase_links(where: { removed: { _is_null: true }, is_initial: { _eq: false } }) {
+        from_rulebase_id
+        from_rule_id
+        rulebaseByFromRulebaseId {
+          mgm_id
+        }
+        rule {
+          mgm_id
+        }
+      }
+    }
+  }
+}

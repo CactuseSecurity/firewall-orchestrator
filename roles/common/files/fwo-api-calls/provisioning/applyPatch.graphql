@@ -1,0 +1,23 @@
+mutation applyPatch(
+  $upserts: [provisioning_config_value_insert_input!]!
+  $nodeId: bigint!
+  $removeKeys: [String!]!
+) {
+  upserted_values: insert_provisioning_config_value(
+    objects: $upserts
+    on_conflict: {
+      constraint: provisioning_config_value_pkey
+      update_columns: [config_value]
+    }
+  ) {
+    affected_rows
+  }
+  removed_values: delete_provisioning_config_value(
+    where: {
+      node_id: {_eq: $nodeId}
+      config_key: {_in: $removeKeys}
+    }
+  ) {
+    affected_rows
+  }
+}

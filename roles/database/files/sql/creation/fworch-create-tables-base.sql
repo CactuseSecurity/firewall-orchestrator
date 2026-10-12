@@ -74,7 +74,7 @@ Create table "management" -- contains an entry for each firewall management syst
 );
 
 
-create table import_credential
+create table credential
 (
     id SERIAL PRIMARY KEY,
     credential_name varchar NOT NULL,

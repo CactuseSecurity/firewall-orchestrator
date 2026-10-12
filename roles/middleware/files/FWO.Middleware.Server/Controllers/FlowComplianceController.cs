@@ -4,6 +4,7 @@ using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FWO.Middleware.Server.Controllers;
 
@@ -38,6 +39,8 @@ public class FlowComplianceController : ControllerBase
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getFlowComplianceState")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     public async Task<ActionResult<List<FlowComplianceStateResponse>>> GetFlowComplianceState([FromBody] GetFlowComplianceStateRequest request)
     {
         if (!FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult))

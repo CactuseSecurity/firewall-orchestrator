@@ -127,7 +127,7 @@ namespace FWO.Test
             {
                 Hostname = hostname,
                 Port = port,
-                ExportCredential = new ImportCredential("api-user", "unencrypted-secret")
+                ExportCredential = new Credential("api-user", "unencrypted-secret")
             };
         }
     }

@@ -313,10 +313,18 @@
 
     private async Task DeleteCredentials()
     {
-        List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
+        List<Credential> credentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentials);
         deletedSampleCredentials = 0;
         foreach (var credential in credentials.Where(c => c.Name.EndsWith(GlobalConst.k_demo)))
         {
+            // an external ticket system would lose its login, the database cannot prevent this (reference in the config)
+            List<ExternalTicketSystem> ticketSystems = ExternalTicketSystem.UsingCredential(userConfig.ExtTicketSystems, credential.Id);
+            if (ticketSystems.Count > 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("delete_credential"),
+                    $"{userConfig.GetText("E5113")} ({credential.Name}: {string.Join(", ", ticketSystems.Select(system => system.Name))})", true);
+                continue;
+            }
             if (await DeleteCredential(credential))
             {
                 deletedSampleCredentials++;
@@ -324,7 +332,7 @@
         }
     }
 
-    private async Task<bool> DeleteCredential(ImportCredential credential)
+    private async Task<bool> DeleteCredential(Credential credential)
     {
         try
         {

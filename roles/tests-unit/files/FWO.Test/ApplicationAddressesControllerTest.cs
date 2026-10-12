@@ -285,7 +285,8 @@ internal class ApplicationAddressesControllerTest
                 "\"_or\":[{\"name\":{\"_ilike\":\"application %\"}},{\"name\":{\"_ilike\":\"%second application%\"}}]"));
             Assert.That(variables, Does.Contain("{\"app_id_external\":{\"_ilike\":\"app-%\"}}"));
             Assert.That(variables, Does.Not.Contain("\"_or\":[{\"app_id_external\""));
-            Assert.That(variables, Does.Contain("\"limit\":20"));
+            // one application more than the page size is requested to detect further applications
+            Assert.That(variables, Does.Contain("\"limit\":21"));
             Assert.That(variables, Does.Contain("\"offset\":5"));
         });
     }
@@ -340,7 +341,7 @@ internal class ApplicationAddressesControllerTest
         {
             Assert.That(request.Options, Is.Not.Null);
             Assert.That(request.Options!.Filter, Is.Null);
-            Assert.That(request.Options.Limit, Is.Null);
+            Assert.That(request.Options.Limit, Is.EqualTo(GetApplicationAddressesOptions.kMaxLimit));
             Assert.That(request.Options.Offset, Is.Null);
             Assert.That(request.Options.ShowOnlyActiveState, Is.Null);
         });
@@ -534,6 +535,41 @@ internal class ApplicationAddressesControllerTest
             Ip = appServer.Ip,
             IpEnd = appServer.IpEnd
         }).ToList();
+    }
+
+    [TestCase(2, "true")]
+    [TestCase(3, "false")]
+    public async Task GetReturnsOnePageAndTellsWhetherFurtherApplicationsFollow(int limit, string expectedHasMore)
+    {
+        ApplicationAddressesApiConnection apiConnection = new()
+        {
+            Owners = Enumerable.Range(1, 3).Select(id => new FwoOwner { Id = id, Name = $"app-{id}" }).ToList()
+        };
+        ApplicationAddressesController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+        ActionResult<List<ApplicationAddressResponse>> result = await controller.Get(new GetApplicationAddressesRequest
+        {
+            Options = new GetApplicationAddressesOptions { Limit = limit }
+        });
+
+        List<ApplicationAddressResponse> responses = (List<ApplicationAddressResponse>)((OkObjectResult)result.Result!).Value!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(responses, Has.Count.EqualTo(Math.Min(limit, 3)));
+            Assert.That(controller.Response.Headers[ListPaging.kHasMoreHeader].ToString(), Is.EqualTo(expectedHasMore));
+        });
+    }
+
+    [Test]
+    public async Task GetWithExplicitNullLimitRequestsTheDefaultPage()
+    {
+        ApplicationAddressesApiConnection apiConnection = new();
+        ApplicationAddressesController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+        await controller.Get(new GetApplicationAddressesRequest { Options = new GetApplicationAddressesOptions { Limit = null } });
+
+        Assert.That(SerializeVariables(apiConnection.LastApplicationVariables),
+            Does.Contain($"\"limit\":{GetApplicationAddressesOptions.kMaxLimit + 1}"));
     }
 
     private static ApplicationAddressesController CreateController(ApiConnection apiConnection, ClaimsPrincipal user)

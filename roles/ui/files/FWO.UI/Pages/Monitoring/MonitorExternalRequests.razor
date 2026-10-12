@@ -142,7 +142,7 @@ else
                 </div>
                 <div class="form-group row">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system")):</label>
-                    <label class="col-sm-8">@ConvertQuotes(actRequest.ExtTicketSystem)</label>
+                    <label class="col-sm-8">@ConvertQuotes(ExternalTicketSystem.RedactAuthorization(actRequest.ExtTicketSystem))</label>
                 </div>
             </form>
         }

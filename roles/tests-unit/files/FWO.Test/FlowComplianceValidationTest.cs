@@ -23,6 +23,40 @@ internal class FlowComplianceValidationTest
     }
 
     [Test]
+    public void GetFlowComplianceState_RejectsEveryOversizedListTogether()
+    {
+        GetFlowComplianceStateRequest request = new()
+        {
+            Source = Enumerable.Range(0, FlowComplianceRequestValidator.kMaxRangeEntries + 1)
+                .Select(_ => new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1", IpEnd = "10.0.0.1" })
+                .ToList(),
+            Policies = Enumerable.Range(1, FlowComplianceRequestValidator.kMaxPolicies + 1).ToList()
+        };
+
+        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+
+        string message = ((BadRequestObjectResult)errorResult!).Value!.ToString()!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(message, Does.Contain("'source'"));
+            Assert.That(message, Does.Contain("'policies'"));
+            Assert.That(message, Does.Not.Contain("'destination'"));
+        });
+    }
+
+    [Test]
+    public void GetFlowComplianceState_AllowsListsAtTheMaximum()
+    {
+        GetFlowComplianceStateRequest request = new()
+        {
+            Policies = Enumerable.Range(1, FlowComplianceRequestValidator.kMaxPolicies).ToList()
+        };
+
+        Assert.That(FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out _), Is.True);
+    }
+
+    [Test]
     public void GetFlowComplianceState_AllowsExpectedShape()
     {
         string json = """

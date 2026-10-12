@@ -5,16 +5,18 @@ import json
 from typing import TYPE_CHECKING, Any, cast
 
 import fwo_api as fwo_api_module
+import fwo_http_retry
 import pytest
 import requests
 from fwo_api import REDACTED_VALUE, FwoApi
 from fwo_config import TlsIdentity
-from fwo_const import API_CALL_CHUNK_SIZE
+from fwo_const import API_CALL_CHUNK_SIZE, FWO_API_CONNECT_TIMEOUT, FWO_API_HTTP_IMPORT_TIMEOUT
 from fwo_exceptions import (
     FwoApiLoginFailedError,
     FwoApiServiceUnavailableError,
     FwoApiTimeoutError,
     FwoImporterError,
+    ShutdownRequestedError,
 )
 from services.enums import Lifetime, Services
 
@@ -63,9 +65,11 @@ class _FakeSession(requests.Session):
         self._responses = responses or []
         self._exception = exception
         self.requests: list[tuple[str, str, Any]] = []
+        self.timeouts: list[Any] = []
 
     def _respond(self, method: str, url: str | bytes, **kwargs: Any) -> requests.Response:
         self.requests.append((method, str(url), kwargs.get("data", kwargs.get("json"))))
+        self.timeouts.append(kwargs.get("timeout"))
         if self._exception is not None:
             raise self._exception
         return cast("requests.Response", self._responses.pop(0))
@@ -93,6 +97,20 @@ def _read_test_tls_identity(_config_file: str) -> TlsIdentity:
 def _patch_session(monkeypatch: pytest.MonkeyPatch, session: _FakeSession) -> None:
     monkeypatch.setattr(requests, "Session", lambda: session)
     monkeypatch.setattr(fwo_api_module, "read_tls_identity", _read_test_tls_identity)
+
+
+def _skip_sleep(_seconds: float) -> None:
+    return None
+
+
+def _enable_retries(monkeypatch: pytest.MonkeyPatch, delays: tuple[int, ...] = (0,)) -> None:
+    monkeypatch.setattr(fwo_api_module, "FWO_API_RETRY_DELAYS_SECONDS", delays)
+    monkeypatch.setattr(fwo_http_retry, "_sleep", _skip_sleep)
+
+
+def _shutdown_during_wait(_seconds: float) -> None:
+    # what the SIGTERM handler does when the signal arrives while a retry waits
+    raise ShutdownRequestedError
 
 
 def _register_fwo_config(service_provider: ServiceProvider) -> None:
@@ -211,11 +229,58 @@ class TestFwoApiCall:
         with pytest.raises(requests.exceptions.HTTPError):
             FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY)
 
-    def test_call_reraises_connection_errors_without_response(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_call_maps_connection_errors_to_service_unavailable(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_session(monkeypatch, _FakeSession(exception=requests.exceptions.ConnectionError("refused")))
 
-        with pytest.raises(requests.exceptions.ConnectionError):
+        with pytest.raises(FwoApiServiceUnavailableError, match="unreachable"):
             FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY)
+
+    def test_call_does_not_map_ssl_errors_to_service_unavailable(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _patch_session(monkeypatch, _FakeSession(exception=requests.exceptions.SSLError("bad certificate")))
+
+        with pytest.raises(requests.exceptions.SSLError):
+            FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY)
+
+    def test_call_retries_503_before_returning_data(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        payload = {"data": {"stuff": [{"id": 1}]}}
+        session = _FakeSession(
+            [_FakeResponse(status_code=HTTP_SERVICE_UNAVAILABLE), _FakeResponse(status_code=HTTP_OK, payload=payload)]
+        )
+        _patch_session(monkeypatch, session)
+        _enable_retries(monkeypatch)
+
+        assert FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY) == payload
+        assert len(session.requests) == 2
+
+    def test_call_bounds_the_connect_time(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        session = _FakeSession([_FakeResponse(payload={"data": {}})])
+        _patch_session(monkeypatch, session)
+
+        FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY)
+
+        assert session.timeouts == [(FWO_API_CONNECT_TIMEOUT, FWO_API_HTTP_IMPORT_TIMEOUT)]
+
+    def test_call_lets_a_shutdown_during_a_retry_wait_through(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        session = _FakeSession(
+            [_FakeResponse(status_code=HTTP_SERVICE_UNAVAILABLE), _FakeResponse(status_code=HTTP_OK, payload={})]
+        )
+        _patch_session(monkeypatch, session)
+        _enable_retries(monkeypatch)
+        monkeypatch.setattr(fwo_http_retry, "_sleep", _shutdown_during_wait)
+
+        with pytest.raises(ShutdownRequestedError):
+            FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY)
+
+    def test_jwt_refresh_lets_a_shutdown_through(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        session = _FakeSession(
+            [_FakeResponse(status_code=HTTP_SERVICE_UNAVAILABLE), _FakeResponse(status_code=HTTP_OK, text="{}")]
+        )
+        _patch_session(monkeypatch, session)
+        _enable_retries(monkeypatch)
+        monkeypatch.setattr(fwo_http_retry, "_sleep", _shutdown_during_wait)
+
+        with pytest.raises(ShutdownRequestedError):
+            FwoApi(API_URL, TEST_JWT, "refresh-token", MIDDLEWARE_URL)._try_refresh_jwt()
 
     def test_call_reraises_importer_errors_unchanged(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_session(monkeypatch, _FakeSession(exception=FwoImporterError("importer broke")))
@@ -371,6 +436,60 @@ class TestFwoApiCallEndpoint:
 
         with pytest.raises(FwoImporterError, match="Middleware API request failed"):
             FwoApi(API_URL, TEST_JWT).call_endpoint("GET", "User")
+
+    def test_call_endpoint_bounds_the_connect_time(
+        self, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
+    ) -> None:
+        _register_fwo_config(service_provider)
+        session = _FakeSession([_FakeResponse(payload={"ok": True})])
+        _patch_session(monkeypatch, session)
+
+        FwoApi(API_URL, TEST_JWT).call_endpoint("GET", "User")
+
+        assert session.timeouts == [(FWO_API_CONNECT_TIMEOUT, FWO_API_HTTP_IMPORT_TIMEOUT)]
+
+    def test_call_endpoint_maps_connection_errors_to_service_unavailable(
+        self, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
+    ) -> None:
+        _register_fwo_config(service_provider)
+        _patch_session(monkeypatch, _FakeSession(exception=requests.exceptions.ConnectionError("refused")))
+
+        with pytest.raises(FwoApiServiceUnavailableError, match="unreachable"):
+            FwoApi(API_URL, TEST_JWT).call_endpoint("GET", "User")
+
+    def test_call_endpoint_retries_503(
+        self, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
+    ) -> None:
+        _register_fwo_config(service_provider)
+        session = _FakeSession(
+            [
+                _FakeResponse(status_code=HTTP_SERVICE_UNAVAILABLE),
+                _FakeResponse(status_code=HTTP_OK, payload={"ok": True}),
+            ]
+        )
+        _patch_session(monkeypatch, session)
+        _enable_retries(monkeypatch)
+
+        assert FwoApi(API_URL, TEST_JWT).call_endpoint("GET", "User") == {"ok": True}
+        assert len(session.requests) == 2
+
+    def test_login_retries_503(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        session = _FakeSession(
+            [_FakeResponse(status_code=HTTP_SERVICE_UNAVAILABLE), _FakeResponse(status_code=HTTP_OK, text="token-pair")]
+        )
+        _patch_session(monkeypatch, session)
+        _enable_retries(monkeypatch)
+
+        assert FwoApi.login("importer", "secret", MIDDLEWARE_URL) == "token-pair"
+        assert len(session.requests) == 2
+
+    def test_login_connects_with_the_internal_api_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        session = _FakeSession([_FakeResponse(status_code=HTTP_OK, text="token-pair")])
+        _patch_session(monkeypatch, session)
+
+        FwoApi.login("importer", "secret", MIDDLEWARE_URL)
+
+        assert session.timeouts == [(FWO_API_CONNECT_TIMEOUT, FWO_API_HTTP_IMPORT_TIMEOUT)]
 
 
 class TestFwoApiLogHelpers:

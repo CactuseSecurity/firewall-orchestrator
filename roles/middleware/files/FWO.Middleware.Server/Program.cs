@@ -28,6 +28,10 @@ const int kApiUnavailableExitCode = 78;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
+// Report readiness to systemd (Type=notify) once the web server below listens, so units ordered
+// After= the middleware start against a middleware that answers. A no-op outside systemd.
+builder.Services.AddSystemd();
+
 builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
 
 // Create Token Generator

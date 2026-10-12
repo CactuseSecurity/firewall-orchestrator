@@ -19,11 +19,12 @@ After=network-online.target remote-fs.target nss-lookup.target {{ webserver_pack
 [Service]
 Type=simple
 WorkingDirectory={{ importer_home }}
-ExecStartPre=/bin/sleep 10
 ExecStart={{ importer_venv_dir }}/bin/python {{ importer_home}}/import_main_loop.py
 Environment="PATH={{ importer_venv_dir }}/bin:/usr/bin:/bin"
 Environment="VIRTUAL_ENV={{ importer_venv_dir }}"
-TimeoutStopSec=300min
+# a stop interrupts the running import, which the importer rolls back before it exits; an import
+# still running when this expires is killed and rolled back on the next start (orphaned_imports.py)
+TimeoutStopSec={{ fworch_importer_timeout_stop_sec }}
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier={{ product_name }}-importer-api
@@ -32,9 +33,13 @@ KillSignal=SIGINT
 Group={{ fworch_group }}
 Restart=always
 RestartSec={{ fworch_systemd_restart_sec }}
+# the importer exits with this code after it was asked (SIGUSR1) to finish its running import, which
+# the installer does before an upgrade: a clean exit, and one that must not be restarted
+SuccessExitStatus={{ fworch_importer_drained_exit_code }}
+RestartPreventExitStatus={{ fworch_importer_drained_exit_code }}
 # bound a runaway inside this service's own cgroup, so the kernel does not get to pick the victim.
 # unlike the other services this one runs a process tree, and OOMPolicy=stop would stop it the
-# regular way - SIGINT first, then up to the TimeoutStopSec above before the survivors are killed.
+# regular way - SIGINT first, then up to the TimeoutStopSec above.
 # oom-killing the whole cgroup at once keeps a restart after an out of memory kill immediate.
 MemoryMax={{ fworch_importer_memory_max }}
 OOMPolicy=kill

@@ -1,0 +1,5 @@
+query getOpenImport($importId: bigint!) {
+  import_control(where: { control_id: { _eq: $importId }, stop_time: { _is_null: true } }) {
+    control_id
+  }
+}

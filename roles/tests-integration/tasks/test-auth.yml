@@ -7,6 +7,8 @@
       daemon_reload: true
   become: true
 
+# reloaded, not restarted: a graceful reload picks up configuration changes but keeps open
+# connections through apache - the importer's included - instead of cutting them
 - name: reload middleware reverse proxy configuration
   ansible.builtin.service:
       name: "{{ webserver_package_name }}"

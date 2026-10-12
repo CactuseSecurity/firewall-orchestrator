@@ -20,6 +20,11 @@ suppress_cert_warnings: bool | None = None
 cli_verify_certs: bool = False
 debug_level = 0
 shutdown_requested = False
+# set while a rollback runs: a shutdown signal then only sets shutdown_requested instead of raising,
+# so the rollback cannot be cut short and leave the import's lock behind - see fwo_signalling
+shutdown_deferral_active = False
+# set by SIGUSR1: finish the running import, then exit instead of starting the next one
+drain_requested = False
 
 # The operating system trust stores of the supported platforms (Debian/Ubuntu, Red Hat/Rocky).
 # requests would otherwise use the certifi bundle, which ignores CAs an operator added to the host.

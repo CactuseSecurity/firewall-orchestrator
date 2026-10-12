@@ -46,10 +46,15 @@
   become: true
   when: ui_deploy_changed | default(false)
 
+# The ui is Type=notify and reports ready only once the middleware has answered its first
+# request, and the middleware may not be running at this point - a fresh install starts it first in
+# roles/finalize, and an upgrade stopped it in roles/api. So do not wait for the ui here; the
+# blocking restart is finalize's "finally restart UI", which runs after "finally restart MW".
 - name: start blazor ui
   systemd:
     name: "{{ ui_service_name }}"
     state: restarted
     daemon_reload: true
+    no_block: true
   become: true
   when: ui_deploy_changed | default(false)

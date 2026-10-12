@@ -1,6 +1,7 @@
 import fwo_globals
 import pytest
 from fwo_api_call import FwoApiCall
+from fwo_const import IMPORTER_SHUTDOWN_EXIT_CODE
 from fwo_exceptions import FwoApiLoginFailedError, ShutdownRequestedError
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import ManagementController
@@ -65,6 +66,15 @@ class TestGetFwoJwt:
             "import_main_loop - unspecified error during FWO API login - skipping: Traceback"
         )
 
+    def test_get_fwo_jwt_does_not_swallow_a_shutdown(self, mocker: MockerFixture) -> None:
+        # a stop during the login retries is a regular stop, not a failed login
+        mock_logger = mocker.patch("fwo_log.FWOLogger.error")
+        mock_login(mocker, side_effect=ShutdownRequestedError())
+
+        with pytest.raises(ShutdownRequestedError):
+            get_fwo_jwt("mocked_username", "", "mocked_mgm_api")
+        mock_logger.assert_not_called()
+
 
 class TestWaitWithShutdownCheck:
     @pytest.fixture(autouse=True)
@@ -109,7 +119,7 @@ class TestWaitWithShutdownCheck:
             wait_with_shutdown_check(5)
 
         # Assert
-        assert "shutdown requested" in str(excinfo.value)
+        assert excinfo.value.code == IMPORTER_SHUTDOWN_EXIT_CODE
         mock_sleep.assert_not_called()
         mock_logger.info.assert_called_once()
 
@@ -134,7 +144,7 @@ class TestWaitWithShutdownCheck:
             wait_with_shutdown_check(10)  # Requesting 10 seconds
 
         # Assert
-        assert "shutdown requested" in str(excinfo.value)
+        assert excinfo.value.code == IMPORTER_SHUTDOWN_EXIT_CODE
         assert mock_sleep.call_count == 2
         mock_logger.info.assert_called_once()
 
@@ -153,7 +163,7 @@ class TestWaitWithShutdownCheck:
             wait_with_shutdown_check(0)
 
         # Assert
-        assert "shutdown requested" in str(excinfo.value)
+        assert excinfo.value.code == IMPORTER_SHUTDOWN_EXIT_CODE
         mock_sleep.assert_not_called()
         mock_logger.info.assert_called_once()
 
@@ -244,4 +254,4 @@ class TestImportSingleManagement:
             )
 
         # Assert
-        assert "shutdown requested" in str(excinfo.value)
+        assert excinfo.value.code == IMPORTER_SHUTDOWN_EXIT_CODE

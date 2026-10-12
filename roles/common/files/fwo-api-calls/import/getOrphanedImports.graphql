@@ -1,0 +1,14 @@
+query getOrphanedImports($importTypeId: Int!, $importerHostname: String!) {
+  import_control(
+    where: {
+      stop_time: { _is_null: true }
+      import_type_id: { _eq: $importTypeId }
+      management: { importer_hostname: { _eq: $importerHostname } }
+    }
+    order_by: { control_id: asc }
+  ) {
+    control_id
+    mgm_id
+    start_time
+  }
+}

@@ -1,5 +1,17 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.2 - 12.10.2026
+- importer: survive restarts of apache, the api and the middleware (#4683)
+  - requests that never reached the service (refused connection, 503 from apache) are retried for about 90 s
+  - an api outage ends the import cycle instead of failing every remaining management
+  - imports left unfinished by an importer process that was killed or lost the api are rolled back after the next
+    login, reported as a data issue, and their managements are imported last in that cycle
+  - a shutdown signal no longer cuts a rollback short
+- installer: an upgrade first lets the importer finish its running import (SIGUSR1, up to
+  fworch_importer_drain_timeout_sec) instead of interrupting it
+- systemd: middleware and UI report readiness (Type=notify), the importer has a bounded stop timeout and no
+  startup sleep, and the installer starts the importer only after the middleware answers
+
 ## 9.7.1 - 09.10.2026
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
   configurable with one switch per connection type, validated against the host trust store:

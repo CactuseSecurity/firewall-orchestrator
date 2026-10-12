@@ -16,14 +16,16 @@ from common import import_management  # type: ignore[import-not-found]
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_base import init_service_provider, register_global_state
-from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
+from fwo_const import BASE_DIR, IMPORTER_BASE_DIR, IMPORTER_DRAINED_EXIT_CODE, IMPORTER_SHUTDOWN_EXIT_CODE
 from fwo_exceptions import (
     FwLoginFailedError,
     FwoApiFailedLockImportError,
     FwoApiLoginFailedError,
+    FwoApiServiceUnavailableError,
     ShutdownRequestedError,
 )
 from fwo_log import FWOLogger
+from fwo_signalling import register_signalling_handlers
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import (
     ConnectionInfo,
@@ -33,7 +35,10 @@ from model_controllers.management_controller import (
     ManagementController,
     ManagerInfo,
 )
+from orphaned_imports import import_left_open, try_roll_back_orphaned_imports
 from services.service_provider import ServiceProvider
+
+SHUTDOWN_LOG_MESSAGE = "import_main_loop - shutdown requested. Exiting..."
 
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
@@ -41,23 +46,29 @@ def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> 
         return FwoApi.login(import_user, import_pwd, user_management_api)
     except FwoApiLoginFailedError as e:
         FWOLogger.error(e.message)
+    except ShutdownRequestedError:
+        raise  # a stop during the login retries, not a failed login
     except Exception:
         FWOLogger.error(
             "import_main_loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc())
         )
 
 
-def wait_with_shutdown_check(sleep_time: int):
-    def exit_if_shutdown_requested():
+def wait_with_shutdown_check(sleep_time: int) -> None:
+    # only called while no import holds a lock, which is what makes exiting on a drain request safe here
+    def exit_if_shutdown_or_drain_requested() -> None:
         if fwo_globals.shutdown_requested:
-            FWOLogger.info("import_main_loop - shutdown requested. Exiting...")
-            raise SystemExit("import_main_loop - shutdown requested")
+            FWOLogger.info(SHUTDOWN_LOG_MESSAGE)
+            raise SystemExit(IMPORTER_SHUTDOWN_EXIT_CODE)
+        if fwo_globals.drain_requested:
+            FWOLogger.info("import_main_loop - drain requested and no import running. Exiting...")
+            raise SystemExit(IMPORTER_DRAINED_EXIT_CODE)
 
-    exit_if_shutdown_requested()
+    exit_if_shutdown_or_drain_requested()
     counter = 0
     while counter < sleep_time:
         time.sleep(1)
-        exit_if_shutdown_requested()
+        exit_if_shutdown_or_drain_requested()
         counter += 1
 
 
@@ -72,7 +83,11 @@ def import_single_management(
     fwo_major_version: int,
     sleep_timer: int,
     suppress_consistency_check: bool = False,
-):
+) -> bool:
+    """
+    Imports one management. Returns True if its import still holds the management's lock after it
+    ended (see orphaned_imports.import_left_open), so main_loop can have the orphan cleanup remove it.
+    """
     wait_with_shutdown_check(0)
     import_state = ImportStateController.initialize_import(
         mgm_id=mgm_id,
@@ -99,6 +114,8 @@ def import_single_management(
             DomainInfo(),
         )
         mgm_details = mgm_controller.get_mgm_details(fwo_api_call.api, mgm_id)
+    except FwoApiServiceUnavailableError:
+        raise  # the api is gone for every management, not just this one - main_loop ends the cycle
     except Exception:
         FWOLogger.error(
             "import_main_loop - error while getting FW management details for mgm_id="
@@ -107,11 +124,11 @@ def import_single_management(
             + str(traceback.format_exc())
         )
         wait_with_shutdown_check(sleep_timer)
-        return
+        return False
 
     # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST, Cisco Asa, Asa on FirePower
     if mgm_details["deviceType"]["id"] not in (9, 12, 17, 22, 23, 24, 28, 29):
-        return
+        return False
 
     FWOLogger.debug(f"import_main_loop: starting import of mgm_id={mgm_id}")
 
@@ -124,14 +141,30 @@ def import_single_management(
             suppress_consistency_check=suppress_consistency_check,
         )
     except (KeyboardInterrupt, ShutdownRequestedError) as e:
-        raise SystemExit("import_main_loop - shutdown requested") from e
+        FWOLogger.info(SHUTDOWN_LOG_MESSAGE)
+        raise SystemExit(IMPORTER_SHUTDOWN_EXIT_CODE) from e
     except (FwoApiFailedLockImportError, FwLoginFailedError):
+        # minor errors for a single mgm, go to next one
         FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
-        return  # minor errors for a single mgm, go to next one
+    except FwoApiServiceUnavailableError:
+        raise  # main_loop ends the cycle and re-arms the orphan cleanup
     except Exception:  # all other exceptions are logged here
         FWOLogger.error(
             f"import_main_loop - unspecific error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}"
         )
+    return import_left_open(fwo_api_call, import_state.state.import_id)
+
+
+def _imported_last(mgm_ids: list[int], last_mgm_ids: list[int]) -> list[int]:
+    """
+    Returns mgm_ids with the managements in last_mgm_ids moved to the end, keeping the order otherwise.
+
+    main_loop passes the managements whose import the orphan cleanup just rolled back: an import that
+    keeps getting the importer killed (e.g. by MemoryMax / OOMPolicy=kill) would otherwise be retried
+    first after every restart and starve every management after it.
+    """
+    last = set(last_mgm_ids)
+    return [mgm_id for mgm_id in mgm_ids if mgm_id not in last] + [mgm_id for mgm_id in mgm_ids if mgm_id in last]
 
 
 def main_loop(
@@ -144,7 +177,17 @@ def main_loop(
     sleep_timer: int,
     clear: bool,
     force: bool,
-):
+    orphan_cleanup_pending: bool = False,
+) -> bool:
+    """
+    Runs one import cycle over all managements.
+
+    orphan_cleanup_pending: while True, unfinished imports of this host's managements are rolled
+    back first, and the managements concerned are imported last in this cycle. Returns False once
+    that succeeded, otherwise True, so the caller can hand it to the next cycle. An outage of the
+    api during the cycle sets it again - the rollback of the interrupted import may have failed - and
+    so does an import that still holds its lock after it ended (its unlock or rollback failed).
+    """
     wait_with_shutdown_check(0)
 
     try:
@@ -160,7 +203,7 @@ def main_loop(
     if json_raw is None:
         FWOLogger.error("cannot proceed without successful login - exiting")
         wait_with_shutdown_check(sleep_timer)
-        return
+        return orphan_cleanup_pending
 
     jwt: str
     refresh_token: str | None
@@ -172,10 +215,15 @@ def main_loop(
     except Exception:
         FWOLogger.error("JWT could not be parsed")
         wait_with_shutdown_check(sleep_timer)
-        return
+        return orphan_cleanup_pending
 
     fwo_api = FwoApi(fwo_api_base_url, jwt, refresh_token, user_management_api_base_url)
     fwo_api_call = FwoApiCall(fwo_api)
+    rolled_back_mgm_ids: list[int] = []
+    if orphan_cleanup_pending:
+        cleanup_result = try_roll_back_orphaned_imports(fwo_api_call)
+        orphan_cleanup_pending = not cleanup_result.complete
+        rolled_back_mgm_ids = cleanup_result.rolled_back_mgm_ids
 
     urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
     # the command line can only force certificate checking on, never switch the configured value off
@@ -187,34 +235,49 @@ def main_loop(
         warnings.resetwarnings()
 
     try:
-        mgm_ids = fwo_api_call.get_mgm_ids()
+        mgm_ids = _imported_last(fwo_api_call.get_mgm_ids(), rolled_back_mgm_ids)
     except Exception:
         FWOLogger.error(f"import_main_loop - error while getting FW management ids: {traceback.format_exc()!s}")
         wait_with_shutdown_check(sleep_timer)
-        return
+        return orphan_cleanup_pending
 
     api_fetch_limit = int(fwo_api_call.get_config_value(key="fwApiElementsPerFetch") or api_fetch_limit)
     sleep_timer = int(fwo_api_call.get_config_value(key="importSleepTime") or sleep_timer)
 
     ## loop through all managements
-    for mgm_id in mgm_ids:
-        init_service_provider()
-        import_single_management(
-            mgm_id,
-            fwo_api_call,
-            verify_certificates,
-            api_fetch_limit,
-            clear,
-            suppress_certificate_warnings,
-            force,
-            fwo_major_version,
-            sleep_timer,
+    try:
+        for mgm_id in mgm_ids:
+            init_service_provider()
+            try:
+                lock_left_open = import_single_management(
+                    mgm_id,
+                    fwo_api_call,
+                    verify_certificates,
+                    api_fetch_limit,
+                    clear,
+                    suppress_certificate_warnings,
+                    force,
+                    fwo_major_version,
+                    sleep_timer,
+                )
+            finally:
+                ServiceProvider().reset()
+            # its unlock or rollback failed: the cleanup removes the lock before the next cycle imports
+            orphan_cleanup_pending = orphan_cleanup_pending or lock_left_open
+    except FwoApiServiceUnavailableError:
+        # every management would fail the same way, and each failure costs a rollback - wait for the
+        # next cycle instead of working through the list against a missing api
+        FWOLogger.warning(
+            "import_main_loop - FWO API or middleware stayed unavailable "
+            "- the remaining managements are imported in the next cycle"
         )
-
-        ServiceProvider().reset()
+        # the rollback of the interrupted import may itself have failed while the api was down, leaving
+        # its lock behind - the orphan cleanup removes it after the next successful login
+        orphan_cleanup_pending = True
 
     FWOLogger.info(f"import_main_loop: sleeping for {sleep_timer} seconds until next import cycle")
     wait_with_shutdown_check(sleep_timer)
+    return orphan_cleanup_pending
 
 
 def main(
@@ -225,40 +288,51 @@ def main(
     force: bool = False,
 ):
     FWOLogger(debug_level)
-    service_provider = init_service_provider()
-    fwo_config = service_provider.get_fwo_config()
-    fwo_api_base_url = fwo_config["fwo_api_base_url"]
-    fwo_major_version = fwo_config["fwo_major_version"]
-    user_management_api_base_url = fwo_config["user_management_api_base_url"]
-    fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
-    fwo_globals.set_cli_verify_certs(verify_certificates)
-    if suppress_certificate_warnings:
-        urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
+    # before the first cycle: an unhandled SIGUSR1 would kill the process instead of draining it
+    register_signalling_handlers()
+    # the handlers raise wherever the process is, so the start up is covered as well as the loop
+    try:
+        service_provider = init_service_provider()
+        fwo_config = service_provider.get_fwo_config()
+        fwo_api_base_url = fwo_config["fwo_api_base_url"]
+        fwo_major_version = fwo_config["fwo_major_version"]
+        user_management_api_base_url = fwo_config["user_management_api_base_url"]
+        fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
+        fwo_globals.set_cli_verify_certs(verify_certificates)
+        if suppress_certificate_warnings:
+            urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
 
-    FWOLogger.info("importer_main_loop starting ...")
-    if IMPORTER_BASE_DIR not in sys.path:
-        sys.path.append(IMPORTER_BASE_DIR)
-    importer_user_name = "importer"  # move to config file?
-    importer_pwd_file = BASE_DIR + "/etc/secrets/importer_pwd"
+        FWOLogger.info("importer_main_loop starting ...")
+        if IMPORTER_BASE_DIR not in sys.path:
+            sys.path.append(IMPORTER_BASE_DIR)
+        importer_user_name = "importer"  # move to config file?
+        importer_pwd_file = BASE_DIR + "/etc/secrets/importer_pwd"
 
-    # setting defaults (only as fallback if config defaults cannot be fetched via API):
-    api_fetch_limit: int = 150
-    sleep_timer: int = 90
+        # setting defaults (only as fallback if config defaults cannot be fetched via API):
+        api_fetch_limit: int = 150
+        sleep_timer: int = 90
 
-    while True:
-        main_loop(
-            importer_pwd_file,
-            importer_user_name,
-            user_management_api_base_url,
-            fwo_api_base_url,
-            fwo_major_version,
-            api_fetch_limit,
-            sleep_timer,
-            clear,
-            force,
-        )
-        if clear:
-            break
+        # imports of this host still open when the process starts were left behind by a previous process
+        orphan_cleanup_pending = True
+        while True:
+            orphan_cleanup_pending = main_loop(
+                importer_pwd_file,
+                importer_user_name,
+                user_management_api_base_url,
+                fwo_api_base_url,
+                fwo_major_version,
+                api_fetch_limit,
+                sleep_timer,
+                clear,
+                force,
+                orphan_cleanup_pending=orphan_cleanup_pending,
+            )
+            if clear:
+                break
+    except ShutdownRequestedError:
+        # a SIGINT/SIGTERM while starting up or between imports
+        FWOLogger.info(SHUTDOWN_LOG_MESSAGE)
+        raise SystemExit(IMPORTER_SHUTDOWN_EXIT_CODE) from None
 
 
 if __name__ == "__main__":

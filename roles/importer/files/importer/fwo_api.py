@@ -11,8 +11,20 @@ from typing import TYPE_CHECKING, Any, cast
 import fwo_config
 import requests
 from fwo_config import read_tls_identity
-from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT, FWO_HTTP_TIMEOUT
-from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, FwoApiTimeoutError, FwoImporterError
+from fwo_const import (
+    FWO_API_HTTP_IMPORT_TIMEOUT,
+    FWO_API_HTTP_TIMEOUT,
+    FWO_API_RETRY_DELAYS_SECONDS,
+    HTTP_STATUS_SERVICE_UNAVAILABLE,
+)
+from fwo_exceptions import (
+    FwoApiLoginFailedError,
+    FwoApiServiceUnavailableError,
+    FwoApiTimeoutError,
+    FwoImporterError,
+    ShutdownRequestedError,
+)
+from fwo_http_retry import is_service_unreachable, send_with_retry
 from fwo_log import FWOLogger
 from query_analyzer import QueryAnalyzer
 from services.service_provider import ServiceProvider
@@ -25,7 +37,6 @@ REDACTED_VALUE = "<redacted>"
 HTTP_STATUS_OK = 200
 HTTP_STATUS_UNAUTHORIZED = 401
 HTTP_STATUS_BAD_GATEWAY = 502
-HTTP_STATUS_SERVICE_UNAVAILABLE = 503
 MAX_LOGIN_ERROR_RESPONSE_LEN = 200  # keep the login failure reason readable without dumping a full error page
 SENSITIVE_HEADER_NAMES = {"authorization", "x-hasura-admin-secret"}
 JWT_EXPIRED_ERROR_MARKER = "JWTExpired"  # substring Hasura uses in its "Could not verify JWT: JWTExpired" error
@@ -132,6 +143,8 @@ class FwoApi:
             # Handle FwoImporterError specifically, logging it and re-raising.
             FWOLogger.error(f"FwoImporterError during API call: {e!s}")
             raise
+        except ShutdownRequestedError:
+            raise  # a stop signal, not an api error - must reach the import loop unchanged
         except Exception as e:
             self._handle_unexpected_error(e, return_object)
         return return_object
@@ -215,11 +228,12 @@ class FwoApi:
             FwoApi._configure_internal_api_session(session)
             session.headers.update({"Content-Type": JSON_CONTENT_TYPE})
 
+            url = user_management_api_base_url + method
             try:
-                response = session.post(
-                    user_management_api_base_url + method,
-                    data=json.dumps(payload),
-                    timeout=FWO_HTTP_TIMEOUT,
+                response = send_with_retry(
+                    lambda: session.post(url, data=json.dumps(payload), timeout=FWO_API_HTTP_TIMEOUT),
+                    "FWO middleware",
+                    FWO_API_RETRY_DELAYS_SECONDS,
                 )
             except requests.exceptions.RequestException:
                 raise FwoApiLoginFailedError(
@@ -288,6 +302,8 @@ class FwoApi:
         except FwoApiLoginFailedError as e:
             FWOLogger.error(f"fwo_api: JWT refresh failed: {e.message}")
             return False
+        except ShutdownRequestedError:
+            raise  # a stop signal, not a failed refresh
         except Exception:
             FWOLogger.error(f"fwo_api: unexpected error while refreshing JWT: {traceback.format_exc()}")
             return False
@@ -390,7 +406,11 @@ class FwoApi:
             self._configure_endpoint_session(session)
 
             try:
-                response = self._dispatch_endpoint_request(session, method, url, params)
+                response = send_with_retry(
+                    lambda: self._dispatch_endpoint_request(session, method, url, params),
+                    "FWO middleware",
+                    FWO_API_RETRY_DELAYS_SECONDS,
+                )
 
                 error_result = self._handle_endpoint_error_status(
                     response, method, endpoint, params, _retry_on_jwt_expiry
@@ -402,6 +422,8 @@ class FwoApi:
                 return self._parse_endpoint_response(response)
 
             except requests.exceptions.RequestException as e:
+                if is_service_unreachable(e):
+                    raise FwoApiServiceUnavailableError(f"FWO Middleware API unreachable: {e!s}") from e
                 FWOLogger.error(f"Middleware API request failed: {e!s}")
                 raise FwoImporterError(f"Middleware API request failed: {e!s}")
 
@@ -428,7 +450,7 @@ class FwoApi:
         request_func = request_by_method.get(method.upper())
         if request_func is None:
             raise FwoImporterError(f"Unsupported HTTP method: {method}")
-        return request_func(url, json=params, timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
+        return request_func(url, json=params, timeout=FWO_API_HTTP_TIMEOUT)
 
     def _handle_endpoint_error_status(
         self,
@@ -471,12 +493,14 @@ class FwoApi:
             2,
         )
         if hasattr(exception, "response") and exception.response is not None:
-            if exception.response.status_code == 503:  # noqa: PLR2004
+            if exception.response.status_code == HTTP_STATUS_SERVICE_UNAVAILABLE:
                 raise FwoApiServiceUnavailableError("FWO API HTTP error 503 (FWO API died?)")
-            if exception.response.status_code == 502:  # noqa: PLR2004
+            if exception.response.status_code == HTTP_STATUS_BAD_GATEWAY:
                 raise FwoApiTimeoutError(
                     f"FWO API HTTP error 502 (might have reached timeout of {int(FWO_API_HTTP_IMPORT_TIMEOUT) / 60} minutes)"
                 )
+        if is_service_unreachable(exception):
+            raise FwoApiServiceUnavailableError(f"FWO API unreachable: {exception!s}") from exception
         raise exception
 
     def _call_chunked(
@@ -680,7 +704,11 @@ class FwoApi:
             9,
         )
 
-        r = session.post(self.fwo_api_url, data=json.dumps(query_payload), timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT))
+        r = send_with_retry(
+            lambda: session.post(self.fwo_api_url, data=json.dumps(query_payload), timeout=FWO_API_HTTP_TIMEOUT),
+            "FWO API",
+            FWO_API_RETRY_DELAYS_SECONDS,
+        )
 
         FWOLogger.debug("API response received", 10)
 

@@ -16,6 +16,9 @@ After=network-online.target remote-fs.target nss-lookup.target {{ webserver_pack
 {%- endif %}
 
 [Service]
+# FWO.Ui sends READY=1 (AddSystemd) once its web server listens
+Type=notify
+TimeoutStartSec={{ fworch_dotnet_timeout_start_sec }}
 WorkingDirectory={{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}
 # adding an extra 3 secs for docker api to come up?
 ExecStartPre=/bin/sleep 3

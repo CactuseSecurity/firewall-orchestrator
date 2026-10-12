@@ -29,6 +29,7 @@ from fwo_base import string_is_uri, write_native_config_to_file
 from fwo_const import IMPORT_TMP_PATH
 from fwo_exceptions import (
     FwLoginFailedError,
+    FwoApiServiceUnavailableError,
     FwoApiWriteError,
     FwoImporterError,
     FwoImporterErrorInconsistenciesError,
@@ -120,6 +121,10 @@ def import_management(
     except Exception as e:
         exception = e
         handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
+        if isinstance(e, FwoApiServiceUnavailableError):
+            # the api or middleware is unreachable (e.g. mid-restart) - re-raised, so main_loop ends the
+            # whole import cycle instead of trying further managements against it
+            raise
     finally:
         try:
             if shutdown_exception is None:
@@ -224,7 +229,8 @@ def handle_shutdown_exception(
         return
 
     FWOLogger.warning("Shutdown requested before import data changes. Removing import lock without rollback.")
-    import_state.delete_import()
+    with fwo_signalling.shutdown_deferred():  # keeps the api retries going during the stop
+        import_state.delete_import()
 
 
 def roll_back_exception_handler(
@@ -233,24 +239,25 @@ def roll_back_exception_handler(
     exc: BaseException | None = None,
     error_text: str = "",
 ):
-    try:
-        if fwo_globals.shutdown_requested:
-            FWOLogger.warning("Shutdown requested.")
-        elif error_text != "":
-            FWOLogger.error(f"Exception: {error_text}")
-        elif exc is not None:
-            FWOLogger.error(f"Exception: {type(exc).__name__}")
-        else:
-            FWOLogger.error("Exception: no exception provided")
-        if config_importer is not None:
-            FwConfigImportRollback().rollback_current_import(
-                import_state=import_state.state, fwo_api_call=import_state.api_call
-            )
-        else:
-            FWOLogger.info("No config_importer found, skipping rollback.")
-        import_state.delete_import()  # delete whole import
-    except Exception as rollbackError:
-        FWOLogger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")
+    with fwo_signalling.shutdown_deferred():
+        try:
+            if fwo_globals.shutdown_requested:
+                FWOLogger.warning("Shutdown requested.")
+            elif error_text != "":
+                FWOLogger.error(f"Exception: {error_text}")
+            elif exc is not None:
+                FWOLogger.error(f"Exception: {type(exc).__name__}")
+            else:
+                FWOLogger.error("Exception: no exception provided")
+            if config_importer is not None:
+                FwConfigImportRollback().rollback_current_import(
+                    import_state=import_state.state, fwo_api_call=import_state.api_call
+                )
+            else:
+                FWOLogger.info("No config_importer found, skipping rollback.")
+            import_state.delete_import()  # delete whole import
+        except Exception as rollbackError:
+            FWOLogger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")
 
 
 def get_config_top_level(

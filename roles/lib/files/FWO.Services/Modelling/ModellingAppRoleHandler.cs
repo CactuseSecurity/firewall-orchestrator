@@ -26,6 +26,9 @@ namespace FWO.Services.Modelling
 
         private ModellingManagedIdString OrigId = new();
 
+        // the app role shown elsewhere (e.g. in the library): only updated when the edited copy has been saved
+        private readonly ModellingAppRole? OrigAppRole;
+
         public ModellingAppRoleHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner application,
             List<ModellingAppRole> appRoles, ModellingAppRole appRole, List<ModellingAppServer> availableAppServers,
             List<KeyValuePair<int, long>> availableNwElems, bool addMode, Action<Exception?, string, string, bool> displayMessageInUi, bool isOwner = true, bool readOnly = false)
@@ -34,7 +37,16 @@ namespace FWO.Services.Modelling
             AppRoles = appRoles;
             AvailableAppServers = availableAppServers;
             AvailableNwElems = availableNwElems;
-            ActAppRole = appRole;
+            if (addMode)
+            {
+                ActAppRole = appRole;
+            }
+            else
+            {
+                // edit a copy, so that cancelled changes do not show up elsewhere
+                OrigAppRole = appRole;
+                ActAppRole = new(appRole) { AppServers = [.. appRole.AppServers] };
+            }
             ApplyNamingConvention(application.ExtAppId ?? "");
         }
 
@@ -158,9 +170,9 @@ namespace FWO.Services.Modelling
                     {
                         await AddAppRoleToDb(Application.Id);
                     }
-                    else
+                    else if (await UpdateAppRoleInDb())
                     {
-                        await UpdateAppRoleInDb();
+                        ApplySavedChangesToOrigAppRole();
                     }
                     CleanUp();
                     return true;
@@ -285,7 +297,11 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private async Task UpdateAppRoleInDb()
+        /// <summary>
+        /// Updates the edited app role and its app server assignments in the database.
+        /// </summary>
+        /// <returns>True if all changes have been written without error.</returns>
+        private async Task<bool> UpdateAppRoleInDb()
         {
             try
             {
@@ -322,11 +338,29 @@ namespace FWO.Services.Modelling
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"Added App Server {appServer.Display()} to App Role: {ActAppRole.Display()}", Application.Id);
                 }
+                return true;
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("edit_app_role"), "", true);
+                return false;
             }
+        }
+
+        /// <summary>
+        /// Transfers the saved changes of the edited copy to the app role shown elsewhere.
+        /// </summary>
+        private void ApplySavedChangesToOrigAppRole()
+        {
+            if (OrigAppRole == null)
+            {
+                return;
+            }
+            OrigAppRole.Name = ActAppRole.Name;
+            OrigAppRole.ManagedIdString = new(ActAppRole.ManagedIdString);
+            OrigAppRole.Comment = ActAppRole.Comment;
+            OrigAppRole.AppServers = ActAppRole.AppServers;
+            OrigAppRole.Area = ActAppRole.Area;
         }
 
         public void CleanUp()

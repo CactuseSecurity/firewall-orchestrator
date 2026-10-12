@@ -650,6 +650,8 @@ namespace FWO.Test
             await handler.InitAppRole(null);
             handler.AppServerToDelete.Add(removeServer);
             handler.AppServerToAdd.Add(addServer);
+            handler.ActAppRole.Name = "Changed";
+            handler.ActAppRole.Comment = "new comment";
 
             bool result = await handler.Save();
 
@@ -659,6 +661,82 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, apiConn.AddNwObjectCalls);
             ClassicAssert.AreEqual(0, handler.AppServerToAdd.Count);
             ClassicAssert.AreEqual(0, handler.AppServerToDelete.Count);
+            // the saved changes reach the app role shown elsewhere
+            ClassicAssert.AreEqual("Changed", role.Name);
+            ClassicAssert.AreEqual("new comment", role.Comment);
+            ClassicAssert.AreEqual("AR5000009", role.IdString);
+            ClassicAssert.AreEqual(1, role.AppServers.Count);
+            ClassicAssert.AreEqual(addServer.Id, role.AppServers[0].Content.Id);
+        }
+
+        /// <summary>
+        /// The edit dialog works on a copy: changes which are cancelled must not show up in the library.
+        /// </summary>
+        [Test]
+        public async Task EditMode_CancelledChangesDoNotReachOriginalAppRole()
+        {
+            ModellingAppServer server = new() { Id = 11, Name = "Srv11" };
+            ModellingAppRole role = CreateAppRoleToEdit(server);
+            ModellingAppRoleHandler handler = CreateEditHandler(new ModellingHandlerTestApiConn(), role);
+            await handler.InitAppRole(null);
+
+            handler.ActAppRole.Name = "Changed";
+            handler.ActAppRole.Comment = "new comment";
+            handler.ActAppRole.IdString = "AR5000099";
+            handler.ActAppRole.AppServers.Clear();
+            handler.CleanUp();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActAppRole, Is.Not.SameAs(role));
+                Assert.That(role.Name, Is.EqualTo("Role"));
+                Assert.That(role.Comment, Is.EqualTo("comment"));
+                Assert.That(role.IdString, Is.EqualTo("AR5000009"));
+                Assert.That(role.AppServers.Select(a => a.Content.Id), Is.EqualTo(new List<long> { server.Id }));
+            });
+        }
+
+        /// <summary>
+        /// If the update fails, the app role shown elsewhere keeps its stored state.
+        /// </summary>
+        [Test]
+        public async Task Save_KeepsOriginalAppRoleWhenUpdateFails()
+        {
+            ModellingAppServer server = new() { Id = 11, Name = "Srv11" };
+            ModellingAppRole role = CreateAppRoleToEdit(server);
+            ModellingHandlerTestApiConn apiConn = new() { FailUpdateAppRole = true };
+            ModellingAppRoleHandler handler = CreateEditHandler(apiConn, role);
+            await handler.InitAppRole(null);
+            handler.ActAppRole.Name = "Changed";
+            handler.AppServerToDelete.Add(server);
+
+            await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.UpdateAppRoleCalls, Is.EqualTo(1));
+                Assert.That(role.Name, Is.EqualTo("Role"));
+                Assert.That(role.AppServers.Select(a => a.Content.Id), Is.EqualTo(new List<long> { server.Id }));
+            });
+        }
+
+        private static ModellingAppRole CreateAppRoleToEdit(ModellingAppServer server)
+        {
+            return new ModellingAppRole
+            {
+                Id = 9,
+                Name = "Role",
+                Comment = "comment",
+                IdString = "AR5000009",
+                AppServers = new List<ModellingAppServerWrapper> { new() { Content = server } }
+            };
+        }
+
+        private static ModellingAppRoleHandler CreateEditHandler(ModellingHandlerTestApiConn apiConn, ModellingAppRole role)
+        {
+            SimulatedUserConfig localUserConfig = new() { ModNamingConvention = userConfig.ModNamingConvention };
+            return new ModellingAppRoleHandler(apiConn, localUserConfig, new FwoOwner { Id = 1 }, new List<ModellingAppRole> { role }, role,
+                new List<ModellingAppServer>(), new List<KeyValuePair<int, long>>(), false, DisplayMessageInUi, IsOwner);
         }
 
         [Test]

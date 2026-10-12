@@ -4,6 +4,7 @@
 - modelling: auditors and admins can open the add and edit dialog of app roles again to try it out (closes #4968)
   - saving stays restricted to owning modellers: the save button is disabled and saving is rejected as well
   - deleting app roles stays restricted to owning modellers
+- modelling: cancelled changes in the edit dialog of an app role no longer show up in the library until the page is reloaded
 
 ## 9.7.1 - 09.10.2026
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems

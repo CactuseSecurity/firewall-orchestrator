@@ -10,7 +10,8 @@ namespace FWO.Test
     /// <summary>
     /// Pins which REST clients validate the server certificate. The flag decides whether a
     /// password or a JWT may be handed to whatever answers on the port, so a silent change
-    /// of the default has to fail here rather than in production.
+    /// of the default has to fail here rather than in production. Clients of external systems
+    /// follow the switch of their connection type.
     /// </summary>
     [TestFixture]
     [Parallelizable]
@@ -52,22 +53,58 @@ namespace FWO.Test
             Assert.That(ReadCheckCertificates(client), Is.True);
         }
 
-        [Test]
-        public void ExternalSystemClients_DoNotCheckCertificates()
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ExternalSystemClients_FollowTheSwitchOfTheirConnectionType(bool checkCertificates)
         {
-            SCClient secureChange = new(new ExternalTicketSystem { Url = "https://securechange.example/", ResponseTimeout = 5 });
-            FWO.DeviceAutoDiscovery.CheckPointClient checkPoint = new(CreateManagement("checkpoint.example", 443));
-            FWO.DeviceAutoDiscovery.FortiManagerClient fortiManager = new(CreateManagement("fortimanager.example", 443));
+            ExternalCertificateChecks certificateChecks = new(FirewallConnections: checkCertificates, TicketSystems: checkCertificates);
+            SCClient secureChange = new(new ExternalTicketSystem { Url = "https://securechange.example/", ResponseTimeout = 5 }, checkCertificates);
+            FWO.DeviceAutoDiscovery.CheckPointClient checkPoint = new(CreateManagement("checkpoint.example", 443), checkCertificates);
+            FWO.DeviceAutoDiscovery.FortiManagerClient fortiManager = new(CreateManagement("fortimanager.example", 443), checkCertificates);
             FWO.ExternalSystems.CheckPoint.CheckPointClient checkPointTickets =
                 new(new ExternalTicketSystem { Url = "https://checkpoint.example/web_api/", ResponseTimeout = 5 },
-                    CreateManagement("checkpoint.example", 443));
+                    CreateManagement("checkpoint.example", 443), certificateChecks);
 
             Assert.Multiple(() =>
             {
-                Assert.That(ReadCheckCertificates(secureChange), Is.False);
-                Assert.That(ReadCheckCertificates(checkPoint), Is.False);
-                Assert.That(ReadCheckCertificates(fortiManager), Is.False);
-                Assert.That(ReadCheckCertificates(checkPointTickets), Is.False);
+                Assert.That(ReadCheckCertificates(secureChange), Is.EqualTo(checkCertificates));
+                Assert.That(ReadCheckCertificates(checkPoint), Is.EqualTo(checkCertificates));
+                Assert.That(ReadCheckCertificates(fortiManager), Is.EqualTo(checkCertificates));
+                Assert.That(ReadCheckCertificates(checkPointTickets), Is.EqualTo(checkCertificates));
+            });
+        }
+
+        [Test]
+        public void CheckPointTicketClient_WithManagementHost_UsesFirewallSwitch()
+        {
+            ExternalCertificateChecks certificateChecks = new(FirewallConnections: true, TicketSystems: false);
+            FWO.ExternalSystems.CheckPoint.CheckPointClient client =
+                new(new ExternalTicketSystem { Url = "https://ticket.example/web_api/", ResponseTimeout = 5 },
+                    CreateManagement("checkpoint.example", 443), certificateChecks);
+
+            Assert.That(ReadCheckCertificates(client), Is.True);
+        }
+
+        [Test]
+        public void CheckPointTicketClient_WithoutManagementHost_UsesTicketSystemSwitch()
+        {
+            ExternalCertificateChecks certificateChecks = new(FirewallConnections: true, TicketSystems: false);
+            FWO.ExternalSystems.CheckPoint.CheckPointClient client =
+                new(new ExternalTicketSystem { Url = "https://ticket.example/web_api/", ResponseTimeout = 5 },
+                    CreateManagement("", 443), certificateChecks);
+
+            Assert.That(ReadCheckCertificates(client), Is.False);
+        }
+
+        [Test]
+        public void WarnUncheckedEndpoint_WarnsOncePerEndpoint()
+        {
+            string endpoint = $"https://unchecked-{Guid.NewGuid():N}.example/api/";
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(RestApiClient.WarnUncheckedEndpoint(endpoint), Is.True);
+                Assert.That(RestApiClient.WarnUncheckedEndpoint(endpoint), Is.False);
             });
         }
 

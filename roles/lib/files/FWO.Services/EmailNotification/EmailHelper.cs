@@ -251,7 +251,10 @@ namespace FWO.Services
             bool mailFormatHtml = true, FormFile? attachment = null)
         {
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
-                userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress);
+                userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress)
+            {
+                CheckCertificates = userConfig.EmailCheckCertificates
+            };
             ApplyDummyRecipientOverride(ref tos, ref ccs, ref bccs);
             tos = [.. tos.Where(t => t != "")];
             if (tos.Count == 0)

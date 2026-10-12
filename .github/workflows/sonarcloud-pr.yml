@@ -1,4 +1,12 @@
 name: SonarCloud PR
+# NOTE: this workflow's behavior and its accepted residual risk (GHSA-3cwm-h5cm-r3f8) are
+# documented in documentation/developer-docs/github/sonarcloud-workflow.md - please keep that doc
+# in sync when changing triggers or job logic here.
+#
+# Security: this workflow builds pull request code of trusted fork owners in the privileged
+# pull_request_target context. This is only acceptable while SONAR_TOKEN is the only secret used
+# here, the token is limited to Browse and Execute Analysis on this project, and no privileged
+# workflow restores caches. scripts/ci/test_workflow_security_policy.py enforces the workflow side.
 
 on:
   pull_request_target:
@@ -53,7 +61,7 @@ jobs:
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Checkout PR head
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.sha }}
@@ -90,38 +98,25 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Set up Java
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '10.0.x'
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.11'
 
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-
-      - name: Cache SonarCloud scanner
-        id: cache-sonar-scanner
-        uses: actions/cache@v6
-        with:
-          path: .sonar/scanner
-          key: ${{ runner.os }}-sonar-scanner
-          restore-keys: ${{ runner.os }}-sonar-scanner
-
+      # No caches (GHSA-3cwm-h5cm-r3f8): this workflow builds pull request code in the
+      # pull_request_target context, which can write cache entries of the base branch. Restoring
+      # caches in a Sonar workflow would let such an entry run code in later runs.
       - name: Install SonarCloud scanner
-        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         run: dotnet tool update dotnet-sonarscanner --tool-path .sonar/scanner
 
       - name: Install .NET coverage collector

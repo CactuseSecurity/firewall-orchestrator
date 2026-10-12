@@ -95,7 +95,10 @@ def main(
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # suppress ssl warnings only
-    verify_certificates = fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
+    # the command line can only force certificate checking on, never switch the configured value off
+    verify_certificates = (
+        bool(verify_certificates) or fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
+    )
     suppress_certificate_warnings = fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
     if not suppress_certificate_warnings:
         warnings.resetwarnings()
@@ -114,10 +117,8 @@ def main(
     import_management(
         mgm_id,
         fwo_api_call,
-        verify_certificates,
         limit,
         clear_management_data,
-        suppress_certificate_warnings,
         file,
         suppress_consistency_check,
     )

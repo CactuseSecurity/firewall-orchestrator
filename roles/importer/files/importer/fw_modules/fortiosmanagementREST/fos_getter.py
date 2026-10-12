@@ -1,6 +1,6 @@
 # library for API get functions
 import json
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import fwo_globals
 import requests
@@ -81,7 +81,7 @@ def fortios_api_call(api_url: str, access_token: str) -> list[dict[str, Any]]:
     return result_json["results"]
 
 
-def parse_api_results(model_class: type[T], data: list[dict[str, Any]]) -> list[T]:  # TODO: needs python 3.12
+def parse_api_results(model_class: type[T], data: list[dict[str, Any]]) -> list[T]:
     """
     Parse API results into Pydantic model instances.
 
@@ -93,7 +93,8 @@ def parse_api_results(model_class: type[T], data: list[dict[str, Any]]) -> list[
         List of parsed Pydantic model instances.
 
     """
-    adapter = TypeAdapter(list[model_class])
+    # TypeAdapter expects a static TypeForm; list[model_class] is built at runtime, so pin the type explicitly.
+    adapter: TypeAdapter[list[T]] = TypeAdapter(cast("Any", list[model_class]))
     return adapter.validate_python(data)
 
 

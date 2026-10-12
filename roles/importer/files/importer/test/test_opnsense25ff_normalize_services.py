@@ -1,6 +1,8 @@
 # pyright: reportPrivateUsage=false
 # tests target internal service-normalization helpers, hence private-usage is allowed here
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from fw_modules.opnsense25ff.opnsense_model import (
@@ -17,7 +19,9 @@ from fw_modules.opnsense25ff.opnsense_normalize_services import (
 )
 from fw_modules.opnsense25ff.opnsense_normalizer import _create_normalized_rule_from_access_rule
 from models.serviceobject import ServiceObject
-from pytest_mock import MockerFixture
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 def _port_alias(name: str) -> OPNsensePortAlias:

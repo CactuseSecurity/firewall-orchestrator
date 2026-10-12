@@ -1,5 +1,7 @@
 """Tests for the internal TLS identity used on FWO API and middleware calls."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Any, cast

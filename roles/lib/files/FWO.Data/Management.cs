@@ -28,10 +28,10 @@ namespace FWO.Data
         public string Hostname { get; set; } = "";
 
         [JsonProperty("import_credential"), JsonPropertyName("import_credential")]
-        public ImportCredential ImportCredential { get; set; } = new();
+        public Credential ImportCredential { get; set; } = new();
 
         [JsonProperty("export_credential"), JsonPropertyName("export_credential")]
-        public ImportCredential ExportCredential { get; set; } = new();
+        public Credential ExportCredential { get; set; } = new();
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string? ConfigPath { get; set; } = "";
@@ -126,13 +126,13 @@ namespace FWO.Data
             Uid = management.Uid;
             Hostname = management.Hostname;
             if (management.ImportCredential != null)
-                ImportCredential = new ImportCredential(management.ImportCredential);
+                ImportCredential = new Credential(management.ImportCredential);
             else
-                ImportCredential = new ImportCredential();
+                ImportCredential = new Credential();
             if (management.ExportCredential != null)
-                ExportCredential = new ImportCredential(management.ExportCredential);
+                ExportCredential = new Credential(management.ExportCredential);
             else
-                ExportCredential = new ImportCredential();
+                ExportCredential = new Credential();
             ConfigPath = management.ConfigPath;
             DomainUid = management.DomainUid;
             CloudSubscriptionId = management.CloudSubscriptionId;

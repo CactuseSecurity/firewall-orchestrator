@@ -365,22 +365,19 @@ namespace FWO.Test
                                     {
                                         Name = "Backend Host",
                                         Type = "host",
-                                        IpStart = "10.0.0.1",
-                                        IpEnd = "10.0.0.1"
+                                        IpRange = ["10.0.0.1", "10.0.0.1"]
                                     },
                                     new ResolveZonesForObjectsRequest.LeafObjectRequest
                                     {
                                         Name = "Backend Host Duplicate",
                                         Type = "network",
-                                        IpStart = "10.0.0.1",
-                                        IpEnd = "10.0.0.1"
+                                        IpRange = ["10.0.0.1", "10.0.0.1"]
                                     },
                                     new ResolveZonesForObjectsRequest.LeafObjectRequest
                                     {
                                         Name = "DMZ Host",
                                         Type = "ip_range",
-                                        IpStart = "10.0.1.1",
-                                        IpEnd = "10.0.1.1"
+                                        IpRange = ["10.0.1.1", "10.0.1.1"]
                                     }
                                 ]
                             }
@@ -415,8 +412,7 @@ namespace FWO.Test
                     {
                         Name = "Leaf",
                         Type = "network",
-                        IpStart = "10.0.0.1",
-                        IpEnd = "10.0.0.1"
+                        IpRange = ["10.0.0.1", "10.0.0.1"]
                     }
                 ]
             });
@@ -448,8 +444,7 @@ namespace FWO.Test
                 {
                     Name = "IPv6 Host",
                     Type = "host",
-                    IpStart = "2001:db8::1",
-                    IpEnd = "2001:db8::1"
+                    IpRange = ["2001:db8::1", "2001:db8::1"]
                 }
             ];
 
@@ -484,8 +479,7 @@ namespace FWO.Test
                 {
                     Name = "Leaf",
                     Type = "network",
-                    IpStart = "10.0.0.1",
-                    IpEnd = "10.0.0.1"
+                    IpRange = ["10.0.0.1", "10.0.0.1"]
                 }
             ];
 

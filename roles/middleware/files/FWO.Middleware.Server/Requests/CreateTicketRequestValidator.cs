@@ -27,6 +27,8 @@ public static class CreateTicketRequestValidator
         AddRequiredError(request.RuleContactId, "ruleContactId", result);
         AddRequiredError(request.Title, "title", result);
 
+        ValidateAddressObjects(request.AddressObjects, result);
+
         if (request.Rules is not { Count: > 0 })
         {
             result.Errors.Add(BuildError("rules", "'rules' must contain at least one rule."));
@@ -73,6 +75,40 @@ public static class CreateTicketRequestValidator
         ValidateReferences(rule.DestinationGroups, $"{path}.destinationGroups", result);
         ValidateReferences(rule.ServiceObjects, $"{path}.serviceObjects", result);
         ValidateReferences(rule.ServiceGroups, $"{path}.serviceGroups", result);
+    }
+
+    private static void ValidateAddressObjects(
+        List<CreateTicketRequest.CreateAddressObjectRequest>? addressObjects,
+        RequestValidationErrorResponse result)
+    {
+        if (addressObjects == null)
+        {
+            return;
+        }
+
+        for (int index = 0; index < addressObjects.Count; index++)
+        {
+            CreateTicketRequest.CreateAddressObjectRequest? addressObject = addressObjects[index];
+            string path = $"addressObjects[{index}]";
+            if (addressObject == null)
+            {
+                result.Errors.Add(BuildError(path, $"'{path}' must not be null."));
+                continue;
+            }
+
+            if (!AddressInputNormalizer.TryValidateAndNormalize(
+                addressObject,
+                $"'{path}'",
+                out NormalizedAddressBounds bounds,
+                out string? errorMessage))
+            {
+                result.Errors.Add(BuildError(path, errorMessage!));
+                continue;
+            }
+
+            addressObject.NormalizedIpStart = bounds.IpStart;
+            addressObject.NormalizedIpEnd = bounds.IpEnd;
+        }
     }
 
     private static void ValidateReferences(List<long>? references, string path,

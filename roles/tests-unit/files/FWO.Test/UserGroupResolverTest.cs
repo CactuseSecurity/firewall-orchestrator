@@ -153,6 +153,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetGroups_StopsBeforeConnecting_WhenCancelled()
+        {
+            TestableLdap hosting = CreateLdap(new RecordingLdapClient(), kExternalUserPath, kExternalGroupPath);
+            TestableLdap internalLdap = CreateLdap(new RecordingLdapClient(), kInternalUserPath, kInternalGroupPath);
+            UserGroupResolver resolver = new(new List<Ldap> { hosting, internalLdap });
+            LdapEntry userEntry = LdapTestSupport.CreateEntry("cn=testuser,ou=users,dc=example,dc=com");
+            using CancellationTokenSource cancellation = new();
+            cancellation.Cancel();
+
+            Assert.CatchAsync<OperationCanceledException>(async () => await resolver.GetGroups(userEntry, hosting, cancellation.Token));
+            Assert.Multiple(() =>
+            {
+                Assert.That(hosting.ConnectCount, Is.Zero);
+                Assert.That(internalLdap.ConnectCount, Is.Zero);
+            });
+        }
+
+        [Test]
         public async Task GetGroups_FansOutToInternalLdapsForAnExternalUser()
         {
             string externalUserDn = "cn=testuser,ou=users,dc=example,dc=com";

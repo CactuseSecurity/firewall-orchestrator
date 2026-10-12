@@ -20,6 +20,7 @@
     {config_key: {_eq: "emailServerAddress"}},
     {config_key: {_eq: "emailSenderAddress"}},
     {config_key: {_eq: "emailPassword"}},
+    {config_key: {_eq: "emailCheckCertificates"}},
     {config_key: {_eq: "notificationLanguage"}},
     {config_key: {_eq: "maxImportDuration"}},
     {config_key: {_eq: "maxImportInterval"}},

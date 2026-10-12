@@ -1,10 +1,16 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 from fwo_exceptions import FwoImporterError
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 from models.rulebase import Rulebase
-from pytest_mock import MockerFixture
 from test.utils.test_utils import mock_get_graphql_code
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 def build_normalized_rule(

@@ -12,8 +12,20 @@ namespace FWO.DeviceAutoDiscovery
         public Management SuperManagement { get; set; }
         protected readonly ApiConnection apiConnection;
 
-        public AutoDiscoveryBase(Management mgm, ApiConnection apiConn)
+        /// <summary>
+        /// Whether the TLS certificate of the management API is checked (global setting for firewall connections).
+        /// </summary>
+        public bool CheckCertificates { get; }
+
+        /// <summary>
+        /// Creates an autodiscovery for the given super management.
+        /// </summary>
+        /// <param name="mgm">The super management to discover.</param>
+        /// <param name="apiConn">Connection to the FWO API.</param>
+        /// <param name="checkCertificates">Whether the TLS certificate of the management API is checked.</param>
+        public AutoDiscoveryBase(Management mgm, ApiConnection apiConn, bool checkCertificates)
         {
+            CheckCertificates = checkCertificates;
             SuperManagement = mgm;
             SuperManagement.ImportCredential.Secret = AesEnc.TryDecrypt(SuperManagement.ImportCredential.Secret, true,
                 "AutoDiscovery", $"Could not decrypt secret in credential named '{SuperManagement.ImportCredential.Name}'.", true);
@@ -29,9 +41,9 @@ namespace FWO.DeviceAutoDiscovery
         {
             return SuperManagement.DeviceType.Name switch
             {
-                "FortiManager" => new AutoDiscoveryFortiManager(SuperManagement, apiConnection).Run(cancellationToken),
-                "CheckPoint" => new AutoDiscoveryCpMds(SuperManagement, apiConnection).Run(cancellationToken),
-                "Check Point" => new AutoDiscoveryCpMds(SuperManagement, apiConnection).Run(cancellationToken),
+                "FortiManager" => new AutoDiscoveryFortiManager(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
+                "CheckPoint" => new AutoDiscoveryCpMds(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
+                "Check Point" => new AutoDiscoveryCpMds(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
                 _ => throw new NotSupportedException("SuperManager Type is not supported."),
             };
         }
@@ -196,6 +208,27 @@ namespace FWO.DeviceAutoDiscovery
         }
 
         protected virtual Management CreateManagement(Management superManagement, string domainName, string domainUid) { return new(); }
+
+        /// <summary>
+        /// Decides whether a domain name reported by the discovered manager may become the config path of a management.
+        /// </summary>
+        /// <remarks>
+        /// The importer reads the config of a management whose config path is a URI (http, https, file) from that URI
+        /// instead of the firewall API. A name chosen on the remote manager must never select such a source, so names
+        /// containing "://" are skipped. Firewall managers do not allow such names for their domains anyway.
+        /// </remarks>
+        /// <param name="domainName">The domain or ADOM name reported by the manager.</param>
+        /// <returns>True when the domain can be turned into a management.</returns>
+        public static bool IsAcceptableDomainName(string? domainName)
+        {
+            if (domainName != null && domainName.Contains("://", StringComparison.Ordinal))
+            {
+                Log.WriteWarning("Autodiscovery", $"Skipping discovered domain '{domainName}': a name in URI form would " +
+                    "make the importer read the config from that URI instead of the firewall API.");
+                return false;
+            }
+            return true;
+        }
 
 
         public List<ActionItem> ConvertToActions(List<Management> diffList)

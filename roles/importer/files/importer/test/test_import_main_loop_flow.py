@@ -26,6 +26,7 @@ SLEEP_TIMER = 5
 API_FETCH_LIMIT = 150
 FWO_MAJOR_VERSION = 9
 TEST_JWT = "jwt-token"
+TEST_REFRESH_TOKEN = "refresh-token"  # noqa: S105
 IMPORTER_USER = "importer"
 USER_MANAGEMENT_URL = "https://middleware/"
 FWO_API_URL = "https://api/graphql"
@@ -83,7 +84,7 @@ class TestImportSingleManagement:
         _run_single_management(api_call)
 
         single_mgm_mocks["import_management"].assert_called_once_with(
-            MGM_ID, api_call, False, API_FETCH_LIMIT, False, True, suppress_consistency_check=False
+            MGM_ID, api_call, API_FETCH_LIMIT, False, suppress_consistency_check=False
         )
 
     def test_unsupported_device_type_is_skipped(self, single_mgm_mocks: dict[str, MagicMock]) -> None:
@@ -136,7 +137,10 @@ def main_loop_mocks(mocker: MockerFixture) -> dict[str, MagicMock]:
     return {
         "api_call": api_call,
         "wait": mocker.patch("import_main_loop.wait_with_shutdown_check"),
-        "jwt": mocker.patch("import_main_loop.get_fwo_jwt", return_value=json.dumps({"AccessToken": TEST_JWT})),
+        "jwt": mocker.patch(
+            "import_main_loop.get_fwo_jwt",
+            return_value=json.dumps({"AccessToken": TEST_JWT, "RefreshToken": TEST_REFRESH_TOKEN}),
+        ),
         "fwo_api": mocker.patch("import_main_loop.FwoApi"),
         "init_service_provider": mocker.patch("import_main_loop.init_service_provider"),
         "single": mocker.patch("import_main_loop.import_single_management"),
@@ -153,7 +157,9 @@ class TestMainLoop:
         _run_main_loop(pwd_file)
 
         main_loop_mocks["jwt"].assert_called_once_with(IMPORTER_USER, "secret", USER_MANAGEMENT_URL)
-        main_loop_mocks["fwo_api"].assert_called_once_with(FWO_API_URL, TEST_JWT)
+        main_loop_mocks["fwo_api"].assert_called_once_with(
+            FWO_API_URL, TEST_JWT, TEST_REFRESH_TOKEN, USER_MANAGEMENT_URL
+        )
         assert main_loop_mocks["single"].call_count == 2
         assert main_loop_mocks["init_service_provider"].call_count == 2
         assert mock_reset.return_value.reset.call_count == 2

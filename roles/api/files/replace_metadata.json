@@ -2823,6 +2823,36 @@
               },
               "object_relationships": [
                 {
+                  "name": "destination_metadata",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "destination": "ip_address"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "ip_metadata",
+                        "schema": "logging"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "source_metadata",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "source": "ip_address"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "ip_metadata",
+                        "schema": "logging"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "stm_ip_proto",
                   "using": {
                     "foreign_key_constraint_on": "service_protocol"
@@ -2849,6 +2879,8 @@
                       "allowed",
                       "modelled",
                       "log_time",
+                      "import_time",
+                      "log_time_range_in_seconds",
                       "logging_rule_name",
                       "owner_id"
                     ]
@@ -2870,6 +2902,8 @@
                       "allowed",
                       "modelled",
                       "log_time",
+                      "import_time",
+                      "log_time_range_in_seconds",
                       "logging_rule_name",
                       "owner_id"
                     ],
@@ -2882,6 +2916,8 @@
                   "permission": {
                     "columns": [
                       "log_time",
+                      "import_time",
+                      "log_time_range_in_seconds",
                       "owner_id"
                     ],
                     "filter": {}
@@ -2901,6 +2937,8 @@
                       "allowed",
                       "modelled",
                       "log_time",
+                      "import_time",
+                      "log_time_range_in_seconds",
                       "logging_rule_name",
                       "owner_id"
                     ],
@@ -2925,6 +2963,8 @@
                       "allowed",
                       "modelled",
                       "log_time",
+                      "import_time",
+                      "log_time_range_in_seconds",
                       "logging_rule_name",
                       "owner_id"
                     ],
@@ -2945,7 +2985,147 @@
                       "log_count",
                       "allowed",
                       "log_time",
+                      "import_time",
+                      "log_time_range_in_seconds",
                       "logging_rule_name"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "ip_metadata",
+                "schema": "logging"
+              },
+              "array_relationships": [
+                {
+                  "name": "destination_log_entries",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "ip_address": "destination"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "log_entry",
+                        "schema": "logging"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "source_log_entries",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "ip_address": "source"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "log_entry",
+                        "schema": "logging"
+                      }
+                    }
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "ip_address",
+                      "app_ids",
+                      "area_ids",
+                      "dns",
+                      "dns_lookup_completed"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "ip_address",
+                      "app_ids",
+                      "area_ids",
+                      "dns"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "ip_address",
+                      "app_ids",
+                      "area_ids",
+                      "dns",
+                      "dns_lookup_completed"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "ip_address",
+                      "app_ids",
+                      "area_ids",
+                      "dns"
+                    ],
+                    "filter": {},
+                    "query_root_fields": [],
+                    "subscription_root_fields": []
+                  },
+                  "comment": "reachable only through logging.log_entry, whose filter limits the role to its own owners: the table itself is keyed by address and carries the external application ids of every owner sharing it"
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "ip_address",
+                      "app_ids",
+                      "area_ids",
+                      "dns"
+                    ],
+                    "filter": {},
+                    "query_root_fields": [],
+                    "subscription_root_fields": []
+                  },
+                  "comment": "reachable only through logging.log_entry, whose filter limits the role to its own owners: the table itself is keyed by address and carries the external application ids of every owner sharing it"
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "app_ids",
+                      "area_ids",
+                      "dns",
+                      "dns_lookup_completed"
                     ],
                     "filter": {},
                     "check": null

@@ -1,12 +1,16 @@
 import ipaddress
 import json
+import socket
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
 from scripts.customizing.app_data_import import generate_owner_data as generator
 from scripts.customizing.log_data_import import generate_log_data as log_generator
+
+if TYPE_CHECKING:
+    import argparse
 
 
 def test_command_line_annotations_are_postponed_for_python_39() -> None:
@@ -81,3 +85,92 @@ def test_main_overwrites_an_existing_file_when_explicitly_requested(tmp_path: Pa
 
     assert result == 0
     assert json.loads(output_file.read_text(encoding="utf-8"))["owners"][0]["app_id_external"] == "APP-000001"
+
+
+def resolve_all_but(unresolvable_addresses: list[str]) -> generator.ReverseLookup:
+    """Return a reverse lookup which resolves every address except the given ones."""
+
+    def reverse_lookup(address: str) -> str:
+        return "" if address in unresolvable_addresses else f"host-{address}.example.test"
+
+    return reverse_lookup
+
+
+def test_generate_owner_data_uses_only_reverse_dns_resolvable_addresses_when_requested() -> None:
+    unresolvable_address: str = generator.REVERSE_DNS_CANDIDATE_ADDRESSES[1]
+    owner_data: dict[str, list[dict[str, object]]] = generator.generate_owner_data(
+        3, reverse_dns_resolvable=True, reverse_lookup=resolve_all_but([unresolvable_address])
+    )
+
+    server_ips: list[object] = [get_first_server(owner)["ip"] for owner in owner_data["owners"]]
+    expected_ips: list[str] = [
+        address for address in generator.REVERSE_DNS_CANDIDATE_ADDRESSES if address != unresolvable_address
+    ][:3]
+    assert server_ips == expected_ips
+    assert [owner["app_id_external"] for owner in owner_data["owners"]] == ["APP-000001", "APP-000002", "APP-000003"]
+
+
+def test_generate_owner_data_keeps_the_test_network_without_the_switch() -> None:
+    owner_data: dict[str, list[dict[str, object]]] = generator.generate_owner_data(
+        1, reverse_lookup=resolve_all_but([])
+    )
+
+    assert get_first_server(owner_data["owners"][0])["ip"] == "10.0.0.1"
+
+
+def test_generate_owner_data_rejects_more_owners_than_resolvable_addresses() -> None:
+    candidate_count: int = len(generator.REVERSE_DNS_CANDIDATE_ADDRESSES)
+
+    with pytest.raises(ValueError, match=rf"only {candidate_count - 1} of {candidate_count}"):
+        generator.generate_owner_data(
+            candidate_count,
+            reverse_dns_resolvable=True,
+            reverse_lookup=resolve_all_but([generator.REVERSE_DNS_CANDIDATE_ADDRESSES[0]]),
+        )
+
+
+def test_reverse_lookup_name_returns_an_empty_name_for_unresolvable_addresses(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fail_lookup(address: str) -> tuple[str, list[str], list[str]]:
+        raise socket.herror(1, f"unknown host {address}")
+
+    monkeypatch.setattr(generator.socket, "gethostbyaddr", fail_lookup)
+
+    assert generator.reverse_lookup_name("192.0.2.1") == ""
+
+
+def test_main_generates_reverse_dns_resolvable_servers_with_the_switch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output_file: Path = tmp_path / "owners.json"
+    monkeypatch.setattr(generator, "reverse_lookup_name", resolve_all_but([]))
+
+    result: int = generator.main(["2", str(output_file), "--reverse-dns-resolvable"])
+
+    applications: list[log_generator.Application] = log_generator.load_applications(output_file)
+    assert result == 0
+    assert [str(application.destination) for application in applications] == (
+        generator.REVERSE_DNS_CANDIDATE_ADDRESSES[:2]
+    )
+
+
+def test_main_reports_too_few_resolvable_addresses_without_writing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    output_file: Path = tmp_path / "owners.json"
+    monkeypatch.setattr(generator, "reverse_lookup_name", resolve_all_but(generator.REVERSE_DNS_CANDIDATE_ADDRESSES))
+
+    result: int = generator.main(["1", str(output_file), "--reverse-dns-resolvable"])
+
+    assert result == 1
+    assert not output_file.exists()
+    assert "reverse DNS resolvable" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("switch", "expected"),
+    [([], False), (["--reverse-dns-resolvable"], True), (["--no-reverse-dns-resolvable"], False)],
+)
+def test_parse_arguments_uses_the_test_network_unless_requested(switch: list[str], expected: bool) -> None:
+    arguments: argparse.Namespace = generator.parse_arguments(["1", "owners.json", *switch])
+
+    assert arguments.reverse_dns_resolvable is expected

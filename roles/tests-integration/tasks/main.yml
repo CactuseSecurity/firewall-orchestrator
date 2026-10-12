@@ -157,6 +157,10 @@
   import_tasks: test-upgrade-source-version-guard.yml
   when: "'databaseserver' in group_names"
 
+- name: OS platform guard testing
+  import_tasks: test-os-platform-guard.yml
+  run_once: true
+
 - name: finalize handler for deleting test data
   set_fact:
     test_importer_handler_guard: stop

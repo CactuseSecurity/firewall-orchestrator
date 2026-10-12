@@ -1,3 +1,5 @@
+using System.Runtime.Serialization;
+
 namespace FWO.Data.Provisioning;
 
 /// <summary>
@@ -20,8 +22,8 @@ public enum ProvisioningImplementationMode
     Undefined,
     FwoAuto,
     Manual,
-    TufinSc,
-    None
+    [EnumMember(Value = "reroute_to_external_ticket_system")]
+    RerouteToExternalTicketSystem
 }
 
 /// <summary>
@@ -30,8 +32,11 @@ public enum ProvisioningImplementationMode
 public enum ProvisioningLoggingMode
 {
     Undefined,
+    [EnumMember(Value = "log")]
     Log,
+    [EnumMember(Value = "log_track")]
     LogTrack,
+    [EnumMember(Value = "none")]
     None
 }
 
@@ -42,7 +47,9 @@ public enum ProvisioningObjectCreationMode
 {
     Undefined,
     Supermanager,
-    Submanager
+    Submanager,
+    [EnumMember(Value = "ignore")]
+    Ignore
 }
 
 /// <summary>
@@ -51,10 +58,15 @@ public enum ProvisioningObjectCreationMode
 public enum ProvisioningRuleType
 {
     Undefined,
+    [EnumMember(Value = "access")]
     AlwaysAccess,
+    [EnumMember(Value = "accessAndNat")]
     HandleAccessAndNat,
+    [EnumMember(Value = "accessAndIPS")]
     HandleAccessAndIps,
-    HandleAccessNatIps
+    [EnumMember(Value = "accessNatIPS")]
+    HandleAccessNatIps,
+    AppSecurity
 }
 
 /// <summary>
@@ -63,11 +75,17 @@ public enum ProvisioningRuleType
 public enum ProvisioningPositioningAlgorithm
 {
     Undefined,
+    [EnumMember(Value = "cpInlineLayerPerZonePair")]
     CheckPointInlineLayerPerZonePair,
+    [EnumMember(Value = "endOfZone")]
     FortinetEndOfZone,
+    [EnumMember(Value = "endOfAppSection")]
     CheckPointEndOfAppSection,
+    [EnumMember(Value = "endOfAppSectionDistinguishCommonServices")]
     CheckPointEndOfAppSectionDistinguishCommonServices,
-    DefaultEndOfRulebase
+    DefaultEndOfRulebase,
+    [EnumMember(Value = "allowCategoryEndOfAppSectionDistinguishCommonServices")]
+    AllowCategoryEndOfAppSectionDistinguishCommonServices
 }
 
 /// <summary>
@@ -76,6 +94,44 @@ public enum ProvisioningPositioningAlgorithm
 public enum ProvisioningRuleCategory
 {
     Undefined,
+    [EnumMember(Value = "app")]
     App,
+    [EnumMember(Value = "common_service")]
     CommonService
+}
+
+/// <summary>Gateways on which generated rules are installed.</summary>
+public enum ProvisioningInstallOn
+{
+    Undefined,
+    [EnumMember(Value = "ANY")]
+    Any,
+    [EnumMember(Value = "gatewaysInPath")]
+    GatewaysInPath
+}
+
+/// <summary>Rule-specific implementation mode.</summary>
+public enum ProvisioningRuleImplementationMode
+{
+    Undefined,
+    Automatic,
+    Manual,
+    [EnumMember(Value = "rerouteToExternalTicketSystem")]
+    RerouteToExternalTicketSystem
+}
+
+/// <summary>Whether implementation planning is enabled.</summary>
+public enum ProvisioningPlanningMode
+{
+    Undefined,
+    Enable,
+    Disable
+}
+
+/// <summary>Whether a modelling object or label is provisioned.</summary>
+public enum ProvisioningYesNo
+{
+    Undefined,
+    Yes,
+    No
 }

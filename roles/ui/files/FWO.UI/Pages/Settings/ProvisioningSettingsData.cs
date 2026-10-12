@@ -1,4 +1,7 @@
 using FWO.Data;
+using FWO.Config.Api.Provisioning;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using FWO.Data.Provisioning;
 
 namespace FWO.Ui.Pages.Settings
@@ -11,7 +14,8 @@ namespace FWO.Ui.Pages.Settings
         SingleSelect,
         Text,
         TemplateText,
-        StringList
+        StringList,
+        NamingConventions
     }
 
     /// <summary>
@@ -58,7 +62,7 @@ namespace FWO.Ui.Pages.Settings
         public bool AppliesToLevel(ProvisioningScopeType level) => level >= MinLevel && level <= MaxLevel;
 
         /// <summary>Whether the field is offered on the node's current device path.</summary>
-        public bool AppliesTo(ProvisioningNode node) => AppliesToLevel(node.Level) && (!FortinetOnly || node.IsFortinet);
+        public bool AppliesTo(ProvisioningNode node) => AppliesToLevel(node.Level) && (!FortinetOnly || node.IsFortinet || node.Level == ProvisioningScopeType.Global);
     }
 
     /// <summary>
@@ -119,64 +123,138 @@ namespace FWO.Ui.Pages.Settings
 
         private const char kListSeparator = ',';
 
-        /// <summary>
-        /// Field definitions. Object creation is only offered down to management level, even though the
-        /// setting keys would technically allow more specific scopes.
-        /// </summary>
+        private static readonly IReadOnlyDictionary<string, string> HelpTextKeys = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            { "prov_implementation_mode", "H5168" },
+            { "prov_install_on", "H5169" },
+            { "prov_logging", "H5190" },
+            { "prov_service_object_creation", "H5191" },
+            { "prov_address_object_creation", "H5192" },
+            { "prov_rule_type", "H5193" },
+            { "prov_templates", "H5194" },
+            { "prov_positioning_algorithm", "H5195" },
+            { "prov_rule_category", "H5196" },
+            { "prov_zone_from", "H5198" },
+            { "prov_zone_to", "H5199" },
+            { "prov_time_object_creation", "H5170" },
+            { "prov_label_creation", "H5172" },
+            { "prov_implementation_mode_override_for_rules", "H5173" },
+            { "prov_owner_id_custom_field_name", "H5174" },
+            { "prov_change_number_custom_field_name", "H5175" },
+            { "prov_plan_implementation", "H5177" },
+            { "prov_plan_implementation_override_for_rules", "H5178" },
+            { "prov_modelling_create_app_zones", "H5179" },
+            { "prov_modelling_implement_network_area_objects", "H5180" },
+            { "prov_modelling_dyn_ip_labels_visible_as_groups", "H5188" },
+            { "prov_modelling_naming_conventions", "H5189" },
+        };
+
+        /// <summary>Localized editors with the same scope restrictions as the typed API keys.</summary>
         public static readonly IReadOnlyList<ProvisioningFieldDefinition> Fields =
         [
             EnumField(ProvisioningSettingKeys.ImplementationMode, "prov_implementation_mode", s => s.ImplementationMode,
                 EnumOptions(
                     (ProvisioningImplementationMode.FwoAuto, "prov_opt_fwo_auto"),
                     (ProvisioningImplementationMode.Manual, "prov_opt_manual"),
-                    (ProvisioningImplementationMode.TufinSc, "prov_opt_tufin_sc"),
-                    (ProvisioningImplementationMode.None, "prov_opt_no_implementation"))),
-            TextField(ProvisioningSettingKeys.InstallOn, "prov_install_on", s => s.InstallOn),
-            EnumField(ProvisioningSettingKeys.Logging, "prov_logging", s => s.Logging,
+                    (ProvisioningImplementationMode.RerouteToExternalTicketSystem, "prov_opt_reroute"))),
+            EnumField(ProvisioningSettingKeys.InstallOn, "prov_install_on", s => s.InstallOn,
                 EnumOptions(
-                    (ProvisioningLoggingMode.Log, "prov_opt_log"),
-                    (ProvisioningLoggingMode.LogTrack, "prov_opt_log_track"),
-                    (ProvisioningLoggingMode.None, "prov_opt_none"))),
-            EnumField(ProvisioningSettingKeys.ServiceObjectCreation, "prov_service_object_creation", s => s.ServiceObjectCreation,
-                ObjectCreationOptions(), maxLevel: ProvisioningScopeType.Management),
-            EnumField(ProvisioningSettingKeys.AddressObjectCreation, "prov_address_object_creation", s => s.AddressObjectCreation,
-                ObjectCreationOptions(), maxLevel: ProvisioningScopeType.Management),
-            EnumField(ProvisioningSettingKeys.RuleType, "prov_rule_type", s => s.RuleType,
-                EnumOptions(
-                    (ProvisioningRuleType.AlwaysAccess, "prov_opt_always_access"),
-                    (ProvisioningRuleType.HandleAccessAndNat, "prov_opt_access_nat"),
-                    (ProvisioningRuleType.HandleAccessAndIps, "prov_opt_access_ips"),
-                    (ProvisioningRuleType.HandleAccessNatIps, "prov_opt_access_nat_ips"))),
-            TextField(ProvisioningSettingKeys.Templates, "prov_templates", s => s.Templates, ProvisioningFieldKind.TemplateText),
-            EnumField(ProvisioningSettingKeys.PositioningAlgorithm, "prov_positioning_algorithm", s => AsDevice(s).PositioningAlgorithm,
+                    (ProvisioningInstallOn.Any, "prov_opt_any"),
+                    (ProvisioningInstallOn.GatewaysInPath, "prov_opt_gateways_in_path"))),
+            EnumField(ProvisioningSettingKeys.PositioningAlgorithm, "prov_positioning_algorithm", s => s.PositioningAlgorithm,
                 EnumOptions(
                     (ProvisioningPositioningAlgorithm.CheckPointInlineLayerPerZonePair, "prov_opt_cp_inline_layer_zone_pair"),
                     (ProvisioningPositioningAlgorithm.FortinetEndOfZone, "prov_opt_fortinet_end_of_zone"),
                     (ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection, "prov_opt_cp_end_of_app_section"),
                     (ProvisioningPositioningAlgorithm.CheckPointEndOfAppSectionDistinguishCommonServices, "prov_opt_cp_end_of_app_section_common_svc"),
-                    (ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "prov_opt_default_end_of_rulebase")),
-                minLevel: ProvisioningScopeType.DeviceType),
-            EnumField(ProvisioningSettingKeys.RuleCategory, "prov_rule_category", s => AsDevice(s).RuleCategory,
+                    (ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "prov_opt_default_end_of_rulebase"),
+                    (ProvisioningPositioningAlgorithm.AllowCategoryEndOfAppSectionDistinguishCommonServices, "prov_opt_allow_category"))),
+            EnumField(ProvisioningSettingKeys.RuleLoggingOverride, "prov_logging", s => s.RuleLoggingOverride,
+                EnumOptions(
+                    (ProvisioningLoggingMode.Log, "prov_opt_log"),
+                    (ProvisioningLoggingMode.LogTrack, "prov_opt_log_track"),
+                    (ProvisioningLoggingMode.None, "prov_opt_none"))),
+            EnumField(ProvisioningSettingKeys.ServiceObjectCreation, "prov_service_object_creation", s => s.ServiceObjectCreation,
+                EnumOptions(
+                    (ProvisioningObjectCreationMode.Supermanager, "prov_opt_supermanager"),
+                    (ProvisioningObjectCreationMode.Submanager, "prov_opt_submanager")), maxLevel: ProvisioningScopeType.Management),
+            EnumField(ProvisioningSettingKeys.AddressObjectCreation, "prov_address_object_creation", s => s.AddressObjectCreation,
+                EnumOptions(
+                    (ProvisioningObjectCreationMode.Supermanager, "prov_opt_supermanager"),
+                    (ProvisioningObjectCreationMode.Submanager, "prov_opt_submanager")), maxLevel: ProvisioningScopeType.Management),
+            EnumField(ProvisioningSettingKeys.TimeObjectCreation, "prov_time_object_creation", s => s.TimeObjectCreation,
+                EnumOptions(
+                    (ProvisioningObjectCreationMode.Supermanager, "prov_opt_supermanager"),
+                    (ProvisioningObjectCreationMode.Submanager, "prov_opt_submanager"),
+                    (ProvisioningObjectCreationMode.Ignore, "prov_opt_ignore")), maxLevel: ProvisioningScopeType.Management),
+            EnumField(ProvisioningSettingKeys.LabelCreation, "prov_label_creation", s => s.LabelCreation,
+                EnumOptions(
+                    (ProvisioningObjectCreationMode.Supermanager, "prov_opt_supermanager"),
+                    (ProvisioningObjectCreationMode.Submanager, "prov_opt_submanager"),
+                    (ProvisioningObjectCreationMode.Ignore, "prov_opt_ignore")), maxLevel: ProvisioningScopeType.Management),
+            EnumField(ProvisioningSettingKeys.RuleType, "prov_rule_type", s => s.RuleType,
+                EnumOptions(
+                    (ProvisioningRuleType.AlwaysAccess, "prov_opt_always_access"),
+                    (ProvisioningRuleType.HandleAccessAndNat, "prov_opt_access_nat"),
+                    (ProvisioningRuleType.HandleAccessAndIps, "prov_opt_access_ips"),
+                    (ProvisioningRuleType.HandleAccessNatIps, "prov_opt_access_nat_ips"),
+                    (ProvisioningRuleType.AppSecurity, "prov_opt_app_security"))),
+            EnumField(ProvisioningSettingKeys.RuleCategory, "prov_rule_category", s => s.RuleCategory,
                 EnumOptions(
                     (ProvisioningRuleCategory.App, "prov_opt_app"),
-                    (ProvisioningRuleCategory.CommonService, "prov_opt_common_service")),
-                minLevel: ProvisioningScopeType.DeviceType),
+                    (ProvisioningRuleCategory.CommonService, "prov_opt_common_service")), maxLevel: ProvisioningScopeType.Management),
+            TextField(ProvisioningSettingKeys.RuleZoneFromOverride, "prov_zone_from", s => s.RuleZoneFromOverride, fortinetOnly: true),
+            TextField(ProvisioningSettingKeys.RuleZoneToOverride, "prov_zone_to", s => s.RuleZoneToOverride, fortinetOnly: true),
+            EnumField(ProvisioningSettingKeys.ImplementationModeOverrideForRules, "prov_implementation_mode_override_for_rules", s => s.ImplementationModeOverrideForRules,
+                EnumOptions(
+                    (ProvisioningRuleImplementationMode.Automatic, "prov_opt_automatic"),
+                    (ProvisioningRuleImplementationMode.Manual, "prov_opt_manual"),
+                    (ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem, "prov_opt_reroute"))),
             new()
             {
                 Key = ProvisioningSettingKeys.SecurityProfiles,
                 LabelTextKey = "prov_security_profiles",
-                HelpTextKey = "prov_security_profiles_help",
+                HelpTextKey = "H5197",
                 Kind = ProvisioningFieldKind.StringList,
                 MinLevel = ProvisioningScopeType.DeviceType,
-                FortinetOnly = true,
-                Read = s => string.Join(kListSeparator, AsDevice(s).SecurityProfiles),
+                Read = s => string.Join(kListSeparator, s.SecurityProfiles),
                 SetOverride = (changes, value) => changes.Set(ProvisioningSettingKeys.SecurityProfiles,
                     ParseStringList(value).Where(entry => entry.Length > 0).ToList())
             },
-            TextField(ProvisioningSettingKeys.ZoneFrom, "prov_zone_from", s => AsDevice(s).ZoneFrom,
-                minLevel: ProvisioningScopeType.DeviceType, fortinetOnly: true),
-            TextField(ProvisioningSettingKeys.ZoneTo, "prov_zone_to", s => AsDevice(s).ZoneTo,
-                minLevel: ProvisioningScopeType.DeviceType, fortinetOnly: true)
+            TextField(ProvisioningSettingKeys.OwnerIdCustomFieldName, "prov_owner_id_custom_field_name", s => s.OwnerIdCustomFieldName, maxLevel: ProvisioningScopeType.Management),
+            TextField(ProvisioningSettingKeys.ChangeNumberCustomFieldName, "prov_change_number_custom_field_name", s => s.ChangeNumberCustomFieldName, maxLevel: ProvisioningScopeType.Management),
+            EnumField(ProvisioningSettingKeys.PlanImplementation, "prov_plan_implementation", s => s.PlanImplementation,
+                EnumOptions(
+                    (ProvisioningPlanningMode.Enable, "prov_opt_enable"),
+                    (ProvisioningPlanningMode.Disable, "prov_opt_disable"))),
+            EnumField(ProvisioningSettingKeys.PlanImplementationOverrideForRules, "prov_plan_implementation_override_for_rules", s => s.PlanImplementationOverrideForRules,
+                EnumOptions(
+                    (ProvisioningPlanningMode.Enable, "prov_opt_enable"),
+                    (ProvisioningPlanningMode.Disable, "prov_opt_disable"))),
+            new()
+            {
+                Key = ProvisioningSettingKeys.ModellingNamingConventions,
+                LabelTextKey = "prov_modelling_naming_conventions",
+                HelpTextKey = "H5189",
+                Kind = ProvisioningFieldKind.NamingConventions,
+                MaxLevel = ProvisioningScopeType.Global,
+                Read = s => JsonConvert.SerializeObject(s.ModellingNamingConventions),
+                SetOverride = (changes, value) => changes.Set(ProvisioningSettingKeys.ModellingNamingConventions,
+                    ProvisioningSettingValueSerializer.Deserialize(ProvisioningSettingKeys.ModellingNamingConventions, JObject.Parse(value)))
+            },
+            EnumField(ProvisioningSettingKeys.ModellingCreateAppZones, "prov_modelling_create_app_zones", s => s.ModellingCreateAppZones,
+                EnumOptions(
+                    (ProvisioningYesNo.Yes, "yes"),
+                    (ProvisioningYesNo.No, "no")), maxLevel: ProvisioningScopeType.Management),
+            EnumField(ProvisioningSettingKeys.ModellingImplementNetworkAreaObjects, "prov_modelling_implement_network_area_objects", s => s.ModellingImplementNetworkAreaObjects,
+                EnumOptions(
+                    (ProvisioningYesNo.Yes, "yes"),
+                    (ProvisioningYesNo.No, "no")), maxLevel: ProvisioningScopeType.Management),
+            EnumField(ProvisioningSettingKeys.ModellingDynIpLabelsVisibleAsGroups, "prov_modelling_dyn_ip_labels_visible_as_groups", s => s.ModellingDynIpLabelsVisibleAsGroups,
+                EnumOptions(
+                    (ProvisioningYesNo.Yes, "yes"),
+                    (ProvisioningYesNo.No, "no")), maxLevel: ProvisioningScopeType.Management),
+            TextField(ProvisioningSettingKeys.Templates, "prov_templates", s => s.Templates, ProvisioningFieldKind.TemplateText, minLevel: ProvisioningScopeType.DeviceType, maxLevel: ProvisioningScopeType.Management),
         ];
 
         /// <summary>Returns the field definition of a setting key, or null if the key is not edited in the UI.</summary>
@@ -270,7 +348,7 @@ namespace FWO.Ui.Pages.Settings
             {
                 Key = key,
                 LabelTextKey = textKey,
-                HelpTextKey = textKey + "_help",
+                HelpTextKey = HelpKey(textKey),
                 Kind = ProvisioningFieldKind.SingleSelect,
                 Options = options,
                 MinLevel = minLevel,
@@ -285,30 +363,28 @@ namespace FWO.Ui.Pages.Settings
             Func<GlobalProvisioningSettings, string> get,
             ProvisioningFieldKind kind = ProvisioningFieldKind.Text,
             ProvisioningScopeType minLevel = ProvisioningScopeType.Global,
-            bool fortinetOnly = false) => new()
+            bool fortinetOnly = false,
+            ProvisioningScopeType maxLevel = ProvisioningScopeType.Gateway) => new()
             {
                 Key = key,
                 LabelTextKey = textKey,
-                HelpTextKey = textKey + "_help",
+                HelpTextKey = HelpKey(textKey),
                 Kind = kind,
                 MinLevel = minLevel,
+                MaxLevel = maxLevel,
                 FortinetOnly = fortinetOnly,
                 Read = get,
                 SetOverride = (changes, value) => changes.Set(key, value)
             };
 
+        /// <summary>Maps labels to the sorted provisioning help entries.</summary>
+        private static string HelpKey(string textKey) =>
+            HelpTextKeys.TryGetValue(textKey, out string? helpKey)
+                ? helpKey : throw new ArgumentException($"Missing help for {textKey}", nameof(textKey));
+
         /// <summary>Builds the option list of a select field from the real data-layer enum members.</summary>
         private static List<ProvisioningFieldOption> EnumOptions<TEnum>(params (TEnum Value, string TextKey)[] entries) where TEnum : struct, Enum =>
             [.. entries.Select(e => new ProvisioningFieldOption(e.Value.ToString(), e.TextKey))];
 
-        private static List<ProvisioningFieldOption> ObjectCreationOptions() =>
-            EnumOptions(
-                (ProvisioningObjectCreationMode.Supermanager, "prov_opt_supermanager"),
-                (ProvisioningObjectCreationMode.Submanager, "prov_opt_submanager"));
-
-        /// <summary>Device-level fields are only offered from device type downwards, where the DTO always carries them.</summary>
-        private static DeviceTypeProvisioningSettings AsDevice(GlobalProvisioningSettings settings) =>
-            settings as DeviceTypeProvisioningSettings
-                ?? throw new InvalidOperationException($"'{settings.GetType().Name}' does not carry device-level provisioning settings.");
     }
 }

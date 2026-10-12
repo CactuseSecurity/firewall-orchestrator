@@ -1,11 +1,13 @@
 using FWO.Data.Provisioning;
+using System.Reflection;
+using System.Runtime.Serialization;
 using Newtonsoft.Json.Linq;
 
 namespace FWO.Config.Api.Provisioning;
 
 /// <summary>
 /// Converts typed provisioning values to and from their JSONB representation.
-/// Enum values are deliberately represented by their names rather than ordinals. The <c>Undefined</c> member of the
+/// Enum values use the documented wire names rather than ordinals. The <c>Undefined</c> member of the
 /// setting enums is never stored: it has no meaning for provisioning, and inheriting a value is expressed by storing no
 /// override at all.
 /// </summary>
@@ -37,14 +39,14 @@ public static class ProvisioningSettingValueSerializer
 
         if (key.ValueType.IsEnum)
         {
-            if (!IsStorableEnumValue(key.ValueType, value))
+            if (!IsStorableEnumValue(key.ValueType, value) || !IsAllowedEnumValue(key, value))
             {
                 throw new ArgumentException(
                     $"Value '{value}' is not a storable value of enum '{key.ValueType.Name}'.",
                     nameof(value));
             }
 
-            return new JValue(value.ToString());
+            return new JValue(StorageName(key, value));
         }
 
         if (key.ValueType == typeof(string))
@@ -63,6 +65,16 @@ public static class ProvisioningSettingValueSerializer
             }
 
             return new JArray(values);
+        }
+
+        if (key.ValueType == typeof(Dictionary<string, string>))
+        {
+            Dictionary<string, string> templates = (Dictionary<string, string>)value;
+            if (!ValidNamingConventions(templates))
+            {
+                throw new ArgumentException("Naming conventions require one non-empty string for each supported object type.", nameof(value));
+            }
+            return JObject.FromObject(templates);
         }
 
         throw new NotSupportedException(
@@ -97,8 +109,10 @@ public static class ProvisioningSettingValueSerializer
             }
 
             string enumName = value.Value<string>() ?? "";
-            if (!Enum.TryParse(key.ValueType, enumName, ignoreCase: false, out object? parsed)
-                || !IsStorableEnumValue(key.ValueType, parsed))
+            object? parsed = Enum.GetValues(key.ValueType).Cast<object>()
+                .FirstOrDefault(candidate => IsStorableEnumValue(key.ValueType, candidate) && IsAllowedEnumValue(key, candidate)
+                    && StorageName(key, candidate) == enumName);
+            if (parsed is null)
             {
                 throw InvalidValue(key, value, $"'{enumName}' is not a storable {key.ValueType.Name} value");
             }
@@ -126,9 +140,50 @@ public static class ProvisioningSettingValueSerializer
             return array.Select(item => item.Value<string>()!).ToList();
         }
 
+        if (key.ValueType == typeof(Dictionary<string, string>))
+        {
+            return DeserializeNamingConventions(key, value);
+        }
+
         throw new NotSupportedException(
             $"Provisioning setting type '{key.ValueType.Name}' has no JSONB deserializer.");
     }
+
+    /// <summary>Validates and reads the complete naming JSON object.</summary>
+    private static Dictionary<string, string> DeserializeNamingConventions(ProvisioningSettingKey key, JToken value)
+    {
+        if (value is not JObject templates || templates.Properties().Any(property => property.Value.Type != JTokenType.String))
+        {
+            throw InvalidValue(key, value, "a JSON object containing string naming conventions is required");
+        }
+        Dictionary<string, string> conventions = templates.ToObject<Dictionary<string, string>>()!;
+        if (!ValidNamingConventions(conventions))
+        {
+            throw InvalidValue(key, value, "one non-empty string for each supported object type is required");
+        }
+        return conventions;
+    }
+
+    /// <summary>Uses the label-specific lowercase manager names from the provisioning contract.</summary>
+    public static string StorageName(ProvisioningSettingKey key, object value) =>
+        key == ProvisioningSettingKeys.LabelCreation
+            ? EnumStorageName(key.ValueType, value).ToLowerInvariant()
+            : EnumStorageName(key.ValueType, value);
+
+    /// <summary>Returns the external setting value, independent of C# enum member naming.</summary>
+    public static string EnumStorageName(Type enumType, object value) =>
+        enumType.GetField(value.ToString()!)?.GetCustomAttribute<EnumMemberAttribute>()?.Value ?? value.ToString()!;
+
+    /// <summary>Checks the complete modelling naming convention contract.</summary>
+    private static bool ValidNamingConventions(Dictionary<string, string> templates) =>
+        templates.Count == ProvisioningModellingNamingConventions.ObjectTypes.Count
+        && ProvisioningModellingNamingConventions.ObjectTypes.All(key =>
+            templates.TryGetValue(key, out string? value) && !string.IsNullOrWhiteSpace(value));
+
+    /// <summary>Ignore is only supported by time objects and labels.</summary>
+    private static bool IsAllowedEnumValue(ProvisioningSettingKey key, object value) =>
+        value is not ProvisioningObjectCreationMode.Ignore
+        || key == ProvisioningSettingKeys.TimeObjectCreation || key == ProvisioningSettingKeys.LabelCreation;
 
     /// <summary>True for a defined enum member other than the <c>Undefined</c> placeholder.</summary>
     private static bool IsStorableEnumValue(Type enumType, object value)

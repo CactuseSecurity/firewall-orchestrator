@@ -345,11 +345,12 @@ else
                 builder.CloseElement();
                 break;
 
+            case ProvisioningFieldKind.NamingConventions:
             case ProvisioningFieldKind.TemplateText:
                 builder.OpenElement(0, "textarea");
                 builder.AddAttribute(1, "class", "form-control form-control-sm");
                 builder.AddAttribute(2, "rows", 4);
-                builder.AddAttribute(3, "placeholder", userConfig.GetText("prov_templates_placeholder"));
+                builder.AddAttribute(3, "placeholder", field.Kind == ProvisioningFieldKind.NamingConventions ? "" : userConfig.GetText("prov_templates_placeholder"));
                 builder.AddAttribute(4, "value", value);
                 builder.AddAttribute(5, "onchange", changeCallback);
                 builder.AddAttribute(6, "disabled", disabled);

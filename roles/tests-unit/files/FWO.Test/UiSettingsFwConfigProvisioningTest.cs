@@ -21,8 +21,36 @@ internal sealed class UiSettingsFwConfigProvisioningTest
 {
     private const long kGlobalNodeId = 1;
 
-    private static readonly string kLoggingSwitchSelector = $"#prov-override-{ProvisioningSettingKeys.Logging.DatabaseKey}";
-    private static readonly string kLoggingSelectSelector = $"#prov-field-{ProvisioningSettingKeys.Logging.DatabaseKey} select";
+    private static readonly string kLoggingSwitchSelector = $"#prov-override-{ProvisioningSettingKeys.RuleLoggingOverride.DatabaseKey}";
+    private static readonly string kLoggingSelectSelector = $"#prov-field-{ProvisioningSettingKeys.RuleLoggingOverride.DatabaseKey} select";
+
+    /// <summary>Admin can edit and save the global naming convention JSON object.</summary>
+    [Test]
+    public async Task Admin_CanSaveModellingNamingJson()
+    {
+        InMemoryProvisioningApiConnection api = CreateApi();
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        string key = ProvisioningSettingKeys.ModellingNamingConventions.DatabaseKey;
+        page.Find($"#prov-override-{key}").Change(true);
+        Dictionary<string, string> conventions = ProvisioningModellingNamingConventions.CreateDefaults();
+        conventions["appRole"] = "Role-{idString}";
+        string json = Newtonsoft.Json.JsonConvert.SerializeObject(conventions);
+        page.Find($"#prov-field-{key} textarea").Change(json);
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        Assert.That(api.ReadValue(kGlobalNodeId, ProvisioningSettingKeys.ModellingNamingConventions)?["appRole"]?.ToString(),
+            Is.EqualTo("Role-{idString}"));
+    }
+
+    /// <summary>Install-on targets are restricted to the two contract values.</summary>
+    [Test]
+    public async Task InstallOn_UsesABoundedSelector()
+    {
+        await using BunitContext context = CreateContext(Roles.Admin);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        Assert.That(page.FindAll("#prov-field-installOn select option"), Has.Count.EqualTo(2));
+        Assert.That(page.FindAll("#prov-field-installOn input[type=text]"), Is.Empty);
+    }
 
     [Test]
     public async Task Auditor_SeesTheStoredValuesWithAllEditorsDisabled()
@@ -63,7 +91,7 @@ internal sealed class UiSettingsFwConfigProvisioningTest
         api.AddNode(2, ProvisioningScopeType.DeviceType, "9", kGlobalNodeId, "Check Point R8x");
         api.AddNode(5, ProvisioningScopeType.DeviceType, "11", kGlobalNodeId, "FortiADOM 5ff");
         api.AddNode(3, ProvisioningScopeType.Management, "100", 5, "cp-mgr");
-        api.SetValue(3, ProvisioningSettingKeys.ZoneFrom, "internal");
+        api.SetValue(3, ProvisioningSettingKeys.RuleZoneFromOverride, "internal");
         await using BunitContext context = CreateContext(Roles.Admin, api);
         IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
 
@@ -72,7 +100,7 @@ internal sealed class UiSettingsFwConfigProvisioningTest
         await TreeButton(page, "cp-mgr").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
         page.WaitForAssertion(() => page.Find(".prov-clear-dormant"));
 
-        IElement dormantValue = page.Find($"#prov-field-{ProvisioningSettingKeys.ZoneFrom.DatabaseKey} input[type=text]");
+        IElement dormantValue = page.Find($"#prov-field-{ProvisioningSettingKeys.RuleZoneFromOverride.DatabaseKey} input[type=text]");
         IElement clearButton = page.Find(".prov-clear-dormant");
         using (Assert.EnterMultipleScope())
         {
@@ -86,7 +114,7 @@ internal sealed class UiSettingsFwConfigProvisioningTest
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(api.ReadValue(3, ProvisioningSettingKeys.ZoneFrom), Is.Null);
+            Assert.That(api.ReadValue(3, ProvisioningSettingKeys.RuleZoneFromOverride), Is.Null);
             Assert.That(page.FindAll(".prov-clear-dormant"), Is.Empty);
         }
     }
@@ -143,8 +171,8 @@ internal sealed class UiSettingsFwConfigProvisioningTest
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(api.ReadValue(kGlobalNodeId, ProvisioningSettingKeys.Logging)?.ToString(),
-                Is.EqualTo(nameof(ProvisioningLoggingMode.None)));
+            Assert.That(api.ReadValue(kGlobalNodeId, ProvisioningSettingKeys.RuleLoggingOverride)?.ToString(),
+                Is.EqualTo("none"));
             Assert.That(page.Find(kLoggingSwitchSelector).HasAttribute("checked"), Is.True);
             Assert.That(page.Find(kLoggingSelectSelector).GetAttribute("value"),
                 Is.EqualTo(nameof(ProvisioningLoggingMode.None)));
@@ -186,7 +214,7 @@ internal sealed class UiSettingsFwConfigProvisioningTest
         InMemoryProvisioningApiConnection api = new();
         api.Managements.AddRange(ProvisioningSettingsDataTest.SampleManagements());
         api.AddNode(kGlobalNodeId, ProvisioningScopeType.Global, "global", displayName: "Global");
-        api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.LogTrack);
+        api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.RuleLoggingOverride, ProvisioningLoggingMode.LogTrack);
         return api;
     }
 

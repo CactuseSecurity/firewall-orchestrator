@@ -15,7 +15,9 @@ internal class ProvisioningSettingValueSerializerTest
         {
             if (key.ValueType.IsEnum)
             {
-                foreach (object value in StorableEnumValues(key.ValueType))
+                foreach (object value in StorableEnumValues(key.ValueType).Where(value =>
+                    value is not ProvisioningObjectCreationMode.Ignore
+                    || key == ProvisioningSettingKeys.TimeObjectCreation || key == ProvisioningSettingKeys.LabelCreation))
                 {
                     yield return new TestCaseData(key, value)
                         .SetName($"RoundTrip_{key.DatabaseKey}_{value}");
@@ -25,6 +27,10 @@ internal class ProvisioningSettingValueSerializerTest
             {
                 yield return new TestCaseData(key, $"{key.DatabaseKey}-value")
                     .SetName($"RoundTrip_{key.DatabaseKey}_String");
+            }
+            else if (key.ValueType == typeof(Dictionary<string, string>))
+            {
+                yield return new TestCaseData(key, ProvisioningModellingNamingConventions.CreateDefaults());
             }
             else if (key.ValueType == typeof(List<string>))
             {
@@ -56,7 +62,12 @@ internal class ProvisioningSettingValueSerializerTest
         JToken serialized = ProvisioningSettingValueSerializer.Serialize(key, originalValue);
         object roundTripped = ProvisioningSettingValueSerializer.Deserialize(key, serialized);
 
-        if (key.ValueType == typeof(List<string>))
+        if (key.ValueType == typeof(Dictionary<string, string>))
+        {
+            Assert.That(serialized.Type, Is.EqualTo(JTokenType.Object));
+            Assert.That(roundTripped, Is.EqualTo(originalValue));
+        }
+        else if (key.ValueType == typeof(List<string>))
         {
             Assert.That(serialized.Type, Is.EqualTo(JTokenType.Array));
             Assert.That((List<string>)roundTripped, Is.EqualTo((List<string>)originalValue));
@@ -69,7 +80,7 @@ internal class ProvisioningSettingValueSerializerTest
 
         if (key.ValueType.IsEnum)
         {
-            Assert.That(serialized.Value<string>(), Is.EqualTo(originalValue.ToString()));
+            Assert.That(serialized.Value<string>(), Is.EqualTo(ProvisioningSettingValueSerializer.StorageName(key, originalValue)));
         }
     }
 
@@ -93,6 +104,6 @@ internal class ProvisioningSettingValueSerializerTest
     public void Serialize_RejectsUndefinedThroughTypedKey()
     {
         Assert.Throws<ArgumentException>(() => ProvisioningSettingValueSerializer.Serialize(
-            ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.Undefined));
+            ProvisioningSettingKeys.RuleLoggingOverride, ProvisioningLoggingMode.Undefined));
     }
 }

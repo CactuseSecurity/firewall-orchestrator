@@ -394,6 +394,14 @@ Create table "config"
 	primary key ("config_key","config_user")
 );
 
+-- Upgrade snapshots contain restricted provisioning data. Keep this archive
+-- outside Hasura metadata; administrators can inspect it through PostgreSQL.
+Create table "provisioning_config_backup"
+(
+    "version" Varchar PRIMARY KEY,
+    "config_values" Jsonb NOT NULL
+);
+
 Create table "provisioning_config_node"
 (
 	"id" BIGSERIAL,

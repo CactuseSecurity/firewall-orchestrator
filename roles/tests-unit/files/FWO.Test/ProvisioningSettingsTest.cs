@@ -27,8 +27,8 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(settings.ImplementationMode, Is.EqualTo(ProvisioningImplementationMode.FwoAuto));
-                Assert.That(settings.InstallOn, Is.EqualTo("ANY"));
-                Assert.That(settings.Logging, Is.EqualTo(ProvisioningLoggingMode.Log));
+                Assert.That(settings.InstallOn, Is.EqualTo(ProvisioningInstallOn.Any));
+                Assert.That(settings.RuleLoggingOverride, Is.EqualTo(ProvisioningLoggingMode.Log));
                 Assert.That(settings.ServiceObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
                 Assert.That(settings.AddressObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
                 Assert.That(settings.RuleType, Is.EqualTo(ProvisioningRuleType.AlwaysAccess));
@@ -36,8 +36,8 @@ namespace FWO.Test
                 Assert.That(settings.PositioningAlgorithm, Is.EqualTo(ProvisioningPositioningAlgorithm.DefaultEndOfRulebase));
                 Assert.That(settings.RuleCategory, Is.EqualTo(ProvisioningRuleCategory.App));
                 Assert.That(settings.SecurityProfiles, Is.Empty);
-                Assert.That(settings.ZoneFrom, Is.EqualTo("ANY"));
-                Assert.That(settings.ZoneTo, Is.EqualTo("ANY"));
+                Assert.That(settings.RuleZoneFromOverride, Is.EqualTo("ANY"));
+                Assert.That(settings.RuleZoneToOverride, Is.EqualTo("ANY"));
             });
         }
 
@@ -61,8 +61,8 @@ namespace FWO.Test
                     ParentNodeId = 4
                 },
                 ImplementationMode = ProvisioningImplementationMode.FwoAuto,
-                InstallOn = "ANY",
-                Logging = ProvisioningLoggingMode.LogTrack,
+                InstallOn = ProvisioningInstallOn.Any,
+                RuleLoggingOverride = ProvisioningLoggingMode.LogTrack,
                 ServiceObjectCreation = ProvisioningObjectCreationMode.Supermanager,
                 AddressObjectCreation = ProvisioningObjectCreationMode.Submanager,
                 RuleType = ProvisioningRuleType.HandleAccessNatIps,
@@ -70,8 +70,8 @@ namespace FWO.Test
                 PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointEndOfAppSectionDistinguishCommonServices,
                 RuleCategory = ProvisioningRuleCategory.CommonService,
                 SecurityProfiles = securityProfiles,
-                ZoneFrom = "ANY",
-                ZoneTo = "ANY"
+                RuleZoneFromOverride = "ANY",
+                RuleZoneToOverride = "ANY"
             };
 
             Assert.Multiple(() =>
@@ -82,7 +82,7 @@ namespace FWO.Test
                 Assert.That(settings.ImplementationMode, Is.EqualTo(ProvisioningImplementationMode.FwoAuto));
                 Assert.That(settings.RuleType, Is.EqualTo(ProvisioningRuleType.HandleAccessNatIps));
                 Assert.That(settings.SecurityProfiles, Is.EqualTo(securityProfiles));
-                Assert.That(settings.ZoneFrom, Is.EqualTo("ANY"));
+                Assert.That(settings.RuleZoneFromOverride, Is.EqualTo("ANY"));
             });
         }
     }

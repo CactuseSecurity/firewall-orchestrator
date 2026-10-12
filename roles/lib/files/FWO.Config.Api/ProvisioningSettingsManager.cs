@@ -59,7 +59,7 @@ public sealed class ProvisioningSettingsManager
     {
         ArgumentNullException.ThrowIfNull(path);
         ArgumentNullException.ThrowIfNull(key);
-        ValidateKeyForScope(key, path.ScopeType);
+        ValidateCanonicalKey(key);
 
         ResolvedSettings resolved = await ResolveAlongPathAsync(path);
         TValue value = (TValue)ProvisioningSettingsMapper.GetValue(resolved.Settings, key);
@@ -450,7 +450,6 @@ public sealed class ProvisioningSettingsManager
         settings.Scope = hierarchy.Scope;
 
         Dictionary<ProvisioningSettingKey, ProvisioningSettingValueSource> sources = ProvisioningSettingKeys.All
-            .Where(key => key.IsAllowedAt(hierarchy.Scope.ScopeType))
             .ToDictionary(key => key, _ => new ProvisioningSettingValueSource(null));
 
         HashSet<ProvisioningSettingKey> directOverrides = [];
@@ -607,6 +606,12 @@ public sealed class ProvisioningSettingsManager
                 nameof(key));
         }
 
+        ValidateCanonicalKey(key);
+    }
+
+    /// <summary>Rejects keys outside the shared typed catalog.</summary>
+    private static void ValidateCanonicalKey(ProvisioningSettingKey key)
+    {
         if (!ProvisioningSettingKeys.ByDatabaseKey.TryGetValue(key.DatabaseKey, out ProvisioningSettingKey? knownKey)
             || !ReferenceEquals(knownKey, key))
         {

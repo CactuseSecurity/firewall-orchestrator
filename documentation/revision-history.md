@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.2 - 12.10.2026
+- extend hierarchical provisioning configuration for Guardicore: object creation, modelling naming, app-zone and network-area switches, dynamic IP labels, rule implementation and planning overrides
+- migrate provisioning key names and option values; privately back up old overrides before enforcing the revised scope restrictions (see developer documentation on provisioning settings)
+
 ## 9.7.1 - 09.10.2026
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
   configurable with one switch per connection type, validated against the host trust store:

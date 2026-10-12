@@ -24,10 +24,9 @@ internal class ProvisioningSettingsServiceTest
 
     private static readonly (string NodeType, string ObjectKey)[] kExpectedCreatedChain =
         [("global", "global"), ("device_type", "11"), ("management", "101"), ("gateway", "210")];
-    private static readonly string[] kExpectedZoneFromKeys = [ProvisioningSettingKeys.ZoneFrom.DatabaseKey];
-    private static readonly string[] kExpectedLoggingKeys = [ProvisioningSettingKeys.Logging.DatabaseKey];
+    private static readonly string[] kExpectedZoneFromKeys = [ProvisioningSettingKeys.RuleZoneFromOverride.DatabaseKey];
+    private static readonly string[] kExpectedLoggingKeys = [ProvisioningSettingKeys.RuleLoggingOverride.DatabaseKey];
     private static readonly string[] kExpectedRuleTypeKeys = [ProvisioningSettingKeys.RuleType.DatabaseKey];
-    private static readonly string[] kExpectedTemplatesKeys = [ProvisioningSettingKeys.Templates.DatabaseKey];
 
     [Test]
     public async Task LoadHierarchy_WithoutPersistedNodes_BuildsUnpersistedTree()
@@ -73,8 +72,8 @@ internal class ProvisioningSettingsServiceTest
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(State(form, ProvisioningSettingKeys.Logging).DisplayedValue, Is.EqualTo(nameof(ProvisioningLoggingMode.Log)));
-            Assert.That(State(form, ProvisioningSettingKeys.ZoneFrom).DisplayedValue, Is.EqualTo("ANY"));
+            Assert.That(State(form, ProvisioningSettingKeys.RuleLoggingOverride).DisplayedValue, Is.EqualTo(nameof(ProvisioningLoggingMode.Log)));
+            Assert.That(State(form, ProvisioningSettingKeys.RuleZoneFromOverride).DisplayedValue, Is.EqualTo("ANY"));
             Assert.That(form.Fields.All(f => !f.IsLocal && f.InheritedSource == null), Is.True);
             Assert.That(form.HasChanges, Is.False);
         }
@@ -85,21 +84,21 @@ internal class ProvisioningSettingsServiceTest
     {
         InMemoryProvisioningApiConnection api = PersistedCheckPointChain(includeGateway: false);
         api.Nodes.RemoveAll(n => n.Id == kManagementNodeId);
-        api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.LogTrack);
-        api.SetValue(kCheckPointNodeId, ProvisioningSettingKeys.InstallOn, "device-type-target");
+        api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.RuleLoggingOverride, ProvisioningLoggingMode.LogTrack);
+        api.SetValue(kCheckPointNodeId, ProvisioningSettingKeys.InstallOn, ProvisioningInstallOn.GatewaysInPath);
         ProvisioningSettingsService service = Service(api);
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
 
         ProvisioningLevelForm form = await service.LoadFormAsync(Node(root, ProvisioningScopeType.Gateway, "200"));
 
-        ProvisioningFieldState logging = State(form, ProvisioningSettingKeys.Logging);
+        ProvisioningFieldState logging = State(form, ProvisioningSettingKeys.RuleLoggingOverride);
         ProvisioningFieldState installOn = State(form, ProvisioningSettingKeys.InstallOn);
         ProvisioningFieldState positioning = State(form, ProvisioningSettingKeys.PositioningAlgorithm);
         using (Assert.EnterMultipleScope())
         {
             Assert.That(logging.DisplayedValue, Is.EqualTo(nameof(ProvisioningLoggingMode.LogTrack)));
             Assert.That(logging.InheritedSource?.NodeId, Is.EqualTo(kGlobalNodeId));
-            Assert.That(installOn.DisplayedValue, Is.EqualTo("device-type-target"));
+            Assert.That(installOn.DisplayedValue, Is.EqualTo(nameof(ProvisioningInstallOn.GatewaysInPath)));
             Assert.That(installOn.InheritedSource?.NodeId, Is.EqualTo(kCheckPointNodeId));
             Assert.That(positioning.DisplayedValue, Is.EqualTo(nameof(ProvisioningPositioningAlgorithm.DefaultEndOfRulebase)));
             Assert.That(positioning.InheritedSource, Is.Null);
@@ -111,14 +110,14 @@ internal class ProvisioningSettingsServiceTest
     public async Task LoadForm_LocalOverride_KnowsTheValueItWouldInherit()
     {
         InMemoryProvisioningApiConnection api = PersistedCheckPointChain(includeGateway: false);
-        api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.LogTrack);
-        api.SetValue(kManagementNodeId, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.None);
+        api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.RuleLoggingOverride, ProvisioningLoggingMode.LogTrack);
+        api.SetValue(kManagementNodeId, ProvisioningSettingKeys.RuleLoggingOverride, ProvisioningLoggingMode.None);
         ProvisioningSettingsService service = Service(api);
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
 
         ProvisioningLevelForm form = await service.LoadFormAsync(Node(root, ProvisioningScopeType.Management, "100"));
 
-        ProvisioningFieldState logging = State(form, ProvisioningSettingKeys.Logging);
+        ProvisioningFieldState logging = State(form, ProvisioningSettingKeys.RuleLoggingOverride);
         using (Assert.EnterMultipleScope())
         {
             Assert.That(logging.WasLocal, Is.True);
@@ -133,13 +132,13 @@ internal class ProvisioningSettingsServiceTest
     public async Task LoadForm_GlobalOverride_InheritsTheCompiledDefault()
     {
         InMemoryProvisioningApiConnection api = PersistedCheckPointChain(includeGateway: false);
-        api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.None);
+        api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.RuleLoggingOverride, ProvisioningLoggingMode.None);
         ProvisioningSettingsService service = Service(api);
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
 
         ProvisioningLevelForm form = await service.LoadFormAsync(root);
 
-        ProvisioningFieldState logging = State(form, ProvisioningSettingKeys.Logging);
+        ProvisioningFieldState logging = State(form, ProvisioningSettingKeys.RuleLoggingOverride);
         using (Assert.EnterMultipleScope())
         {
             Assert.That(logging.WasLocal, Is.True);
@@ -156,7 +155,7 @@ internal class ProvisioningSettingsServiceTest
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
         ProvisioningNode gateway = Node(root, ProvisioningScopeType.Gateway, "210");
         ProvisioningLevelForm form = await service.LoadFormAsync(gateway);
-        ProvisioningFieldState zoneFrom = State(form, ProvisioningSettingKeys.ZoneFrom);
+        ProvisioningFieldState zoneFrom = State(form, ProvisioningSettingKeys.RuleZoneFromOverride);
 
         zoneFrom.Override();
         zoneFrom.LocalValue = "dmz";
@@ -171,7 +170,7 @@ internal class ProvisioningSettingsServiceTest
         }
 
         ProvisioningLevelForm reloaded = await service.LoadFormAsync(gateway);
-        Assert.That(State(reloaded, ProvisioningSettingKeys.ZoneFrom).WasLocal, Is.True);
+        Assert.That(State(reloaded, ProvisioningSettingKeys.RuleZoneFromOverride).WasLocal, Is.True);
     }
 
     [Test]
@@ -182,13 +181,13 @@ internal class ProvisioningSettingsServiceTest
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
         ProvisioningLevelForm form = await service.LoadFormAsync(Node(root, ProvisioningScopeType.Gateway, "200"));
 
-        State(form, ProvisioningSettingKeys.Logging).Override();
+        State(form, ProvisioningSettingKeys.RuleLoggingOverride).Override();
         await service.SaveAsync(form);
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(api.LastPatchUpsertKeys, Is.EqualTo(kExpectedLoggingKeys));
-            Assert.That(api.ReadValue(kGatewayNodeId, ProvisioningSettingKeys.Logging)?.ToString(), Is.EqualTo(nameof(ProvisioningLoggingMode.Log)));
+            Assert.That(api.ReadValue(kGatewayNodeId, ProvisioningSettingKeys.RuleLoggingOverride)?.ToString(), Is.EqualTo("log"));
         }
     }
 
@@ -196,8 +195,8 @@ internal class ProvisioningSettingsServiceTest
     public async Task Save_WritesOnlyTheChangedFields()
     {
         InMemoryProvisioningApiConnection api = PersistedCheckPointChain(includeGateway: true);
-        api.SetValue(kGatewayNodeId, ProvisioningSettingKeys.InstallOn, "keep-me");
-        api.SetValue(kGatewayNodeId, ProvisioningSettingKeys.Templates, "remove-me");
+        api.SetValue(kGatewayNodeId, ProvisioningSettingKeys.InstallOn, ProvisioningInstallOn.GatewaysInPath);
+        api.SetValue(kGatewayNodeId, ProvisioningSettingKeys.RuleZoneFromOverride, "remove-me");
         ProvisioningSettingsService service = Service(api);
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
         ProvisioningLevelForm form = await service.LoadFormAsync(Node(root, ProvisioningScopeType.Gateway, "200"));
@@ -205,16 +204,16 @@ internal class ProvisioningSettingsServiceTest
         ProvisioningFieldState ruleType = State(form, ProvisioningSettingKeys.RuleType);
         ruleType.Override();
         ruleType.LocalValue = nameof(ProvisioningRuleType.HandleAccessAndNat);
-        State(form, ProvisioningSettingKeys.Templates).Inherit();
+        State(form, ProvisioningSettingKeys.RuleZoneFromOverride).Inherit();
         await service.SaveAsync(form);
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(api.PatchCallCount, Is.EqualTo(1));
             Assert.That(api.LastPatchUpsertKeys, Is.EqualTo(kExpectedRuleTypeKeys));
-            Assert.That(api.LastPatchRemoveKeys, Is.EqualTo(kExpectedTemplatesKeys));
-            Assert.That(api.ReadValue(kGatewayNodeId, ProvisioningSettingKeys.InstallOn)?.ToString(), Is.EqualTo("keep-me"));
-            Assert.That(api.ReadValue(kGatewayNodeId, ProvisioningSettingKeys.Templates), Is.Null);
+            Assert.That(api.LastPatchRemoveKeys, Is.EqualTo(kExpectedZoneFromKeys));
+            Assert.That(api.ReadValue(kGatewayNodeId, ProvisioningSettingKeys.InstallOn)?.ToString(), Is.EqualTo("gatewaysInPath"));
+            Assert.That(api.ReadValue(kGatewayNodeId, ProvisioningSettingKeys.RuleZoneFromOverride), Is.Null);
         }
     }
 
@@ -227,8 +226,8 @@ internal class ProvisioningSettingsServiceTest
         ProvisioningLevelForm form = await service.LoadFormAsync(Node(root, ProvisioningScopeType.Gateway, "200"));
         int callsBeforeSave = api.Calls.Count;
 
-        State(form, ProvisioningSettingKeys.Logging).Override();
-        State(form, ProvisioningSettingKeys.Logging).Inherit();
+        State(form, ProvisioningSettingKeys.RuleLoggingOverride).Override();
+        State(form, ProvisioningSettingKeys.RuleLoggingOverride).Inherit();
         await service.SaveAsync(form);
 
         Assert.That(api.Calls, Has.Count.EqualTo(callsBeforeSave));
@@ -237,7 +236,7 @@ internal class ProvisioningSettingsServiceTest
     [Test]
     public void FieldState_TracksIntentSeparatelyFromTheValue()
     {
-        ProvisioningFieldDefinition field = ProvisioningSettingsData.FindField(ProvisioningSettingKeys.ZoneTo)!;
+        ProvisioningFieldDefinition field = ProvisioningSettingsData.FindField(ProvisioningSettingKeys.RuleZoneToOverride)!;
         ProvisioningFieldState local = ProvisioningFieldState.Create(field, true, "stored", "parent", null);
 
         using (Assert.EnterMultipleScope())
@@ -260,8 +259,8 @@ internal class ProvisioningSettingsServiceTest
     public async Task LoadForm_MovedManagement_InheritsFromItsCurrentDeviceType()
     {
         InMemoryProvisioningApiConnection api = MovedCheckPointManagement(currentDeviceTypePersisted: true);
-        api.SetValue(kCheckPointNodeId, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.LogTrack);
-        api.SetValue(kFortiAdomNodeId, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.None);
+        api.SetValue(kCheckPointNodeId, ProvisioningSettingKeys.RuleLoggingOverride, ProvisioningLoggingMode.LogTrack);
+        api.SetValue(kFortiAdomNodeId, ProvisioningSettingKeys.RuleLoggingOverride, ProvisioningLoggingMode.None);
         ProvisioningSettingsService service = Service(api);
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
         ProvisioningNode management = Node(root, ProvisioningScopeType.Management, "100");
@@ -272,9 +271,9 @@ internal class ProvisioningSettingsServiceTest
         using (Assert.EnterMultipleScope())
         {
             Assert.That(ProvisioningSettingsService.IsMisplaced(management), Is.True);
-            Assert.That(State(managementForm, ProvisioningSettingKeys.Logging).DisplayedValue, Is.EqualTo(nameof(ProvisioningLoggingMode.LogTrack)));
-            Assert.That(State(managementForm, ProvisioningSettingKeys.Logging).InheritedSource?.NodeId, Is.EqualTo(kCheckPointNodeId));
-            Assert.That(State(gatewayForm, ProvisioningSettingKeys.Logging).DisplayedValue, Is.EqualTo(nameof(ProvisioningLoggingMode.LogTrack)));
+            Assert.That(State(managementForm, ProvisioningSettingKeys.RuleLoggingOverride).DisplayedValue, Is.EqualTo(nameof(ProvisioningLoggingMode.LogTrack)));
+            Assert.That(State(managementForm, ProvisioningSettingKeys.RuleLoggingOverride).InheritedSource?.NodeId, Is.EqualTo(kCheckPointNodeId));
+            Assert.That(State(gatewayForm, ProvisioningSettingKeys.RuleLoggingOverride).DisplayedValue, Is.EqualTo(nameof(ProvisioningLoggingMode.LogTrack)));
             Assert.That(api.UpsertCallCount, Is.Zero);
         }
     }
@@ -283,7 +282,7 @@ internal class ProvisioningSettingsServiceTest
     public async Task Save_MovedManagement_IsMovedBelowItsCurrentDeviceType()
     {
         InMemoryProvisioningApiConnection api = MovedCheckPointManagement(currentDeviceTypePersisted: false);
-        api.SetValue(kManagementNodeId, ProvisioningSettingKeys.InstallOn, "keep-me");
+        api.SetValue(kManagementNodeId, ProvisioningSettingKeys.InstallOn, ProvisioningInstallOn.GatewaysInPath);
         ProvisioningSettingsService service = Service(api);
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
         ProvisioningNode management = Node(root, ProvisioningScopeType.Management, "100");
@@ -299,8 +298,8 @@ internal class ProvisioningSettingsServiceTest
         {
             Assert.That(api.Nodes.Single(n => n.Id == kManagementNodeId).ParentId, Is.EqualTo(checkPointNodeId));
             Assert.That(ProvisioningSettingsService.IsMisplaced(management), Is.False);
-            Assert.That(api.ReadValue(kManagementNodeId, ProvisioningSettingKeys.InstallOn)?.ToString(), Is.EqualTo("keep-me"));
-            Assert.That(api.ReadValue(kManagementNodeId, ProvisioningSettingKeys.RuleType)?.ToString(), Is.EqualTo(nameof(ProvisioningRuleType.HandleAccessAndNat)));
+            Assert.That(api.ReadValue(kManagementNodeId, ProvisioningSettingKeys.InstallOn)?.ToString(), Is.EqualTo("gatewaysInPath"));
+            Assert.That(api.ReadValue(kManagementNodeId, ProvisioningSettingKeys.RuleType)?.ToString(), Is.EqualTo("accessAndNat"));
         }
     }
 
@@ -308,7 +307,7 @@ internal class ProvisioningSettingsServiceTest
     public async Task Save_OnlyRemovalOnMovedManagement_AlsoMovesIt()
     {
         InMemoryProvisioningApiConnection api = MovedCheckPointManagement(currentDeviceTypePersisted: true);
-        api.SetValue(kManagementNodeId, ProvisioningSettingKeys.InstallOn, "remove-me");
+        api.SetValue(kManagementNodeId, ProvisioningSettingKeys.InstallOn, ProvisioningInstallOn.GatewaysInPath);
         ProvisioningSettingsService service = Service(api);
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
         ProvisioningLevelForm form = await service.LoadFormAsync(Node(root, ProvisioningScopeType.Management, "100"));
@@ -327,13 +326,13 @@ internal class ProvisioningSettingsServiceTest
     public async Task LoadForm_MovedAwayFromFortinet_ExposesAndClearsDormantOverride()
     {
         InMemoryProvisioningApiConnection api = MovedCheckPointManagement(currentDeviceTypePersisted: true);
-        api.SetValue(kManagementNodeId, ProvisioningSettingKeys.ZoneFrom, "internal");
+        api.SetValue(kManagementNodeId, ProvisioningSettingKeys.RuleZoneFromOverride, "internal");
         ProvisioningSettingsService service = Service(api);
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
         ProvisioningNode management = Node(root, ProvisioningScopeType.Management, "100");
 
         ProvisioningLevelForm form = await service.LoadFormAsync(management);
-        ProvisioningFieldState zoneFrom = State(form, ProvisioningSettingKeys.ZoneFrom);
+        ProvisioningFieldState zoneFrom = State(form, ProvisioningSettingKeys.RuleZoneFromOverride);
 
         using (Assert.EnterMultipleScope())
         {
@@ -349,8 +348,8 @@ internal class ProvisioningSettingsServiceTest
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(api.ReadValue(kManagementNodeId, ProvisioningSettingKeys.ZoneFrom), Is.Null);
-            Assert.That(reloaded.Fields.Any(field => field.Field.Key == ProvisioningSettingKeys.ZoneFrom), Is.False);
+            Assert.That(api.ReadValue(kManagementNodeId, ProvisioningSettingKeys.RuleZoneFromOverride), Is.Null);
+            Assert.That(reloaded.Fields.Any(field => field.Field.Key == ProvisioningSettingKeys.RuleZoneFromOverride), Is.False);
         }
     }
 
@@ -362,7 +361,7 @@ internal class ProvisioningSettingsServiceTest
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
         ProvisioningNode gateway = Node(root, ProvisioningScopeType.Gateway, "210");
         ProvisioningLevelForm form = await service.LoadFormAsync(gateway);
-        ProvisioningFieldState zoneFrom = State(form, ProvisioningSettingKeys.ZoneFrom);
+        ProvisioningFieldState zoneFrom = State(form, ProvisioningSettingKeys.RuleZoneFromOverride);
         zoneFrom.Override();
         zoneFrom.LocalValue = "captured-before-save";
 
@@ -390,7 +389,7 @@ internal class ProvisioningSettingsServiceTest
         }
         await saveTask;
 
-        Assert.That(api.ReadValue(gateway.Scope.NodeId, ProvisioningSettingKeys.ZoneFrom)?.ToString(),
+        Assert.That(api.ReadValue(gateway.Scope.NodeId, ProvisioningSettingKeys.RuleZoneFromOverride)?.ToString(),
             Is.EqualTo("captured-before-save"));
     }
 
@@ -411,7 +410,7 @@ internal class ProvisioningSettingsServiceTest
             api.AddNode(kFirstManyManagementNodeId + index, ProvisioningScopeType.Management,
                 managementId.ToString(System.Globalization.CultureInfo.InvariantCulture), kCheckPointNodeId);
         }
-        api.SetValue(kGatewayNodeId, ProvisioningSettingKeys.InstallOn, "gateway-target");
+        api.SetValue(kGatewayNodeId, ProvisioningSettingKeys.InstallOn, ProvisioningInstallOn.GatewaysInPath);
         ProvisioningSettingsService service = Service(api);
 
         ProvisioningNode root = await service.LoadHierarchyAsync(managements);

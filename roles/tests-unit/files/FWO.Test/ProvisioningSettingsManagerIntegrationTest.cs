@@ -70,9 +70,9 @@ internal class ProvisioningSettingsManagerIntegrationTest
             };
             ProvisioningSettingsChangeSet initialChanges = new ProvisioningSettingsChangeSet(requested)
                 .Set(ProvisioningSettingKeys.ImplementationMode, ProvisioningImplementationMode.Manual)
-                .Set(ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.Log)
+                .Set(ProvisioningSettingKeys.RuleLoggingOverride, ProvisioningLoggingMode.Log)
                 .Set(ProvisioningSettingKeys.SecurityProfiles, new List<string> { "Strict", "ScanAll" })
-                .Set(ProvisioningSettingKeys.ZoneFrom, "integration-zone");
+                .Set(ProvisioningSettingKeys.RuleZoneFromOverride, "integration-zone");
 
             ProvisioningSettingsScope persisted = await manager.ApplyChangesAsync(initialChanges);
 
@@ -80,7 +80,7 @@ internal class ProvisioningSettingsManagerIntegrationTest
             // config-value update permission, not only the insert paths.
             persisted = await manager.SetOverrideAsync(
                 persisted,
-                ProvisioningSettingKeys.Logging,
+                ProvisioningSettingKeys.RuleLoggingOverride,
                 ProvisioningLoggingMode.None);
 
             ProvisioningSettingsLevel<DeviceTypeProvisioningSettings> loaded =
@@ -90,20 +90,20 @@ internal class ProvisioningSettingsManagerIntegrationTest
             {
                 Assert.That(persisted.NodeId, Is.GreaterThan(0));
                 Assert.That(loaded.Settings.ImplementationMode, Is.EqualTo(ProvisioningImplementationMode.Manual));
-                Assert.That(loaded.Settings.Logging, Is.EqualTo(ProvisioningLoggingMode.None));
+                Assert.That(loaded.Settings.RuleLoggingOverride, Is.EqualTo(ProvisioningLoggingMode.None));
                 Assert.That(loaded.Settings.SecurityProfiles, Is.EqualTo(kExpectedSecurityProfiles));
-                Assert.That(loaded.Settings.ZoneFrom, Is.EqualTo("integration-zone"));
+                Assert.That(loaded.Settings.RuleZoneFromOverride, Is.EqualTo("integration-zone"));
                 Assert.That(loaded.DirectOverrides, Does.Contain(ProvisioningSettingKeys.SecurityProfiles));
-                Assert.That(loaded.ValueSources[ProvisioningSettingKeys.Logging].Scope?.NodeId, Is.EqualTo(persisted.NodeId));
+                Assert.That(loaded.ValueSources[ProvisioningSettingKeys.RuleLoggingOverride].Scope?.NodeId, Is.EqualTo(persisted.NodeId));
             }
 
-            await manager.ClearOverrideAsync(persisted, ProvisioningSettingKeys.Logging);
+            await manager.ClearOverrideAsync(persisted, ProvisioningSettingKeys.RuleLoggingOverride);
             ProvisioningSettingsLevel<DeviceTypeProvisioningSettings> afterClear =
                 await manager.LoadLevelAsync<DeviceTypeProvisioningSettings>(smokePath);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(afterClear.DirectOverrides, Does.Not.Contain(ProvisioningSettingKeys.Logging));
+                Assert.That(afterClear.DirectOverrides, Does.Not.Contain(ProvisioningSettingKeys.RuleLoggingOverride));
                 Assert.That(afterClear.DirectOverrides, Does.Contain(ProvisioningSettingKeys.SecurityProfiles));
             }
         }

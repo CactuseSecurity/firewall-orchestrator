@@ -160,11 +160,11 @@ internal class ProvisioningSettingsDataTest
         using (Assert.EnterMultipleScope())
         {
             Assert.That(global, Does.Contain(ProvisioningSettingKeys.ServiceObjectCreation));
-            Assert.That(global, Does.Not.Contain(ProvisioningSettingKeys.PositioningAlgorithm));
+            Assert.That(global, Does.Contain(ProvisioningSettingKeys.PositioningAlgorithm));
             Assert.That(checkPointGateway, Does.Not.Contain(ProvisioningSettingKeys.ServiceObjectCreation));
             Assert.That(checkPointGateway, Does.Contain(ProvisioningSettingKeys.PositioningAlgorithm));
-            Assert.That(checkPointGateway, Does.Not.Contain(ProvisioningSettingKeys.ZoneFrom));
-            Assert.That(fortiGateway, Does.Contain(ProvisioningSettingKeys.ZoneFrom));
+            Assert.That(checkPointGateway, Does.Not.Contain(ProvisioningSettingKeys.RuleZoneFromOverride));
+            Assert.That(fortiGateway, Does.Contain(ProvisioningSettingKeys.RuleZoneFromOverride));
             Assert.That(fortiGateway, Does.Contain(ProvisioningSettingKeys.SecurityProfiles));
         }
     }
@@ -188,16 +188,16 @@ internal class ProvisioningSettingsDataTest
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(Field(ProvisioningSettingKeys.Logging).Read(defaults), Is.EqualTo(nameof(ProvisioningLoggingMode.Log)));
-            Assert.That(Field(ProvisioningSettingKeys.ZoneFrom).Read(defaults), Is.EqualTo("ANY"));
+            Assert.That(Field(ProvisioningSettingKeys.RuleLoggingOverride).Read(defaults), Is.EqualTo(nameof(ProvisioningLoggingMode.Log)));
+            Assert.That(Field(ProvisioningSettingKeys.RuleZoneFromOverride).Read(defaults), Is.EqualTo("ANY"));
             Assert.That(Field(ProvisioningSettingKeys.SecurityProfiles).Read(defaults), Is.Empty);
         }
     }
 
     [Test]
-    public void Read_OfADeviceLevelFieldOnGlobalSettingsFails()
+    public void Read_OfAZoneFieldOnGlobalSettingsUsesTheDefault()
     {
-        Assert.Throws<InvalidOperationException>(() => Field(ProvisioningSettingKeys.ZoneTo).Read(new GlobalProvisioningSettings()));
+        Assert.That(Field(ProvisioningSettingKeys.RuleZoneToOverride).Read(new GlobalProvisioningSettings()), Is.EqualTo("ANY"));
     }
 
     [Test]
@@ -205,15 +205,15 @@ internal class ProvisioningSettingsDataTest
     {
         ProvisioningSettingsChangeSet changes = new(new ProvisioningSettingsScope { ScopeType = ProvisioningScopeType.Gateway, ObjectKey = "200" });
 
-        Field(ProvisioningSettingKeys.Logging).SetOverride(changes, nameof(ProvisioningLoggingMode.LogTrack));
-        Field(ProvisioningSettingKeys.ZoneFrom).SetOverride(changes, "dmz");
+        Field(ProvisioningSettingKeys.RuleLoggingOverride).SetOverride(changes, nameof(ProvisioningLoggingMode.LogTrack));
+        Field(ProvisioningSettingKeys.RuleZoneFromOverride).SetOverride(changes, "dmz");
         Field(ProvisioningSettingKeys.SecurityProfiles).SetOverride(changes, "a,,b,");
 
         Dictionary<string, object> values = changes.Upserts.ToDictionary(u => u.Key.DatabaseKey, u => u.Value);
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(values[ProvisioningSettingKeys.Logging.DatabaseKey], Is.EqualTo(ProvisioningLoggingMode.LogTrack));
-            Assert.That(values[ProvisioningSettingKeys.ZoneFrom.DatabaseKey], Is.EqualTo("dmz"));
+            Assert.That(values[ProvisioningSettingKeys.RuleLoggingOverride.DatabaseKey], Is.EqualTo(ProvisioningLoggingMode.LogTrack));
+            Assert.That(values[ProvisioningSettingKeys.RuleZoneFromOverride.DatabaseKey], Is.EqualTo("dmz"));
             Assert.That(values[ProvisioningSettingKeys.SecurityProfiles.DatabaseKey], Is.EqualTo(new List<string> { "a", "b" }));
         }
     }
@@ -278,6 +278,10 @@ internal class ProvisioningSettingsDataTest
             {
                 List<string> storable = [.. Enum.GetNames(field.Key.ValueType)
                     .Where(name => name != ProvisioningSettingValueSerializer.kUndefinedEnumName)];
+                if (field.Key == ProvisioningSettingKeys.ServiceObjectCreation || field.Key == ProvisioningSettingKeys.AddressObjectCreation)
+                {
+                    storable.Remove(nameof(ProvisioningObjectCreationMode.Ignore));
+                }
                 Assert.That(field.Options.Select(o => o.Value), Is.EquivalentTo(storable), field.Id);
             }
         }

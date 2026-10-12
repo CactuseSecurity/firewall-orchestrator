@@ -40,7 +40,7 @@ public sealed class ResolvePathDevicesRequest : IRequestWithRootAdditionalData
     [JsonPropertyName("destinations")]
     public List<IpRangeOrNetworkRequest>? Destinations { get; set; }
 
-    //// <summary>
+    /// <summary>
     /// Gets or sets the optional analysis and output options. Defaults to an empty object, which uses the
     /// configured algorithm and zone matrix and returns every device found. An explicit <c>null</c> is
     /// treated like the default.
@@ -66,6 +66,22 @@ public sealed class ResolvePathDevicesRequest : IRequestWithRootAdditionalData
 public sealed class ResolvePathDevicesOptions : IRequestWithAdditionalData
 {
     /// <summary>
+    /// Gets or sets the name of the path analysis algorithm to run, for example <c>networkZoneTree</c>.
+    /// When omitted or <c>null</c> the algorithm configured in the settings is used. A configured
+    /// algorithm of <c>none</c> is rejected, because it cannot resolve any device.
+    /// </summary>
+    [JsonPropertyName("algorithm")]
+    public string? Algorithm { get; set; }
+
+    /// <summary>
+    /// Gets or sets the id of the zone matrix the network zone tree algorithm works on. Greater than 0
+    /// and only valid when that algorithm runs, whether requested or configured. When omitted or
+    /// <c>null</c> the configured designated zone matrix is used.
+    /// </summary>
+    [JsonPropertyName("matrixId")]
+    public int? MatrixId { get; set; }
+
+    /// <summary>
     /// Gets or sets the optional response filter. When omitted or <c>null</c> no response field
     /// restricts the result.
     /// </summary>
@@ -81,26 +97,21 @@ public sealed class ResolvePathDevicesOptions : IRequestWithAdditionalData
 }
 
 /// <summary>
-/// Represents the response filter of the audit proof critical changes lookup. Every key matches a field of
-/// <see cref="FWO.Middleware.Server.Responses.AuditProofCriticalChangeResponse"/> and is nullable; a key
-/// that is omitted or <c>null</c> does not restrict the result.
+/// Represents the response filter of the path device resolution. Every key matches a field of a returned
+/// device and is nullable; a key that is omitted or <c>null</c> does not restrict the result. Given keys
+/// are combined with AND. The filter is applied after the analysis, so it narrows the result but never
+/// changes which paths are analysed.
 /// </summary>
 public sealed class ResolvePathDevicesFilter : IRequestWithAdditionalData
 {
     /// <summary>
-    /// Gets or sets the optional exact change timestamp filter.
+    /// Gets or sets the optional exact device id filter.
     /// </summary>
-    /// <remarks>
-    /// Matched against the timezone-naive stored timestamp on the wall clock of the installation.
-    /// A value carrying an offset, including a trailing Z, is converted to that clock first, so the
-    /// same instant selects the same change whichever way it is spelled. A value without an offset
-    /// is taken as that clock directly.
-    /// </remarks>
     [JsonPropertyName("id")]
     public int? Id { get; set; }
 
     /// <summary>
-    /// Gets or sets the optional exact change user name filter. Compared case-insensitively.
+    /// Gets or sets the optional exact device name filter. Compared case-insensitively.
     /// </summary>
     [JsonPropertyName("name")]
     public string? Name { get; set; }

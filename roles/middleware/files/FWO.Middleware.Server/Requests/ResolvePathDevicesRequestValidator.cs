@@ -3,7 +3,7 @@ using FWO.Middleware.Server.Responses;
 namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
-/// Validates a <see cref="GetAuditProofCriticalChangesRequest"/> completely and reports every detected
+/// Validates a <see cref="ResolvePathDevicesRequest"/> completely and reports every detected
 /// key-level error in one result.
 /// </summary>
 public static class ResolvePathDevicesRequestValidator
@@ -18,9 +18,9 @@ public static class ResolvePathDevicesRequestValidator
         RequestValidationErrorResponse result = new();
         if (request == null)
         {
-            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetAuditProofCriticalChangesValidationSchema.kRootPath,
-                $"{GetAuditProofCriticalChangesValidationSchema.kEndpointName} requires a request body. Valid root keys: " +
-                GetAuditProofCriticalChangesValidationSchema.DescribeKeys(GetAuditProofCriticalChangesValidationSchema.RootKeys)));
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(ResolvePathDevicesRequestValidationSchema.kRootPath,
+                $"{ResolvePathDevicesRequestValidationSchema.kEndpointName} requires a request body. Valid root keys: " +
+                ResolvePathDevicesRequestValidationSchema.DescribeKeys(ResolvePathDevicesRequestValidationSchema.RootKeys)));
             return result;
         }
 

@@ -9,6 +9,7 @@ using FWO.Services.Workflow;
 using GraphQL.Client.Serializer.Newtonsoft;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using FWO.Services.PathAnalysis;
 
 namespace FWO.Middleware.Server.Services;
 
@@ -17,6 +18,25 @@ namespace FWO.Middleware.Server.Services;
 /// </summary>
 public sealed class PathAnalysisService
 {
+    public async Task<ResolvePathDevicesResponse?> ResolvePathDevicesAsync(ResolvePathDevicesRequest request)
+    {
+        PathAnalysisRequest pathAnalysisRequest = new()
+        {
+            Sources = ToRanges(request.Sources),
+            Destinations = ToRanges(request.Destinations),
+            MatrixId = request.Options.MatrixId
+        };
+        IPathAnalyzer analyzer = pathAnalyzerFactory.Create(request.Options.Algorithm);
+        PathAnalysisResult result = await analyzer.AnalyzeAsync(pathAnalysisRequest);
+
+
+        return new ResolvePathDevicesResponse
+        {
+            Devices = result.Devices,
+            Algorithm = matrix,
+            MatrixId = taskDiff
+        };
+    }
     /// <summary>
     /// Serializer with the settings the GraphQL client uses to write change-history snapshots.
     /// </summary>

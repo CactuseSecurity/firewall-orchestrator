@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Logging;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -56,21 +57,19 @@ public class PathAnalysisController : ControllerBase
             return BadRequest(validationErrors);
         }
 
-        // Validation rejects both an absent and a non-positive ticketId, so a value is present here.
-        long ticketId = request.TicketId.GetValueOrDefault();
         try
         {
-            GetAuditProofCriticalChangesResponse? response = await changeHistoryService.GetAuditProofCriticalChangesAsync(ticketId, request.Options.Filter);
-            if (response == null)
-            {
-                return NotFound(GetAuditProofCriticalChangesRequestValidator.BuildUnknownTicketError(ticketId));
-            }
-
-            return Ok(response);
+            return Ok(await pathAnalysisService.ResolvePathDevicesAsync(request));
+        }
+        catch (ZoneMatrixUnavailableException exception) when (request.Options.MatrixId != null)
+        {
+            // Only a matrix id the caller supplied is the caller's fault. One taken from the configured
+            // designated zone matrix falls through to the general handler below and is logged as a server failure.
+            return NotFound(ResolvePathDevicesRequestValidator.BuildUnknownMatrixError(exception.MatrixId));
         }
         catch (Exception exception)
         {
-            Log.WriteError("Get Audit Proof Critical Changes", $"Error while fetching audit proof critical changes of ticket {ticketId}.", exception);
+            Log.WriteError("Resolve Path Devices", "Error while resolving path devices.", exception);
             return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
         }
     }

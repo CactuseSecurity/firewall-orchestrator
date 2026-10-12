@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.NetworkTopology;
 using FWO.Api.Client.Queries;
@@ -27,6 +28,10 @@ namespace FWO.Services.PathAnalysis
                     "No zone matrix was given and no designated zone matrix is configured.");
             }
             MatrixData networkData = await LoadNetworkDataAsync(matrixId);
+            if (networkData.Zones.Count == 0)
+            {
+                throw new ZoneMatrixUnavailableException(matrixId);
+            }
             NetworkZoneTreeAlgorithm algorithm = new(networkData);
             QueryInput queryInput = new()
             {

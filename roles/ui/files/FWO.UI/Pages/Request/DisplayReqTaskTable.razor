@@ -256,10 +256,13 @@
     private static string GetDisplayGroupKey(WfReqTask task)
     {
         string bundleId = task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
-        return string.IsNullOrWhiteSpace(bundleId)
-            ? task.Id > 0
-                ? $"task:{task.Id}"
-                : $"new-task:{RuntimeHelpers.GetHashCode(task)}"
-            : $"bundle:{bundleId}:state:{task.StateId}";
+        if (!string.IsNullOrWhiteSpace(bundleId))
+        {
+            return $"bundle:{bundleId}:state:{task.StateId}";
+        }
+
+        return task.Id > 0
+            ? $"task:{task.Id}"
+            : $"new-task:{RuntimeHelpers.GetHashCode(task)}";
     }
 }

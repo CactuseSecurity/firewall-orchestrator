@@ -589,6 +589,38 @@ namespace FWO.Test
         }
 
         [Test]
+        public void TicketFieldVisibilityConfig_ParsesConfiguredFields()
+        {
+            TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse(
+                "{\"requester\":false,\"priority\":false,\"deadline\":true,\"reason\":false,\"comments\":true}");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(config.ShowRequester, Is.False);
+                Assert.That(config.ShowPriority, Is.False);
+                Assert.That(config.ShowDeadline, Is.True);
+                Assert.That(config.ShowReason, Is.False);
+                Assert.That(config.ShowComments, Is.True);
+                Assert.That(TicketFieldVisibilityConfig.Parse(config.ToConfigValue()).ShowComments, Is.True);
+            });
+        }
+
+        [Test]
+        public void TicketFieldVisibilityConfig_InvalidJsonUsesDefaults()
+        {
+            TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse("not-json");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(config.ShowRequester, Is.True);
+                Assert.That(config.ShowPriority, Is.True);
+                Assert.That(config.ShowDeadline, Is.True);
+                Assert.That(config.ShowReason, Is.True);
+                Assert.That(config.ShowComments, Is.False);
+            });
+        }
+
+        [Test]
         public void ConfigData_DefaultsDesignatedZoneMatrixIdToZero()
         {
             ConfigData configData = new();

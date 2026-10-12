@@ -189,7 +189,7 @@ internal sealed class WorkflowTicketBuilder
         {
             try
             {
-                tasks.Add(BuildNetworkGroupTask(request, request.AddressGroups[index], taskContext, context.TaskNumber++,
+                tasks.Add(BuildNetworkGroupTask(request.AddressGroups[index], taskContext, context.TaskNumber++,
                     $"addressGroups[{index}]"));
             }
             catch (ArgumentException exception)
@@ -202,7 +202,7 @@ internal sealed class WorkflowTicketBuilder
         {
             try
             {
-                tasks.Add(BuildServiceGroupTask(request, request.ServiceGroups[index], taskContext, context.TaskNumber++,
+                tasks.Add(BuildServiceGroupTask(request.ServiceGroups[index], taskContext, context.TaskNumber++,
                     $"serviceGroups[{index}]"));
             }
             catch (ArgumentException exception)
@@ -213,7 +213,7 @@ internal sealed class WorkflowTicketBuilder
         return tasks;
     }
 
-    private static WfReqTask BuildNetworkGroupTask(CreateTicketRequest request, CreateTicketRequest.CreateAddressGroupRequest group,
+    private static WfReqTask BuildNetworkGroupTask(CreateTicketRequest.CreateAddressGroupRequest group,
         WorkflowTicketTaskContext taskContext, int taskNumber, string groupPath)
     {
         WorkflowTicketEntity groupEntity = GetEntity(taskContext.Entities, group.Id);
@@ -237,7 +237,7 @@ internal sealed class WorkflowTicketBuilder
         };
     }
 
-    private static WfReqTask BuildServiceGroupTask(CreateTicketRequest request, CreateTicketRequest.CreateServiceGroupRequest group,
+    private static WfReqTask BuildServiceGroupTask(CreateTicketRequest.CreateServiceGroupRequest group,
         WorkflowTicketTaskContext taskContext, int taskNumber, string groupPath)
     {
         WorkflowTicketEntity groupEntity = GetEntity(taskContext.Entities, group.Id);

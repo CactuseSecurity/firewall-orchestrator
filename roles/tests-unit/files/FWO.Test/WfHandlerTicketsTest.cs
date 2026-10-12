@@ -1065,6 +1065,32 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ShouldSynchronizeRequestTasks_OnlyForExistingTicketsOutsideRequestPhase()
+        {
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.approval,
+                ActTicket = new WfTicket { StateId = 1 }
+            };
+            MethodInfo? method = typeof(WfHandler).GetMethod("ShouldSynchronizeRequestTasks", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            bool approvalPhase = (bool)method!.Invoke(handler, [0])!;
+            handler.Phase = WorkflowPhases.request;
+            bool requestPhase = (bool)method.Invoke(handler, [0])!;
+            handler.Phase = WorkflowPhases.approval;
+            handler.AddTicketMode = true;
+            bool newTicket = (bool)method.Invoke(handler, [0])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(approvalPhase, Is.True);
+                Assert.That(requestPhase, Is.False);
+                Assert.That(newTicket, Is.False);
+            });
+        }
+
+        [Test]
         public async Task ConfAddCommentToTicket_AddsComment()
         {
             WfHandler handler = new();

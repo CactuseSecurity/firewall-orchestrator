@@ -431,36 +431,51 @@ else
         {
             if (NeedsFlowCatalog())
             {
-                if (NeedsNetworkFlowCatalog() || NeedsNetworkDetails())
-                {
-                    flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowRequestNwObjectCatalog) ?? [];
-                    if (NeedsNetworkFlowCatalog())
-                    {
-                        nwObjects = [.. flowNwObjects.Where(IsSelectable).Select(ToNetworkObject)];
-                    }
-                }
-                if (NeedsServiceFlowCatalog() || NeedsServiceDetails())
-                {
-                    flowSvcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowRequestSvcObjectCatalog) ?? [];
-                    if (NeedsServiceFlowCatalog())
-                    {
-                        nwServices = [.. flowSvcObjects.Where(IsSelectable).Select(ToNetworkService)];
-                    }
-                }
-                if (NeedsNetworkDetails())
-                {
-                    flowNwGroups = await apiConnection.SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowAddressGroups) ?? [];
-                }
-                if (NeedsServiceDetails())
-                {
-                    flowSvcGroups = await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowServiceGroups) ?? [];
-                }
+                await LoadFlowCatalogData();
             }
             InitComplete = true;
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task LoadFlowCatalogData()
+    {
+        if (NeedsNetworkFlowCatalog() || NeedsNetworkDetails())
+        {
+            await LoadNetworkCatalogData();
+        }
+        if (NeedsServiceFlowCatalog() || NeedsServiceDetails())
+        {
+            await LoadServiceCatalogData();
+        }
+        if (NeedsNetworkDetails())
+        {
+            flowNwGroups = await apiConnection.SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowAddressGroups) ?? [];
+        }
+        if (NeedsServiceDetails())
+        {
+            flowSvcGroups = await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowServiceGroups) ?? [];
+        }
+    }
+
+    private async Task LoadNetworkCatalogData()
+    {
+        flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowRequestNwObjectCatalog) ?? [];
+        if (NeedsNetworkFlowCatalog())
+        {
+            nwObjects = [.. flowNwObjects.Where(IsSelectable).Select(ToNetworkObject)];
+        }
+    }
+
+    private async Task LoadServiceCatalogData()
+    {
+        flowSvcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowRequestSvcObjectCatalog) ?? [];
+        if (NeedsServiceFlowCatalog())
+        {
+            nwServices = [.. flowSvcObjects.Where(IsSelectable).Select(ToNetworkService)];
         }
     }
 

@@ -126,64 +126,83 @@ namespace FWO.Services.Workflow
         {
             try
             {
-                if (dbAcc != null)
-                {
-                    int previousTicketStateId = ActTicket.StateId;
-                    int targetTicketStateId = ticket.StateId;
-                    ActTicket.StateId = targetTicketStateId;
-                    PrepareTicketData();
-                    bool requestTasksSynchronized = !AddTicketMode
-                        && Phase != WorkflowPhases.request
-                        && previousTicketStateId != ActTicket.StateId;
-
-                    if (requestTasksSynchronized)
-                    {
-                        await UpdateRequestTasksFromTicket(false, targetTicketStateId: targetTicketStateId,
-                            approvalComment: ticket.OptComment());
-                        ActTicket.StateId = targetTicketStateId;
-                    }
-
-                    if (AddTicketMode)
-                    {
-                        // insert new ticket
-                        ActTicket.CreationDate = DateTime.Now;
-                        UiUser requester = ActTicket.Requester ?? userConfig.User;
-                        if (requester.DbId <= 0 && userConfig.User.DbId > 0)
-                        {
-                            requester = userConfig.User;
-                        }
-                        ActTicket.Requester = requester;
-                        ActTicket = await dbAcc.AddTicketToDb(ActTicket);
-                        TicketList.Add(ActTicket);
-                    }
-                    else
-                    {
-                        // Update existing ticket
-                        ActTicket = await dbAcc.UpdateTicketInDb(ActTicket);
-                        TicketList[TicketList.FindIndex(x => x.Id == ActTicket.Id)] = ActTicket;
-                    }
-
-                    if (!requestTasksSynchronized)
-                    {
-                        // update of request tasks and creation of impl tasks may be necessary
-                        bool requestTaskActionsChangedState = await UpdateRequestTasksFromTicket(
-                            approvalComment: ticket.OptComment());
-
-                        if (requestTaskActionsChangedState && Phase != WorkflowPhases.request)
-                        {
-                            await UpdateActTicketStateFromReqTasks();
-                        }
-                    }
-
-                    ResetTicketActions();
-                    return ActTicket.Id;
-                }
+                return dbAcc == null ? 0 : await SaveTicketToDb(ticket);
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("save_request"), "", true);
             }
             return 0;
+        }
+
+        private async Task<long> SaveTicketToDb(WfStatefulObject ticket)
+        {
+            int previousTicketStateId = ActTicket.StateId;
+            int targetTicketStateId = ticket.StateId;
+            ActTicket.StateId = targetTicketStateId;
+            PrepareTicketData();
+            bool requestTasksSynchronized = ShouldSynchronizeRequestTasks(previousTicketStateId);
+
+            if (requestTasksSynchronized)
+            {
+                await SynchronizeRequestTasks(targetTicketStateId, ticket.OptComment());
+            }
+
+            await PersistTicket();
+
+            if (!requestTasksSynchronized)
+            {
+                await UpdateRequestTasksAndTicket(ticket.OptComment());
+            }
+
+            ResetTicketActions();
+            return ActTicket.Id;
+        }
+
+        private bool ShouldSynchronizeRequestTasks(int previousTicketStateId)
+        {
+            return !AddTicketMode && Phase != WorkflowPhases.request && previousTicketStateId != ActTicket.StateId;
+        }
+
+        private async Task SynchronizeRequestTasks(int targetTicketStateId, string? approvalComment)
+        {
+            await UpdateRequestTasksFromTicket(false, targetTicketStateId: targetTicketStateId, approvalComment: approvalComment);
+            ActTicket.StateId = targetTicketStateId;
+        }
+
+        private async Task PersistTicket()
+        {
+            if (AddTicketMode)
+            {
+                await AddNewTicket();
+                return;
+            }
+
+            ActTicket = await dbAcc!.UpdateTicketInDb(ActTicket);
+            TicketList[TicketList.FindIndex(x => x.Id == ActTicket.Id)] = ActTicket;
+        }
+
+        private async Task AddNewTicket()
+        {
+            ActTicket.CreationDate = DateTime.Now;
+            UiUser requester = ActTicket.Requester ?? userConfig.User;
+            if (requester.DbId <= 0 && userConfig.User.DbId > 0)
+            {
+                requester = userConfig.User;
+            }
+
+            ActTicket.Requester = requester;
+            ActTicket = await dbAcc!.AddTicketToDb(ActTicket);
+            TicketList.Add(ActTicket);
+        }
+
+        private async Task UpdateRequestTasksAndTicket(string? approvalComment)
+        {
+            bool requestTaskActionsChangedState = await UpdateRequestTasksFromTicket(approvalComment: approvalComment);
+            if (requestTaskActionsChangedState && Phase != WorkflowPhases.request)
+            {
+                await UpdateActTicketStateFromReqTasks();
+            }
         }
 
         private bool CanViewTicket(WfTicket ticket, HashSet<int> exclusiveVisibilityGroupIds)

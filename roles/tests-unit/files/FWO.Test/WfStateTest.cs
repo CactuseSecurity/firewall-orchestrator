@@ -134,5 +134,31 @@ namespace FWO.Test
             Assert.That(conditionalParams?.IfCompliantState, Is.EqualTo(3));
             Assert.That(conditionalParams?.IfNotCompliantState, Is.EqualTo(4));
         }
+
+        [Test]
+        public void TryParseAutoPromoteParams_ParsesSimpleJsonState()
+        {
+            bool parsed = WfStateAction.TryParseAutoPromoteParams("{\"to_state_id\":7}", out int? toStateId,
+                out ConditionalAutoPromoteParams? conditionalParams);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed, Is.True);
+                Assert.That(toStateId, Is.EqualTo(7));
+                Assert.That(conditionalParams, Is.Null);
+            });
+        }
+
+        [Test]
+        public void WfStateActionParsers_RejectInvalidOrUnsupportedValues()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfStateAction.TryParseAutoPromoteParams("not-json", out _, out _), Is.False);
+                Assert.That(WfStateAction.HasConfirmUiMessage("not-json"), Is.False);
+                Assert.That(WfStateAction.HasConfirmUiMessage("7"), Is.False);
+                Assert.That(WfStateAction.HasConfirmUiMessage("{\"confirm_ui_message\":false}"), Is.False);
+            });
+        }
     }
 }

@@ -94,7 +94,7 @@ namespace FWO.Test
                 .Add(p => p.IpProtos, new List<IpProtocol>())
                 .Add(p => p.EditMode, false));
 
-            component.FindAll("button").First().Click();
+            component.FindAll("button")[0].Click();
 
             Assert.Multiple(() =>
             {
@@ -140,7 +140,7 @@ namespace FWO.Test
                 .Add(p => p.IpProtos, new List<IpProtocol>())
                 .Add(p => p.EditMode, false));
 
-            component.FindAll("button").First().Click();
+            component.FindAll("button")[0].Click();
 
             Assert.Multiple(() =>
             {
@@ -273,7 +273,7 @@ namespace FWO.Test
                 Assert.That(component.Markup, Does.Not.Contain("Stale nested service"));
             });
 
-            component.FindAll("button").Last().Click();
+            component.FindAll("button")[^1].Click();
             Assert.That(component.Markup, Does.Not.Contain("modal-backdrop"));
         }
 

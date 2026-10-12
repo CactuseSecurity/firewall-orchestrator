@@ -20,6 +20,9 @@ namespace FWO.Test
     [TestFixture]
     internal class UiDisplayRequestTaskTest
     {
+        private static readonly int[] kRemovedOwnerIds = [1];
+        private static readonly int[] kNewOwnerIds = [2];
+
         /// <summary>
         /// Verifies that approver-specific field permissions control editing and saving.
         /// </summary>
@@ -244,8 +247,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(task.RemovedOwners.Select(owner => owner.Id), Is.EqualTo(new[] { 1 }));
-                Assert.That(task.NewOwners.Select(owner => owner.Id), Is.EqualTo(new[] { 2 }));
+                Assert.That(task.RemovedOwners.Select(owner => owner.Id), Is.EqualTo(kRemovedOwnerIds));
+                Assert.That(task.NewOwners.Select(owner => owner.Id), Is.EqualTo(kNewOwnerIds));
                 Assert.That(task.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner), Is.EqualTo(3));
             });
         }

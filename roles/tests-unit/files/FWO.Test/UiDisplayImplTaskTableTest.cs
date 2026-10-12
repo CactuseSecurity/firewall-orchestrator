@@ -20,6 +20,8 @@ namespace FWO.Test
     [TestFixture]
     internal class UiDisplayImplTaskTableTest
     {
+        private static readonly string[] kExpectedMergedElementNames = ["source-1", "destination-1", "destination-2"];
+
         /// <summary>
         /// Verifies that the implementation table resolves the owner through its request task.
         /// </summary>
@@ -199,7 +201,7 @@ namespace FWO.Test
             InvokePrivate(component, "AddImplTask");
 
             Assert.That(handler.ActImplTask.ImplElements.Select(element => element.Name),
-                Is.EqualTo(new[] { "source-1", "destination-1", "destination-2" }));
+                Is.EqualTo(kExpectedMergedElementNames));
         }
 
         [Test]

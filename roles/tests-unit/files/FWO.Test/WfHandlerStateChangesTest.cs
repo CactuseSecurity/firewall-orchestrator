@@ -17,6 +17,8 @@ namespace FWO.Test
     [TestFixture]
     internal class WfHandlerStateChangesTest
     {
+        private static readonly int[] kPromotedTaskStates = [2, 2];
+
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix matrix)
         {
             FieldInfo? field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -285,7 +287,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(handler.ActReqTask.StateId, Is.EqualTo(2));
-                Assert.That(handler.ActTicket.Tasks.Select(task => task.StateId), Is.EqualTo(new[] { 2, 2 }));
+                Assert.That(handler.ActTicket.Tasks.Select(task => task.StateId), Is.EqualTo(kPromotedTaskStates));
                 Assert.That(handler.ActTicket.Tasks.All(task => task.CurrentHandler == handler.userConfig.User), Is.True);
             });
         }
@@ -1132,6 +1134,84 @@ namespace FWO.Test
                 Assert.That(syncedReqTask.StateId, Is.EqualTo(2));
                 Assert.That(handler.ActReqTask.ImplementationTasks, Is.Empty);
                 Assert.That(syncedReqTask.ImplementationTasks, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task ChangeImplTaskStateForMonitoring_LocalOnly_UpdatesImplementationTaskOnly()
+        {
+            WfHandler handler = new()
+            {
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestEndState = 10,
+                    MinTicketCompleted = 99,
+                    PhaseActive = new() { { WorkflowPhases.planning, false } }
+                }
+            };
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                LowestEndState = 10,
+                MinTicketCompleted = 99,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            });
+            WfImplTask implTask = new() { Id = 9, ReqTaskId = 7, TicketId = 1, StateId = 1 };
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 1,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 1,
+                ImplementationTasks = [implTask]
+            };
+            WfTicket ticket = new() { Id = 1, StateId = 1, Tasks = [reqTask] };
+
+            await handler.ChangeImplTaskStateForMonitoring(ticket, reqTask, implTask, 2, MonitoringStateChangeMode.LocalOnly);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActImplTask.StateId, Is.EqualTo(2));
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(1));
+                Assert.That(handler.ActTicket.StateId, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task ChangeApprovalStateForMonitoring_LocalOnly_UpdatesApprovalOnly()
+        {
+            WfHandler handler = new()
+            {
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestEndState = 10,
+                    MinTicketCompleted = 99,
+                    PhaseActive = new() { { WorkflowPhases.approval, false } }
+                }
+            };
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                LowestEndState = 10,
+                MinTicketCompleted = 99,
+                PhaseActive = new() { { WorkflowPhases.approval, false } }
+            });
+            WfApproval approval = new() { Id = 12, StateId = 1 };
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 1,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 1,
+                Approvals = [approval]
+            };
+            WfTicket ticket = new() { Id = 1, StateId = 1, Tasks = [reqTask] };
+
+            await handler.ChangeApprovalStateForMonitoring(ticket, reqTask, approval, 2, MonitoringStateChangeMode.LocalOnly);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActApproval.StateId, Is.EqualTo(2));
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(1));
+                Assert.That(handler.ActTicket.StateId, Is.EqualTo(1));
             });
         }
 

@@ -2630,6 +2630,30 @@ namespace FWO.Test
             Assert.That(result, Is.True);
         }
 
+        [TestCase(WfTaskType.object_create)]
+        [TestCase(WfTaskType.object_modify)]
+        public async Task ExecutePolicyCheck_ReturnsTrueForObjectOnlyTicket(WfTaskType taskType)
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true);
+            WfTicket ticket = CreateTicket(new WfReqTask
+            {
+                Id = 26,
+                TaskType = taskType.ToString(),
+                Elements = [new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    RequestAction = RequestAction.create.ToString(),
+                    IpString = "10.0.0.1/32"
+                }]
+            });
+            List<object?> arguments = [new List<int> { 5 }, "policy_check", ticket, WfObjectScopes.Ticket];
+
+            Task<bool> task = (Task<bool>)GetPrivateMethod("ExecutePolicyCheck").Invoke(handler, arguments.ToArray())!;
+            bool result = await task;
+
+            Assert.That(result, Is.True);
+        }
+
         [Test]
         public async Task ExecutePolicyCheck_ReturnsFalseWhenPolicyCheckerThrows()
         {

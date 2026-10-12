@@ -35,6 +35,10 @@ updates:
       default-days: 30
       include:
         - "ruff"
+    ignore:
+      # scrapli >=2026.5 is the native libscrapli rewrite (scrapli 2); the ASA importer still uses the scrapli 1 API
+      - dependency-name: "scrapli"
+        versions: [">=2026.5"]
     assignees:
       - Laennart
 

@@ -366,6 +366,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddAutoCalculatedInternetZone_AutoCalculationDisabled_SendsNoQueries()
+        {
+            MockApiConnection mock = new();
+            ApiConnection apiConnection = mock;
+            GlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = false,
+                AutoCalculateUndefinedInternalZone = true
+            };
+
+            await NetworkZoneService.AddAutoCalculatedInternetZone(1, apiConnection, globalConfig);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(mock.SentQueries, Is.Empty);
+                Assert.That(mock.Sub.ReceivedCalls(), Is.Empty);
+            });
+        }
+
+        [Test]
         public async Task AddAutoCalculatedInternetZone_ExistingDummy_ReplacesDummyRanges()
         {
             MockApiConnection mock = new();

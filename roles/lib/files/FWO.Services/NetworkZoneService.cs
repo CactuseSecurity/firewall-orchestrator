@@ -239,6 +239,10 @@ namespace FWO.Services
         /// <param name="globalConfig">Global configuration that defines the internal address ranges.</param>
         public static async Task AddAutoCalculatedInternetZone(int matrixId, ApiConnection apiConnection, GlobalConfig globalConfig)
         {
+            if (!globalConfig.AutoCalculateInternetZone)
+            {
+                return;
+            }
             List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
                 NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
             if (existingZones.Any(zone => zone.IsAutoCalculatedInternetZone))
@@ -339,6 +343,10 @@ namespace FWO.Services
             existingZones.Add(undefinedInternalZone);
         }
 
+        /// <summary>
+        /// Returns the internet zone object to persist. A pre-existing zone with the reserved id string
+        /// (legacy imports before 9.5 without auto-calculation) is adopted instead of creating a duplicate.
+        /// </summary>
         private static bool TryUpdateInternetZoneObject(List<ComplianceNetworkZone> existingZones, int matrixId, out ComplianceNetworkZone internetZone)
         {
             bool updated = false;

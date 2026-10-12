@@ -1,9 +1,13 @@
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from fw_modules.checkpointR8x.cp_rule import parse_single_rule
 from fwo_log import FWOLogger
-from models.import_state import ImportState
 from models.rulebase import Rulebase
+
+if TYPE_CHECKING:
+    from models.import_state import ImportState
 
 
 def normalize_nat_rules(

@@ -11,6 +11,7 @@ namespace FWO.Test
     [TestFixture]
     internal class ReportComplianceTest
     {
+        private static readonly List<int> kVisibleRelevantManagementIds = [9];
         private MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.ComplianceReport);
         private MockReportCompliance _testReport = default!;
 
@@ -57,19 +58,25 @@ namespace FWO.Test
         }
 
         [Test]
-        public void CreateQueryVariables_UsesConfiguredRelevantManagementIds()
+        public void CreateQueryVariables_DoesNotWidenScopeToConfiguredRelevantManagementIds()
         {
             SimulatedGlobalConfig globalConfig = new()
             {
                 ComplianceCheckRelevantManagements = "9,10"
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            MockReportCompliance report = new(new(""), userConfig, Basics.ReportType.ComplianceReport);
+            MockReportCompliance report = new(new(""), userConfig, Basics.ReportType.ComplianceReport)
+            {
+                Managements =
+                [
+                    new Management { Id = 9 }
+                ]
+            };
 
             Dictionary<string, object> queryVariables = report.CreateQueryVariablesPublic(0, 100, RuleQueries.getRulesWithCurrentViolationsByChunk);
 
             Assert.That(queryVariables.ContainsKey("mgm_ids"), Is.True);
-            Assert.That((List<int>)queryVariables["mgm_ids"], Is.EqualTo(new List<int> { 9, 10 }));
+            Assert.That((List<int>)queryVariables["mgm_ids"], Is.EqualTo(kVisibleRelevantManagementIds));
         }
 
         [Test]

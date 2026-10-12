@@ -10,11 +10,12 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
     {
         readonly ExternalTicketSystem TicketSystem;
 
-        // checkCertificates: false keeps the behaviour this client has always had - a
-        // SecureChange installation typically presents its own enterprise or self-signed
-        // certificate, which no FWO host trusts. Only the FWO internal REST leg validates
-        // by default.
-        public SCClient(ExternalTicketSystem ticketSystem) : base(ticketSystem.Url, ticketSystem.ResponseTimeout, checkCertificates: false)
+        /// <summary>
+        /// Creates a client for the SecureChange API of the given ticket system.
+        /// </summary>
+        /// <param name="ticketSystem">The ticket system to connect to.</param>
+        /// <param name="checkCertificates">Whether the server certificate is checked (global setting for ticket systems).</param>
+        public SCClient(ExternalTicketSystem ticketSystem, bool checkCertificates) : base(ticketSystem.Url, ticketSystem.ResponseTimeout, checkCertificates: checkCertificates)
         {
             TicketSystem = ticketSystem;
         }

@@ -1,5 +1,4 @@
-# ruff: noqa: INP001
-from scripts.customizing.area_ip_data_import.convertNwObjDataFromGit import (
+from scripts.customizing.area_ip_data_import.convert_area_ip_data_from_git import (
     extract_socket_info,
     generate_public_ipv4_networks_as_internet_area,
     get_network_borders,

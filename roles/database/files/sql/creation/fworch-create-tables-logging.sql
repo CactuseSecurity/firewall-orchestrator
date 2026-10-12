@@ -2,6 +2,15 @@
 
 CREATE SCHEMA logging;
 
+CREATE TABLE logging.ip_metadata
+(
+    ip_address CIDR PRIMARY KEY,
+    app_ids TEXT[] NOT NULL DEFAULT '{}',
+    area_ids TEXT[] NOT NULL DEFAULT '{}',
+    dns TEXT NOT NULL DEFAULT '',
+    dns_lookup_completed BOOLEAN NOT NULL DEFAULT FALSE
+);
+
 CREATE TABLE logging.log_entry
 (
     id BIGSERIAL PRIMARY KEY,
@@ -22,6 +31,8 @@ CREATE TABLE logging.log_entry
     log_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     logging_rule_name VARCHAR(100),
     owner_id INTEGER NOT NULL,
+    import_time TIMESTAMP WITH TIME ZONE,
+    log_time_range_in_seconds INTEGER CHECK (log_time_range_in_seconds > 0),
     CONSTRAINT log_entry_source_single_ip CHECK
     (
         (family(source) = 4 AND masklen(source) = 32)

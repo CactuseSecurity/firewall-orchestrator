@@ -837,6 +837,53 @@ namespace FWO.Test
             Assert.That(GetMember<List<NwServiceElement>>(editor, "actServices").Single().Port, Is.EqualTo(443));
         }
 
+        [TestCase("10.1.1.5", true)]
+        [TestCase("10.1.300.1", false)]
+        public async Task DisplayRequestTask_ObjectCreate_AcceptsAValidObjectOnSave(string ip, bool expectedValid)
+        {
+            RequestWorkflowUserConfig userConfig = new() { ReqAvailableTaskTypes = "[8]" };
+            RequestWorkflowApiConn apiConnection = new() { Managements = [new Management { Id = 3, Name = "mgmt-3" }] };
+            WfHandler handler = new()
+            {
+                DisplayReqTaskMode = true,
+                EditReqTaskMode = true,
+                AddReqTaskMode = false,
+                ActReqTask = new WfReqTask
+                {
+                    Id = 14,
+                    Title = "Object task",
+                    TaskType = WfTaskType.object_create.ToString(),
+                    ManagementId = 3,
+                    StateId = 0
+                }
+            };
+            handler.ActReqTask.Elements.Add(new WfReqElement
+            {
+                Id = 141,
+                TaskId = 14,
+                Field = ElemFieldType.source.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                Cidr = new Cidr(ip)
+            });
+            handler.ActTicket.Tasks.Add(handler.ActReqTask);
+            WfStateDict states = new() { Name = { [0] = "Draft" } };
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+
+            IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, states, Roles.Requester);
+            bool valid = await component.InvokeAsync(() => UiRequestCoverageTest.InvokePrivateBool(component.Instance, "RejectInvalidObjectTask"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindComponents<DisplayObjectTaskElement>(), Has.Count.EqualTo(1));
+                Assert.That(component.FindComponent<DisplayObjectTaskElement>().Instance.ManagementId, Is.EqualTo(3));
+                Assert.That(valid, Is.EqualTo(expectedValid));
+                Assert.That(handler.ActReqTask.Elements, Has.Count.EqualTo(1));
+                Assert.That(handler.ActReqTask.Elements[0].Id, Is.EqualTo(141));
+            });
+        }
+
         private static void SetRequestTaskElementMember<T>(DisplayRequestTask component, string memberName, T value)
         {
             RequestTaskElementEditor? editor = GetMember<RequestTaskElementEditor?>(component, "elementEditor");

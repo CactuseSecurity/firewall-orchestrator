@@ -64,6 +64,11 @@ else if (TaskType == WfTaskType.group_create)
         }
     </div>
 }
+else if (WfObjectTaskHelper.IsObjectTask(TaskType))
+{
+    <DisplayObjectTaskElement @ref="objectTaskElement" ReqTask="WfHandler.ActReqTask" IsModify="@(TaskType == WfTaskType.object_modify)"
+        ManagementId="ManagementId" EditMode="WfHandler.EditReqTaskMode" SelectableIpProtos="SelectableIpProtos" DisplayIpProtos="DisplayIpProtos" />
+}
 
 @code
 {
@@ -88,6 +93,14 @@ else if (TaskType == WfTaskType.group_create)
     [Parameter]
     public EventCallback<Device?> RuleDeviceChanged { get; set; }
 
+    /// <summary>
+    /// Management of the task, which the object of an object task belongs to.
+    /// </summary>
+    [Parameter]
+    public int? ManagementId { get; set; }
+
+    private DisplayObjectTaskElement? objectTaskElement;
+
     private List<NwObjectElement> actSources = [];
     private List<NwObjectElement> actDestinations = [];
     private List<NwServiceElement> actServices = [];
@@ -106,6 +119,16 @@ else if (TaskType == WfTaskType.group_create)
     public int DestinationCount => actDestinations.Count;
     public int ServiceCount => actServices.Count;
     public int RuleCount => actRules.Count;
+
+    /// <summary>
+    /// Checks the entered object of an object task and writes it into the request task. Returns the text key
+    /// of the error message, or null when the object was applied.
+    /// </summary>
+    public string? ApplyObjectTask()
+    {
+        // ApplyToTask returns null on success, so a missing object block must not be folded in with ??
+        return objectTaskElement == null ? "E5124" : objectTaskElement.ApplyToTask();
+    }
 
     protected override void OnParametersSet()
     {

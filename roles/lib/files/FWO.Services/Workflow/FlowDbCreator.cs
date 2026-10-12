@@ -136,29 +136,43 @@ namespace FWO.Services.Workflow
 
             foreach (IGrouping<int, FlowCreationPayload> managementPayloads in payloads.GroupBy(GetManagementGroupId))
             {
-                List<FlowCreationPayload> groupedPayloads = [.. managementPayloads];
-                FlowSyncFlowData context = await LoadFlowSyncData(managementPayloads.Key);
-                FlowGroupMaps groupMaps = BuildGroupMaps(context);
-
-                foreach (FlowCreationPayload payload in groupedPayloads.Where(IsGroupTask))
-                {
-                    if (await PersistGroupPayload(payload, context, groupMaps))
-                    {
-                        persistedPayloads++;
-                    }
-                }
-
-                foreach (FlowCreationPayload payload in groupedPayloads.Where(payload => !IsGroupTask(payload)))
-                {
-                    if (await PersistAccessPayload(payload, context, groupMaps))
-                    {
-                        persistedPayloads++;
-                    }
-                }
+                persistedPayloads += await PersistManagementPayloads([.. managementPayloads], managementPayloads.Key);
             }
 
             Log.WriteInfo(LogMessageTitle, $"Persisted {persistedPayloads} of {payloads.Count} prepared Flow DB payloads.");
             return persistedPayloads == payloads.Count;
+        }
+
+        /// <summary>
+        /// Persists the payloads of one management and returns how many of them were stored.
+        /// </summary>
+        private async Task<int> PersistManagementPayloads(List<FlowCreationPayload> payloads, int managementId)
+        {
+            FlowSyncFlowData context = await LoadFlowSyncData(managementId);
+            FlowGroupMaps groupMaps = BuildGroupMaps(context);
+
+            // single objects first, so that groups and accesses of the same run can already use them
+            int persisted = await CountPersisted(payloads.Where(IsObjectTask), payload => PersistObjectPayload(payload, context, groupMaps));
+            persisted += await CountPersisted(payloads.Where(IsGroupTask), payload => PersistGroupPayload(payload, context, groupMaps));
+            persisted += await CountPersisted(payloads.Where(payload => !IsGroupTask(payload) && !IsObjectTask(payload)),
+                payload => PersistAccessPayload(payload, context, groupMaps));
+            return persisted;
+        }
+
+        /// <summary>
+        /// Persists the payloads one after the other and returns how many of them were stored.
+        /// </summary>
+        private static async Task<int> CountPersisted(IEnumerable<FlowCreationPayload> payloads, Func<FlowCreationPayload, Task<bool>> persist)
+        {
+            int persisted = 0;
+            foreach (FlowCreationPayload payload in payloads)
+            {
+                if (await persist(payload))
+                {
+                    persisted++;
+                }
+            }
+            return persisted;
         }
 
         private static int GetManagementGroupId(FlowCreationPayload payload)
@@ -203,6 +217,69 @@ namespace FWO.Services.Workflow
                 return await PersistServiceGroupPayload(payload, context, groupMaps);
             }
             return await PersistNetworkGroupPayload(payload, context, groupMaps);
+        }
+
+        /// <summary>
+        /// Stores the single object of an object_create task as Flow object in state requested, or binds it to the
+        /// Flow object that already exists for the same values, and links the request element to it.
+        /// object_modify is not mapped yet: a modified object gets a new hash, and how the Flow object of its old
+        /// values is to be treated is still open.
+        /// </summary>
+        private async Task<bool> PersistObjectPayload(FlowCreationPayload payload, FlowSyncFlowData context, FlowGroupMaps groupMaps)
+        {
+            if (payload.TaskType != WfTaskType.object_create.ToString())
+            {
+                Log.WriteInfo(LogMessageTitle, $"Skipping Flow DB {payload.TaskType} payload for requestTaskIds={string.Join(",", payload.OriginRequestTaskIds)} because object modification is not yet mapped to Flow DB state updates.");
+                return false;
+            }
+
+            List<FlowObjectSnapshot> objectSnapshots = [.. payload.Sources.Concat(payload.Destinations).Where(IsRequestedObject)];
+            List<FlowServiceSnapshot> serviceSnapshots = [.. payload.Services.Where(IsRequestedObject)];
+            bool persisted = (objectSnapshots.Count, serviceSnapshots.Count) switch
+            {
+                (1, 0) => await PersistSingleNetworkObject(objectSnapshots, context, groupMaps),
+                (0, 1) => await PersistSingleServiceObject(serviceSnapshots, context, groupMaps),
+                _ => false
+            };
+            if (!persisted)
+            {
+                Log.WriteWarning(LogMessageTitle, $"Skipping object Flow DB payload for requestTaskIds={string.Join(",", payload.OriginRequestTaskIds)} because it holds no single resolvable object.");
+                return false;
+            }
+            Log.WriteInfo(LogMessageTitle, $"Persisted Flow DB object for requestTaskIds={string.Join(",", payload.OriginRequestTaskIds)}.");
+            return true;
+        }
+
+        private async Task<bool> PersistSingleNetworkObject(List<FlowObjectSnapshot> snapshots, FlowSyncFlowData context, FlowGroupMaps groupMaps)
+        {
+            List<FlowNetworkReference> references = await ResolveNetworkReferences(snapshots, context, groupMaps, allowGroupNameReference: false);
+            if (references.Count != 1 || !references[0].ObjectId.HasValue)
+            {
+                return false;
+            }
+            await UpdateNetworkElementFlowIds(snapshots, references);
+            return true;
+        }
+
+        private async Task<bool> PersistSingleServiceObject(List<FlowServiceSnapshot> snapshots, FlowSyncFlowData context, FlowGroupMaps groupMaps)
+        {
+            List<FlowServiceReference> references = await ResolveServiceReferences(snapshots, context, groupMaps, allowGroupNameReference: false);
+            if (references.Count != 1 || !references[0].ObjectId.HasValue)
+            {
+                return false;
+            }
+            await UpdateServiceElementFlowIds(snapshots, references);
+            return true;
+        }
+
+        private static bool IsRequestedObject(FlowObjectSnapshot snapshot)
+        {
+            return snapshot.RequestAction == RequestAction.create.ToString();
+        }
+
+        private static bool IsRequestedObject(FlowServiceSnapshot snapshot)
+        {
+            return snapshot.RequestAction == RequestAction.create.ToString();
         }
 
         private async Task<bool> PersistNetworkGroupPayload(FlowCreationPayload payload, FlowSyncFlowData context, FlowGroupMaps groupMaps)
@@ -479,9 +556,15 @@ namespace FWO.Services.Workflow
                 || payload.TaskType == WfTaskType.group_delete.ToString();
         }
 
+        private static bool IsObjectTask(FlowCreationPayload payload)
+        {
+            return WfObjectTaskHelper.IsObjectTask(payload.TaskType);
+        }
+
         private static bool IsFlowRelevantTask(WfReqTask task)
         {
             return task.TaskType == WfTaskType.access.ToString()
+                || task.TaskType == WfTaskType.object_create.ToString()
                 || task.TaskType == WfTaskType.group_create.ToString()
                 || task.TaskType == WfTaskType.group_modify.ToString()
                 || task.TaskType == WfTaskType.group_delete.ToString();

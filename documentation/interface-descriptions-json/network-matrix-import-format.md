@@ -72,6 +72,25 @@ communications.
 Every `communication_to.id_string` must identify a zone available in the
 resulting matrix. Communications not listed for a source zone are restricted.
 
+### Auto-calculated Internet Zone
+
+While auto-calculated Internet zones are enabled in the settings, the document may contain one
+zone with the reserved `id_string` `AUTO_CALCULATED_ZONE_INTERNET` to define the communications
+with the Internet. Only its `id_string` and `communication_to` are used: `subnets` must be
+empty, because FWO calculates the zone's ranges on every import, and the `name` given in the
+document is not persisted. If internet auto-calculation is disabled, the import is rejected.
+
+```json
+{
+  "name": "Internet",
+  "id_string": "AUTO_CALCULATED_ZONE_INTERNET",
+  "subnets": [],
+  "communication_to": [
+    { "id_string": "dmz" }
+  ]
+}
+```
+
 ## Subnet Object
 
 A subnet entry supports a single address, CIDR notation, or an inclusive range.
@@ -125,7 +144,7 @@ zone or connection.
 
 The import is not transactional. If processing fails after some zones or connections have been saved, those earlier changes can remain in the matrix. Validate the complete document before importing it into a production system.
 
-The following is checked before anything is written: a non-empty matrix name; zone names and `id_string` values unique within the document; internally reserved zones `AUTO_CALCULATED_ZONE_INTERNET` and `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL` are not used as customer zone; every `communication_to` target naming a zone the document defines; every device referenced in `path_to_root` or `path_to_internet` being resolvable, unambiguous and listed at most once per path; every gateway in `path_to_root` naming the same successor towards the root across all subnets of the document, and those successors not forming a cycle, so that the paths to root describe one tree — `path_to_internet` is exempt, as several routes to the internet are intended; and every `ip` / `ip_end` being parseable, of one address family and not ending before it starts. Not covered: two ip ranges overlapping within the same zone are rejected by the database while zones are being written, so such a document can leave the matrix partially updated.
+The following is checked before anything is written: a non-empty matrix name; zone names and `id_string` values unique within the document; internally reserved zone `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL` is not used as customer zone, `AUTO_CALCULATED_ZONE_INTERNET` is only valid with enabled setting and without passed subnets; every `communication_to` target naming a zone the document defines; every device referenced in `path_to_root` or `path_to_internet` being resolvable, unambiguous and listed at most once per path; every gateway in `path_to_root` naming the same successor towards the root across all subnets of the document, and those successors not forming a cycle, so that the paths to root describe one tree — `path_to_internet` is exempt, as several routes to the internet are intended; and every `ip` / `ip_end` being parseable, of one address family and not ending before it starts. Not covered: two ip ranges overlapping within the same zone are rejected by the database while zones are being written, so such a document can leave the matrix partially updated.
 
 ## Validation Checklist
 
@@ -135,10 +154,9 @@ The following is checked before anything is written: a non-empty matrix name; zo
 - Keep `id_string` values stable across imports.
 - Reference only valid destination `id_string` values in `communication_to`.
 - Provide valid IPv4 or IPv6 values for every subnet.
-- Do not define zones with the reserved identifiers
-  `AUTO_CALCULATED_ZONE_INTERNET` or
-  `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL`; these zones are managed by FWO.
-- Reference `AUTO_CALCULATED_ZONE_INTERNET` in `communication_to` only while auto-calculated Internet zones are enabled in the settings; it does not exist otherwise.
+- Do not define a zone with the reserved identifier
+  `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL`; this zone is managed by FWO.
+- The reserved zone `AUTO_CALCULATED_ZONE_INTERNET` may be used as an import matrix zone without subnets and as a `communication_to` reference, if auto-calculated Internet zones are enabled in the settings; it does not exist otherwise.
 - Never reference `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL` in `communication_to`.
 - In subnet paths every referenced management/device pair must exist case sensitive in database.
 - The name pair must be unique.

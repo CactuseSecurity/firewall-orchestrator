@@ -24,7 +24,8 @@
         </div>
     </div>
 
-    @if (TaskType == WfTaskType.access || TaskType == WfTaskType.rule_modify || TaskType == WfTaskType.rule_delete || TaskType == WfTaskType.group_create)
+    @if (TaskType == WfTaskType.access || TaskType == WfTaskType.rule_modify || TaskType == WfTaskType.rule_delete || TaskType == WfTaskType.group_create
+        || WfObjectTaskHelper.IsObjectTask(TaskType))
     {
         <div class="col-sm-3">
             <div class="form-group row">
@@ -175,6 +176,13 @@
     [Parameter]
     public EventCallback<bool> TargetDatesValidChanged { get; set; }
 
+    /// <summary>
+    /// Reports a changed management right away, for element editors that depend on it while editing,
+    /// e.g. the object search of an object_modify task.
+    /// </summary>
+    [Parameter]
+    public EventCallback<Management?> ManagementChanged { get; set; }
+
     [Parameter]
     public WfTaskType TaskType { get; set; } = WfTaskType.access;
 
@@ -314,10 +322,10 @@
         return TaskTypeChanged.InvokeAsync(value);
     }
 
-    private Task OnManagementChanged(Management value)
+    private async Task OnManagementChanged(Management value)
     {
         Management = value;
-        return Task.CompletedTask;
+        await ManagementChanged.InvokeAsync(value);
     }
 
     private Task OnRuleDeviceChanged(Device value)

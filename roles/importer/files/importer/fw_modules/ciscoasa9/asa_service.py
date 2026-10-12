@@ -21,10 +21,18 @@ if TYPE_CHECKING:
 
 
 ASA_ANY_PROTOCOL_SERVICE_UID = "ANY"
+# protocols whose ACL entries can restrict the destination port, and the icmp protocols restricted by their type
+PORT_PROTOCOLS: tuple[str, ...] = ("tcp", "udp", "sctp")
+ICMP_PROTOCOLS: tuple[str, ...] = ("icmp", "icmp6")
+MAX_SERVICE_GROUP_DEPTH = 100
 
 
 def _get_ip_protocol_id(protocol: str) -> int:
-    return fwo_const.ANY_IP_PROTOCOL_ID if protocol == "ip" else protocol_map.get(protocol, 0)
+    if protocol == "ip":
+        return fwo_const.ANY_IP_PROTOCOL_ID
+    if protocol.isdigit():
+        return int(protocol)
+    return protocol_map.get(protocol, 0)
 
 
 def create_service_object(
@@ -285,8 +293,8 @@ def create_service_for_port(port: str, proto: str, service_objects: dict[str, Se
         Service object name/UID
 
     """
-    if proto == "icmp":
-        obj = create_protocol_service_object(f"icmp-{port}", "icmp", None)
+    if proto in ICMP_PROTOCOLS:
+        obj = create_protocol_service_object(f"{proto}-{port}", proto, None)
         service_objects[obj.svc_uid] = obj
         return obj.svc_uid
     obj_name = f"{port}-{proto}"
@@ -392,10 +400,17 @@ def create_service_for_protocol_entry_with_single_protocol(
         return create_any_protocol_service(entry.protocol.value, service_objects)
 
     if entry.dst_port.kind in ("service", "service-group"):
-        # Reference to existing service object/group
-        return entry.dst_port.value
-    # Default to any port for the protocol
-    return create_any_protocol_service(entry.protocol.value, service_objects)
+        # Reference to existing service object/group, restricted to the protocol of the entry
+        restricted = restrict_service_to_protocol(entry.dst_port.value, entry.protocol.value, service_objects)
+        if restricted is None:
+            raise ValueError(
+                f"Service '{entry.dst_port.value}' contains no {entry.protocol.value} service, "
+                f"so the {entry.protocol.value} entry would permit nothing."
+            )
+        return restricted
+    raise ValueError(
+        f"Unsupported destination '{entry.dst_port.kind} {entry.dst_port.value}' for an access-list entry."
+    )
 
 
 def create_service_for_protocol_entry(entry: AccessListEntry, service_objects: dict[str, ServiceObject]) -> str:
@@ -409,13 +424,13 @@ def create_service_for_protocol_entry(entry: AccessListEntry, service_objects: d
         Service reference string (single object or delimited list)
 
     """
-    if entry.protocol.value in ("tcp", "udp", "icmp"):
+    protocol = entry.protocol.value
+    if protocol in PORT_PROTOCOLS or protocol in ICMP_PROTOCOLS:
         return create_service_for_protocol_entry_with_single_protocol(entry, service_objects)
-
-    if entry.protocol.value == "ip":
-        return create_any_protocol_service("ip", service_objects)
-    # Unknown protocol, default to any for the protocol
-    return create_any_protocol_service(entry.protocol.value, service_objects)
+    if entry.dst_port.kind != "any":
+        # a port or service on a protocol without ports cannot be represented; ignoring it would widen the entry
+        raise ValueError(f"Protocol '{protocol}' takes no port or service, got '{entry.dst_port.value}'.")
+    return create_any_protocol_service(protocol, service_objects)
 
 
 def create_service_for_acl_entry(entry: AccessListEntry, service_objects: dict[str, ServiceObject]) -> str:
@@ -441,9 +456,57 @@ def create_service_for_acl_entry(entry: AccessListEntry, service_objects: dict[s
         # Protocol group - will be resolved by caller
         return entry.protocol.value
 
-    # Default to all common protocols
-    svc_refs = [create_any_protocol_service(proto, service_objects) for proto in ("tcp", "udp", "icmp")]
-    return fwo_base.sort_and_join(svc_refs)
+    raise ValueError(f"Unsupported protocol '{entry.protocol.kind} {entry.protocol.value}' for an access-list entry.")
+
+
+def restrict_service_to_protocol(
+    service_ref: str, protocol: str, service_objects: dict[str, ServiceObject]
+) -> str | None:
+    """
+    Restrict a service object or group to the services of one protocol.
+
+    An access-list entry with a protocol applies a service group only to that protocol, e.g. a tcp entry only uses the
+    tcp members of a tcp-udp port group. A group with other members is replaced by a group of the matching members,
+    named "<group> (<protocol>)"; a group without other members is used as it is.
+
+    Args:
+        service_ref: Name of the service object or group.
+        protocol: Protocol of the access-list entry.
+        service_objects: Dictionary of service objects, updated with restricted groups.
+
+    Returns:
+        The reference to use, or None if the service contains nothing of the protocol.
+
+    """
+    return _restrict_service(service_ref, protocol, _get_ip_protocol_id(protocol), service_objects, 0)
+
+
+def _restrict_service(
+    service_ref: str, protocol: str, protocol_id: int, service_objects: dict[str, ServiceObject], depth: int
+) -> str | None:
+    if depth > MAX_SERVICE_GROUP_DEPTH:
+        raise ValueError(f"Service group '{service_ref}' is nested deeper than {MAX_SERVICE_GROUP_DEPTH} levels.")
+    service = service_objects.get(service_ref)
+    if service is None:
+        return service_ref  # an unknown reference is reported by the consistency check
+    if service.svc_typ != "group":
+        return service_ref if service.ip_proto == protocol_id else None
+    member_refs = service.svc_member_refs.split(fwo_const.LIST_DELIMITER) if service.svc_member_refs else []
+    restricted_members = [
+        restricted
+        for member_ref in member_refs
+        if (restricted := _restrict_service(member_ref, protocol, protocol_id, service_objects, depth + 1)) is not None
+    ]
+    if restricted_members == member_refs:
+        return service_ref
+    if not restricted_members:
+        return None
+    restricted_ref = f"{service_ref} ({protocol})"
+    if restricted_ref not in service_objects:
+        service_objects[restricted_ref] = create_service_group_object(
+            restricted_ref, restricted_members, f"{protocol} services of {service_ref}"
+        )
+    return restricted_ref
 
 
 def process_mixed_protocol_eq_ports(

@@ -67,6 +67,7 @@ namespace FWO.Test
         }
 
         private static readonly string[] kZoneCDestination = ["zone-c"];
+        private static readonly string[] kZoneADestination = ["zone-a"];
         private static readonly string[] kMissingZoneDestination = ["zone-does-not-exist"];
         private static readonly string[] kOtherMissingZoneDestination = ["zone-also-missing"];
         private static readonly string[] kAutoInternetDestination = [NetworkZoneService.kAutoCalculatedInternetZoneIdString];
@@ -845,22 +846,23 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Run_RejectsZoneUsingTheReservedInternetIdString()
+        public async Task Run_RejectsAutoCalculatedInternetZoneWithSubnets()
         {
             ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
             ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
 
             string result = await import.Run(
-                "reserved-internet.json",
+                "internet-with-subnets.json",
                 CreateImportJson(
                     "Matrix A",
-                    CreateZone(NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Reserved", "192.0.2.0/24")),
+                    CreateZone(NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Internet", "192.0.2.0/24")),
                 "tester",
                 "cn=tester");
 
             Assert.Multiple(() =>
             {
-                Assert.That(result, Does.Contain($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedInternetZoneIdString}"));
+                Assert.That(result, Does.Contain($"{NetworkZoneService.kAutoCalculatedInternetZoneIdString} must not contain subnets"));
+                Assert.That(result, Does.Not.Contain("is not enabled"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(NetworkZoneQueries.updateNetworkZone), Is.EqualTo(0));
@@ -891,24 +893,97 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Run_RejectsReservedZoneIdStringAlsoWhenAutoCalculationIsDisabled()
+        public async Task Run_RejectsAutoCalculatedInternetZoneWhenAutoCalculationIsDisabled()
         {
             ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
             ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
 
             string result = await import.Run(
-                "reserved-internet-disabled.json",
+                "internet-disabled.json",
                 CreateImportJson(
                     "Matrix A",
-                    CreateZone(NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Reserved", "192.0.2.0/24")),
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24"),
+                    CreateAutoInternetZone(kZoneADestination)),
                 "tester",
                 "cn=tester");
 
             Assert.Multiple(() =>
             {
-                Assert.That(result, Does.Contain($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedInternetZoneIdString}"));
+                Assert.That(result, Does.Contain($"{NetworkZoneService.kAutoCalculatedInternetZoneIdString} is not enabled"));
+                Assert.That(result, Does.Not.Contain("must not contain subnets"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_ImportsAutoCalculatedInternetZoneOnlyAsSpecialZoneWithItsCommunications()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            apiConnection.MatrixZoneResponses.Add(CreateReloadedZoneAWithFlaggedAutoInternet());
+            ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
+
+            string result = await import.Run(
+                "internet-import.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24"),
+                    CreateAutoInternetZone(kZoneADestination)),
+                "tester",
+                "cn=tester");
+
+            List<object?> addedInternetZones = apiConnection.Calls
+                .Where(call => call.Query == NetworkZoneQueries.addNetworkZone
+                    && ReadProperty(call.Variables, "idString") as string == NetworkZoneService.kAutoCalculatedInternetZoneIdString)
+                .Select(call => call.Variables)
+                .ToList();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from internet-import.json"));
+                Assert.That(result, Does.Contain("Total number of network zones: 1"));
+                Assert.That(result, Does.Contain("new: 1"));
+                Assert.That(result, Does.Contain("Inserted connections: 1"));
+                Assert.That(addedInternetZones, Has.Count.EqualTo(1));
+                Assert.That(ReadProperty(addedInternetZones.Single(), "isAutoCalculatedInternetZone"), Is.EqualTo(true));
+            });
+        }
+
+        [Test]
+        public async Task Run_DoesNotOverwriteExistingAutoCalculatedInternetZoneOnReimport()
+        {
+            ZoneMatrixImportApiConnection apiConnection = new()
+            {
+                MatrixByNameResponse =
+                [
+                    new ComplianceCriterion
+                    {
+                        Id = 55,
+                        Name = "Matrix A",
+                        ImportSource = "seed.json"
+                    }
+                ],
+                Managements = CreateDeviceInventory()
+            };
+            apiConnection.MatrixZoneResponses.Add(CreateMatrixZonesWithAutoCalculatedZones());
+            ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
+
+            string result = await import.Run(
+                "internet-reimport.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24"),
+                    CreateAutoInternetZone(kZoneADestination)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from internet-reimport.json"));
+                Assert.That(result, Does.Contain("new: 0"));
+                Assert.That(result, Does.Contain("updated: 0"));
+                Assert.That(result, Does.Contain("Deleted: 0"));
+                Assert.That(result, Does.Contain("Inserted connections: 1"));
             });
         }
 
@@ -1409,6 +1484,18 @@ namespace FWO.Test
             ];
         }
 
+        /// <summary>
+        /// Zones as reloaded after UpdateSpecialZones created the auto-calculated internet zone beside zone A.
+        /// </summary>
+        /// <returns>Zone A and the flagged auto-calculated internet zone.</returns>
+        private static List<ComplianceNetworkZone> CreateReloadedZoneAWithFlaggedAutoInternet()
+        {
+            ComplianceNetworkZone internetZone =
+                CreateExistingZone(102, NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Internet");
+            internetZone.IsAutoCalculatedInternetZone = true;
+            return [CreateExistingZone(101, "zone-a", "Zone A"), internetZone];
+        }
+
         private static List<ComplianceNetworkZone> CreateReloadedZoneA()
         {
             return [CreateExistingZone(101, "zone-a", "Zone A")];
@@ -1528,6 +1615,32 @@ namespace FWO.Test
             }
 
             return zone;
+        }
+
+        /// <summary>
+        /// Builds the auto-calculated internet zone as an import document defines it: no subnets, only communications.
+        /// </summary>
+        /// <param name="commTargets">Zones the internet zone may communicate to.</param>
+        /// <returns>The imported internet zone.</returns>
+        private static NetworkZoneData CreateAutoInternetZone(string[] commTargets)
+        {
+            return new NetworkZoneData
+            {
+                IdString = NetworkZoneService.kAutoCalculatedInternetZoneIdString,
+                Name = "Internet",
+                CommData = commTargets.Select(target => new CommunicationData { IdString = target }).ToList()
+            };
+        }
+
+        /// <summary>
+        /// Reads one property off the anonymous variables object of a sent query.
+        /// </summary>
+        /// <param name="variables">Variables object of the query.</param>
+        /// <param name="propertyName">Name of the property to read.</param>
+        /// <returns>The property value, or null when it does not exist.</returns>
+        private static object? ReadProperty(object? variables, string propertyName)
+        {
+            return variables?.GetType().GetProperty(propertyName)?.GetValue(variables);
         }
 
         private static ComplianceNetworkZone CreateExistingZone(int id, string idString, string name)

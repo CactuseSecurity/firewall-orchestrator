@@ -21,16 +21,21 @@
     <form onsubmit="return false">
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5562"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAvailableTaskTypes")):</label>
-            @foreach (WfTaskType type in Enum.GetValues(typeof(WfTaskType)))
-            {
-                @if(type != WfTaskType.master)
-                {
-                    <div class="form-group col-sm-1">
-                        <input id="cbx_@type.ToString()" type="checkbox" @bind="taskTypesActiveDict[type]" />
-                        <label for="cbx_@type.ToString()" class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
-                    </div>
-                }
-            }
+            @* nested row: further task types wrap below the first one instead of below the label *@
+            <div class="col-sm-9">
+                <div class="row">
+                    @foreach (WfTaskType type in Enum.GetValues(typeof(WfTaskType)))
+                    {
+                        @if(type != WfTaskType.master)
+                        {
+                            <div class="form-group col-6 col-md-4 col-xl-2">
+                                <input id="cbx_@type.ToString()" type="checkbox" @bind="taskTypesActiveDict[type]" />
+                                <label for="cbx_@type.ToString()" class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5563"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqPriorities")):</label>

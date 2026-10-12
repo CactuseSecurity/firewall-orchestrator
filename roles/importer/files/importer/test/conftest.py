@@ -20,6 +20,7 @@ if repo_graphql_query_path := find_repo_graphql_query_path(Path(__file__)):
 
 from typing import TYPE_CHECKING
 
+import fwo_api  # must be imported after FWO_GRAPHQL_QUERY_PATH is set above
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
@@ -46,6 +47,13 @@ from test.utils.config_builder import FwConfigBuilder
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
+
+
+@pytest.fixture(autouse=True)
+def disable_fwo_api_retries(monkeypatch: pytest.MonkeyPatch) -> None:
+    # every test sees exactly one request per api call, as before retries existed; tests of the
+    # retries themselves opt back in by setting their own delays
+    monkeypatch.setattr(fwo_api, "FWO_API_RETRY_DELAYS_SECONDS", ())
 
 
 @pytest.fixture

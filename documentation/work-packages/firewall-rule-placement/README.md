@@ -4,11 +4,11 @@
 
 This directory is the repository source of truth for firewall rule positioning work. Active planning documents override chat history and any material under `archive/`.
 
-The project is in planning. Phase 1 is approved and specified, but no Phase 1 production code has been implemented as part of this planning work. Phase 2 is intentionally deferred.
+Phase 1 is implemented and locally validated on the current `Cactus/develop` baseline. It remains open only because the mandatory disposable-VM fresh-install and `9.7.0` to `9.7.1` upgrade checks could not be run in the current session. Phase 2 is intentionally deferred.
 
 | Phase | Status | Purpose |
 | --- | --- | --- |
-| Phase 1 | Approved plan | Build a calculation-only, cross-vendor positioning foundation and independent position persistence. |
+| Phase 1 | Implemented; VM validation pending | Build a calculation-only, cross-vendor positioning foundation and independent position persistence. |
 | Phase 2 | Deferred | Analyze the customer rule-positioning document and build the Check Point strategy from small helpers. |
 | Previous proposal | Archived | Historical context only; it is not an alternative active plan. |
 
@@ -29,7 +29,7 @@ Read `phase-2/README.md` only when checking the deferred boundary. Do not use th
 
 Use this bootstrap prompt for a new planning session:
 
-> Read `.agents/AGENTS.md`, then `documentation/work-packages/firewall-rule-placement/SESSION-HANDOFF.md`, `README.md`, `DECISIONS.md`, and the active phase work packages in the order listed there. Treat those files as the source of truth. The archived proposal is historical only. Do not analyze `FWO_Regel_Platzierung_Regelwerk.md` until phase 2. We are planning, not coding. Continue from the “Next action” in `SESSION-HANDOFF.md`.
+> Read `.agents/AGENTS.md`, then `documentation/work-packages/firewall-rule-placement/SESSION-HANDOFF.md`, `README.md`, `DECISIONS.md`, and the active phase work packages in the order listed there. Treat those files as the source of truth. The archived proposal is historical only. Do not analyze `FWO_Regel_Platzierung_Regelwerk.md` until phase 2. Continue from the “Next action” in `SESSION-HANDOFF.md`.
 
 ## Roadmap boundary
 
@@ -85,7 +85,7 @@ WP-02 and WP-03 may proceed in parallel after WP-01 stabilizes. Phase 1 is not c
 - Calculation and persistence are separate operations.
 - Production calls return a safe not-implemented result while no production strategy is registered.
 - Safe diagnostics contain neither credentials nor complete rule contents.
-- The planned schema/version increment is `9.5.11`, subject to confirming that it is still unclaimed immediately before implementation.
+- The schema migration is part of the open `9.7.1` upgrade and leaves `product_version` unchanged (D-015).
 
 ## Session protocol
 

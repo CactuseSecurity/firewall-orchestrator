@@ -231,7 +231,7 @@ public class RulePositionPersistenceTest
         Assert.Multiple(() =>
         {
             Assert.That(upgrade, Does.Contain("ADD COLUMN IF NOT EXISTS rule_position jsonb"));
-            Assert.That(upgrade, Does.Not.Contain("NOT NULL"));
+            Assert.That(upgrade, Does.Not.Contain("rule_position jsonb NOT NULL"));
             Assert.That(creation, Does.Contain("rule_position jsonb"));
             Assert.That(creation, Does.Not.Contain("rule_position jsonb NOT NULL"));
         });

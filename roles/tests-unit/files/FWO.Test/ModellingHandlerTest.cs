@@ -567,6 +567,49 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, availableNwElems.Count);
         }
 
+        /// <summary>
+        /// Auditors and admins may try out the app role dialog, but a valid app role must still not be persisted.
+        /// </summary>
+        [Test]
+        public async Task Save_IsRejectedWithoutPersistingWhenUserMayOnlyTryOut()
+        {
+            ModellingHandlerTestApiConn apiConn = new();
+            SimulatedUserConfig localUserConfig = new() { ModNamingConvention = userConfig.ModNamingConvention };
+            ModellingAppRole role = new()
+            {
+                Name = "Role",
+                IdString = "AR5000002",
+                AppServers = new List<ModellingAppServerWrapper>
+                {
+                    new() { Content = new ModellingAppServer { Id = 10, Name = "Srv10" } }
+                }
+            };
+            List<ModellingAppRole> appRoles = new();
+            List<KeyValuePair<int, long>> availableNwElems = new();
+            List<string> messages = new();
+            ModellingAppRoleHandler handler = new(
+                apiConn,
+                localUserConfig,
+                new FwoOwner { Id = 1 },
+                appRoles,
+                role,
+                new List<ModellingAppServer>(),
+                availableNwElems,
+                true,
+                (_, title, text, _) => messages.Add($"{title}:{text}"),
+                isOwner: false);
+
+            bool result = await handler.Save();
+
+            ClassicAssert.IsFalse(result);
+            ClassicAssert.AreEqual(0, apiConn.NewAppRoleCalls);
+            ClassicAssert.AreEqual(0, apiConn.AddNwObjectCalls);
+            ClassicAssert.IsEmpty(appRoles);
+            ClassicAssert.IsEmpty(availableNwElems);
+            ClassicAssert.AreEqual(1, messages.Count);
+            ClassicAssert.AreEqual("change_app_role_forbidden:E9030", messages[0]);
+        }
+
         [Test]
         public async Task Save_UpdatesAppRoleAndAppliesQueuedServerChanges()
         {

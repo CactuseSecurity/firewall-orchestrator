@@ -127,8 +127,17 @@ namespace FWO.Services.Modelling
             return ActAppRole;
         }
 
+        /// <summary>
+        /// Persists the app role. Users who may only try out the dialog (IsOwner not set) are rejected.
+        /// </summary>
+        /// <returns>True if the app role has been saved.</returns>
         public async Task<bool> Save()
         {
+            if (!IsOwner)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("change_app_role_forbidden"), userConfig.GetText("E9030"), true);
+                return false;
+            }
             try
             {
                 if (ActAppRole.Sanitize())

@@ -10,6 +10,7 @@ using GraphQL.Client.Serializer.Newtonsoft;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using FWO.Services.PathAnalysis;
+using NetTools;
 
 namespace FWO.Middleware.Server.Services;
 
@@ -37,6 +38,9 @@ public sealed class PathAnalysisService
             MatrixId = taskDiff
         };
     }
+
+    List<IPAddressRange>
+
     /// <summary>
     /// Serializer with the settings the GraphQL client uses to write change-history snapshots.
     /// </summary>

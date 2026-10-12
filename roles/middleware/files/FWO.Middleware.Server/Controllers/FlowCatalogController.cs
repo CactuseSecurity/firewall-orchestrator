@@ -57,8 +57,9 @@ public class FlowCatalogController : ControllerBase
         nameof(GetAddressObjectId),
         [
             new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-            new RequestKeyDefinition("ipStart", "Start IP address for the address object lookup."),
-            new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup.")
+            new RequestKeyDefinition("ipHost", "One maskless IPv4 or IPv6 address."),
+            new RequestKeyDefinition("ipNetwork", "One IPv4 or IPv6 CIDR network; host bits are normalized."),
+            new RequestKeyDefinition("ipRange", "Two maskless addresses defining an inclusive range.")
         ]);
     private static readonly RequestFilterValidationSchema ServiceObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjectId));
     private static readonly RequestFilterValidationSchema TimeObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjectId));
@@ -321,10 +322,9 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Resolves an address object identifier from the supplied lookup request against the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
-    /// IPv4 and IPv6 ranges are accepted through ipStart and ipEnd.
-    /// Optional host masks (/32 and /128) are ignored; all other masks are rejected.
-    /// IPv6 values that only re-encode an IPv4 address are rejected as well, i.e. the IPv4-mapped form
-    /// (::ffff:a.b.c.d) and the deprecated IPv4-compatible form (::a.b.c.d); use the IPv4 notation instead.
+    /// Supply exactly one address representation: ipHost, ipNetwork, or ipRange.
+    /// Hosts and range endpoints must be maskless. Address text follows the shared FWO parser;
+    /// CIDRs with host bits are normalized to their inclusive network bounds.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressObjectId")]
@@ -335,26 +335,18 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        if (string.IsNullOrWhiteSpace(request.IpStart) || string.IsNullOrWhiteSpace(request.IpEnd))
-        {
-            return BadRequest("'ipStart' and 'ipEnd' are required.");
-        }
-
-        if (!FlowComplianceRequestValidator.TryValidateAndNormalizeIpRange(
-            request.IpStart,
-            request.IpEnd,
-            "address",
-            0,
-            out string normalizedIpStart,
-            out string normalizedIpEnd,
+        if (!AddressInputNormalizer.TryValidateAndNormalize(
+            request,
+            "'address' entry at index 0",
+            out NormalizedAddressBounds normalizedBounds,
             out string? addressErrorMessage))
         {
             return BadRequest(addressErrorMessage);
         }
 
-        request.IpStart = normalizedIpStart;
-        request.IpEnd = normalizedIpEnd;
-        return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));
+        request.NormalizedIpStart = normalizedBounds.IpStart;
+        request.NormalizedIpEnd = normalizedBounds.IpEnd;
+        return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.NormalizedIpStart, request.NormalizedIpEnd, request.Filter?.VisibleInRequest));
     }
 
     private static bool TryValidatePagedRequest<TRequest>(

@@ -1,7 +1,12 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Services;
 using FWO.Services.Workflow;
 using NUnit.Framework;
+using System.Reflection;
 using System.Text.Json;
 
 namespace FWO.Test
@@ -124,6 +129,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ConfAddCommentToApproval_PersistsAndAssignsComment()
+        {
+            ApprovalApiConnection apiConnection = new();
+            WfHandler handler = CreateApprovalHandlerWithDb(apiConnection);
+
+            await handler.ConfAddCommentToApproval("persisted comment");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.NewCommentCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.AssignCommentToApprovalCallCount, Is.EqualTo(1));
+                Assert.That(handler.ActApproval.Comments.Single().Comment.CommentText, Is.EqualTo("persisted comment"));
+                Assert.That(handler.DisplayApprovalCommentMode, Is.False);
+            });
+        }
+
+        [Test]
         public async Task ApproveTask_WithComment_StoresTerminalMetadataAndComment()
         {
             WfHandler handler = CreateApprovalHandler(4);
@@ -185,6 +207,102 @@ namespace FWO.Test
             Assert.That(handler.ActApproval.AssignedGroup, Is.EqualTo("cn=group"));
             Assert.That(handler.ActApproval.RecentHandler, Is.EqualTo(handler.ActApproval.CurrentHandler));
             Assert.That(handler.DisplayAssignApprovalMode, Is.False);
+        }
+
+        [Test]
+        public async Task AssignApproval_WithActionHandler_PersistsApprovalAndClosesDisplay()
+        {
+            ApprovalApiConnection apiConnection = new();
+            WfHandler handler = CreateApprovalHandlerWithDb(apiConnection);
+            handler.ActionHandler = new ActionHandler(apiConnection, handler);
+            handler.DisplayAssignApprovalMode = true;
+
+            await handler.AssignApprovalGroup(new WfStatefulObject { AssignedGroup = "cn=approver" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpdateApprovalCallCount, Is.EqualTo(1));
+                Assert.That(handler.ActApproval.AssignedGroup, Is.EqualTo("cn=approver"));
+                Assert.That(handler.ActApproval.RecentHandler, Is.EqualTo(handler.ActApproval.CurrentHandler));
+                Assert.That(handler.DisplayAssignApprovalMode, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task UpdateActApproval_PersistsApprovalAndUpdatesRequestTask()
+        {
+            ApprovalApiConnection apiConnection = new();
+            WfHandler handler = CreateApprovalHandlerWithDb(apiConnection);
+            handler.ActApproval.StateId = 3;
+
+            MethodInfo method = typeof(WfHandler).GetMethod("UpdateActApproval", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(typeof(WfHandler).FullName, "UpdateActApproval");
+            await (Task)(method.Invoke(handler, [false]) ?? throw new InvalidOperationException("UpdateActApproval returned null."));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpdateApprovalCallCount, Is.EqualTo(1));
+                Assert.That(handler.ActReqTask.Approvals.Single().StateId, Is.EqualTo(3));
+                Assert.That(handler.ActReqTask.Approvals.Single(), Is.SameAs(handler.ActApproval));
+            });
+        }
+
+        private static WfHandler CreateApprovalHandlerWithDb(ApprovalApiConnection apiConnection)
+        {
+            WfHandler handler = CreateApprovalHandler(4);
+            ActionHandler actionHandler = new(apiConnection, handler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, false, WorkflowPhases.approval);
+            typeof(WfHandler).GetField("dbAcc", BindingFlags.Instance | BindingFlags.NonPublic)?.SetValue(handler, dbAccess);
+            return handler;
+        }
+
+        private sealed class ApprovalApiConnection : SimulatedApiConnection
+        {
+            public int NewCommentCallCount { get; private set; }
+            public int AssignCommentToApprovalCallCount { get; private set; }
+            public int UpdateApprovalCallCount { get; private set; }
+
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == RequestQueries.newComment)
+                {
+                    NewCommentCallCount++;
+                    return Task.FromResult((T)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewIdLong = 601 }]
+                    });
+                }
+                if (query == RequestQueries.addCommentToApproval)
+                {
+                    AssignCommentToApprovalCallCount++;
+                    return Task.FromResult((T)(object)new ReturnIdWrapper { ReturnIds = [] });
+                }
+                if (query == RequestQueries.updateApproval)
+                {
+                    UpdateApprovalCallCount++;
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = 5 });
+                }
+                if (query == RequestQueries.getTicketById)
+                {
+                    return Task.FromResult((T)(object)new WfTicket
+                    {
+                        Id = 20,
+                        Tasks =
+                        [
+                            new WfReqTask
+                            {
+                                Id = 10,
+                                Approvals = [new WfApproval { Id = 5, StateId = 1 }]
+                            }
+                        ]
+                    });
+                }
+                if (query == ModellingQueries.addHistoryEntry || query == ModellingQueries.addHistoryEntryAsService)
+                {
+                    return Task.FromResult((T)(object)new ReturnIdWrapper { ReturnIds = [] });
+                }
+                throw new InvalidOperationException($"Unexpected query: {query}");
+            }
         }
 
         private static WfHandler CreateApprovalHandler(int lowestEndState)

@@ -14,7 +14,8 @@
 - the target managements of object tasks are resolved in the middleware (new endpoint
   POST /api/workflow/getImplTaskTargets for admin, the workflow roles and the modeller, limited to the managements
   visible to the caller), so the ui finds every sub-management without read access to the provisioning settings;
-  the targets are resolved once per creation run
+  the targets are resolved once per creation run; targets not visible to the caller are returned without name, so
+  their implementation tasks get no management suffix in the title
 
 ## 9.7.1 - 09.10.2026
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems

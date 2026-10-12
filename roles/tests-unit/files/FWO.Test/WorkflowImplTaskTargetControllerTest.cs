@@ -31,6 +31,7 @@ internal class WorkflowImplTaskTargetControllerTest
     private const string kFirstSubName = "domain-a";
     private const string kSecondSubName = "domain-b";
     private const string kVisibleManagementsClaim = "x-hasura-visible-managements";
+    private const string kWholeHierarchyVisible = "{20,21,22}";
 
     private static readonly List<string> kControllerRoutes = ["api/workflow"];
     private static readonly List<int> kBothSubManagements = [kFirstSubManagementId, kSecondSubManagementId];
@@ -63,7 +64,7 @@ internal class WorkflowImplTaskTargetControllerTest
     [Test]
     public async Task GetImplTaskTargetsReturnsEverySubManagementForAVisibleManagement()
     {
-        WorkflowImplTaskTargetController controller = CreateController(CreateApi(), Planner(kSuperManagementId));
+        WorkflowImplTaskTargetController controller = CreateController(CreateApi(), Principal(kPlannerRole, kWholeHierarchyVisible));
 
         ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest { ManagementId = kSuperManagementId });
 
@@ -86,13 +87,40 @@ internal class WorkflowImplTaskTargetControllerTest
     }
 
     [Test]
+    public async Task GetImplTaskTargetsOmitsTheNamesOfTargetsNotVisibleToTheCaller()
+    {
+        WorkflowImplTaskTargetController controller = CreateController(CreateApi(), Planner(kFirstSubManagementId));
+
+        ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest { ManagementId = kFirstSubManagementId });
+        ActionResult<GetImplTaskTargetsResponse> byHiddenName = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest
+        {
+            ManagementId = kFirstSubManagementId,
+            Options = new GetImplTaskTargetsOptions { Filter = new ImplTaskTargetFilter { Name = kSecondSubName } }
+        });
+
+        GetImplTaskTargetsResponse response = OkResponse(result);
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Targets.Select(target => target.Id), Is.EqualTo(kBothSubManagements));
+            Assert.That(response.Targets[0].Name, Is.EqualTo(kFirstSubName));
+            Assert.That(response.Targets[1].Name, Is.Empty);
+            Assert.That(OkResponse(byHiddenName).Targets, Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task GetImplTaskTargetsLetsTheAdminAskForAnyManagement()
     {
         WorkflowImplTaskTargetController controller = CreateController(CreateApi(), Principal(kAdminRole, ""));
 
         ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest { ManagementId = kSuperManagementId });
 
-        Assert.That(OkResponse(result).Targets.Select(target => target.Id), Is.EqualTo(kBothSubManagements));
+        GetImplTaskTargetsResponse response = OkResponse(result);
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Targets.Select(target => target.Id), Is.EqualTo(kBothSubManagements));
+            Assert.That(response.Targets[1].Name, Is.EqualTo(kSecondSubName));
+        });
     }
 
     [Test]
@@ -109,7 +137,7 @@ internal class WorkflowImplTaskTargetControllerTest
     [Test]
     public async Task GetImplTaskTargetsAppliesTheFilterToIdAndNameCaseInsensitively()
     {
-        WorkflowImplTaskTargetController controller = CreateController(CreateApi(), Planner(kSuperManagementId));
+        WorkflowImplTaskTargetController controller = CreateController(CreateApi(), Principal(kPlannerRole, kWholeHierarchyVisible));
 
         ActionResult<GetImplTaskTargetsResponse> byName = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest
         {

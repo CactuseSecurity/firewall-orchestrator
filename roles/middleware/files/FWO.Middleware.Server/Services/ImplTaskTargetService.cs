@@ -32,14 +32,21 @@ public sealed class ImplTaskTargetService
     /// <param name="managementId">Management the request task belongs to.</param>
     /// <param name="isServiceObject">True for services, false for network objects.</param>
     /// <param name="filter">Optional response filter; null applies no restriction.</param>
+    /// <param name="visibleManagementIds">Managements visible to the caller, or null when the caller sees every
+    /// management. Targets outside this set are returned without name, before the filter is applied.</param>
     /// <returns>The matching target managements.</returns>
-    public async Task<GetImplTaskTargetsResponse> GetImplTaskTargetsAsync(int managementId, bool isServiceObject, ImplTaskTargetFilter? filter)
+    public async Task<GetImplTaskTargetsResponse> GetImplTaskTargetsAsync(int managementId, bool isServiceObject, ImplTaskTargetFilter? filter,
+        IReadOnlySet<int>? visibleManagementIds = null)
     {
         List<Management> targets = await new ImplTaskManagementResolver(apiConnection).ResolveObjectTargets(managementId, isServiceObject);
         return new GetImplTaskTargetsResponse
         {
             Targets = [.. targets
-                .Select(target => new ImplTaskTargetResponse { Id = target.Id, Name = target.Name })
+                .Select(target => new ImplTaskTargetResponse
+                {
+                    Id = target.Id,
+                    Name = visibleManagementIds == null || visibleManagementIds.Contains(target.Id) ? target.Name : string.Empty
+                })
                 .Where(target => MatchesFilter(target, filter))]
         };
     }

@@ -40,7 +40,9 @@ public class WorkflowImplTaskTargetController : ControllerBase
     /// the rights of the middleware server, so the result does not depend on the managements the caller sees.
     /// <para>
     /// Callers other than admin may only ask for a management visible to them (JWT claim
-    /// x-hasura-visible-managements); any other management answers 403.
+    /// x-hasura-visible-managements); any other management answers 403. Targets not visible to such a caller
+    /// are returned with their id only and an empty name, so the endpoint does not disclose the names of
+    /// managements hidden from the caller; the name filter does not match them either.
     /// </para>
     /// </remarks>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Modeller}")]
@@ -59,13 +61,15 @@ public class WorkflowImplTaskTargetController : ControllerBase
 
         // Validation rejects both an absent and a non-positive managementId, so a value is present here.
         int managementId = request.ManagementId.GetValueOrDefault();
-        if (!CallerCanSeeManagement(managementId))
+        HashSet<int>? visibleManagementIds = GetVisibleManagementIds();
+        if (visibleManagementIds != null && !visibleManagementIds.Contains(managementId))
         {
             return Forbid();
         }
         try
         {
-            return Ok(await implTaskTargetService.GetImplTaskTargetsAsync(managementId, request.IsServiceObject, request.Options.Filter));
+            return Ok(await implTaskTargetService.GetImplTaskTargetsAsync(managementId, request.IsServiceObject, request.Options.Filter,
+                visibleManagementIds));
         }
         catch (Exception exception)
         {
@@ -74,8 +78,11 @@ public class WorkflowImplTaskTargetController : ControllerBase
         }
     }
 
-    private bool CallerCanSeeManagement(int managementId)
+    /// <summary>
+    /// Returns the managements visible to the caller, or null for the admin, who sees every management.
+    /// </summary>
+    private HashSet<int>? GetVisibleManagementIds()
     {
-        return User.IsInRole(Roles.Admin) || WorkflowController.GetClaimIds(User, kVisibleManagementsClaim).Contains(managementId);
+        return User.IsInRole(Roles.Admin) ? null : WorkflowController.GetClaimIds(User, kVisibleManagementsClaim);
     }
 }

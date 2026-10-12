@@ -29,7 +29,7 @@ public sealed class ImplTaskTargetResponse
 
     /// <summary>
     /// Gets or sets the name of the target management, used as suffix of the implementation task title. Empty
-    /// when the requested management is unknown.
+    /// when the requested management is unknown or the target management is not visible to the caller.
     /// </summary>
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;

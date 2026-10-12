@@ -218,7 +218,7 @@ namespace FWO.Test
             wrapper.WaitForAssertion(() =>
             {
                 Assert.That(wrapper.FindAll(".text-warning"), Is.Not.Empty);
-                Assert.That(wrapper.FindAll("button.btn-primary").Last().HasAttribute("disabled"), Is.False);
+                Assert.That(wrapper.FindAll("button.btn-primary")[^1].HasAttribute("disabled"), Is.False);
             });
         }
 

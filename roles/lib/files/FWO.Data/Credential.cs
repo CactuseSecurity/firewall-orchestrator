@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Data
 {
-    public class ImportCredential
+    public class Credential
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -30,10 +30,10 @@ namespace FWO.Data
         [JsonProperty("cloud_client_secret"), JsonPropertyName("cloud_client_secret")]
         public string? CloudClientSecret { get; set; }
 
-        public ImportCredential()
+        public Credential()
         { }
 
-        public ImportCredential(ImportCredential cred)
+        public Credential(Credential cred)
         {
             Id = cred.Id;
             Name = cred.Name;
@@ -44,7 +44,7 @@ namespace FWO.Data
             CloudClientId = cred.CloudClientId;
             CloudClientSecret = cred.CloudClientSecret;
         }
-        public ImportCredential(string username, string password)
+        public Credential(string username, string password)
         {
             ImportUser = username;
             Secret = password;

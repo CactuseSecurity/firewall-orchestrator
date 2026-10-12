@@ -67,6 +67,14 @@ class TestGetFwoJwt:
 
 
 class TestWaitWithShutdownCheck:
+    @pytest.fixture(autouse=True)
+    def _reset_shutdown_requested(self):
+        # Guard against cross-test pollution of this process-global flag, regardless
+        # of test order or whether a preceding test failed before its own cleanup ran.
+        fwo_globals.shutdown_requested = False
+        yield
+        fwo_globals.shutdown_requested = False
+
     def test_wait_completes_without_shutdown(
         self,
         mocker: MockerFixture,

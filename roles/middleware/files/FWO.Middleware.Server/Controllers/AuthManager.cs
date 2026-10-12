@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
@@ -29,6 +30,11 @@ namespace FWO.Middleware.Server.Controllers
         private readonly string UserAuthentication = "User Authentication";
         private const string kValidationLogCategory = "Token Validation";
 
+        /// <summary>
+        /// Deadline for all directory work of one login (authentication, groups and roles); shorter in tests.
+        /// </summary>
+        internal TimeSpan LoginTimeout { get; set; } = LdapAuthenticationGate.kTotalTimeout;
+
         public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection, TokenLifetimeProvider? tokenLifetimeProvider = null)
         {
             this.jwtWriter = jwtWriter;
@@ -43,9 +49,10 @@ namespace FWO.Middleware.Server.Controllers
         /// <param name="user">User to validate. Must contain username or dn and password if <paramref name="validatePassword"/> is true. If null, no authentication is performed and null is returned.</param>
         /// <param name="validatePassword">True to validate the user's password during authentication.</param>
         /// <param name="updateLoginState">True to persist login-related local UI-user updates such as last-login timestamps and first-time creation.</param>
+        /// <param name="cancellationToken">Cancels directory authentication when the request ends.</param>
         /// <returns>An authenticated user including dn, groups, roles, tenant, db id, and ownerships, or null for anonymous access.</returns>
         /// <remarks>A locally known user stays in its own directory, see <see cref="AuthDirectoryBinding"/>.</remarks>
-        public async Task<UiUser?> AuthenticateAndBuildUserAsync(UiUser? user, bool validatePassword, bool updateLoginState = true)
+        public async Task<UiUser?> AuthenticateAndBuildUserAsync(UiUser? user, bool validatePassword, bool updateLoginState = true, CancellationToken cancellationToken = default)
         {
             // Case: anonymous user
             if (user == null)
@@ -56,24 +63,7 @@ namespace FWO.Middleware.Server.Controllers
             int expectedDbId = user.DbId;
             int boundLdapId = await AuthDirectoryBinding.GetBoundLdapId(apiConnection, user);
 
-            // Retrieve ldap entry for user (throws exception if credentials are invalid)
-            (LdapEntry ldapUser, Ldap ldap) = await AuthenticateInAnyLdap(user, validatePassword, boundLdapId);
-
-            // Get dn of user
-            user.Dn = ldapUser.Dn;
-            Log.WriteInfo(UserAuthentication, $"User {user.Name} authenticated with dn={user.Dn}, selected_ldap=({AuthLoggingHelper.FormatSelectedLdap(ldap)})");
-
-            // Get email of user
-            user.Email = Ldap.GetEmail(ldapUser);
-            user.Firstname = Ldap.GetFirstName(ldapUser);
-            user.Lastname = Ldap.GetLastName(ldapUser);
-
-            // Get groups of user
-            user.Groups = await GetGroups(ldapUser, ldap);
-            Log.WriteInfo(UserAuthentication, $"Resolved groups for user dn={user.Dn}: {AuthLoggingHelper.FormatResolvedGroups(user.Groups)}");
-
-            // Get roles of user
-            user.Roles = await GetRoles(user);
+            (LdapEntry ldapUser, Ldap ldap) = await ResolveDirectoryContextAsync(user, validatePassword, boundLdapId, cancellationToken);
 
             // Get tenant of user
             user.Tenant = await GetTenantAsync(ldapUser, ldap);
@@ -86,6 +76,44 @@ namespace FWO.Middleware.Server.Controllers
             UiUser synchronizedUser = await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: updateLoginState, createIfMissing: updateLoginState);
             AuthDirectoryBinding.EnsureSameLocalUser(expectedDbId, synchronizedUser);
             return synchronizedUser;
+        }
+
+        /// <summary>
+        /// Authenticates the user and resolves dn, name, email, groups, and roles from the directories, all within
+        /// one deadline so that slow directories cannot hold the request.
+        /// </summary>
+        /// <exception cref="AuthenticationException">Thrown if the credentials are invalid.</exception>
+        /// <exception cref="LoginCapacityException">Thrown if the directories are busy or did not answer in time.</exception>
+        private async Task<(LdapEntry, Ldap)> ResolveDirectoryContextAsync(UiUser user, bool validatePassword, int boundLdapId, CancellationToken cancellationToken)
+        {
+            using CancellationTokenSource deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            deadline.CancelAfter(LoginTimeout);
+            try
+            {
+                // Retrieve ldap entry for user (throws exception if credentials are invalid)
+                (LdapEntry ldapUser, Ldap ldap) = await AuthenticateInAnyLdap(user, validatePassword, boundLdapId, deadline.Token);
+
+                // Get dn of user
+                user.Dn = ldapUser.Dn;
+                Log.WriteInfo(UserAuthentication, $"User {user.Name} authenticated with dn={user.Dn}, selected_ldap=({AuthLoggingHelper.FormatSelectedLdap(ldap)})");
+
+                // Get email of user
+                user.Email = Ldap.GetEmail(ldapUser);
+                user.Firstname = Ldap.GetFirstName(ldapUser);
+                user.Lastname = Ldap.GetLastName(ldapUser);
+
+                // Get groups of user
+                user.Groups = await GetGroups(ldapUser, ldap, deadline.Token);
+                Log.WriteInfo(UserAuthentication, $"Resolved groups for user dn={user.Dn}: {AuthLoggingHelper.FormatResolvedGroups(user.Groups)}");
+
+                // Get roles of user
+                user.Roles = await GetRoles(user, deadline.Token);
+                return (ldapUser, ldap);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw LdapAuthenticationGate.DeadlineExceeded(LoginTimeout);
+            }
         }
 
         /// <summary>
@@ -112,16 +140,17 @@ namespace FWO.Middleware.Server.Controllers
         /// </summary>
         /// <param name="ldapUser">Ldap entry of the user.</param>
         /// <param name="ldap">Ldap connection hosting the user.</param>
+        /// <param name="cancellationToken">Cancels the lookups when the login request ends or runs out of time.</param>
         /// <returns>Distinct list of group dns the user belongs to.</returns>
-        public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
+        public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap, CancellationToken cancellationToken = default)
         {
-            return await new UserGroupResolver(ldaps).GetGroups(ldapUser, ldap);
+            return await new UserGroupResolver(ldaps).GetGroups(ldapUser, ldap, cancellationToken);
         }
 
         /// <summary>
         /// Authenticates the user in the active LDAPs, or only in <paramref name="boundLdapId"/> if it is set.
         /// </summary>
-        public async Task<(LdapEntry, Ldap)> AuthenticateInAnyLdap(UiUser user, bool validatePassword, int boundLdapId = 0)
+        public async Task<(LdapEntry, Ldap)> AuthenticateInAnyLdap(UiUser user, bool validatePassword, int boundLdapId = 0, CancellationToken cancellationToken = default)
         {
             Log.WriteDebug(UserAuthentication, $"Trying to get ldap entry for user: {user.Name + " " + user.Dn}...");
 
@@ -131,7 +160,7 @@ namespace FWO.Middleware.Server.Controllers
             }
             else
             {
-                (LdapEntry? ldapEntry, Ldap? ldap) = await TryLoginAnywhere(user, validatePassword, boundLdapId);
+                (LdapEntry? ldapEntry, Ldap? ldap) = await TryLoginAnywhere(user, validatePassword, boundLdapId, cancellationToken);
                 if (ldapEntry != null && ldap != null)
                 {
                     return (ldapEntry, ldap);
@@ -143,7 +172,7 @@ namespace FWO.Middleware.Server.Controllers
             throw new AuthenticationException("A0002 Invalid credentials");
         }
 
-        private async Task<(LdapEntry?, Ldap?)> TryLoginAnywhere(UiUser user, bool validatePassword, int boundLdapId)
+        private async Task<(LdapEntry?, Ldap?)> TryLoginAnywhere(UiUser user, bool validatePassword, int boundLdapId, CancellationToken cancellationToken)
         {
             List<Ldap> activeLdaps = AuthDirectoryBinding.SelectCandidateLdaps(ldaps, boundLdapId);
             if (activeLdaps.Count == 0)
@@ -151,22 +180,17 @@ namespace FWO.Middleware.Server.Controllers
                 return (null, null);
             }
 
-            (LdapEntry? Entry, Ldap? Ldap)[] ldapResults = new (LdapEntry?, Ldap?)[activeLdaps.Count];
-            List<Task> ldapValidationRequests = [];
-
-            for (int ldapIndex = 0; ldapIndex < activeLdaps.Count; ldapIndex++)
+            List<Func<CancellationToken, Task<(LdapEntry? Entry, Ldap? Ldap)>>> attempts = [];
+            foreach (Ldap currentLdap in activeLdaps)
             {
-                int currentIndex = ldapIndex;
-                Ldap currentLdap = activeLdaps[currentIndex];
-                ldapValidationRequests.Add(Task.Run(async () =>
+                attempts.Add(async token =>
                 {
                     Log.WriteDebug(UserAuthentication, $"Trying to authenticate {user.Name + " " + user.Dn} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
-                    LdapEntry? currentLdapEntry = await TryLogin(currentLdap, user, validatePassword);
-                    ldapResults[currentIndex] = (currentLdapEntry, currentLdapEntry != null ? currentLdap : null);
-                }));
+                    LdapEntry? entry = await TryLogin(currentLdap, user, validatePassword, token);
+                    return (entry, entry != null ? currentLdap : null);
+                });
             }
-
-            await Task.WhenAll(ldapValidationRequests);
+            (LdapEntry? Entry, Ldap? Ldap)[] ldapResults = await LdapAuthenticationGate.RunAsync(attempts, cancellationToken);
 
             if (!validatePassword && boundLdapId <= 0 && ldapResults.Count(result => result.Entry != null) > 1)
             {
@@ -182,12 +206,12 @@ namespace FWO.Middleware.Server.Controllers
             return (null, null);
         }
 
-        private async Task<LdapEntry?> TryLogin(Ldap currentLdap, UiUser user, bool validatePassword)
+        private async Task<LdapEntry?> TryLogin(Ldap currentLdap, UiUser user, bool validatePassword, CancellationToken cancellationToken)
         {
             LdapEntry? currentLdapEntry = null;
             try
             {
-                currentLdapEntry = await currentLdap.GetLdapEntry(user, validatePassword);
+                currentLdapEntry = await currentLdap.GetLdapEntry(user, validatePassword, cancellationToken);
                 if (currentLdapEntry != null)
                 {
                     // User was successfully authenticated via this LDAP
@@ -201,6 +225,10 @@ namespace FWO.Middleware.Server.Controllers
                     }
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch
             {
                 // this Ldap can't validate user, but maybe another one can
@@ -208,7 +236,13 @@ namespace FWO.Middleware.Server.Controllers
             return currentLdapEntry;
         }
 
-        public async Task<List<string>> GetRoles(UiUser user)
+        /// <summary>
+        /// Resolves the roles of the user and its groups from all active LDAP connections with role handling.
+        /// </summary>
+        /// <param name="user">User with resolved dn and groups.</param>
+        /// <param name="cancellationToken">Cancels the lookups when the login request ends or runs out of time.</param>
+        /// <returns>Roles of the user, or the anonymous role if none were found.</returns>
+        public async Task<List<string>> GetRoles(UiUser user, CancellationToken cancellationToken = default)
         {
             List<string> dnList =
             [
@@ -229,13 +263,13 @@ namespace FWO.Middleware.Server.Controllers
                 ldapRoleRequests.Add(Task.Run(async () =>
                 {
                     // Get roles from current Ldap
-                    List<string> currentRoles = await currentLdap.GetRoles(dnList);
+                    List<string> currentRoles = await LdapAuthenticationGate.RunInSlotAsync(token => currentLdap.GetRoles(dnList, token), cancellationToken);
 
                     lock (rolesLock)
                     {
                         userRoles.AddRange(currentRoles);
                     }
-                }));
+                }, cancellationToken));
             }
 
             await Task.WhenAll(ldapRoleRequests);

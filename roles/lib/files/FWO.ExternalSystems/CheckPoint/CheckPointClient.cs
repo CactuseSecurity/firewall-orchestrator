@@ -17,13 +17,27 @@ namespace FWO.ExternalSystems.CheckPoint
         private string? SessionId;
         public string? CurrentSessionId => SessionId;
 
-        // checkCertificates: false keeps the behaviour this client has always had - a
-        // CheckPoint management server typically presents its own self-signed certificate,
-        // which no FWO host trusts. Only the FWO internal REST leg validates by default.
-        public CheckPointClient(ExternalTicketSystem ticketSystem, Management management)
-            : base(BuildBaseUrl(ticketSystem, management), ticketSystem.ResponseTimeout, checkCertificates: false)
+        /// <summary>
+        /// Creates a client for the CheckPoint management API addressed by the ticket system and management.
+        /// </summary>
+        /// <param name="ticketSystem">The ticket system, whose url is used when the management has no hostname.</param>
+        /// <param name="management">The management the request is sent to.</param>
+        /// <param name="certificateChecks">The certificate checking switches per connection type.</param>
+        public CheckPointClient(ExternalTicketSystem ticketSystem, Management management, ExternalCertificateChecks certificateChecks)
+            : base(BuildBaseUrl(ticketSystem, management), ticketSystem.ResponseTimeout, checkCertificates: ResolveCheckCertificates(management, certificateChecks))
         {
             Management = management;
+        }
+
+        /// <summary>
+        /// Takes the certificate checking switch of the connection type the base url is built from.
+        /// </summary>
+        /// <param name="management">The management the request is sent to; without a hostname the ticket system url is used.</param>
+        /// <param name="certificateChecks">The certificate checking switches per connection type.</param>
+        /// <returns>True when the server certificate has to be checked.</returns>
+        public static bool ResolveCheckCertificates(Management management, ExternalCertificateChecks certificateChecks)
+        {
+            return string.IsNullOrWhiteSpace(management.Hostname) ? certificateChecks.TicketSystems : certificateChecks.FirewallConnections;
         }
 
         private static string BuildBaseUrl(ExternalTicketSystem ticketSystem, Management management)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __version__ = "2025-11-20-01"
 # revision history:
 # 2025-11-20-01, initial version
@@ -5,7 +7,9 @@ __version__ = "2025-11-20-01"
 
 import json
 import logging
+import ssl
 import sys
+from pathlib import Path
 from typing import Any
 
 DEBUG_LEVEL_VERBOSE: int = 8
@@ -207,6 +211,31 @@ def read_custom_config_with_default(
     except Exception:
         logger.exception("could not read key %s from config file %s", key_to_get, config_filename)
         sys.exit(1)
+
+
+# The operating system trust stores of the supported platforms (Debian/Ubuntu, Red Hat/Rocky).
+# requests would otherwise use the certifi bundle, which ignores CAs an operator added to the host.
+SYSTEM_CA_BUNDLE_CANDIDATES: list[str] = [
+    "/etc/ssl/certs/ca-certificates.crt",
+    "/etc/pki/tls/certs/ca-bundle.crt",
+]
+
+
+def resolve_requests_verify(check_certificates: bool, candidates: list[str] | None = None) -> bool | str:
+    """
+    Translate a certificate checking decision into the value requests expects for verify.
+
+    False switches checking off. Otherwise the host trust store is named explicitly, so a CA
+    the operator added to the host is honoured; True (the certifi bundle) is the fallback.
+    """
+    if not check_certificates:
+        return False
+    paths: list[str] = list(SYSTEM_CA_BUNDLE_CANDIDATES if candidates is None else candidates)
+    paths.append(ssl.get_default_verify_paths().openssl_cafile)
+    for path in paths:
+        if path and Path(path).is_file():
+            return path
+    return True
 
 
 def get_logger(debug_level_in: int = 0) -> FWOLogger:

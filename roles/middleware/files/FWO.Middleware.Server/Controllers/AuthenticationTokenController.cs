@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
@@ -28,6 +29,7 @@ namespace FWO.Middleware.Server.Controllers
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
+        private readonly LoginThrottle loginThrottle;
 
         // Longer than a healthy refresh ever takes, short enough that a caller stuck behind
         // a hanging one gets an answer before its own HTTP timeout.
@@ -35,6 +37,7 @@ namespace FWO.Middleware.Server.Controllers
 
         private const string kRefreshLogCategory = "Token Refresh";
         private const string kRevokeLogCategory = "Token Revoke";
+        private const string kLoginLogCategory = "User Authentication";
 
         private enum RefreshTokenConsumptionState
         {
@@ -44,14 +47,70 @@ namespace FWO.Middleware.Server.Controllers
         }
 
         /// <summary>
-        /// Constructor needing jwt writer, ldap list and connection
+        /// Constructor needing jwt writer, ldap list, connection and the login throttle
         /// </summary>
-        public AuthenticationTokenController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection, TokenLifetimeProvider tokenLifetimeProvider)
+        public AuthenticationTokenController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection, TokenLifetimeProvider tokenLifetimeProvider, LoginThrottle loginThrottle)
         {
             this.jwtWriter = jwtWriter;
             this.ldaps = ldaps;
             this.apiConnection = apiConnection;
             this.tokenLifetimeProvider = tokenLifetimeProvider;
+            this.loginThrottle = loginThrottle;
+        }
+
+        private CancellationToken RequestAborted => HttpContext?.RequestAborted ?? default;
+
+        private IPAddress? ClientAddress => HttpContext?.Connection.RemoteIpAddress;
+
+        /// <summary>
+        /// Admits a login attempt to the directories, unless the client or the user name exceeded its login limit.
+        /// </summary>
+        /// <param name="userName">Login name of the attempt; null for anonymous requests, which are never limited.</param>
+        /// <returns>The attempt, to be disposed when it ends, or null if it has to be answered with 429 (see ThrottledResult).</returns>
+        private LoginAttempt? BeginAttempt(string? userName)
+        {
+            LoginAttempt? attempt = loginThrottle.BeginAttempt(userName, ClientAddress);
+            if (attempt == null)
+            {
+                Log.WriteWarning(kLoginLogCategory, $"Login attempt for user \"{userName}\" from {ClientAddress} refused: login limit exceeded.");
+            }
+            return attempt;
+        }
+
+        /// <summary>
+        /// Answers a login refused by the login limits before any LDAP work.
+        /// </summary>
+        private ObjectResult ThrottledResult()
+        {
+            return CapacityResult(new LoginCapacityException(LoginCapacityException.kTooManyAttempts, StatusCodes.Status429TooManyRequests));
+        }
+
+        /// <summary>
+        /// Answers a refused login with its status code, telling the client when to retry.
+        /// </summary>
+        private ObjectResult CapacityResult(LoginCapacityException exception)
+        {
+            if (HttpContext != null)
+            {
+                HttpContext.Response.Headers.RetryAfter = LoginThrottle.kRetryAfterSeconds.ToString();
+            }
+            return StatusCode(exception.StatusCode, exception.Message);
+        }
+
+        /// <summary>
+        /// Authenticates a user by password and counts invalid credentials against the user's failure limit.
+        /// </summary>
+        private async Task<UiUser?> AuthenticateWithPasswordAsync(AuthManager authManager, UiUser? user, LoginAttempt attempt)
+        {
+            try
+            {
+                return await authManager.AuthenticateAndBuildUserAsync(user, validatePassword: true, cancellationToken: RequestAborted);
+            }
+            catch (AuthenticationException)
+            {
+                attempt.RecordFailure();
+                throw;
+            }
         }
 
         /// <summary>
@@ -80,9 +139,15 @@ namespace FWO.Middleware.Server.Controllers
                         user = new UiUser { Name = username, Password = password };
                 }
 
+                using LoginAttempt? attempt = BeginAttempt(user?.Name);
+                if (attempt == null)
+                {
+                    return ThrottledResult();
+                }
+
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
 
-                UiUser? authenticatedUser = await authManager.AuthenticateAndBuildUserAsync(user, validatePassword: true);
+                UiUser? authenticatedUser = await AuthenticateWithPasswordAsync(authManager, user, attempt);
 
                 // Creates access and refresh token and stores the refresh token hash in DB
                 TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedUser);
@@ -91,6 +156,10 @@ namespace FWO.Middleware.Server.Controllers
                     : "Issued token pair after successful authentication.");
 
                 return Ok(tokenPair);
+            }
+            catch (LoginCapacityException ex)
+            {
+                return CapacityResult(ex);
             }
             catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
             {
@@ -125,10 +194,16 @@ namespace FWO.Middleware.Server.Controllers
         {
             try
             {
+                using LoginAttempt? attempt = BeginAttempt(parameters.AdminUsername);
+                if (attempt == null)
+                {
+                    return ThrottledResult();
+                }
+
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
                 UiUser adminUser = new() { Name = parameters.AdminUsername, Password = parameters.AdminPassword };
 
-                UiUser authenticatedAdminUser = await authManager.AuthenticateAndBuildUserAsync(adminUser, validatePassword: true)
+                UiUser authenticatedAdminUser = await AuthenticateWithPasswordAsync(authManager, adminUser, attempt)
                     ?? throw new AuthenticationException("Provided admin credentials are invalid.");
 
                 if (!authenticatedAdminUser.Roles.Contains(Roles.Admin))
@@ -138,7 +213,7 @@ namespace FWO.Middleware.Server.Controllers
 
                 UiUser targetUser = AuthDirectoryBinding.BuildDelegatedTargetUser(parameters);
 
-                UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false)
+                UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false, cancellationToken: RequestAborted)
                     ?? throw new AuthenticationException("Provided target user credentials are invalid.");
 
                 // Delegated tokens are not refreshable: withholding the refresh token prevents an admin-issued
@@ -148,6 +223,10 @@ namespace FWO.Middleware.Server.Controllers
                 WriteTokenPairAudit("IssueDelegatedTokenPair", tokenPair, authenticatedAdminUser, $"Issued delegated token pair for target user \"{authenticatedTargetUser.Name}\".");
 
                 return Ok(tokenPair);
+            }
+            catch (LoginCapacityException e)
+            {
+                return CapacityResult(e);
             }
             catch (Exception e)
             {
@@ -183,9 +262,15 @@ namespace FWO.Middleware.Server.Controllers
                         user = new UiUser { Name = username, Password = password };
                 }
 
+                using LoginAttempt? attempt = BeginAttempt(user?.Name);
+                if (attempt == null)
+                {
+                    return ThrottledResult();
+                }
+
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
 
-                UiUser? authenticatedUser = await authManager.AuthenticateAndBuildUserAsync(user, validatePassword: true);
+                UiUser? authenticatedUser = await AuthenticateWithPasswordAsync(authManager, user, attempt);
 
                 TimeSpan accessLifetime = authenticatedUser == null ? tokenLifetimeProvider.GetAnonymousTokenLifetime() : await tokenLifetimeProvider.GetUserAccessTokenLifetimeAsync(apiConnection);
 
@@ -196,6 +281,10 @@ namespace FWO.Middleware.Server.Controllers
                     : "Issued access token after successful authentication.");
 
                 return Ok(jwt);
+            }
+            catch (LoginCapacityException e)
+            {
+                return CapacityResult(e);
             }
             catch (Exception e)
             {
@@ -221,12 +310,17 @@ namespace FWO.Middleware.Server.Controllers
             {
                 string adminUsername = parameters.AdminUsername;
                 string adminPassword = parameters.AdminPassword;
+                using LoginAttempt? attempt = BeginAttempt(adminUsername);
+                if (attempt == null)
+                {
+                    return ThrottledResult();
+                }
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
                 UiUser adminUser = new() { Name = adminUsername, Password = adminPassword };
                 // Check if admin valids are valid
                 try
                 {
-                    UiUser authenticatedAdminUser = await authManager.AuthenticateAndBuildUserAsync(adminUser, validatePassword: true)
+                    UiUser authenticatedAdminUser = await AuthenticateWithPasswordAsync(authManager, adminUser, attempt)
                         ?? throw new AuthenticationException("Provided admin credentials are invalid.");
                     if (!authenticatedAdminUser.Roles.Contains(Roles.Admin))
                     {
@@ -234,7 +328,7 @@ namespace FWO.Middleware.Server.Controllers
                     }
                     adminUser = authenticatedAdminUser;
                 }
-                catch (Exception e)
+                catch (Exception e) when (e is not LoginCapacityException)
                 {
                     throw new AuthenticationException("Error while validating admin credentials: " + e.Message);
                 }
@@ -242,7 +336,7 @@ namespace FWO.Middleware.Server.Controllers
                 try
                 {
                     UiUser targetUser = AuthDirectoryBinding.BuildDelegatedTargetUser(parameters);
-                    UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false)
+                    UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false, cancellationToken: RequestAborted)
                         ?? throw new AuthenticationException("Provided target user credentials are invalid.");
 
                     TimeSpan configuredLifetime = await tokenLifetimeProvider.GetUserAccessTokenLifetimeAsync(apiConnection);
@@ -253,10 +347,14 @@ namespace FWO.Middleware.Server.Controllers
 
                     return Ok(jwt);
                 }
-                catch (Exception e)
+                catch (Exception e) when (e is not LoginCapacityException)
                 {
                     throw new AuthenticationException("Error while validating user credentials (user name): " + e.Message);
                 }
+            }
+            catch (LoginCapacityException e)
+            {
+                return CapacityResult(e);
             }
             catch (Exception e)
             {
@@ -346,7 +444,7 @@ namespace FWO.Middleware.Server.Controllers
                     return Unauthorized("User not found");
                 }
 
-                UiUser? user = await authManager.AuthenticateAndBuildUserAsync(storedUser, validatePassword: false, updateLoginState: false);
+                UiUser? user = await authManager.AuthenticateAndBuildUserAsync(storedUser, validatePassword: false, updateLoginState: false, cancellationToken: RequestAborted);
 
                 if (user == null)
                 {
@@ -402,6 +500,12 @@ namespace FWO.Middleware.Server.Controllers
 
                 return StatusCode(StatusCodes.Status503ServiceUnavailable,
                     "The API could not be reached while refreshing the token. Please retry.");
+            }
+            catch (LoginCapacityException exception)
+            {
+                // Raised while rebuilding the user, before the refresh token is consumed, so the client keeps a
+                // token that still works and must be told to retry rather than to log in again.
+                return CapacityResult(new LoginCapacityException(exception.Message, StatusCodes.Status503ServiceUnavailable));
             }
             catch (Exception ex)
             {

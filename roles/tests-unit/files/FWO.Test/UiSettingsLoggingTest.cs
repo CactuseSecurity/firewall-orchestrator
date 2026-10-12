@@ -116,6 +116,99 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ApplyLogTimeRange_StoresTheEnteredRangeInSeconds()
+        {
+            SettingsLogging component = CreateComponentWithMaxEntries(1000);
+            SetPrivateField(component, "logTimeRangeValue", 36);
+            SetPrivateField(component, "logTimeRangeUnit", LogTimeRangeUnit.Hours);
+
+            InvokePrivateMethod("ApplyLogTimeRange", component);
+
+            Assert.That(GetPrivateField<ConfigData>(component, "configData").DefaultLogTimeRangeInSeconds, Is.EqualTo(129600));
+        }
+
+        [Test]
+        public void PrepareConfigData_RaisesANonPositiveLogTimeRangeToOneSecond()
+        {
+            SettingsLogging component = CreateComponentWithMaxEntries(1000);
+            GetPrivateField<ConfigData>(component, "configData").DefaultLogTimeRangeInSeconds = 0;
+
+            InvokePrivateMethod("PrepareConfigData", component);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<ConfigData>(component, "configData").DefaultLogTimeRangeInSeconds, Is.EqualTo(1));
+                Assert.That(GetPrivateField<int>(component, "logTimeRangeValue"), Is.EqualTo(1));
+                Assert.That(GetPrivateField<LogTimeRangeUnit>(component, "logTimeRangeUnit"), Is.EqualTo(LogTimeRangeUnit.Seconds));
+            });
+        }
+
+        [Test]
+        public void PrepareConfigData_KeepsTheDefaultLogTimeRangeOfAWeek()
+        {
+            SettingsLogging component = CreateComponentWithMaxEntries(1000);
+
+            InvokePrivateMethod("PrepareConfigData", component);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<ConfigData>(component, "configData").DefaultLogTimeRangeInSeconds, Is.EqualTo(604800));
+                Assert.That(GetPrivateField<int>(component, "logTimeRangeValue"), Is.EqualTo(1));
+                Assert.That(GetPrivateField<LogTimeRangeUnit>(component, "logTimeRangeUnit"), Is.EqualTo(LogTimeRangeUnit.Weeks));
+            });
+        }
+
+        [Test]
+        public void ConfigData_HidesTheLogTimeColumnAndAggregatesOverAWeekByDefault()
+        {
+            ConfigData configData = new();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(configData.HideLogTimeColumn, Is.True);
+                Assert.That(configData.ShowLogImportTimeInHeading, Is.False);
+                Assert.That(configData.ResolveLogDataDns, Is.True);
+                Assert.That(configData.DefaultLogTimeRangeInSeconds, Is.EqualTo(604800));
+            });
+        }
+
+        /// <summary>
+        /// Both import-time display choices survive saving the logging settings.
+        /// </summary>
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Save_PersistsTheLogTableSettings(bool showImportTime)
+        {
+            SettingsLogging component = new();
+            RecordingSettingsApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new() { ShowLogImportTimeInHeading = !showImportTime };
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.HideLogTimeColumn = false;
+            editableConfig.ShowLogImportTimeInHeading = showImportTime;
+            editableConfig.ResolveLogDataDns = false;
+            SetMember(component, "globalConfig", globalConfig);
+            SetMember(component, "apiConnection", apiConnection);
+            SetMember(component, "userConfig", new SimulatedUserConfig());
+            SetPrivateField(component, "configData", editableConfig);
+            SetPrivateField(component, "logDataPaths", new List<string>());
+            SetPrivateField(component, "pathsToAdd", new List<string>());
+            SetPrivateField(component, "pathsToDelete", new List<string>());
+            SetPrivateField(component, "logTimeRangeValue", 1);
+            SetPrivateField(component, "logTimeRangeUnit", LogTimeRangeUnit.Days);
+            InvokePrivateMethod("ApplyLogTimeRange", component);
+
+            await InvokePrivateMethodAsync("Save", component);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "hideLogTimeColumn").Value, Is.EqualTo("False"));
+                Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "showLogImportTimeInHeading").Value, Is.EqualTo(showImportTime.ToString()));
+                Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "resolveLogDataDns").Value, Is.EqualTo("False"));
+                Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "defaultLogTimeRangeInSeconds").Value, Is.EqualTo("86400"));
+            });
+        }
+
+        [Test]
         public async Task Save_PersistsPreparedPathsAndClampsMinimumValues()
         {
             SettingsLogging component = new();

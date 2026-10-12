@@ -2,8 +2,6 @@
   config(
     where: {
       _or: [
-        { config_key: { _eq: "importCheckCertificates" } }
-        { config_key: { _eq: "importSuppressCertificateWarnings" } }
         { config_key: { _eq: "complianceCheckInternetZoneObject" } }
         { config_key: { _eq: "complianceCheckMailBody" } }
         { config_key: { _eq: "complianceCheckMailRecipients" } }

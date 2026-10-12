@@ -1,4 +1,6 @@
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from fw_modules.checkpointR8x.cp_nat import (
     filter_nat_rulebases_for_gateway,
@@ -12,8 +14,10 @@ from fw_modules.checkpointR8x.cp_nat import (
     parse_nat_rulebase,
     parse_native_nat_rulebases,
 )
-from model_controllers.import_state_controller import ImportStateController
 from models.rulebase import Rulebase
+
+if TYPE_CHECKING:
+    from model_controllers.import_state_controller import ImportStateController
 
 
 def _make_nat_rule(uid: str = "rule-uid-1") -> dict[str, Any]:

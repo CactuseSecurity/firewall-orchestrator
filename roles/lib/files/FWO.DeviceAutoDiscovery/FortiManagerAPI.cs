@@ -7,10 +7,12 @@ namespace FWO.DeviceAutoDiscovery
 {
     public class FortiManagerClient : RestApiClient
     {
-        // checkCertificates: false keeps the behaviour this client has always had - a
-        // FortiManager typically presents its own self-signed certificate, which no FWO
-        // host trusts. Only the FWO internal REST leg validates by default.
-        public FortiManagerClient(Management fortiManager) : base("https://" + fortiManager.Hostname + ":" + fortiManager.Port + "/jsonrpc", checkCertificates: false)
+        /// <summary>
+        /// Creates a client for the FortiManager json rpc API of the given management.
+        /// </summary>
+        /// <param name="fortiManager">The management to connect to.</param>
+        /// <param name="checkCertificates">Whether the server certificate is checked (global setting for firewall connections).</param>
+        public FortiManagerClient(Management fortiManager, bool checkCertificates) : base("https://" + fortiManager.Hostname + ":" + fortiManager.Port + "/jsonrpc", checkCertificates: checkCertificates)
         { }
 
         public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd, string domainString = "")

@@ -11,8 +11,28 @@ namespace FWO.Data
         [JsonProperty("import_time"), JsonPropertyName("import_time")]
         public DateTimeOffset? ImportTime { get; set; }
 
+        /// <summary>
+        /// Period the log counts of the file were aggregated over. Optional, it overrides the
+        /// configured default log time range for this file.
+        /// </summary>
+        [JsonProperty("log_time_range_in_seconds"), JsonPropertyName("log_time_range_in_seconds")]
+        public int? LogTimeRangeInSeconds { get; set; }
+
         [JsonProperty("logs"), JsonPropertyName("logs")]
         public List<LogDataImportEntry> Logs { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Aggregation period and import time shared by a set of displayed log rows.
+    /// </summary>
+    public class LogDataImportPeriod
+    {
+        [JsonProperty("log_time_range_in_seconds"), JsonPropertyName("log_time_range_in_seconds")]
+        public int LogTimeRangeInSeconds { get; set; }
+
+        [JsonProperty("import_time"), JsonPropertyName("import_time")]
+        public DateTimeOffset ImportTime { get; set; }
+
     }
 
     /// <summary>

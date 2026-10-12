@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 from fw_modules.ciscofirepowerdomain7ff.fwcommon import CiscoFirepowerDomain7ffCommon
 from fw_modules.fortiadom5ff.fmgr_user import normalize_users

@@ -17,6 +17,7 @@ namespace FWO.Test
     [Parallelizable]
     internal class ExtTicketHandlerTest
     {
+        private static readonly ExternalCertificateChecks CertificateChecks = new(FirewallConnections: true, TicketSystems: true);
         readonly static ExternalTicketSystem ticketSystem = new()
         {
             Id = 1,
@@ -162,7 +163,7 @@ namespace FWO.Test
         [Test]
         public async Task TestGetWaitCycles()
         {
-            SCTicket ticket = new(ticketSystem);
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
             using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
             ExternalRequest oldRquestGrp = new() { ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks[0]), ExtRequestContent = ticket.TicketText };

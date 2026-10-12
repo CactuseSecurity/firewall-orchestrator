@@ -70,8 +70,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importSleepTime"), JsonPropertyName("importSleepTime")]
         public int ImportSleepTime { get; set; } = 40;
 
+        /// <summary>
+        /// Whether TLS certificates of all firewall management connections are checked: importer, autodiscovery
+        /// and Check Point change requests.
+        /// </summary>
         [JsonProperty("importCheckCertificates"), JsonPropertyName("importCheckCertificates")]
-        public bool ImportCheckCertificates { get; set; } = false;
+        public bool ImportCheckCertificates { get; set; } = true;
 
         [JsonProperty("importSuppressCertificateWarnings"), JsonPropertyName("importSuppressCertificateWarnings")]
         public bool ImportSuppressCertificateWarnings { get; set; } = true;
@@ -228,6 +232,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("emailSenderAddress"), JsonPropertyName("emailSenderAddress")]
         public string EmailSenderAddress { get; set; } = "";
 
+        /// <summary>
+        /// Whether the TLS certificate of the email server is checked (StartTls and Tls only).
+        /// </summary>
+        [JsonProperty("emailCheckCertificates"), JsonPropertyName("emailCheckCertificates")]
+        public bool EmailCheckCertificates { get; set; } = true;
+
         [JsonProperty("useDummyEmailAddress"), JsonPropertyName("useDummyEmailAddress")]
         public bool UseDummyEmailAddress { get; set; } = false;
 
@@ -369,11 +379,26 @@ namespace FWO.Config.Api.Data
         [JsonProperty("allowLogDataPortWithoutProtocol"), JsonPropertyName("allowLogDataPortWithoutProtocol")]
         public bool AllowLogDataPortWithoutProtocol { get; set; } = false;
 
+        [JsonProperty("resolveLogDataDns"), JsonPropertyName("resolveLogDataDns")]
+        public bool ResolveLogDataDns { get; set; } = true;
+
         [JsonProperty("replaceExistingLogData"), JsonPropertyName("replaceExistingLogData")]
         public bool ReplaceExistingLogData { get; set; } = true;
 
         [JsonProperty("showLogDataInConnections"), JsonPropertyName("showLogDataInConnections")]
         public bool ShowLogDataInConnections { get; set; } = false;
+
+        [JsonProperty("hideLogTimeColumn"), JsonPropertyName("hideLogTimeColumn")]
+        public bool HideLogTimeColumn { get; set; } = true;
+
+        /// <summary>
+        /// Includes the time next to the import date, which ends the aggregation period, in the log heading.
+        /// </summary>
+        [JsonProperty("showLogImportTimeInHeading"), JsonPropertyName("showLogImportTimeInHeading")]
+        public bool ShowLogImportTimeInHeading { get; set; } = false;
+
+        [JsonProperty("defaultLogTimeRangeInSeconds"), JsonPropertyName("defaultLogTimeRangeInSeconds")]
+        public int DefaultLogTimeRangeInSeconds { get; set; } = GlobalConst.kDefaultLogTimeRangeInSeconds;
 
         [JsonProperty("OwnerSoruceMappingID"), JsonPropertyName("OwnerSoruceMappingID")]
         public int OwnerSoruceMappingID { get; set; } = 0;
@@ -530,6 +555,21 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
         public string ExtTicketSystems { get; set; } = "";
+
+        /// <summary>
+        /// Whether TLS certificates of all external ticket systems are checked.
+        /// </summary>
+        [JsonProperty("extTicketSystemsCheckCertificates"), JsonPropertyName("extTicketSystemsCheckCertificates")]
+        public bool ExtTicketSystemsCheckCertificates { get; set; } = true;
+
+        /// <summary>
+        /// Collects the certificate checking switches needed by external ticket system connections.
+        /// </summary>
+        /// <returns>The switches for firewall connections and ticket systems.</returns>
+        public ExternalCertificateChecks GetExternalCertificateChecks()
+        {
+            return new ExternalCertificateChecks(ImportCheckCertificates, ExtTicketSystemsCheckCertificates);
+        }
 
         [JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]
         public string ModExtraConfigs { get; set; } = "";

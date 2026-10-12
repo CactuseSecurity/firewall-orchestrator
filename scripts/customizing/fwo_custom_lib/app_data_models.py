@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __version__ = "2025-11-20-01"
 # revision history:
 # 2025-11-20-01, initial version

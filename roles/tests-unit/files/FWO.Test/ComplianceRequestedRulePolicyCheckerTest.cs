@@ -111,6 +111,50 @@ namespace FWO.Test
             Assert.That(result, Is.False);
         }
 
+        /// <summary>
+        /// Rules requested in separate tasks are compared together while retaining their destination ports.
+        /// </summary>
+        [TestCase(443, 1, false)]
+        [TestCase(8443, 1, true)]
+        [TestCase(443, 2, true)]
+        public async Task AreRequestTasksCompliant_ReverseRulesInTwoTasks(int reversePort, int reverseManagementId, bool expectedCompliant)
+        {
+            CompliancePolicy policy = new()
+            {
+                Id = 5,
+                Criteria =
+                {
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 1,
+                            CriterionType = nameof(CriterionType.ForbidBidirectionalDuplicate)
+                        }
+                    }
+                }
+            };
+            List<Management> managements = new()
+            {
+                new Management { Id = 1, Name = "Mgmt1" },
+                new Management { Id = 2, Name = "Mgmt2" }
+            };
+            ApiConnection.AsSub().SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames).Returns(managements);
+            ApiConnection.AsSub().SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>()).Returns(policy);
+            WfReqTask forwardTask = CreateEligibleRequestTask(17);
+            WfReqTask reverseTask = CreateEligibleRequestTask(18);
+            reverseTask.ManagementId = reverseManagementId;
+            reverseTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = "10.0.1.1/32";
+            reverseTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString()).IpString = "10.0.0.1/32";
+            reverseTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString()).Port = reversePort;
+            List<int> policyIds = new() { policy.Id };
+            List<WfReqTask> requestTasks = new() { forwardTask, reverseTask };
+
+            bool result = await checker.AreRequestTasksCompliant(policyIds, requestTasks);
+
+            Assert.That(result, Is.EqualTo(expectedCompliant));
+        }
+
         [Test]
         public async Task BuildRulesFromRequestTasks_MapsEligibleTaskAndSkipsDeletedElements()
         {

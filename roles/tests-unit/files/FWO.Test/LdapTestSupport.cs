@@ -63,7 +63,7 @@ namespace FWO.Test
         /// </summary>
         public int ConnectCount => Volatile.Read(ref connectCount);
 
-        protected override Task<ILdapClient> Connect()
+        protected override Task<ILdapClient> Connect(CancellationToken cancellationToken = default)
         {
             Interlocked.Increment(ref connectCount);
             return Task.FromResult(connection);

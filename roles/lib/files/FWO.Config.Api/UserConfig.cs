@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using FWO.Basics;
 using FWO.Logging;
@@ -170,6 +171,30 @@ namespace FWO.Config.Api
         {
             ThrowIfDisposed();
             return User.Language ?? "";
+        }
+
+        /// <summary>
+        /// Culture of the language the user has selected, used to format dates the way the user reads them.
+        /// The UI renders on the server, so the culture of the thread belongs to the server and not to the user.
+        /// </summary>
+        /// <returns>The culture of the user language, the invariant culture if the language names no known culture.</returns>
+        public CultureInfo GetUserCulture()
+        {
+            ThrowIfDisposed();
+            string language = string.IsNullOrWhiteSpace(User.Language) ? globalConfig?.DefaultLanguage ?? GlobalConst.kEnglish : User.Language;
+            string? cultureName = globalConfig?.UiLanguages?.FirstOrDefault(uiLanguage => uiLanguage.Name == language)?.CultureInfo;
+            if (string.IsNullOrWhiteSpace(cultureName))
+            {
+                return CultureInfo.InvariantCulture;
+            }
+            try
+            {
+                return CultureInfo.GetCultureInfo(cultureName);
+            }
+            catch (CultureNotFoundException)
+            {
+                return CultureInfo.InvariantCulture;
+            }
         }
 
         public void SetLanguage(string languageName)

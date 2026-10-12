@@ -49,4 +49,3 @@ Before a vendor planning method is registered, its team must prove:
 - one invocation reads at most one logical snapshot;
 - the planning path has no state-changing dependency;
 - failures use the shared typed result contract.
-

@@ -1,5 +1,9 @@
 # Phase 1 — Generic rule-positioning foundation
 
+## Status
+
+Implementation and local validation are complete on the rebased `Cactus/develop` baseline. Phase 1 remains open until the disposable-VM fresh-install and `9.7.0` to `9.7.1` upgrade scenarios pass; those tools were unavailable in the validation session.
+
 ## Objective
 
 Build a calculation-only, cross-vendor positioning foundation for one gateway-specific implementation task at a time. The caller supplies all required context. The manager validates it, selects exactly one registered vendor/algorithm strategy, and returns either a typed `RulePosition` success or a typed failure.
@@ -60,6 +64,15 @@ Implementation is complete only after the repository-required checks and these f
 - upgrade validation from the immediately previous version through the disposable installer-test workflow.
 
 Because WP-03 changes schema, GraphQL/Hasura, upgrade SQL, and product versioning, implementation must use the repository's schema-change and installer skills. Significant installer-affecting changes must use the disposable installation-test skill rather than a manually run installation.
+
+Local evidence from 2026-10-12:
+
+- 78 focused positioning tests passed;
+- the complete unit suite passed with 7,366 passed, 29 skipped, and 0 failed;
+- the Debug solution build succeeded with 0 warnings and 0 errors;
+- new production files reached 91.77% line coverage (301/328 executable lines);
+- all changed C# files passed `dotnet format --verify-no-changes`; and
+- the full formatter remains blocked by unrelated upstream formatting in `UiDisplayImplementationTaskTest.cs` and `UiDisplayRequestTaskTest.cs`.
 
 ## Out of scope
 

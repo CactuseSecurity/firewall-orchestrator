@@ -55,4 +55,3 @@ Cover canonical formatting, whitespace, mixed case, invariant casing, intra-zone
 ## Out of scope
 
 Do not resolve zones, read configuration or policies, calculate a Section, execute a plan, or define presentation models.
-

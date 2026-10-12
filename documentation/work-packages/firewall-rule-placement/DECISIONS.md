@@ -89,3 +89,11 @@ Rationale: historical reasoning remains recoverable without creating two competi
 At the end of each firewall-rule-positioning planning session, append any changed decisions to this file, replace `SESSION-HANDOFF.md` with the current recovery point, and commit only the resulting planning-document changes. Unrelated working-tree changes must remain outside that commit.
 
 Rationale: a committed repository checkpoint makes the documented plan recoverable without depending on an agent's conversation state or the user's local staging workflow.
+
+## 2026-10-12 — D-015 — Retarget persistence migration to 9.7.1
+
+D-015 supersedes D-011. After rebasing onto `Cactus/develop` at `ed03a8529`, `9.5.11` was already sealed and the current open product version was `9.7.1`. The nullable, idempotent `request.impltask.rule_position` migration is therefore appended to `9.7.1.sql`; `product_version` remains `9.7.1`, and the feature notes belong under the existing `9.7.1` revision-history section.
+
+Local validation passed on 2026-10-12: 78 focused tests and the complete unit suite (7,366 passed, 29 skipped) succeeded, the Debug solution build completed with no warnings or errors, changed C# files passed formatting, and new production files reached 91.77% line coverage. Disposable-VM fresh-install and `9.7.0` to `9.7.1` upgrade validation was not executed because the FWO VM tools were unavailable, so Phase 1 remains open.
+
+Rationale: migrations must follow the active upstream release line, and completion may not be claimed without the installer gates required by the approved Phase 1 plan.

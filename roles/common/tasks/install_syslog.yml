@@ -5,8 +5,25 @@
     state: present
   become: true
 
-- name: include syslog log-directory tasks for current OS family
-  include_tasks: "os/install_syslog.{{ ansible_facts['os_family'] }}.yml"
+# rsyslog only assigns the group of a log file it creates if its runtime user is a member
+- name: allow the unprivileged rsyslog user to hand log files to group {{ fworch_log_group }}
+  user:
+    name: "{{ fworch_log_owner }}"
+    groups: "{{ fworch_log_group }}"
+    append: true
+  become: true
+  when: fworch_log_owner != 'root'
+
+# also fixes the permissions of log files written by previous versions, including rotated ones
+- name: create log dir for {{ product_name }} and restrict all log files to group {{ fworch_log_group }}
+  file:
+    path: "{{ fworch_log_dir }}"
+    state: directory
+    recurse: true
+    owner: "{{ fworch_log_owner }}"
+    group: "{{ fworch_log_group }}"
+    mode: "u=rwX,g=rX,o="
+  become: true
 
 - name: change rsyslog config to receive logs
   blockinfile:
@@ -43,15 +60,20 @@
         constant(value="\n")
       }
 
-      if $programname == '{{ product_name }}-database' then action(type="omfile" file="{{ fworch_log_dir }}/database.log" template="fworch")
-      if $programname == '{{ middleware_server_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/middleware.log" template="fworch")
-      if $programname == '{{ ui_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ui.log" template="fworch")
-      if $programname == '{{ ldap_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ldap.log" template="fworch")
-      if $programname == '{{ product_name }}-api' then action(type="omfile" file="{{ fworch_log_dir }}/api.log" template="fworch")
-      if $programname startswith '{{ product_name }}-importer-api' then action(type="omfile" file="{{ fworch_log_dir }}/importer-api.log" template="fworch")
-      if $programname startswith '{{ product_name }}' and $msg contains "Audit" then action(type="omfile" file="{{ fworch_log_dir }}/audit.log" template="fworch")
-      if $programname startswith '{{ product_name }}' and $msg contains "FWORCHAlert" then action(type="omfile" file="{{ fworch_log_dir }}/alert.log" template="fworch")
-      if $programname == 'import-fworch-app-data' then action(type="omfile" file="{{ fworch_log_dir }}/import-fworch-app-data.log" template="fworch")
+      if $programname == '{{ product_name }}-database' then action(type="omfile" file="{{ fworch_log_dir }}/database.log" {{ fworch_omfile_params }})
+      if $programname == '{{ middleware_server_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/middleware.log" {{ fworch_omfile_params }})
+      if $programname == '{{ ui_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ui.log" {{ fworch_omfile_params }})
+      if $programname == '{{ ldap_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ldap.log" {{ fworch_omfile_params }})
+      if $programname == '{{ product_name }}-api' then action(type="omfile" file="{{ fworch_log_dir }}/api.log" {{ fworch_omfile_params }})
+      if $programname startswith '{{ product_name }}-importer-api' then action(type="omfile" file="{{ fworch_log_dir }}/importer-api.log" {{ fworch_omfile_params }})
+      if $programname startswith '{{ product_name }}' and $msg contains "Audit" then action(type="omfile" file="{{ fworch_log_dir }}/audit.log" {{ fworch_omfile_params }})
+      if $programname startswith '{{ product_name }}' and $msg contains "FWORCHAlert" then action(type="omfile" file="{{ fworch_log_dir }}/alert.log" {{ fworch_omfile_params }})
+      if $programname == 'import-fworch-app-data' then action(type="omfile" file="{{ fworch_log_dir }}/import-fworch-app-data.log" {{ fworch_omfile_params }})
+  vars:
+    # set per action: legacy $File* directives would leak into the distribution's own log files
+    fworch_omfile_params: >-
+      template="fworch" fileOwner="{{ fworch_log_owner }}" fileGroup="{{ fworch_log_group }}"
+      fileCreateMode="{{ fworch_log_file_mode }}"
   become: true
 
 - name: edit logrotate

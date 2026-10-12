@@ -153,6 +153,9 @@
     with a type, lt / gt ports, any6 and IPv6 addresses, subnets given by a name alias, entries with a
     time-range) get new uids, so they show up as removed and added on the first import after the upgrade
 - importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
+- improve import rollback: an import that fails after it has already written data keeps its import_control record, so the error stays visible in the UI. Imports that fail before any data was written - a failed login above all - are still removed completely and remain visible only as a failed import attempt of the management.
+- optimize full management rollback to roll back all imports in a single mutation call
+- report import rollback failures instead of silently showing success
 
 ## 9.7.0 - 07.10.2026
 - resolve reverse DNS asynchronously with shutdown cancellation; reuse stored names and empty

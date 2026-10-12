@@ -1,0 +1,3 @@
+mutation rollbackImportData($importIds: [bigint!]!) {
+    ...rollbackImportDataFields
+}

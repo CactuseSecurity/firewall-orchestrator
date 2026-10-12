@@ -93,13 +93,12 @@ namespace FWO.Test
         [Test]
         public async Task FullMgmRollback_DeletesEveryImportAndLatestConfig_WhenSettingIsEnabled()
         {
-            // FullMgmRollback queries getLastImport once for the initial count check and then again
-            // inside the loop until no import id remains. Two loop iterations return an id (each
-            // triggering a rollback), the third returns null to stop; afterwards the latest config
-            // row of the management is removed.
+            // FullMgmRollback queries getLastImport once for the initial count check, then collects
+            // all import ids of the management via getImportIdsByManagement and rolls them back in a
+            // single batch (one data-only rollback call); afterwards the latest config row is removed.
             RecordingRollbackApiConn apiConnection = new()
             {
-                RemainingImportIds = new Queue<long?>([99, 10, 9, null])
+                ManagementImportIds = [99, 10]
             };
             await using BunitContext context = CreateContext(apiConnection, fullRollbackAllowed: true);
             ImportRollback component = RenderRollbackComponent(context, managementId: 42);
@@ -108,7 +107,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.RollbackImportCallCount, Is.EqualTo(2));
+                Assert.That(apiConnection.RollbackImportCallCount, Is.EqualTo(1));
                 Assert.That(apiConnection.DeleteLatestConfigCallCount, Is.EqualTo(1));
             });
         }
@@ -242,9 +241,8 @@ namespace FWO.Test
             public int RollbackImportCallCount { get; private set; }
             public int DeleteLatestConfigCallCount { get; private set; }
 
-            // sequence of "latest import id" answers returned by getLastImport; a null id signals
-            // that no more imports remain for the management.
-            public Queue<long?> RemainingImportIds { get; init; } = new([null]);
+            // import ids returned by getImportIdsByManagement for the full-management rollback.
+            public IReadOnlyList<long> ManagementImportIds { get; init; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
@@ -254,9 +252,13 @@ namespace FWO.Test
                 }
                 if (query == ImportQueries.getLastImport && typeof(QueryResponseType) == typeof(List<ImportControl>))
                 {
+                    // the full rollback only needs to see that exactly one import exists to proceed
                     GetLastImportCallCount++;
-                    long? nextId = RemainingImportIds.Count > 0 ? RemainingImportIds.Dequeue() : null;
-                    List<ImportControl> result = nextId == null ? [] : [new ImportControl { ControlId = nextId.Value }];
+                    return Task.FromResult((QueryResponseType)(object)new List<ImportControl> { new() { ControlId = 1 } });
+                }
+                if (query == ImportQueries.getImportIdsByManagement && typeof(QueryResponseType) == typeof(List<ImportControl>))
+                {
+                    List<ImportControl> result = ManagementImportIds.Select(id => new ImportControl { ControlId = id }).ToList();
                     return Task.FromResult((QueryResponseType)(object)result);
                 }
                 if (query == ImportQueries.rollbackImport && typeof(QueryResponseType) == typeof(ReturnId))

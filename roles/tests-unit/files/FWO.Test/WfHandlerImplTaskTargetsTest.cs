@@ -1,10 +1,13 @@
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Data.Provisioning;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services;
 using FWO.Services.Workflow;
 using NUnit.Framework;
+using RestSharp;
+using System.Net;
 using System.Reflection;
 using System.Security.Claims;
 
@@ -48,10 +51,14 @@ namespace FWO.Test
             return new WfHandler(new SimulatedUserConfig { ReqAutoCreateImplTasks = option }, api, WorkflowPhases.planning, null);
         }
 
-        private static WfHandler CreateUiHandler(InMemoryProvisioningApiConnection api)
+        /// <summary>
+        /// Builds a handler as the ui does: its own api connection has no access to managements or provisioning
+        /// settings, the target managements come from the middleware.
+        /// </summary>
+        private static WfHandler CreateUiHandler(MiddlewareClient middlewareClient)
         {
-            return new WfHandler((_, _, _, _) => { }, new SimulatedUserConfig(), new ClaimsPrincipal(), api,
-                new MiddlewareClient("http://localhost/"), WorkflowPhases.planning);
+            return new WfHandler((_, _, _, _) => { }, new SimulatedUserConfig(), new ClaimsPrincipal(), new NoAccessApiConnection(),
+                middlewareClient, WorkflowPhases.planning);
         }
 
         private static List<Device> CreateDevices()
@@ -81,7 +88,8 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateImplTasks", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingMethodException(nameof(WfHandler), "AutoCreateImplTasks");
-            await (Task)method.Invoke(handler, [reqTask])!;
+            object[] arguments = [reqTask];
+            await (Task)method.Invoke(handler, arguments)!;
         }
 
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix matrix)
@@ -167,22 +175,46 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ObjectTask_InUiResolvesTargetsWithUserConnection()
+        public async Task ObjectTask_InUiResolvesTargetsThroughMiddleware()
         {
-            WfHandler handler = CreateUiHandler(CreateApi(ProvisioningObjectCreationMode.Submanager));
+            ImplTaskTargetMiddlewareClient middlewareClient = new(CreateApi(ProvisioningObjectCreationMode.Submanager));
+            WfHandler handler = CreateUiHandler(middlewareClient);
             WfReqTask reqTask = CreateGroupTask(kSuperManagementId);
 
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
-            Assert.That(ManagementIds(reqTask), Is.EqualTo(kBothSubManagements));
+            Assert.Multiple(() =>
+            {
+                Assert.That(ManagementIds(reqTask), Is.EqualTo(kBothSubManagements));
+                Assert.That(reqTask.ImplementationTasks[0].Title, Is.EqualTo("New group: " + kFirstSubName));
+                Assert.That(middlewareClient.Calls.Single().ManagementId, Is.EqualTo(kSuperManagementId));
+                Assert.That(middlewareClient.Calls.Single().IsServiceObject, Is.False);
+            });
         }
 
         [Test]
         public async Task ObjectTask_ServiceObjectsUseServiceSetting()
         {
-            WfHandler handler = CreateUiHandler(CreateApi(ProvisioningObjectCreationMode.Submanager));
+            ImplTaskTargetMiddlewareClient middlewareClient = new(CreateApi(ProvisioningObjectCreationMode.Submanager));
+            WfHandler handler = CreateUiHandler(middlewareClient);
             WfReqTask reqTask = CreateGroupTask(kSuperManagementId);
             reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.service.ToString() });
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ManagementIds(reqTask), Is.EqualTo(kSuperManagementOnly));
+                Assert.That(middlewareClient.Calls.Single().IsServiceObject, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ObjectTask_FallsBackToRequestManagementWhenMiddlewareFails()
+        {
+            ImplTaskTargetMiddlewareClient middlewareClient = new(CreateApi(ProvisioningObjectCreationMode.Submanager)) { Fail = true };
+            WfHandler handler = CreateUiHandler(middlewareClient);
+            WfReqTask reqTask = CreateGroupTask(kSuperManagementId);
 
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
@@ -194,12 +226,38 @@ namespace FWO.Test
         {
             InMemoryProvisioningApiConnection api = CreateApi(ProvisioningObjectCreationMode.Submanager);
             api.FailingQuery = FWO.Api.Client.Queries.DeviceQueries.getManagementHierarchy;
-            WfHandler handler = CreateUiHandler(api);
+            WfHandler handler = CreateMiddlewareHandler(api);
             WfReqTask reqTask = CreateGroupTask(kSuperManagementId);
 
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
             Assert.That(ManagementIds(reqTask), Is.EqualTo(kSuperManagementOnly));
+        }
+
+        [Test]
+        public async Task CreateMissingImplTasksForTicket_ResolvesTargetsOncePerRunAndObjectKind()
+        {
+            ImplTaskTargetMiddlewareClient middlewareClient = new(CreateApi(ProvisioningObjectCreationMode.Submanager));
+            WfHandler handler = CreateUiHandler(middlewareClient);
+            SetMatrix(handler, WfTaskType.group_create.ToString(), new StateMatrix { MinTicketCompleted = kCompletedStateId });
+            WfReqTask firstGroupTask = CreateGroupTask(kSuperManagementId);
+            WfReqTask secondGroupTask = CreateGroupTask(kSuperManagementId);
+            secondGroupTask.Id = 12;
+            WfReqTask serviceGroupTask = CreateGroupTask(kSuperManagementId);
+            serviceGroupTask.Id = 13;
+            serviceGroupTask.Elements.Add(new WfReqElement { Field = ElemFieldType.service.ToString() });
+            WfTicket ticket = new() { Id = 5, Tasks = [firstGroupTask, secondGroupTask, serviceGroupTask] };
+
+            int createdCount = await handler.CreateMissingImplTasksForTicket(ticket);
+            int callsAfterFirstRun = middlewareClient.Calls.Count;
+            await handler.CreateMissingImplTasksForTicket(ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(createdCount, Is.EqualTo(kBothSubManagements.Count * 2 + kSuperManagementOnly.Count));
+                Assert.That(callsAfterFirstRun, Is.EqualTo(2), "one resolution for network objects, one for services");
+                Assert.That(middlewareClient.Calls, Has.Count.EqualTo(4), "a new run resolves again");
+            });
         }
 
         [Test]
@@ -318,6 +376,51 @@ namespace FWO.Test
                 Assert.That(DeviceIds(reqTask), Is.EqualTo(kAllGateways));
                 Assert.That(reqTask.ImplementationTasks[0].Title, Is.EqualTo("Access: gw-a"));
             });
+        }
+
+        /// <summary>
+        /// Plays the middleware endpoint getImplTaskTargets: resolves with the middleware's view of the
+        /// managements and records every call.
+        /// </summary>
+        private sealed class ImplTaskTargetMiddlewareClient(InMemoryProvisioningApiConnection middlewareApi) : MiddlewareClient("http://localhost/")
+        {
+            public List<ImplTaskTargetParameters> Calls { get; } = [];
+            public bool Fail { get; init; }
+
+            public override async Task<RestResponse<ImplTaskTargetResult>> GetImplTaskTargets(ImplTaskTargetParameters parameters)
+            {
+                Calls.Add(parameters);
+                if (Fail)
+                {
+                    return new RestResponse<ImplTaskTargetResult>(new RestRequest())
+                    {
+                        StatusCode = HttpStatusCode.InternalServerError,
+                        ResponseStatus = ResponseStatus.Completed,
+                        IsSuccessStatusCode = false
+                    };
+                }
+                List<Management> targets = await new ImplTaskManagementResolver(middlewareApi)
+                    .ResolveObjectTargets(parameters.ManagementId, parameters.IsServiceObject);
+                return new RestResponse<ImplTaskTargetResult>(new RestRequest())
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    ResponseStatus = ResponseStatus.Completed,
+                    IsSuccessStatusCode = true,
+                    Data = new ImplTaskTargetResult { Targets = targets }
+                };
+            }
+        }
+
+        /// <summary>
+        /// Api connection of a ui user who may neither read managements nor provisioning settings.
+        /// </summary>
+        private sealed class NoAccessApiConnection : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null,
+                FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                throw new InvalidOperationException("The ui user has no access to " + query);
+            }
         }
 
         private sealed class PathAnalysisApiConnection(List<Device> foundDevices) : SimulatedApiConnection

@@ -153,7 +153,7 @@
                 <input id="cbx_consider_bundling" type="checkbox" @bind="configData!.ReqConsiderBundling">
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5503"))">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5580"))">
             <label for="pathAnalysisAlgorithm" class="col-form-label col-sm-3">@(userConfig.GetText("path_analysis_algorithm")):</label>
             <div class="col-sm-3">
                 <select id="pathAnalysisAlgorithm" class="form-select form-select-sm" @bind="configData!.PathAnalysisAlgorithm">
@@ -168,7 +168,7 @@
         {
             <div class="form-group row">
                 <div class="col-sm-9 offset-sm-3">
-                    <span class="text-danger"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5504"))</span>
+                    <span class="text-warning"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5504"))</span>
                 </div>
             </div>
         }
@@ -177,7 +177,7 @@
     <hr />
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
-            <button type="button" class="btn btn-sm btn-primary" disabled="@(!IsPathAnalysisSelectionValid())" @onclick="Save" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
         </Authorized>
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
@@ -274,7 +274,6 @@ else
             if (configData != null)
             {
                 ValidateApiTicketInitialStateSelection();
-                ValidatePathAnalysisSelection();
                 configData.ReqApiTicketInitialStateId = selectedApiTicketInitialStateId ?? -1;
                 availableTaskTypes = [];
                 foreach(WfTaskType type in taskTypesActiveDict.Keys)
@@ -303,19 +302,16 @@ else
     /// <summary>
     /// Checks that the automatic creation after path analysis has a path analysis algorithm to work with.
     /// </summary>
+    /// <remarks>
+    /// Only drives a hint, saving stays possible: the workflow still runs the routing based path analysis,
+    /// so the algorithm has no effect yet, and installations upgraded with "after path analysis" carry the
+    /// default None.
+    /// </remarks>
     private bool IsPathAnalysisSelectionValid()
     {
         return configData == null
             || configData.ReqAutoCreateImplTasks != AutoCreateImplTaskOptions.afterPathAnalysis
             || configData.PathAnalysisAlgorithm != GlobalConst.kPathAnalysisAlgorithmNone;
-    }
-
-    private void ValidatePathAnalysisSelection()
-    {
-        if (!IsPathAnalysisSelectionValid())
-        {
-            throw new InvalidOperationException(userConfig.GetText("U5504"));
-        }
     }
 
     private void ValidateApiTicketInitialStateSelection()

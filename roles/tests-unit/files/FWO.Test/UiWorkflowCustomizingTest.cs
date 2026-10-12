@@ -10,6 +10,7 @@ using FWO.Ui.Pages.Settings;
 using FWO.Ui.Shared;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -197,12 +198,12 @@ namespace FWO.Test
                 Assert.That(options[1].TextContent, Is.EqualTo(kNetworkZoneTreeAlgorithmName));
                 Assert.That(wrapper.Find("#pathAnalysisAlgorithm").GetAttribute("value"),
                     Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()));
-                Assert.That(wrapper.FindAll(".text-danger"), Is.Empty);
+                Assert.That(wrapper.FindAll(".text-warning"), Is.Empty);
             });
         }
 
         [Test]
-        public async Task SettingsCustomizing_AfterPathAnalysisWithoutAlgorithmWarnsAndDisablesSave()
+        public async Task SettingsCustomizing_AfterPathAnalysisWithoutAlgorithmWarnsButKeepsSaveEnabled()
         {
             await using BunitContext context = new();
             SimulatedGlobalConfig globalConfig = new()
@@ -216,13 +217,13 @@ namespace FWO.Test
 
             wrapper.WaitForAssertion(() =>
             {
-                Assert.That(wrapper.FindAll(".text-danger"), Is.Not.Empty);
-                Assert.That(wrapper.FindAll("button.btn-primary").Last().HasAttribute("disabled"), Is.True);
+                Assert.That(wrapper.FindAll(".text-warning"), Is.Not.Empty);
+                Assert.That(wrapper.FindAll("button.btn-primary").Last().HasAttribute("disabled"), Is.False);
             });
         }
 
         [Test]
-        public async Task Save_RejectsAfterPathAnalysisWithoutAlgorithm()
+        public async Task Save_PersistsAfterPathAnalysisWithoutAlgorithm()
         {
             WorkflowCustomizingApiConn apiConnection = new();
             SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]", ReqPriorities = "[]" };
@@ -233,7 +234,7 @@ namespace FWO.Test
 
             await (Task)GetPrivateMethod(typeof(SettingsCustomizing), "Save").Invoke(component, kNoArguments)!;
 
-            Assert.That(apiConnection.UpsertConfigCallCount, Is.Zero);
+            Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
         }
 
         [Test]
@@ -267,12 +268,17 @@ namespace FWO.Test
 
         private static IRenderedComponent<CascadingAuthenticationState> RenderCustomizing(BunitContext context, SimulatedGlobalConfig globalConfig)
         {
+            // ExecutionModeAuthorizeView also checks the roles of the user config; without them only the
+            // always disabled save button of the NotAuthorized branch is rendered.
+            SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [Roles.Admin];
             context.Services.AddSingleton<ApiConnection>(new WorkflowCustomizingApiConn());
             context.Services.AddSingleton<GlobalConfig>(globalConfig);
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<UserConfig>(userConfig);
             context.Services.AddSingleton<DomEventService>();
             context.Services.AddLocalization();
             context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new WorkflowCustomizingAuthStateProvider(Roles.Admin));
             return context.Render<CascadingAuthenticationState>(parameters => parameters.AddChildContent<SettingsCustomizing>());
         }

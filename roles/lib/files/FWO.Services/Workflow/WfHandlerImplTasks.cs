@@ -311,6 +311,8 @@ namespace FWO.Services.Workflow
         /// </summary>
         private async Task<List<WfReqTask>> RequestTasksForInitialImplCreation(List<WfReqTask> requestTasks)
         {
+            // every implementation task creation run starts here
+            ResetObjectTargetCache();
             List<WfReqTask> requestTasksWithDetails = [];
             foreach (WfReqTask reqTask in requestTasks)
             {

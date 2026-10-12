@@ -1,7 +1,9 @@
 using FWO.Api.Client.Queries;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using RestSharp;
 
 namespace FWO.Services.Workflow
 {
@@ -12,6 +14,12 @@ namespace FWO.Services.Workflow
     public partial class WfHandler
     {
         private const string kImplTaskTargetsLogTitle = "Implementation Tasks";
+
+        /// <summary>
+        /// Target managements resolved in the current creation run, by request management and kind of ordered
+        /// objects (true for services).
+        /// </summary>
+        private readonly Dictionary<(int ManagementId, bool IsServiceObject), List<Management>> objectTargetCache = [];
 
         /// <summary>
         /// Creates the implementation tasks still missing for every open request task of a ticket. Existing
@@ -106,25 +114,70 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Resolves the target managements of an object task with the role of the api connection. If that fails,
-        /// the request management itself is the only target, as before.
+        /// Starts a new implementation task creation run: target managements resolved in an earlier run are
+        /// dropped, so changed provisioning settings or managements take effect.
+        /// </summary>
+        /// <remarks>
+        /// Cleared at the start of a run rather than at its end, so a run aborted by an exception leaves no stale
+        /// entries behind. A nested run (e.g. a create implementation tasks action triggered while a ticket state
+        /// is synchronized) only causes cache misses for the outer run, never wrong targets.
+        /// </remarks>
+        private void ResetObjectTargetCache()
+        {
+            objectTargetCache.Clear();
+        }
+
+        /// <summary>
+        /// Resolves the target managements of an object task once per run and kind of ordered objects. If that
+        /// fails, the request management itself is the only target, as before.
         /// </summary>
         private async Task<List<Management>> GetObjectTargetManagements(WfReqTask reqTask, int managementId)
         {
-            if (apiConnection != null)
+            bool isServiceObject = WfObjectTaskHelper.OrdersServiceObject(reqTask);
+            if (objectTargetCache.TryGetValue((managementId, isServiceObject), out List<Management>? cachedTargets))
             {
-                try
+                return cachedTargets;
+            }
+            try
+            {
+                List<Management>? targets = await ResolveObjectTargetManagements(managementId, isServiceObject);
+                if (targets != null)
                 {
-                    return await new ImplTaskManagementResolver(apiConnection).ResolveObjectTargets(managementId,
-                        WfObjectTaskHelper.OrdersServiceObject(reqTask));
-                }
-                catch (Exception exception)
-                {
-                    Log.WriteError(kImplTaskTargetsLogTitle, $"Could not resolve the target managements of request task {reqTask.Id}, " +
-                        $"using management {managementId}.", exception);
+                    objectTargetCache[(managementId, isServiceObject)] = targets;
+                    return targets;
                 }
             }
+            catch (Exception exception)
+            {
+                Log.WriteError(kImplTaskTargetsLogTitle, $"Could not resolve the target managements of request task {reqTask.Id}, " +
+                    $"using management {managementId}.", exception);
+            }
             return [new() { Id = managementId }];
+        }
+
+        /// <summary>
+        /// Resolves the target managements with the rights of the middleware server: in the ui through the
+        /// middleware, which sees every sub-management and the provisioning settings, in the middleware directly.
+        /// </summary>
+        /// <returns>The target managements, or null when they cannot be resolved here.</returns>
+        private async Task<List<Management>?> ResolveObjectTargetManagements(int managementId, bool isServiceObject)
+        {
+            if (MiddlewareClient != null)
+            {
+                RestResponse<ImplTaskTargetResult> response = await MiddlewareClient.GetImplTaskTargets(
+                    new ImplTaskTargetParameters { ManagementId = managementId, IsServiceObject = isServiceObject });
+                if (!response.IsSuccessful || response.Data == null)
+                {
+                    throw new InvalidOperationException($"Middleware answered {(int)response.StatusCode} {response.StatusDescription}. " +
+                        (response.ErrorMessage ?? response.Content ?? ""));
+                }
+                return response.Data.Targets;
+            }
+            if (apiConnection != null)
+            {
+                return await new ImplTaskManagementResolver(apiConnection).ResolveObjectTargets(managementId, isServiceObject);
+            }
+            return null;
         }
 
         /// <summary>

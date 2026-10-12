@@ -7,11 +7,14 @@
   address/service object creation (super- or sub-management); request.impltask gets the new column mgm_id
 - new workflow action "create implementation tasks" creates the missing implementation tasks of a ticket, also
   with an active planning phase; existing implementation tasks are kept
-- the path analysis algorithm moved to the workflow customizing settings; "after path analysis" requires an algorithm
+- the path analysis algorithm moved to the workflow customizing settings; "after path analysis" without an algorithm
+  shows a hint, saving stays possible
 - fix: implementation tasks of rule_delete tasks take the gateway of the rule element instead of the first element,
   so rule deletions from the modelling no longer get an implementation task without gateway
-- the workflow roles and the modeller may read the provisioning settings (read only), so the implementation tasks
-  created in the ui resolve their target managements; the ui only finds the sub-managements visible to the user
+- the target managements of object tasks are resolved in the middleware (new endpoint
+  POST /api/workflow/getImplTaskTargets for admin, the workflow roles and the modeller, limited to the managements
+  visible to the caller), so the ui finds every sub-management without read access to the provisioning settings;
+  the targets are resolved once per creation run
 
 ## 9.7.1 - 09.10.2026
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems

@@ -14,8 +14,8 @@ namespace FWO.Services.Workflow
     /// serviceObjectCreation, read for every sub-management of the super-management with its inheritance from
     /// device type and global level. A sub-management set to Submanager gets its own task, one set to
     /// Supermanager shares the single task on the super-management. A management without sub-managements
-    /// is its own target. The managements are read with the role of the api connection, so in the ui only the
-    /// sub-managements visible to the user are found; the middleware finds all of them.
+    /// is its own target. Needs read access to all managements and the provisioning settings, so it runs with the
+    /// middleware-server role only; the ui resolves the targets through the middleware endpoint getImplTaskTargets.
     /// </remarks>
     public class ImplTaskManagementResolver(ApiConnection apiConnection)
     {

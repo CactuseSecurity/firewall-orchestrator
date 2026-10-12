@@ -66,6 +66,15 @@ class TestGetFwoJwt:
             "import_main_loop - unspecified error during FWO API login - skipping: Traceback"
         )
 
+    def test_get_fwo_jwt_does_not_swallow_a_shutdown(self, mocker: MockerFixture) -> None:
+        # a stop during the login retries is a regular stop, not a failed login
+        mock_logger = mocker.patch("fwo_log.FWOLogger.error")
+        mock_login(mocker, side_effect=ShutdownRequestedError())
+
+        with pytest.raises(ShutdownRequestedError):
+            get_fwo_jwt("mocked_username", "", "mocked_mgm_api")
+        mock_logger.assert_not_called()
+
 
 class TestWaitWithShutdownCheck:
     @pytest.fixture(autouse=True)

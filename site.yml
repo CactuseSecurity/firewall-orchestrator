@@ -249,9 +249,11 @@
       become: true
       when: "not installation_mode == 'uninstall'"
 
-    # systemd reports a restarted middleware as active as soon as the process has forked, not when
-    # the dotnet app serves requests, so probe the real endpoint - through apache, the way the
-    # importer reaches it - before letting the importer go
+    # Type=notify only makes a middleware (re)start on the middleware's own host return once it
+    # answers. The importer reaches it through apache and often from another host, so probe that
+    # path - the real endpoint, the way the importer calls it - before letting the importer go.
+    # until with failed_when: false makes ansible-core 2.19 print [ERROR] when the retries run out;
+    # here that only precedes the explicit failure below.
     - name: wait for middleware to be ready before restarting the importer
       ansible.builtin.uri:
         url: "{{ middleware_uri }}api-docs/"

@@ -31,6 +31,8 @@ FWO_API_HTTP_TIMEOUT = (FWO_API_CONNECT_TIMEOUT, FWO_API_HTTP_IMPORT_TIMEOUT)
 # apache, the api or the middleware (10 s ExecStartPre plus startup), short enough not to stall an
 # import for long. See fwo_http_retry.
 FWO_API_RETRY_DELAYS_SECONDS: tuple[int, ...] = (2, 4, 8, 16, 30, 30)
+# HTTP status of a service that is temporarily unavailable - from apache's proxy, the backend was not reached
+HTTP_STATUS_SERVICE_UNAVAILABLE = 503
 # limits for reading a config file from a URL or the local file system (direct import), so a large,
 # compressed or slow response cannot exhaust the importer's memory or block it for hours
 CONFIG_FILE_MAX_BYTES = 256 * 1024 * 1024  # decompressed; the database cannot store a much larger config anyway

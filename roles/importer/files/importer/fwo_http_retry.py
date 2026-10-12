@@ -26,13 +26,12 @@ from typing import TYPE_CHECKING
 
 import fwo_globals
 import requests
+from fwo_const import HTTP_STATUS_SERVICE_UNAVAILABLE
 from fwo_log import FWOLogger
 from urllib3.exceptions import ConnectTimeoutError, MaxRetryError, NewConnectionError
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
-
-HTTP_STATUS_SERVICE_UNAVAILABLE = 503
 
 
 def _sleep(seconds: float) -> None:

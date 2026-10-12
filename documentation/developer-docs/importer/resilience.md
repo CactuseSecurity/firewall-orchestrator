@@ -43,6 +43,17 @@ The rollback of the interrupted import may itself fail while the api is down, le
 lock behind. `main_loop` therefore requests the orphan cleanup (below) again, which removes that lock
 after the next successful login, before any import.
 
+## Locks left by an import that has ended
+
+The final unlock of an import (setting its `stop_time`) and the rollback of a failed import only log
+their own failures. If the api is gone for longer than the retries right then, and back before the
+next management is imported, nothing ends the cycle - and the lock would block the management until
+the importer process restarts. After every import that took a lock, `import_single_management`
+therefore asks whether that import still holds it (`orphaned_imports.import_left_open`,
+`getOpenImport.graphql`). If it does, or if the question cannot be answered, `main_loop` requests the
+orphan cleanup for the next cycle. An import whose data was written completely but whose unlock
+failed is rolled back that way too, and its management is imported again in that cycle.
+
 ## Imports left unfinished
 
 An import keeps its management locked (an `import_control` row without `stop_time`) until it
@@ -57,8 +68,8 @@ is repeated on the next cycle; importing goes on regardless. A manual `import_mg
 host that is still running when the importer service starts is rolled back - do not restart the
 importer service during a manual import. The same holds for an import forced with `import_mgm.py -f`
 on another host for a management owned by this host: it is rolled back when this host's importer
-(re)starts. The cleanup also runs again in the cycle after an api outage ended a cycle
-(`main_loop` re-arms it, see above), so a manual `import_mgm.py` run - or an import forced with `-f`
+(re)starts. The cleanup also runs again in the cycle after an api outage ended a cycle, or after an
+import still held its lock once it ended (`main_loop` re-arms it, see above), so a manual `import_mgm.py` run - or an import forced with `-f`
 from another host - of this host's managements that is still running at that moment is rolled back
 too, not only at a service (re)start.
 

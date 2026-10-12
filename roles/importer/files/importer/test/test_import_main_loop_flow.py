@@ -42,8 +42,8 @@ CLEANUP_COMPLETE = OrphanCleanupResult(complete=True, rolled_back_mgm_ids=[])
 CLEANUP_FAILED = OrphanCleanupResult(complete=False, rolled_back_mgm_ids=[])
 
 
-def _run_single_management(api_call: MagicMock) -> None:
-    import_single_management(
+def _run_single_management(api_call: MagicMock) -> bool:
+    return import_single_management(
         MGM_ID,
         api_call,
         verify_certificates=False,
@@ -82,6 +82,7 @@ def single_mgm_mocks(mocker: MockerFixture) -> dict[str, MagicMock]:
             return_value={"deviceType": {"id": SUPPORTED_DEVICE_TYPE_ID}},
         ),
         "import_management": mocker.patch("import_main_loop.import_management"),
+        "left_open": mocker.patch("import_main_loop.import_left_open", return_value=False),
         "info": mocker.patch("import_main_loop.FWOLogger.info"),
         "error": mocker.patch("import_main_loop.FWOLogger.error"),
     }
@@ -138,6 +139,24 @@ class TestImportSingleManagement:
         # only the shutdown check before the import, no back-off - main_loop decides what happens next
         single_mgm_mocks["wait"].assert_called_once_with(0)
 
+    def test_released_lock_is_reported_as_not_left_open(self, single_mgm_mocks: dict[str, MagicMock]) -> None:
+        assert _run_single_management(MagicMock()) is False
+        single_mgm_mocks["left_open"].assert_called_once()
+
+    @pytest.mark.parametrize("error", [None, FwoApiFailedLockImportError("locked"), ValueError("boom")])
+    def test_lock_left_open_is_reported(self, error: Exception | None, single_mgm_mocks: dict[str, MagicMock]) -> None:
+        # e.g. the final unlock or the rollback failed - both are only logged inside import_management
+        single_mgm_mocks["import_management"].side_effect = error
+        single_mgm_mocks["left_open"].return_value = True
+
+        assert _run_single_management(MagicMock()) is True
+
+    def test_skipped_management_is_not_checked(self, single_mgm_mocks: dict[str, MagicMock]) -> None:
+        single_mgm_mocks["mgm_details"].return_value = {"deviceType": {"id": UNSUPPORTED_DEVICE_TYPE_ID}}
+
+        assert _run_single_management(MagicMock()) is False
+        single_mgm_mocks["left_open"].assert_not_called()
+
     def test_api_unavailable_while_reading_details_is_reraised(self, single_mgm_mocks: dict[str, MagicMock]) -> None:
         single_mgm_mocks["mgm_details"].side_effect = FwoApiServiceUnavailableError("gone")
 
@@ -170,7 +189,7 @@ def main_loop_mocks(mocker: MockerFixture) -> dict[str, MagicMock]:
         ),
         "fwo_api": mocker.patch("import_main_loop.FwoApi"),
         "init_service_provider": mocker.patch("import_main_loop.init_service_provider"),
-        "single": mocker.patch("import_main_loop.import_single_management"),
+        "single": mocker.patch("import_main_loop.import_single_management", return_value=False),
         "reset_warnings": mocker.patch("import_main_loop.warnings.resetwarnings"),
         "orphans": mocker.patch("import_main_loop.try_roll_back_orphaned_imports", return_value=CLEANUP_COMPLETE),
     }
@@ -319,6 +338,17 @@ class TestMainLoop:
 
         assert _run_main_loop(pwd_file, orphan_cleanup_pending=False) is True
 
+    def test_lock_left_open_re_arms_the_orphan_cleanup(
+        self, pwd_file: Path, main_loop_mocks: dict[str, MagicMock], mocker: MockerFixture
+    ) -> None:
+        # e.g. the final unlock of an import failed while the api was gone, and it came back before the
+        # next management - without the cleanup that lock would block the management until a restart
+        mocker.patch("import_main_loop.ServiceProvider")
+        main_loop_mocks["single"].side_effect = [True, False]
+
+        assert _run_main_loop(pwd_file, orphan_cleanup_pending=False) is True
+        assert main_loop_mocks["single"].call_count == 2  # the rest of the cycle goes on
+
 
 @pytest.fixture
 def isolated_globals(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -387,6 +417,7 @@ class TestDrain:
             fwo_globals.drain_requested = True  # what handle_drain_signal does mid-import
 
         mock_import = mocker.patch("import_main_loop.import_management", side_effect=import_receiving_sigusr1)
+        mocker.patch("import_main_loop.import_left_open", return_value=False)
 
         _run_single_management(MagicMock())  # the running import finishes normally
         with pytest.raises(SystemExit) as excinfo:

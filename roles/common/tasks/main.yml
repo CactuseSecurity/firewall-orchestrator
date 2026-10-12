@@ -223,14 +223,20 @@
     # changes - an importer that crashed and was restarted by systemd before it drained has not
     # been asked to drain, so waiting on for it would only burn the whole timeout. The output says
     # which of the two ended the wait; timeout returns 124 when the time ran out.
+    # The pid is read before the state: an importer that exits between the two reads is then seen as
+    # drained, not as restarted. While the unit is deactivating its pid is already gone, so the pid
+    # is only compared once the unit is neither stopped nor stopping.
     - name: wait for the importer to finish its running import
       ansible.builtin.shell: >-
         timeout {{ fworch_importer_drain_timeout_sec | int }} sh -c '
         while :; do
-        state=$(systemctl show "$1" --property=ActiveState --value);
         pid=$(systemctl show "$1" --property=MainPID --value);
-        case "$state" in inactive|failed) echo drained; exit 0 ;; esac;
-        if [ "$pid" != "$2" ]; then echo restarted; exit 0; fi;
+        state=$(systemctl show "$1" --property=ActiveState --value);
+        case "$state" in
+        inactive|failed) echo drained; exit 0 ;;
+        deactivating) ;;
+        *) if [ "$pid" != "$2" ]; then echo restarted; exit 0; fi ;;
+        esac;
         sleep 10;
         done' sh
         {{ (product_name ~ '-importer-api.service') | quote }}

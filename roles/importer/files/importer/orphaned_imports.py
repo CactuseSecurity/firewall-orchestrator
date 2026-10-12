@@ -9,8 +9,8 @@ import of the management until someone rolls it back in the UI.
 
 Only imports of managements this host is responsible for (importer_hostname) are touched, so the
 imports of other importer hosts are left alone. An import that was running on this host when the
-importer service (re)started, or when a cycle ended after an api outage, is rolled back - including
-a manual import_mgm.py run.
+importer service (re)started, or when a cycle ended after an api outage or after an import that
+still held its lock (see import_left_open), is rolled back - including a manual import_mgm.py run.
 """
 
 from __future__ import annotations
@@ -70,6 +70,38 @@ def try_roll_back_orphaned_imports(fwo_api_call: FwoApiCall) -> OrphanCleanupRes
     except Exception:
         FWOLogger.error(f"could not roll back orphaned imports - retrying next cycle: {traceback.format_exc()}")
         return OrphanCleanupResult(complete=False, rolled_back_mgm_ids=[])
+
+
+def import_left_open(fwo_api_call: FwoApiCall, import_id: int) -> bool:
+    """
+    True if the import import_id, which has ended, still holds its management's lock, or if that
+    cannot be determined.
+
+    A failed unlock (stop_time) or rollback at the end of an import is only logged where it happens,
+    so main_loop asks here and has the orphan cleanup remove such a lock in the next cycle - left
+    alone, it would block the management until the importer restarts. import_id <= 0 means no lock
+    was taken.
+    """
+    if import_id <= 0:
+        return False
+    query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/getOpenImport.graphql"])
+    try:
+        result = fwo_api_call.call(query, query_variables={"importId": import_id})
+        open_imports: list[dict[str, Any]] = result["data"]["import_control"]
+    except ShutdownRequestedError:
+        raise
+    except Exception:
+        FWOLogger.warning(
+            f"could not check whether import {import_id} released its lock - rolling it back in the next cycle "
+            f"if it did not: {traceback.format_exc()}"
+        )
+        return True
+    if open_imports:
+        FWOLogger.warning(
+            f"import {import_id} still holds its management's lock after it ended - it is rolled back "
+            "at the start of the next cycle"
+        )
+    return bool(open_imports)
 
 
 def _try_roll_back(fwo_api_call: FwoApiCall, rollback_mutation: str, orphan: dict[str, Any]) -> int | None:

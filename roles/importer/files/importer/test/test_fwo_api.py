@@ -483,6 +483,14 @@ class TestFwoApiCallEndpoint:
         assert FwoApi.login("importer", "secret", MIDDLEWARE_URL) == "token-pair"
         assert len(session.requests) == 2
 
+    def test_login_connects_with_the_internal_api_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        session = _FakeSession([_FakeResponse(status_code=HTTP_OK, text="token-pair")])
+        _patch_session(monkeypatch, session)
+
+        FwoApi.login("importer", "secret", MIDDLEWARE_URL)
+
+        assert session.timeouts == [(FWO_API_CONNECT_TIMEOUT, FWO_API_HTTP_IMPORT_TIMEOUT)]
+
 
 class TestFwoApiLogHelpers:
     def test_show_api_call_info_truncates_large_payloads(self) -> None:

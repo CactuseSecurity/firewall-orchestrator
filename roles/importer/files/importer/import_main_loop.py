@@ -35,7 +35,7 @@ from model_controllers.management_controller import (
     ManagementController,
     ManagerInfo,
 )
-from orphaned_imports import try_roll_back_orphaned_imports
+from orphaned_imports import import_left_open, try_roll_back_orphaned_imports
 from services.service_provider import ServiceProvider
 
 SHUTDOWN_LOG_MESSAGE = "import_main_loop - shutdown requested. Exiting..."
@@ -46,15 +46,17 @@ def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> 
         return FwoApi.login(import_user, import_pwd, user_management_api)
     except FwoApiLoginFailedError as e:
         FWOLogger.error(e.message)
+    except ShutdownRequestedError:
+        raise  # a stop during the login retries, not a failed login
     except Exception:
         FWOLogger.error(
             "import_main_loop - unspecified error during FWO API login - skipping: " + str(traceback.format_exc())
         )
 
 
-def wait_with_shutdown_check(sleep_time: int):
+def wait_with_shutdown_check(sleep_time: int) -> None:
     # only called while no import holds a lock, which is what makes exiting on a drain request safe here
-    def exit_if_shutdown_or_drain_requested():
+    def exit_if_shutdown_or_drain_requested() -> None:
         if fwo_globals.shutdown_requested:
             FWOLogger.info(SHUTDOWN_LOG_MESSAGE)
             raise SystemExit(IMPORTER_SHUTDOWN_EXIT_CODE)
@@ -81,7 +83,11 @@ def import_single_management(
     fwo_major_version: int,
     sleep_timer: int,
     suppress_consistency_check: bool = False,
-):
+) -> bool:
+    """
+    Imports one management. Returns True if its import still holds the management's lock after it
+    ended (see orphaned_imports.import_left_open), so main_loop can have the orphan cleanup remove it.
+    """
     wait_with_shutdown_check(0)
     import_state = ImportStateController.initialize_import(
         mgm_id=mgm_id,
@@ -118,11 +124,11 @@ def import_single_management(
             + str(traceback.format_exc())
         )
         wait_with_shutdown_check(sleep_timer)
-        return
+        return False
 
     # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST, Cisco Asa, Asa on FirePower
     if mgm_details["deviceType"]["id"] not in (9, 12, 17, 22, 23, 24, 28, 29):
-        return
+        return False
 
     FWOLogger.debug(f"import_main_loop: starting import of mgm_id={mgm_id}")
 
@@ -138,18 +144,15 @@ def import_single_management(
         FWOLogger.info(SHUTDOWN_LOG_MESSAGE)
         raise SystemExit(IMPORTER_SHUTDOWN_EXIT_CODE) from e
     except (FwoApiFailedLockImportError, FwLoginFailedError):
+        # minor errors for a single mgm, go to next one
         FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
-        return  # minor errors for a single mgm, go to next one
     except FwoApiServiceUnavailableError:
-        FWOLogger.warning(
-            f"import_main_loop - FWO API or middleware unavailable while importing mgm_id={mgm_id} "
-            "- ending this import cycle"
-        )
-        raise
+        raise  # main_loop ends the cycle and re-arms the orphan cleanup
     except Exception:  # all other exceptions are logged here
         FWOLogger.error(
             f"import_main_loop - unspecific error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}"
         )
+    return import_left_open(fwo_api_call, import_state.state.import_id)
 
 
 def _imported_last(mgm_ids: list[int], last_mgm_ids: list[int]) -> list[int]:
@@ -182,7 +185,8 @@ def main_loop(
     orphan_cleanup_pending: while True, unfinished imports of this host's managements are rolled
     back first, and the managements concerned are imported last in this cycle. Returns False once
     that succeeded, otherwise True, so the caller can hand it to the next cycle. An outage of the
-    api during the cycle sets it again: the rollback of the interrupted import may have failed.
+    api during the cycle sets it again - the rollback of the interrupted import may have failed - and
+    so does an import that still holds its lock after it ended (its unlock or rollback failed).
     """
     wait_with_shutdown_check(0)
 
@@ -245,7 +249,7 @@ def main_loop(
         for mgm_id in mgm_ids:
             init_service_provider()
             try:
-                import_single_management(
+                lock_left_open = import_single_management(
                     mgm_id,
                     fwo_api_call,
                     verify_certificates,
@@ -258,6 +262,8 @@ def main_loop(
                 )
             finally:
                 ServiceProvider().reset()
+            # its unlock or rollback failed: the cleanup removes the lock before the next cycle imports
+            orphan_cleanup_pending = orphan_cleanup_pending or lock_left_open
     except FwoApiServiceUnavailableError:
         # every management would fail the same way, and each failure costs a rollback - wait for the
         # next cycle instead of working through the list against a missing api

@@ -118,16 +118,13 @@ def import_management(
     except (FwoApiWriteError, FwoImporterError) as e:
         exception = e
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
-    except FwoApiServiceUnavailableError as e:
-        # middleware is unreachable/unstable (e.g. mid-restart) - roll back like any other
-        # unexpected failure, but re-raise: main_loop then ends the whole import cycle, so no
-        # further management is tried against a middleware that has not come back up yet
-        exception = e
-        handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
-        raise
     except Exception as e:
         exception = e
         handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
+        if isinstance(e, FwoApiServiceUnavailableError):
+            # the api or middleware is unreachable (e.g. mid-restart) - re-raised, so main_loop ends the
+            # whole import cycle instead of trying further managements against it
+            raise
     finally:
         try:
             if shutdown_exception is None:

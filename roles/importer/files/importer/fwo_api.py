@@ -15,7 +15,7 @@ from fwo_const import (
     FWO_API_HTTP_IMPORT_TIMEOUT,
     FWO_API_HTTP_TIMEOUT,
     FWO_API_RETRY_DELAYS_SECONDS,
-    FWO_HTTP_TIMEOUT,
+    HTTP_STATUS_SERVICE_UNAVAILABLE,
 )
 from fwo_exceptions import (
     FwoApiLoginFailedError,
@@ -37,7 +37,6 @@ REDACTED_VALUE = "<redacted>"
 HTTP_STATUS_OK = 200
 HTTP_STATUS_UNAUTHORIZED = 401
 HTTP_STATUS_BAD_GATEWAY = 502
-HTTP_STATUS_SERVICE_UNAVAILABLE = 503
 MAX_LOGIN_ERROR_RESPONSE_LEN = 200  # keep the login failure reason readable without dumping a full error page
 SENSITIVE_HEADER_NAMES = {"authorization", "x-hasura-admin-secret"}
 JWT_EXPIRED_ERROR_MARKER = "JWTExpired"  # substring Hasura uses in its "Could not verify JWT: JWTExpired" error
@@ -232,7 +231,7 @@ class FwoApi:
             url = user_management_api_base_url + method
             try:
                 response = send_with_retry(
-                    lambda: session.post(url, data=json.dumps(payload), timeout=FWO_HTTP_TIMEOUT),
+                    lambda: session.post(url, data=json.dumps(payload), timeout=FWO_API_HTTP_TIMEOUT),
                     "FWO middleware",
                     FWO_API_RETRY_DELAYS_SECONDS,
                 )
@@ -494,9 +493,9 @@ class FwoApi:
             2,
         )
         if hasattr(exception, "response") and exception.response is not None:
-            if exception.response.status_code == 503:  # noqa: PLR2004
+            if exception.response.status_code == HTTP_STATUS_SERVICE_UNAVAILABLE:
                 raise FwoApiServiceUnavailableError("FWO API HTTP error 503 (FWO API died?)")
-            if exception.response.status_code == 502:  # noqa: PLR2004
+            if exception.response.status_code == HTTP_STATUS_BAD_GATEWAY:
                 raise FwoApiTimeoutError(
                     f"FWO API HTTP error 502 (might have reached timeout of {int(FWO_API_HTTP_IMPORT_TIMEOUT) / 60} minutes)"
                 )

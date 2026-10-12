@@ -10,7 +10,12 @@ from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_config import TlsIdentity
 from fwo_exceptions import FwoImporterError, ShutdownRequestedError
-from orphaned_imports import OrphanCleanupResult, roll_back_orphaned_imports, try_roll_back_orphaned_imports
+from orphaned_imports import (
+    OrphanCleanupResult,
+    import_left_open,
+    roll_back_orphaned_imports,
+    try_roll_back_orphaned_imports,
+)
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
@@ -163,3 +168,38 @@ class TestTryRollBackOrphanedImports:
 
         with pytest.raises(ShutdownRequestedError):
             try_roll_back_orphaned_imports(FwoApiCall(FwoApi(API_URL, "jwt")))
+
+
+class TestImportLeftOpen:
+    def test_no_lock_taken_needs_no_query(self, api_call: FwoApiCall) -> None:
+        assert import_left_open(api_call, -1) is False
+        _call(api_call).assert_not_called()
+
+    def test_released_lock(self, api_call: FwoApiCall) -> None:
+        _call(api_call).return_value = _orphans()
+
+        assert import_left_open(api_call, ORPHAN_A["control_id"]) is False
+        assert _call(api_call).call_args.kwargs["query_variables"] == {"importId": ORPHAN_A["control_id"]}
+
+    def test_lock_still_held_is_reported(self, api_call: FwoApiCall, mocker: MockerFixture) -> None:
+        mock_warning = mocker.patch("orphaned_imports.FWOLogger.warning")
+        _call(api_call).return_value = _orphans({"control_id": ORPHAN_A["control_id"]})
+
+        assert import_left_open(api_call, ORPHAN_A["control_id"]) is True
+        assert "still holds its management's lock" in mock_warning.call_args.args[0]
+
+    @pytest.mark.parametrize("outcome", [FwoImporterError("api down"), {"errors": [{"message": "x"}]}])
+    def test_unknown_state_counts_as_open(self, outcome: object, api_call: FwoApiCall, mocker: MockerFixture) -> None:
+        mocker.patch("orphaned_imports.FWOLogger.warning")
+        if isinstance(outcome, Exception):
+            _call(api_call).side_effect = outcome
+        else:
+            _call(api_call).return_value = outcome
+
+        assert import_left_open(api_call, ORPHAN_A["control_id"]) is True
+
+    def test_shutdown_is_not_swallowed(self, api_call: FwoApiCall) -> None:
+        _call(api_call).side_effect = ShutdownRequestedError()
+
+        with pytest.raises(ShutdownRequestedError):
+            import_left_open(api_call, ORPHAN_A["control_id"])

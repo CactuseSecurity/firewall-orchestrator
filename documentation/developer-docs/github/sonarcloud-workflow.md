@@ -9,9 +9,9 @@ Both workflows use the repository secret `SONAR_TOKEN` and the repository variab
 `SONAR_PROJECT_KEY` and `SONAR_ORGANIZATION`.
 
 Python coverage includes importer code, scripts and installer callbacks in `callback_plugins`.
-Both workflows install `scripts/requirements.txt`, including the installer's Python-version-specific
-Ansible dependency, so the role-duration callback tests run instead of skipping. Keep its Ansible
-pins aligned with the root `requirements.txt`.
+The role-duration callback tests stub Ansible's callback base class, so they run without Ansible.
+Do not add Ansible to `scripts/requirements.txt`: the installer deploys that file into the
+customizing venv on every middleware host.
 
 ## Branch analysis (`sonarcloud.yml`)
 

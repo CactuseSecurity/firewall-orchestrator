@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
+import importlib.util
+import sys
 from dataclasses import dataclass, field
+from types import ModuleType
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-pytest.importorskip("ansible", reason="Role timing requires the installer Ansible environment")
-pytest.importorskip("callback_plugins.fwo_role_durations", reason="Installer callback requires the source checkout")
-
-from callback_plugins import fwo_role_durations as profiling
+if importlib.util.find_spec("callback_plugins") is None:
+    pytest.skip("Installer callback requires the source checkout", allow_module_level=True)
 
 
 @dataclass
@@ -48,6 +50,31 @@ class FakeDisplay:
     def display(self, msg: str) -> None:
         """Record a recap row."""
         self.lines.append(msg)
+
+
+class FakeCallbackBase:
+    """Stand-in for Ansible's callback base class, so these tests need no Ansible installation."""
+
+    def __init__(self) -> None:
+        """Provide the controller display the callback writes to."""
+        self._display: FakeDisplay = FakeDisplay()
+
+
+class FakeCallbackPluginModule(ModuleType):
+    """Stand-in for ansible.plugins.callback, exposing only the callback base class."""
+
+    CallbackBase = FakeCallbackBase
+
+
+# Ansible is an installer dependency only; keep it out of the test and production requirements.
+FAKE_ANSIBLE_MODULES: dict[str, ModuleType] = {
+    "ansible": ModuleType("ansible"),
+    "ansible.plugins": ModuleType("ansible.plugins"),
+    "ansible.plugins.callback": FakeCallbackPluginModule("ansible.plugins.callback"),
+}
+
+with patch.dict(sys.modules, FAKE_ANSIBLE_MODULES):
+    from callback_plugins import fwo_role_durations as profiling
 
 
 def create(name: str | None) -> FakeTask:

@@ -79,6 +79,9 @@ arriving then only sets `fwo_globals.shutdown_requested` (and the block sets
 `fwo_globals.shutdown_deferral_active`), retries go on so the rollback can finish, and the importer
 stops at its next shutdown check once the rollback is done.
 
+A requested shutdown ends the importer with exit code 0 (`fwo_const.IMPORTER_SHUTDOWN_EXIT_CODE`), so systemd
+logs a regular stop and not a failure; a drain exits with 75 (see below).
+
 ## Finishing the running import before a stop (drain)
 
 `SIGUSR1` asks the importer to finish the import it is running and to start no new one. As soon as

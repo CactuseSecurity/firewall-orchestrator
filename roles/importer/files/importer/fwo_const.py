@@ -45,6 +45,8 @@ CONFIG_IMPORT_TYPE_ID = 1
 # sysexits.h). Must equal fworch_importer_drained_exit_code in inventory/group_vars/all.yml, which the
 # unit declares as a clean exit that is not restarted.
 IMPORTER_DRAINED_EXIT_CODE = 75
+# exit code of an importer that stopped because a shutdown was requested (SIGINT/SIGTERM) - a regular stop, not a failure
+IMPORTER_SHUTDOWN_EXIT_CODE = 0
 # severity of the data issue logged for every import the orphan cleanup rolled back (see orphaned_imports)
 ORPHANED_IMPORT_DATA_ISSUE_SEVERITY = 1
 FWO_CONFIG_FILENAME = BASE_DIR + "/etc/fworch.json"

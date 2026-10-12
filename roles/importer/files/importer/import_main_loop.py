@@ -16,7 +16,7 @@ from common import import_management  # type: ignore[import-not-found]
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_base import init_service_provider, register_global_state
-from fwo_const import BASE_DIR, IMPORTER_BASE_DIR, IMPORTER_DRAINED_EXIT_CODE
+from fwo_const import BASE_DIR, IMPORTER_BASE_DIR, IMPORTER_DRAINED_EXIT_CODE, IMPORTER_SHUTDOWN_EXIT_CODE
 from fwo_exceptions import (
     FwLoginFailedError,
     FwoApiFailedLockImportError,
@@ -55,7 +55,7 @@ def wait_with_shutdown_check(sleep_time: int):
     def exit_if_shutdown_or_drain_requested():
         if fwo_globals.shutdown_requested:
             FWOLogger.info("import_main_loop - shutdown requested. Exiting...")
-            raise SystemExit("import_main_loop - shutdown requested")
+            raise SystemExit(IMPORTER_SHUTDOWN_EXIT_CODE)
         if fwo_globals.drain_requested:
             FWOLogger.info("import_main_loop - drain requested and no import running. Exiting...")
             raise SystemExit(IMPORTER_DRAINED_EXIT_CODE)
@@ -133,7 +133,8 @@ def import_single_management(
             suppress_consistency_check=suppress_consistency_check,
         )
     except (KeyboardInterrupt, ShutdownRequestedError) as e:
-        raise SystemExit("import_main_loop - shutdown requested") from e
+        FWOLogger.info("import_main_loop - shutdown requested. Exiting...")
+        raise SystemExit(IMPORTER_SHUTDOWN_EXIT_CODE) from e
     except (FwoApiFailedLockImportError, FwLoginFailedError):
         FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
         return  # minor errors for a single mgm, go to next one
@@ -322,7 +323,8 @@ def main(
                 break
     except ShutdownRequestedError:
         # a SIGINT/SIGTERM while starting up or between imports
-        raise SystemExit("import_main_loop - shutdown requested") from None
+        FWOLogger.info("import_main_loop - shutdown requested. Exiting...")
+        raise SystemExit(IMPORTER_SHUTDOWN_EXIT_CODE) from None
 
 
 if __name__ == "__main__":

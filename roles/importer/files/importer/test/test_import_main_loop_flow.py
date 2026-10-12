@@ -413,12 +413,17 @@ class TestMain:
         no_real_signal_handlers.assert_called_once()
 
     def test_shutdown_between_imports_exits_cleanly(self, mocker: MockerFixture) -> None:
-        mocker.patch("import_main_loop.FWOLogger")
+        mock_logger = mocker.patch("import_main_loop.FWOLogger")
         mocker.patch("import_main_loop.init_service_provider", return_value=_fake_service_provider())
         mocker.patch("import_main_loop.main_loop", side_effect=ShutdownRequestedError())
 
-        with pytest.raises(SystemExit, match="shutdown requested"):
+        with pytest.raises(SystemExit) as excinfo:
             main(debug_level=0)
+
+        # a requested stop is a regular exit - systemd must not log it as a failure
+        assert excinfo.value.code == fwo_const.IMPORTER_SHUTDOWN_EXIT_CODE
+        assert excinfo.value.code == 0
+        mock_logger.info.assert_called_with("import_main_loop - shutdown requested. Exiting...")
 
     def test_shutdown_during_startup_exits_cleanly(self, mocker: MockerFixture) -> None:
         mocker.patch("import_main_loop.FWOLogger")
@@ -426,9 +431,10 @@ class TestMain:
         mocker.patch("import_main_loop.init_service_provider", side_effect=ShutdownRequestedError())
         mock_main_loop = mocker.patch("import_main_loop.main_loop")
 
-        with pytest.raises(SystemExit, match="shutdown requested"):
+        with pytest.raises(SystemExit) as excinfo:
             main(debug_level=0)
 
+        assert excinfo.value.code == fwo_const.IMPORTER_SHUTDOWN_EXIT_CODE
         mock_main_loop.assert_not_called()
 
     def test_main_runs_single_cycle_when_clearing(self, mocker: MockerFixture) -> None:

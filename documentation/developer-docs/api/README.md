@@ -1,10 +1,5 @@
 # graphql howto
 
-## REST address input contract
-
-- [Address input guide](../../rest-api-address-inputs.md)
-- [Address input testing plan](rest-api-cidr-testing-plan.md)
-
 ## concepts
 
 - schema: describes available functionality

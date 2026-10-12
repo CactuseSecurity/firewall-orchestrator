@@ -27,5 +27,7 @@ query getNotifications ($client: String! ){
     repeat_offset_after_deadline
     repetitions_after_deadline
     last_sent
+    logging
+    active
   }
 }

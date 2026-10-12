@@ -22,7 +22,13 @@ Create index IF NOT EXISTS idx_rule01 on rule (rule_uid,mgm_id,dev_id,active,nat
 Create index IF NOT EXISTS idx_rule02 on rule (mgm_id,rule_id,rule_uid,dev_id);
 Create index IF NOT EXISTS idx_rule03 on rule (dev_id);
 Create index IF NOT EXISTS idx_rule04 on rule (action_id);
+CREATE INDEX IF NOT EXISTS idx_provisioning_config_node_parent ON provisioning_config_node (parent_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_provisioning_config_node_single_global ON provisioning_config_node (node_type) WHERE node_type = 'global';
+CREATE INDEX IF NOT EXISTS idx_provisioning_config_value_key ON provisioning_config_value (config_key);
 Create index IF NOT EXISTS idx_rule_standard_report_page on rule (mgm_id,rulebase_id,rule_num_numeric,rule_id) WHERE access_rule = TRUE;
+Create index IF NOT EXISTS idx_rulebase_link_to_rulebase_id on rulebase_link (to_rulebase_id);
+-- rule_fully_visible_to_tenant looks up the gateways of a rule for every rule, rule_from and rule_to row a tenant reads
+Create index IF NOT EXISTS idx_rule_enforced_on_gateway_rule_id on rule_enforced_on_gateway (rule_id);
 Create index IF NOT EXISTS idx_rule_from01 on rule_from (rule_id);
 Create index IF NOT EXISTS idx_rule_service01 on rule_service (rule_id);
 Create index IF NOT EXISTS idx_rule_service02 on rule_service (svc_id);
@@ -45,6 +51,9 @@ CREATE UNIQUE index if not exists owner_responsible_owner_dn_type_unique on owne
 CREATE index if not exists owner_responsible_dn_idx on owner_responsible(dn);
 CREATE UNIQUE index if not exists owner_responsible_type_name_unique on owner_responsible_type(name);
 CREATE UNIQUE INDEX IF NOT EXISTS request_workflow_configuration_single_active ON request.workflow_configuration (is_active) WHERE is_active;
+-- at most one active (not yet finished) external request per ticket, so concurrent calls cannot start the request chain
+-- of a ticket twice; the middleware sets finish_date when closing a request, before it creates the next one
+CREATE UNIQUE INDEX IF NOT EXISTS uidx_ext_request_one_active_per_ticket ON ext_request (ticket_id) WHERE finish_date IS NULL;
 
 Create index "IX_Relationship68" on "changelog_object" ("control_id");
 Create index "IX_Relationship76" on "changelog_service" ("control_id");
@@ -104,9 +113,19 @@ create unique index if not exists only_one_default_owner on owner(is_default)
 where is_default = true;
 
 -- compliance
-Create index IF NOT EXISTS idx_fkey_network_zone_id on compliance.ip_range USING HASH (network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_from on compliance.network_zone_communication USING HASH (from_network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_communication USING HASH (to_network_zone_id);
+
+-- network_zone
+Create index IF NOT EXISTS idx_fkey_network_zone_id on network_zone.ip_range USING HASH (network_zone_id);
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_root_dev_id
+ON network_zone.device_ip_range_root (dev_id);
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_internet_dev_id
+ON network_zone.device_ip_range_internet (dev_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_root_per_ip_range
+ON network_zone.device_ip_range_root (ip_range_id, order_to_root);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_internet_per_ip_range
+ON network_zone.device_ip_range_internet (ip_range_id, order_to_internet);
 
 -- rule_owner
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_owner_removed_is_null_unique ON rule_owner (rule_id, owner_id) WHERE removed IS NULL;
@@ -132,3 +151,19 @@ Create unique index if not exists service_flow_svcgrp_id_active_only_one_per_mgm
 Create unique index if not exists time_object_flow_timeobj_id_active_only_one_per_mgm on time_object (mgm_id, flow_timeobj_id) where flow_active = true;
 Create unique index if not exists object_flow_nwobj_id_active_only_one_per_mgm on firewall.nw_object (mgm_id, flow_nwobj_id) where flow_active = true;
 Create unique index if not exists object_flow_nwgrp_id_active_only_one_per_mgm on firewall.nw_object (mgm_id, flow_nwgrp_id) where flow_active = true;
+
+-- Central change history. The table is insert heavy and read rarely, so the index set is kept
+-- minimal and the two per-object indices are partial: a workflow row has no app_id and a
+-- modelling row has no ticket_id, so each row maintains only the indices that apply to it.
+-- id is part of the sort key because change_time is not unique and paging by it alone is unstable.
+CREATE INDEX IF NOT EXISTS idx_change_history_module_time ON change_history (module, change_time DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_change_history_app_time ON change_history (app_id, change_time DESC) WHERE app_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_change_history_ticket_time ON change_history (ticket_id, change_time DESC) WHERE ticket_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_change_history_audit_proof ON change_history (change_time DESC) WHERE audit_proof_critical;
+
+--- logging ---
+-- support the orphan check of logging.ip_metadata, which asks for every metadata row whether any
+-- log entry still uses that address as source or destination. The unique constraint of log_entry
+-- leads with owner_id and cannot answer it.
+CREATE INDEX IF NOT EXISTS idx_log_entry_source ON logging.log_entry (source);
+CREATE INDEX IF NOT EXISTS idx_log_entry_destination ON logging.log_entry (destination);

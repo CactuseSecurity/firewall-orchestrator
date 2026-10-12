@@ -14,8 +14,15 @@ namespace FWO.Data.Report
         [JsonProperty("report_schedule_name"), JsonPropertyName("report_schedule_name")]
         public string Name { get; set; } = "";
 
+        // the API returns null for a user outside the tenant of the caller (SEC-19)
+        private UiUser scheduleOwningUser = new();
+
         [JsonProperty("report_schedule_owner_user"), JsonPropertyName("report_schedule_owner_user")]
-        public UiUser ScheduleOwningUser { get; set; } = new();
+        public UiUser ScheduleOwningUser
+        {
+            get => scheduleOwningUser;
+            set => scheduleOwningUser = value ?? new UiUser();
+        }
 
         [JsonProperty("report_schedule_start_time"), JsonPropertyName("report_schedule_start_time")]
         public DateTime StartTime { get; set; } = DateTime.Now.AddSeconds(-DateTime.Now.Second);

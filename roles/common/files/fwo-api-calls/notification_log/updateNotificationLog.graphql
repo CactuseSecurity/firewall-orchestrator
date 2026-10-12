@@ -1,0 +1,8 @@
+mutation updateNotificationLog($id: Int!, $status: String!, $error: String!) {
+  update_notification_log(
+    where: { id: { _eq: $id } }
+    _set: { status: $status, error: $error }
+  ) {
+    affected_rows
+  }
+}

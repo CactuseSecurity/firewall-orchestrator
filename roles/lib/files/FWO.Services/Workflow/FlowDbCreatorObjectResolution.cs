@@ -13,6 +13,9 @@ namespace FWO.Services.Workflow
     /// </summary>
     public partial class FlowDbCreator
     {
+        private const string kMixedAddressFamiliesTextKey = "flow_creation_mixed_address_families";
+        private const string kUnreadableAddressTextKey = "flow_creation_unreadable_address";
+        private const string kIneligibleFlowObjectTextKey = "flow_creation_ineligible_flow_object";
         private static readonly List<string> kReusableFlowStates = [FlowState.Requested, FlowState.Implemented];
 
         /// <summary>
@@ -55,24 +58,47 @@ namespace FWO.Services.Workflow
                 ?? await ResolveOrCreateNetworkObject(snapshot, context);
         }
 
-        private static FlowNetworkReference? TryResolveNetworkObjectId(FlowObjectSnapshot snapshot, FlowSyncFlowData context)
+        /// <summary>
+        /// Resolves the Flow network object a request element names by id. The id is written into
+        /// request.reqelement by whoever edits the element, so an id which does not name an object that is
+        /// still offered and live is refused here rather than followed: it is the only point at which an
+        /// element that was pointed at a hidden or retired object can still be kept out of a flow.
+        /// </summary>
+        private FlowNetworkReference? TryResolveNetworkObjectId(FlowObjectSnapshot snapshot, FlowSyncFlowData context)
         {
             if (!snapshot.FlowNetworkObjectId.HasValue)
             {
                 return null;
             }
-            if (context.NwObjectsById.TryGetValue(snapshot.FlowNetworkObjectId.Value, out FlowNwObject? flowObject))
+            if (!context.NwObjectsById.TryGetValue(snapshot.FlowNetworkObjectId.Value, out FlowNwObject? flowObject))
             {
-                return FlowNetworkReference.FromObject(flowObject!);
+                Log.WriteWarning(LogMessageTitle, $"Could not resolve Flow network object id {snapshot.FlowNetworkObjectId.Value} for workflow element {snapshot.WorkflowElementId}.");
+                return null;
             }
-            Log.WriteWarning(LogMessageTitle, $"Could not resolve Flow network object id {snapshot.FlowNetworkObjectId.Value} for workflow element {snapshot.WorkflowElementId}.");
-            return null;
+            if (!FlowObjectEligibility.IsLive(flowObject))
+            {
+                RefuseFlowObject(snapshot.WorkflowElementId, flowObject!.Name ?? snapshot.FlowNetworkObjectId.Value.ToString(),
+                    $"Flow network object id {snapshot.FlowNetworkObjectId.Value} is not offered in the request module or no longer live");
+                return null;
+            }
+            return FlowNetworkReference.FromObject(flowObject!);
         }
 
-        private static FlowNetworkReference? TryResolveNetworkGroupId(FlowObjectSnapshot snapshot, FlowSyncFlowData context)
+        /// <summary>
+        /// Resolves the Flow network group a request element names by id, refusing a group that is no
+        /// longer offered or live for the same reason as an ineligible object.
+        /// </summary>
+        private FlowNetworkReference? TryResolveNetworkGroupId(FlowObjectSnapshot snapshot, FlowSyncFlowData context)
         {
             if (!snapshot.FlowNetworkGroupId.HasValue)
             {
+                return null;
+            }
+            if (context.NwGroupsById.TryGetValue(snapshot.FlowNetworkGroupId.Value, out FlowNwGroup? namedGroup)
+                && !FlowObjectEligibility.IsLive(namedGroup))
+            {
+                RefuseFlowObject(snapshot.WorkflowElementId, namedGroup!.Name,
+                    $"Flow network group id {snapshot.FlowNetworkGroupId.Value} is not offered in the request module or no longer live");
                 return null;
             }
             FlowNetworkReference? groupReference = TryBuildNetworkGroupReference(snapshot.FlowNetworkGroupId.Value, context);
@@ -118,21 +144,108 @@ namespace FWO.Services.Workflow
                 return null;
             }
 
-            string? ipEnd = string.IsNullOrWhiteSpace(snapshot.IpEnd) ? snapshot.Ip : snapshot.IpEnd;
+            if (!TryGetHostAddress(snapshot.Ip, false, snapshot.WorkflowElementId, out string? ipStart)
+                || !TryGetHostAddress(string.IsNullOrWhiteSpace(snapshot.IpEnd) ? snapshot.Ip : snapshot.IpEnd, true, snapshot.WorkflowElementId, out string? ipEnd))
+            {
+                return null;
+            }
+            if (!SharesAddressFamily(ipStart, ipEnd))
+            {
+                RefuseNetworkObject(snapshot.WorkflowElementId, kMixedAddressFamiliesTextKey, $"{ipStart} - {ipEnd}",
+                    $"its range starts at '{ipStart}' and ends at '{ipEnd}', which belong to different address families");
+                return null;
+            }
             string name = BuildNetworkObjectName(snapshot);
-            bool isTechnical = !string.IsNullOrWhiteSpace(snapshot.Ip);
+            bool isTechnical = !string.IsNullOrWhiteSpace(ipStart);
             string hash = isTechnical
-                ? FlowHashGenerator.GenerateNwObjectHash(snapshot.Ip, ipEnd)
+                ? FlowHashGenerator.GenerateNwObjectHash(ipStart, ipEnd)
                 : FlowHashGenerator.GenerateRandomHash();
             FlowNwObject? existingObject = isTechnical
-                ? FindNetworkObjectByHash(hash, context)
+                ? FindNetworkObjectByHash(hash, context) ?? FindNetworkObjectByRange(ipStart, ipEnd, context)
                 : FindReusableNetworkObject(name, context);
             if (existingObject != null)
             {
                 return FlowNetworkReference.FromObject(existingObject);
             }
 
-            return FlowNetworkReference.FromObject(await InsertNetworkObject(name, snapshot.Ip, ipEnd, hash, context));
+            return FlowNetworkReference.FromObject(await InsertNetworkObject(name, ipStart, ipEnd, hash, context));
+        }
+
+        /// <summary>
+        /// Reduces a range endpoint to the single host address flow.nwobject accepts, in the CIDR notation the
+        /// column returns: a network is replaced by its first address when it opens the range and by its last
+        /// address when it closes it, and a host address gets its /32 or /128 mask. Request elements carry
+        /// whatever notation the requester supplied, while the deterministic hash of a flow object is only
+        /// stable when every writer spells the same address the same way. FlowNwObject.TryCalculateHash and the
+        /// flow sync both read the endpoints back from the cidr columns, so that notation is the one to write:
+        /// a host stored without its mask hashes differently from the identical imported object and is inserted
+        /// a second time, which leaves the flow sync with two rows recalculating to one hash.
+        /// An endpoint which cannot be read as an address at all is refused rather than forwarded: the column no
+        /// longer accepts it, so passing it on would only turn a request the requester can still correct into a
+        /// failed mutation.
+        /// </summary>
+        /// <param name="ip">The endpoint as requested, in any notation.</param>
+        /// <param name="isRangeEnd">Whether the endpoint closes the range instead of opening it.</param>
+        /// <param name="workflowElementId">Id of the workflow element the endpoint belongs to, for logging.</param>
+        /// <param name="hostAddress">The host address to store, or the endpoint itself when it is not set at all.</param>
+        /// <returns>Whether the endpoint could be read; false for a value which is set but is no address.</returns>
+        private bool TryGetHostAddress(string? ip, bool isRangeEnd, long workflowElementId, out string? hostAddress)
+        {
+            hostAddress = ip;
+            if (string.IsNullOrWhiteSpace(ip))
+            {
+                return true;
+            }
+            if (!ip.TryParseIPStringToRange(out (string start, string end) range))
+            {
+                RefuseNetworkObject(workflowElementId, kUnreadableAddressTextKey, ip,
+                    $"its endpoint '{ip}' cannot be read as an IP address or range");
+                hostAddress = null;
+                return false;
+            }
+            hostAddress = (isRangeEnd ? range.end : range.start).IpAsCidr();
+            return true;
+        }
+
+        /// <summary>
+        /// Logs why a network object was not created and keeps the reason for the caller that reports the flow
+        /// creation, so that a requester who can correct the value learns which value it was.
+        /// </summary>
+        /// <param name="workflowElementId">Id of the refused workflow element.</param>
+        /// <param name="reasonTextKey">Key of the localized text naming the reason.</param>
+        /// <param name="refusedValue">The value the element was refused for, as the requester wrote it.</param>
+        /// <param name="logDetail">The same reason spelled out for the log.</param>
+        private void RefuseNetworkObject(long workflowElementId, string reasonTextKey, string refusedValue, string logDetail)
+        {
+            Log.WriteWarning(LogMessageTitle, $"Could not create a Flow network object for workflow element {workflowElementId}: {logDetail}.");
+            refusals.Add(new FlowCreationRefusal { ReasonTextKey = reasonTextKey, RefusedValue = refusedValue });
+        }
+
+        /// <summary>
+        /// Logs and reports that a request element named a Flow entry by id which may no longer be used.
+        /// The element is left out of the flow instead of being followed, so that an entry an
+        /// administrator hid or retired cannot re-enter a flow through an id that was stored earlier.
+        /// </summary>
+        /// <param name="workflowElementId">Id of the refused workflow element.</param>
+        /// <param name="refusedValue">Name of the Flow entry the element pointed at.</param>
+        /// <param name="logDetail">The same reason spelled out for the log.</param>
+        private void RefuseFlowObject(long workflowElementId, string refusedValue, string logDetail)
+        {
+            Log.WriteWarning(LogMessageTitle, $"Refused workflow element {workflowElementId}: {logDetail}.");
+            refusals.Add(new FlowCreationRefusal { ReasonTextKey = kIneligibleFlowObjectTextKey, RefusedValue = refusedValue });
+        }
+
+        /// <summary>
+        /// Returns whether both endpoints of a range belong to the same address family. A range from an IPv4 to an
+        /// IPv6 address passes every single-endpoint rule but describes nothing, so it is refused instead of stored.
+        /// An endpoint which is not set at all is not compared, the paired-null rule of the table covers that case.
+        /// </summary>
+        /// <param name="ipStart">The address opening the range.</param>
+        /// <param name="ipEnd">The address closing the range.</param>
+        private static bool SharesAddressFamily(string? ipStart, string? ipEnd)
+        {
+            return string.IsNullOrWhiteSpace(ipStart) || string.IsNullOrWhiteSpace(ipEnd)
+                || ipStart.IsV6Address() == ipEnd.IsV6Address();
         }
 
         /// <summary>
@@ -141,6 +254,26 @@ namespace FWO.Services.Workflow
         private static FlowNwObject? FindNetworkObjectByHash(string hash, FlowSyncFlowData context)
         {
             return context.NwObjects.TryGetValue(hash, out FlowNwObject? existingObject) ? existingObject : null;
+        }
+
+        /// <summary>
+        /// Finds the Flow network object covering exactly this range, for the case where its stored hash is not
+        /// the one its endpoints produce today. That happens between an upgrade which rewrote the endpoints of an
+        /// object and the flow sync which repairs its hash afterwards. Without this fallback the range would be
+        /// inserted a second time, and the repair would then find two objects recalculating to one hash and refuse
+        /// to resolve them. The state of the object is deliberately not considered, so that the fallback selects
+        /// exactly what the hash lookup it stands in for would have selected.
+        /// </summary>
+        /// <param name="ipStart">The address opening the range, in the notation it is stored in.</param>
+        /// <param name="ipEnd">The address closing the range, in the notation it is stored in.</param>
+        /// <param name="context">Flow data of the management the object belongs to.</param>
+        private static FlowNwObject? FindNetworkObjectByRange(string? ipStart, string? ipEnd, FlowSyncFlowData context)
+        {
+            return context.NwObjects.Values
+                .Where(flowObject => string.Equals(flowObject.IpStart, ipStart, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(flowObject.IpEnd, ipEnd, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(flowObject => flowObject.Id)
+                .FirstOrDefault();
         }
 
         /// <summary>
@@ -206,16 +339,18 @@ namespace FWO.Services.Workflow
                 return null;
             }
 
+            List<long> memberObjectIds = [];
             List<string> memberHashes = [];
             foreach (FlowNwGroupMember member in group.NwGroupMembers)
             {
                 if (context.NwObjectsById.TryGetValue(member.NwObjectId, out FlowNwObject? memberObject))
                 {
+                    memberObjectIds.Add(member.NwObjectId);
                     memberHashes.Add(memberObject!.Hash);
                 }
             }
 
-            return memberHashes.Count == 0 ? null : FlowNetworkReference.FromGroup(group!, memberHashes);
+            return memberHashes.Count == 0 ? null : FlowNetworkReference.FromGroup(group!, memberObjectIds, memberHashes);
         }
 
         private async Task<List<FlowServiceReference>> ResolveServiceReferences(IEnumerable<FlowServiceSnapshot> snapshots, FlowSyncFlowData context,
@@ -249,24 +384,47 @@ namespace FWO.Services.Workflow
                 ?? await ResolveOrCreateServiceObject(snapshot, context);
         }
 
-        private static FlowServiceReference? TryResolveServiceObjectId(FlowServiceSnapshot snapshot, FlowSyncFlowData context)
+        /// <summary>
+        /// Resolves the Flow service object a request element names by id, refusing an object that is no
+        /// longer offered or live. The canonical ANY service is accepted: the flow creation attaches it
+        /// itself for a protocol-agnostic request, and a user role is kept away from it by the Hasura
+        /// permissions on request.reqelement instead.
+        /// </summary>
+        private FlowServiceReference? TryResolveServiceObjectId(FlowServiceSnapshot snapshot, FlowSyncFlowData context)
         {
             if (!snapshot.FlowServiceObjectId.HasValue)
             {
                 return null;
             }
-            if (context.SvcObjectsById.TryGetValue(snapshot.FlowServiceObjectId.Value, out FlowSvcObject? flowObject))
+            if (!context.SvcObjectsById.TryGetValue(snapshot.FlowServiceObjectId.Value, out FlowSvcObject? flowObject))
             {
-                return FlowServiceReference.FromObject(flowObject!);
+                Log.WriteWarning(LogMessageTitle, $"Could not resolve Flow service object id {snapshot.FlowServiceObjectId.Value} for workflow element {snapshot.WorkflowElementId}.");
+                return null;
             }
-            Log.WriteWarning(LogMessageTitle, $"Could not resolve Flow service object id {snapshot.FlowServiceObjectId.Value} for workflow element {snapshot.WorkflowElementId}.");
-            return null;
+            if (!FlowObjectEligibility.IsLive(flowObject))
+            {
+                RefuseFlowObject(snapshot.WorkflowElementId, flowObject!.Name,
+                    $"Flow service object id {snapshot.FlowServiceObjectId.Value} is not offered in the request module or no longer live");
+                return null;
+            }
+            return FlowServiceReference.FromObject(flowObject!);
         }
 
-        private static FlowServiceReference? TryResolveServiceGroupId(FlowServiceSnapshot snapshot, FlowSyncFlowData context)
+        /// <summary>
+        /// Resolves the Flow service group a request element names by id, refusing a group that is no
+        /// longer offered or live for the same reason as an ineligible object.
+        /// </summary>
+        private FlowServiceReference? TryResolveServiceGroupId(FlowServiceSnapshot snapshot, FlowSyncFlowData context)
         {
             if (!snapshot.FlowServiceGroupId.HasValue)
             {
+                return null;
+            }
+            if (context.SvcGroupsById.TryGetValue(snapshot.FlowServiceGroupId.Value, out FlowSvcGroup? namedGroup)
+                && !FlowObjectEligibility.IsLive(namedGroup))
+            {
+                RefuseFlowObject(snapshot.WorkflowElementId, namedGroup!.Name,
+                    $"Flow service group id {snapshot.FlowServiceGroupId.Value} is not offered in the request module or no longer live");
                 return null;
             }
             FlowServiceReference? groupReference = TryBuildServiceGroupReference(snapshot.FlowServiceGroupId.Value, context);
@@ -415,16 +573,18 @@ namespace FWO.Services.Workflow
                 return null;
             }
 
+            List<long> memberObjectIds = [];
             List<string> memberHashes = [];
             foreach (FlowSvcGroupMember member in group.SvcGroupMembers)
             {
                 if (context.SvcObjectsById.TryGetValue(member.SvcObjectId, out FlowSvcObject? memberObject))
                 {
+                    memberObjectIds.Add(member.SvcObjectId);
                     memberHashes.Add(memberObject!.Hash);
                 }
             }
 
-            return memberHashes.Count == 0 ? null : FlowServiceReference.FromGroup(group!, memberHashes);
+            return memberHashes.Count == 0 ? null : FlowServiceReference.FromGroup(group!, memberObjectIds, memberHashes);
         }
     }
 }

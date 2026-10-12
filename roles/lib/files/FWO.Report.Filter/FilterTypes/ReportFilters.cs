@@ -11,6 +11,10 @@ namespace FWO.Report.Filter.FilterTypes
         public ReportType ReportType { get; set; } = ReportType.Rules;
 
         public DeviceFilter DeviceFilter { get; set; } = new();
+        public bool ManagementRulebaseView { get; set; }
+        public List<RulebaseManagementSelect> RulebaseManagements { get; set; } = [];
+        public bool RulebaseManagementsLoaded { get; private set; }
+        public List<SelectedRulebase> SelectedRulebases { get; set; } = [];
         public DeviceFilter ReducedDeviceFilter { get; set; } = new();
         public bool SelectAll = true;
         public bool CollapseDevices = false;
@@ -39,12 +43,14 @@ namespace FWO.Report.Filter.FilterTypes
 
         public bool IncludeObjects { get; set; } = false;
 
+        /// <summary>Initializes filters from the effective user configuration.</summary>
         public void Init(UserConfig userConfigIn, bool showRuleRelatedReports)
         {
             userConfig = userConfigIn;
             ReportType = showRuleRelatedReports ? ReportType.Rules : ReportType.Connections;
             DisplayedTimeSelection = userConfig.GetText("now");
             UnusedDays = userConfig.UnusedTolerance;
+            ManagementRulebaseView = userConfig.DefaultManagementRulebaseView;
             IncludeObjects = userConfig.GlobalConfig?.ImpChangeIncludeObjectChanges ?? false;
 
             if (DeviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
@@ -56,6 +62,8 @@ namespace FWO.Report.Filter.FilterTypes
         public void SyncFiltersFromTemplate(ReportTemplate template)
         {
             ReportType = (ReportType)template.ReportParams.ReportType;
+            ManagementRulebaseView = template.ReportParams.ManagementRulebaseView;
+            SelectedRulebases = RulebaseSelectionHelper.KeepAvailable(template.ReportParams.SelectedRulebases, RulebaseManagements);
             IncludeObjects = template.ReportParams.IncludeObjects;
             if (template.ReportParams.DeviceFilter != null && template.ReportParams.DeviceFilter.Managements.Count > 0)
             {
@@ -82,6 +90,8 @@ namespace FWO.Report.Filter.FilterTypes
             ReportParams reportParams = new((int)ReportType, ReportType == ReportType.UnusedRules ? ReducedDeviceFilter : DeviceFilter)
             {
                 IncludeObjects = IncludeObjects,
+                ManagementRulebaseView = ReportType == ReportType.Rules && ManagementRulebaseView,
+                SelectedRulebases = [.. SelectedRulebases],
                 TimeFilter = new TimeFilter(SavedTimeFilter),
                 RecertFilter = new RecertFilter(RecertFilter),
                 UnusedFilter = new UnusedFilter()
@@ -176,7 +186,34 @@ namespace FWO.Report.Filter.FilterTypes
                 // not all devices are visible
                 SetDeviceVisibility(SelectedTenant);
             }
+            SetRulebaseManagementVisibility();
             SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
+        }
+
+        /// <summary>
+        /// Sets the start rulebases offered in management rulebases view (loaded on first use)
+        /// and applies the current tenant view to them.
+        /// </summary>
+        /// <param name="managements">managements with all active rulebases and their incoming links</param>
+        public void SetRulebaseManagements(List<RulebaseManagementSelect> managements)
+        {
+            RulebaseManagements = RulebaseManagementSelect.KeepStartRulebases(managements);
+            RulebaseManagementsLoaded = true;
+            SetRulebaseManagementVisibility();
+        }
+
+        /// <summary>
+        /// Shows rulebases of a management only if the management is visible in the current tenant view
+        /// and drops selected rulebases that are no longer visible.
+        /// </summary>
+        private void SetRulebaseManagementVisibility()
+        {
+            bool allVisible = SelectedTenant == null || SelectedTenant.Id == 1;
+            foreach (RulebaseManagementSelect management in RulebaseManagements)
+            {
+                management.Visible = allVisible || DeviceFilter.Managements.Any(mgm => mgm.Id == management.Id && mgm.Visible);
+            }
+            SelectedRulebases = RulebaseSelectionHelper.KeepAvailable(SelectedRulebases, RulebaseManagements);
         }
 
         private static void MarkAllDevicesVisible(List<ManagementSelect> mgms)

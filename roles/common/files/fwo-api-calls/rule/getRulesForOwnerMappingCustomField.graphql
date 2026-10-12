@@ -1,3 +1,8 @@
+# narrowed to the rules the custom field source can map at all: a rule without custom fields is discarded
+# by BuildNewRuleOwnersCustomField anyway, so leaving it out here saves transferring it. Which of the
+# remaining rules maps to which owner is still decided there, not by this query.
+# An empty result therefore does not say whether a rule base exists - RunFullReinitialize asks
+# countActiveRulesForOwnerMapping for that.
 query getRulesForOwnerMappingCustomField {
   firewall_rule(
     where: {

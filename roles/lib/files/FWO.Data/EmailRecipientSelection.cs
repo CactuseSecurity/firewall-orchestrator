@@ -19,6 +19,9 @@ namespace FWO.Data
         [JsonPropertyName("other_address_list")]
         public List<string> OtherAddressList { get; set; } = [];
 
+        [JsonPropertyName("requester")]
+        public bool Requester { get; set; } = false;
+
         [JsonPropertyName("ensure_at_least_one_notification")]
         public bool EnsureAtLeastOneNotification { get; set; } = false;
 
@@ -60,7 +63,7 @@ namespace FWO.Data
         /// </summary>
         public bool HasAnyRecipientOption()
         {
-            return OtherAddresses || OwnerResponsibleTypeIds.Count > 0;
+            return Requester || OtherAddresses || OwnerResponsibleTypeIds.Count > 0;
         }
 
         /// <summary>
@@ -104,6 +107,7 @@ namespace FWO.Data
                     .Select(address => address.Trim())
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList(),
+                Requester = Requester,
                 EnsureAtLeastOneNotification = EnsureAtLeastOneNotification,
                 OwnerResponsibleTypeIds = OwnerResponsibleTypeIds
                     .Where(id => id > 0)
@@ -130,7 +134,7 @@ namespace FWO.Data
                 sanitized.OtherAddresses = false;
             }
 
-            sanitized.None = !sanitized.OtherAddresses && sanitized.OwnerResponsibleTypeIds.Count == 0;
+            sanitized.None = !sanitized.Requester && !sanitized.OtherAddresses && sanitized.OwnerResponsibleTypeIds.Count == 0;
             if (sanitized.None)
             {
                 sanitized.EnsureAtLeastOneNotification = false;

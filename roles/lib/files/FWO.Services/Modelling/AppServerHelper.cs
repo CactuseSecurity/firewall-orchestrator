@@ -6,7 +6,6 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Logging;
 using System.Net;
-using System.Text.Json;
 
 namespace FWO.Services.Modelling
 {
@@ -53,15 +52,16 @@ namespace FWO.Services.Modelling
             return char.IsLetter(appServer.Name[0]) ? appServer.Name : GetPrefix(appServer, namingConvention) + appServer.Name;
         }
 
-        public static async Task AdjustAppServerNames(ApiConnection apiConnection, UserConfig userConfig)
+        public static async Task AdjustAppServerNames(ApiConnection apiConnection, UserConfig userConfig, CancellationToken cancellationToken = default)
         {
             Log.WriteDebug($"Start adjusting App Server Names", "");
-            ModellingNamingConvention namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+            ModellingNamingConvention namingConvention = ModellingNamingConvention.FromJson(userConfig.ModNamingConvention);
             List<ModellingAppServer> AppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAllAppServers);
             int correctedCounter = 0;
             int failCounter = 0;
             foreach (var appServer in AppServers)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 string oldName = appServer.Name;
                 if ((await ConstructAppServerNameFromDns(appServer, namingConvention, userConfig.OverwriteExistingNames)) != oldName)
                 {

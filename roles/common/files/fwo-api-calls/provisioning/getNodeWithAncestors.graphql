@@ -1,0 +1,33 @@
+fragment provisioningConfigNodeFields on provisioning_config_node {
+  id
+  node_type
+  object_key
+  parent_id
+  display_name
+  sort_order
+  values(order_by: {config_key: asc}) {
+    node_id
+    config_key
+    config_value
+  }
+}
+
+query getNodeWithAncestors($nodeType: String!, $objectKey: String!) {
+  provisioning_config_node(
+    where: {
+      node_type: {_eq: $nodeType}
+      object_key: {_eq: $objectKey}
+    }
+  ) {
+    ...provisioningConfigNodeFields
+    parent_node {
+      ...provisioningConfigNodeFields
+      parent_node {
+        ...provisioningConfigNodeFields
+        parent_node {
+          ...provisioningConfigNodeFields
+        }
+      }
+    }
+  }
+}

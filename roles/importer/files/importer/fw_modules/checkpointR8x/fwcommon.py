@@ -15,7 +15,7 @@ from fw_modules.checkpointR8x import (
     cp_rule,
     cp_service,
 )
-from fwo_base import ConfigAction
+from fwo_enums import ConfigAction
 from fwo_exceptions import FwLoginFailedError, FwoImporterError, ImportInterruptionError
 from fwo_log import FWOLogger
 from models.fw_common import FwCommon

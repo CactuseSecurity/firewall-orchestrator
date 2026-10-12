@@ -49,50 +49,7 @@
     </form>
     <hr />
     <h3>@(userConfig.GetText("custom_field_import_Settings"))</h3>
-    <div class="form-group row mt-2 align-items-center">
-        <label class="col-sm-4 col-form-label me-2" for="ownerMappingSourceDropdown">@(userConfig.GetText("source"))</label>
-        <div class="col-sm-5">
-            <Dropdown ElementType="OwnerMappingSourceStm?" ElementToString="GetOwnerMappingSourceText" SelectedElement="@SelectedOwnerMappingSource"
-                      SelectedElementChanged="@(src => { SelectedOwnerMappingSource = src; StateHasChanged(); })" Elements="OwnerMappingSources" Nullable="true" id="ownerMappingSourceDropdown">
-                <ElementTemplate Context="source">
-                    @GetOwnerMappingSourceText(source)
-                </ElementTemplate>
-            </Dropdown>
-        </div>
-    </div>
-    @if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField)
-    {
-        <div class="form-group row mb-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5677"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_Owner_key"):</label>
-            <div class="col-sm-5">
-                <EditList ElementType="string" Elements="OwnerKeys.ToArray()" ElementsToAdd="OwnerKeysToAdd"
-                          ElementsToDelete="OwnerKeysToDelete" StdLayout="false">
-                    <Display>
-                        <div class="row">
-                            <div class="col-sm-12 border bg-transparent">@context</div>
-                        </div>
-                    </Display>
-                </EditList>
-                <div class="row col-sm-12 mt-1">
-                    <input type="text" class="col-sm-10" @bind="actOwnerKey" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddOwnerKey"
-                            @onclick:preventDefault>
-                        @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
-                    </button>
-                </div>
-            </div>
-        </div>
-
-    }
-    @if (SelectedOwnerMappingSource == OwnerMappingSourceStm.NameField)
-    {
-        <div class="form-group row mt-2 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5648"))">
-            <label class="col-sm-4 col-form-label me-2">@userConfig.GetText("modelledMarker"):</label>
-            <div class="col-sm-5">
-                <input type="text" class="form-control" @bind="actModelledMarker" />
-            </div>
-        </div>
-    }
+    <OwnerMappingSourceEditor Handler="@ownerMappingSourceHandler" />
     @* shown for every owner mapping source: the change-ID keys are read by rule reports, notification mails and the rule REST API *@
     <div class="form-group row mb-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5678"))">
         <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_ChangeID_key"):</label>
@@ -136,21 +93,13 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
-    private List<OwnerMappingSourceStm?> OwnerMappingSources = [];
-    private OwnerMappingSourceStm? SelectedOwnerMappingSource = null;
     private UpdateRuleOwnerMapping? updateOwnerRuleMappings;
-
-    private string actOwnerKey = "";
-    private List<string> OwnerKeys = [];
-    private List<string> OwnerKeysToAdd = [];
-    private List<string> OwnerKeysToDelete = [];
+    private readonly OwnerMappingSourceHandler ownerMappingSourceHandler = new();
 
     private string ActiveChangeIdKey = "";
     private List<string> ChangeIdKeys = [];
     private List<string> ChangeIdKeysToAdd = [];
     private List<string> ChangeIdKeysToDelete = [];
-
-    private string actModelledMarker = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -159,33 +108,8 @@ else
             updateOwnerRuleMappings = new UpdateRuleOwnerMapping(apiConnection, globalConfig);
             EventMediator.Subscribe<UpdateRuleOwnerMappingEvent>("UpdateOwnerRuleMappings", evt => _ = updateOwnerRuleMappings.HandleEvent(evt));
             configData = await globalConfig.GetEditableConfig();
-            OwnerMappingSources = Enum.GetValues(typeof(OwnerMappingSourceStm))
-                .Cast<OwnerMappingSourceStm>()
-                .Where(oms => oms != OwnerMappingSourceStm.Manual)
-                .Cast<OwnerMappingSourceStm?>()
-                .ToList();
-
-            if (Enum.IsDefined(typeof(OwnerMappingSourceStm), userConfig.OwnerSoruceMappingID))
-            {
-                SelectedOwnerMappingSource = (OwnerMappingSourceStm)userConfig.OwnerSoruceMappingID;
-            }
-
-            if (!string.IsNullOrWhiteSpace(userConfig.CustomFieldOwnerKey))
-            {
-                var json = userConfig.CustomFieldOwnerKey.Trim();
-
-                if (json.StartsWith("[") && json.EndsWith("]"))
-                {
-                    OwnerKeys = JsonSerializer.Deserialize<string[]>(json)?.ToList() ?? new List<string>();
-                }
-                else
-                {
-                    OwnerKeys = new List<string> { json };
-                }
-            }
-
+            ownerMappingSourceHandler.Init(configData);
             ChangeIdKeys = DeserializeChangeIdKeys(configData.CustomFieldChangeIdKey);
-            actModelledMarker = configData.ModModelledMarker ?? "";
         }
         catch (Exception exception)
         {
@@ -199,7 +123,7 @@ else
     private async Task<bool> TriggerFullRuleOwnerReinitialize()
     {
         var tcs = new TaskCompletionSource<bool>();
-        var args = new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true, Completion = tcs };
+        var args = new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true, TriggeredByChange = true, Changes = ownerMappingSourceHandler.AppliedChanges, Completion = tcs };
         EventMediator.Publish("UpdateOwnerRuleMappings", new UpdateRuleOwnerMappingEvent(args));
         return await tcs.Task;
     }
@@ -210,41 +134,42 @@ else
         {
             if (configData != null)
             {
-                int oldSource = configData.OwnerSoruceMappingID;
-                string oldOwnerKey = configData.CustomFieldOwnerKey ?? "";
-                string oldModelledMarker = configData.ModModelledMarker ?? "";
-
                 List<string> mergedChangeIdKeys = MergeChangeIdKeys();
                 string serializedChangeIdKeys = JsonSerializer.Serialize(mergedChangeIdKeys);
 
-                string? ownerMappingError = PrepareOwnerMapping();
-                if (ownerMappingError != null)
+                string? ownerMappingErrorKey = ownerMappingSourceHandler.Validate();
+                if (ownerMappingErrorKey != null)
                 {
                     // the change-ID keys are read by rule reports, notification mails and the rule REST API,
                     // so an incomplete owner mapping must not block them
                     await SaveChangeIdKeysOnly(serializedChangeIdKeys);
                     configData.CustomFieldChangeIdKey = serializedChangeIdKeys;
                     CommitChangeIdKeys(mergedChangeIdKeys);
-                    DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), $"{ownerMappingError} {userConfig.GetText("E5506")}", true);
+                    DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), $"{userConfig.GetText(ownerMappingErrorKey)} {userConfig.GetText("E5506")}", true);
                     return;
                 }
 
                 configData.CustomFieldChangeIdKey = serializedChangeIdKeys;
-                configData.OwnerSoruceMappingID = (int)SelectedOwnerMappingSource!.Value;
-                configData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
-                configData.ModModelledMarker = actModelledMarker;
+                bool ruleOwnerReinitializeNeeded = ownerMappingSourceHandler.ApplyTo(configData);
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
+                ownerMappingSourceHandler.TakeOverStoredSettings(configData);
                 CommitChangeIdKeys(mergedChangeIdKeys);
 
-                if (ShouldTriggerRuleOwnerReinitialize(oldSource, oldOwnerKey, oldModelledMarker, configData))
+                if (ruleOwnerReinitializeNeeded)
                 {
+                    // recorded before the rebuild is triggered: the configuration is already saved, so if the
+                    // rebuild fails the note is what keeps the later rebuild from reporting the intended
+                    // change as drift - whichever path finally runs it
+                    await new RuleOwnerMappingRunHistory(apiConnection).RecordPendingChanges(ownerMappingSourceHandler.AppliedChanges);
+
                     bool rebuildSuccess = await TriggerFullRuleOwnerReinitialize();
                     if (!rebuildSuccess)
                     {
                         DisplayMessageInUi(null, userConfig.GetText("owner_mapping"), userConfig.GetText("E5502"), true);
                         return;
                     }
+                    ownerMappingSourceHandler.ConfirmRuleOwnerRebuild();
                 }
 
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
@@ -271,66 +196,6 @@ else
         ConfigData changeIdKeyConfig = await globalConfig.GetEditableConfig();
         changeIdKeyConfig.CustomFieldChangeIdKey = serializedChangeIdKeys;
         await globalConfig.WriteToDatabase(changeIdKeyConfig, apiConnection);
-    }
-
-    /// <summary>
-    /// Applies the pending owner key edits and checks that the owner mapping part of the form can be persisted.
-    /// </summary>
-    /// <returns>The error text to display, or <see langword="null"/> when the owner mapping is valid.</returns>
-    private string? PrepareOwnerMapping()
-    {
-        if (SelectedOwnerMappingSource == null)
-        {
-            return userConfig.GetText("E5504");
-        }
-        PrepareOwnerKeys();
-        if (SelectedOwnerMappingSource == OwnerMappingSourceStm.CustomField && !OwnerKeys.Any())
-        {
-            return userConfig.GetText("E5505");
-        }
-        return null;
-    }
-
-    private static bool ShouldTriggerRuleOwnerReinitialize(int oldSource, string oldOwnerKey, string oldModelledMarker, ConfigData configData)
-    {
-        bool sourceChanged = oldSource != configData.OwnerSoruceMappingID;
-        bool customFieldConfigChanged = oldOwnerKey != configData.CustomFieldOwnerKey;
-        bool nameFieldConfigChanged = oldModelledMarker != configData.ModModelledMarker;
-
-        if (sourceChanged)
-        {
-            return true;
-        }
-
-        if (configData.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.CustomField && customFieldConfigChanged)
-        {
-            return true;
-        }
-
-        return configData.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.NameField && nameFieldConfigChanged;
-    }
-
-    private void AddOwnerKey()
-    {
-        if (actOwnerKey != "")
-        {
-            OwnerKeysToAdd.Add(actOwnerKey);
-            actOwnerKey = "";
-        }
-    }
-
-    private void PrepareOwnerKeys()
-    {
-        foreach (var key in OwnerKeysToDelete)
-        {
-            OwnerKeys.Remove(key);
-        }
-        foreach (var key in OwnerKeysToAdd)
-        {
-            OwnerKeys.Add(key);
-        }
-        OwnerKeysToDelete = [];
-        OwnerKeysToAdd = [];
     }
 
     /// <summary>
@@ -397,11 +262,6 @@ else
             Log.WriteWarning("Read Config", $"Config item \"CustomFieldChangeIdKey\" contains unsupported value \"{keysJson}\". Using empty key list. {exception.Message}");
             return [];
         }
-    }
-
-    private string GetOwnerMappingSourceText(OwnerMappingSourceStm? source)
-    {
-        return userConfig.GetText(source?.ToString() ?? "");
     }
 
     public void Dispose()

@@ -28,6 +28,7 @@ query getRulesForSelectedManagementsByChunk(
       risk_score
       policy_id
       criterion_id
+      violation_type
       criterion: criterion{
         id
         name

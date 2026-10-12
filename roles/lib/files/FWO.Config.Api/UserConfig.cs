@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using FWO.Basics;
 using FWO.Logging;
@@ -50,7 +51,7 @@ namespace FWO.Config.Api
 
         public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, ApiConnection apiConnection, int userId, bool owningApiConnection = false)
         {
-            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = userId });
+            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getOwnUser, new { userId = userId });
             UiUser? user = users.FirstOrDefault();
             if (user == null)
             {
@@ -63,8 +64,8 @@ namespace FWO.Config.Api
         public UserConfig(GlobalConfig globalConfig, ApiConnection apiConnection, UiUser user, bool owningApiConnection = false) : base(apiConnection, user.DbId, withSubscription: false, owningApiConnection)
         {
             User = user;
-            Translate = globalConfig.LangDict[user.Language!];
-            Overwrite = apiConnection != null ? Task.Run(async () => await GetCustomDict(user.Language!)).Result : globalConfig.OverDict[user.Language!];
+            Translate = GetLanguageDictionary(globalConfig.LangDict, user.Language!);
+            Overwrite = Task.Run(async () => await GetCustomDict(user.Language!)).Result;
             this.globalConfig = globalConfig;
             OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
             globalConfig.OnChange += OnGlobalConfigChange;
@@ -74,13 +75,24 @@ namespace FWO.Config.Api
         private UserConfig(GlobalConfig globalConfig, bool registerOnChangeHandler = true) : base()
         {
             User = new UiUser();
-            Translate = globalConfig.LangDict[globalConfig.DefaultLanguage];
+            Translate = GetLanguageDictionary(globalConfig.LangDict, globalConfig.DefaultLanguage);
             this.globalConfig = globalConfig;
 
             if (registerOnChangeHandler)
             {
                 globalConfig.OnChange += OnGlobalConfigChange;
             }
+        }
+
+        private static Dictionary<string, string> GetLanguageDictionary(Dictionary<string, Dictionary<string, string>> dictionaries, string language)
+        {
+            if (dictionaries.TryGetValue(language, out Dictionary<string, string>? dictionary))
+            {
+                return dictionary;
+            }
+
+            Log.WriteWarning("Language", $"Language dictionary for '{language}' was not found.");
+            return [];
         }
 
         public UserConfig() : base()
@@ -113,18 +125,25 @@ namespace FWO.Config.Api
                 .ToHashSet();
         }
 
-        public async Task SetUserInformation(string userDn, ApiConnection apiConnection)
+        /// <summary>
+        /// Loads the local user of the session and applies its settings and language.
+        /// </summary>
+        /// <param name="userDbId">Local database id of the user, taken from the token. The dn is not used,
+        /// as the same dn may exist in several LDAP connections and then names several local users.</param>
+        /// <param name="apiConnection">API connection used to read the user.</param>
+        public async Task SetUserInformation(int userDbId, ApiConnection apiConnection)
         {
             ThrowIfDisposed();
             if (globalConfig != null)
             {
                 OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
             }
-            Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
-            UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn });
+            Log.WriteDebug("Get User Data", $"Get user data from user with id: {userDbId}");
+            UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getOwnUser, new { userId = userDbId });
             if (users.Length > 0)
             {
                 User = users[0];
+                User.LdapConnection ??= new();
             }
             await InitWithUserId(apiConnection, User.DbId, true);
 
@@ -141,8 +160,8 @@ namespace FWO.Config.Api
             if (globalConfig != null)
             {
                 await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });
-                Translate = globalConfig.LangDict[languageName];
-                Overwrite = apiConnection != null ? await GetCustomDict(languageName) : globalConfig.OverDict[languageName];
+                Translate = GetLanguageDictionary(globalConfig.LangDict, languageName);
+                Overwrite = await GetCustomDict(languageName);
                 User.Language = languageName;
                 InvokeOnChange(this, []);
             }
@@ -152,6 +171,30 @@ namespace FWO.Config.Api
         {
             ThrowIfDisposed();
             return User.Language ?? "";
+        }
+
+        /// <summary>
+        /// Culture of the language the user has selected, used to format dates the way the user reads them.
+        /// The UI renders on the server, so the culture of the thread belongs to the server and not to the user.
+        /// </summary>
+        /// <returns>The culture of the user language, the invariant culture if the language names no known culture.</returns>
+        public CultureInfo GetUserCulture()
+        {
+            ThrowIfDisposed();
+            string language = string.IsNullOrWhiteSpace(User.Language) ? globalConfig?.DefaultLanguage ?? GlobalConst.kEnglish : User.Language;
+            string? cultureName = globalConfig?.UiLanguages?.FirstOrDefault(uiLanguage => uiLanguage.Name == language)?.CultureInfo;
+            if (string.IsNullOrWhiteSpace(cultureName))
+            {
+                return CultureInfo.InvariantCulture;
+            }
+            try
+            {
+                return CultureInfo.GetCultureInfo(cultureName);
+            }
+            catch (CultureNotFoundException)
+            {
+                return CultureInfo.InvariantCulture;
+            }
         }
 
         public void SetLanguage(string languageName)
@@ -166,7 +209,7 @@ namespace FWO.Config.Api
             if (globalConfig != null && globalConfig.LangDict.TryGetValue(User.Language, out Dictionary<string, string>? langDict))
             {
                 Translate = langDict;
-                Overwrite = globalConfig.OverDict[User.Language];
+                Overwrite = GetLanguageDictionary(globalConfig.OverDict, User.Language);
             }
         }
 
@@ -189,18 +232,141 @@ namespace FWO.Config.Api
         public ReportVisibility GetReportVisibility()
         {
             return new ReportVisibility(
-                RuleRelated: CanUseAnyRole(Roles.Reporter, Roles.ReporterViewAll, Roles.FwAdmin, Roles.Admin, Roles.Auditor, Roles.Recertifier),
-                ModellingRelated: CanUseAnyRole(Roles.Modeller, Roles.Admin, Roles.Auditor, Roles.Recertifier),
-                ComplianceRelated: CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor),
-                OwnerRelated: CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor),
-                WorkflowRelated: CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Requester, Roles.Approver,
-                    Roles.Planner, Roles.Implementer, Roles.Reviewer));
+                RuleRelated: CanUseAnyRole(ReportVisibilityRoleSets.RuleRelated),
+                ModellingRelated: CanUseAnyRole(ReportVisibilityRoleSets.ModellingRelated),
+                ComplianceRelated: CanUseAnyRole(ReportVisibilityRoleSets.ComplianceRelated),
+                OwnerRelated: CanUseAnyRole(ReportVisibilityRoleSets.OwnerRelated),
+                WorkflowRelated: CanUseAnyRole(ReportVisibilityRoleSets.WorkflowRelated));
         }
 
+        /// <summary>
+        /// Role-based visibility of a report type, used for templates, schedules and the archive: combines the
+        /// standard role-category rules with any per-role "Visible"/"Not Visible" override configured in
+        /// <see cref="ConfigData.ReportTypeVisibilityByRole"/>. The global switch
+        /// (<see cref="ConfigData.AvailableReportTypes"/>) is not applied here, see <see cref="CanSelectReportTypeForGeneration"/>.
+        /// </summary>
         public bool CanUseReportType(ReportType reportType, bool modellingOwnerAllowed = true)
         {
-            return reportType == ReportType.Undefined
-                || reportType.IsVisibleTemplateType(GetReportVisibility(), modellingOwnerAllowed);
+            return CanUseReportType(reportType, modellingOwnerAllowed, applyGlobalSwitch: false);
+        }
+
+        /// <summary>
+        /// Visibility of a report type in the report-type chooser of the report generation: additionally applies the
+        /// global switch (<see cref="ConfigData.AvailableReportTypes"/>) to roles set to "Inherited". An explicit
+        /// per-role override always wins - it can reinstate a report type that was disabled globally, or hide one that wasn't.
+        /// </summary>
+        public bool CanSelectReportTypeForGeneration(ReportType reportType)
+        {
+            return CanUseReportType(reportType, modellingOwnerAllowed: true, applyGlobalSwitch: true);
+        }
+
+        private bool CanUseReportType(ReportType reportType, bool modellingOwnerAllowed, bool applyGlobalSwitch)
+        {
+            if (reportType == ReportType.Undefined)
+            {
+                return true;
+            }
+
+            List<string> applicableRoles = GetApplicableRoles();
+            if (applicableRoles.Count == 0)
+            {
+                return false;
+            }
+
+            Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> overrides = ParseReportTypeVisibilityByRole();
+            bool globallyAvailable = !applyGlobalSwitch || ParseAvailableReportTypes().Contains(reportType);
+            return applicableRoles.Any(role => IsReportTypeVisibleForRole(reportType, role, overrides, modellingOwnerAllowed, globallyAvailable));
+        }
+
+        /// <summary>
+        /// Returns the subset of the user's roles for which the given report type is explicitly set
+        /// to "Not Visible". Used to keep the data-access layer (role selection for report execution)
+        /// aligned with the UI-facing visibility rules in <see cref="CanUseReportType"/>.
+        /// </summary>
+        public List<string> GetExplicitlyDeniedRoles(ReportType reportType)
+        {
+            if (reportType == ReportType.Undefined)
+            {
+                return [];
+            }
+
+            Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> overrides = ParseReportTypeVisibilityByRole();
+            return [.. User.Roles
+                .Where(role => ReportTypeRoleVisibilityConfig.GetOption(overrides, role, reportType) == ReportTypeVisibilityOption.NotVisible)
+                .Distinct(StringComparer.OrdinalIgnoreCase)];
+        }
+
+        private List<string> GetApplicableRoles()
+        {
+            return [.. User.Roles.Where(role => ExecutionModeHelper.IsRoleAvailableInExecutionMode(User.Roles, ExecutionMode, role))];
+        }
+
+        private string? cachedReportTypeVisibilityByRoleRaw;
+        private Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> cachedReportTypeVisibilityByRole = [];
+
+        /// <summary>
+        /// Parses <see cref="ConfigData.ReportTypeVisibilityByRole"/>, memoizing the result against the
+        /// raw config string so repeated calls (e.g. once per report type per render) don't each re-run
+        /// JSON deserialization when the underlying config value hasn't changed.
+        /// </summary>
+        private Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> ParseReportTypeVisibilityByRole()
+        {
+            if (cachedReportTypeVisibilityByRoleRaw != ReportTypeVisibilityByRole)
+            {
+                cachedReportTypeVisibilityByRoleRaw = ReportTypeVisibilityByRole;
+                cachedReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Parse(ReportTypeVisibilityByRole);
+            }
+            return cachedReportTypeVisibilityByRole;
+        }
+
+        private static bool IsReportTypeVisibleForRole(ReportType reportType, string role,
+            Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> overrides, bool modellingOwnerAllowed,
+            bool globallyAvailable)
+        {
+            ReportTypeVisibilityOption option = ReportTypeRoleVisibilityConfig.GetOption(overrides, role, reportType);
+            return option switch
+            {
+                // An explicit "Visible" override wins over both the global switch and the coarse-grained
+                // role-category visibility rules; it must not bypass the per-instance modelling-owner scoping check.
+                ReportTypeVisibilityOption.Visible =>
+                    modellingOwnerAllowed || !reportType.IsModellingReport() || reportType.IsOwnerReport(),
+                ReportTypeVisibilityOption.NotVisible => false,
+                _ => globallyAvailable && reportType.IsVisibleTemplateType(ReportVisibilityRoleSets.ForRole(role), modellingOwnerAllowed)
+            };
+        }
+
+        private string? cachedAvailableReportTypesRaw;
+        private HashSet<ReportType> cachedAvailableReportTypes = [];
+
+        /// <summary>
+        /// Parses <see cref="ConfigData.AvailableReportTypes"/>, memoizing the result against the raw config
+        /// string the same way <see cref="ParseReportTypeVisibilityByRole"/> does. Malformed config data is
+        /// treated as "nothing globally available" rather than throwing, since this now runs on every
+        /// <see cref="CanSelectReportTypeForGeneration"/> call.
+        /// </summary>
+        private HashSet<ReportType> ParseAvailableReportTypes()
+        {
+            if (cachedAvailableReportTypesRaw != AvailableReportTypes)
+            {
+                cachedAvailableReportTypesRaw = AvailableReportTypes;
+                cachedAvailableReportTypes = [];
+                if (!string.IsNullOrWhiteSpace(AvailableReportTypes))
+                {
+                    try
+                    {
+                        List<ReportType>? parsed = System.Text.Json.JsonSerializer.Deserialize<List<ReportType>>(AvailableReportTypes);
+                        if (parsed != null)
+                        {
+                            cachedAvailableReportTypes = [.. parsed];
+                        }
+                    }
+                    catch (System.Text.Json.JsonException)
+                    {
+                        // Keep the empty set computed above.
+                    }
+                }
+            }
+            return cachedAvailableReportTypes;
         }
 
         public override string GetText(string key)
@@ -214,26 +380,43 @@ namespace FWO.Config.Api
             {
                 return Convert(translateValue);
             }
-            else
+            return GetFallbackText(key);
+        }
+
+        private string GetFallbackText(string key)
+        {
+            if (globalConfig == null)
             {
-                if (globalConfig != null)
-                {
-                    string defaultLanguage = globalConfig.DefaultLanguage;
-                    if (defaultLanguage == "")
-                    {
-                        defaultLanguage = GlobalConst.kEnglish;
-                    }
-                    if (globalConfig.LangDict[defaultLanguage].TryGetValue(key, out string? defaultLangValue))
-                    {
-                        return Convert(defaultLangValue);
-                    }
-                    else if (defaultLanguage != GlobalConst.kEnglish && globalConfig.LangDict[GlobalConst.kEnglish].TryGetValue(key, out string? englValue))
-                    {
-                        return Convert(englValue);
-                    }
-                }
                 return GlobalConst.kUndefinedText;
             }
+
+            string defaultLanguage = string.IsNullOrEmpty(globalConfig.DefaultLanguage)
+                ? GlobalConst.kEnglish
+                : globalConfig.DefaultLanguage;
+            if (TryGetText(globalConfig.LangDict, defaultLanguage, key, out string defaultText))
+            {
+                return Convert(defaultText);
+            }
+
+            return defaultLanguage != GlobalConst.kEnglish
+                && TryGetText(globalConfig.LangDict, GlobalConst.kEnglish, key, out string englishText)
+                ? Convert(englishText)
+                : GlobalConst.kUndefinedText;
+        }
+
+        private static bool TryGetText(Dictionary<string, Dictionary<string, string>> dictionaries,
+            string language, string key, out string text)
+        {
+            text = string.Empty;
+            if (!dictionaries.TryGetValue(language, out Dictionary<string, string>? dictionary)
+                || !dictionary.TryGetValue(key, out string? foundText)
+                || foundText == null)
+            {
+                return false;
+            }
+
+            text = foundText;
+            return true;
         }
 
         public string PureLine(string text)

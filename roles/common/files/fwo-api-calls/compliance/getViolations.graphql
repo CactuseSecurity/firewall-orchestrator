@@ -10,5 +10,6 @@ query getViolations {
     rule_id
     rule_uid
     mgmt_uid
+    violation_type
   }
 }

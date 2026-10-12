@@ -1,0 +1,64 @@
+---
+# Refuses to install on an operating system release the installer does not support (for
+# example Red Hat 8). The OS specific tasks further down would otherwise start on such a
+# host - updating the package cache, adding repositories, installing packages - and only
+# fail somewhere in the middle, on a missing package or repository, leaving a partially
+# prepared host behind. Runs before the first task that changes the host.
+#
+# In its own file so roles/tests-integration drives this code rather than a copy of it.
+#
+# Inputs:
+#   supported_os_minimum_major_versions - oldest supported major release per distribution
+#   os_platform_distribution            - distribution to check, defaults to the host's
+#   os_platform_version                 - release to check, defaults to the host's
+#   allow_unsupported_os                - warn instead of failing (development and tests
+#                                         of new releases only)
+# Output: nothing, or a failure (warning with allow_unsupported_os) naming the found and
+#         the supported platforms.
+
+- name: Check the operating system release against the supported platforms
+  block:
+    - name: Refuse to install on an unsupported operating system release
+      fail:
+        msg: >-
+          {{ checked_platform_message }} Nothing has been changed on this host. To install
+          anyway, e.g. to test a new release, set allow_unsupported_os=true.
+      when:
+        - not checked_platform_supported | bool
+        - not allow_unsupported_os | default(false) | bool
+
+    - name: Warn when installing on an unsupported operating system release
+      debug:
+        msg: >-
+          WARNING: {{ checked_platform_message }} Installing anyway because
+          allow_unsupported_os is set - this installation is not supported.
+      when:
+        - not checked_platform_supported | bool
+        - allow_unsupported_os | default(false) | bool
+  vars:
+    checked_distribution: "{{ os_platform_distribution | default(ansible_facts['distribution']) }}"
+    checked_version: "{{ os_platform_version | default(ansible_facts['distribution_version']) | string }}"
+    checked_major: "{{ checked_version.split('.') | first }}"
+    checked_distribution_known: "{{ checked_distribution in supported_os_minimum_major_versions }}"
+    checked_minimum: "{{ supported_os_minimum_major_versions[checked_distribution] | default(0) }}"
+    # Debian testing and unstable carry no release number (e.g. "n/a" or "forky/sid") and
+    # are newer than any stable release.
+    checked_debian_without_release: "{{ checked_distribution == 'Debian' and checked_major is not match('^[0-9]+$') }}"
+    checked_ubuntu_lts: "{{ checked_version is match('^[0-9]*[02468][.]04$') }}"
+    checked_platform_supported: >-
+      {{
+        checked_distribution_known | bool
+        and (
+          checked_debian_without_release | bool
+          or (
+            checked_major is match('^[0-9]+$')
+            and checked_major | int >= checked_minimum | int
+            and (checked_distribution != 'Ubuntu' or checked_ubuntu_lts | bool)
+          )
+        )
+      }}
+    checked_platform_message: >-
+      {{ product_name }} does not support {{ checked_distribution }} {{ checked_version }}.
+      Supported are
+      {% for name, minimum in supported_os_minimum_major_versions.items() %}{{ name }} {{ minimum }}+{{ ', ' if not loop.last }}{% endfor %}
+      (Ubuntu LTS releases only).

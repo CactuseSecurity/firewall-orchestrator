@@ -1,0 +1,53 @@
+{
+  "name": "Corporate network zones",
+  "comment": "Imported from the network source of truth",
+  "areas": [
+    {
+      "name": "Office",
+      "id_string": "office",
+      "subnets": [
+        {
+          "name": "Office network",
+          "ip": "10.10.0.0/16",
+          "path_to_root": [
+            { "mgmt_name": "cp-mgm-1", "device_name": "fw-access-01" },
+            { "mgmt_name": "cp-mgm-1", "device_name": "fw-core-01" }
+          ],
+          "path_to_internet": [
+            { "mgmt_name": "cp-mgm-1", "device_name": "fw-core-01" },
+            { "mgmt_name": "router-mgm", "device_name": "border-router-01" }
+          ]
+        }
+      ],
+      "communication_to": [
+        {
+          "id_string": "datacenter"
+        }
+      ]
+    },
+    {
+      "name": "Datacenter",
+      "id_string": "datacenter",
+      "subnets": [
+        {
+          "name": "Server network",
+          "ip": "10.20.0.0/16",
+          "path_to_root": [],
+          "path_to_internet": [
+            { "mgmt_name": "router-mgm", "device_name": "border-router-01" }
+          ]
+        },
+        {
+          "name": "Management range",
+          "ip": "10.30.0.10",
+          "ip_end": "10.30.0.50",
+          "path_to_root": [],
+          "path_to_internet": [
+            { "mgmt_name": "router-mgm", "device_name": "border-router-02" }
+          ]
+        }
+      ],
+      "communication_to": []
+    }
+  ]
+}

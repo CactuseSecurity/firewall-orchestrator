@@ -10,6 +10,8 @@ if TYPE_CHECKING:
 
     from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, SvcObjCustom
 
+FORTI_IP_PROTOCOL_NUMBER_ANY = 0
+
 
 def normalize_app_service_objects(native_config: FortiOSConfig) -> Generator[ServiceObject]:
     """
@@ -109,11 +111,14 @@ def _get_port_range_protocols(svc_obj: SvcObjCustom) -> list[tuple[str, str | No
 
 def _get_non_port_protocol_service_object(svc_obj: SvcObjCustom) -> ServiceObject | None:
     if svc_obj.protocol == "IP":
+        ip_protocol = svc_obj.protocol_number
+        if ip_protocol is None or ip_protocol == FORTI_IP_PROTOCOL_NUMBER_ANY:
+            ip_protocol = fwo_const.ANY_IP_PROTOCOL_ID
         return ServiceObject(  # TODO: check if ports really not available in this case
             svc_name=svc_obj.name,
             svc_uid=svc_obj.name,
             svc_typ="simple",
-            ip_proto=svc_obj.protocol_number,
+            ip_proto=ip_protocol,
             svc_color=fwo_const.DEFAULT_COLOR,
             svc_comment=svc_obj.comment,
         )

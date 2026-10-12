@@ -308,7 +308,7 @@ namespace FWO.Test
                 completionSource!.SetResult(value);
             }
 
-            protected override Task<bool> Execute(AppServerImportEventArgs? eventArgs = null)
+            protected override Task<bool> Execute(AppServerImportEventArgs? eventArgs, CancellationToken cancellationToken)
             {
                 completionSource ??= new TaskCompletionSource<bool>();
                 return completionSource.Task;

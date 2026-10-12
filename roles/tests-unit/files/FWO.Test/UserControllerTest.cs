@@ -473,6 +473,39 @@ namespace FWO.Test
             Assert.That(ldapClient.AddedEntries, Has.Count.EqualTo(1));
         }
 
+        /// <summary>
+        /// Without a given LDAP the user is added to the writable one, and the local user has to be
+        /// bound to that directory: a local user without directory is matched by no login, as the
+        /// same dn may exist in another LDAP connection (SEC-11).
+        /// </summary>
+        [Test]
+        public async Task AddWithoutLdapIdBindsLocalUserToTheLdapThatAddedIt()
+        {
+            RecordingLdapClient ldapClient = new();
+            UserControllerTestApiConnection apiConnection = new()
+            {
+                AddUserResult = new ReturnIdWrapper
+                {
+                    ReturnIds = new ReturnId[] { new() { NewId = 78 } }
+                }
+            };
+            UserController controller = CreateController(
+                new List<Ldap> { new() { Id = 1 }, CreateWritableLdap(2, ldapClient) },
+                apiConnection,
+                PrincipalWithRoles(Roles.Admin));
+
+            int result = await controller.Add(new UserAddParameters
+            {
+                LdapId = 0,
+                UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
+                Password = "password",
+                TenantId = 1
+            });
+
+            Assert.That(result, Is.EqualTo(78));
+            Assert.That(apiConnection.LastVariablesText, Does.Contain("ldapConnectionId = 2 "));
+        }
+
         [Test]
         public async Task ChangeReturnsTrueWhenWritableLdapAndDatabaseUpdateSucceed()
         {

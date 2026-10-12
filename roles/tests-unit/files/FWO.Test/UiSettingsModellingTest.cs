@@ -1,4 +1,5 @@
 using Bunit;
+using AngleSharp.Dom;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -58,6 +59,15 @@ namespace FWO.Test
             return (T)field.GetValue(component)!;
         }
 
+        /// <summary>
+        /// Sets a non-public component property for isolated component tests.
+        /// </summary>
+        private static void SetPrivateProperty(object component, string propertyName, object value)
+        {
+            PropertyInfo property = component.GetType().GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMemberException(component.GetType().FullName, propertyName);
+            property.SetValue(component, value);
+        }
         private static void SetMember(object component, string memberName, object? value)
         {
             Type type = component.GetType();
@@ -119,6 +129,114 @@ namespace FWO.Test
             InvokePrivate("ModIntegrationStates", component);
 
             Assert.That(GetPrivateField<bool>(component, "modIntegrationStatesMode"), Is.True);
+        }
+
+        /// <summary>
+        /// Verifies which naming conventions are rejected and which message is reported for them.
+        /// </summary>
+        [TestCase(true, 1, "NA", "AR", "E5601")]
+        [TestCase(true, 0, "NA", "AR", "E5601")]
+        [TestCase(true, 2, "NA", "AR", "E5601")]
+        [TestCase(true, 0, null, null, "E5601")]
+        [TestCase(true, 4, "NA", "ARX", "E5602")]
+        [TestCase(true, 4, "NA", "AR", null)]
+        [TestCase(true, 3, "NA", "AR", null)]
+        [TestCase(true, 1, null, null, null)]
+        [TestCase(true, 4, "NA", "A", "E5602")]
+        [TestCase(true, 5, "NET", "AR", "E5602")]
+        [TestCase(false, 1, "NA", "ARX", null)]
+        [TestCase(false, 2, "NA", "AR", null)]
+        public void GetNamingConventionError_ChecksPatternLengths(bool networkAreaRequired, int fixedPartLength,
+            string? networkAreaPattern, string? appRolePattern, string? expectedKey)
+        {
+            SettingsModelling component = CreateComponent();
+            SetPrivateField(component, "namingConvention", new ModellingNamingConvention
+            {
+                NetworkAreaRequired = networkAreaRequired,
+                FixedPartLength = fixedPartLength,
+                NetworkAreaPattern = networkAreaPattern!,
+                AppRolePattern = appRolePattern!
+            });
+
+            string? result = (string?)GetPrivateMethod("GetNamingConventionError").Invoke(component, null);
+
+            Assert.That(result, Is.EqualTo(expectedKey));
+        }
+
+        /// <summary>
+        /// Verifies that saving rejects a naming convention that would discard the area-specific identifier.
+        /// </summary>
+        [TestCase(1, "NA", "AR", "E5601", "Invalid fixed part length")]
+        [TestCase(2, "NA", "AR", "E5601", "Invalid fixed part length")]
+        [TestCase(4, "NA", "ARX", "E5602", "Invalid app role pattern")]
+        public async Task Save_WithInvalidNamingConvention_ReportsValidationError(int fixedPartLength,
+            string networkAreaPattern, string appRolePattern, string expectedKey, string expectedMessage)
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            globalConfig.LangDict[GlobalConst.kEnglish]["modelling_settings"] = "Modelling Settings";
+            globalConfig.LangDict[GlobalConst.kEnglish][expectedKey] = expectedMessage;
+            SettingsModelling component = CreateComponent();
+            SetPrivateProperty(component, "userConfig", UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false));
+            SetPrivateField(component, "namingConvention", new ModellingNamingConvention
+            {
+                NetworkAreaRequired = true,
+                FixedPartLength = fixedPartLength,
+                NetworkAreaPattern = networkAreaPattern,
+                AppRolePattern = appRolePattern
+            });
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            SetPrivateProperty(component, "DisplayMessageInUi",
+                new Action<Exception?, string, string, bool>((exception, title, message, isError) => messages.Add((exception, title, message, isError))));
+
+            await (Task)GetPrivateMethod("Save").Invoke(component, null)!;
+
+            Assert.That(messages, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages[0].Exception, Is.Null);
+                Assert.That(messages[0].Title, Is.EqualTo("Modelling Settings"));
+                Assert.That(messages[0].Message, Is.EqualTo(expectedMessage));
+                Assert.That(messages[0].IsError, Is.True);
+            });
+        }
+
+        /// <summary>
+        /// Verifies that negative lengths are repaired before the naming convention is validated.
+        /// The repaired values are observable although the validation aborts the save, which is only
+        /// possible if the repair runs ahead of the validation.
+        /// </summary>
+        [Test]
+        public async Task Save_WithNegativeLengths_RepairsThemBeforeValidating()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            globalConfig.LangDict[GlobalConst.kEnglish]["modelling_settings"] = "Modelling Settings";
+            globalConfig.LangDict[GlobalConst.kEnglish]["E5601"] = "Invalid fixed part length";
+            SettingsModelling component = CreateComponent();
+            SetPrivateProperty(component, "userConfig", UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false));
+            ModellingNamingConvention namingConvention = new()
+            {
+                NetworkAreaRequired = true,
+                FixedPartLength = -3,
+                FreePartLength = -1,
+                NetworkAreaPattern = "",
+                AppRolePattern = ""
+            };
+            SetPrivateField(component, "namingConvention", namingConvention);
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            SetPrivateProperty(component, "DisplayMessageInUi",
+                new Action<Exception?, string, string, bool>((exception, title, message, isError) => messages.Add((exception, title, message, isError))));
+
+            await (Task)GetPrivateMethod("Save").Invoke(component, null)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(namingConvention.FixedPartLength, Is.Zero);
+                Assert.That(namingConvention.FreePartLength, Is.Zero);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Exception, Is.Null);
+                Assert.That(messages[0].Message, Is.EqualTo("Invalid fixed part length"));
+                Assert.That(messages[0].IsError, Is.True);
+            });
         }
 
         [Test]
@@ -417,6 +535,41 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SettingsModelling_RendersPredefinedServicesLabelAndAction()
+        {
+            SimulatedGlobalConfig globalConfig = CreateLoadedGlobalConfig();
+            RecordingSettingsApiConn apiConnection = new()
+            {
+                IpProtocols = [],
+                ModellingGroups = []
+            };
+            SimulatedUserConfig userConfig = CreateUserConfig(Roles.Admin);
+
+            await using BunitContext context = CreateContext(globalConfig, apiConnection, userConfig);
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+            wrapper.WaitForAssertion(() =>
+            {
+                IRenderedComponent<SettingsModelling> page = wrapper.FindComponent<SettingsModelling>();
+                Assert.That(page.Find("#cbx_allow_server_in_conn"), Is.Not.Null);
+            });
+
+            IRenderedComponent<SettingsModelling> component = wrapper.FindComponent<SettingsModelling>();
+            IElement predefinedServicesLabel = component.Find("div.form-group label");
+            IElement predefinedServicesButton = component.Find("div.form-group button");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(predefinedServicesLabel.TextContent.Trim(), Is.EqualTo("Predefined Services:"));
+                Assert.That(predefinedServicesButton, Is.Not.Null);
+            });
+
+            predefinedServicesButton.Click();
+
+            Assert.That(GetPrivateField<bool>(component.Instance, "predefServices"), Is.True);
+        }
+
+        [Test]
         public async Task SettingsModelling_RendersLoadingAndReportsInitErrors_WhenConfigLoadFails()
         {
             SimulatedGlobalConfig globalConfig = CreateLoadedGlobalConfig();
@@ -499,6 +652,7 @@ namespace FWO.Test
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(Roles.Admin));
             context.Services.AddSingleton<DomEventService>();

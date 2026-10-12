@@ -1,0 +1,35 @@
+---
+# Refuses an upgrade whose source version predates the oldest database migration this
+# repository still carries. 9.5.0 removed every upgrade file below 8.0, and
+# roles/database/tasks/upgrade-database.yml selects the files it *finds* above the
+# installed version, not the files that version actually needs. A 7.x source would
+# therefore silently skip the migrations it is still missing, run the 8.x and 9.x ones on
+# top of a schema that never got them, and end up without columns the Hasura metadata and
+# the C# clients read - having already mutated the installation on the way there. An
+# unsupported source version has to be rejected before the first schema change, which is
+# why this lives in roles/common and not in the database role.
+#
+# In its own file so roles/tests-integration drives this code rather than a copy of it.
+#
+# Inputs:
+#   upgrade_source_version         - the product version currently installed (required)
+#   minimum_upgrade_source_version - the oldest version an upgrade may start from
+#   minimum_upgrade_source_release - the last release that still carries the removed
+#                                    migration files, for the two step path
+# Output: nothing, or a failure naming the installed version and the way out.
+
+- name: Refuse to upgrade from a product version whose migrations were removed
+  fail:
+    msg: >-
+      This host runs {{ product_name }} {{ upgrade_source_version }}, and an upgrade
+      starting below {{ product_name }} {{ minimum_upgrade_source_version }} is not
+      supported any more: the database migration files below
+      {{ minimum_upgrade_source_version }} have been removed, so this upgrade would skip
+      the schema changes {{ upgrade_source_version }} is still missing and leave the
+      database without columns the API and the {{ product_name }} services require.
+      No schema change has been made - the upgrade stopped before the database role ran.
+      Upgrade in two steps instead: check out
+      {{ minimum_upgrade_source_release }} ("git checkout {{ minimum_upgrade_source_release }}"),
+      upgrade this host with that checkout, then return to this version and upgrade again.
+      See documentation/installer/server-upgrade.md.
+  when: upgrade_source_version is version(minimum_upgrade_source_version, '<')

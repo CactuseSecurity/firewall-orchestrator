@@ -1,0 +1,74 @@
+@using FWO.Data.Report
+
+@inject UserConfig userConfig
+
+<div class="p-3">
+    @if (ShowTitle)
+    {
+        <h5 class="text-left">@(userConfig.GetText("select_rulebase"))</h5>
+    }
+    <div class="btn-group w-100 sticky-marker">
+        <button type="button" class="btn btn-sm btn-dark" @onclick="ToggleSelectAll">
+            @(RulebaseSelectionHelper.AreAllSelected(SelectedRulebases, Managements)
+                ? DisplayService.DisplayButton(userConfig, "clear_all", Icons.ClearAll)
+                : DisplayService.DisplayButton(userConfig, "select_all", Icons.SelectAll))
+        </button>
+    </div>
+    <br><br>
+
+    @foreach (RulebaseManagementSelect management in Managements.Where(management => management.Visible))
+    {
+        <div class="mb-1">
+            <Collapse Title="@(management.Name)" StartToggled="false" Style="@("primary")">
+                @foreach (RulebaseSelect rulebase in management.Rulebases)
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="rulebase_@rulebase.Id"
+                               checked="@RulebaseSelectionHelper.IsSelected(SelectedRulebases, rulebase.Id)"
+                               @onchange="async () => await ToggleRulebase(management, rulebase)" />
+                        <label class="form-check-label" for="rulebase_@rulebase.Id">
+                            <small>@rulebase.Name</small>
+                        </label>
+                    </div>
+                }
+            </Collapse>
+        </div>
+    }
+</div>
+
+@code
+{
+    /// <summary>
+    /// Managements with their start rulebases.
+    /// </summary>
+    [Parameter]
+    public List<RulebaseManagementSelect> Managements { get; set; } = [];
+
+    [Parameter]
+    public List<SelectedRulebase> SelectedRulebases { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<List<SelectedRulebase>> SelectedRulebasesChanged { get; set; }
+
+    [Parameter]
+    public bool ShowTitle { get; set; } = true;
+
+    /// <summary>
+    /// Selects or deselects a single start rulebase.
+    /// </summary>
+    private async Task ToggleRulebase(RulebaseManagementSelect management, RulebaseSelect rulebase)
+    {
+        RulebaseSelectionHelper.Toggle(SelectedRulebases, management, rulebase);
+        await SelectedRulebasesChanged.InvokeAsync(SelectedRulebases);
+    }
+
+    /// <summary>
+    /// Selects all visible start rulebases or clears the selection if all are selected already.
+    /// </summary>
+    private async Task ToggleSelectAll()
+    {
+        SelectedRulebases = RulebaseSelectionHelper.AreAllSelected(SelectedRulebases, Managements)
+            ? [] : RulebaseSelectionHelper.SelectAll(Managements);
+        await SelectedRulebasesChanged.InvokeAsync(SelectedRulebases);
+    }
+}

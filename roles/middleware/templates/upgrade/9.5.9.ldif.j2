@@ -1,0 +1,4 @@
+# the fw-admin role is removed: it could change foreign tenants, managements and credentials
+
+dn: cn=fw-admin,ou=role,{{ openldap_path }}
+changetype: delete

@@ -5,7 +5,7 @@
 @using System.Text.Json
 
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -60,176 +60,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="form-group row mt-2">
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
-                            <div class="col-sm-8">
-                                @if (WfHandler.AddReqTaskMode)
-                                {
-                                    <Dropdown ElementType="WfTaskType" @bind-SelectedElement="actTaskType" ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="availableTaskTypes.Where(x => x != WfTaskType.master)" >
-                                        <ElementTemplate Context="type">
-                                            @(userConfig.GetText(type.ToString()))
-                                        </ElementTemplate>
-                                    </Dropdown>
-                                }
-                                else
-                                {
-                                    <label class="col-sm-12 h-100 border bg-secondary">@(userConfig.GetText(actTaskType.ToString()))</label>
-                                }
-                            </div>
-                        </div>
-                    </div>
-
-                    @if(actTaskType == WfTaskType.access || actTaskType == WfTaskType.rule_modify || actTaskType == WfTaskType.rule_delete || actTaskType == WfTaskType.group_create)
-                    {
-                        <div class="col-sm-3">
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("management")):</label>
-                                <div class="col-sm-8">
-                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Management))
-                                    {
-                                        <Dropdown ElementType="Management" @bind-SelectedElement="actManagement" ElementToString="@(d => d.Name)" Elements="managements" Nullable="true">
-                                            <ElementTemplate Context="management">
-                                                @management.Name
-                                            </ElementTemplate>
-                                        </Dropdown>
-                                    }
-                                    else
-                                    {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@actManagement?.Name</label>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    }
-
-                    @if(actTaskType == WfTaskType.access && NeedsManualDeviceSelection())
-                    {
-                        <div class="col-sm-3">
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("gateway"))@(actTaskType == WfTaskType.rule_modify || actTaskType == WfTaskType.rule_delete ? "*" : ""):</label>
-                                <div class="col-sm-8">
-                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Gateways))
-                                    {
-                                        <Dropdown ElementType="Device" SelectedElementsChanged="SetDevices" SelectedElementChanged="SetDevice" SelectedElements="selectedDevices" ElementToString="@(d => d.Name ?? string.Empty)" Elements="selectableDevices" Multiselect="true">
-                                            <ElementTemplate Context="device">
-                                                @device.Name
-                                            </ElementTemplate>
-                                        </Dropdown>
-                                    }
-                                    else
-                                    {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@DisplayDevices()</label>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    }
-                    else if(actTaskType == WfTaskType.rule_delete || actTaskType == WfTaskType.rule_modify)
-                    {
-                        <div class="col-sm-3">
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("gateway"))*:</label>
-                                <div class="col-sm-8">
-                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Gateway))
-                                    {
-                                        <Dropdown ElementType="Device" @bind-SelectedElement="actRuleDevice" ElementToString="@(d => d.Name ?? string.Empty)" Elements="WfHandler.Devices" Nullable="true">
-                                            <ElementTemplate Context="device">
-                                                @device.Name
-                                            </ElementTemplate>
-                                        </Dropdown>
-                                    }
-                                    else
-                                    {
-                                        <label class="col-sm-12 h-100 border bg-secondary">@actRuleDevice?.Name</label>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    }
-                    else if(actTaskType == WfTaskType.new_interface)
-                    {
-                        @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Owner) || CanEditReqTaskField(WorkflowEditableFieldKeys.RequestingOwner))
-                        {
-                            <div class="col-sm-8">
-                                <div class="form-group row">
-                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.Owner))
-                                    {
-                                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
-                                        <div class="col-sm-9">
-                                            <Dropdown ElementType="FwoOwner" @bind-SelectedElement="actOwner"
-                                                ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" Elements="NewInterfaceOwnerOptions" Nullable="true">
-                                                <ElementTemplate Context="app">
-                                                    @app.Display(userConfig.GetText("common_service"))
-                                                </ElementTemplate>
-                                            </Dropdown>
-                                        </div>
-                                    }
-                                    @if (CanEditReqTaskField(WorkflowEditableFieldKeys.RequestingOwner))
-                                    {
-                                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("requesting_owner")):</label>
-                                        <div class="col-sm-9">
-                                            <Dropdown ElementType="FwoOwner" @bind-SelectedElement="actRequestingOwner"
-                                                ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" Elements="RequestingOwnerOptions" Nullable="true">
-                                                <ElementTemplate Context="app">
-                                                    @app.Display(userConfig.GetText("common_service"))
-                                                </ElementTemplate>
-                                            </Dropdown>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
-                        else
-                        {
-                            @if(WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.ReqOwner) == "")
-                            {
-                                <div class="col-sm-7">
-                                    <div class="form-group row">
-                                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
-                                        <label class="col-sm-9 border bg-secondary">@actOwner?.Display()</label>
-                                    </div>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="col-sm-4">
-                                    <div class="form-group row">
-                                        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
-                                        <label class="col-sm-8 border bg-secondary">@actOwner?.Display()</label>
-                                    </div>
-                                </div>
-                                <div class="col-sm-4">
-                                    <div class="form-group row">
-                                        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("requesting_owner")):</label>
-                                        <label class="col-sm-8 border bg-secondary">@WfHandler.GetRequestingOwner()</label>
-                                    </div>
-                                </div>
-                            }
-                        }
-                    }
-                    else if(actTaskType == WfTaskType.group_create)
-                    {
-                        <div class="col-sm-6">
-                            <div class="form-group row">
-                                <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                                <div class="col-sm-11">
-                                    <input type="text" class="form-control form-control-sm" readonly="@(!CanEditReqTaskField(WorkflowEditableFieldKeys.Name))" @bind="actGrpName" />
-                                </div>
-                            </div>
-                        </div>
-                    }
-                    @if (actTaskType == WfTaskType.access)
-                    {
-                        <DisplayTaskTargetDates @bind-TargetBeginDate="WfHandler.ActReqTask.TargetBeginDate"
-                            @bind-TargetEndDate="WfHandler.ActReqTask.TargetEndDate"
-                            CanEditTargetBeginDate="CanEditReqTaskField(WorkflowEditableFieldKeys.ValidFrom)"
-                            CanEditTargetEndDate="CanEditReqTaskField(WorkflowEditableFieldKeys.ValidTo)"
-                            TargetDatesValidChanged="SetTargetDatesValid"
-                            ShowOnlyFlowTimeObjectSelection="true" />
-                    }
-                </div>
+                <RequestTaskMetadataEditor @ref="metadataEditor" WfHandler="WfHandler"
+                    AvailableTaskTypes="availableTaskTypes" Managements="managements"
+                    TaskType="actTaskType" CanEditField="CanEditReqTaskField" TaskTypeChanged="OnMetadataTaskTypeChanged"
+                    TargetDatesValidChanged="SetTargetDatesValid" ManagementChanged="OnMetadataManagementChanged" />
                 @if(actTaskType == WfTaskType.generic)
                 {
                     <div class="form-group row mt-2">
@@ -295,64 +129,10 @@
                     </div>
                 </div>
 
-                @if(actTaskType == WfTaskType.access || actTaskType == WfTaskType.rule_modify)
-                {
-                    <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
-                    Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
-                    Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                    IpProtos="displayIpProtos" SelectableIpProtos="selectableIpProtos" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode"
-                    EditSources="CanEditReqTaskField(WorkflowEditableFieldKeys.Source)"
-                    EditDestinations="CanEditReqTaskField(WorkflowEditableFieldKeys.Destination)"
-                    EditServices="CanEditReqTaskField(WorkflowEditableFieldKeys.Services)" />
-                }
-                else if(actTaskType == WfTaskType.rule_delete)
-                {
-                    <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActReqTask.Id" EditMode="CanEditReqTaskField(WorkflowEditableFieldKeys.Rules)" />
-                }
-                else if(actTaskType == WfTaskType.group_create)
-                {
-                    <div class="form-group row mt-2">
-                        @if (WfHandler.EditReqTaskMode)
-                        {
-                            <div class="col-sm-2">
-                                <input class="form-check-input" type="radio" checked="@(!grpTypeSvc)" name="shortcutRange" id="nwGrp" @onchange="() => {grpTypeSvc = false;}" >
-                                <label class="col-sm-1 col-form-label col-form-label-sm" for="nwGrp">@(userConfig.GetText("network_group"))</label>
-                            </div>
-                            <div class="col-sm-2">
-                                <input class="form-check-input" type="radio" checked="@(grpTypeSvc)" name="shortcutRange" id="svcGrp" @onchange="() => {grpTypeSvc = true;}" >
-                                <label class="col-sm-1 col-form-label col-form-label-sm" for="svcGrp">@(userConfig.GetText("service_group"))</label>
-                            </div>
-                            <div class="col-sm-4">
-                                @if(!grpTypeSvc)
-                                {
-                                    <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false"/>
-                                }
-                                else
-                                {
-                                    <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                                        IpProtos="selectableIpProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false"/>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="list-group col-sm-4">
-                                @foreach(var source in actSources)
-                                {
-                                    <div class="list-group-item border bg-secondary">
-                                        <label>@DisplayObjectElement(source)</label>
-                                    </div>
-                                }
-                                @foreach(var service in actServices)
-                                {
-                                    <div class="list-group-item border bg-secondary">
-                                        <label>@DisplayServiceElement(service)</label>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-                }
+                <RequestTaskElementEditor @ref="elementEditor" WfHandler="WfHandler" TaskType="actTaskType"
+                    CanEditField="CanEditReqTaskField" DisplayIpProtos="displayIpProtos"
+                    SelectableIpProtos="selectableIpProtos" RuleDevice="actRuleDevice"
+                    ManagementId="@(actManagement?.Id ?? WfHandler.ActReqTask.ManagementId)" />
 
                 <hr />
                 @if(!WfHandler.EditReqTaskMode)
@@ -406,7 +186,7 @@
                 <div class="btn-group">
                     @if (WfHandler.EditReqTaskMode)
                     {
-                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
                             <Authorized>
                                 @if(WfHandler.AddReqTaskMode)
                                 {
@@ -424,7 +204,7 @@
                     }
                     else if (WfHandler.PlanReqTaskMode)
                     {
-                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                             </Authorized>
@@ -435,7 +215,7 @@
                     }
                     else if (WfHandler.ApproveReqTaskMode)
                     {
-                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(DisplayService.DisplayButton(userConfig, "approve", Icons.Approve))</button>
                             </Authorized>
@@ -500,30 +280,17 @@
     private List<IpProtocol> displayIpProtos = [];
     private List<IpProtocol> selectableIpProtos = [];
 
-    private List<NwObjectElement> actSources = [];
-    private List<NwObjectElement> actDestinations = [];
-    private List<NwServiceElement> actServices = [];
-    private List<NwRuleElement> actRules = [];
-
-    private List<NwObjectElement> sourcesToAdd = [];
-    private List<NwObjectElement> sourcesToDelete = [];
-    private List<NwObjectElement> destinationsToAdd = [];
-    private List<NwObjectElement> destinationsToDelete = [];
-    private List<NwServiceElement> servicesToAdd = [];
-    private List<NwServiceElement> servicesToDelete = [];
     private WfTaskType actTaskType = WfTaskType.access;
 
     private List<WfStateAction> offeredActions = [];
     private string allComments = "";
     private IEnumerable<Device> selectedDevices { get; set; } = new List<Device>();
-    private List<Device> selectableDevices = [];
     private Device? actRuleDevice;
     private RuleAction? actRuleAction;
     private Tracking? actTracking;
     private FwoOwner? actOwner;
     private FwoOwner? oldOwner;
     private string? actGrpName;
-    private bool grpTypeSvc = false;
     private bool firstParamSet = false;
     private bool WorkInProgress = false;
     private bool targetDatesValid = true;
@@ -531,6 +298,8 @@
     private Management? actManagement;
     private FwoOwner? actRequestingOwner;
     private long displayedReqTaskId = -1;
+    private RequestTaskMetadataEditor? metadataEditor;
+    private RequestTaskElementEditor? elementEditor;
     private IEnumerable<FwoOwner> NewInterfaceOwnerOptions => WfHandler.AllOwners.Where(owner => owner.Id != 0);
     private IEnumerable<FwoOwner> RequestingOwnerOptions => userConfig.CanUseAnyRole(Roles.Admin)
         ? NewInterfaceOwnerOptions
@@ -541,7 +310,7 @@
         try
         {
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
-            actTaskType = availableTaskTypes.Count > 0 ? availableTaskTypes.Last() : WfTaskType.access;
+            actTaskType = GetDefaultTaskType();
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
             managements.Add(new(){ Id = -1, Name = userConfig.GetText("all"), DeviceType = new(){ Id = 0 } });
@@ -552,12 +321,6 @@
                 ProtocolDisplayHelper.GetSelectableProtocols(protocols),
                 ProtocolDisplayHelper.ParseProtocolNames(userConfig.ReducedProtocolSetProtocols),
                 userConfig.ReducedProtocolSet);
-            selectableDevices =
-            [
-                new Device() { Id = WfReqTaskBase.kAllDevicesId, Name = userConfig.GetText("all"), DeviceType = new() { Id = 0 } },
-                .. WfHandler.Devices
-            ];
-            InitElements();
             firstParamSet = true;
         }
         catch (Exception exception)
@@ -574,7 +337,6 @@
             {
                 firstParamSet = false;
                 displayedReqTaskId = WfHandler.ActReqTask.Id;
-                InitElements();
                 await InitComments();
                 if(!WfHandler.AddReqTaskMode)
                 {
@@ -585,9 +347,13 @@
                     }
                     if(WfHandler.ActReqTask.TaskType == WfTaskType.new_interface.ToString() && WfHandler.ActReqTask.Owners.Count > 0)
                     {
-                        oldOwner = actOwner;
+                        oldOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
                     }
                     actGrpName = WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+                }
+                else
+                {
+                    actTaskType = GetDefaultTaskType();
                 }
                 await Reset();
             }
@@ -598,62 +364,44 @@
         }
     }
 
-    private void SetDevice(Device device)
-    {
-        selectedDevices = device.Id == WfReqTaskBase.kAllDevicesId ? [GetAllDevicesOption()] : new[] { device };
-    }
-
-    private void SetDevices(IEnumerable<Device> devices)
-    {
-        List<Device> deviceList = [.. devices];
-        bool containsAll = deviceList.Any(device => device.Id == WfReqTaskBase.kAllDevicesId);
-        bool containsConcreteDevice = deviceList.Any(device => device.Id != WfReqTaskBase.kAllDevicesId);
-        bool previouslyHadAll = selectedDevices.Any(device => device.Id == WfReqTaskBase.kAllDevicesId);
-        if (containsAll && containsConcreteDevice)
-        {
-            selectedDevices = previouslyHadAll
-                ? deviceList.Where(device => device.Id != WfReqTaskBase.kAllDevicesId)
-                : [GetAllDevicesOption()];
-        }
-        else if (containsAll)
-        {
-            selectedDevices = [GetAllDevicesOption()];
-        }
-        else
-        {
-            selectedDevices = deviceList;
-        }
-    }
-
-    private void InitElements()
-    {
-        ResetPendingElementChanges();
-        actSources = WfHandler.ActReqTask.GetNwObjectElements(ElemFieldType.source);
-        actDestinations = WfHandler.ActReqTask.GetNwObjectElements(ElemFieldType.destination);
-        actServices = WfHandler.ActReqTask.GetServiceElements();
-        actRules = WfHandler.ActReqTask.GetRuleElements();
-        grpTypeSvc = actServices.Count > 0;
-    }
-
-    private void ResetPendingElementChanges()
-    {
-        sourcesToAdd = [];
-        sourcesToDelete = [];
-        destinationsToAdd = [];
-        destinationsToDelete = [];
-        servicesToAdd = [];
-        servicesToDelete = [];
-    }
-
     private async Task InitComments()
     {
         allComments = WfStatefulObject.DisplayAllComments(WfHandler.ActReqTask.Comments);
         await DefaultInit.DoNothing(); // qad avoid compiler warning
     }
 
+    private void OnMetadataTaskTypeChanged(WfTaskType taskType)
+    {
+        actTaskType = taskType;
+    }
+
+    private void OnMetadataManagementChanged(Management? management)
+    {
+        actManagement = management;
+    }
+
+    private WfTaskType GetDefaultTaskType()
+    {
+        return availableTaskTypes.LastOrDefault(taskType => taskType != WfTaskType.master, WfTaskType.access);
+    }
+
+    private void SyncMetadataState()
+    {
+        if (metadataEditor == null)
+        {
+            return;
+        }
+        actManagement = metadataEditor.CurrentManagement;
+        actRuleDevice = metadataEditor.CurrentRuleDevice;
+        actOwner = metadataEditor.CurrentOwner;
+        actRequestingOwner = metadataEditor.CurrentRequestingOwner;
+        actGrpName = metadataEditor.CurrentGroupName;
+        selectedDevices = metadataEditor.CurrentSelectedDevices;
+    }
+
     private async Task Close()
     {
-        ResetPendingElementChanges();
+        elementEditor?.ResetPendingChanges();
         firstParamSet = true;
         displayedReqTaskId = -1;
         await ResetParent();
@@ -669,30 +417,13 @@
     private async Task Reset()
     {
         Log.WriteDebug("DisplayRequestTask", "Reset");
+        if (!WfHandler.AddReqTaskMode)
+        {
+            metadataEditor?.InitializeFromTask();
+        }
         if(WfHandler.ActionHandler != null)
         {
             offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActReqTask, WfObjectScopes.RequestTask, WfHandler.Phase);
-        }
-        List<int> selectedDeviceIds = WfHandler.ActReqTask.GetDeviceList().ToList();
-        if ((selectedDeviceIds.Count == 0 && NeedsManualDeviceSelection())
-            || WfHandler.ActReqTask.HasAllDevicesSelected()
-            || (selectedDeviceIds.Count > 0 && selectedDeviceIds.Count == WfHandler.Devices.Count
-             && !WfHandler.Devices.Select(x => x.Id).Except(selectedDeviceIds).Any())
-           )
-        {
-            selectedDevices = [GetAllDevicesOption()];
-        }
-        else
-        {
-            selectedDevices = new List<Device>();
-            foreach(int devId in selectedDeviceIds)
-            {
-                Device? dev = WfHandler.Devices.FirstOrDefault(x => x.Id == devId);
-                if(dev != null)
-                {
-                    selectedDevices = selectedDevices.Append(dev);
-                }
-            }
         }
         actRuleDevice = WfHandler.Devices.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetRuleDeviceId());
         actRuleAction = ruleActions.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.RuleAction);
@@ -708,65 +439,6 @@
         WfHandler.DisplayPathAnalysisMode = false;
     } *@
 
-    private string DisplayDevices()
-    {
-        if (selectedDevices.Any(dev => dev.Id == WfReqTaskBase.kAllDevicesId))
-        {
-            return userConfig.GetText("all");
-        }
-        List<string> devNames = new();
-        foreach(var dev in selectedDevices)
-        {
-            devNames.Add(dev?.Name ?? "");
-        }
-        return string.Join(", ", devNames);
-    }
-
-    private Device GetAllDevicesOption()
-    {
-        return selectableDevices.FirstOrDefault(dev => dev.Id == WfReqTaskBase.kAllDevicesId)
-            ?? new Device()
-            {
-                Id = WfReqTaskBase.kAllDevicesId,
-                Name = userConfig.GetText("all"),
-                DeviceType = new() { Id = 0 }
-            };
-    }
-
-    private string DisplayObjectElement(NwObjectElement element)
-    {
-        if (!string.IsNullOrEmpty(element.GroupName))
-        {
-            return element.GroupName;
-        }
-        if (!string.IsNullOrEmpty(element.Name) && string.IsNullOrEmpty(element.IpString))
-        {
-            return element.Name;
-        }
-        return NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
-    }
-
-    private string DisplayServiceElement(NwServiceElement element)
-    {
-        if (!string.IsNullOrEmpty(element.GroupName))
-        {
-            return element.GroupName;
-        }
-        if (!string.IsNullOrEmpty(element.Name) && element.Port is null or 0)
-        {
-            return element.Name;
-        }
-        return DisplayBase.DisplayService(element, displayIpProtos);
-    }
-
-    private bool NeedsManualDeviceSelection()
-    {
-        bool planningPhaseActive = WfHandler.ActStateMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool isActive) && isActive;
-        return !planningPhaseActive
-            && (userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask
-                || userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.oneTaskForAllDevices);
-    }
-
     private async Task PerformAction(WfStateAction action)
     {
         if (WorkInProgress)
@@ -778,11 +450,12 @@
         {
             if(WfHandler.ActionHandler != null)
             {
-                await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActReqTask, WfObjectScopes.RequestTask, actOwner, WfHandler.ActReqTask.TicketId);
+                await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActReqTask, WfObjectScopes.RequestTask,
+                    metadataEditor?.CurrentOwner ?? actOwner, WfHandler.ActReqTask.TicketId);
             }
             if(action.ActionType == nameof(StateActionTypes.AddApproval) && await WfHandler.ReloadActReqTask())
             {
-                InitElements();
+                elementEditor?.InitializeElements();
                 await InitComments();
             }
             await Reset();
@@ -897,74 +570,6 @@
         StateHasChanged();
     }
 
-    private void UpdateElements()
-    {
-        foreach(var src in sourcesToDelete)
-        {
-            actSources.Remove(src);
-            RemoveElem(src.ElemId);
-        }
-        foreach(var dst in destinationsToDelete)
-        {
-            actDestinations.Remove(dst);
-            RemoveElem(dst.ElemId);
-        }
-        foreach(var svc in servicesToDelete)
-        {
-            actServices.Remove(svc);
-            RemoveElem(svc.ElemId);
-        }
-        if(actTaskType != WfTaskType.group_create || !grpTypeSvc)
-        {
-            foreach(var src in sourcesToAdd)
-            {
-                src.TaskId = WfHandler.ActReqTask.Id;
-                actSources.Add(src);
-                WfHandler.ActReqTask.Elements.Add(src.ToReqElement(ElemFieldType.source));
-            }
-        }
-        foreach(var dst in destinationsToAdd)
-        {
-            dst.TaskId = WfHandler.ActReqTask.Id;
-            actDestinations.Add(dst);
-            WfHandler.ActReqTask.Elements.Add(dst.ToReqElement(ElemFieldType.destination));
-        }
-        if(actTaskType != WfTaskType.group_create || grpTypeSvc)
-        {
-            foreach(var svc in servicesToAdd)
-            {
-                svc.TaskId = WfHandler.ActReqTask.Id;
-                actServices.Add(svc);
-                WfHandler.ActReqTask.Elements.Add(svc.ToReqElement());
-            }
-        }
-        sourcesToDelete = [];
-        destinationsToDelete = [];
-        servicesToDelete = [];
-        sourcesToAdd = [];
-        destinationsToAdd = [];
-        servicesToAdd = [];
-
-        WfHandler.ActReqTask.Elements.RemoveAll(x => x.Field == ElemFieldType.rule.ToString());
-        foreach(var rule in actRules)
-        {
-            WfReqElement reqElem = rule.ToReqElement();
-            reqElem.DeviceId = actRuleDevice?.Id;
-            reqElem.RequestAction = WfHandler.ActReqTask.RequestAction;
-            WfHandler.ActReqTask.Elements.Add(reqElem);
-        }
-    }
-
-    private void RemoveElem(long elemId)
-    {
-        WfReqElement? oldElem = WfHandler.ActReqTask.Elements.FirstOrDefault(x => x.Id == elemId);
-        if(oldElem != null)
-        {
-            WfHandler.ActReqTask.RemovedElements.Add(oldElem);
-            WfHandler.ActReqTask.Elements.Remove(oldElem);
-        }
-    }
-
     private async Task SaveReqTask()
     {
         if (WorkInProgress)
@@ -1001,6 +606,7 @@
 
     private async Task<bool> PrepareReqTaskForSave()
     {
+        SyncMetadataState();
         if (!RejectInvalidTargetDates())
         {
             return false;
@@ -1010,38 +616,14 @@
         WfHandler.ActReqTask.RuleAction = actRuleAction?.Id;
         WfHandler.ActReqTask.Tracking = actTracking?.Id;
         WfHandler.ActReqTask.ManagementId = actManagement != null && actManagement.Id >= 0 ? actManagement.Id : null;
-        WfHandler.ActReqTask.RemovedOwners = new();
-        WfHandler.ActReqTask.NewOwners = new();
-        if(actOwner != oldOwner)
-        {
-            if(oldOwner != null)
-            {
-                WfHandler.ActReqTask.RemovedOwners.Add(oldOwner);
-            }
-            if(actOwner != null)
-            {
-                WfHandler.ActReqTask.NewOwners.Add(actOwner);
-            }
-        }
+        ApplyOwnerChanges();
         if (WfHandler.ActReqTask.Sanitize())
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
         }
-        if(actTaskType == WfTaskType.rule_delete)
-        {
-            WfHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
-        }
-        else if(actTaskType == WfTaskType.group_create)
-        {
-            WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, actGrpName ?? "");
-        }
+        ApplyTaskTypeSpecificValues();
 
-        if (actTaskType == WfTaskType.new_interface)
-        {
-            WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.ReqOwner, actRequestingOwner?.Id.ToString() ?? "");
-        }
-
-        UpdateElements();
+        elementEditor?.ApplyChanges(actRuleDevice);
         if (!await CheckTaskValues())
         {
             return false;
@@ -1056,6 +638,52 @@
             WfHandler.ActReqTask.Owners.Add(new() { Owner = actOwner });
         }
         return true;
+    }
+
+    /// <summary>
+    /// Records which owners are removed from and added to the task by this save.
+    /// </summary>
+    private void ApplyOwnerChanges()
+    {
+        WfHandler.ActReqTask.RemovedOwners = [];
+        WfHandler.ActReqTask.NewOwners = [];
+        if (actOwner == oldOwner)
+        {
+            return;
+        }
+        if (oldOwner != null)
+        {
+            WfHandler.ActReqTask.RemovedOwners.Add(oldOwner);
+        }
+        if (actOwner != null)
+        {
+            WfHandler.ActReqTask.NewOwners.Add(actOwner);
+        }
+    }
+
+    /// <summary>
+    /// Sets the values only some task types carry.
+    /// </summary>
+    private void ApplyTaskTypeSpecificValues()
+    {
+        switch (actTaskType)
+        {
+            case WfTaskType.rule_delete:
+                WfHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
+                break;
+            case WfTaskType.group_create:
+                WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, actGrpName ?? "");
+                break;
+            case WfTaskType.object_create:
+                WfHandler.ActReqTask.RequestAction = RequestAction.create.ToString();
+                break;
+            case WfTaskType.object_modify:
+                WfHandler.ActReqTask.RequestAction = RequestAction.modify.ToString();
+                break;
+            case WfTaskType.new_interface:
+                WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.ReqOwner, actRequestingOwner?.Id.ToString() ?? "");
+                break;
+        }
     }
 
     private bool RejectInvalidTaskFormat()
@@ -1090,8 +718,8 @@
 
     private bool RejectInvalidAccessTask()
     {
-        if (actSources.Count == 0 || actDestinations.Count == 0 || actServices.Count == 0 ||
-            (NeedsManualDeviceSelection() && selectedDevices.Count<Device>() == 0))
+        if (elementEditor is null || elementEditor.SourceCount == 0 || elementEditor.DestinationCount == 0 || elementEditor.ServiceCount == 0 ||
+            (metadataEditor?.NeedsManualDeviceSelection == true && selectedDevices.Count<Device>() == 0))
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;
@@ -1139,7 +767,7 @@
 
     private async Task<bool> RejectInvalidRuleDeleteTask()
     {
-        if (actRuleDevice == null || actRules.Count == 0)
+        if (actRuleDevice == null || elementEditor is null || elementEditor.RuleCount == 0)
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;
@@ -1157,7 +785,7 @@
 
     private bool RejectInvalidGroupCreateTask()
     {
-        if (string.IsNullOrEmpty(actGrpName) || (actSources.Count == 0 && actServices.Count == 0))
+        if (string.IsNullOrEmpty(actGrpName) || elementEditor is null || (elementEditor.SourceCount == 0 && elementEditor.ServiceCount == 0))
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;
@@ -1166,6 +794,26 @@
         return true;
     }
     
+    private bool RejectInvalidObjectTask()
+    {
+        string? error;
+        if (!WfHandler.EditReqTaskMode)
+        {
+            error = WfObjectTaskHelper.HasValidElementStructure(WfHandler.ActReqTask) ? null : "E5124";
+        }
+        else
+        {
+            error = elementEditor == null ? "E5124" : elementEditor.ApplyObjectTask();
+        }
+        if (error != null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText(error), true);
+            return false;
+        }
+
+        return true;
+    }
+
     private async Task<bool> CheckTaskValues()
     {
         if (!RejectInvalidTaskFormat())
@@ -1177,6 +825,7 @@
             case WfTaskType.access when !RejectInvalidAccessTask():
             case WfTaskType.rule_delete when !(await RejectInvalidRuleDeleteTask()):
             case WfTaskType.group_create when !RejectInvalidGroupCreateTask():
+            case WfTaskType.object_create or WfTaskType.object_modify when !RejectInvalidObjectTask():
                 return false;
             default:
                 return true;

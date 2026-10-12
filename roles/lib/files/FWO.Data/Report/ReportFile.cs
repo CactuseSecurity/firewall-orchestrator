@@ -25,8 +25,15 @@ namespace FWO.Data.Report
         [JsonProperty("report_template_id"), JsonPropertyName("report_template_id")]
         public int TemplateId { get; set; }
 
+        // the API returns null for a user outside the tenant of the caller (SEC-19)
+        private UiUser reportOwningUser = new();
+
         [JsonProperty("uiuser"), JsonPropertyName("uiuser")]
-        public UiUser ReportOwningUser { get; set; } = new();
+        public UiUser ReportOwningUser
+        {
+            get => reportOwningUser;
+            set => reportOwningUser = value ?? new UiUser();
+        }
 
         [JsonProperty("report_owner_id"), JsonPropertyName("report_owner_id")]
         public int OwningUserId { get; set; }

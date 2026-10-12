@@ -48,6 +48,10 @@ namespace FWO.Config.Api.Data
         [JsonProperty("autoFillRightSidebar"), JsonPropertyName("autoFillRightSidebar")]
         public bool AutoFillRightSidebar { get; set; } = false;
 
+        /// <summary>Gets or sets the default management rulebase view for new rules reports.</summary>
+        [JsonProperty("defaultManagementRulebaseView"), JsonPropertyName("defaultManagementRulebaseView"), UserConfigData]
+        public bool DefaultManagementRulebaseView { get; set; } = false;
+
         [JsonProperty("unusedTolerance"), JsonPropertyName("unusedTolerance")]
         public int UnusedTolerance { get; set; } = 400;
 
@@ -57,14 +61,21 @@ namespace FWO.Config.Api.Data
         [JsonProperty("availableReportTypes"), JsonPropertyName("availableReportTypes")]
         public string AvailableReportTypes { get; set; } = "[]";
 
+        [JsonProperty("reportTypeVisibilityByRole"), JsonPropertyName("reportTypeVisibilityByRole")]
+        public string ReportTypeVisibilityByRole { get; set; } = "{}";
+
         [JsonProperty("dataRetentionTime"), JsonPropertyName("dataRetentionTime")]
         public int DataRetentionTime { get; set; } = 731;
 
         [JsonProperty("importSleepTime"), JsonPropertyName("importSleepTime")]
         public int ImportSleepTime { get; set; } = 40;
 
+        /// <summary>
+        /// Whether TLS certificates of all firewall management connections are checked: importer, autodiscovery
+        /// and Check Point change requests.
+        /// </summary>
         [JsonProperty("importCheckCertificates"), JsonPropertyName("importCheckCertificates")]
-        public bool ImportCheckCertificates { get; set; } = false;
+        public bool ImportCheckCertificates { get; set; } = true;
 
         [JsonProperty("importSuppressCertificateWarnings"), JsonPropertyName("importSuppressCertificateWarnings")]
         public bool ImportSuppressCertificateWarnings { get; set; } = true;
@@ -108,6 +119,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("updateRuleOwnerMappingSleepTime"), JsonPropertyName("updateRuleOwnerMappingSleepTime")]
         public int UpdateRuleOwnerMappingSleepTime { get; set; } = 60;
+
+        [JsonProperty("varianceNameFieldWaitTime"), JsonPropertyName("varianceNameFieldWaitTime")]
+        public int VarianceNameFieldWaitTime { get; set; } = 0;
 
         [JsonProperty("flowSyncSleepTime"), JsonPropertyName("flowSyncSleepTime")]
         public int FlowSyncSleepTime { get; set; } = 0;
@@ -170,6 +184,7 @@ namespace FWO.Config.Api.Data
         public string RecCheckParams { get; set; } = System.Text.Json.JsonSerializer.Serialize(new RecertCheckParams());
 
         [JsonProperty("recCheckEmailSubject"), JsonPropertyName("recCheckEmailSubject")]
+        [Obsolete("Migrated to notification subjects in version 9.5.3.")]
         public string RecCheckEmailSubject { get; set; } = "";
 
         [JsonProperty("recCheckEmailUpcomingText"), JsonPropertyName("recCheckEmailUpcomingText")]
@@ -216,6 +231,12 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("emailSenderAddress"), JsonPropertyName("emailSenderAddress")]
         public string EmailSenderAddress { get; set; } = "";
+
+        /// <summary>
+        /// Whether the TLS certificate of the email server is checked (StartTls and Tls only).
+        /// </summary>
+        [JsonProperty("emailCheckCertificates"), JsonPropertyName("emailCheckCertificates")]
+        public bool EmailCheckCertificates { get; set; } = true;
 
         [JsonProperty("useDummyEmailAddress"), JsonPropertyName("useDummyEmailAddress")]
         public bool UseDummyEmailAddress { get; set; } = false;
@@ -273,6 +294,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
         public string ReqPriorities { get; set; } = "[]";
+
+        [JsonProperty("reqCreateRequestTaskSortConfig"), JsonPropertyName("reqCreateRequestTaskSortConfig")]
+        public string ReqCreateRequestTaskSortConfig { get; set; } = System.Text.Json.JsonSerializer.Serialize(new CreateRequestTaskSortConfig());
 
         [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
         public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
@@ -355,17 +379,35 @@ namespace FWO.Config.Api.Data
         [JsonProperty("allowLogDataPortWithoutProtocol"), JsonPropertyName("allowLogDataPortWithoutProtocol")]
         public bool AllowLogDataPortWithoutProtocol { get; set; } = false;
 
+        [JsonProperty("resolveLogDataDns"), JsonPropertyName("resolveLogDataDns")]
+        public bool ResolveLogDataDns { get; set; } = true;
+
         [JsonProperty("replaceExistingLogData"), JsonPropertyName("replaceExistingLogData")]
         public bool ReplaceExistingLogData { get; set; } = true;
 
         [JsonProperty("showLogDataInConnections"), JsonPropertyName("showLogDataInConnections")]
         public bool ShowLogDataInConnections { get; set; } = false;
 
+        [JsonProperty("hideLogTimeColumn"), JsonPropertyName("hideLogTimeColumn")]
+        public bool HideLogTimeColumn { get; set; } = true;
+
+        /// <summary>
+        /// Includes the time next to the import date, which ends the aggregation period, in the log heading.
+        /// </summary>
+        [JsonProperty("showLogImportTimeInHeading"), JsonPropertyName("showLogImportTimeInHeading")]
+        public bool ShowLogImportTimeInHeading { get; set; } = false;
+
+        [JsonProperty("defaultLogTimeRangeInSeconds"), JsonPropertyName("defaultLogTimeRangeInSeconds")]
+        public int DefaultLogTimeRangeInSeconds { get; set; } = GlobalConst.kDefaultLogTimeRangeInSeconds;
+
         [JsonProperty("OwnerSoruceMappingID"), JsonPropertyName("OwnerSoruceMappingID")]
         public int OwnerSoruceMappingID { get; set; } = 0;
 
         [JsonProperty("CustomFieldOwnerKey"), JsonPropertyName("CustomFieldOwnerKey")]
         public string CustomFieldOwnerKey { get; set; } = "";
+
+        [JsonProperty("ruleOwnerMappingLogLevel"), JsonPropertyName("ruleOwnerMappingLogLevel")]
+        public RuleOwnerMappingLogLevel RuleOwnerMappingLogLevel { get; set; } = RuleOwnerMappingLogLevel.Warning;
 
         [JsonProperty("CustomFieldChangeIdKey"), JsonPropertyName("CustomFieldChangeIdKey")]
         public string CustomFieldChangeIdKey { get; set; } = GlobalConst.kDefaultChangeIdKeys;
@@ -409,21 +451,29 @@ namespace FWO.Config.Api.Data
         [JsonProperty("flowNamingSourceManagementRanking"), JsonPropertyName("flowNamingSourceManagementRanking")]
         public string FlowNamingSourceManagementRanking { get; set; } = "[]";
 
+        [JsonProperty("flowZoneGroupNamePatterns"), JsonPropertyName("flowZoneGroupNamePatterns")]
+        public string FlowZoneGroupNamePatterns { get; set; } = "[]";
+
+        [Obsolete("Use notification entries with NotificationClient.InterfaceRequest instead.")]
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
         public string ModReqEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
 
+        [Obsolete("Use notification recipient selection for NotificationClient.InterfaceRequest instead.")]
         [JsonProperty("modReqEmailRequesterInCc"), JsonPropertyName("modReqEmailRequesterInCc")]
         public bool ModReqEmailRequesterInCc { get; set; } = true;
 
         [JsonProperty("modReqEmailOtherAddresses"), JsonPropertyName("modReqEmailOtherAddresses")]
         public string ModReqEmailOtherAddresses { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceRequest instead.")]
         [JsonProperty("modReqEmailSubject"), JsonPropertyName("modReqEmailSubject")]
         public string ModReqEmailSubject { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceRequest instead.")]
         [JsonProperty("modReqEmailBody"), JsonPropertyName("modReqEmailBody")]
         public string ModReqEmailBody { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceRequest instead.")]
         [JsonProperty("modUnansweredReqEmailBody"), JsonPropertyName("modUnansweredReqEmailBody")]
         public string ModUnansweredReqEmailBody { get; set; } = "";
 
@@ -442,15 +492,19 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modReqTaskTitle"), JsonPropertyName("modReqTaskTitle")]
         public string ModReqTaskTitle { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceDecomm instead.")]
         [JsonProperty("modDecommEmailReceiver"), JsonPropertyName("modDecommEmailReceiver")]
         public string ModDecommEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceDecomm instead.")]
         [JsonProperty("modDecommEmailOtherAddresses"), JsonPropertyName("modDecommEmailOtherAddresses")]
         public string ModDecommEmailOtherAddresses { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceDecomm instead.")]
         [JsonProperty("modDecommEmailSubject"), JsonPropertyName("modDecommEmailSubject")]
         public string ModDecommEmailSubject { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceDecomm instead.")]
         [JsonProperty("modDecommEmailBody"), JsonPropertyName("modDecommEmailBody")]
         public string ModDecommEmailBody { get; set; } = "";
 
@@ -502,6 +556,21 @@ namespace FWO.Config.Api.Data
         [JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
         public string ExtTicketSystems { get; set; } = "";
 
+        /// <summary>
+        /// Whether TLS certificates of all external ticket systems are checked.
+        /// </summary>
+        [JsonProperty("extTicketSystemsCheckCertificates"), JsonPropertyName("extTicketSystemsCheckCertificates")]
+        public bool ExtTicketSystemsCheckCertificates { get; set; } = true;
+
+        /// <summary>
+        /// Collects the certificate checking switches needed by external ticket system connections.
+        /// </summary>
+        /// <returns>The switches for firewall connections and ticket systems.</returns>
+        public ExternalCertificateChecks GetExternalCertificateChecks()
+        {
+            return new ExternalCertificateChecks(ImportCheckCertificates, ExtTicketSystemsCheckCertificates);
+        }
+
         [JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]
         public string ModExtraConfigs { get; set; } = "";
 
@@ -538,8 +607,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckPolicy"), JsonPropertyName("complianceCheckPolicy")]
         public int ComplianceCheckPolicyId { get; set; } = 0;
 
-        [JsonProperty("complianceDesignatedZoneMatrix"), JsonPropertyName("complianceDesignatedZoneMatrix")]
-        public int ComplianceDesignatedZoneMatrixId { get; set; } = 0;
+        [JsonProperty("designatedZoneMatrix"), JsonPropertyName("designatedZoneMatrix")]
+        public int DesignatedZoneMatrixId { get; set; } = 0;
 
         [JsonProperty("complianceCheckMailRecipients"), JsonPropertyName("complianceCheckMailRecipients")]
         public string ComplianceCheckMailRecipients { get; set; } = "";
@@ -550,8 +619,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckMailBody"), JsonPropertyName("complianceCheckMailBody")]
         public string ComplianceCheckMailBody { get; set; } = "";
 
-        [JsonProperty("complianceMatrixAllowNetworkZones"), JsonPropertyName("complianceMatrixAllowNetworkZones")]
-        public bool ComplianceMatrixAllowNetworkZones { get; set; } = false;
+        [JsonProperty("matrixAllowNestedZones"), JsonPropertyName("matrixAllowNestedZones")]
+        public bool MatrixAllowNestedZones { get; set; } = false;
 
         [JsonProperty("complianceCheckScheduledDiffReportsIntervals"), JsonPropertyName("complianceCheckScheduledDiffReportsIntervals")]
         public string ComplianceCheckScheduledDiffReportsIntervals { get; set; } = "";
@@ -562,8 +631,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckMaxPrintedViolations"), JsonPropertyName("complianceCheckMaxPrintedViolations")]
         public int ComplianceCheckMaxPrintedViolations { get; set; } = 0;
 
-        [JsonProperty("complianceCheckSortMatrixByID"), JsonPropertyName("complianceCheckSortMatrixByID")]
-        public bool ComplianceCheckSortMatrixByID { get; set; } = false;
+        [JsonProperty("sortMatrixByID"), JsonPropertyName("sortMatrixByID")]
+        public bool SortMatrixByID { get; set; } = false;
 
         [JsonProperty("complianceCheckRelevantManagements"), JsonPropertyName("complianceCheckRelevantManagements")]
         public string ComplianceCheckRelevantManagements { get; set; } = "";
@@ -653,6 +722,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("refreshTokenLifetimeUnit"), JsonPropertyName("refreshTokenLifetimeUnit")]
         public TokenLifetimeUnit RefreshTokenLifetimeUnit { get; set; } = TokenLifetimeUnit.Days;
 
+        [JsonProperty("pathAnalysisAlgorithm"), JsonPropertyName("pathAnalysisAlgorithm")]
+        public long PathAnalysisAlgorithm { get; set; } = GlobalConst.kPathAnalysisAlgorithmNone;
+
         [JsonProperty("complianceCheckElementsPerFetch"), JsonPropertyName("complianceCheckElementsPerFetch")]
         public int ComplianceCheckElementsPerFetch { get; set; } = 500;
 
@@ -661,6 +733,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("complianceFilterOutInitialViolations"), JsonPropertyName("complianceFilterOutInitialViolations")]
         public bool ComplianceFilterOutInitialViolations { get; set; } = false;
+
+        [JsonProperty("complianceDiffFilterExistingViolations"), JsonPropertyName("complianceDiffFilterExistingViolations")]
+        public bool ComplianceDiffFilterExistingViolations { get; set; } = false;
 
         [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
         public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;

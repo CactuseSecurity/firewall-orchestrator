@@ -3,6 +3,23 @@ set -euo pipefail
 
 sudoers_file=""
 
+# Host wide, operator owned installer settings, passed to every run as extra variables.
+# Shared across clones on purpose: two administrators upgrading the same installation from
+# their own git repositories would otherwise write different endpoints into fworch.json and
+# have the certificates reissued for different names. It lives outside the repository so
+# that a git pull or a fresh clone cannot touch it, which an edit to inventory/hosts.yml
+# does not survive. Must hold no secrets: the directory is world readable by design, so
+# every administrator who may run the installer can read the file.
+#
+# Hard coded rather than derived, because this script cannot read Ansible variables - keep
+# it in step with fwo_install_settings_file in inventory/group_vars/all.yml. The real path
+# rather than the friendlier /etc/fworch symlink, which the installer only creates during
+# its first run: a fresh installation must be able to read its settings before that. Both
+# resolve to the same file afterwards. An installation that relocated fworch_parent_dir
+# uses FWORCH_LOCAL_SETTINGS instead.
+install_settings_default_file="/usr/local/fworch/etc/fwo-install-settings.yml"
+install_settings_file=""
+
 cleanup() {
     if [[ -n "$sudoers_file" ]] && [[ -f "$sudoers_file" ]]; then
         sudo rm -f "$sudoers_file"
@@ -163,11 +180,53 @@ ensure_collections() {
     fi
 }
 
+# Resolve the settings file into install_settings_file, empty when there is none.
+# An absent default is the ordinary case and is silent; an absent or unreadable file that
+# was asked for explicitly is an error, because continuing would apply none of the settings
+# the operator believes are in force and quietly install under the wrong endpoint names.
+resolve_install_settings() {
+    local candidate requested_explicitly=0
+
+    install_settings_file=""
+    if [[ -n "${FWORCH_LOCAL_SETTINGS:-}" ]]; then
+        candidate="$FWORCH_LOCAL_SETTINGS"
+        requested_explicitly=1
+    else
+        candidate="$install_settings_default_file"
+    fi
+
+    if [[ ! -f "$candidate" ]]; then
+        if [[ "$requested_explicitly" -eq 1 ]]; then
+            echo "FWORCH_LOCAL_SETTINGS is set to $candidate, but there is no such file." >&2
+            return 1
+        fi
+        return 0
+    fi
+
+    if [[ ! -r "$candidate" ]]; then
+        echo "$candidate exists but is not readable by $(id -un)." >&2
+        echo "The installer settings must be readable by everyone who runs the installer:" >&2
+        echo "    sudo chmod 644 $candidate" >&2
+        return 1
+    fi
+
+    install_settings_file="$candidate"
+    return 0
+}
+
 main() {
     local -a args=("$@")
 
     if [[ "${#args[@]}" -eq 0 ]]; then
         args=(site.yml)
+    fi
+
+    resolve_install_settings
+    if [[ -n "$install_settings_file" ]]; then
+        echo "Applying installer settings from $install_settings_file"
+        # Prepended, never appended: extra variables are last one wins, so appending would
+        # let this file silently override an --extra-vars given on the command line.
+        args=(--extra-vars "@$install_settings_file" "${args[@]}")
     fi
 
     require_ansible_core

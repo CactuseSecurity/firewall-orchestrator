@@ -94,7 +94,7 @@ public sealed class FlowComplianceService
             }
 
             networkZonesByCriterion[matrixId] = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
-                ComplianceQueries.getNetworkZonesForMatrix,
+                NetworkZoneQueries.getNetworkZonesForMatrix,
                 new { criterionId = matrixId }) ?? [];
         }
     }

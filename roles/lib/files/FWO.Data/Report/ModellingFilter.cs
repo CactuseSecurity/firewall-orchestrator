@@ -20,6 +20,13 @@ namespace FWO.Data.Report
         public bool RulesForDeletedConns { get; set; } = false;
         public bool VerifyRuleOwnerPreFilterCompleteness { get; set; } = false;
 
+        /// <summary>
+        /// Allows the analysis to wait for a pending rule_owner mapping run instead of falling back to
+        /// the marker query right away. Only set where somebody is actually waiting for the result -
+        /// the background job leaves it false so its owner loop cannot accumulate wait times.
+        /// </summary>
+        public bool AllowWaitForRuleOwnerMapping { get; set; } = false;
+
         public bool ShowAllOwners { get; set; } = false;
         public bool ShowInactiveRecertOwners { get; set; } = false;
         public bool MergeOwnerRecertTables { get; set; } = false;
@@ -49,6 +56,7 @@ namespace FWO.Data.Report
             AnalyseRemainingRules = modellingFilter.AnalyseRemainingRules;
             RulesForDeletedConns = modellingFilter.RulesForDeletedConns;
             VerifyRuleOwnerPreFilterCompleteness = modellingFilter.VerifyRuleOwnerPreFilterCompleteness;
+            AllowWaitForRuleOwnerMapping = modellingFilter.AllowWaitForRuleOwnerMapping;
             ShowAllOwners = modellingFilter.ShowAllOwners;
             ShowInactiveRecertOwners = modellingFilter.ShowInactiveRecertOwners;
             MergeOwnerRecertTables = modellingFilter.MergeOwnerRecertTables;

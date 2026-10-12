@@ -106,6 +106,7 @@ namespace FWO.Services
                 .AppendLine("<html>")
                 .AppendLine("<head>")
                 .AppendLine("    <meta charset=\"utf-8\"/>")
+                .AppendLine($"    <meta http-equiv=\"Content-Security-Policy\" content=\"{GlobalConst.kExportContentSecurityPolicy}\"/>")
                 .AppendLine(HtmlTableStyleBlock)
                 .AppendLine("</head>")
                 .AppendLine("<body>")

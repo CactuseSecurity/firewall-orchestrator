@@ -1,6 +1,4 @@
-﻿@using NetTools;
-
-@inject UserConfig userConfig
+﻿@inject UserConfig userConfig
 @inject NetworkZoneService networkZoneService
 
 <table>
@@ -116,7 +114,7 @@
     {
         List<ComplianceNetworkZone> complianceNetworkZones = networkZoneService.NetworkZones.ToList();
 
-        if(userConfig.GlobalConfig!.ComplianceCheckSortMatrixByID)
+        if(userConfig.GlobalConfig!.SortMatrixByID)
         {
             complianceNetworkZones = complianceNetworkZones.OrderBy(zone => zone.Id).ToList();
         }

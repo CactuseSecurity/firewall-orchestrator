@@ -39,8 +39,15 @@
         argv:
           - "{{ importer_python_interpreter }}"
           - -c
-          - "import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)"
+          - "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"
+      register: importer_python_version_check
       changed_when: false
+      failed_when: false
+
+    - name: Require Python 3.10 or newer for the importer
+      assert:
+        that: importer_python_version_check.rc == 0
+        fail_msg: "The importer requires Python 3.10 or newer ({{ importer_python_interpreter }} is older or not usable)."
 
 
     - name: Create Python virtual environment
@@ -96,6 +103,17 @@
     - name: include upgrade script
       import_tasks: run-upgrades.yml
       when: "installation_mode == 'upgrade'"
+
+    # like the ui and middleware roles, the importer enables its own unit in its own role - it is
+    # only started by the last play in site.yml, so this is the task which makes it survive a
+    # reboot. it comes after the credentials and the upgrade scripts, so that a host which is
+    # rebooted before the installation finishes does not start an importer which cannot work yet
+    - name: make importer run at host startup
+      ansible.builtin.systemd:
+        name: "{{ product_name }}-importer-api"
+        enabled: true
+        daemon_reload: true
+      become: true
 
     - name: finalize handler for datarecovery
       set_fact:

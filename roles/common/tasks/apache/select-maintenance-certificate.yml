@@ -1,0 +1,19 @@
+---
+# Keep the certificate Apache is already serving until roles/internalCA has decided
+# whether it belongs to FWO or to the customer. The vhost content was read by the TLS
+# key preflight immediately before this task. Falling back to the new FWO paths covers
+# an interrupted upgrade whose old vhost no longer exists.
+- name: Select maintenance Apache certificate paths
+  set_fact:
+    maintenance_apache_certificate: >-
+      {{
+        (apache_tls_vhost_content.content | default('') | b64decode
+          | regex_findall('(?m)^\s*SSLCertificateFile\s+([^\s]+)') | first)
+        | default(internalca_apache_certificate, true)
+      }}
+    maintenance_apache_private_key: >-
+      {{
+        (apache_tls_vhost_content.content | default('') | b64decode
+          | regex_findall('(?m)^\s*SSLCertificateKeyFile\s+([^\s]+)') | first)
+        | default(internalca_apache_private_key, true)
+      }}

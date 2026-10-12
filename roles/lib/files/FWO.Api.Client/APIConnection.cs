@@ -14,6 +14,7 @@ namespace FWO.Api.Client
         public Basics.Interfaces.ILogger Logger = new Logger();
 
         protected List<ApiSubscription> subscriptions = [];
+        protected readonly object subscriptionsLock = new();
 
         protected void InvokeOnAuthHeaderChanged(object? sender, string newAuthHeader)
         {

@@ -3,6 +3,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 
 namespace FWO.Services.Workflow
 {
@@ -11,9 +12,14 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Creates an implementation task and persists its nested implementation elements.
         /// </summary>
-        public async Task<long> AddImplTaskToDb(WfImplTask impltask)
+        /// <param name="impltask">Implementation task to create.</param>
+        /// <param name="previousTicket">Already loaded stored ticket, so callers creating one task per
+        /// device do not read the full ticket graph once per device.</param>
+        /// <returns>Id of the created implementation task, or 0 when the insert failed.</returns>
+        public async Task<long> AddImplTaskToDb(WfImplTask impltask, WfTicket? previousTicket = null)
         {
             long returnId = 0;
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(impltask.TicketId);
             try
             {
                 var variables = BuildImplTaskInsertVariables(impltask);
@@ -40,6 +46,8 @@ namespace FWO.Services.Workflow
                             await AssignCommentToImplTaskInDb(returnId, comment.Comment.Id);
                         }
                     }
+                    await LogWorkflowChange(new(impltask.TicketId, ModellingTypes.ChangeType.Insert, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
+                        "Added workflow implementation task", null, ImplementationTaskHistorySnapshot(impltask), storedTicket?.Requester, true);
                     impltask.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
                 }
@@ -56,6 +64,10 @@ namespace FWO.Services.Workflow
         /// </summary>
         public async Task UpdateImplTaskInDb(WfImplTask impltask, WfReqTask reqtask)
         {
+            WfTicket? previousTicket = await LoadPreviousTicket(reqtask.TicketId);
+            WfImplTask? previousTask = previousTicket?.Tasks
+                .SelectMany(task => task.ImplementationTasks)
+                .FirstOrDefault(task => task.Id == impltask.Id);
             try
             {
                 var variables = BuildImplTaskUpdateVariables(impltask);
@@ -69,6 +81,11 @@ namespace FWO.Services.Workflow
                 {
                     await UpdateImplElementsInDb(impltask);
                     await UpdateOwnersInDb(reqtask);
+                    if (previousTicket != null && previousTask != null)
+                    {
+                        await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
+                            "Updated workflow implementation task", ImplementationTaskHistorySnapshot(previousTask), ImplementationTaskHistorySnapshot(impltask), previousTicket.Requester, true);
+                    }
                     await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
                 }
             }
@@ -81,14 +98,23 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Deletes an implementation task from the database.
         /// </summary>
-        public async Task DeleteImplTaskFromDb(WfImplTask impltask)
+        /// <param name="impltask">Implementation task to delete.</param>
+        /// <param name="previousTicket">Already loaded stored ticket, so callers cleaning up all tasks of
+        /// a request task do not read the full ticket graph once per task.</param>
+        public async Task DeleteImplTaskFromDb(WfImplTask impltask, WfTicket? previousTicket = null)
         {
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(impltask.TicketId);
             try
             {
                 long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteImplementationTask, new { id = impltask.Id })).DeletedIdLong;
                 if (delId != impltask.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
+                }
+                else
+                {
+                    await LogWorkflowChange(new(impltask.TicketId, ModellingTypes.ChangeType.Delete, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
+                        "Deleted workflow implementation task", ImplementationTaskHistorySnapshot(impltask), null, storedTicket?.Requester, true);
                 }
             }
             catch (Exception exception)

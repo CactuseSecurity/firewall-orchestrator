@@ -9,10 +9,14 @@ ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
 # standard (meaning with http-->https rewrite and websockets), no_ws, allow_http, no_ws_and_allow_http
 ui_comm_mode: standard
 
-# correct name for demo installation:
-ui_server_name: fworch-test-server
-# further aliases:
-ui_server_alias: fwodemo.cactus.de
+# The name browsers address the UI under, served as Apache ServerName and certified by
+# roles/internalCA. Taken from inventory/hosts.yml, so renaming the host there is
+# enough; the previous demo names (fworch-test-server, fwodemo.cactus.de) were Cactus
+# placeholders that no real installation serves, and internalCA drops them from the
+# certificate rather than asserting them.
+ui_server_name: "{{ ui_hostname }}"
+# further aliases, space separated - each one is added to the certificate as well
+ui_server_alias: ""
 
 ui_php_dir: "{{ fworch_home }}/web/htdocs"
 ui_php_web_port: 8443

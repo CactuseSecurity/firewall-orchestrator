@@ -11,7 +11,8 @@ from fw_modules.fortiadom5ff.fmgr_network import normalize_network_objects
 from fw_modules.fortiadom5ff.fmgr_rule import get_access_policy, normalize_rulebases
 from fw_modules.fortiadom5ff.fmgr_service import normalize_service_objects
 from fw_modules.fortiadom5ff.fmgr_zone import get_zones, normalize_zones
-from fwo_base import ConfigAction, write_native_config_to_file
+from fwo_base import write_native_config_to_file
+from fwo_enums import ConfigAction
 from fwo_exceptions import FwLoginFailedError, FwLogoutFailedError, ImportInterruptionError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController

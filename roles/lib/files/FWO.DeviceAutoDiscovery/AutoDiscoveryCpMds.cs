@@ -15,11 +15,12 @@ namespace FWO.DeviceAutoDiscovery
         private readonly string CheckpointHost = "checkpoint-host";
         private readonly string CheckpointClusterMember = "cluster-member";
 
-        public AutoDiscoveryCpMds(Management mgm, ApiConnection apiConn) : base(mgm, apiConn) { }
+        public AutoDiscoveryCpMds(Management mgm, ApiConnection apiConn, bool checkCertificates) : base(mgm, apiConn, checkCertificates) { }
 
 
-        override public async Task<List<Management>> Run()
+        override public async Task<List<Management>> Run(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             List<Management> discoveredDevices = [];
             if (SuperManagement == null)
             {
@@ -32,27 +33,34 @@ namespace FWO.DeviceAutoDiscovery
                 Log.WriteDebug(Autodiscovery, $"discovering CP domains & gateways");
 
                 (string sessionId, CheckPointClient restClientCP) = await LoginCp(SuperManagement);
+                try
+                {
+                    // when passing sessionId, we always need to use @ verbatim identifier for special chars in sessionId
+                    if (string.IsNullOrEmpty(SuperManagement.Uid) ||
+                        (SuperManagement.DeviceType.CanBeSupermanager() && string.IsNullOrEmpty(SuperManagement.DomainUid)))  // pre v9 managements might not have a UID
+                    {
+                        // update manager Uid in existing management; typically triggered in daily scheduler
+                        await UpdateMgmUids(SuperManagement, restClientCP, @sessionId);
+                    }
+                    List<Domain> domainList = [];
 
-                // when passing sessionId, we always need to use @ verbatim identifier for special chars in sessionId
-                if (string.IsNullOrEmpty(SuperManagement.Uid) ||
-                    (SuperManagement.DeviceType.CanBeSupermanager() && string.IsNullOrEmpty(SuperManagement.DomainUid)))  // pre v9 managements might not have a UID
-                {
-                    // update manager Uid in existing management; typically triggered in daily scheduler
-                    await UpdateMgmUids(SuperManagement, restClientCP, @sessionId);
+                    if (SuperManagement.DeviceType.Id == 13)    // 13=MDS
+                    {
+                        domainList = await restClientCP.GetDomains(@sessionId);
+                    }
+                    else if (SuperManagement.DeviceType.Id == 9)    // 9=stand-alone manager
+                    {
+                        domainList.Add(new Domain() { DomainType = "standalone", Name = "", Uid = "" });
+                    }
+                    discoveredDevices = await DiscoverDomainDevices(domainList, restClientCP, cancellationToken);
                 }
-                List<Domain> domainList = [];
-
-                if (SuperManagement.DeviceType.Id == 13)    // 13=MDS
+                finally
                 {
-                    domainList = await restClientCP.GetDomains(@sessionId);
+                    await LogoutCp(restClientCP, @sessionId);
                 }
-                else if (SuperManagement.DeviceType.Id == 9)    // 9=stand-alone manager
-                {
-                    domainList.Add(new Domain() { DomainType = "standalone", Name = "", Uid = "" });
-                }
-                discoveredDevices = await DiscoverDomainDevices(domainList, restClientCP);
-                await LogoutCp(restClientCP, @sessionId);
             }
+            // an incomplete discovery would report all managements it did not reach as deleted
+            cancellationToken.ThrowIfCancellationRequested();
             return await GetDeltas(discoveredDevices);
         }
 
@@ -88,12 +96,17 @@ namespace FWO.DeviceAutoDiscovery
             return currentManagement;
         }
 
-        private async Task<List<Management>> DiscoverDomainDevices(List<Domain> domainList, CheckPointClient restClientCP)
+        private async Task<List<Management>> DiscoverDomainDevices(List<Domain> domainList, CheckPointClient restClientCP, CancellationToken cancellationToken)
         {
             List<Management> discoveredDevices = [];
             foreach (Domain domain in domainList)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 Log.WriteDebug(Autodiscovery, $"found domain '{domain.Name}'");
+                if (!IsAcceptableDomainName(domain.Name))
+                {
+                    continue;
+                }
                 Management currentManagement = CreateManagement(SuperManagement, domain.Name, domain.Uid);
                 currentManagement.IsSupermanager = false;
                 // session id pins this session to a specific domain (if domain is given during login)
@@ -127,7 +140,7 @@ namespace FWO.DeviceAutoDiscovery
 
         private async Task<(string, CheckPointClient)> LoginCp(Management mgm)
         {
-            CheckPointClient restClientCP = new(mgm);
+            CheckPointClient restClientCP = new(mgm, CheckCertificates);
             return (await LoginCp(mgm, restClientCP), restClientCP);
         }
         private async Task<string> LoginCp(Management mgm, CheckPointClient restClientCP)

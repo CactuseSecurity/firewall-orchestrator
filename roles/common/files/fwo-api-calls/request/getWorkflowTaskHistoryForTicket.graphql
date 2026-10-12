@@ -1,0 +1,25 @@
+# Task history supplies the original request-task snapshot and the latest recorded task snapshot
+# for the audit-proof diff. The endpoint itself decides which entries are manual changes; keeping
+# this query unfiltered by audit_proof_critical preserves the requester-created baseline.
+query getWorkflowTaskHistoryForTicket($ticketId: bigint!) {
+  change_history(
+    where: {
+      ticket_id: { _eq: $ticketId }
+      module: { _eq: "workflow" }
+      object_type: { _in: [101, 102] }
+    }
+    order_by: [{ change_time: asc_nulls_last }, { id: asc }]
+  ) {
+    id
+    change_type
+    object_type
+    object_id
+    change_time
+    changer
+    changer_id
+    change_text
+    old_data
+    new_data
+    audit_proof_critical
+  }
+}

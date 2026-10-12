@@ -23,7 +23,7 @@ namespace FWO.Services
     }
 
 
-    public class PathAnalysis
+    public class RoutingBasedPathAnalyzer
     {
         public static async Task<string> GetDeviceNamesForSinglePath(string source, string destination, ApiConnection apiConnection)
         {

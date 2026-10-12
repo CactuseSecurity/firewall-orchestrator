@@ -1,0 +1,38 @@
+# Records the state the workflow actions of an object were last executed for, without guarding.
+#
+# claimStateChangeExecution is the gate for execution requested from outside: it grants the claim only
+# when the object is being moved into a state other than the recorded one. That comparison is sound
+# only while the recorded state keeps up with the object, so every execution of state-change actions
+# inside the middleware writes it here - including the ones that never pass through the action
+# endpoint, such as a request task promoted by the external request chain. Without this write the row
+# would still name a state the object left long ago, and the next legitimate move back into that
+# state would be mistaken for a replay and silently execute nothing.
+#
+# This mutation carries no guard on purpose: it does not decide whether anything runs, it only keeps
+# the record current for the mutation that does.
+
+mutation recordStateChangeExecution(
+  $objectScope: String!
+  $objectId: bigint!
+  $fromStateId: Int!
+  $toStateId: Int!
+  $executedBy: String
+  $executedAt: timestamptz!
+) {
+  insert_request_state_change_execution(
+    objects: {
+      object_scope: $objectScope
+      object_id: $objectId
+      from_state_id: $fromStateId
+      to_state_id: $toStateId
+      executed_by: $executedBy
+      executed_at: $executedAt
+    }
+    on_conflict: {
+      constraint: state_change_execution_pkey
+      update_columns: [from_state_id, to_state_id, executed_at, executed_by]
+    }
+  ) {
+    affected_rows
+  }
+}

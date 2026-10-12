@@ -1,0 +1,11 @@
+mutation createState($id: Int!, $name: String!, $automaticOnly: Boolean!) {
+  insert_request_state(
+    objects: {
+      id: $id
+      name: $name
+      automatic_only: $automaticOnly
+    }
+  ) {
+    affected_rows
+  }
+}

@@ -1,0 +1,201 @@
+@using BlazorTable
+@using FWO.Data
+@using FWO.Data.Workflow
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@implements IDisposable
+
+@* FlowObjectTable is a generic search field with result table: it only reports the search text, which suits
+   the server side search here, although its name stems from the flow settings pages using it first. *@
+@if (IsService)
+{
+    <FlowObjectTable TItem="NetworkService"
+                     FilteredItems="foundServices"
+                     FilteredCount="foundServices.Count"
+                     TotalCount="foundServices.Count"
+                     PageSize="kPageSize"
+                     SearchLabel="@SearchLabel"
+                     ClearSearchLabel="@(userConfig.GetText("clear_input"))"
+                     SearchText="@searchText"
+                     SearchTextChanged="Search">
+        <ChildContent>
+            <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(service => service.Name)" Sortable="true" />
+            <Column TableItem="NetworkService" Title="@(userConfig.GetText("service"))" Field="@(service => service.DestinationPort)" Sortable="true" Context="service">
+                <Template>
+                    @DisplayServicePorts(service)
+                </Template>
+            </Column>
+            <Column TableItem="NetworkService" Title="@(userConfig.GetText("actions"))" Field="@(service => service.Id)" Sortable="false" Context="service">
+                <Template>
+                    <button type="button" class="btn btn-sm @(SelectedService?.Id == service.Id ? "btn-success" : "btn-outline-primary")"
+                            @onclick:stopPropagation="true" @onclick="() => SelectService(service)">
+                        @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                    </button>
+                </Template>
+            </Column>
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </ChildContent>
+    </FlowObjectTable>
+}
+else
+{
+    <FlowObjectTable TItem="NetworkObject"
+                     FilteredItems="foundNetworkObjects"
+                     FilteredCount="foundNetworkObjects.Count"
+                     TotalCount="foundNetworkObjects.Count"
+                     PageSize="kPageSize"
+                     SearchLabel="@SearchLabel"
+                     ClearSearchLabel="@(userConfig.GetText("clear_input"))"
+                     SearchText="@searchText"
+                     SearchTextChanged="Search">
+        <ChildContent>
+            <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(networkObject => networkObject.Name)" Sortable="true" />
+            <Column TableItem="NetworkObject" Title="@(userConfig.GetText("ip"))" Field="@(networkObject => networkObject.IP)" Sortable="true" Context="networkObject">
+                <Template>
+                    @DisplayBase.DisplayIp(networkObject.IP ?? "", networkObject.IpEnd ?? "")
+                </Template>
+            </Column>
+            <Column TableItem="NetworkObject" Title="@(userConfig.GetText("actions"))" Field="@(networkObject => networkObject.Id)" Sortable="false" Context="networkObject">
+                <Template>
+                    <button type="button" class="btn btn-sm @(SelectedNetworkObject?.Id == networkObject.Id ? "btn-success" : "btn-outline-primary")"
+                            @onclick:stopPropagation="true" @onclick="() => SelectNetworkObject(networkObject)">
+                        @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                    </button>
+                </Template>
+            </Column>
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </ChildContent>
+    </FlowObjectTable>
+}
+@if (limitReached)
+{
+    <small class="text-muted">@(userConfig.GetText("refine_search"))</small>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    /// <summary>
+    /// Management the searched object belongs to.
+    /// </summary>
+    [Parameter]
+    public int ManagementId { get; set; }
+
+    /// <summary>
+    /// Searches services instead of network objects.
+    /// </summary>
+    [Parameter]
+    public bool IsService { get; set; }
+
+    [Parameter]
+    public List<IpProtocol> IpProtos { get; set; } = [];
+
+    [Parameter]
+    public NetworkObject? SelectedNetworkObject { get; set; }
+
+    [Parameter]
+    public EventCallback<NetworkObject?> SelectedNetworkObjectChanged { get; set; }
+
+    [Parameter]
+    public NetworkService? SelectedService { get; set; }
+
+    [Parameter]
+    public EventCallback<NetworkService?> SelectedServiceChanged { get; set; }
+
+    /// <summary>
+    /// Pause after the last keystroke before the search is sent, so that typing does not query every character.
+    /// </summary>
+    private const int kSearchDelayMilliseconds = 300;
+    private const int kPageSize = 5;
+
+    private string searchText = "";
+    private string SearchLabel => userConfig.GetText(IsService ? "search_service_object" : "search_network_object");
+    private List<NetworkObject> foundNetworkObjects = [];
+    private List<NetworkService> foundServices = [];
+    private bool limitReached;
+    private CancellationTokenSource? searchCancellation;
+
+    private async Task Search(string newSearchText)
+    {
+        searchText = newSearchText;
+        if (searchCancellation != null)
+        {
+            await searchCancellation.CancelAsync();
+            searchCancellation.Dispose();
+        }
+        searchCancellation = new CancellationTokenSource();
+        CancellationToken token = searchCancellation.Token;
+        try
+        {
+            await Task.Delay(kSearchDelayMilliseconds, token);
+            if (authenticationStateTask == null)
+            {
+                return;
+            }
+            WfObjectSearch search = new(apiConnection, (await authenticationStateTask).User);
+            int hitCount;
+            if (IsService)
+            {
+                List<NetworkService> hits = await search.SearchServices(ManagementId, newSearchText);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+                foundServices = hits;
+                hitCount = hits.Count;
+            }
+            else
+            {
+                List<NetworkObject> hits = await search.SearchNetworkObjects(ManagementId, newSearchText);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+                foundNetworkObjects = hits;
+                hitCount = hits.Count;
+            }
+            limitReached = hitCount >= WfObjectTaskHelper.kSearchLimit;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (TaskCanceledException)
+        {
+            // superseded by a newer keystroke
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("search_object"), "", true);
+        }
+    }
+
+    private async Task SelectNetworkObject(NetworkObject networkObject)
+    {
+        SelectedNetworkObject = networkObject;
+        await SelectedNetworkObjectChanged.InvokeAsync(networkObject);
+    }
+
+    private async Task SelectService(NetworkService service)
+    {
+        SelectedService = service;
+        await SelectedServiceChanged.InvokeAsync(service);
+    }
+
+    private string DisplayServicePorts(NetworkService service)
+    {
+        string? protocolName = IpProtos.FirstOrDefault(protocol => protocol.Id == service.ProtoId)?.Name;
+        string ports = DisplayBase.DisplayPort(service.DestinationPort, service.DestinationPortEnd, false, protocolName);
+        return string.IsNullOrWhiteSpace(ports) ? protocolName ?? "" : ports;
+    }
+
+    public void Dispose()
+    {
+        searchCancellation?.Cancel();
+        searchCancellation?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+}

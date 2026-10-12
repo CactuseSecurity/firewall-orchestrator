@@ -13,7 +13,9 @@ namespace FWO.Data
         RuleTimer = 5,
         AppDecomm = 6,
         Report = 7,
-        WfAction = 8
+        WfAction = 8,
+        InterfaceDecomm = 9,
+        RuleRecertification = 10
     }
 
     public static class NotificationClientGroups
@@ -28,7 +30,9 @@ namespace FWO.Data
             return client is NotificationClient.Recertification
                 or NotificationClient.InterfaceRequest
                 or NotificationClient.RuleTimer
-                or NotificationClient.AppDecomm;
+                or NotificationClient.AppDecomm
+                or NotificationClient.InterfaceDecomm
+                or NotificationClient.RuleRecertification;
         }
 
         /// <summary>
@@ -45,6 +49,21 @@ namespace FWO.Data
     public enum NotificationChannel
     {
         Email = 1
+    }
+
+    /// <summary>
+    /// Result of processing a notification delivery request.
+    /// </summary>
+    public enum NotificationDeliveryResult
+    {
+        /// <summary>Email was sent successfully.</summary>
+        Delivered,
+        /// <summary>Sending was intentionally skipped by the logging mode.</summary>
+        Suppressed,
+        /// <summary>No recipient was resolved.</summary>
+        NoRecipients,
+        /// <summary>Sending was attempted but failed.</summary>
+        Failed
     }
 
     public enum NotificationDeadline
@@ -77,6 +96,25 @@ namespace FWO.Data
                 NotificationDeadline.DecommissionDate => true,
                 _ => false
             };
+        }
+    }
+
+    public static class NotificationLoggingMode
+    {
+        public const string SendOnly = "send_only";
+        public const string SendAndLog = "send_and_log";
+        public const string LogOnly = "log_only";
+
+        public static List<string> OfferedOptions() => [SendOnly, SendAndLog, LogOnly];
+
+        public static bool ShouldLog(string? loggingMode)
+        {
+            return loggingMode is SendAndLog or LogOnly;
+        }
+
+        public static bool ShouldSend(string? loggingMode)
+        {
+            return loggingMode != LogOnly;
         }
     }
 
@@ -114,6 +152,8 @@ namespace FWO.Data
             RepeatOffsetAfterDeadline = notification.RepeatOffsetAfterDeadline;
             RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline;
             LastSent = notification.LastSent;
+            Logging = notification.Logging;
+            Active = notification.Active;
         }
 
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -201,16 +241,24 @@ namespace FWO.Data
         [JsonProperty("last_sent"), JsonPropertyName("last_sent")]
         public DateTime? LastSent { get; set; }
 
+        [JsonProperty("logging"), JsonPropertyName("logging")]
+        public string Logging { get; set; } = NotificationLoggingMode.SendOnly;
+
+        [JsonProperty("active"), JsonPropertyName("active")]
+        public bool Active { get; set; } = true;
+
 
         public static List<NotificationDeadline> OfferedDeadlineOptions(NotificationClient client)
         {
             return client switch
             {
                 NotificationClient.Recertification => [NotificationDeadline.RecertDate],
+                NotificationClient.RuleRecertification => [NotificationDeadline.None],
                 NotificationClient.ImportChange => [NotificationDeadline.None],
                 NotificationClient.RuleTimer => [NotificationDeadline.RuleExpiry],
-                NotificationClient.InterfaceRequest => [NotificationDeadline.RequestDate],
+                NotificationClient.InterfaceRequest => [NotificationDeadline.None, NotificationDeadline.RequestDate],
                 NotificationClient.AppDecomm => [NotificationDeadline.None, NotificationDeadline.DecommissionDate],
+                NotificationClient.InterfaceDecomm => [NotificationDeadline.None],
                 NotificationClient.WfAction => [NotificationDeadline.None],
                 _ => Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>().ToList()
             };

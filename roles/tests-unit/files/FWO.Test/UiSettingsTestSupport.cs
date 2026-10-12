@@ -37,6 +37,7 @@ namespace FWO.Test
         public List<IpProtocol> IpProtocols { get; set; } = [];
         public List<OwnerResponsibleType> OwnerResponsibleTypes { get; set; } = [];
         public List<ModellingNwGroup> ModellingGroups { get; set; } = [];
+        public List<PathAnalysisAlgorithm> PathAnalysisAlgorithms { get; set; } = [];
         public ReturnId UpdateServiceResult { get; set; } = new() { UpdatedId = 1 };
         public ReturnIdWrapper AddHistoryResult { get; set; } = new() { ReturnIds = [new ReturnId()] };
         public List<ConfigItem> LastUpsertConfigItems { get; private set; } = [];
@@ -75,6 +76,12 @@ namespace FWO.Test
             if (query == ModellingQueries.addHistoryEntry && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
             {
                 return Task.FromResult((QueryResponseType)(object)AddHistoryResult);
+            }
+
+            if (query == PathAnalysisAlgorithmQueries.getPathAnalysisAlgorithms
+                && typeof(QueryResponseType) == typeof(List<PathAnalysisAlgorithm>))
+            {
+                return Task.FromResult((QueryResponseType)(object)PathAnalysisAlgorithms);
             }
 
             if (query == ConfigQueries.upsertConfigItems)

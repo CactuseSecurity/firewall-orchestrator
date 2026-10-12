@@ -119,12 +119,10 @@ namespace FWO.Middleware.Server
             int[] visibleManagementIds = user.Tenant?.VisibleManagementIds ?? [];
             int[] visibleGatewayIds = user.Tenant?.VisibleGatewayIds ?? [];
 
-            if (user.Tenant != null)
-            {
-                claimsIdentity.AddClaim(new Claim("x-hasura-tenant-id", user.Tenant.Id.ToString()));
-            }
             // Hasura role permissions reference these session variables. Always provide them,
             // even when tenant resolution fails, to avoid runtime "missing session variable" errors.
+            // An unresolved tenant gets an id no tenant has, so tenant-scoped permissions match nothing.
+            claimsIdentity.AddClaim(new Claim("x-hasura-tenant-id", (user.Tenant?.Id ?? GlobalConst.kUnresolvedTenantId).ToString()));
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-managements", ToHasuraIdSet(visibleManagementIds)));
             claimsIdentity.AddClaim(new Claim("x-hasura-visible-devices", ToHasuraIdSet(visibleGatewayIds)));
             // NB: the user's ldap group dns are deliberately NOT added as a claim. The list grows with the
@@ -168,8 +166,6 @@ namespace FWO.Middleware.Server
                     defaultRole = Roles.Admin;
                 else if (hasuraRolesList.Contains(Roles.Auditor))
                     defaultRole = Roles.Auditor;
-                else if (hasuraRolesList.Contains(Roles.FwAdmin))
-                    defaultRole = Roles.FwAdmin;
                 else if (hasuraRolesList.Contains(Roles.ReporterViewAll))
                     defaultRole = Roles.ReporterViewAll;
                 else if (hasuraRolesList.Contains(Roles.Reporter))

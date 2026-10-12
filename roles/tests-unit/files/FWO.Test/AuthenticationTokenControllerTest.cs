@@ -11,11 +11,17 @@ using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Services;
+using GraphQL.Client.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Novell.Directory.Ldap;
 using NUnit.Framework;
+using System.IO;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Reflection;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {
@@ -40,6 +46,7 @@ namespace FWO.Test
         private static readonly string kSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
         private const string kRoleSearchPath = "ou=roles,dc=fworch,dc=internal";
         private const string kRoleUserDn = "uid=login-user,ou=users,dc=fworch,dc=internal";
+        private static readonly IPAddress kThrottledClient = IPAddress.Parse("192.0.2.20");
 
         [Test]
         public async Task GetAsync_ReturnsAnonymousJwt_WhenCredentialsAreMissing()
@@ -235,6 +242,321 @@ namespace FWO.Test
             Assert.That(((UnauthorizedObjectResult)result.Result!).Value, Is.EqualTo("User not found"));
         }
 
+        /// <summary>
+        /// A failed call to the API is not a malformed request. Answering 400 tells a client
+        /// not to repeat it, and put the raw transport error in the response body; the caller
+        /// gets a retryable 503 and a message that says nothing about the internals.
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_ReportsServiceUnavailableWhenTheApiCannotBeReached()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = new HttpRequestException("connection reset by peer")
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+            ObjectResult objectResult = (ObjectResult)result.Result!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(objectResult.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+                Assert.That(objectResult.Value?.ToString(), Does.Not.Contain("connection reset by peer"),
+                    "the transport error belongs in the log, not in the response to an unauthenticated caller");
+            });
+        }
+
+        /// <summary>
+        /// The failure seen in CI: validation had already succeeded and the call that loads
+        /// the user died at the transport level. Covers the controller's own handler, while
+        /// the test above covers the one in ValidateRefreshToken.
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_ReportsServiceUnavailableWhenTheUserQueryFails()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, _) => query == AuthQueries.getUserByDbId
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : null
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(apiConnection);
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+            Assert.That(((ObjectResult)result.Result!).StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+        }
+
+        /// <summary>
+        /// The failure mode a narrower catch missed: the API host answers, but the reverse
+        /// proxy is answering on its own behalf because the service behind it is down. That
+        /// arrives as GraphQLHttpRequestException, which is not an HttpRequestException, so
+        /// it used to be swallowed into "invalid or expired refresh token" - ending every
+        /// session over a restart of the API.
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_ReportsServiceUnavailableWhenTheProxyCannotReachTheApi()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = CreateGraphQlHttpException(HttpStatusCode.ServiceUnavailable)
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<ObjectResult>(),
+                "a proxy failure must not be reported as a verdict on the refresh token");
+            Assert.That(((ObjectResult)result.Result!).StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+        }
+
+        /// <summary>
+        /// The other side of the same classification: a status code that is an answer about
+        /// the request must not be dressed up as "the API could not be reached", because
+        /// that would hide a real misconfiguration behind a retry suggestion.
+        /// </summary>
+        [TestCase(HttpStatusCode.Forbidden)]
+        [TestCase(HttpStatusCode.InternalServerError)]
+        public async Task RefreshToken_DoesNotReportServiceUnavailableForAnApiSideFailure(HttpStatusCode statusCode)
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = CreateGraphQlHttpException(statusCode)
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            int? reportedStatus = (result.Result as ObjectResult)?.StatusCode;
+
+            Assert.That(reportedStatus, Is.Not.EqualTo(StatusCodes.Status503ServiceUnavailable));
+        }
+
+        /// <summary>
+        /// Once the single-use token has been spent, the attempt is no longer repeatable, so
+        /// the response must not invite a retry that could only ever answer "invalid or
+        /// expired refresh token".
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_DoesNotInviteARetryAfterTheTokenWasConsumed()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) => query == AuthQueries.storeRefreshToken
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                apiConnection);
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<UnauthorizedObjectResult>(),
+                "the token is spent, so the answer has to be one the client acts on rather than retries");
+            UnauthorizedObjectResult unauthorized = (UnauthorizedObjectResult)result.Result!;
+            string message = unauthorized.Value?.ToString() ?? "";
+            Assert.Multiple(() =>
+            {
+                Assert.That(unauthorized.StatusCode, Is.EqualTo(StatusCodes.Status401Unauthorized));
+                Assert.That(unauthorized.StatusCode, Is.Not.EqualTo(StatusCodes.Status503ServiceUnavailable),
+                    "a 503 is retryable to the client, which would hold on to a token that cannot work");
+                Assert.That(message, Does.Contain("log in again"));
+                Assert.That(message, Does.Not.Contain("Please retry"),
+                    "the refresh token is already spent, so retrying cannot succeed");
+            });
+        }
+
+        /// <summary>
+        /// A spent token whose replacement could never be issued ends a session, and every
+        /// other terminal outcome of this endpoint is audited, so this one has to be too -
+        /// naming who lost the session, which the failing scope no longer has in hand.
+        /// </summary>
+        [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
+        public async Task RefreshToken_AuditsTheConsumedTokenWhenNoNewPairCouldBeIssued()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) => query == AuthQueries.storeRefreshToken
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                apiConnection);
+
+            string log = await ConsoleOutput.CaptureAsync(async () =>
+            {
+                await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            });
+
+            // Asserted as one string rather than as two independent contains: the LDAP debug
+            // lines of the same run also mention the user, so a separate name check would
+            // pass even if the audit entry had lost the identity.
+            Assert.That(log, Does.Contain(
+                $"Refresh token for User \"login-user\" with DN: \"{kRoleUserDn}\" was consumed, " +
+                "but no new token pair could be issued because the API could not be reached."));
+        }
+
+        /// <summary>
+        /// Before the token is consumed the attempt is repeatable, and the message says so.
+        /// Paired with the test above so that the two branches cannot collapse into one.
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_InvitesARetryBeforeTheTokenWasConsumed()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = new HttpRequestException("connection reset by peer")
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            string message = ((ObjectResult)result.Result!).Value?.ToString() ?? "";
+
+            Assert.That(message, Does.Contain("Please retry"));
+        }
+
+        /// <summary>
+        /// A GraphQL-layer fault - a Hasura permission denial or a schema mismatch after an
+        /// upgrade - arrives as InvalidOperationException from the API connection. It says
+        /// nothing about the presented token, so it must not come back as a rejection of it:
+        /// a client that believes that discards a refresh token which is perfectly good.
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_DoesNotReportAnInvalidTokenWhenTheQueryFails()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = new InvalidOperationException("permission denied for table refresh_token")
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.Not.TypeOf<UnauthorizedObjectResult>(),
+                "an API fault must not be reported as an invalid refresh token");
+            Assert.That((result.Result as ObjectResult)?.Value?.ToString() ?? "",
+                Does.Not.Contain("Invalid or expired refresh token"));
+        }
+
+        [Test]
+        public async Task RefreshToken_DoesNotExposeApiErrors()
+        {
+            const string apiError = "permission denied for table refresh_token";
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = new InvalidOperationException(apiError)
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(),
+                Is.EqualTo("The refresh could not be completed."));
+        }
+
+        [Test]
+        public async Task RefreshToken_ReportsAmbiguousConsumptionAsRetryable()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) => query == AuthQueries.revokeRefreshToken
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                apiConnection);
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+            ObjectResult response = (ObjectResult)result.Result!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+                Assert.That(response.Value?.ToString(), Does.Contain("Please retry"));
+            });
+        }
+
+        [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
+        public async Task RefreshToken_AuditsAmbiguousConsumption()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) => query == AuthQueries.revokeRefreshToken
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                apiConnection);
+
+            string log = await ConsoleOutput.CaptureAsync(() => controller.RefreshToken(
+                new RefreshTokenRequest { RefreshToken = "refresh-token" }));
+
+            Assert.That(log, Does.Contain(
+                $"Refresh token for User \"login-user\" with DN: \"{kRoleUserDn}\" may have been consumed " +
+                "because the API became unreachable during the operation."));
+        }
+
+        [Test]
+        public async Task RevokeToken_ReportsServiceUnavailableWhenTheApiCannotBeReached()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = new HttpRequestException("connection reset by peer")
+            });
+
+            ActionResult result = await controller.RevokeToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result, Is.TypeOf<ObjectResult>());
+            Assert.That(((ObjectResult)result).StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+        }
+
+        [Test]
+        public async Task RevokeToken_DoesNotExposeApiErrors()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = new InvalidOperationException("field refresh_token does not exist")
+            });
+
+            ActionResult result = await controller.RevokeToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result).Value?.ToString(),
+                Is.EqualTo("The revocation could not be completed."));
+        }
+
+        [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
+        public async Task RevokeToken_AuditsAmbiguousRevocation()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) => query == AuthQueries.revokeRefreshToken
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(apiConnection);
+
+            string log = await ConsoleOutput.CaptureAsync(() => controller.RevokeToken(
+                new RefreshTokenRequest { RefreshToken = "refresh-token" }));
+
+            Assert.That(log, Does.Contain(
+                "Refresh token for User \"login-user\" with DN: \"uid=login-user,ou=users,dc=fworch,dc=internal\" " +
+                "may have been revoked because the API became unreachable during the operation."));
+        }
+
         [Test]
         public async Task RevokeToken_ReturnsUnauthorizedWhenRefreshTokenIsUnknown()
         {
@@ -280,7 +602,8 @@ namespace FWO.Test
                         return LdapTestSupport.CreateSearchResults(
                             LdapTestSupport.CreateEntry(
                                 "uid=login-user,ou=users,dc=fworch,dc=internal",
-                                new LdapAttribute("cn", kLoginUserCn)));
+                                new LdapAttribute("cn", kLoginUserCn),
+                                new LdapAttribute("uid", kLoginUserCn)));
                     }
 
                     if (baseDn == "ou=roles,dc=fworch,dc=internal")
@@ -339,19 +662,23 @@ namespace FWO.Test
             Assert.That(apiConnection.LastVariables!.GetType().GetProperty("tokenHash"), Is.Not.Null);
         }
 
+        /// <summary>
+        /// null has to keep a single meaning - the query succeeded and matched no live
+        /// token - because the caller renders it as "invalid or expired refresh token". A
+        /// failed query must therefore propagate rather than be reported as a verdict.
+        /// </summary>
         [Test]
-        public async Task AuthManagerValidateRefreshToken_ReturnsNullWhenQueryFails()
+        public void AuthManagerValidateRefreshToken_PropagatesAQueryFailure()
         {
             RecordingApiConnection apiConnection = new()
             {
-                ThrowOnQuery = new InvalidOperationException("boom")
+                ThrowOnQuery = new InvalidOperationException("permission denied for table refresh_token")
             };
 
             object authManager = CreateAuthManager(apiConnection);
 
-            RefreshTokenInfo? tokenInfo = await InvokeAuthManagerAsync<RefreshTokenInfo?>(authManager, "ValidateRefreshToken", "refresh-token");
-
-            Assert.That(tokenInfo, Is.Null);
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await InvokeAuthManagerAsync<RefreshTokenInfo?>(authManager, "ValidateRefreshToken", "refresh-token"));
         }
 
         [Test]
@@ -483,7 +810,7 @@ namespace FWO.Test
             object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(),
                 new List<Ldap> { inactiveLdap, activeLdap });
 
-            await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser());
+            await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser(), CancellationToken.None);
 
             Assert.Multiple(() =>
             {
@@ -500,7 +827,7 @@ namespace FWO.Test
             object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(),
                 new List<Ldap> { inactiveLdap });
 
-            List<string> roles = await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser());
+            List<string> roles = await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser(), CancellationToken.None);
 
             Assert.Multiple(() =>
             {
@@ -516,9 +843,172 @@ namespace FWO.Test
             object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(),
                 new List<Ldap> { ldapWithoutRoles });
 
-            await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser());
+            await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser(), CancellationToken.None);
 
             Assert.That(ldapWithoutRoles.ConnectCount, Is.Zero);
+        }
+
+        [Test]
+        public async Task GetTokenPair_Returns429BeforeLdapWork_WhenClientLimitIsExceeded()
+        {
+            TestableLdap ldap = CreateAuthLdap(new RecordingLdapClient());
+            AuthenticationTokenController controller = CreateThrottledController(new List<Ldap> { ldap }, new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 1, userFailures: 10));
+
+            ActionResult<TokenPair> first = await controller.GetTokenPair(new AuthenticationTokenGetParameters { Username = "alice", Password = "wrong" });
+            int connectsAfterFirstAttempt = ldap.ConnectCount;
+            ActionResult<TokenPair> second = await controller.GetTokenPair(new AuthenticationTokenGetParameters { Username = "bob", Password = "wrong" });
+
+            Assert.That(first.Result, Is.TypeOf<BadRequestObjectResult>());
+            AssertCapacityResult(second.Result, StatusCodes.Status429TooManyRequests, "A0006");
+            Assert.Multiple(() =>
+            {
+                Assert.That(connectsAfterFirstAttempt, Is.GreaterThan(0));
+                Assert.That(ldap.ConnectCount, Is.EqualTo(connectsAfterFirstAttempt));
+                Assert.That(controller.HttpContext.Response.Headers.RetryAfter.ToString(), Is.EqualTo(LoginThrottle.kRetryAfterSeconds.ToString()));
+            });
+        }
+
+        [Test]
+        public async Task GetTokenPair_Returns429_AfterRepeatedInvalidCredentialsOfOneUser()
+        {
+            AuthenticationTokenController controller = CreateThrottledController(new List<Ldap> { CreateAuthLdap(new RecordingLdapClient()) },
+                new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 100, userFailures: 2));
+            AuthenticationTokenGetParameters alice = new() { Username = "alice", Password = "wrong" };
+
+            ActionResult<TokenPair> firstFailure = await controller.GetTokenPair(alice);
+            ActionResult<TokenPair> secondFailure = await controller.GetTokenPair(alice);
+            ActionResult<TokenPair> blocked = await controller.GetTokenPair(alice);
+            ActionResult<TokenPair> otherUser = await controller.GetTokenPair(new AuthenticationTokenGetParameters { Username = "bob", Password = "wrong" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstFailure.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(secondFailure.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(otherUser.Result, Is.TypeOf<BadRequestObjectResult>());
+            });
+            AssertCapacityResult(blocked.Result, StatusCodes.Status429TooManyRequests, "A0006");
+        }
+
+        [Test]
+        public async Task GetTokenPairForUser_Returns429_AfterInvalidAdminCredentials()
+        {
+            AuthenticationTokenController controller = CreateThrottledController(new List<Ldap> { CreateAuthLdap(new RecordingLdapClient()) },
+                new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 100, userFailures: 1));
+            AuthenticationTokenGetForUserParameters parameters = new() { AdminUsername = "admin", AdminPassword = "wrong", TargetUserName = "target" };
+
+            ActionResult<TokenPair> failure = await controller.GetTokenPairForUser(parameters);
+            ActionResult<TokenPair> blocked = await controller.GetTokenPairForUser(parameters);
+
+            Assert.That(failure.Result, Is.TypeOf<BadRequestObjectResult>());
+            AssertCapacityResult(blocked.Result, StatusCodes.Status429TooManyRequests, "A0006");
+        }
+
+        [Test]
+        public async Task GetAsyncForUser_Returns429_AfterInvalidAdminCredentials()
+        {
+            AuthenticationTokenController controller = CreateThrottledController(new List<Ldap> { CreateAuthLdap(new RecordingLdapClient()) },
+                new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 100, userFailures: 1));
+            AuthenticationTokenGetForUserParameters parameters = new() { AdminUsername = "admin", AdminPassword = "wrong", TargetUserName = "target" };
+
+            ActionResult<string> failure = await controller.GetAsyncForUser(parameters);
+            ActionResult<string> blocked = await controller.GetAsyncForUser(parameters);
+
+            Assert.That(failure.Result, Is.TypeOf<BadRequestObjectResult>());
+            AssertCapacityResult(blocked.Result, StatusCodes.Status429TooManyRequests, "A0006");
+        }
+
+        [Test]
+        public async Task GetTokenPair_NeverThrottlesAnonymousBootstrapRequests()
+        {
+            AuthenticationTokenController controller = CreateThrottledController([], new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 1, userFailures: 1));
+
+            for (int request = 0; request < 3; request++)
+            {
+                ActionResult<TokenPair> result = await controller.GetTokenPair(new AuthenticationTokenGetParameters());
+                Assert.That(ExtractOkValue(result).AccessToken, Is.Not.Empty);
+            }
+        }
+
+        [Test]
+        public async Task GetAsync_Returns429_WhenClientLimitIsExceeded()
+        {
+            AuthenticationTokenController controller = CreateThrottledController([], new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 1, userFailures: 10));
+
+            await controller.GetAsync(new AuthenticationTokenGetParameters { Username = "alice", Password = "wrong" });
+            ActionResult<string> result = await controller.GetAsync(new AuthenticationTokenGetParameters { Username = "alice", Password = "wrong" });
+
+            AssertCapacityResult(result.Result, StatusCodes.Status429TooManyRequests, "A0006");
+        }
+
+        [Test]
+        public async Task GetTokenPair_Returns503WithoutLdapWork_WhenMoreActiveLdapsThanTheCap()
+        {
+            List<TestableLdap> ldaps = CreateTooManyLdaps();
+            AuthenticationTokenController controller = CreateController(new List<Ldap>(ldaps), new RecordingApiConnection());
+
+            ActionResult<TokenPair> result = await controller.GetTokenPair(new AuthenticationTokenGetParameters { Username = "alice", Password = "secret" });
+
+            AssertCapacityResult(result.Result, StatusCodes.Status503ServiceUnavailable, "A0007");
+            Assert.That(ldaps.Sum(ldap => ldap.ConnectCount), Is.Zero);
+        }
+
+        [Test]
+        public async Task GetAsyncForUser_ReportsCapacityInsteadOfInvalidCredentials()
+        {
+            AuthenticationTokenController controller = CreateController(new List<Ldap>(CreateTooManyLdaps()), new RecordingApiConnection());
+
+            ActionResult<string> result = await controller.GetAsyncForUser(new AuthenticationTokenGetForUserParameters
+            {
+                AdminUsername = "admin",
+                AdminPassword = "secret",
+                TargetUserName = "target"
+            });
+
+            AssertCapacityResult(result.Result, StatusCodes.Status503ServiceUnavailable, "A0007");
+        }
+
+        [Test]
+        public async Task GetTokenPairForUser_ReportsCapacityInsteadOfInvalidCredentials()
+        {
+            AuthenticationTokenController controller = CreateController(new List<Ldap>(CreateTooManyLdaps()), new RecordingApiConnection());
+
+            ActionResult<TokenPair> result = await controller.GetTokenPairForUser(new AuthenticationTokenGetForUserParameters
+            {
+                AdminUsername = "admin",
+                AdminPassword = "secret",
+                TargetUserName = "target"
+            });
+
+            AssertCapacityResult(result.Result, StatusCodes.Status503ServiceUnavailable, "A0007");
+        }
+
+        [Test]
+        public async Task RefreshToken_InvitesARetryWithoutConsumingTheToken_WhenDirectoriesAreAtCapacity()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) => QueryResponse(query, resultType)
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(new List<Ldap>(CreateTooManyLdaps()), apiConnection);
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            AssertCapacityResult(result.Result, StatusCodes.Status503ServiceUnavailable, "A0007");
+            Assert.That(apiConnection.LastQuery, Is.Not.EqualTo(AuthQueries.revokeRefreshToken));
+        }
+
+        [Test]
+        public void AuthManagerGetRoles_StopsBeforeConnecting_WhenCancelled()
+        {
+            TestableLdap roleLdap = CreateRoleLdap();
+            object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(), new List<Ldap> { roleLdap });
+            using CancellationTokenSource cancellation = new();
+            cancellation.Cancel();
+
+            Assert.CatchAsync<OperationCanceledException>(async () =>
+                await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser(), cancellation.Token));
+            Assert.That(roleLdap.ConnectCount, Is.Zero);
         }
 
         private static AuthenticationTokenController CreateController()
@@ -526,19 +1016,97 @@ namespace FWO.Test
             return CreateController(new RecordingApiConnection());
         }
 
-        private static AuthenticationTokenController CreateController(List<Ldap> ldaps, ApiConnection apiConnection)
+        private static AuthenticationTokenController CreateController(List<Ldap> ldaps, ApiConnection apiConnection, LoginThrottle? loginThrottle = null)
         {
             RSA rsa = RSA.Create(2048);
             return new AuthenticationTokenController(
                 new JwtWriter(new RsaSecurityKey(rsa)),
                 ldaps,
                 apiConnection,
-                new FixedTokenLifetimeProvider());
+                new FixedTokenLifetimeProvider(),
+                loginThrottle ?? new LoginThrottle(new LoginThrottleSettings()));
+        }
+
+        /// <summary>
+        /// Builds a controller whose requests come from <see cref="kThrottledClient"/>, so the login limits apply.
+        /// </summary>
+        private static AuthenticationTokenController CreateThrottledController(List<Ldap> ldaps, ApiConnection apiConnection, LoginThrottle loginThrottle)
+        {
+            AuthenticationTokenController controller = CreateController(ldaps, apiConnection, loginThrottle);
+            DefaultHttpContext httpContext = new();
+            httpContext.Connection.RemoteIpAddress = kThrottledClient;
+            controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+            return controller;
+        }
+
+        private static LoginThrottle CreateLoginThrottle(int clientAttempts, int userFailures)
+        {
+            return new LoginThrottle(new LoginThrottleSettings { ClientAttemptsPerMinute = clientAttempts, UserFailuresPerMinute = userFailures });
+        }
+
+        /// <summary>
+        /// More active directories than the default cap allows, each counting its connection attempts.
+        /// </summary>
+        private static List<TestableLdap> CreateTooManyLdaps()
+        {
+            return Enumerable.Range(0, LoginThrottleSettings.kDefaultMaxDirectories + 1)
+                .Select(_ => CreateAuthLdap(new RecordingLdapClient())).ToList();
+        }
+
+        private static void AssertCapacityResult(IActionResult? result, int statusCode, string code)
+        {
+            Assert.That(result, Is.TypeOf<ObjectResult>());
+            ObjectResult response = (ObjectResult)result!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(statusCode));
+                Assert.That(response.Value?.ToString(), Does.StartWith(code));
+            });
         }
 
         private static AuthenticationTokenController CreateController(ApiConnection apiConnection)
         {
             return CreateController([], apiConnection);
+        }
+
+        /// <summary>
+        /// Builds the exception the GraphQL client raises when the API host answers with a
+        /// non-success status code.
+        /// </summary>
+        /// <param name="statusCode">Status code the API host answered with.</param>
+        /// <returns>The exception the API connection would surface.</returns>
+        private static GraphQLHttpRequestException CreateGraphQlHttpException(HttpStatusCode statusCode)
+        {
+            using HttpResponseMessage response = new(statusCode);
+            HttpResponseHeaders headers = response.Headers;
+
+            return new GraphQLHttpRequestException(statusCode, headers, $"<html><title>{(int)statusCode}</title></html>");
+        }
+
+        /// <summary>
+        /// An LDAP client that lets the refresh path rebuild the stored user.
+        /// </summary>
+        /// <returns>A client answering the user and role searches of a refresh.</returns>
+        private static RecordingLdapClient CreateRefreshLdapClient()
+        {
+            RecordingLdapClient client = new()
+            {
+                SearchResponder = (baseDn, scope, filter, attributes, typesOnly) => baseDn == kRoleSearchPath
+                    ? LdapTestSupport.CreateSearchResults(
+                        LdapTestSupport.CreateEntry(
+                            "cn=reporter,ou=roles,dc=fworch,dc=internal",
+                            new LdapAttribute("cn", kReporterRoleValues),
+                            new LdapAttribute("uniqueMember", kLoginUserDn)))
+                    : LdapTestSupport.CreateSearchResults()
+            };
+
+            // A refresh rebuilds a user that already carries a DN, so its entry is read
+            // directly rather than searched for under the user path.
+            client.ReadResultsByDn[kRoleUserDn] = LdapTestSupport.CreateEntry(
+                kRoleUserDn,
+                new LdapAttribute("cn", kLoginUserCn));
+
+            return client;
         }
 
         private static TestableLdap CreateAuthLdap(RecordingLdapClient client)

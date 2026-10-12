@@ -38,6 +38,8 @@ from model_controllers.management_controller import (
 from orphaned_imports import try_roll_back_orphaned_imports
 from services.service_provider import ServiceProvider
 
+SHUTDOWN_LOG_MESSAGE = "import_main_loop - shutdown requested. Exiting..."
+
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
     try:
@@ -54,7 +56,7 @@ def wait_with_shutdown_check(sleep_time: int):
     # only called while no import holds a lock, which is what makes exiting on a drain request safe here
     def exit_if_shutdown_or_drain_requested():
         if fwo_globals.shutdown_requested:
-            FWOLogger.info("import_main_loop - shutdown requested. Exiting...")
+            FWOLogger.info(SHUTDOWN_LOG_MESSAGE)
             raise SystemExit(IMPORTER_SHUTDOWN_EXIT_CODE)
         if fwo_globals.drain_requested:
             FWOLogger.info("import_main_loop - drain requested and no import running. Exiting...")
@@ -133,7 +135,7 @@ def import_single_management(
             suppress_consistency_check=suppress_consistency_check,
         )
     except (KeyboardInterrupt, ShutdownRequestedError) as e:
-        FWOLogger.info("import_main_loop - shutdown requested. Exiting...")
+        FWOLogger.info(SHUTDOWN_LOG_MESSAGE)
         raise SystemExit(IMPORTER_SHUTDOWN_EXIT_CODE) from e
     except (FwoApiFailedLockImportError, FwLoginFailedError):
         FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
@@ -323,7 +325,7 @@ def main(
                 break
     except ShutdownRequestedError:
         # a SIGINT/SIGTERM while starting up or between imports
-        FWOLogger.info("import_main_loop - shutdown requested. Exiting...")
+        FWOLogger.info(SHUTDOWN_LOG_MESSAGE)
         raise SystemExit(IMPORTER_SHUTDOWN_EXIT_CODE) from None
 
 

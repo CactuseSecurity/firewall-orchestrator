@@ -572,6 +572,9 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firew
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
     <li>Der Installer zeigt am Ende eine kurze &Uuml;bersicht der Laufzeiten je Rolle, sortiert nach Dauer. Mehrfache Ausf&uuml;hrungen derselben Rolle werden zusammengefasst.</li>
+    <li>Die Middleware-REST-API begrenzt Aufrufe standardm&auml;&szlig;ig auf 600 pro Minute und zwei gleichzeitig laufende aufwendige Aufrufe je Benutzer. Die Flow-Kataloglisten liefern Seiten mit h&ouml;chstens 1000 Objekten bzw. 250 Gruppen, <code>getIpDataForOwners</code> h&ouml;chstens 10000 Anwendungen. API-Clients m&uuml;ssen mit <code>limit</code> und <code>offset</code> weiterbl&auml;ttern, bis <code>X-Has-More</code> den Wert <code>false</code> hat. <code>getFlowComplianceState</code> akzeptiert h&ouml;chstens 100 Eintr&auml;ge je Liste; bei mehreren passenden portlosen Diensten liefert <code>getServiceObjectId</code> HTTP 409 mit den Kandidaten.</li>
+    <li><code>createTicket</code> liefert neben der Ticket-Id den Aktionsstatus <code>actionsStatus</code>: <code>completed</code> oder <code>failed</code>. Fehlschl&auml;ge initialer Workflow-Aktionen werden als Alarm und in der &Auml;nderungshistorie gemeldet. Ein bereits gespeichertes Ticket beh&auml;lt auch bei fehlgeschlagener Statusermittlung seine Id; der Status enth&auml;lt dann die numerische Zustands-Id. Den Request nicht erneut senden, da dies ein zweites Ticket erzeugt.</li>
+    <li>Externe Ticket-Systeme verwenden ausw&auml;hlbare Login-Daten mit verschl&uuml;sseltem Passwort statt eines gespeicherten Authorization-Headers. Passwort&auml;nderungen und neue Login-Daten gelten auch f&uuml;r offene Requests desselben Endpunkts. Das Upgrade &uuml;bernimmt g&uuml;ltige Basic-Authentication-Header automatisch; andere konfigurierte Header, etwa Tokens, werden mit einer Warnung entfernt. F&uuml;r betroffene Ticket-Systeme m&uuml;ssen Login-Daten ausgew&auml;hlt werden. Verwendete Login-Daten k&ouml;nnen erst nach einer neuen Zuordnung gel&ouml;scht werden.</li>
     <li>Die TLS-Zertifikatspr&uuml;fung wird nun je Verbindungsart eingestellt: f&uuml;r alle Firewall-Verbindungen (Import, Autodiscovery, Check Point-&Auml;nderungsauftr&auml;ge), alle externen Ticket-Systeme und den Email-Server. Neuinstallationen pr&uuml;fen per Default gegen den Zertifikatsspeicher des Hosts. Ein Upgrade &uuml;bernimmt die bisherige Einstellung f&uuml;r Firewall-Verbindungen und schaltet die Pr&uuml;fung f&uuml;r bereits eingerichtete Email-Server und Ticket-Systeme aus; ist die Pr&uuml;fung f&uuml;r Firewall-Verbindungen aktiv, werden nun auch Autodiscovery und Check Point-&Auml;nderungsauftr&auml;ge gepr&uuml;ft. Ungepr&uuml;fte Verbindungen werden im Log gemeldet.</li>
     <li>Neuinstallationen legen keine Demo-Daten (Beispiel-Benutzer, -Eigent&uuml;mer und -Ger&auml;te mit &ouml;ffentlich bekannten Passw&ouml;rtern) mehr an, au&szlig;er mit <code>testkeys=yes</code> oder explizit mit <code>add_demo_data=yes</code>. Ein Upgrade l&auml;sst vorhandene Demo-Daten bestehen; sie k&ouml;nnen &uuml;ber die Schaltfl&auml;chen "Beispieldaten l&ouml;schen" in den Einstellungen entfernt werden, der Daily Check meldet sie bis dahin.</li>
     <li>LDAP-Anmeldung: Die Anmeldung erfolgt nur noch mit dem Kontonamen (sAMAccountName bei Active Directory, uid bei OpenLDAP). Benutzer, die sich bisher mit cn, userPrincipalName oder Email-Adresse angemeldet haben, m&uuml;ssen nun ihren Kontonamen verwenden. Anmeldeversuche werden je Client und Benutzer begrenzt; die Grenzwerte k&ouml;nnen in fworch.json eingestellt werden.</li>
@@ -587,6 +590,9 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
     <li>The installer ends with a short overview of elapsed time per role, sorted by duration. Repeated executions of the same role are combined.</li>
+    <li>The middleware REST API defaults to 600 calls per minute and two concurrent expensive calls per user. Flow catalog lists return pages of at most 1000 objects or 250 groups; <code>getIpDataForOwners</code> returns at most 10000 applications. API clients must page with <code>limit</code> and <code>offset</code> until <code>X-Has-More</code> is <code>false</code>. <code>getFlowComplianceState</code> accepts at most 100 entries per list; when several portless services match, <code>getServiceObjectId</code> returns HTTP 409 with the candidates.</li>
+    <li><code>createTicket</code> returns <code>actionsStatus</code> alongside the ticket ID: <code>completed</code> or <code>failed</code>. Initial workflow action failures are reported in an alert and the change history. A saved ticket keeps its ID even if status enrichment fails; its status then contains the numeric state ID. Do not resend the request, as this creates a second ticket.</li>
+    <li>External ticket systems use selectable credentials with an encrypted password instead of a stored authorization header. Password changes and newly selected credentials also apply to open requests for the same endpoint. The upgrade migrates valid basic authentication headers automatically; other configured headers, such as tokens, are removed with a warning. Select credentials for affected ticket systems. Credentials in use can only be deleted after selecting replacements.</li>
     <li>TLS certificate checking is now configured per connection type: for all firewall connections (import, autodiscovery, Check Point change requests), all external ticket systems and the email server. New installations check against the host trust store by default. An upgrade keeps the setting for firewall connections and switches the check off for email servers and ticket systems already configured; with checking of firewall connections active, autodiscovery and Check Point change requests are now checked as well. Unchecked connections are reported in the log.</li>
     <li>Fresh installations no longer create demo data (sample users, owners and devices with publicly known passwords), unless <code>testkeys=yes</code> is set or <code>add_demo_data=yes</code> is requested explicitly. Upgrades keep existing demo data; remove it with the "Remove Sample Data" buttons in the settings, until then the daily check reports it.</li>
     <li>LDAP login: users now log in with their account name only (sAMAccountName for Active Directory, uid for OpenLDAP). Users who logged in with their cn, userPrincipalName or email address so far have to use their account name now. Login attempts are limited per client and user; the limits can be set in fworch.json.</li>
@@ -1899,8 +1905,6 @@ INSERT INTO txt VALUES ('all_implemented',      'German', 	'Alles implementiert'
 INSERT INTO txt VALUES ('all_implemented',      'English', 	'All implemented');
 INSERT INTO txt VALUES ('rejections',           'German', 	'Ablehnungen');
 INSERT INTO txt VALUES ('rejections',           'English', 	'Rejections');
-INSERT INTO txt VALUES ('ext_ticket_auth',      'German', 	'Authorization-Header-String');
-INSERT INTO txt VALUES ('ext_ticket_auth',      'English', 	'Authorization header string');
 INSERT INTO txt VALUES ('ext_ticket_lookup_id', 'German', 	'Externe Nutzer Id ermitteln');
 INSERT INTO txt VALUES ('ext_ticket_lookup_id', 'English', 	'Lookup external user Id');
 INSERT INTO txt VALUES ('ext_ticket_number',    'German', 	'Externe Ticket-Nummer');
@@ -3016,7 +3020,7 @@ INSERT INTO txt VALUES ('save_management',      'English', 	'Save Management');
 INSERT INTO txt VALUES ('fetch_gateways',       'German', 	'Gateways abholen');
 INSERT INTO txt VALUES ('fetch_gateways',       'English', 	'Fetch Gateways');
 INSERT INTO txt VALUES ('fetch_credentials',    'German', 	'Login-Daten abholen');
-INSERT INTO txt VALUES ('fetch_credentials',    'English', 	'Fetch import credentials');
+INSERT INTO txt VALUES ('fetch_credentials',    'English', 	'Fetch credentials');
 INSERT INTO txt VALUES ('save_gateway',         'German', 	'Gateway speichern');
 INSERT INTO txt VALUES ('save_gateway',         'English', 	'Save Gateway');
 INSERT INTO txt VALUES ('add_device_to_tenant0','German', 	'Ger&auml;t zu Mandant 0 zuordnen');
@@ -4362,8 +4366,8 @@ INSERT INTO txt VALUES ('U5114', 'German',  'Auto Discovery derzeit nicht implem
 INSERT INTO txt VALUES ('U5114', 'English', 'Auto discovery currently not implemented');
 INSERT INTO txt VALUES ('U5115', 'German',  'per Auto Discovery gefundene &Auml;nderungen');
 INSERT INTO txt VALUES ('U5115', 'English', '# changes found by auto discovery');
-INSERT INTO txt VALUES ('U5116', 'German',  'Verwaltung der Login-Daten der eingebundenen Management-Systeme');
-INSERT INTO txt VALUES ('U5116', 'English', 'Manage credentials for login to connected firewall management systems');
+INSERT INTO txt VALUES ('U5116', 'German',  'Verwaltung der Login-Daten der eingebundenen Management-Systeme und externen Ticket-Systeme');
+INSERT INTO txt VALUES ('U5116', 'English', 'Manage credentials for login to connected firewall management systems and external ticket systems');
 INSERT INTO txt VALUES ('U5117', 'German',  'Sind sie sicher, dass sie folgende Login-Daten l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5117', 'English', 'Are you sure you want to delete credentials: ');
 INSERT INTO txt VALUES ('U5118', 'German',  'Statusanzeige aller externen Auftr&auml;ge. M&ouml;glichkeit zur Status&auml;nderung, wenn n&ouml;tig.');
@@ -4720,6 +4724,8 @@ INSERT INTO txt VALUES ('E5111', 'German',  'Es gibt bereits ein Gateway mit der
 INSERT INTO txt VALUES ('E5111', 'English', 'There is already a gateway in the same configuration with import enabled');
 INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E5112', 'English', 'Gateway could not be created');
+INSERT INTO txt VALUES ('E5113', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten externen Ticket-Systemen verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
+INSERT INTO txt VALUES ('E5113', 'English', 'Deletion of credentials not allowed as they are in use by the external ticket systems named. Change the credentials of these ticket systems before deleting them.');
 INSERT INTO txt VALUES ('E5121', 'German',  'Bitte einen Namen f&uuml;r das benutzerdefinierte Flow-Objekt eingeben');
 INSERT INTO txt VALUES ('E5121', 'English', 'Please enter a name for the custom flow object');
 INSERT INTO txt VALUES ('E5122', 'German',  'Bitte mindestens einen Dienst ausw&auml;hlen');
@@ -6222,11 +6228,11 @@ INSERT INTO txt VALUES ('H5001', 'English', 'In the settings section the setup a
 ');
 INSERT INTO txt VALUES ('H5011', 'German',  'Im ersten Kapitel "Ger&auml;te" wird das Setup der Datenquellen behandelt:
     Die Abschnitte <a href="/help/settings/managements">Managements</a> und <a href="/help/settings/gateways">Gateways</a> dienen der Definition der verbundenen Hardware.
-    Hinzu kommt die Verwaltung der <a href="/help/settings/credentials">Import-Zugangsdaten</a>.
+    Hinzu kommt die Verwaltung der <a href="/help/settings/credentials">Zugangsdaten</a>.
 ');
 INSERT INTO txt VALUES ('H5011', 'English', 'In the first chapter "Devices" the setup of the report data sources is done:
     The sections <a href="/help/settings/managements">Managements</a> and <a href="/help/settings/gateways">Gateways</a> are for the definition of the connected hardware.
-    Additionally there is the administration of the <a href="/help/settings/credentials">Import Credentials</a>.
+    Additionally there is the administration of the <a href="/help/settings/credentials">Credentials</a>.
 ');
 INSERT INTO txt VALUES ('H5012', 'German',  'Das Kapitel "Berechtigungen" bietet die Funktionalit&auml;t f&uuml;r die Nutzerverwaltung:
     In <a href="/help/settings/ldap">LDAP-Verbindungen</a> k&ouml;nnen externe Verbindungen zus&auml;tzlich zum internen LDAP definiert werden.
@@ -6404,15 +6410,15 @@ INSERT INTO txt VALUES ('H5123', 'English', 'Hide in UI: If set, this management
 INSERT INTO txt VALUES ('H5124', 'German',  'Externe Management Daten: Daten die das Management in externen Systemen kennzeichnen.');
 INSERT INTO txt VALUES ('H5124', 'English', 'External Management Data: Data specifying the management in external systems.');
 
-INSERT INTO txt VALUES ('H5130', 'German',  'Hier werden die Zugangsdaten f&uuml;r den Import der Firewall-Konfigurationen verwaltet.
-Diese k&ouml;nnen auch f&uuml;r den Zugriff auf mehrere Firewall-Managements verwendet werden.
-Ein L&ouml;schen ist erst m&ouml;glich, wenn die Zugangsdaten von keinem Management mehr f&uuml;r Import oder Export verwendet werden. Andernfalls werden die Managements genannt, denen zuerst andere Zugangsdaten zugewiesen werden m&uuml;ssen; das gilt auch f&uuml;r das Entfernen der Beispieldaten.
+INSERT INTO txt VALUES ('H5130', 'German',  'Hier werden die Zugangsdaten f&uuml;r den Zugriff auf Firewall-Managements (Import und Bereitstellung) und externe Ticket-Systeme verwaltet.
+Diese k&ouml;nnen auch f&uuml;r den Zugriff auf mehrere Firewall-Managements oder Ticket-Systeme verwendet werden.
+Ein L&ouml;schen ist erst m&ouml;glich, wenn die Zugangsdaten von keinem Management mehr f&uuml;r Import oder Export und von keinem externen Ticket-System verwendet werden. Andernfalls werden die Managements und Ticket-Systeme genannt, denen zuerst andere Zugangsdaten zugewiesen werden m&uuml;ssen; das gilt auch f&uuml;r das Entfernen der Beispieldaten.
     <br>
     F&uuml;r den FortiGate Stand-Alone Import via REST API:
     <ol>
         <li>Im FortiGate Web Interface: Erstelle ein Read Only Admin Profile z.B. "ro_admin"</li>
         <li>Im FortiGate Web Interface: Erstelle einen "REST API Admin" e.g. "fworch" mit "ro_admin" Profil und kopiere den API Schl&uuml;ssel</li>
-        <li>In der Firewall Orchestrator WebUI: erstelle neue Import Login-Daten mit username "fworch" und Passwort = API Schl&uuml;ssel</li>
+        <li>In der Firewall Orchestrator WebUI: erstelle neue Login-Daten mit username "fworch" und Passwort = API Schl&uuml;ssel</li>
     </ol>
     <br>
     F&uuml;r den OPNsense Import via REST API:
@@ -6421,12 +6427,12 @@ Ein L&ouml;schen ist erst m&ouml;glich, wenn die Zugangsdaten von keinem Managem
         <li>Lade die erzeugte Datei herunter, sie enth&auml;lt je eine Zeile mit Schl&uuml;ssel und Geheimnis, Beispielinhalt:<br>
             <code>key=xxx</code><br>
             <code>secret=yyy</code></li>
-        <li>In der Firewall Orchestrator WebUI: erstelle neue Import Login-Daten mit Import Nutzer = Wert von "key" und Passwort = Wert von "secret"</li>
+        <li>In der Firewall Orchestrator WebUI: erstelle neue Login-Daten mit Import Nutzer = Wert von "key" und Passwort = Wert von "secret"</li>
     </ol>
 ');
-INSERT INTO txt VALUES ('H5130', 'English', 'Manage credentials for importing firewall configuration data.
-Credentials can be used for logging in to one or multiple firewall managements.
-Credentials can only be deleted when no management uses them for import or export. Otherwise the managements are named that need other credentials first; this also applies to removing the sample data.
+INSERT INTO txt VALUES ('H5130', 'English', 'Manage credentials for logging in to firewall managements (import and provisioning) and external ticket systems.
+Credentials can be used for logging in to one or multiple firewall managements or ticket systems.
+Credentials can only be deleted when no management uses them for import or export and no external ticket system uses them. Otherwise the managements and ticket systems are named that need other credentials first; this also applies to removing the sample data.
     <br>
     For FortiGate stand-alone import via REST API:
     <ol>
@@ -7389,8 +7395,10 @@ INSERT INTO txt VALUES ('H5593d', 'German', 'Zertifikate pr&uuml;fen: Die TLS-Ze
 INSERT INTO txt VALUES ('H5593d', 'English','Check certificates: The TLS certificates of all external ticket systems are validated against the host trust store.
     Only switch this off if the issuing CA cannot be added there: without the check the credentials can be intercepted.
     Default value for new installations = "active"; an upgrade with ticket systems already configured keeps the previous behaviour ("inactive").');
-INSERT INTO txt VALUES ('H5594', 'German',  'Authorization-Header-String: Beispielsweise Base64-kodierter String von "Username:Password" mit f&uuml;hrendem "Basic" zur Bezeichnung der Basic Authentication');
-INSERT INTO txt VALUES ('H5594', 'English', 'Authorization header string: E.g. base64 encoded string of "Username:Password" lead by "Basic" to indicate basic authentication');
+INSERT INTO txt VALUES ('H5594', 'German',  'Login-Daten: <a href="/help/settings/credentials">Login-Daten</a> (Benutzername und Passwort), mit denen sich Firewall Orchestrator per Basic Authentication am Ticket-System anmeldet.
+    Der Authorization-Header wird vor jedem Aufruf des Ticket-Systems aus den aktuellen Login-Daten gebildet und nicht gespeichert, ge&auml;nderte Passw&ouml;rter gelten daher auch f&uuml;r offene Requests. Login-Daten mit Schl&uuml;sselpaar k&ouml;nnen nicht gew&auml;hlt werden.');
+INSERT INTO txt VALUES ('H5594', 'English', 'Credentials: <a href="/help/settings/credentials">Credentials</a> (username and password) Firewall Orchestrator uses to log into the ticket system via basic authentication.
+    The authorization header is built from the current credentials before each call to the ticket system and is not stored, so changed passwords also apply to open requests. Credentials with a key pair cannot be selected.');
 INSERT INTO txt VALUES ('H5595', 'German',  'Template Ticket-Text: Vorlagentext mit verschiedenen Platzhaltern, die durch @@PLACEHOLDER@@ gekennzeichnet sind und f&uuml;r jede Anfrage durch die eigentlichen Anfragedaten ersetzt werden.
     Verf&uuml;gbare Platzhalter: @@TICKET_SUBJECT@@, @@PRIORITY@@, @@ONBEHALF@@, @@TASKS@@, @@REASON@@, @@APPID@@.
 ');
@@ -8108,6 +8116,9 @@ INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> st
         </tbody>
     </table>
     Die Filterstruktur ist f&uuml;r diese Endpunkte bewusst klein gehalten und dient vor allem dazu, nur Objekte zur&uuml;ckzugeben, die im Request-Kontext sichtbar sein sollen.
+    Die Listen-Endpunkte (<code>getAddressObjects</code>, <code>getAddressGroups</code>, <code>getServiceObjects</code>, <code>getServiceGroups</code>, <code>getTimeObjects</code>) liefern eine Seite pro Request: <code>limit</code> (Standard und Maximum 1000 Objekte bzw. 250 Gruppen) und <code>offset</code> (Standard 0).
+    Die Eintr&auml;ge sind nach Name und Id sortiert; der Response-Header <code>X-Has-More</code> gibt an, ob weitere Eintr&auml;ge folgen. Ung&uuml;ltige Werte werden mit 400 beantwortet.
+    Passen bei <code>getServiceObjectId</code> mehrere Dienstobjekte (mehrere portlose Dienste desselben Protokolls), wird statt einer Id 409 mit den Kandidaten (<code>candidates</code>) geliefert; Dienste mit Ports und der kanonische ANY-Dienst sind eindeutig.
     F&uuml;r <code>getAddressObjectId</code> akzeptieren <code>ipStart</code> und <code>ipEnd</code> IPv4- und IPv6-Bereiche, ohne Maske oder mit der Hostmaske (<code>/32</code> bzw. <code>/128</code>); jede andere Maske wird abgelehnt.
     IPv6-Werte, die lediglich eine IPv4-Adresse abbilden - die IPv4-mapped-Form (<code>::ffff:a.b.c.d</code>) und die veraltete IPv4-compatible-Form (<code>::a.b.c.d</code>) - werden ebenfalls abgelehnt; die IPv4-Schreibweise ist zu verwenden.
     F&uuml;r <code>getAddressGroups</code> liefert <code>option.separateZoneGroups=false</code> (Standard) weiterhin ein flaches JSON-Array aller Gruppen.
@@ -8129,6 +8140,9 @@ INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> ex
         </tbody>
     </table>
     The filter structure is intentionally small for these endpoints and is mainly used to restrict results to objects that should be visible in the request context.
+    The list endpoints (<code>getAddressObjects</code>, <code>getAddressGroups</code>, <code>getServiceObjects</code>, <code>getServiceGroups</code>, <code>getTimeObjects</code>) return one page per request: <code>limit</code> (default and maximum 1000 objects or 250 groups) and <code>offset</code> (default 0).
+    Entries are ordered by name and id; the response header <code>X-Has-More</code> tells whether further entries follow. Invalid values are answered with 400.
+    If more than one service object matches <code>getServiceObjectId</code> (several portless services of the same protocol), 409 with the <code>candidates</code> is returned instead of an id; services with ports and the canonical ANY service are unique.
     For <code>getAddressObjectId</code>, <code>ipStart</code> and <code>ipEnd</code> accept IPv4 and IPv6 ranges, without a mask or with the host mask (<code>/32</code> or <code>/128</code>); every other mask is rejected.
     IPv6 values that merely re-encode an IPv4 address - the IPv4-mapped form (<code>::ffff:a.b.c.d</code>) and the deprecated IPv4-compatible form (<code>::a.b.c.d</code>) - are rejected as well; use the IPv4 notation instead.
     For <code>getAddressGroups</code>, <code>option.separateZoneGroups=false</code> (default) still returns a flat JSON array of all groups.
@@ -8145,6 +8159,7 @@ INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b>
         </tbody>
     </table>
     F&uuml;r <code>getFlowComplianceState</code> werden Quellen und Ziele als IP-Bereiche sowie Dienste als Portbereiche mit Protokoll &uuml;bergeben.
+    <code>source</code>, <code>destination</code>, <code>service</code> und <code>policies</code> d&uuml;rfen jeweils h&ouml;chstens 100 Eintr&auml;ge enthalten; l&auml;ngere Listen werden mit 400 abgelehnt.
     <code>ipStart</code> und <code>ipEnd</code> akzeptieren IPv4- und IPv6-Bereiche, ohne Maske oder mit der Hostmaske (<code>/32</code> bzw. <code>/128</code>); jede andere Maske wird abgelehnt.
     CIDR-Netze werden mit <code>ipNetwork</code> &uuml;bergeben und vor der Pr&uuml;fung in ihre Bereichsgrenzen aufgel&ouml;st. <code>ipNetwork</code> schlie&szlig;t <code>ipStart</code> und <code>ipEnd</code> aus und muss die Netzadresse selbst enthalten; gesetzte Hostbits werden abgelehnt.
     IPv6-Werte, die lediglich eine IPv4-Adresse abbilden - die IPv4-mapped-Form (<code>::ffff:a.b.c.d</code>) und die veraltete IPv4-compatible-Form (<code>::a.b.c.d</code>) - werden in <code>ipStart</code>, <code>ipEnd</code> und <code>ipNetwork</code> abgelehnt, da sie als IPv6 gelten und deshalb zu keiner IPv4-Zone passen k&ouml;nnten; die IPv4-Schreibweise ist zu verwenden.
@@ -8163,6 +8178,7 @@ INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b>
         </tbody>
     </table>
     For <code>getFlowComplianceState</code>, sources and destinations are passed as IP ranges and services as port ranges with protocol.
+    <code>source</code>, <code>destination</code>, <code>service</code>, and <code>policies</code> may each contain at most 100 entries; longer lists are rejected with 400.
     <code>ipStart</code> and <code>ipEnd</code> accept IPv4 and IPv6 ranges, without a mask or with the host mask (<code>/32</code> or <code>/128</code>); every other mask is rejected.
     CIDR networks are supplied through <code>ipNetwork</code> and expanded to their range boundaries before evaluation. <code>ipNetwork</code> excludes <code>ipStart</code> and <code>ipEnd</code> and has to carry the network address itself; set host bits are rejected.
     IPv6 values that merely re-encode an IPv4 address - the IPv4-mapped form (<code>::ffff:a.b.c.d</code>) and the deprecated IPv4-compatible form (<code>::a.b.c.d</code>) - are rejected in <code>ipStart</code>, <code>ipEnd</code>, and <code>ipNetwork</code>, because they count as IPv6 and could therefore never match an IPv4 zone; use the IPv4 notation instead.
@@ -8177,7 +8193,7 @@ INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>WorkflowTicketController</b>
     <table class="table table-sm">
         <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Aktueller Stand</th></tr></thead>
         <tbody>
-            <tr><td><code>createTicket</code></td><td>Erzeugt ein neues Workflow-Ticket.</td><td>Implementiert. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "ticketId": 12345}</code></td></tr>
+            <tr><td><code>createTicket</code></td><td>Erzeugt ein neues Workflow-Ticket.</td><td>Implementiert. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "ticketId": 12345, "actionsStatus": "completed"}</code>. <code>actionsStatus</code> ist <code>failed</code>, wenn das Ticket gespeichert wurde, aber mindestens eine initiale Workflow-Aktion fehlschlug. Ein Alarm wird erzeugt und der Fehler in der &Auml;nderungshistorie des Tickets vermerkt. Schl&auml;gt nach dem Speichern die Statusermittlung fehl, enth&auml;lt <code>status</code> die numerische Zustands-Id; <code>ticketId</code> und <code>actionsStatus</code> bleiben erhalten. Der Request darf nicht erneut gesendet werden, da er ein zweites Ticket anlegen w&uuml;rde.</td></tr>
             <tr><td><code>getTicketStatus</code></td><td>Liefert den Status eines vorhandenen Workflow-Tickets.</td><td>Implementiert. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
@@ -8186,7 +8202,7 @@ INSERT INTO txt VALUES ('H6943', 'English', 'The <b>WorkflowTicketController</b>
     <table class="table table-sm">
         <thead><tr><th>Endpoint</th><th>Purpose</th><th>Current state</th></tr></thead>
         <tbody>
-            <tr><td><code>createTicket</code></td><td>Creates a new workflow ticket.</td><td>Implemented. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "ticketId": 12345}</code></td></tr>
+            <tr><td><code>createTicket</code></td><td>Creates a new workflow ticket.</td><td>Implemented. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "ticketId": 12345, "actionsStatus": "completed"}</code>. <code>actionsStatus</code> is <code>failed</code> if the ticket was saved but at least one initial workflow action failed. An alert is raised and the failure is recorded in the ticket&#39;s change history. If status enrichment fails after saving, <code>status</code> contains the numeric state ID; <code>ticketId</code> and <code>actionsStatus</code> are still returned. Do not resend the request, as it would create a second ticket.</td></tr>
             <tr><td><code>getTicketStatus</code></td><td>Returns the status of an existing workflow ticket.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>

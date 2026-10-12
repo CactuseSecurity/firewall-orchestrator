@@ -12,9 +12,9 @@
         owner: root
         group: root
 
-    - name: restart apache
+    - name: reload apache
       service:
         name: "{{ webserver_package_name }}"
-        state: restarted
+        state: reloaded
   become: true
   environment: "{{ proxy_env }}"

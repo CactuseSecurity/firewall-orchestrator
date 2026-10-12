@@ -106,7 +106,7 @@ BEGIN
     SELECT obj_typ_id INTO i_network_typ_id FROM stm_obj_typ WHERE obj_typ_name = 'network';
     SELECT obj_typ_id INTO i_group_typ_id FROM stm_obj_typ WHERE obj_typ_name = 'group';
 
-    INSERT INTO import_credential (credential_name, username, secret)
+    INSERT INTO credential (credential_name, username, secret)
         VALUES ('ghsa_v8hx_probe', 'probe', 'probe') RETURNING id INTO i_credential_id;
 
     INSERT INTO tenant (tenant_name) VALUES ('ghsa_v8hx_probe_tenant') RETURNING tenant_id INTO i_tenant_id;

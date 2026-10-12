@@ -10,6 +10,7 @@ using FWO.Logging;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Services.Workflow;
+using System.Globalization;
 
 namespace FWO.Middleware.Server.Services;
 
@@ -89,13 +90,14 @@ public sealed class WorkflowTicketService : IDisposable
         // caller is named. An internal caller supplies a requester without being the user who made the change,
         // and attributing the change history entry to that requester would be wrong.
         int? changerId = string.IsNullOrWhiteSpace(callerName) ? null : requesterId;
-        ticket = await SaveTicketAsync(ticket, ticketPhase, callerName, changerId);
-        string status = await BuildTicketStatusAsync(ticket.StateId, tolerateExternalStateErrors: true);
+        WfTicketCreationResult creation = await SaveTicketAsync(ticket, ticketPhase, callerName, changerId);
+        string status = await BuildTicketStatusAsync(creation.Ticket.StateId, tolerateStatusErrors: true);
 
         return new CreateTicketResponse
         {
             Status = status,
-            TicketId = ticket.Id
+            TicketId = creation.Ticket.Id,
+            ActionsStatus = creation.ActionsStatus
         };
     }
 
@@ -112,7 +114,7 @@ public sealed class WorkflowTicketService : IDisposable
 
         return new GetTicketStatusResponse
         {
-            Status = await BuildTicketStatusAsync(ticket.StateId, tolerateExternalStateErrors: false),
+            Status = await BuildTicketStatusAsync(ticket.StateId, tolerateStatusErrors: false),
             StatusComment = GetLatestTicketComment(ticket)
         };
     }
@@ -137,7 +139,7 @@ public sealed class WorkflowTicketService : IDisposable
         }
 
         WfStateDict states = await GetStateDictAsync();
-        string status = await BuildTicketStatusAsync(ticket.StateId, states, tolerateExternalStateErrors: false);
+        string status = await BuildTicketStatusAsync(ticket.StateId, states, tolerateStatusErrors: false);
         return TicketResponseMapper.Map(ticket, states, status, filter);
     }
 
@@ -265,7 +267,8 @@ public sealed class WorkflowTicketService : IDisposable
     /// <param name="phase">Workflow phase the ticket is created in.</param>
     /// <param name="callerName">Login name of the authenticated caller, empty for unauthenticated internal callers.</param>
     /// <param name="changerId">Database id of the authenticated caller, null for unauthenticated internal callers.</param>
-    private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase, string? callerName, int? changerId)
+    /// <returns>The saved ticket and whether its initial workflow actions failed.</returns>
+    private async Task<WfTicketCreationResult> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase, string? callerName, int? changerId)
     {
         using UserConfig userConfig = CreateWorkflowUserConfig(callerName);
         WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null) { SystemContext = true, ChangerId = changerId };
@@ -276,15 +279,13 @@ public sealed class WorkflowTicketService : IDisposable
 
         WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true, phase, false) { ChangerId = changerId };
 
-        WfTicket createdTicket = await dbAccess.AddTicketToDb(ticket);
-
-        long ticketId = createdTicket.Id;
-        if (ticketId <= 0)
+        WfTicketCreationResult creation = await dbAccess.AddTicketToDb(ticket);
+        if (creation.Ticket.Id <= 0)
         {
             throw new InvalidOperationException("Could not create the request ticket.");
         }
 
-        return createdTicket;
+        return creation;
     }
 
     /// <summary>
@@ -314,21 +315,33 @@ public sealed class WorkflowTicketService : IDisposable
     /// <summary>
     /// Builds the public status string for a workflow request.
     /// </summary>
-    private async Task<string> BuildTicketStatusAsync(int stateId, bool tolerateExternalStateErrors)
+    /// <remarks>
+    /// After ticket creation, status enrichment must not hide the saved ticket when its queries fail.
+    /// Read-only status requests continue to report those failures to their caller.
+    /// </remarks>
+    private async Task<string> BuildTicketStatusAsync(int stateId, bool tolerateStatusErrors)
     {
-        return await BuildTicketStatusAsync(stateId, await GetStateDictAsync(), tolerateExternalStateErrors);
+        try
+        {
+            return await BuildTicketStatusAsync(stateId, await GetStateDictAsync(), tolerateStatusErrors);
+        }
+        catch (Exception exception) when (tolerateStatusErrors)
+        {
+            Log.WriteError("Create Ticket", "Could not enrich the saved ticket status; returning its state ID.", exception);
+            return stateId.ToString(CultureInfo.InvariantCulture);
+        }
     }
 
     /// <summary>
     /// Builds the public status string for a workflow request from already loaded state names.
     /// </summary>
-    private async Task<string> BuildTicketStatusAsync(int stateId, WfStateDict states, bool tolerateExternalStateErrors)
+    private async Task<string> BuildTicketStatusAsync(int stateId, WfStateDict states, bool tolerateStatusErrors)
     {
         string status = states.GetName(stateId);
         ApiResponse<List<WfExtState>> extStateResponse = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(RequestQueries.getExtStates);
         if (extStateResponse.HasErrors || extStateResponse.Result == null)
         {
-            if (tolerateExternalStateErrors)
+            if (tolerateStatusErrors)
             {
                 return status;
             }

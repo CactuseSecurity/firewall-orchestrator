@@ -43,6 +43,6 @@
       command: "a2dissite {{ product_name }}-ui"
       ignore_errors: true
 
-    - name: Restart Apache with maintenance site before certificate reconciliation
-      include_tasks: restart-before-certificate-reconciliation.yml
+    - name: Reload Apache with maintenance site before certificate reconciliation
+      include_tasks: reload-before-certificate-reconciliation.yml
   become: true

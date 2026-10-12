@@ -6,6 +6,7 @@ orchestrating the conversion from native ASA format to the normalized
 format used by the firewall orchestrator.
 """
 
+import fwo_const
 from fw_modules.ciscoasa9.asa_models import Config
 
 # Import the new modular functions
@@ -23,8 +24,34 @@ from models.fwconfig_normalized import FwConfigNormalized
 from models.gateway import Gateway
 from models.import_state import ImportState
 from models.networkobject import NetworkObject
+from models.rulebase import Rulebase
 from models.rulebase_link import RulebaseLinkUidBased
 from models.serviceobject import ServiceObject
+from models.time_object import TimeObject
+
+
+def build_time_objects_from_rulebases(rulebases: list[Rulebase]) -> dict[str, TimeObject]:
+    """
+    Create a time object for every time-range referenced by a rule.
+
+    The rule references its time-range by name (rule_time), and every reference must resolve to a time object, otherwise
+    the consistency check fails the import. The absolute and periodic times of an ASA time-range are not imported, so
+    the time object only names the restriction.
+
+    Args:
+        rulebases: The normalized rulebases.
+
+    Returns:
+        Time objects by uid (the time-range name).
+
+    """
+    return {
+        time_range: TimeObject(time_obj_uid=time_range, time_obj_name=time_range)
+        for rulebase in rulebases
+        for rule in rulebase.rules.values()
+        if rule.rule_time
+        for time_range in rule.rule_time.split(fwo_const.LIST_DELIMITER)
+    }
 
 
 def normalize_all_network_objects(native_config: Config) -> dict[str, NetworkObject]:
@@ -174,6 +201,7 @@ def normalize_config(
         network_objects=network_objects,
         service_objects=service_objects,
         zone_objects={},  # ASA doesn't use zones like other firewalls
+        time_objects=build_time_objects_from_rulebases(rulebases),
         rulebases=rulebases,
         gateways=[gateway],
     )

@@ -42,6 +42,12 @@
                     </div>
                 </div>
             </div>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5593d"))">
+                <label for="cbx_ext_ticket_check_certificates" class="col-form-label col-sm-3">@(userConfig.GetText("check_certificates")):</label>
+                <div class="col-sm-1">
+                    <input id="cbx_ext_ticket_check_certificates" type="checkbox" @bind="configData!.ExtTicketSystemsCheckCertificates" />
+                </div>
+            </div>
             <AuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="SaveServiceData">@(userConfig.GetText("save"))</button>
@@ -119,9 +125,14 @@
                             </div>
                         </div>
                         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5594"))">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_auth")):</label>
-                            <div class="col-sm-8">
-                                <input type="text" class="col-sm-8" @bind="editModel.Authorization" />
+                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("credentials")):</label>
+                            <div class="col-sm-4">
+                                <Dropdown ElementType="Credential" ElementToString="@(c => c.Name)" SelectedElement="selectedCredential" SelectedElementChanged="OnCredentialChanged"
+                                          Elements="credentials" Nullable="true" NoneSelectedText="">
+                                    <ElementTemplate Context="cred">
+                                        @cred.Name
+                                    </ElementTemplate>
+                                </Dropdown>
                             </div>
                         </div>
                     }
@@ -215,6 +226,8 @@ else
     private List<string> actTaskTypes = [];
     private readonly List<ExternalTicketSystemTypeDefinition> availableExternalTicketTypes = BuiltInExternalTicketSystemTypes.AllBuiltInTicketTypes.ToList();
     private ExternalTicketSystemTypeDefinition selectedType = BuiltInExternalTicketSystemTypes.GetById(BuiltInExternalTicketSystemTypes.GenericId);
+    private List<Credential> credentials = [];
+    private Credential? selectedCredential;
 
     private List<ManagementFwConfigChangeState> fwConfigChangeManagementStates = new();
 
@@ -228,6 +241,10 @@ else
             extTicketSystems = string.IsNullOrWhiteSpace(configData.ExtTicketSystems) ? new List<ExternalTicketSystem>()
                                                         : JsonSerializer.Deserialize<List<ExternalTicketSystem>>(configData.ExtTicketSystems)
                                                         ?? new List<ExternalTicketSystem>();
+            // the ticket systems reference a credential, the authorization header is built for each call and never stored
+            extTicketSystems.ForEach(system => system.Authorization = null);
+            // ticket systems log in with basic authentication, a key pair would send its private key as password
+            credentials = [.. (await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentialsWithoutSecrets)).Where(credential => !credential.IsKeyPair)];
 
             List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getUsedMgmDeviceTypes);
 
@@ -295,7 +312,8 @@ else
                 system.ResponseTimeout = editModel.ResponseTimeout;
                 system.MaxAttempts = editModel.MaxAttempts;
                 system.CyclesBetweenAttempts = editModel.CyclesBetweenAttempts;
-                system.Authorization = selectedType.IsBuiltIn ? editModel.Authorization : "";
+                system.CredentialId = selectedType.IsBuiltIn ? editModel.CredentialId : null;
+                system.Authorization = null;
                 system.LookupRequesterId = editModel.LookupRequesterId;
                 system.Templates = editModel.Templates
                     .Select(t => new ExternalTicketTemplate
@@ -318,7 +336,8 @@ else
             else
             {
                 editModel.Id = GetNextExternalTicketSystemId(extTicketSystems);
-                editModel.Authorization = selectedType.IsBuiltIn ? editModel.Authorization : "";
+                editModel.CredentialId = selectedType.IsBuiltIn ? editModel.CredentialId : null;
+                editModel.Authorization = null;
                 editModel.Sanitize();
                 extTicketSystems.Add(editModel);
                 curExternalTicketSystem = editModel;
@@ -427,6 +446,8 @@ else
 
         newTemplate = new ExternalTicketTemplate();
         selectedType = ResolveSelectedType(editModel.TypeId);
+        // a credential that no longer exists or is a key pair is shown as none and not kept on saving
+        OnCredentialChanged(ResolveSelectedCredential(editModel.CredentialId));
         InitTaskTypeList();
         editMode = true;
     }
@@ -437,6 +458,8 @@ else
         editModel = Clone(externalTicketSystem);
         newTemplate = new ExternalTicketTemplate();
         selectedType = ResolveSelectedType(editModel.TypeId);
+        // a credential that no longer exists or is a key pair is shown as none and not kept on saving
+        OnCredentialChanged(ResolveSelectedCredential(editModel.CredentialId));
         InitTaskTypeList();
         editMode = true;
     }
@@ -543,7 +566,7 @@ else
             ResponseTimeout = s.ResponseTimeout,
             MaxAttempts = s.MaxAttempts,
             CyclesBetweenAttempts = s.CyclesBetweenAttempts,
-            Authorization = s.Authorization,
+            CredentialId = s.CredentialId,
             LookupRequesterId = s.LookupRequesterId,
             Templates = s.Templates
                     .Select(t => new ExternalTicketTemplate
@@ -568,6 +591,26 @@ else
         selectedType = type;
         editModel.TypeId = type.Id;
         InitTaskTypeList();
+    }
+
+    /// <summary>
+    /// Selects the credential the edited ticket system logs in with.
+    /// </summary>
+    /// <param name="credential">The selected credential, null for none.</param>
+    private void OnCredentialChanged(Credential? credential)
+    {
+        selectedCredential = credential;
+        editModel.CredentialId = credential?.Id;
+    }
+
+    /// <summary>
+    /// Finds a credential among those selectable for ticket systems.
+    /// </summary>
+    /// <param name="credentialId">The id of the credential, null for none.</param>
+    /// <returns>The credential, null if it does not exist or cannot be selected.</returns>
+    private Credential? ResolveSelectedCredential(int? credentialId)
+    {
+        return credentials.FirstOrDefault(credential => credential.Id == credentialId);
     }
 
     private ExternalTicketSystemTypeDefinition ResolveSelectedType(int typeId)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 from fw_modules.fortiosmanagementREST.fos_models import (
     FortiOSConfig,

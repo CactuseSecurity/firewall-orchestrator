@@ -26,6 +26,12 @@ namespace FWO.Report
         public List<ComplianceViolation> Violations { get; set; } = [];
         public bool ShowNonImpactRules { get; set; }
         public List<Management> Managements { get; set; } = [];
+
+        /// <summary>
+        /// Ids of the managements the report is restricted to. Empty means no restriction beyond the managements
+        /// visible to the api connection and relevant for the compliance check.
+        /// </summary>
+        public List<int> ManagementScope { get; set; } = [];
         protected DebugConfig DebugConfig;
         protected readonly GlobalConfig GlobalConfig;
 
@@ -300,7 +306,11 @@ namespace FWO.Report
 
             if (managements != null)
             {
-                Managements = managements.Where(m => _relevanteManagementIDs.Count == 0 || _relevanteManagementIDs.Contains(m.Id)).ToList(); // filter managements by relevant managements config value
+                // the api connection already limits the result to the visible managements
+                Managements = managements
+                    .Where(m => _relevanteManagementIDs.Count == 0 || _relevanteManagementIDs.Contains(m.Id))
+                    .Where(m => ManagementScope.Count == 0 || ManagementScope.Contains(m.Id))
+                    .ToList();
 
                 _devices = new();
 
@@ -483,12 +493,9 @@ namespace FWO.Report
 
             if (query.Contains("mgm_ids"))
             {
-                List<int> managementIds = _relevanteManagementIDs;
-                if (managementIds.Count == 0)
-                {
-                    managementIds = Managements.Select(mgmt => mgmt.Id).ToList();
-                }
-                queryVariables["mgm_ids"] = managementIds;
+                // the loaded managements are already restricted to the visible, relevant and requested ones,
+                // so the configured relevant management ids must not widen the scope again (SEC-22)
+                queryVariables["mgm_ids"] = Managements.Select(mgmt => mgmt.Id).ToList();
             }
 
             return queryVariables;

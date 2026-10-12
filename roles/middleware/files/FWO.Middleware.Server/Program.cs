@@ -102,6 +102,14 @@ builder.Services.AddControllers()
       ApiDocumentationJsonOptions.Configure(jsonOptions);
   });
 
+// Login limits bound the LDAP work unauthenticated requests can cause (GHSA-xcfh-6hcc-m37w)
+LoginThrottleSettings loginThrottleSettings = LoginThrottleSettings.FromConfigFile();
+LdapAuthenticationGate.Configure(loginThrottleSettings);
+builder.Services.AddSingleton(new LoginThrottle(loginThrottleSettings));
+
+// Per-user request budget for all REST endpoints and concurrency limits for expensive ones (GHSA-m87v-j229-2g65)
+builder.Services.AddApiRateLimiting(ApiRateLimitSettings.FromConfigFile());
+
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
 builder.Services.AddSingleton<FlowCatalogService>();
@@ -216,6 +224,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

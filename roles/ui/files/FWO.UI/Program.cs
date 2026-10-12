@@ -25,6 +25,9 @@ using RestSharp;
 Log.WriteInfo("Startup", "Starting FWO UI Server...");
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Report readiness to systemd (Type=notify) once the web server listens. A no-op outside systemd.
+builder.Services.AddSystemd();
 builder.WebHost.UseWebRoot("wwwroot").UseStaticWebAssets();
 
 // explicitly set the port to listen on

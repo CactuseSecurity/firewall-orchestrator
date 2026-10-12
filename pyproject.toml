@@ -1,5 +1,6 @@
 [tool.pyright]
 include = [
+    "callback_plugins",
     "roles/importer/files/importer",
     "scripts"
 ]

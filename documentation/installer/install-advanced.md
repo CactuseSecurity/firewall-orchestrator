@@ -10,6 +10,15 @@ On Ubuntu 26.04 or other systems with sudo 1.9.16+, use `./scripts/run-playbook-
 
 Full sudoers rights are still required. If sudo already works without a password, the wrapper runs the playbook directly; otherwise it creates a temporary passwordless sudoers entry for the current user, runs the playbook without `-K`, and removes the entry again when the playbook exits.
 
+## Role duration summary
+
+At the end of an installer playbook run, `ROLE DURATIONS` lists the elapsed task time of each role in seconds,
+longest first. Repeated executions of the same role are combined, including its handlers. For multiple hosts,
+the duration measures the shared task interval rather than adding each host's time. Tasks outside roles and
+time between plays are excluded, so these durations do not equal the entire installer runtime.
+The controller callback is enabled by `callbacks_enabled = fwo_role_durations` in `ansible.cfg` and adds no
+timing lines during task execution.
+
 ## Install parameters
 
 ### Installation mode parameter

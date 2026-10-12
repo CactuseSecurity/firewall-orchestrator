@@ -3,6 +3,11 @@ python-dateutil==2.9.0.post0
 netaddr==1.3.0
 GitPython==3.2.0
 
+# Installer callback tests run in Sonar CI with these dependencies.
+# Keep the Python-version pins aligned with the installer requirements.txt.
+ansible==10.7.0; python_version < '3.11'
+ansible==12.3.0; python_version >= '3.11'
+
 # HTTP / GraphQL stack
 # Note: Requests >=2.34.2 is compatible with urllib3 2.x
 requests==2.34.2

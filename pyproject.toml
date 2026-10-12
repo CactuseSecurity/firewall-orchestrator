@@ -150,6 +150,7 @@ pythonpath = [
 branch = true
 relative_files = true
 source = [
+    "callback_plugins",
     "roles/importer/files/importer",
     "scripts",
 ]

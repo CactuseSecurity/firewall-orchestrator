@@ -118,3 +118,17 @@ def test_equal_durations_are_ordered_by_role_name(monkeypatch: pytest.MonkeyPatc
     callback.v2_playbook_on_stats(object())
 
     assert [line.split()[0] for line in display.lines] == ["api", "ui"]
+
+
+def test_finishing_an_interval_twice_does_not_count_it_twice(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Closing an already completed task must not add time to its role."""
+    monkeypatch.setattr(profiling, "monotonic", lambda: 0.0)
+    callback: profiling.CallbackModule = profiling.CallbackModule()
+
+    callback.v2_playbook_on_task_start(create("common"), False)
+    callback.finish(2.0)
+    callback.finish(5.0)
+
+    assert callback.roleDurations == {"common": 2.0}
+    assert callback.activeRole is None
+    assert callback.taskStartedAt is None

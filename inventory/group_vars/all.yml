@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.7.1"
+product_version: "9.7.2"
 # The oldest product version an upgrade may start from, enforced by
 # roles/common/tasks/validate-upgrade-source-version.yml before anything touches the
 # database. It exists because 9.5.0 removed the migration files below 8.0:
@@ -194,7 +194,7 @@ fworch_importer_memory_max: "{{ 'infinity' if fworch_importer_memory_max_percent
 # IMPORTER_DRAINED_EXIT_CODE in roles/importer/files/importer/fwo_const.py
 fworch_importer_drained_exit_code: 75
 # how long an upgrade waits for the running import to finish before stopping the importer anyway
-# (which rolls that import back); 0 stops it right away, as releases before 9.7.1 did
+# (which rolls that import back); 0 stops it right away, as releases before 9.7.2 did
 fworch_importer_drain_timeout_sec: 1800
 # how long systemd waits for the importer to roll back its running import after SIGINT before it
 # kills it; an import killed that way is rolled back when the importer starts again

@@ -39,8 +39,15 @@
         argv:
           - "{{ importer_python_interpreter }}"
           - -c
-          - "import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)"
+          - "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"
+      register: importer_python_version_check
       changed_when: false
+      failed_when: false
+
+    - name: Require Python 3.10 or newer for the importer
+      assert:
+        that: importer_python_version_check.rc == 0
+        fail_msg: "The importer requires Python 3.10 or newer ({{ importer_python_interpreter }} is older or not usable)."
 
 
     - name: Create Python virtual environment

@@ -36,9 +36,9 @@
       include_tasks: validate-unencrypted-tls-key.yml
 
     # the Debian package already enables apache2, this keeps both platforms explicit
-    - name: restart apache and make it start at host startup
+    - name: reload apache and make it start at host startup
       service:
         name: "{{ webserver_package_name }}"
-        state: restarted
+        state: reloaded
         enabled: true
   become: true

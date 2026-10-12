@@ -74,6 +74,8 @@ Initially the user or tenant group does not get any role assignments to avoid an
 An admin needs to manually assign role(s) to the user.
 
 ## Default users
-- The default password of all users is "fworch.1" and needs to be changed when logging in for the first time.
-- On each system an "admin" user, belonging to tenant0, is created with full access to everything. This user gets assigned the role "administrator". 
-- For test installations (only when using the install switch -e "auth_add_test_user=<username>") a user called "username" is created with restricted access. This user gets assigned the roles "reporter" and "tenant1" allowing only access to the test fortigate system data and not to the check point system data.
+- There is no fixed default password. On each system an "admin" user, belonging to tenant0, is created with full access to everything. This user gets assigned the role "administrator".
+- A new installation generates a random password for "admin" and stores it in `/usr/local/fworch/etc/secrets/ui_admin_pwd` (readable by the fworch user only); the installer prints this path at the end. The password needs to be changed when logging in for the first time.
+- Only installations with `-e testkeys=yes` use a fixed, publicly known admin password (`ui_admin_testonly_password` in `inventory/group_vars/all.yml`). Use them only in isolated development or test environments.
+- Demo data is created only with `-e testkeys=yes` or `-e add_demo_data=yes`. It adds sample users such as "user1_demo" and "user2_demo" with fixed, publicly known passwords (`sample_user1_pw`, `sample_user2_pw` in `inventory/group_vars/middlewareserver.yml`), so it must not be used in production either.
+- The integration tests create their own temporary test users with random passwords.

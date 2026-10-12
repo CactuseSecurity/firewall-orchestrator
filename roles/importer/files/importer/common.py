@@ -67,10 +67,8 @@ if TYPE_CHECKING:
 def import_management(
     mgm_id: int,
     api_call: FwoApiCall,
-    ssl_verification: bool,
     limit: int,
     clear_management_data: bool,
-    suppress_cert_warnings: bool,
     file: str | None = None,
     suppress_consistency_check: bool = False,
 ) -> None:
@@ -84,11 +82,9 @@ def import_management(
     try:
         _import_management(
             mgm_id,
-            ssl_verification,
             file,
             limit,
             clear_management_data,
-            suppress_cert_warnings,
             suppress_consistency_check,
         )
     except FwLoginFailedError as e:
@@ -135,11 +131,9 @@ def import_management(
 
 def _import_management(
     mgm_id: int,
-    ssl_verification: bool,
     file: str | None,
     limit: int,
     clear_management_data: bool,
-    suppress_cert_warnings: bool,
     suppress_consistency_check: bool,
 ) -> None:
     config_normalized: FwConfigManagerListController
@@ -148,8 +142,6 @@ def _import_management(
     service_provider = ServiceProvider()
     import_state = service_provider.get_global_state().import_state
     config_importer = FwConfigImport()
-    FWOLogger.debug(f"import_management - ssl_verification: {ssl_verification}", 9)
-    FWOLogger.debug(f"import_management - suppress_cert_warnings_in: {suppress_cert_warnings}", 9)
     FWOLogger.debug(f"import_management - limit: {limit}", 9)
 
     if import_state.state.mgm_details.import_disabled and not import_state.state.force_import:

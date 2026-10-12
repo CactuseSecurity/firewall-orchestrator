@@ -21,7 +21,7 @@ namespace FWO.DeviceAutoDiscovery
 
         private readonly string Autodiscovery = "Autodiscovery";
 
-        public AutoDiscoveryFortiManager(Management superManagement, ApiConnection apiConn) : base(superManagement, apiConn) { }
+        public AutoDiscoveryFortiManager(Management superManagement, ApiConnection apiConn, bool checkCertificates) : base(superManagement, apiConn, checkCertificates) { }
 
         public override async Task<List<Management>> Run(CancellationToken cancellationToken = default)
         {
@@ -35,7 +35,7 @@ namespace FWO.DeviceAutoDiscovery
             {
                 SuperManagement.IsSupermanager = true; // just to be sure
                 Log.WriteDebug(Autodiscovery, $"discovering FortiManager adoms, vdoms, devices");
-                FortiManagerClient restClientFM = new(SuperManagement);
+                FortiManagerClient restClientFM = new(SuperManagement, CheckCertificates);
                 RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
                 {
@@ -59,7 +59,7 @@ namespace FWO.DeviceAutoDiscovery
         private async Task<List<Management>> DiscoverySession(List<Management> discoveredDevices, CancellationToken cancellationToken)
         {
             Log.WriteDebug(Autodiscovery, $"discovering FortiManager adoms, vdoms, devices");
-            FortiManagerClient restClientFM = new(SuperManagement);
+            FortiManagerClient restClientFM = new(SuperManagement, CheckCertificates);
 
             RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
             if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
@@ -247,6 +247,10 @@ namespace FWO.DeviceAutoDiscovery
             List<Management> discoveredDevices = [];
             foreach (Adom adom in customAdoms)
             {
+                if (!IsAcceptableDomainName(adom.Name))
+                {
+                    continue;
+                }
                 Management currentManagement = CreateManagement(SuperManagement, adom.Name, adom.Uid);
                 if (adom.DeviceList != null)
                 {

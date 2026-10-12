@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
 from fw_modules.checkpointR8x import cp_const, cp_getter
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
-from model_controllers.management_controller import ManagementController
+
+if TYPE_CHECKING:
+    from model_controllers.management_controller import ManagementController
 
 
 def response_mock(

@@ -13,7 +13,6 @@ using FWO.Services;
 using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Concurrent;
 using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers
@@ -30,7 +29,7 @@ namespace FWO.Middleware.Server.Controllers
         private readonly List<Ldap> ldaps;
         private readonly JwtWriter jwtWriter;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
-        private static readonly ConcurrentDictionary<long, SemaphoreSlim> TicketActionLocks = new();
+        private static readonly KeyedAsyncLock<long> TicketActionLocks = new();
         private static readonly WorkflowEmailBundleStore EmailBundleStore = new();
         private static readonly List<string> kNoGroups = [];
         private const string kStateChangeRefusalTitleKey = "actions";
@@ -77,7 +76,19 @@ namespace FWO.Middleware.Server.Controllers
                 }
 
                 long lockTicketId = GetTicketId(parameters, scope);
+                if (lockTicketId <= 0)
+                {
+                    SetWarning(result, $"Invalid ticket id {lockTicketId}.");
+                    return result;
+                }
                 return await ExecuteActionsWithTicketLock(parameters, scope, phase, lockTicketId, result);
+            }
+            catch (OperationCanceledException) when (HttpContext?.RequestAborted.IsCancellationRequested == true)
+            {
+                // the client went away (e.g. closed the page) while waiting for the ticket lock: nothing failed here
+                Log.WriteDebug("Workflow Actions", "Workflow action request was cancelled by the client.");
+                result.ErrorMessage = "The request was cancelled.";
+                return result;
             }
             catch (Exception exc)
             {
@@ -135,16 +146,15 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<WorkflowActionResult> ExecuteActionsWithTicketLock(WorkflowActionParameters parameters, WfObjectScopes scope,
             WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
         {
-            SemaphoreSlim ticketActionLock = TicketActionLocks.GetOrAdd(lockTicketId, _ => new SemaphoreSlim(1, 1));
-            await ticketActionLock.WaitAsync();
-            try
+            string caller = User.FindFirstValue("x-hasura-uuid") ?? "";
+            using IDisposable? ticketActionLock = await TicketActionLocks.TryAcquireAsync(lockTicketId, caller,
+                HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (ticketActionLock == null)
             {
-                return await ExecuteActionsWithApi(parameters, scope, phase, lockTicketId, result);
+                SetWarning(result, $"Too many concurrent workflow action requests. Ticket {lockTicketId} was not processed, please retry.");
+                return result;
             }
-            finally
-            {
-                ticketActionLock.Release();
-            }
+            return await ExecuteActionsWithApi(parameters, scope, phase, lockTicketId, result);
         }
 
         private async Task<WorkflowActionResult> ExecuteActionsWithApi(WorkflowActionParameters parameters, WfObjectScopes scope,

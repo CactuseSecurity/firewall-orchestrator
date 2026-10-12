@@ -29,6 +29,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteDevice;
         public static readonly string getCredentials;
         public static readonly string getCredentialsWithoutSecrets;
+        public static readonly string getCredentialById;
         public static readonly string newCredential;
         public static readonly string updateCredential;
         public static readonly string deleteCredential;
@@ -81,6 +82,8 @@ namespace FWO.Api.Client.Queries
                                     + GetQueryText("device/fragments/importCredentials.graphql");
                 getCredentialsWithoutSecrets = GetQueryText("device/getCredentialsWithoutSecrets.graphql")
                                     + GetQueryText("device/fragments/importCredentialsWithoutSecrets.graphql");
+                getCredentialById = GetQueryText("device/getCredentialById.graphql")
+                                    + GetQueryText("device/fragments/importCredentials.graphql");
                 newCredential = GetQueryText("device/newCredential.graphql");
                 updateCredential = GetQueryText("device/updateCredential.graphql");
                 deleteCredential = GetQueryText("device/deleteCredential.graphql");

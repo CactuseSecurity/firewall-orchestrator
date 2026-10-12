@@ -85,12 +85,12 @@ DECLARE
     r_cred RECORD;
     t_encrypted TEXT;
 BEGIN
-    -- encrypt pwds in import_credential table
+    -- encrypt pwds in credential table
     FOR r_cred IN 
-        SELECT id, secret FROM import_credential
+        SELECT id, secret FROM credential
     LOOP
         SELECT INTO t_encrypted * FROM encryptText(r_cred.secret, key);
-        UPDATE import_credential SET secret=t_encrypted WHERE id=r_cred.id;
+        UPDATE credential SET secret=t_encrypted WHERE id=r_cred.id;
     END LOOP;
 
     --encrypt pwds in ldap_connection table

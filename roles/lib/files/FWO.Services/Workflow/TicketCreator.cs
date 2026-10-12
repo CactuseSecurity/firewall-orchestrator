@@ -67,6 +67,12 @@ namespace FWO.Services.Workflow
             wfHandler.AddTicketMode = true;
             wfHandler.ActTicket.UpdateCidrsInTaskElements();
             long ticketId = await wfHandler.SaveTicket(wfHandler.ActTicket);
+            if (ticketId > 0 && wfHandler.LastSaveReloadFailed && !await TryReloadSavedTicket(ticketId))
+            {
+                // the comments belong to request tasks whose ids are unknown in the in-memory copy
+                Log.WriteError("Create Ticket", $"Ticket {ticketId} was saved but could not be read back, so the comments of its request tasks were not added.");
+                return wfHandler.ActTicket;
+            }
             if (ticketId > 0)
             {
                 foreach (var reqtask in reqTasks.Where(t => t.Comments.Count > 0))
@@ -81,6 +87,25 @@ namespace FWO.Services.Workflow
                 }
             }
             return wfHandler.ActTicket;
+        }
+
+        /// <summary>
+        /// Reads a saved ticket again after its reload during the save failed. On success the handler works with the
+        /// stored ticket, including the ids of its request tasks; otherwise it keeps the in-memory copy.
+        /// </summary>
+        /// <param name="ticketId">Id of the saved ticket.</param>
+        /// <returns>True if the stored ticket could be read.</returns>
+        private async Task<bool> TryReloadSavedTicket(long ticketId)
+        {
+            WfTicket inMemoryTicket = wfHandler.ActTicket;
+            WfTicket? storedTicket = await wfHandler.ResolveTicket(ticketId);
+            if (storedTicket?.Id == ticketId)
+            {
+                return true;
+            }
+            // a failed read yields an empty ticket, which ResolveTicket has made the current one
+            wfHandler.SetTicketEnv(inMemoryTicket);
+            return false;
         }
 
         public async Task<bool> PromoteTicket(long ticketId, string extReqState)

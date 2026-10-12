@@ -21,7 +21,6 @@ using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using FWO.Test.Helpers;
 
@@ -784,7 +783,7 @@ namespace FWO.Test
                 new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
                 apiConnection);
 
-            string log = await ConsoleOutput.CaptureAsync(() => RefreshAsync(controller, 
+            string log = await ConsoleOutput.CaptureAsync(() => RefreshAsync(controller,
                 new RefreshTokenRequest { RefreshToken = "refresh-token" }));
 
             Assert.That(log, Does.Contain(
@@ -1538,10 +1537,13 @@ namespace FWO.Test
             while (Interlocked.CompareExchange(ref target, candidate, current) != current);
         }
 
+        /// <summary>
+        /// Derives the lock key exactly as the controller does, so the lock assertions follow
+        /// any change of the production key instead of silently checking a different key.
+        /// </summary>
         private static string GenerateTokenHash(string token)
         {
-            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
-            return Convert.ToBase64String(hash);
+            return AuthManager.GenerateTokenHash(token);
         }
 
         /// <summary>

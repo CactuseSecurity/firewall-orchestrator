@@ -33,9 +33,10 @@ namespace FWO.Test
                 kRecipientDn,
                 new LdapAttribute("uid", "alice"),
                 new LdapAttribute("mail", kRecipientEmail));
-            WorkflowRecipientResolver resolver = new(apiConnection, [CreateLdap(ldapClient)]);
+            List<Ldap> ldaps = [CreateLdap(ldapClient)];
+            WorkflowRecipientResolver resolver = new(apiConnection, ldaps);
 
-            List<UiUser> recipients = await resolver.ResolveUsers([kRecipientDn]);
+            List<UiUser> recipients = await resolver.ResolveUsers(kRecipientDns);
 
             Assert.Multiple(() =>
             {
@@ -55,7 +56,8 @@ namespace FWO.Test
             RecipientApiConnection apiConnection = new();
             apiConnection.CachedUsers.Add(new UiUser { Dn = kRecipientDn, Email = kRecipientEmail });
             RecordingLdapClient ldapClient = new();
-            WorkflowRecipientResolver resolver = new(apiConnection, [CreateLdap(ldapClient)]);
+            List<Ldap> ldaps = [CreateLdap(ldapClient)];
+            WorkflowRecipientResolver resolver = new(apiConnection, ldaps);
 
             List<UiUser> recipients = await resolver.ResolveUsers(kRecipientDns);
 
@@ -77,7 +79,8 @@ namespace FWO.Test
             RecipientApiConnection apiConnection = new();
             apiConnection.CachedUsers.Add(new UiUser { Dn = kRecipientDn, Email = "" });
             RecordingLdapClient ldapClient = new();
-            WorkflowRecipientResolver resolver = new(apiConnection, [CreateLdap(ldapClient)]);
+            List<Ldap> ldaps = [CreateLdap(ldapClient)];
+            WorkflowRecipientResolver resolver = new(apiConnection, ldaps);
 
             List<UiUser> recipients = await resolver.ResolveUsers(kRecipientDns);
 
@@ -97,7 +100,8 @@ namespace FWO.Test
         {
             RecipientApiConnection apiConnection = new();
             RecordingLdapClient ldapClient = new();
-            WorkflowRecipientResolver resolver = new(apiConnection, [CreateLdap(ldapClient)]);
+            List<Ldap> ldaps = [CreateLdap(ldapClient)];
+            WorkflowRecipientResolver resolver = new(apiConnection, ldaps);
 
             List<UiUser> recipients = await resolver.ResolveUsers(kRecipientDns);
 

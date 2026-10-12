@@ -370,8 +370,7 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("Refresh")]
         public async Task<ActionResult<TokenPair>> RefreshToken([FromBody] RefreshTokenRequest request)
         {
-            // No HttpContext outside the ASP.NET pipeline, e.g. when a test calls the action.
-            CancellationToken requestAborted = HttpContext?.RequestAborted ?? CancellationToken.None;
+            CancellationToken requestAborted = RequestAborted;
             try
             {
                 if (string.IsNullOrEmpty(request.RefreshToken))

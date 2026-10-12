@@ -162,6 +162,111 @@
 
       when: already_installed and installation_mode == "upgrade"
 
+    # A unit that is not installed cannot be stopped, and the systemd module fails the whole
+    # run over it rather than reporting nothing to do. That is the state every upgrade that
+    # was interrupted before the importer role ran is left in, so the re-run that was meant
+    # to finish the upgrade aborted here instead - as does the first upgrade of a host that
+    # joins the importers group only now. A masked unit is the same problem from the other
+    # side: its unit file exists, so looking for the file would say "installed", while
+    # stopping it fails. Asking systemd what it has loaded answers both, and
+    # fworch_installed_services applies the same rule here, in roles/api and in
+    # roles/internalCA.
+    - name: look up the services installed on this host
+      service_facts:
+      become: true
+      when: "inventory_hostname in groups['importers'] and installation_mode == 'upgrade'"
+
+    # Stopping the importer interrupts the import it is running, which is then rolled back and lost.
+    # SIGUSR1 asks the importer to finish that import and to exit instead of starting the next one;
+    # wait for that up to fworch_importer_drain_timeout_sec - the stop below then interrupts whatever
+    # is still running, as it always did. Only an importer whose unit declares the drained exit code
+    # understands SIGUSR1: for any other, SIGUSR1 is fatal and systemd would restart it.
+    # The drain and the stop run right after the preflight checks above, before any change that
+    # could interrupt the import: the OS preparation, the global apache config and the maintenance
+    # site below all restart apache, which cuts the importer off from the api and the middleware.
+    - name: check whether the installed importer can finish its import before it is stopped
+      ansible.builtin.command: "systemctl show {{ product_name }}-importer-api.service --property=RestartPreventExitStatus --value"
+      register: importer_drain_support
+      changed_when: false
+      become: true
+      when:
+        - inventory_hostname in groups['importers']
+        - installation_mode == 'upgrade'
+        - (product_name ~ '-importer-api.service') in fworch_installed_services
+        - fworch_importer_drain_timeout_sec | int > 0
+
+    - name: read the main pid of the importer service
+      ansible.builtin.command: "systemctl show {{ product_name }}-importer-api.service --property=MainPID --value"
+      register: importer_main_pid
+      changed_when: false
+      become: true
+      when:
+        - importer_drain_support is not skipped
+        - (fworch_importer_drained_exit_code | string) in (importer_drain_support.stdout | split)
+
+    # kill on the main pid rather than "systemctl kill": "--kill-whom=main" needs systemd 252
+    # (Ubuntu 22.04 has 249) and "--kill-who" is deprecated, while "systemctl kill" without either
+    # would signal the importer's child processes too
+    - name: ask the importer to finish its running import and exit
+      ansible.builtin.command: "kill -USR1 {{ importer_main_pid.stdout | trim }}"
+      changed_when: true
+      # the importer may have exited since its pid was read - the stop below handles every state
+      failed_when: false
+      become: true
+      when:
+        - importer_main_pid is not skipped
+        - importer_main_pid.stdout | trim | int > 0
+      register: importer_drain_signal
+
+    # One bounded wait instead of an until loop: ansible-core 2.19 prints [ERROR] for until retries
+    # that run out, even with failed_when: false. It also stops waiting as soon as the main pid
+    # changes - an importer that crashed and was restarted by systemd before it drained has not
+    # been asked to drain, so waiting on for it would only burn the whole timeout. The output says
+    # which of the two ended the wait; timeout returns 124 when the time ran out.
+    - name: wait for the importer to finish its running import
+      ansible.builtin.shell: >-
+        timeout {{ fworch_importer_drain_timeout_sec | int }} sh -c '
+        while :; do
+        state=$(systemctl show "$1" --property=ActiveState --value);
+        pid=$(systemctl show "$1" --property=MainPID --value);
+        case "$state" in inactive|failed) echo drained; exit 0 ;; esac;
+        if [ "$pid" != "$2" ]; then echo restarted; exit 0; fi;
+        sleep 10;
+        done' sh
+        {{ (product_name ~ '-importer-api.service') | quote }}
+        {{ importer_main_pid.stdout | trim | quote }}
+      register: importer_drain_state
+      changed_when: false
+      failed_when: false
+      become: true
+      when: importer_drain_signal is not skipped
+
+    - name: report an importer that was not drained
+      ansible.builtin.debug:
+        msg: >-
+          {{
+            'The importer was still running after ' ~ fworch_importer_drain_timeout_sec ~ ' seconds.'
+            if importer_drain_state.rc == 124 else
+            'The importer was restarted by systemd before it finished its import.'
+            if importer_drain_state.stdout | trim == 'restarted' else
+            'Waiting for the importer failed (rc ' ~ importer_drain_state.rc ~ '): '
+            ~ importer_drain_state.stderr | default('') | trim ~ '.'
+          }}
+          Stopping it now - an import it is running is rolled back and repeated after the upgrade.
+      when:
+        - importer_drain_state is not skipped
+        - importer_drain_state.rc != 0 or importer_drain_state.stdout | trim == 'restarted'
+
+    - name: stop fw importer service before making any changes
+      systemd:
+        name: "{{ product_name }}-importer-api"
+        state: stopped
+      become: true
+      when:
+        - inventory_hostname in groups['importers']
+        - installation_mode == 'upgrade'
+        - (product_name ~ '-importer-api.service') in fworch_installed_services
+
     - name: include OS specific preparation tasks
       include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"
 
@@ -367,30 +472,6 @@
       include_tasks: maintenance-site.yml
       when: "installation_mode == 'upgrade' and inventory_hostname in groups['frontends']"
 
-    # A unit that is not installed cannot be stopped, and the systemd module fails the whole
-    # run over it rather than reporting nothing to do. That is the state every upgrade that
-    # was interrupted before the importer role ran is left in, so the re-run that was meant
-    # to finish the upgrade aborted here instead - as does the first upgrade of a host that
-    # joins the importers group only now. A masked unit is the same problem from the other
-    # side: its unit file exists, so looking for the file would say "installed", while
-    # stopping it fails. Asking systemd what it has loaded answers both, and
-    # fworch_installed_services applies the same rule here, in roles/api and in
-    # roles/internalCA.
-    - name: look up the services installed on this host
-      service_facts:
-      become: true
-      when: "inventory_hostname in groups['importers'] and installation_mode == 'upgrade'"
-
-    - name: stop fw importer service before making any changes
-      systemd:
-        name: "{{ product_name }}-importer-api"
-        state: stopped
-      become: true
-      when:
-        - inventory_hostname in groups['importers']
-        - installation_mode == 'upgrade'
-        - (product_name ~ '-importer-api.service') in fworch_installed_services
-            
     - name: stop importer service before making any changes
       systemd:
         name: "{{ product_name }}-importer-api"

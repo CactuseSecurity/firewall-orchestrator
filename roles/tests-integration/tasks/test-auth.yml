@@ -7,10 +7,12 @@
       daemon_reload: true
   become: true
 
+# started, not restarted: the installer already restarted apache in finalize, and a restart here
+# would cut every connection through it - the importer's included - for no reason
 - name: ensure middleware reverse proxy is running
   ansible.builtin.service:
       name: "{{ webserver_package_name }}"
-      state: restarted
+      state: started
   become: true
 
 - block:

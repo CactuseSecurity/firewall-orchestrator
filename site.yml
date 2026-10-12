@@ -180,10 +180,14 @@
 
 - hosts: frontends
   tasks:
+    # no_block: the ui is Type=notify and reports ready only once the middleware answers, which
+    # may not be running yet here (a fresh install starts it in finalize, an upgrade stopped it in
+    # roles/api). finalize's "finally restart UI", after "finally restart MW", is the blocking one.
     - name: restart ui service to display new version
-      service:
+      ansible.builtin.systemd:
         name: "{{ ui_service_name }}"
         state: restarted
+        no_block: true
       become: true
       when: "not installation_mode == 'uninstall' and (ui_deploy_changed | default(false))"
   tags:
@@ -224,8 +228,8 @@
 # The importer has to be the last service which is started. An import which is already running
 # while one of its dependencies restarts loses its API connection and is rolled back, and every
 # play above this one may still restart such a dependency - finalize restarts apache, the
-# middleware and the UI, and the integration tests restart the middleware (sample-auth-data) and
-# apache (test-auth). So keep this play last and do not start the importer anywhere before it.
+# middleware and the UI, and the integration tests restart the middleware (sample-auth-data, when
+# the LDAP sample data changed). So keep this play last and do not start the importer before it.
 # It carries the same tags as the finalize play, so it runs whenever finalize does, after finalize
 # has cleared a failed start limit. That covers every tag selection which installs or upgrades the
 # stack, but not every one which restarts a dependency: "--tags api" restarts apache and the api,
@@ -244,6 +248,36 @@
       register: importer_service_unit
       become: true
       when: "not installation_mode == 'uninstall'"
+
+    # systemd reports a restarted middleware as active as soon as the process has forked, not when
+    # the dotnet app serves requests, so probe the real endpoint - through apache, the way the
+    # importer reaches it - before letting the importer go
+    - name: wait for middleware to be ready before restarting the importer
+      ansible.builtin.uri:
+        url: "{{ middleware_uri }}api-docs/"
+        method: GET
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        return_content: false
+      register: mw_readiness_check
+      changed_when: false
+      failed_when: false
+      until: mw_readiness_check.status | default(-1) == 200
+      retries: 24 # 24 * 5 seconds - longer than the middleware's own api startup budget (60 s) plus dotnet startup
+      delay: 5
+      when:
+        - "not installation_mode == 'uninstall'"
+        - importer_service_unit.results | default([]) | selectattr('stat.exists') | list | length > 0
+
+    - name: fail if middleware is not ready for the importer to restart
+      ansible.builtin.fail:
+        msg: >-
+          Middleware at {{ middleware_uri }} did not become ready
+          (last status: {{ mw_readiness_check.status | default('unknown') }}).
+          Refusing to restart the importer against an unavailable middleware.
+      when:
+        - mw_readiness_check is not skipped
+        - mw_readiness_check.status | default(-1) != 200
 
     # restarted rather than started: every installer run restarts apache unconditionally, so an
     # import which was in flight is lost either way, and only a restart makes sure the importer

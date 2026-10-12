@@ -6,7 +6,7 @@
 #
 # this test is imported by the last play in site.yml and has to stay there. run from within the
 # integration tests it would check the ordering before those tests restart the middleware
-# (sample-auth-data) and apache (test-auth) themselves. since the same play restarts the importer
+# (sample-auth-data) themselves. since the same play restarts the importer
 # a few tasks earlier, the ordering assert cannot fail because of that restart - it is a canary
 # for anything which restarts an importer dependency after it.
 

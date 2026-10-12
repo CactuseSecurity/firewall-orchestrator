@@ -260,3 +260,64 @@
         | difference(fworch_installed_services)
         | list
       }}
+
+- name: read the exit codes the importer unit does not restart on
+  command: "systemctl show {{ product_name }}-importer-api.service --property=RestartPreventExitStatus --value"
+  register: importer_restart_prevent_exit_status
+  changed_when: false
+  become: true
+  when: "'importers' in group_names"
+
+- name: the importer unit must not restart an importer that drained before an upgrade
+  assert:
+    that:
+      - (fworch_importer_drained_exit_code | string) in (importer_restart_prevent_exit_status.stdout | split)
+    fail_msg: >-
+      {{ product_name }}-importer-api.service does not declare RestartPreventExitStatus={{ fworch_importer_drained_exit_code }}
+      (got '{{ importer_restart_prevent_exit_status.stdout }}') - an upgrade would wait for an importer that systemd keeps restarting
+  when: "'importers' in group_names"
+
+- name: read the importer stop timeout and start commands
+  command: "systemctl show {{ product_name }}-importer-api.service --property=TimeoutStopUSec --property=ExecStartPre"
+  register: importer_stop_properties
+  changed_when: false
+  become: true
+  when: "'importers' in group_names"
+
+- name: read the installed importer unit file
+  command: "systemctl cat {{ product_name }}-importer-api.service"
+  register: importer_unit_text
+  changed_when: false
+  become: true
+  when: "'importers' in group_names"
+
+- name: the importer must have a bounded stop timeout and no startup sleep
+  assert:
+    that:
+      - "'TimeoutStopUSec=infinity' not in importer_stop_properties.stdout_lines"
+      - "'sleep' not in importer_stop_properties.stdout"
+      - "('TimeoutStopSec=' ~ fworch_importer_timeout_stop_sec) in importer_unit_text.stdout_lines"
+    fail_msg: >-
+      unexpected importer unit properties: {{ importer_stop_properties.stdout_lines }};
+      expected the line 'TimeoutStopSec={{ fworch_importer_timeout_stop_sec }}' in the unit file
+  when: "'importers' in group_names"
+
+- name: read the service type of the dotnet services
+  command: "systemctl show {{ item }}.service --property=Type --value"
+  loop: >-
+    {{
+      ([middleware_service_name] if 'middlewareserver' in group_names else [])
+      + ([product_name ~ '-ui'] if 'frontends' in group_names else [])
+    }}
+  register: dotnet_service_types
+  changed_when: false
+  become: true
+
+- name: the dotnet services must report readiness to systemd
+  assert:
+    that:
+      - item.stdout | trim == 'notify'
+    fail_msg: "{{ item.item }} is Type={{ item.stdout | trim }} instead of notify"
+  loop: "{{ dotnet_service_types.results }}"
+  loop_control:
+    label: "{{ item.item }}"

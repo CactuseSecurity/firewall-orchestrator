@@ -76,10 +76,14 @@
   failed_when: false
   become: true
 
+# no_block: the ui is Type=notify and reports ready only once the middleware answers, and this
+# restart runs before "finally restart MW" below - on a fresh install the middleware has not been
+# started yet, on an upgrade roles/api stopped it. "finally restart UI" is the blocking restart.
 - name: restart UI to display new product version
   ansible.builtin.systemd:
     name: "{{ product_name }}-ui"
     state: restarted
+    no_block: true
   become: true
   when: "'frontends' in group_names and (ui_deploy_changed | default(false) or product_version_changed | default(false))"
   
@@ -148,40 +152,15 @@
   become: true
   when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false) or internalca_client_identity_changed | default(false))"
 
-# The importer must never start (or keep running) against a middleware that isn't actually
-# serving requests yet - systemd's "restarted" only means the process forked, not that the
-# dotnet app finished initializing. Probe the real endpoint before letting the importer go.
-- name: wait for middleware to be ready before starting importer
-  uri:
-    url: "{{ middleware_uri }}api-docs/"
-    method: GET
-    validate_certs: true
-    ca_path: "{{ internalca_trust_bundle }}"
-    return_content: false
-  register: mw_readiness_check
-  changed_when: false
-  failed_when: false
-  until: mw_readiness_check.status | default(-1) == 200
-  retries: 10 # 10 * 5 seconds
-  delay: 5 # Every 5 seconds
-  when: "'importers' in group_names"
-
-- name: fail if middleware is not ready for the importer to start
-  fail:
-    msg: >-
-      Middleware at {{ middleware_uri }} did not become ready
-      (last status: {{ mw_readiness_check.status | default('unknown') }}).
-      Refusing to start the importer against an unstable middleware.
-  when: "'importers' in group_names and mw_readiness_check.status | default(-1) != 200"
-
-- name: start importer service
-  systemd:
-    name: "{{ product_name }}-importer-api"
+# roles/api stops the middleware on every upgrade, but "finally restart MW" above only runs when
+# the middleware itself changed - make sure it runs in every case. Type=notify: this returns once
+# the middleware answers, which "finally restart UI" below relies on (the UI is ready only then).
+- name: make sure MW runs
+  ansible.builtin.systemd:
+    name: "{{ product_name }}-middleware"
     state: started
-    daemon_reload: true
-    enabled: true
   become: true
-  when: "'importers' in group_names"
+  when: "'middlewareserver' in group_names"
 
 - name: finally restart UI
   ansible.builtin.systemd:
@@ -191,5 +170,5 @@
   when: "'frontends' in group_names and (ui_deploy_changed | default(false) or internalca_client_identity_changed | default(false))"
 
 # the importer is deliberately not started here: it has to come up after every task which restarts
-# one of its dependencies, and the plays which follow this role still restart the middleware and
-# apache. it is started by the last play in site.yml instead.
+# one of its dependencies, and the plays which follow this role still restart the middleware
+# (sample-auth-data). it is started by the last play in site.yml instead.

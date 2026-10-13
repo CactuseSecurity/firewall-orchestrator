@@ -139,6 +139,7 @@ namespace FWO.Services.Workflow
                 ["implIaskNumber"] = impltask.TaskNumber,
                 ["state"] = impltask.StateId,
                 ["device"] = impltask.DeviceId,
+                ["mgmId"] = impltask.ManagementId,
                 ["implAction"] = impltask.ImplAction,
                 ["ruleAction"] = impltask.RuleAction,
                 ["tracking"] = impltask.Tracking,

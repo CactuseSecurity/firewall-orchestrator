@@ -26,7 +26,7 @@ namespace FWO.Test
                     {
                         Id = 7,
                         Name = "ldap-one",
-                        Address = "ldap.example",
+                        Addresses = ["ldap.example"],
                         Port = 636,
                         Type = (int)LdapType.OpenLdap,
                         PatternLength = 4,
@@ -43,7 +43,7 @@ namespace FWO.Test
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].Id, Is.EqualTo(7));
             Assert.That(result[0].Name, Is.EqualTo("ldap-one"));
-            Assert.That(result[0].Address, Is.EqualTo("ldap.example"));
+            Assert.That(result[0].Addresses, Is.EqualTo(new List<string> { "ldap.example" }));
             Assert.That(result[0].SearchUserPwd, Is.Empty);
             Assert.That(result[0].WriteUserPwd, Is.Null.Or.Empty);
             Assert.That(apiConnection.LastQuery, Is.EqualTo(AuthQueries.getAllLdapConnectionsWithoutSecrets));
@@ -135,21 +135,21 @@ namespace FWO.Test
             };
             AuthenticationServerController controller = new(apiConnection, ldaps);
 
-            int result = await controller.PostAsync(new LdapAddParameters
+            int? result = (await controller.PostAsync(new LdapAddParameters
             {
-                Address = "ldap.example",
+                Addresses = ["ldap.example"],
                 Port = 636,
                 Type = (int)LdapType.OpenLdap,
                 PatternLength = 4,
                 SearchUser = "cn=service,dc=example,dc=com",
                 TenantLevel = 2,
                 Active = true
-            });
+            })).Value;
 
             Assert.That(result, Is.EqualTo(42));
             Assert.That(ldaps, Has.Count.EqualTo(1));
             Assert.That(ldaps[0].Id, Is.EqualTo(42));
-            Assert.That(ldaps[0].Address, Is.EqualTo("ldap.example"));
+            Assert.That(ldaps[0].Addresses, Is.EqualTo(new List<string> { "ldap.example" }));
             Assert.That(apiConnection.LastQuery, Is.EqualTo(AuthQueries.newLdapConnection));
             Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
         }
@@ -162,7 +162,7 @@ namespace FWO.Test
                 new MiddlewareLdap(new LdapGetUpdateParameters
                 {
                     Id = 7,
-                    Address = "ldap-old.example",
+                    Addresses = ["ldap-old.example"],
                     Port = 636,
                     Type = (int)LdapType.OpenLdap,
                     PatternLength = 4,
@@ -177,21 +177,21 @@ namespace FWO.Test
             };
             AuthenticationServerController controller = new(apiConnection, ldaps);
 
-            int result = await controller.Update(new LdapGetUpdateParameters
+            int? result = (await controller.Update(new LdapGetUpdateParameters
             {
                 Id = 7,
-                Address = "ldap-new.example",
+                Addresses = ["ldap-new.example"],
                 Port = 636,
                 Type = (int)LdapType.OpenLdap,
                 PatternLength = 4,
                 SearchUser = "cn=service,dc=example,dc=com",
                 TenantLevel = 2,
                 Active = true
-            });
+            })).Value;
 
             Assert.That(result, Is.EqualTo(7));
             Assert.That(ldaps, Has.Count.EqualTo(1));
-            Assert.That(ldaps[0].Address, Is.EqualTo("ldap-new.example"));
+            Assert.That(ldaps[0].Addresses, Is.EqualTo(new List<string> { "ldap-new.example" }));
             Assert.That(apiConnection.LastQuery, Is.EqualTo(AuthQueries.updateLdapConnection));
             Assert.That(apiConnection.QueryCount, Is.EqualTo(2));
         }
@@ -287,6 +287,90 @@ namespace FWO.Test
             Assert.That(apiConnection.SecretsQueryCount, Is.EqualTo(1));
         }
 
+        [Test]
+        public async Task PostAsync_RejectsPathsOverlappingAnActiveConnection()
+        {
+            List<MiddlewareLdap> ldaps = [BuildLdap(7, kInternalUserPath)];
+            AuthenticationServerControllerTestApiConnection apiConnection = new();
+            AuthenticationServerController controller = new(apiConnection, ldaps);
+            LdapGetUpdateParameters overlapping = BuildUpdateParameters(0, kInternalSubtreePath);
+
+            ActionResult<int> result = await controller.PostAsync(overlapping);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+                Assert.That(((BadRequestObjectResult)result.Result!).Value, Is.InstanceOf<ValidationProblemDetails>());
+                Assert.That(ldaps, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.QueryCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task PostAsync_AcceptsOverlappingPathsOfAnInactiveConnection()
+        {
+            List<MiddlewareLdap> ldaps = [BuildLdap(7, kInternalUserPath)];
+            AuthenticationServerControllerTestApiConnection apiConnection = new()
+            {
+                NewConnectionResult = new ReturnIdWrapper { ReturnIds = kNewIdEight }
+            };
+            AuthenticationServerController controller = new(apiConnection, ldaps);
+            LdapGetUpdateParameters inactive = BuildUpdateParameters(0, kInternalUserPath);
+            inactive.Active = false;
+
+            ActionResult<int> result = await controller.PostAsync(inactive);
+
+            Assert.That(result.Value, Is.EqualTo(8));
+        }
+
+        [Test]
+        public async Task Update_RejectsPathsOverlappingAnotherActiveConnection()
+        {
+            List<MiddlewareLdap> ldaps = [BuildLdap(7, kInternalUserPath), BuildLdap(8, kExternalUserPath)];
+            AuthenticationServerControllerTestApiConnection apiConnection = new() { UpdateResult = new ReturnId { UpdatedId = 8 } };
+            AuthenticationServerController controller = new(apiConnection, ldaps);
+
+            ActionResult<int> result = await controller.Update(BuildUpdateParameters(8, kInternalUserPath));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+                Assert.That(ldaps[1].UserSearchPath, Is.EqualTo(kExternalUserPath));
+                Assert.That(apiConnection.QueryCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task Update_AcceptsUnchangedPathsOfTheSameConnection()
+        {
+            List<MiddlewareLdap> ldaps = [BuildLdap(7, kInternalUserPath)];
+            AuthenticationServerControllerTestApiConnection apiConnection = new() { UpdateResult = new ReturnId { UpdatedId = 7 } };
+            AuthenticationServerController controller = new(apiConnection, ldaps);
+            LdapGetUpdateParameters parameters = BuildUpdateParameters(7, kInternalUserPath);
+            parameters.SearchUserPwd = "secret";
+
+            ActionResult<int> result = await controller.Update(parameters);
+
+            Assert.That(result.Value, Is.EqualTo(7));
+        }
+
+        private const string kInternalUserPath = "ou=operator,ou=user,dc=fworch,dc=internal";
+        private const string kInternalSubtreePath = "ou=tenant1,ou=operator,ou=user,dc=fworch,dc=internal";
+        private const string kExternalUserPath = "ou=users,dc=example,dc=com";
+        private static readonly ReturnId[] kNewIdEight = [new ReturnId { NewId = 8 }];
+
+        private static MiddlewareLdap BuildLdap(int id, string userSearchPath)
+        {
+            return new MiddlewareLdap(BuildUpdateParameters(id, userSearchPath));
+        }
+
+        private static LdapGetUpdateParameters BuildUpdateParameters(int id, string userSearchPath)
+        {
+            LdapGetUpdateParameters parameters = BuildUpdateParameters(id);
+            parameters.SearchpathForUsers = userSearchPath;
+            return parameters;
+        }
+
         private static MiddlewareLdap BuildLdap(int id)
         {
             return new MiddlewareLdap(BuildUpdateParameters(id));
@@ -297,7 +381,7 @@ namespace FWO.Test
             return new LdapGetUpdateParameters
             {
                 Id = id,
-                Address = "ldap.example",
+                Addresses = ["ldap.example"],
                 Port = 636,
                 Type = (int)LdapType.OpenLdap,
                 PatternLength = 4,
@@ -315,7 +399,7 @@ namespace FWO.Test
                 new MiddlewareLdap(new LdapGetUpdateParameters
                 {
                     Id = 7,
-                    Address = "ldap.example",
+                    Addresses = ["ldap.example"],
                     Port = 636,
                     Type = (int)LdapType.OpenLdap,
                     PatternLength = 4,

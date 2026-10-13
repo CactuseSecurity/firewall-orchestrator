@@ -148,10 +148,14 @@ namespace FWO.Middleware.Server
         /// <param name="user">The authenticated user whose local UI context should be synchronized.</param>
         /// <param name="updateLastLogin">True to update the persisted last-login timestamp.</param>
         /// <param name="createIfMissing">True to create the user in the local database if no record exists yet.</param>
+        /// <param name="bindDirectoryObject">True to bind a local user without directory object id to the one of the user, see <see cref="UiUserDirectoryObjectBinding"/>.
+        /// Only a password login may bind.</param>
         /// <returns>The given user enriched with local database id, password-change flag, and ownership information.</returns>
         /// <exception cref="InvalidOperationException">The user has no LDAP connection, or the workflow visibility groups could not be determined.</exception>
+        /// <exception cref="System.Security.Authentication.AuthenticationException">The local user of the dn is bound to another directory entry.</exception>
         /// <exception cref="Exception">Rethrown unchanged when the API could not be reached.</exception>
-        public static async Task<UiUser> SynchronizeUiUserContext(ApiConnection apiConnection, UiUser user, bool updateLastLogin = true, bool createIfMissing = true)
+        public static async Task<UiUser> SynchronizeUiUserContext(ApiConnection apiConnection, UiUser user, bool updateLastLogin = true, bool createIfMissing = true,
+            bool bindDirectoryObject = false)
         {
             // A dn is unique only inside its directory: the same dn in two LDAP connections belongs to
             // two different subjects, so the local user must never be resolved by the dn alone (SEC-11).
@@ -166,14 +170,14 @@ namespace FWO.Middleware.Server
             bool workflowVisibilityGroupsAttempted = false;
             try
             {
-                UiUser[] existingUsers = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn, ldapConnectionId });
+                UiUser? existingUser = await UiUserDirectoryObjectBinding.ResolveLocalUser(apiConnection, user, ldapConnectionId, bindDirectoryObject);
 
-                if (existingUsers.Length > 0)
+                if (existingUser != null)
                 {
-                    user.DbId = existingUsers[0].DbId;
+                    user.DbId = existingUser.DbId;
                     user.PasswordMustBeChanged = updateLastLogin
                         ? await UpdateLastLogin(apiConnection, user.DbId)
-                        : existingUsers[0].PasswordMustBeChanged;
+                        : existingUser.PasswordMustBeChanged;
                     userSetInDb = true;
                 }
                 else
@@ -186,7 +190,7 @@ namespace FWO.Middleware.Server
             }
             // An unreachable API must stay recognizable as such, so that callers can answer
             // "retry" instead of reporting the request itself as failed.
-            catch (Exception exeption) when (!ApiReachability.IndicatesUnreachableApi(exeption))
+            catch (Exception exeption) when (exeption is not System.Security.Authentication.AuthenticationException && !ApiReachability.IndicatesUnreachableApi(exeption))
             {
                 Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", exeption);
             }
@@ -344,6 +348,7 @@ namespace FWO.Middleware.Server
                         tenant = user.Tenant != null ? user.Tenant.Id : (int?)null,
                         passwordMustBeChanged = false,
                         ldapConnectionId = user.LdapConnection.Id,
+                        directoryObjectId = user.DirectoryObjectId,
                         loginTime = DateTime.UtcNow
                     };
                     ReturnId[]? returnIds = (await apiConn.SendQueryAsync<ReturnIdWrapper>(AuthQueries.upsertUiUser, VariablesWithLogin)).ReturnIds;
@@ -363,7 +368,8 @@ namespace FWO.Middleware.Server
                         email = user.Email,
                         tenant = user.Tenant != null ? user.Tenant.Id : (int?)null,
                         passwordMustBeChanged = false,
-                        ldapConnectionId = user.LdapConnection.Id
+                        ldapConnectionId = user.LdapConnection.Id,
+                        directoryObjectId = user.DirectoryObjectId
                     };
                     ReturnId[]? returnIds = (await apiConn.SendQueryAsync<ReturnIdWrapper>(AuthQueries.upsertUiUser, VariablesWithoutLogin)).ReturnIds;
                     if (returnIds != null)

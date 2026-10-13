@@ -68,6 +68,12 @@ namespace FWO.Test
             Interlocked.Increment(ref connectCount);
             return Task.FromResult(connection);
         }
+
+        protected override Task<ILdapClient> ConnectToServer(string address, CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref connectCount);
+            return Task.FromResult(connection);
+        }
     }
 
     internal sealed class RecordingLdapClient : ILdapClient
@@ -96,6 +102,17 @@ namespace FWO.Test
             BoundUsers.Add(user);
             Bound = true;
             return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Attribute lists of the reads that requested specific attributes.
+        /// </summary>
+        public List<string[]> ReadAttributeCalls { get; } = new();
+
+        public Task<LdapEntry?> ReadAsync(string distinguishedName, string[] attributes, CancellationToken cancellationToken)
+        {
+            ReadAttributeCalls.Add(attributes);
+            return ReadAsync(distinguishedName);
         }
 
         public Task<LdapEntry?> ReadAsync(string distinguishedName)

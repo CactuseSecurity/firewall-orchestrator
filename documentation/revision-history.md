@@ -1,5 +1,28 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.2 - 12.10.2026
+- security (GHSA-695m-f6mv-9g72): a dn no longer identifies a subject across LDAP connections
+  - every dn belongs to exactly one active LDAP connection, the one whose search or write paths contain it (the most
+    specific path wins). Roles, groups, owner responsibles, workflow visibility groups and workflow assignments
+    naming a dn therefore only apply to the user of that connection. User entries and groups that a directory reports
+    outside its own paths are ignored
+  - the paths of active LDAP connections must not overlap; saving an overlapping connection is refused. The upgrade
+    and the middleware start log a warning for existing overlapping connections, whose users below the overlapping
+    paths can no longer log in until the paths are made disjoint
+  - an LDAP connection lists up to 10 servers of its directory (ldap_server becomes an array, the REST parameter
+    Address becomes the list Addresses), tried in order with failover. Replicas that were configured as separate
+    connections have to be combined into one connection
+  - the workflow compares requester and handler by local user id and resolves the groups of a caller in the
+    directory of its local user
+  - user administration acts on the directory of the local user only: change, password change and reset, and delete
+    reject the id of another LDAP connection instead of acting on every directory holding the dn; adding a user
+    requires the target connection when several are writable, and a group search covers one connection
+  - local users are bound to the immutable object id of their directory entry (objectGUID, entryUUID, nsUniqueId,
+    ipaUniqueID or GUID) at their next login with password, and follow a renamed entry. If the dn of a bound local
+    user later names another entry, login and token refresh are refused (A0008) and its sessions are ended until an
+    admin deletes the local user. The upgrade ends the sessions of local users that are not bound yet, so every user
+    has to log in with password once after the upgrade
+
 ## 9.7.1 - 09.10.2026
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
   configurable with one switch per connection type, validated against the host trust store:

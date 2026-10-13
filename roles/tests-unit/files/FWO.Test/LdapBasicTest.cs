@@ -505,7 +505,7 @@ namespace FWO.Test
             FakeLdapConnection connection = new();
             TestableLdap ldap = new(connection)
             {
-                Address = "example.test",
+                Addresses = ["example.test"],
                 Port = 636,
                 SearchUser = kSearchUser,
                 SearchUserPwd = kSearchPassword,
@@ -526,7 +526,7 @@ namespace FWO.Test
             FakeLdapConnection connection = new();
             TestableLdap ldap = new(connection)
             {
-                Address = "example.test",
+                Addresses = ["example.test"],
                 Port = 636,
                 SearchUser = kSearchUser,
                 SearchUserPwd = "clearTextSearchPwd",
@@ -556,7 +556,7 @@ namespace FWO.Test
             FakeLdapConnection connection = new();
             TestableLdap ldap = new(connection)
             {
-                Address = "example.test",
+                Addresses = ["example.test"],
                 Port = 636,
                 SearchUser = kSearchUser,
                 SearchUserPwd = encryptedPwd
@@ -578,7 +578,7 @@ namespace FWO.Test
             };
             TestableLdap ldap = new(connection)
             {
-                Address = "example.test",
+                Addresses = ["example.test"],
                 Port = 389,
                 SearchUser = kSearchUser,
                 SearchUserPwd = kSearchPassword
@@ -595,7 +595,7 @@ namespace FWO.Test
         {
             return new Ldap
             {
-                Address = "127.0.0.1",
+                Addresses = ["127.0.0.1"],
                 Port = 1,
                 SearchUser = "cn=search,dc=example,dc=com",
                 SearchUserPwd = kSearchPassword,
@@ -628,6 +628,11 @@ namespace FWO.Test
             }
 
             protected override Task<ILdapClient> Connect(CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(connection);
+            }
+
+            protected override Task<ILdapClient> ConnectToServer(string address, CancellationToken cancellationToken = default)
             {
                 return Task.FromResult(connection);
             }

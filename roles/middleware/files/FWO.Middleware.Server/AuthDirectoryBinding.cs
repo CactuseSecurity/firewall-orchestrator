@@ -83,6 +83,29 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// Warns about active connections whose paths overlap. Users and groups below an overlapping path are
+        /// claimed by more than one directory and therefore refused, see <see cref="LdapDnNamespace"/>.
+        /// </summary>
+        /// <param name="ldaps">All connected LDAPs.</param>
+        /// <returns>The number of active connections overlapping another active connection.</returns>
+        public static int WarnAboutOverlappingNamespaces(List<Ldap> ldaps)
+        {
+            int overlappingCount = 0;
+            foreach (Ldap ldap in ldaps.Where(ldap => ldap.Active))
+            {
+                List<Ldap> overlappingLdaps = LdapDnNamespace.GetOverlappingLdaps(ldap, ldaps);
+                if (overlappingLdaps.Count > 0)
+                {
+                    overlappingCount++;
+                    Log.WriteWarning(kLogTitle, $"The paths of LDAP connection id={ldap.Id} ({ldap.Host()}) overlap those of connection id(s) " +
+                        $"{string.Join(", ", overlappingLdaps.Select(other => other.Id))}. Users and groups below an overlapping path cannot log in or be resolved " +
+                        "until the search and write paths of the active connections are made disjoint.");
+                }
+            }
+            return overlappingCount;
+        }
+
+        /// <summary>
         /// Ensures that a locally known user resolved to its own local user again.
         /// </summary>
         /// <param name="expectedDbId">Local db id the user was given with, 0 if it was not known locally.</param>

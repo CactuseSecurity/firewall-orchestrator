@@ -4851,6 +4851,10 @@ INSERT INTO txt VALUES ('E5271', 'German',  'Keine Gateways zum Hinzuf&uuml;gen 
 INSERT INTO txt VALUES ('E5271', 'English', 'No remaining gateways found to add');
 INSERT INTO txt VALUES ('E5272', 'German',  'Keine Gateways zum L&ouml;schen gefunden');
 INSERT INTO txt VALUES ('E5272', 'English', 'No remaining gateways found to delete');
+INSERT INTO txt VALUES ('E5273', 'German',  'Die Suchpfade und der Schreibpfad einer aktiven LDAP-Verbindung d&uuml;rfen keinem Pfad einer anderen aktiven Verbindung entsprechen oder diesen enthalten. Jeder DN muss genau einer Verbindung zugeordnet sein. Replikate eines Verzeichnisses werden als Server einer Verbindung eingetragen. &Uuml;berschneidung mit: ');
+INSERT INTO txt VALUES ('E5273', 'English', 'The search and write paths of an active LDAP connection must not equal or contain a path of another active connection. Each DN has to belong to exactly one connection. Enter replicas of one directory as servers of one connection. Overlapping with: ');
+INSERT INTO txt VALUES ('E5274', 'German',  'Bitte h&ouml;chstens 10 Server angeben.');
+INSERT INTO txt VALUES ('E5274', 'English', 'Please enter at most 10 servers.');
 INSERT INTO txt VALUES ('E5281', 'German',  'Mandant konnte im LDAP nicht angelegt werden');
 INSERT INTO txt VALUES ('E5281', 'English', 'Tenant could not be added in LDAP');
 INSERT INTO txt VALUES ('E5282', 'German',  'Mandant konnte im LDAP nicht gel&ouml;scht werden');
@@ -6609,19 +6613,35 @@ INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere untersch
     Eine L&ouml;schung ist nur zul&auml;ssig, wenn es nicht das interne Ldap (definiert durch den gesetzten Rollensuchpfad) und nicht das letzte vorhandene Ldap ist.<br>
     Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren einer neuen Ldap-Verbindung, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss mindestens Adresse oder Portnummer ge&auml;ndert werden.<br>
-    Beim Editieren kann mit der "Verbindung testen"-Schaltfl&auml;che gepr&uuml;ft werden, ob eine Verbindung mit den aktuellen Parametern aufgebaut werden kann.
+    Beim Editieren kann mit der "Verbindung testen"-Schaltfl&auml;che gepr&uuml;ft werden, ob eine Verbindung mit den aktuellen Parametern aufgebaut werden kann.<br>
+    Die Such- und Schreibpfade der aktiven Ldap-Verbindungen d&uuml;rfen sich nicht &uuml;berschneiden: kein Pfad darf einem Pfad einer anderen aktiven Verbindung entsprechen oder ihn enthalten.
+    So geh&ouml;rt jeder Distinguished Name (Dn) zu genau einer Verbindung, und Rollen, Gruppen, Verantwortliche und Workflow-Zuordnungen, die einen Dn nennen, gelten nur f&uuml;r den Nutzer dieser Verbindung.
+    Nutzer und Gruppen, deren Dn nicht in den Pfaden der eigenen Verbindung liegt, werden ignoriert.<br>
+    Ein lokaler Nutzer wird bei der Anmeldung mit Passwort an die unver&auml;nderliche Objekt-Id seines Ldap-Eintrags gebunden (objectGUID, entryUUID, nsUniqueId, ipaUniqueID oder GUID).
+    Erh&auml;lt sp&auml;ter ein anderer Eintrag denselben Dn, wird dessen Anmeldung abgewiesen und die Sitzungen des lokalen Nutzers werden beendet, bis ein Admin den lokalen Nutzer l&ouml;scht.
 ');
 INSERT INTO txt VALUES ('H5201', 'English', 'Admins can create and administrate several different Ldap connections. All of them can be used for user authentication.<br>
     The internal Ldap (part of the initial installation) is needed at least for role assignment, but can also be used for user authentication and user group handling.<br>
     The Ldap connections can be added, changed and deleted.
     Deletion is only allowed, if it is not the internal Ldap (defined by the existence of a role search path) and if it is not the last Ldap.<br>
     The clone button helps defining new Ldaps by copying the data from existing ones. Before saving at least the address or port number have to be changed.<br>
-    While editing, a "Test connection" button helps checking, if a connection can be built up with the actual parameters.
+    While editing, a "Test connection" button helps checking, if a connection can be built up with the actual parameters.<br>
+    The search and write paths of the active Ldap connections must not overlap: no path may equal or contain a path of another active connection.
+    So every distinguished name (Dn) belongs to exactly one connection, and roles, groups, responsibles and workflow assignments naming a Dn only apply to the user of that connection.
+    Users and groups whose Dn is not within the paths of their own connection are ignored.<br>
+    A local user is bound to the immutable object id of its Ldap entry (objectGUID, entryUUID, nsUniqueId, ipaUniqueID or GUID) when logging in with a password.
+    If another entry gets the same Dn later, its login is refused and the sessions of the local user are ended until an admin deletes the local user.
 ');
 INSERT INTO txt VALUES ('H5210', 'German',  'Name*: Name des verbundenen Ldap. Kann frei gew&auml;hlt werden. Wenn nicht vergeben, wird der Host (Adresse:Port) dargestellt.');
 INSERT INTO txt VALUES ('H5210', 'English', 'Name*: Name of the connected Ldap to be freely given. If not assigned the Host (Address:Port) is displayed.');
-INSERT INTO txt VALUES ('H5211', 'German',  'Adresse*: Adresse des verbundenen Ldap (z.B. IP-Adresse)');
-INSERT INTO txt VALUES ('H5211', 'English', 'Address*: Address of the connected Ldap (e.g. IP address).');
+INSERT INTO txt VALUES ('H5211', 'German',  'Adresse*: Namen oder IP-Adressen der Server des verbundenen Ldap, durch Kommas getrennt (h&ouml;chstens 10).
+    Mehrere Server m&uuml;ssen Replikate desselben Verzeichnisses sein und teilen sich alle anderen Einstellungen einschlie&szlig;lich des Ports.
+    Sie werden in der angegebenen Reihenfolge versucht; nach einem Ausfall wird der zuletzt erreichbare Server weiter verwendet.
+');
+INSERT INTO txt VALUES ('H5211', 'English', 'Address*: Names or IP addresses of the servers of the connected Ldap, separated by commas (at most 10).
+    Several servers have to be replicas of the same directory and share all other settings including the port.
+    They are tried in the given order; after a failure the server that answered last is used further on.
+');
 INSERT INTO txt VALUES ('H5212', 'German',  'Port*: Portnummer des verbundenen Ldap.');
 INSERT INTO txt VALUES ('H5212', 'English', 'Port*: Port number of the connected Ldap.');
 INSERT INTO txt VALUES ('H5213', 'German',  'Tls: Zeigt an, ob TLS in der Kommunikation verwendet wird.');

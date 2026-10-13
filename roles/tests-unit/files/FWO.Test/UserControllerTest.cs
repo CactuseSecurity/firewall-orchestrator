@@ -17,6 +17,11 @@ namespace FWO.Test
     [TestFixture]
     internal class UserControllerTest
     {
+        private const int kUserLdapId = 2;
+        private const int kOtherLdapId = 3;
+        private const string kUserSearchPath = "ou=users,dc=fworch,dc=internal";
+        private const string kOtherUserSearchPath = "ou=users,dc=example,dc=com";
+
         private sealed class UserApiConnection : SimulatedApiConnection
         {
             public UiUser[] Users { get; set; } = [];
@@ -85,7 +90,8 @@ namespace FWO.Test
         private static UserController CreateController(UiUser user, ClaimsPrincipal principal)
         {
             UserApiConnection apiConnection = new() { Users = [user] };
-            UserController controller = new([], apiConnection)
+            List<Ldap> readOnlyLdapOfUser = [new Ldap { Id = kUserLdapId }];
+            UserController controller = new(readOnlyLdapOfUser, apiConnection)
             {
                 ControllerContext = new ControllerContext
                 {
@@ -97,7 +103,7 @@ namespace FWO.Test
 
         private static UiUser CreateUser(int id)
         {
-            return new UiUser { DbId = id, Dn = $"uid=user{id},ou=user,dc=fworch,dc=internal" };
+            return new UiUser { DbId = id, Dn = $"uid=user{id},ou=user,dc=fworch,dc=internal", LdapConnection = new() { Id = kUserLdapId } };
         }
 
         private static ClaimsPrincipal CreatePrincipal(int userId, params string[] roles)
@@ -268,7 +274,7 @@ namespace FWO.Test
         {
             UserControllerTestApiConnection apiConnection = new()
             {
-                Users = [new() { DbId = 42, Dn = "uid=user,dc=fworch,dc=internal" }]
+                Users = [CreateUser(42)]
             };
             UserController controller = CreateController(
                 [new Ldap { Id = 2 }],
@@ -420,14 +426,14 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ResetPasswordReturnsOkWithoutMatchingWritableLdap()
+        public async Task ResetPasswordReturnsOkWithoutWritableLdapOfTheUser()
         {
             UserControllerTestApiConnection apiConnection = new()
             {
-                Users = [new() { DbId = 42, Dn = "uid=user,dc=fworch,dc=internal" }]
+                Users = [CreateUser(42)]
             };
             UserController controller = CreateController(
-                [new Ldap { Id = 3 }],
+                [new Ldap { Id = kUserLdapId }],
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -560,6 +566,157 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ChangePasswordRejectsTheLdapOfAnotherDirectory()
+        {
+            RecordingLdapClient ownClient = new();
+            RecordingLdapClient otherClient = new();
+            UserControllerTestApiConnection apiConnection = new() { Users = [CreateUser(42)] };
+            UserController controller = CreateController(
+                [CreateWritableLdap(kUserLdapId, ownClient), CreateWritableLdap(kOtherLdapId, otherClient, kOtherUserSearchPath)],
+                apiConnection,
+                CreatePrincipal(42));
+
+            ActionResult<string> result = await controller.ChangePassword(new UserChangePasswordParameters
+            {
+                UserId = 42,
+                LdapId = kOtherLdapId,
+                OldPassword = "old-password",
+                NewPassword = "new-password"
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(ownClient.ModifyCalls, Is.Empty);
+                Assert.That(otherClient.ModifyCalls, Is.Empty);
+                Assert.That(otherClient.BindCalls, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task ResetPasswordWithoutLdapIdChangesOnlyTheDirectoryOfTheUser()
+        {
+            RecordingLdapClient ownClient = new();
+            RecordingLdapClient otherClient = new();
+            UserControllerTestApiConnection apiConnection = new() { Users = [CreateUser(42)] };
+            UserController controller = CreateController(
+                [CreateWritableLdap(kOtherLdapId, otherClient, kOtherUserSearchPath), CreateWritableLdap(kUserLdapId, ownClient)],
+                apiConnection,
+                PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<string> result = await controller.ResetPassword(new UserResetPasswordParameters
+            {
+                UserId = 42,
+                NewPassword = "new-password"
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Result, Is.TypeOf<OkResult>());
+                Assert.That(ownClient.ModifyCalls, Has.Count.EqualTo(1));
+                Assert.That(otherClient.ModifyCalls, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task ResetPasswordRejectsTheLdapOfAnotherDirectory()
+        {
+            RecordingLdapClient otherClient = new();
+            UserControllerTestApiConnection apiConnection = new() { Users = [CreateUser(42)] };
+            UserController controller = CreateController(
+                [CreateWritableLdap(kUserLdapId, new RecordingLdapClient()), CreateWritableLdap(kOtherLdapId, otherClient, kOtherUserSearchPath)],
+                apiConnection,
+                PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<string> result = await controller.ResetPassword(new UserResetPasswordParameters
+            {
+                UserId = 42,
+                LdapId = kOtherLdapId,
+                NewPassword = "new-password"
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(otherClient.ModifyCalls, Is.Empty);
+                Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.updateUserPasswordChange));
+            });
+        }
+
+        [Test]
+        public async Task DeleteWithoutLdapIdDeletesOnlyInTheDirectoryOfTheUser()
+        {
+            RecordingLdapClient ownClient = new();
+            RecordingLdapClient otherClient = new();
+            UserControllerTestApiConnection apiConnection = new() { Users = [CreateUser(42)] };
+            UserController controller = CreateController(
+                [CreateWritableLdap(kOtherLdapId, otherClient, kOtherUserSearchPath), CreateWritableLdap(kUserLdapId, ownClient)],
+                apiConnection,
+                PrincipalWithRoles(Roles.Admin));
+
+            bool result = await controller.Delete(new UserDeleteParameters { UserId = 42 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(ownClient.DeletedDns, Has.Count.EqualTo(1));
+                Assert.That(otherClient.DeletedDns, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task AddWithoutLdapIdRejectsSeveralWritableLdaps()
+        {
+            RecordingLdapClient firstClient = new();
+            RecordingLdapClient secondClient = new();
+            UserControllerTestApiConnection apiConnection = new();
+            UserController controller = CreateController(
+                [CreateWritableLdap(kUserLdapId, firstClient), CreateWritableLdap(kOtherLdapId, secondClient, kOtherUserSearchPath)],
+                apiConnection,
+                PrincipalWithRoles(Roles.Admin));
+
+            int result = await controller.Add(new UserAddParameters
+            {
+                UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
+                Password = "password",
+                TenantId = 1
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.Zero);
+                Assert.That(firstClient.AddedEntries, Is.Empty);
+                Assert.That(secondClient.AddedEntries, Is.Empty);
+                Assert.That(apiConnection.ReturnIdWrapperQueryCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task AddRejectsADnOutsideThePathsOfTheLdap()
+        {
+            RecordingLdapClient ldapClient = new();
+            UserControllerTestApiConnection apiConnection = new();
+            UserController controller = CreateController(
+                [CreateWritableLdap(kOtherLdapId, ldapClient, kOtherUserSearchPath)],
+                apiConnection,
+                PrincipalWithRoles(Roles.Admin));
+
+            int result = await controller.Add(new UserAddParameters
+            {
+                LdapId = kOtherLdapId,
+                UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
+                Password = "password",
+                TenantId = 1
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.Zero);
+                Assert.That(ldapClient.AddedEntries, Is.Empty);
+            });
+        }
+
+        [Test]
         public async Task ResetPasswordReturnsOkAndUpdatesPasswordChanged()
         {
             RecordingLdapClient ldapClient = new();
@@ -643,13 +800,14 @@ namespace FWO.Test
                 ClaimTypes.Role));
         }
 
-        private static TestableLdap CreateWritableLdap(int id, RecordingLdapClient client)
+        private static TestableLdap CreateWritableLdap(int id, RecordingLdapClient client, string userSearchPath = kUserSearchPath)
         {
             return new TestableLdap(client)
             {
                 Id = id,
-                Address = "ldap.example.test",
+                Addresses = ["ldap.example.test"],
                 Port = 389,
+                UserSearchPath = userSearchPath,
                 WriteUser = "cn=write,dc=fworch,dc=internal",
                 WriteUserPwd = "writepwd"
             };

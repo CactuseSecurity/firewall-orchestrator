@@ -454,6 +454,13 @@ namespace FWO.Middleware.Server.Controllers
                 // token that still works and must be told to retry rather than to log in again.
                 return CapacityResult(new LoginCapacityException(exception.Message, StatusCodes.Status503ServiceUnavailable));
             }
+            catch (AuthenticationException exception)
+            {
+                // The stored user could not be authenticated again in its directory, e.g. because its dn now names
+                // another directory entry. The session has ended, so the client has to log in again.
+                WriteAudit(nameof(RefreshToken), $"Refresh refused for {(auditIdentity == "" ? "a stored user" : auditIdentity)}: {exception.Message}");
+                return Unauthorized(exception.Message);
+            }
             catch (Exception ex)
             {
                 Log.WriteError(kRefreshLogCategory, "Failed to refresh token", ex);

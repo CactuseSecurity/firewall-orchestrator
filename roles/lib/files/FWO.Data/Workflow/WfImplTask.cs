@@ -14,6 +14,12 @@ namespace FWO.Data.Workflow
         [JsonProperty("device_id"), JsonPropertyName("device_id")]
         public int? DeviceId { get; set; }
 
+        /// <summary>
+        /// Management the task is implemented on. Null means the management of the request task.
+        /// </summary>
+        [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
+        public int? ManagementId { get; set; }
+
         [JsonProperty("implementation_action"), JsonPropertyName("implementation_action")]
         public string ImplAction { get; set; } = RequestAction.create.ToString();
 
@@ -37,6 +43,7 @@ namespace FWO.Data.Workflow
             ReqTaskId = implTask.ReqTaskId;
             ImplAction = implTask.ImplAction;
             DeviceId = implTask.DeviceId;
+            ManagementId = implTask.ManagementId;
             ImplElements = implTask.ImplElements;
             Comments = implTask.Comments;
             RemovedElements = implTask.RemovedElements;
@@ -72,7 +79,7 @@ namespace FWO.Data.Workflow
             {
                 if (reqtask.TaskType == WfTaskType.rule_delete.ToString())
                 {
-                    DeviceId = reqtask.Elements[0].DeviceId;
+                    DeviceId = reqtask.Elements.FirstOrDefault(element => element.Field == ElemFieldType.rule.ToString())?.DeviceId;
                 }
                 ImplElements = new List<WfImplElement>();
                 foreach (WfReqElement element in reqtask.Elements)

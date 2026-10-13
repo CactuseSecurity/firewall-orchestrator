@@ -117,6 +117,7 @@ internal sealed class InMemoryProvisioningApiConnection : SimulatedApiConnection
             _ when query == ProvisioningQueries.getNodesByNaturalKeys => GetNodesByNaturalKeys(variables),
             _ when query == ProvisioningQueries.getAllNodes => Nodes.ToList(),
             _ when query == DeviceQueries.getManagementDetailsWithoutSecrets => Managements,
+            _ when query == DeviceQueries.getManagementHierarchy => Managements,
             _ when query == ProvisioningQueries.upsertNode => UpsertNode(variables),
             _ when query == ProvisioningQueries.applyPatch => ApplyPatch(variables),
             _ when query == ProvisioningQueries.deleteOverrides => DeleteOverrides(variables),

@@ -29,6 +29,7 @@ namespace FWO.Test
         private const int kStoredUserId = 17;
         private const string kDn = "uid=x,ou=users,dc=example,dc=com";
         private const string kRenamedDn = "uid=x-renamed,ou=users,dc=example,dc=com";
+        private const string kCaseChangedDn = "uid=X,ou=Users,dc=example,dc=com";
         private const string kFirstObject = "entryUUID:11111111-1111-1111-1111-111111111111";
         private const string kSecondObject = "entryUUID:22222222-2222-2222-2222-222222222222";
         private const string kSecondEntryUuid = "22222222-2222-2222-2222-222222222222";
@@ -140,6 +141,56 @@ namespace FWO.Test
                 Assert.That(result?.DbId, Is.EqualTo(kStoredUserId));
                 Assert.That(result?.Dn, Is.EqualTo(kRenamedDn));
                 Assert.That(apiConnection.StoredUsers[0].Dn, Is.EqualTo(kRenamedDn));
+            });
+        }
+
+        [Test]
+        public async Task ResolveLocalUser_FollowsACaseOnlyDnChange()
+        {
+            DirectoryObjectApiConnection apiConnection = new();
+            apiConnection.StoredUsers.Add(StoredUser(kStoredUserId, kDn, kFirstObject));
+
+            UiUser? result = await UiUserDirectoryObjectBinding.ResolveLocalUser(apiConnection, LoginOf(kCaseChangedDn, kFirstObject), kLdapId, false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result?.DbId, Is.EqualTo(kStoredUserId));
+                Assert.That(result?.Dn, Is.EqualTo(kCaseChangedDn));
+                Assert.That(apiConnection.StoredUsers[0].Dn, Is.EqualTo(kCaseChangedDn));
+                Assert.That(apiConnection.RevokedUserIds, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task SynchronizeUiUserContext_KeepsTheLocalUserAfterACaseOnlyDnChange()
+        {
+            DirectoryObjectApiConnection apiConnection = new();
+            apiConnection.StoredUsers.Add(StoredUser(kStoredUserId, kDn, kFirstObject));
+
+            UiUser result = await UiUserHandler.SynchronizeUiUserContext(apiConnection, LoginOf(kCaseChangedDn, kFirstObject), bindDirectoryObject: true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.DbId, Is.EqualTo(kStoredUserId));
+                Assert.That(apiConnection.UpsertedObjectIds, Is.Empty, "the login must not add a second local user for the same directory object");
+            });
+        }
+
+        [Test]
+        public void ResolveLocalUser_RefusesACaseOnlyDnChangeOntoTheDnOfAnotherLocalUser()
+        {
+            DirectoryObjectApiConnection apiConnection = new();
+            apiConnection.StoredUsers.Add(StoredUser(kStoredUserId, kDn, kFirstObject));
+            apiConnection.StoredUsers.Add(StoredUser(kStoredUserId + 1, kCaseChangedDn, null));
+
+            AuthenticationException exception = Assert.ThrowsAsync<AuthenticationException>(async () =>
+                await UiUserDirectoryObjectBinding.ResolveLocalUser(apiConnection, LoginOf(kCaseChangedDn, kFirstObject), kLdapId, true))!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception.Message, Does.StartWith("A0008"));
+                Assert.That(apiConnection.StoredUsers[0].Dn, Is.EqualTo(kDn));
+                Assert.That(apiConnection.StoredUsers[1].DirectoryObjectId, Is.Null);
             });
         }
 
@@ -377,8 +428,9 @@ namespace FWO.Test
                 }
                 if (query == AuthQueries.getUserByDn)
                 {
+                    // the dn is matched exactly (_eq), like by the api
                     return StoredUsers.Where(user => user.LdapConnection.Id == Variable<int>(variables, "ldapConnectionId")
-                        && DistName.DnEquals(user.Dn, Variable<string>(variables, "dn"))).Select(Copy).ToArray();
+                        && user.Dn == Variable<string>(variables, "dn")).Select(Copy).ToArray();
                 }
                 if (query == AuthQueries.getUserByDbId)
                 {

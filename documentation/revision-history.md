@@ -18,9 +18,9 @@
     reject the id of another LDAP connection instead of acting on every directory holding the dn; adding a user
     requires the target connection when several are writable, and a group search covers one connection
   - local users are bound to the immutable object id of their directory entry (objectGUID, entryUUID, nsUniqueId,
-    ipaUniqueID or GUID) at their next login with password, and follow a renamed entry. If the dn of a bound local
-    user later names another entry, login and token refresh are refused (A0008) and its sessions are ended until an
-    admin deletes the local user. The upgrade ends the sessions of local users that are not bound yet, so every user
+    ipaUniqueID or GUID) at their next login with password, and follow a renamed entry (also a case-only change of
+    its dn). If the dn of a bound local user later names another entry, login and token refresh are refused (A0008)
+    and its sessions are ended until an admin deletes the local user. The upgrade ends the sessions of local users that are not bound yet, so every user
     has to log in with password once after the upgrade
 - update NuGet packages: Quartz 4.4.0, PuppeteerSharp 25.13.1, Scalar.AspNetCore 2.17.14, AngleSharp 1.8.4,
   NUnit3TestAdapter 6.3.1; regenerate SBOM

@@ -38,7 +38,9 @@ namespace FWO.Middleware.Server
             {
                 UiUser? boundUser = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDirectoryObjectId,
                     new { ldapConnectionId, directoryObjectId })).FirstOrDefault();
-                if (boundUser != null && !DistName.DnEquals(boundUser.Dn, user.Dn))
+                // compared exactly like the dn lookup below: a dn that only changed its case or escaping is followed too,
+                // otherwise the lookup by the new dn finds no local user and a second one with the same object id is refused
+                if (boundUser != null && !string.Equals(boundUser.Dn, user.Dn, StringComparison.Ordinal))
                 {
                     return await FollowRename(apiConnection, boundUser, user, ldapConnectionId);
                 }

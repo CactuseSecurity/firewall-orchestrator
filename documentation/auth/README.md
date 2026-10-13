@@ -86,7 +86,8 @@ including the internal LDAP, and newer 389 Directory Server), `nsUniqueId` (389 
 - A local user is bound at its first login with password after the upgrade. A token refresh or a rebuild without
   password (scheduled reports, delegated tokens) cannot tell whether the dn still names the same person and does not
   bind. The upgrade to 9.7.2 therefore ends the sessions (refresh tokens) of all local users that are not bound yet.
-- When the entry of a bound local user is renamed or moved, the local user follows it to the new dn.
+- When the entry of a bound local user is renamed or moved, the local user follows it to the new dn. This includes a
+  change of only the case or escaping of the dn (e.g. `uid=mueller` to `uid=Mueller`).
 - When the dn of a bound local user names another entry, or an entry without object id, login, token refresh,
   scheduled reports and delegated tokens for it are refused with `A0008`, and all sessions of the local user are
   ended. The audit log names the local user. If the dn belongs to a new person, delete the old local user

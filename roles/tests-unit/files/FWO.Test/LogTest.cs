@@ -51,5 +51,53 @@ namespace FWO.Test
             Assert.That(writtenLog, Does.Contain("prefixCN=Jane Doe,OU=Firewall Team,DC=example,DC=comsuffix"));
             Assert.That(writtenLog.Any(ch => char.GetUnicodeCategory(ch) == System.Globalization.UnicodeCategory.Format), Is.False);
         }
+
+        [Test]
+        public async Task WriteInfo_FailingConsoleWrite_DoesNotBlockLaterLogCalls()
+        {
+            string writtenLog = await ConsoleOutput.CaptureAsync(async capture =>
+            {
+                Console.SetOut(new ThrowingTextWriter());
+                Assert.DoesNotThrow(() => Log.WriteInfo("Console", "write that fails"));
+
+                Console.SetOut(capture.Writer);
+                Task secondWrite = Task.Run(() => Log.WriteInfo("Console", "write after failure"));
+                await secondWrite.WaitAsync(kSecondWriteTimeout);
+            });
+
+            Assert.That(writtenLog, Does.Contain("write after failure"));
+            Assert.That(writtenLog, Does.Not.Contain("write that fails"));
+        }
+
+        private static readonly TimeSpan kSecondWriteTimeout = TimeSpan.FromSeconds(5);
+
+        /// <summary>
+        /// Writer that fails every write, like stdout during a broken pipe.
+        /// </summary>
+        private sealed class ThrowingTextWriter : TextWriter
+        {
+            /// <summary>
+            /// Encoding of the (never written) output.
+            /// </summary>
+            public override System.Text.Encoding Encoding => System.Text.Encoding.UTF8;
+
+            /// <summary>
+            /// Always throws.
+            /// </summary>
+            /// <param name="value">Ignored.</param>
+            public override void Write(char value)
+            {
+                throw new IOException("Simulated broken pipe");
+            }
+
+            /// <summary>
+            /// Always throws.
+            /// </summary>
+            /// <param name="value">Ignored.</param>
+            public override void WriteLine(string? value)
+            {
+                throw new IOException("Simulated broken pipe");
+            }
+        }
     }
 }

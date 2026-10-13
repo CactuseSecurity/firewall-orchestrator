@@ -18,6 +18,9 @@
   their implementation tasks get no management suffix in the title
 - the implementation task table and the details of group and object implementation tasks show the target management
   ("not visible" for managements hidden from the user)
+- getImplTaskTargets carries the expensive rate-limit policy and a request body size limit, pages its result with
+  options.limit (default and maximum 1000) / options.offset and the X-Has-More header, orders the targets by name
+  and id with the targets without name last, and limits the name filter to 256 characters; the ui reads every page
 
 ## 9.7.1 - 09.10.2026
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems

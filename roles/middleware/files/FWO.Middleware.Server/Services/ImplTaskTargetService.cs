@@ -27,28 +27,38 @@ public sealed class ImplTaskTargetService
     }
 
     /// <summary>
-    /// Returns the target managements of an object task.
+    /// Returns one page of the target managements of an object task.
     /// </summary>
+    /// <remarks>
+    /// The targets are computed from the management hierarchy and the provisioning settings, so the page cannot
+    /// be cut in the GraphQL query; it is cut here after the filter is applied. Targets are ordered by name and
+    /// then id after the names hidden from the caller are removed, so the order does not reveal hidden names:
+    /// visible targets come first, targets without name follow by id.
+    /// </remarks>
     /// <param name="managementId">Management the request task belongs to.</param>
     /// <param name="isServiceObject">True for services, false for network objects.</param>
-    /// <param name="filter">Optional response filter; null applies no restriction.</param>
+    /// <param name="options">Filter and paging options of the request.</param>
     /// <param name="visibleManagementIds">Managements visible to the caller, or null when the caller sees every
     /// management. Targets outside this set are returned without name, before the filter is applied.</param>
-    /// <returns>The matching target managements.</returns>
-    public async Task<GetImplTaskTargetsResponse> GetImplTaskTargetsAsync(int managementId, bool isServiceObject, ImplTaskTargetFilter? filter,
-        IReadOnlySet<int>? visibleManagementIds = null)
+    /// <returns>The matching target managements of the requested page.</returns>
+    public async Task<ListPage<ImplTaskTargetResponse>> GetImplTaskTargetsAsync(int managementId, bool isServiceObject,
+        GetImplTaskTargetsOptions options, IReadOnlySet<int>? visibleManagementIds = null)
     {
         List<Management> targets = await new ImplTaskManagementResolver(apiConnection).ResolveObjectTargets(managementId, isServiceObject);
-        return new GetImplTaskTargetsResponse
-        {
-            Targets = [.. targets
-                .Select(target => new ImplTaskTargetResponse
-                {
-                    Id = target.Id,
-                    Name = visibleManagementIds == null || visibleManagementIds.Contains(target.Id) ? target.Name : string.Empty
-                })
-                .Where(target => MatchesFilter(target, filter))]
-        };
+        int pageSize = options.Limit ?? GetImplTaskTargetsOptions.kMaxLimit;
+        List<ImplTaskTargetResponse> pageWithLookahead = [.. targets
+            .Select(target => new ImplTaskTargetResponse
+            {
+                Id = target.Id,
+                Name = visibleManagementIds == null || visibleManagementIds.Contains(target.Id) ? target.Name : string.Empty
+            })
+            .Where(target => MatchesFilter(target, options.Filter))
+            .OrderBy(target => string.IsNullOrEmpty(target.Name))
+            .ThenBy(target => target.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(target => target.Id)
+            .Skip(options.Offset ?? 0)
+            .Take(pageSize + 1)];
+        return ListPage<ImplTaskTargetResponse>.FromLookahead(pageWithLookahead, pageSize);
     }
 
     private static bool MatchesFilter(ImplTaskTargetResponse target, ImplTaskTargetFilter? filter)

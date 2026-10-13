@@ -20,6 +20,7 @@ namespace FWO.Test
         private const int kFirstSubManagementId = 21;
         private const int kSecondSubManagementId = 22;
         private const int kOtherManagementId = 40;
+        private const int kMaxImplTaskTargetPages = 100; // mirrors the page bound of WfHandler
         private const int kOpenStateId = 4;
         private const int kCompletedStateId = 10;
         private const long kGlobalNodeId = 1;
@@ -32,6 +33,7 @@ namespace FWO.Test
         private static readonly List<int?> kExistingAndSecondSubManagement = [null, kSecondSubManagementId];
         private static readonly List<int?> kAllGateways = [1, 2, 3];
         private static readonly List<int?> kRemainingGateways = [2, 3];
+        private static readonly List<int> kOffsetsOfTwoSinglePages = [0, 1];
 
         private static InMemoryProvisioningApiConnection CreateApi(ProvisioningObjectCreationMode globalMode)
         {
@@ -189,6 +191,38 @@ namespace FWO.Test
                 Assert.That(reqTask.ImplementationTasks[0].Title, Is.EqualTo("New group: " + kFirstSubName));
                 Assert.That(middlewareClient.Calls.Single().ManagementId, Is.EqualTo(kSuperManagementId));
                 Assert.That(middlewareClient.Calls.Single().IsServiceObject, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task ObjectTask_InUiReadsEveryPageOfTheMiddleware()
+        {
+            ImplTaskTargetMiddlewareClient middlewareClient = new(CreateApi(ProvisioningObjectCreationMode.Submanager)) { PageSize = 1 };
+            WfHandler handler = CreateUiHandler(middlewareClient);
+            WfReqTask reqTask = CreateGroupTask(kSuperManagementId);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ManagementIds(reqTask), Is.EqualTo(kBothSubManagements));
+                Assert.That(middlewareClient.Calls.Select(call => call.Options.Offset), Is.EqualTo(kOffsetsOfTwoSinglePages));
+            });
+        }
+
+        [Test]
+        public async Task ObjectTask_InUiStopsReadingPagesWhenTheMiddlewareNeverEnds()
+        {
+            ImplTaskTargetMiddlewareClient middlewareClient = new(CreateApi(ProvisioningObjectCreationMode.Submanager)) { AlwaysHasMore = true };
+            WfHandler handler = CreateUiHandler(middlewareClient);
+            WfReqTask reqTask = CreateGroupTask(kSuperManagementId);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ManagementIds(reqTask), Is.EqualTo(kSuperManagementOnly));
+                Assert.That(middlewareClient.Calls, Has.Count.EqualTo(kMaxImplTaskTargetPages));
             });
         }
 
@@ -386,6 +420,8 @@ namespace FWO.Test
         {
             public List<ImplTaskTargetParameters> Calls { get; } = [];
             public bool Fail { get; init; }
+            public int PageSize { get; init; } = int.MaxValue;
+            public bool AlwaysHasMore { get; init; }
 
             public override async Task<RestResponse<ImplTaskTargetResult>> GetImplTaskTargets(ImplTaskTargetParameters parameters)
             {
@@ -401,12 +437,16 @@ namespace FWO.Test
                 }
                 List<Management> targets = await new ImplTaskManagementResolver(middlewareApi)
                     .ResolveObjectTargets(parameters.ManagementId, parameters.IsServiceObject);
+                List<Management> page = [.. targets.Skip(parameters.Options.Offset).Take(PageSize)];
+                bool hasMore = AlwaysHasMore || parameters.Options.Offset + page.Count < targets.Count;
+                List<HeaderParameter> headers = [new HeaderParameter(ImplTaskTargetPaging.kHasMoreHeader, hasMore ? "true" : "false")];
                 return new RestResponse<ImplTaskTargetResult>(new RestRequest())
                 {
                     StatusCode = HttpStatusCode.OK,
                     ResponseStatus = ResponseStatus.Completed,
                     IsSuccessStatusCode = true,
-                    Data = new ImplTaskTargetResult { Targets = targets }
+                    Headers = headers,
+                    Data = new ImplTaskTargetResult { Targets = AlwaysHasMore ? targets : page }
                 };
             }
         }

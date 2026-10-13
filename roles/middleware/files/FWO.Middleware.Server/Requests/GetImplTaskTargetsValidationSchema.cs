@@ -32,6 +32,21 @@ public static class GetImplTaskTargetsValidationSchema
     /// </summary>
     public const string kFilterPath = "options.filter";
 
+    /// <summary>
+    /// JSON path of the page size key.
+    /// </summary>
+    public const string kLimitPath = "options.limit";
+
+    /// <summary>
+    /// JSON path of the paging offset key.
+    /// </summary>
+    public const string kOffsetPath = "options.offset";
+
+    /// <summary>
+    /// JSON path of the name filter key.
+    /// </summary>
+    public const string kFilterNamePath = "options.filter.name";
+
     private static readonly List<RequestKeyDefinition> kRootKeys =
     [
         new RequestKeyDefinition("managementId", "Database id of the management the request task belongs to. Required and greater than 0."),
@@ -41,13 +56,15 @@ public static class GetImplTaskTargetsValidationSchema
 
     private static readonly List<RequestKeyDefinition> kOptionsKeys =
     [
-        new RequestKeyDefinition("filter", "Optional response filter. Omitted or null applies no restriction.")
+        new RequestKeyDefinition("filter", "Optional response filter. Omitted or null applies no restriction."),
+        new RequestKeyDefinition("limit", $"Optional page size between 1 and {GetImplTaskTargetsOptions.kMaxLimit}. Omitted or null returns a page of {GetImplTaskTargetsOptions.kMaxLimit} targets; the X-Has-More response header tells whether further targets follow."),
+        new RequestKeyDefinition("offset", "Optional number of targets to skip, not negative. Omitted or null skips no target.")
     ];
 
     private static readonly List<RequestKeyDefinition> kFilterKeys =
     [
         new RequestKeyDefinition("id", "Optional exact management id filter. Null applies no restriction."),
-        new RequestKeyDefinition("name", "Optional exact, case-insensitive management name filter. Null applies no restriction.")
+        new RequestKeyDefinition("name", $"Optional exact, case-insensitive management name filter of at most {ImplTaskTargetFilter.kMaxNameLength} characters. Null applies no restriction.")
     ];
 
     /// <summary>

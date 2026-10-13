@@ -8,9 +8,10 @@ namespace FWO.Middleware.Server.Responses;
 public sealed class GetImplTaskTargetsResponse
 {
     /// <summary>
-    /// Gets or sets the managements the object task gets one implementation task each on, ordered by name and
-    /// without duplicates. Holds the requested management itself when it is unknown or has no sub-managements;
-    /// empty only when the supplied filter excludes every target.
+    /// Gets or sets one page of the managements the object task gets one implementation task each on, without
+    /// duplicates, ordered by name and then id with the targets without name last. Holds the requested management
+    /// itself when it is unknown or has no sub-managements; empty only when the supplied filter excludes every
+    /// target or the offset lies behind the last target.
     /// </summary>
     [JsonPropertyName("targets")]
     public List<ImplTaskTargetResponse> Targets { get; set; } = [];

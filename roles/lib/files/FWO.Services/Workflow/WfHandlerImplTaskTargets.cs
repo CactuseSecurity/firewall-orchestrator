@@ -16,6 +16,12 @@ namespace FWO.Services.Workflow
         private const string kImplTaskTargetsLogTitle = "Implementation Tasks";
 
         /// <summary>
+        /// Upper bound of the pages requested from the middleware for one target lookup, so a middleware that keeps
+        /// announcing further pages cannot keep the ui in an endless loop.
+        /// </summary>
+        private const int kMaxImplTaskTargetPages = 100;
+
+        /// <summary>
         /// Target managements resolved in the current creation run, by request management and kind of ordered
         /// objects (true for services).
         /// </summary>
@@ -164,20 +170,51 @@ namespace FWO.Services.Workflow
         {
             if (MiddlewareClient != null)
             {
-                RestResponse<ImplTaskTargetResult> response = await MiddlewareClient.GetImplTaskTargets(
-                    new ImplTaskTargetParameters { ManagementId = managementId, IsServiceObject = isServiceObject });
-                if (!response.IsSuccessful || response.Data == null)
-                {
-                    throw new InvalidOperationException($"Middleware answered {(int)response.StatusCode} {response.StatusDescription}. " +
-                        (response.ErrorMessage ?? response.Content ?? ""));
-                }
-                return response.Data.Targets;
+                return await GetObjectTargetsFromMiddleware(managementId, isServiceObject);
             }
             if (apiConnection != null)
             {
                 return await new ImplTaskManagementResolver(apiConnection).ResolveObjectTargets(managementId, isServiceObject);
             }
             return null;
+        }
+
+        /// <summary>
+        /// Reads every page of the target managements from the middleware.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The middleware fails or announces more than
+        /// <see cref="kMaxImplTaskTargetPages"/> pages.</exception>
+        private async Task<List<Management>> GetObjectTargetsFromMiddleware(int managementId, bool isServiceObject)
+        {
+            List<Management> targets = [];
+            for (int page = 0; page < kMaxImplTaskTargetPages; page++)
+            {
+                RestResponse<ImplTaskTargetResult> response = await MiddlewareClient!.GetImplTaskTargets(new ImplTaskTargetParameters
+                {
+                    ManagementId = managementId,
+                    IsServiceObject = isServiceObject,
+                    Options = new ImplTaskTargetPaging { Offset = targets.Count }
+                });
+                if (!response.IsSuccessful || response.Data == null)
+                {
+                    throw new InvalidOperationException($"Middleware answered {(int)response.StatusCode} {response.StatusDescription}. " +
+                        (response.ErrorMessage ?? response.Content ?? ""));
+                }
+                targets.AddRange(response.Data.Targets);
+                if (response.Data.Targets.Count == 0 || !HasMoreTargets(response))
+                {
+                    return targets;
+                }
+            }
+            throw new InvalidOperationException($"Middleware announced more than {kMaxImplTaskTargetPages} pages of target managements.");
+        }
+
+        private static bool HasMoreTargets(RestResponse response)
+        {
+            string? hasMore = response.Headers?
+                .FirstOrDefault(header => string.Equals(header.Name, ImplTaskTargetPaging.kHasMoreHeader, StringComparison.OrdinalIgnoreCase))?
+                .Value?.ToString();
+            return string.Equals(hasMore, "true", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

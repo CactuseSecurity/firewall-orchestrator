@@ -119,7 +119,7 @@
                     </Column>
                 }
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
-                <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="true">
+                <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="false">
                     <Template>
                         @(GetManagementName(implTask))
                     </Template>

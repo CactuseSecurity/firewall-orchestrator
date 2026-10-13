@@ -6,6 +6,7 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FWO.Middleware.Server.Controllers;
 
@@ -44,9 +45,18 @@ public class WorkflowImplTaskTargetController : ControllerBase
     /// are returned with their id only and an empty name, so the endpoint does not disclose the names of
     /// managements hidden from the caller; the name filter does not match them either.
     /// </para>
+    /// <para>
+    /// Targets are ordered by name and then id, visible targets first, so <c>options.limit</c> and
+    /// <c>options.offset</c> page the result deterministically. Without a limit a page of at most
+    /// <see cref="GetImplTaskTargetsOptions.kMaxLimit"/> targets is returned, and the <c>X-Has-More</c> response
+    /// header tells whether further targets follow. Every call resolves the targets again, so the endpoint carries
+    /// the expensive rate-limit policy.
+    /// </para>
     /// </remarks>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Modeller}")]
     [HttpPost("getImplTaskTargets")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     [ProducesResponseType(typeof(GetImplTaskTargetsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -68,8 +78,10 @@ public class WorkflowImplTaskTargetController : ControllerBase
         }
         try
         {
-            return Ok(await implTaskTargetService.GetImplTaskTargetsAsync(managementId, request.IsServiceObject, request.Options.Filter,
-                visibleManagementIds));
+            ListPage<ImplTaskTargetResponse> page = await implTaskTargetService.GetImplTaskTargetsAsync(managementId, request.IsServiceObject,
+                request.Options, visibleManagementIds);
+            ListPaging.SetHasMoreHeader(HttpContext, page.HasMore);
+            return Ok(new GetImplTaskTargetsResponse { Targets = page.Items });
         }
         catch (Exception exception)
         {

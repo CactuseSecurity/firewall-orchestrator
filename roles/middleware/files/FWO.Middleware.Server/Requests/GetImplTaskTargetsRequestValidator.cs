@@ -25,6 +25,8 @@ public static class GetImplTaskTargetsRequestValidator
         }
 
         ValidateManagementId(request, result);
+        ValidatePaging(request.Options, result);
+        ValidateFilterName(request.Options.Filter, result);
         AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.AdditionalData, GetImplTaskTargetsValidationSchema.kRootPath,
             GetImplTaskTargetsValidationSchema.RootKeys, result);
         AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.Options.AdditionalData, GetImplTaskTargetsValidationSchema.kOptionsPath,
@@ -45,6 +47,29 @@ public static class GetImplTaskTargetsRequestValidator
         {
             result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kManagementIdPath,
                 $"'{GetImplTaskTargetsValidationSchema.kManagementIdPath}' must be greater than 0."));
+        }
+    }
+
+    private static void ValidatePaging(GetImplTaskTargetsOptions options, RequestValidationErrorResponse result)
+    {
+        if (options.Limit is < 1 or > GetImplTaskTargetsOptions.kMaxLimit)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kLimitPath,
+                $"'{GetImplTaskTargetsValidationSchema.kLimitPath}' must be between 1 and {GetImplTaskTargetsOptions.kMaxLimit} when supplied."));
+        }
+        if (options.Offset is < 0)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kOffsetPath,
+                $"'{GetImplTaskTargetsValidationSchema.kOffsetPath}' must not be negative when supplied."));
+        }
+    }
+
+    private static void ValidateFilterName(ImplTaskTargetFilter? filter, RequestValidationErrorResponse result)
+    {
+        if (filter?.Name?.Length > ImplTaskTargetFilter.kMaxNameLength)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kFilterNamePath,
+                $"'{GetImplTaskTargetsValidationSchema.kFilterNamePath}' must not be longer than {ImplTaskTargetFilter.kMaxNameLength} characters."));
         }
     }
 }

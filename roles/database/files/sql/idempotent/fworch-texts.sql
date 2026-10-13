@@ -4096,6 +4096,18 @@ INSERT INTO txt VALUES ('debug',                'German',   'Debug');
 INSERT INTO txt VALUES ('debug',                'English',  'Debug');
 INSERT INTO txt VALUES ('fancy_table_preview',  'German',   'FancyTable-Vorschau');
 INSERT INTO txt VALUES ('fancy_table_preview',  'English',  'FancyTable preview');
+INSERT INTO txt VALUES ('fancy_table_examples', 'German',   'FancyTable-Beispiele');
+INSERT INTO txt VALUES ('fancy_table_examples', 'English',  'FancyTable examples');
+INSERT INTO txt VALUES ('fancy_table_ex_default_toolbar',   'German',   'Standard-Toolbar');
+INSERT INTO txt VALUES ('fancy_table_ex_default_toolbar',   'English',  'Default toolbar');
+INSERT INTO txt VALUES ('fancy_table_ex_custom_toolbar',    'German',   'Eigene Toolbar');
+INSERT INTO txt VALUES ('fancy_table_ex_custom_toolbar',    'English',  'Custom toolbar');
+INSERT INTO txt VALUES ('fancy_table_ex_conditional_rows',  'German',   'Bedingte eigene Zeilen');
+INSERT INTO txt VALUES ('fancy_table_ex_conditional_rows',  'English',  'Conditional custom rows');
+INSERT INTO txt VALUES ('fancy_table_ex_column_layout',     'German',   'Spaltenbreite und -reihenfolge');
+INSERT INTO txt VALUES ('fancy_table_ex_column_layout',     'English',  'Resizing and reordering');
+INSERT INTO txt VALUES ('fancy_table_ex_tree_table',        'German',   'Baumtabelle');
+INSERT INTO txt VALUES ('fancy_table_ex_tree_table',        'English',  'Tree table');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');

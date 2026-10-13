@@ -5,7 +5,7 @@
 @using FWO.Ui.Pages.Reporting.Reports
 
 @page "/monitoring/fancy_table_preview"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig

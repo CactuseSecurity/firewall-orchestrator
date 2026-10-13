@@ -7,10 +7,10 @@
       daemon_reload: true
   become: true
 
-- name: ensure middleware reverse proxy is running
+- name: reload middleware reverse proxy configuration
   ansible.builtin.service:
       name: "{{ webserver_package_name }}"
-      state: restarted
+      state: reloaded
   become: true
 
 - block:

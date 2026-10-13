@@ -6,13 +6,13 @@
 - name: Decide whether the maintenance Apache identity is ready
   include_tasks: decide-maintenance-restart.yml
 
-- name: Restart Apache with the maintenance site
+- name: Reload Apache with the maintenance site
   service:
     name: "{{ webserver_package_name }}"
-    state: restarted
+    state: reloaded
   when: not (maintenance_apache_restart_deferred | bool)
 
-- name: Defer the maintenance Apache restart until certificate reconciliation
+- name: Defer the maintenance Apache reload until certificate reconciliation
   debug:
     msg: >-
       The maintenance site is configured, but its FWO-managed TLS identity does not

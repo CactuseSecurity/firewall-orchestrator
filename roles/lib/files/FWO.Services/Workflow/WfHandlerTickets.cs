@@ -122,8 +122,15 @@ namespace FWO.Services.Workflow
             DisplaySaveTicketMode = false;
         }
 
+        /// <summary>
+        /// True if the last <see cref="SaveTicket"/> saved a new ticket that could not be read back: the returned id
+        /// is valid, but <see cref="ActTicket"/> is the in-memory copy without the ids of its request tasks.
+        /// </summary>
+        public bool LastSaveReloadFailed { get; private set; }
+
         public async Task<long> SaveTicket(WfStatefulObject ticket)
         {
+            LastSaveReloadFailed = false;
             try
             {
                 return dbAcc == null ? 0 : await SaveTicketToDb(ticket);
@@ -149,6 +156,13 @@ namespace FWO.Services.Workflow
             }
 
             await PersistTicket();
+
+            if (LastSaveReloadFailed)
+            {
+                // The ticket was saved, but its request tasks are unknown here and must not be processed again.
+                ResetTicketActions();
+                return ActTicket.Id;
+            }
 
             if (!requestTasksSynchronized)
             {
@@ -192,7 +206,13 @@ namespace FWO.Services.Workflow
             }
 
             ActTicket.Requester = requester;
-            ActTicket = await dbAcc!.AddTicketToDb(ActTicket);
+            WfTicketCreationResult creation = await dbAcc!.AddTicketToDb(ActTicket);
+            ActTicket = creation.Ticket;
+            if (creation.ReloadFailed)
+            {
+                LastSaveReloadFailed = true;
+                return;
+            }
             TicketList.Add(ActTicket);
         }
 

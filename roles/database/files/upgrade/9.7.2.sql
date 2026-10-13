@@ -1,15 +1,18 @@
--- Add the default implicit approval comment setting for existing installations.
-INSERT INTO config (config_key, config_value, config_user)
-VALUES ('reqImplicitApprovalComment', 'Automatically approved because the request task was promoted beyond the approval phase.', 0)
-ON CONFLICT (config_key, config_user) DO NOTHING;
+-- Implementation tasks may be implemented on a different management than their request task, e.g. an object
+-- task on every sub-management of a super-management. NULL keeps the previous behaviour: the task is implemented
+-- on the management of its request task.
+ALTER TABLE request.impltask ADD COLUMN IF NOT EXISTS mgm_id int;
 
-INSERT INTO config (config_key, config_value, config_user)
-VALUES ('reqDisplayBundledTasksAsOne', 'False', 0)
-ON CONFLICT (config_key, config_user) DO NOTHING;
-
-INSERT INTO config (config_key, config_value, config_user)
-VALUES ('reqTicketFieldVisibility', '{"requester":true,"priority":true,"deadline":true,"reason":true,"comments":false}', 0)
-ON CONFLICT (config_key, config_user) DO NOTHING;
-
-ALTER TABLE request.ticket
-    ADD COLUMN IF NOT EXISTS additional_info varchar;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'request_impltask_management_foreign_key'
+        AND conrelid = 'request.impltask'::regclass
+    ) THEN
+        ALTER TABLE request.impltask
+        ADD CONSTRAINT request_impltask_management_foreign_key
+        FOREIGN KEY (mgm_id) REFERENCES management (mgm_id)
+        ON UPDATE RESTRICT ON DELETE CASCADE;
+    END IF;
+END $$;

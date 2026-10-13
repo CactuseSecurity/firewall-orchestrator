@@ -7,8 +7,14 @@ api_hasura_admin_test_password: "not4production"
 api_user_email: "{{ api_user }}@{{ api_network_listening_ip_address }}"
 api_home: "{{ fworch_home }}/api"
 api_hasura_cli_bin: "{{ fworch_home }}/api/bin/hasura"
-api_hasura_version: "v2.50.0"
-api_hasura_image: "docker.io/hasura/graphql-engine:{{ api_hasura_version }}"
+api_hasura_version: "v2.50.3"
+# Pins belonging to api_hasura_version - update all of them together with the version:
+# the image index digest (multi-arch) is enforced by podman, the cli checksums by get_url before the binary is used
+api_hasura_image_digest: "sha256:521ace33b50ce9e65e7dc28e2c3311ae75ab8889c514510c647d486243ee0168"
+api_hasura_image: "docker.io/hasura/graphql-engine:{{ api_hasura_version }}@{{ api_hasura_image_digest }}"
+api_hasura_cli_sha256:
+  amd64: "6636c2d01f0cee00732910f3a8e789d32008ca1323c69aef35a0f22224603671"
+  arm64: "1ac120058ab6d47a079a2a064fc0740686761373d79922fc895734fba0d3a15d"
 api_hasura_startup_timeout: 180
 api_project_name: api
 api_no_metadata: false

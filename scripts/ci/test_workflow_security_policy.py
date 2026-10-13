@@ -1,6 +1,6 @@
 """
 Policy tests that bound the accepted risk of building pull request code in the privileged
-pull_request_target context (GHSA-3cwm-h5cm-r3f8).
+pull_request_target context (GHSA-3cwm-h5cm-r3f8) and keep every used action pinned (GHSA-8hf3-3hp5-gj32).
 
 The workflows are read with a YAML parser, as GitHub reads them: comments, quoting, anchors and flow collections
 cannot hide a trigger, a secret, a write permission or a checkout of the pull request head.
@@ -49,6 +49,8 @@ CONDITION_KEY = "if"
 CACHE_ACTION_PATTERN = re.compile(r"^actions/cache(?:[@/]|$)", re.IGNORECASE)
 CACHE_KEY_PATTERN = re.compile(r"cache", re.IGNORECASE)
 PINNED_ACTION_PATTERN = re.compile(r"^[^@\s]+@[0-9a-f]{40}$")
+PINNED_DOCKER_ACTION_PATTERN = re.compile(r"^docker://[^@\s]+@sha256:[0-9a-f]{64}$")
+LOCAL_ACTION_PREFIX = "./"
 YAML_BOOL_TAG = "tag:yaml.org,2002:bool"
 
 
@@ -187,6 +189,15 @@ def uses_cache(text: str) -> bool:
 def used_actions(text: str) -> list[str]:
     """Return the actions and reusable workflows the steps and jobs of a workflow use."""
     return [value for key, value in mapping_items(parse_workflow(text)) if key == "uses" and isinstance(value, str)]
+
+
+def is_pinned_action(action: str) -> bool:
+    """Return whether an action is immutable: a full commit SHA, an image digest, or an action of this repository."""
+    return (
+        action.startswith(LOCAL_ACTION_PREFIX)
+        or PINNED_ACTION_PATTERN.match(action) is not None
+        or PINNED_DOCKER_ACTION_PATTERN.match(action) is not None
+    )
 
 
 def job_steps(text: str) -> list[list[dict[Any, Any]]]:
@@ -389,9 +400,32 @@ def test_no_workflow_restores_caches_while_pull_request_code_runs_privileged(wor
 @pytest.mark.parametrize(
     "workflow_path", [SONAR_PR_WORKFLOW_PATH, SONAR_BRANCH_WORKFLOW_PATH], ids=lambda path: path.name
 )
-def test_sonar_workflows_pin_actions_to_commit_shas(workflow_path: Path) -> None:
-    actions = used_actions(read_workflow(workflow_path))
+def test_sonar_workflows_use_actions(workflow_path: Path) -> None:
+    assert used_actions(read_workflow(workflow_path))
 
-    assert actions
-    for action in actions:
-        assert PINNED_ACTION_PATTERN.match(action), f"{action} is not pinned to a full commit SHA"
+
+@pytest.mark.parametrize("workflow_path", active_workflow_paths(), ids=lambda path: path.name)
+def test_workflows_pin_actions_to_commit_shas(workflow_path: Path) -> None:
+    # a tag can be moved after review, a commit SHA cannot (GHSA-8hf3-3hp5-gj32)
+    for action in used_actions(read_workflow(workflow_path)):
+        assert is_pinned_action(action), (
+            f"{workflow_path.name}: {action} is not pinned to a full commit SHA or image digest"
+        )
+
+
+@pytest.mark.parametrize(
+    ("action", "expected"),
+    [
+        ("actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", True),
+        ("github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2", True),
+        ("./.github/actions/local", True),
+        ("docker://alpine@sha256:" + "a" * 64, True),
+        ("actions/checkout@v7", False),
+        ("actions/checkout@v7.0.1", False),
+        ("actions/checkout@3d3c42e", False),
+        ("actions/checkout", False),
+        ("docker://alpine:3.20", False),
+    ],
+)
+def test_is_pinned_action(action: str, *, expected: bool) -> None:
+    assert is_pinned_action(action) is expected

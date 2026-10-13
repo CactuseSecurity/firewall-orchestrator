@@ -7,6 +7,7 @@ fragment implTaskDetails on request_impltask {
   state_id
   assigned_group
   device_id
+  mgm_id
   implementation_action
   rule_action
   rule_tracking

@@ -424,9 +424,15 @@ namespace FWO.Middleware.Server.Controllers
         private Ldap? SelectLdapForNewUser(UserAddParameters parameters)
         {
             List<Ldap> writableLdaps = ldaps.Where(ldap => ldap.IsWritable()).ToList();
-            Ldap? targetLdap = parameters.LdapId != 0
-                ? writableLdaps.FirstOrDefault(ldap => ldap.Id == parameters.LdapId)
-                : writableLdaps.Count == 1 ? writableLdaps[0] : null;
+            Ldap? targetLdap;
+            if (parameters.LdapId != 0)
+            {
+                targetLdap = writableLdaps.FirstOrDefault(ldap => ldap.Id == parameters.LdapId);
+            }
+            else
+            {
+                targetLdap = writableLdaps.Count == 1 ? writableLdaps[0] : null;
+            }
             if (targetLdap == null)
             {
                 Log.WriteWarning("AddUser", $"Refused to add user {parameters.UserDn}: ldap id {parameters.LdapId} does not name exactly one writable ldap.");

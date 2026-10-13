@@ -481,6 +481,11 @@
 
     private bool CheckValues()
     {
+        return CheckFieldValues() && CheckConsistencyWithOtherConnections();
+    }
+
+    private bool CheckFieldValues()
+    {
         if (actLdapConnection.Addresses.Count == 0 ||
             actLdapConnection.SearchUser == null || actLdapConnection.SearchUser == "" ||
             (AddMode && string.IsNullOrEmpty(actLdapConnection.SearchUserPwd)) ||
@@ -504,6 +509,16 @@
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5263"), true);
             return false;
         }
+        if (actLdapConnection.HasRoleHandling() && !actLdapConnection.IsInternal())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5265"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private bool CheckConsistencyWithOtherConnections()
+    {
         if (connectedLdaps.FirstOrDefault(x => x.Addresses.Intersect(actLdapConnection.Addresses, StringComparer.OrdinalIgnoreCase).Any() && x.Port == actLdapConnection.Port && x.Id != actLdapConnection.Id) != null)
         {
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5264"), true);
@@ -513,11 +528,6 @@
         if (overlappingLdaps.Count > 0)
         {
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5273") + string.Join(", ", overlappingLdaps.Select(x => string.IsNullOrEmpty(x.Name) ? x.Host() : x.Name)), true);
-            return false;
-        }
-        if (actLdapConnection.HasRoleHandling() && !actLdapConnection.IsInternal())
-        {
-            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5265"), true);
             return false;
         }
         if (!AddMode && wasActive && !actLdapConnection.Active && connectedLdaps.Where(x => x.Active).Count() == 1)

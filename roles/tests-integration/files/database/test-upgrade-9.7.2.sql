@@ -78,14 +78,15 @@ $$ LANGUAGE plpgsql;
 -- the state of 9.7.1: one server per connection
 ALTER TABLE ldap_connection DROP CONSTRAINT IF EXISTS ldap_connection_server_not_empty;
 ALTER TABLE ldap_connection ALTER COLUMN ldap_server TYPE Varchar USING ldap_server[1];
-CREATE TEMP TABLE expected_servers ON COMMIT DROP AS
-    SELECT string_agg(ldap_connection_id || '={' || ldap_server || '}', ';' ORDER BY ldap_connection_id) AS servers FROM ldap_connection;
 
 -- an inactive connection does not take part in the overlap check of the upgrade
 INSERT INTO ldap_connection (ldap_server, ldap_searchpath_for_users, ldap_search_user, ldap_search_user_pwd, active)
 VALUES ('upgrade-9-7-2.example.com', 'ou=upgrade-9-7-2,dc=example,dc=com', 'cn=search', 'unused', false);
 INSERT INTO probe_id SELECT 'ldap', ldap_connection_id FROM ldap_connection WHERE ldap_server = 'upgrade-9-7-2.example.com';
-UPDATE expected_servers SET servers = concat_ws(';', servers, pg_temp.probe('ldap') || '={upgrade-9-7-2.example.com}');
+
+-- every connection keeps its single server as the only entry of its server list
+CREATE TEMP TABLE expected_servers ON COMMIT DROP AS
+    SELECT string_agg(ldap_connection_id || '={' || ldap_server || '}', ';' ORDER BY ldap_connection_id) AS servers FROM ldap_connection;
 
 SELECT pg_temp.add_user('unbound', NULL);
 SELECT pg_temp.add_user('bound', 'entryUUID:upgrade-9-7-2-bound');

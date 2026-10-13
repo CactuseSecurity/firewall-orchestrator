@@ -207,7 +207,7 @@ namespace FWO.Middleware.Server.Controllers
         /// </summary>
         /// <param name="candidate">Connection to be saved.</param>
         /// <returns>A validation problem listing all errors, or null if the connection is valid.</returns>
-        private ActionResult? ValidateConnection(LdapConnectionBase candidate)
+        private BadRequestObjectResult? ValidateConnection(LdapConnectionBase candidate)
         {
             Dictionary<string, string[]> errors = [];
             string? serverError = ValidateServers(candidate.Addresses);

@@ -10236,7 +10236,7 @@
             },
             {
               "table": {
-                "name": "import_credential",
+                "name": "credential",
                 "schema": "public"
               },
               "array_relationships": [

@@ -19,9 +19,9 @@
         line: "Listen {{ middleware_web_listener_port }}"
         create: true
 
-    - name: restart apache
+    - name: reload apache
       service:
         name: "{{ webserver_package_name }}"
-        state: restarted
+        state: reloaded
   become: true
   environment: "{{ proxy_env }}"

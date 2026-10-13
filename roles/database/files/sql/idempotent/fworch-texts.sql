@@ -3682,6 +3682,10 @@ INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Modu
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
 INSERT INTO txt VALUES ('notification',   		'English', 	'Notification');
+INSERT INTO txt VALUES ('notification_id',       'German',   'Benachrichtigungs-ID');
+INSERT INTO txt VALUES ('notification_id',       'English',  'Notification Id');
+INSERT INTO txt VALUES ('notification_type',     'German',   'Benachrichtigungstyp');
+INSERT INTO txt VALUES ('notification_type',     'English',  'Notification type');
 INSERT INTO txt VALUES ('notifications',   		'German', 	'Benachrichtigungen');
 INSERT INTO txt VALUES ('notifications',   		'English', 	'Notifications');
 INSERT INTO txt VALUES ('reminder',             'German', 	'Erinnerung');
@@ -8611,9 +8615,9 @@ INSERT INTO txt VALUES ('H7413', 'German', 'Die Tabellen sind in Abschnitte gegl
 INSERT INTO txt VALUES ('H7413', 'English', 'The tables are grouped in sections. Use the action column to remove orphaned entries from the connection.
 ');
 
-INSERT INTO txt VALUES ('H7414', 'German', 'Email-Protokoll: Zeigt alle protokollierten Benachrichtigungs-Emails mit Zeitstempel, Benachrichtigungstyp, Empf&auml;ngern und Betreff.
+INSERT INTO txt VALUES ('H7414', 'German', 'Email-Protokoll: Zeigt alle protokollierten Benachrichtigungs-Emails mit Zeitstempel, Benachrichtigungstyp, Empf&auml;ngern und Betreff. Die Eintr&auml;ge k&ouml;nnen nach Benachrichtigungs-ID, Benachrichtigungstyp, Status und Fehler gefiltert werden.
 ');
-INSERT INTO txt VALUES ('H7414', 'English', 'Email log: Shows all logged notification emails with timestamp, notification type, recipients and subject.
+INSERT INTO txt VALUES ('H7414', 'English', 'Email log: Shows all logged notification emails with timestamp, notification type, recipients and subject. Entries can be filtered by notification ID, notification type, status and error.
 ');
 
 INSERT INTO txt VALUES ('H7421', 'German', 'Diese Seite zeigt alle angeforderten Schnittstellen mit beantragender und angefragter Applikation, Ticket, Status und Erstellungsdatum.

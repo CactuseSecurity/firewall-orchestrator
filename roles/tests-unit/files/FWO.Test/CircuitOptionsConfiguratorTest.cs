@@ -1,6 +1,8 @@
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -18,6 +20,31 @@ namespace FWO.Test
             CircuitOptionsConfigurator.Configure(options);
 
             Assert.That(options.PersistedCircuitInMemoryMaxRetained, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void AddFwoServerSideBlazor_RegistersCircuitConfiguration()
+        {
+            ServiceCollection services = new();
+
+            IServerSideBlazorBuilder builder = services.AddFwoServerSideBlazor();
+
+            // resolving the options would need a full web host environment, so the registered
+            // configuration instances are applied directly
+            CircuitOptions options = new();
+            foreach (IConfigureOptions<CircuitOptions> configureOptions in services
+                .Where(descriptor => descriptor.ServiceType == typeof(IConfigureOptions<CircuitOptions>))
+                .Select(descriptor => descriptor.ImplementationInstance)
+                .OfType<IConfigureOptions<CircuitOptions>>())
+            {
+                configureOptions.Configure(options);
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(builder.Services, Is.SameAs(services));
+                Assert.That(options.PersistedCircuitInMemoryMaxRetained, Is.EqualTo(CircuitOptionsConfigurator.kPersistedCircuitsInMemory));
+            });
         }
 
         /// <summary>

@@ -47,7 +47,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor(CircuitOptionsConfigurator.Configure);
+builder.Services.AddFwoServerSideBlazor();
 
 builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 builder.Services.AddScoped<KeyboardInputService, KeyboardInputService>();

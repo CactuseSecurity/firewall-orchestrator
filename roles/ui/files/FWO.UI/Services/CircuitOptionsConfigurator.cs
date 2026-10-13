@@ -13,6 +13,16 @@ namespace FWO.Ui.Services
         public const int kPersistedCircuitsInMemory = 0;
 
         /// <summary>
+        /// Registers the Blazor Server services with the UI specific circuit settings.
+        /// </summary>
+        /// <param name="services">Service collection of the UI.</param>
+        /// <returns>The builder for further Blazor Server configuration.</returns>
+        public static IServerSideBlazorBuilder AddFwoServerSideBlazor(this IServiceCollection services)
+        {
+            return services.AddServerSideBlazor(Configure);
+        }
+
+        /// <summary>
         /// Applies the UI specific circuit settings.
         /// </summary>
         /// <remarks>

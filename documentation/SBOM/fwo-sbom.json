@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:5ebe8668-2b62-4aa3-b68f-2b54dd1e3c0a",
+  "serialNumber": "urn:uuid:f19ff553-49c4-4aca-a620-c7d3d07be9df",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-10-02T13:53:55Z",
+    "timestamp": "2026-10-12T11:49:47Z",
     "tools": {
       "components": [
         {
@@ -35,20 +35,20 @@
   "components": [
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp@1.8.3",
+      "bom-ref": "pkg:nuget/AngleSharp@1.8.4",
       "authors": [
         {
           "name": "AngleSharp"
         }
       ],
       "name": "AngleSharp",
-      "version": "1.8.3",
+      "version": "1.8.4",
       "description": "AngleSharp is the ultimate angle brackets parser library. It parses HTML5, CSS3, and XML to construct a DOM based on the official W3C specification.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "38F5FBCC90A1B7529F7A87F8B6BCC191874A79097EC13E5AEC56613FE82866B74214A456D002D86B80A928E554A48B1E818F6333F282B2D34C3BFD09DB8330ED"
+          "content": "D9107D2E275C02631D25483845C9770DBC09D7F581450AC02B95BD245122742BFAF996E78AAAA1DFBAC6ACFA5C1C219F09865E2E050FA6D1A4B82C280D69268E"
         }
       ],
       "licenses": [
@@ -59,7 +59,7 @@
         }
       ],
       "copyright": "Copyright 2013-2026, AngleSharp.",
-      "purl": "pkg:nuget/AngleSharp@1.8.3",
+      "purl": "pkg:nuget/AngleSharp@1.8.4",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -3790,20 +3790,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Testing.Extensions.Telemetry@2.3.3",
+      "bom-ref": "pkg:nuget/Microsoft.Testing.Extensions.Telemetry@2.4.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Testing.Extensions.Telemetry",
-      "version": "2.3.3",
-      "description": "Microsoft Testing is a set of platform, framework and protocol intended to make it possible to run any test on any target or device.\n\nThis package provides telemetry for the platform.",
+      "version": "2.4.1",
+      "description": "This package provides telemetry for the platform.\n\nMicrosoft Testing is a set of platform, framework and protocol intended to make it possible to run any test on any target or device.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "29EF9BCB94C69510E98955753B451B602EE89D52E47CC80FB0D974FB0C778BA41E0C21600D049B3EE9466A8828F73B8B2CAD5EEB3C0D2C896B4E57970D4B30C5"
+          "content": "D34CF7C492DF5CB3C2C9CA78BA3239C254F51825DA23F9F4D810E2C14531368FC14EC738E8B6C329C6C5F7326BA5879240C1C3D3A596491B8CCFA2EBFB9DAC9F"
         }
       ],
       "licenses": [
@@ -3814,7 +3814,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Testing.Extensions.Telemetry@2.3.3",
+      "purl": "pkg:nuget/Microsoft.Testing.Extensions.Telemetry@2.4.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/testfx",
@@ -3828,20 +3828,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Testing.Extensions.TrxReport.Abstractions@2.3.3",
+      "bom-ref": "pkg:nuget/Microsoft.Testing.Extensions.TrxReport.Abstractions@2.4.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Testing.Extensions.TrxReport.Abstractions",
-      "version": "2.3.3",
-      "description": "Package Description",
+      "version": "2.4.1",
+      "description": "This package provides the abstractions used by extensions that contribute data to, or read data from, TRX test reports. Install Microsoft.Testing.Extensions.TrxReport to generate the reports themselves.\n\nMicrosoft Testing is a set of platform, framework and protocol intended to make it possible to run any test on any target or device.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "CAF1285F0960A0C9ECA162BE1076C3174F58BB7EDAB8249E224D4411809699B58608BE2397EB1FD8F7BD1F3772293847E0C2379B209F34B07B37DFFE17DC8B87"
+          "content": "2BB4DE4BCE1916D3A3285B66EE5DC60DD39FC0D300B4DA39D2DA3690A473C2987A4CC8B2DDD84141256E4B0F61378EC06600327329ADEE07565A4EF0DB9B6EE4"
         }
       ],
       "licenses": [
@@ -3852,7 +3852,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Testing.Extensions.TrxReport.Abstractions@2.3.3",
+      "purl": "pkg:nuget/Microsoft.Testing.Extensions.TrxReport.Abstractions@2.4.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/testfx",
@@ -3866,20 +3866,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Testing.Extensions.VSTestBridge@2.3.3",
+      "bom-ref": "pkg:nuget/Microsoft.Testing.Extensions.VSTestBridge@2.4.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Testing.Extensions.VSTestBridge",
-      "version": "2.3.3",
-      "description": "Microsoft Testing is a set of platform, framework and protocol intended to make it possible to run any test on any target or device.\n\nThis package provides a bridge integration for test adapters wanting to target both VSTest and Microsoft.Testing.Platform test platforms.",
+      "version": "2.4.1",
+      "description": "This package provides a bridge integration for test adapters wanting to target both VSTest and Microsoft.Testing.Platform test platforms.\n\nMicrosoft Testing is a set of platform, framework and protocol intended to make it possible to run any test on any target or device.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "4DFEC80A78FE4184DD0BAB75D978B64ADBFDA12FD74EF3CF6A43E760319997540B29063158F3082980004BCEE4D008C5E73B91C49AD7812E80DAECE8D3478063"
+          "content": "E9AB0D676E2716093A831C64C84E8A13587AA62EDAF582CC3F296CBBC46AEF5F920CE8DDDAA206412E134E43CA23D1C084DF23A02D748905E9CF9E873B514FAB"
         }
       ],
       "licenses": [
@@ -3890,7 +3890,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Testing.Extensions.VSTestBridge@2.3.3",
+      "purl": "pkg:nuget/Microsoft.Testing.Extensions.VSTestBridge@2.4.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/testfx",
@@ -3904,20 +3904,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Testing.Platform@2.3.3",
+      "bom-ref": "pkg:nuget/Microsoft.Testing.Platform@2.4.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Testing.Platform",
-      "version": "2.3.3",
-      "description": "Microsoft Testing is a set of platform, framework and protocol intended to make it possible to run any test on any target or device.\n\nThis package provides the core platform and the .NET implementation of the protocol.",
+      "version": "2.4.1",
+      "description": "This package provides the core platform and the .NET implementation of the protocol.\n\nMicrosoft Testing is a set of platform, framework and protocol intended to make it possible to run any test on any target or device.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "9183E317EC3AFC0ADD0B63B9C4857B9B3B648ECE1B615D79EE19B760FBB5838DA93BF8039C91D38E5E09B23E02F0523D929CDDD242BD0DC6B524AD08E20D6546"
+          "content": "61F9D27D05553CA06031F937F06A3887BA9167D997DE14268FA19D42E921826B161F9301341C7465CB4EA80C504C8A1CFD9637852059391BEDFE977119B1193C"
         }
       ],
       "licenses": [
@@ -3928,7 +3928,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Testing.Platform@2.3.3",
+      "purl": "pkg:nuget/Microsoft.Testing.Platform@2.4.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/testfx",
@@ -3942,20 +3942,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Testing.Platform.MSBuild@2.3.3",
+      "bom-ref": "pkg:nuget/Microsoft.Testing.Platform.MSBuild@2.4.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Testing.Platform.MSBuild",
-      "version": "2.3.3",
-      "description": "Microsoft Testing is a set of platform, framework and protocol intended to make it possible to run any test on any target or device.\n\nThis package provides MSBuild integration of the platform, its extensions and configuration files.",
+      "version": "2.4.1",
+      "description": "This package provides MSBuild integration of the platform, its extensions and configuration files.\n\nMicrosoft Testing is a set of platform, framework and protocol intended to make it possible to run any test on any target or device.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "692FBB2DDDD2068099A213F1D350D327FE1FEF15C8ECF069A2B10776EF5B111193CAB716786B4B4D09623BEB9FE3B0F4267B8EBD5413F5015BEFF9EEA8CAD19A"
+          "content": "44CE78E7EAB61B61E7430FAF114660FC83CDC9FE9A44F5457242D044047DC601EEB3FA524ADFEB8D88B7FBE68C5EB675EACE633CF671E14001EE0C6F64B97DB1"
         }
       ],
       "licenses": [
@@ -3966,7 +3966,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Testing.Platform.MSBuild@2.3.3",
+      "purl": "pkg:nuget/Microsoft.Testing.Platform.MSBuild@2.4.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/testfx",
@@ -3974,6 +3974,44 @@
         },
         {
           "url": "https://github.com/microsoft/testfx",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.AdapterUtilities@18.10.1",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.TestPlatform.AdapterUtilities",
+      "version": "18.10.1",
+      "description": "Includes helpers for the Test Platform\u0027s modern functionality such as standardized fully qualified names and hierarchical test case names.",
+      "scope": "excluded",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "13B031810063A2EAC62DF179B396D00C2DF11E2C4C52CB98E5EC0A1E471EDC5C6E9FD3B77B8E1240A9C8D83E60DE66C27EA5233D1C09B8D5CD17DFF353ACA948"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.TestPlatform.AdapterUtilities@18.10.1",
+      "externalReferences": [
+        {
+          "url": "https://github.com/microsoft/vstest",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/microsoft/vstest",
           "type": "vcs"
         }
       ]
@@ -4278,20 +4316,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/NUnit3TestAdapter@6.3.0",
+      "bom-ref": "pkg:nuget/NUnit3TestAdapter@6.3.1",
       "authors": [
         {
           "name": "Charlie Poole, Terje Sandstrom"
         }
       ],
       "name": "NUnit3TestAdapter",
-      "version": "6.3.0",
+      "version": "6.3.1",
       "description": "NUnit3 adapter for running tests in Visual Studio and DotNet.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "5BA53EB6CF7A35C85957C28BD03C6A38ED33AF6198962E301F9BBBE55CE2CDB07BAA9C6894CFEF2FB164E7C8201804A1458C1860D73F005660FFB6AEBC594A10"
+          "content": "7DC82D661CE352DDE3492FFBFC2DBA214BAB86029C4E049BD4B258367E896D7A989E22EA390F0E8ED991839E98BA27AFCE1BBA487AF29921F727C227A95A6CA6"
         }
       ],
       "licenses": [
@@ -4302,7 +4340,7 @@
         }
       ],
       "copyright": "Copyright (c) 2011-2021 Charlie Poole, 2014-2026 Terje Sandstrom",
-      "purl": "pkg:nuget/NUnit3TestAdapter@6.3.0",
+      "purl": "pkg:nuget/NUnit3TestAdapter@6.3.1",
       "externalReferences": [
         {
           "url": "https://docs.nunit.org/articles/vs-test-adapter/Index.html",
@@ -4316,20 +4354,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/PuppeteerSharp@25.12.0",
+      "bom-ref": "pkg:nuget/PuppeteerSharp@25.13.1",
       "authors": [
         {
           "name": "Dar\u00EDo Kondratiuk"
         }
       ],
       "name": "PuppeteerSharp",
-      "version": "25.12.0",
+      "version": "25.13.1",
       "description": "Headless Browser .NET API",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "6119DF83A530ABA0C07B2F254C3726077C27EA4A201D5D580C34B4DA2C7A8CF8AE252718BF13155D9BFB1E21EB8689673291FA64A5146659F744C44163331943"
+          "content": "E07B4045FD8321FC683F51B982AB7A3EA59AFB80EE7DDB13768D50E3D16472C6B0FD3926AB00B821E0680BEE34ED5E0C2726B5B3833C9F296C834219A9718A6B"
         }
       ],
       "licenses": [
@@ -4339,7 +4377,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/PuppeteerSharp@25.12.0",
+      "purl": "pkg:nuget/PuppeteerSharp@25.13.1",
       "externalReferences": [
         {
           "url": "https://github.com/hardkoded/puppeteer-sharp",
@@ -4353,20 +4391,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Quartz@4.3.0",
+      "bom-ref": "pkg:nuget/Quartz@4.4.0",
       "authors": [
         {
           "name": "Marko Lahma, Quartz.NET"
         }
       ],
       "name": "Quartz",
-      "version": "4.3.0",
+      "version": "4.4.0",
       "description": "Quartz.NET job scheduler - cron, calendar and interval triggers, clustering over a persistent job store, and Microsoft.Extensions hosting, logging, options and dependency injection throughout. The core package: everything else builds on this one.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "BC8462C485803FC5398C8837C35CE71228C4948ADD0F47DF342D507FC796D9DE8C8C0FEECADE2DCC1BE623128B60CF6D1E6343832868F5D288655C7D7F42A68E"
+          "content": "2CAAD8399786D95285AFED2F897B5ED12DD0DBA4BA7A713B9F8D587BE3A95D98C1F1715316DC56472E877833C3B9512598EDCE4EF5F73785C4DBDDB8E7B8419A"
         }
       ],
       "licenses": [
@@ -4377,7 +4415,7 @@
         }
       ],
       "copyright": "Copyright Marko Lahma",
-      "purl": "pkg:nuget/Quartz@4.3.0",
+      "purl": "pkg:nuget/Quartz@4.4.0",
       "externalReferences": [
         {
           "url": "https://www.quartz-scheduler.net/",
@@ -4504,20 +4542,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.17.13",
+      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.17.14",
       "authors": [
         {
           "name": "Scalar"
         }
       ],
       "name": "Scalar.AspNetCore",
-      "version": "2.17.13",
+      "version": "2.17.14",
       "description": "Generate beautiful interactive API documentation from OpenAPI/Swagger documents.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "124DCD58BF361354CBF42632A102488066F44B773989E61674F436BA46DF7D192B1ECE04DC1FE2761634A4CBCF39010A1E40F60791DC63F36E8F9525A27B2809"
+          "content": "C974962DC0DD2AA571049B09B4ADE9A2B5545B60F4B6951E64014A000D75991A5D465AD61120C8417784B78DFF58E1D2E109515BA4765DAE2BA010A4651F6B97"
         }
       ],
       "licenses": [
@@ -4527,7 +4565,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/Scalar.AspNetCore@2.17.13",
+      "purl": "pkg:nuget/Scalar.AspNetCore@2.17.14",
       "externalReferences": [
         {
           "url": "https://scalar.com/",
@@ -4787,16 +4825,16 @@
         "pkg:nuget/MailKit@4.18.1",
         "pkg:nuget/Microsoft.AspNetCore.Http@2.3.13",
         "pkg:nuget/MimeKit@4.18.1",
-        "pkg:nuget/PuppeteerSharp@25.12.0",
+        "pkg:nuget/PuppeteerSharp@25.13.1",
         "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.12",
         "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.12",
         "pkg:nuget/Microsoft.OpenApi@2.12.2",
         "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
-        "pkg:nuget/Quartz@4.3.0",
-        "pkg:nuget/Scalar.AspNetCore@2.17.13",
+        "pkg:nuget/Quartz@4.4.0",
+        "pkg:nuget/Scalar.AspNetCore@2.17.14",
         "pkg:nuget/BlazorTable@1.17.0",
         "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.12",
-        "pkg:nuget/AngleSharp@1.8.3",
+        "pkg:nuget/AngleSharp@1.8.4",
         "pkg:nuget/bunit@2.11.3",
         "pkg:nuget/coverlet.collector@10.1.0",
         "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.12",
@@ -4804,25 +4842,25 @@
         "pkg:nuget/Moq@4.21.0",
         "pkg:nuget/NSubstitute@6.2.0",
         "pkg:nuget/NUnit@4.6.1",
-        "pkg:nuget/NUnit3TestAdapter@6.3.0",
+        "pkg:nuget/NUnit3TestAdapter@6.3.1",
         "pkg:nuget/Microsoft.Playwright@1.63.0"
       ]
     },
     {
       "ref": "pkg:nuget/AngleSharp.Css@1.1.2",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.3"
+        "pkg:nuget/AngleSharp@1.8.4"
       ]
     },
     {
       "ref": "pkg:nuget/AngleSharp.Diffing@1.1.1",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.3",
+        "pkg:nuget/AngleSharp@1.8.4",
         "pkg:nuget/AngleSharp.Css@1.1.2"
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp@1.8.3",
+      "ref": "pkg:nuget/AngleSharp@1.8.4",
       "dependsOn": []
     },
     {
@@ -4838,7 +4876,7 @@
     {
       "ref": "pkg:nuget/bunit@2.11.3",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.3",
+        "pkg:nuget/AngleSharp@1.8.4",
         "pkg:nuget/AngleSharp.Css@1.1.2",
         "pkg:nuget/AngleSharp.Diffing@1.1.1",
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.12",
@@ -5468,35 +5506,39 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Testing.Extensions.Telemetry@2.3.3",
+      "ref": "pkg:nuget/Microsoft.Testing.Extensions.Telemetry@2.4.1",
       "dependsOn": [
         "pkg:nuget/Microsoft.ApplicationInsights@2.23.0",
-        "pkg:nuget/Microsoft.Testing.Platform@2.3.3"
+        "pkg:nuget/Microsoft.Testing.Platform@2.4.1"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Testing.Extensions.TrxReport.Abstractions@2.3.3",
+      "ref": "pkg:nuget/Microsoft.Testing.Extensions.TrxReport.Abstractions@2.4.1",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Testing.Platform@2.3.3"
+        "pkg:nuget/Microsoft.Testing.Platform@2.4.1"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Testing.Extensions.VSTestBridge@2.3.3",
+      "ref": "pkg:nuget/Microsoft.Testing.Extensions.VSTestBridge@2.4.1",
       "dependsOn": [
         "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.10.1",
-        "pkg:nuget/Microsoft.Testing.Extensions.Telemetry@2.3.3",
-        "pkg:nuget/Microsoft.Testing.Extensions.TrxReport.Abstractions@2.3.3",
-        "pkg:nuget/Microsoft.Testing.Platform@2.3.3"
+        "pkg:nuget/Microsoft.Testing.Extensions.Telemetry@2.4.1",
+        "pkg:nuget/Microsoft.Testing.Extensions.TrxReport.Abstractions@2.4.1",
+        "pkg:nuget/Microsoft.Testing.Platform@2.4.1"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Testing.Platform.MSBuild@2.3.3",
+      "ref": "pkg:nuget/Microsoft.Testing.Platform.MSBuild@2.4.1",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Testing.Platform@2.3.3"
+        "pkg:nuget/Microsoft.Testing.Platform@2.4.1"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Testing.Platform@2.3.3",
+      "ref": "pkg:nuget/Microsoft.Testing.Platform@2.4.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.TestPlatform.AdapterUtilities@18.10.1",
       "dependsOn": []
     },
     {
@@ -5541,15 +5583,16 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/NUnit3TestAdapter@6.3.0",
+      "ref": "pkg:nuget/NUnit3TestAdapter@6.3.1",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.12",
-        "pkg:nuget/Microsoft.Testing.Extensions.VSTestBridge@2.3.3",
-        "pkg:nuget/Microsoft.Testing.Platform.MSBuild@2.3.3"
+        "pkg:nuget/Microsoft.TestPlatform.AdapterUtilities@18.10.1",
+        "pkg:nuget/Microsoft.Testing.Extensions.VSTestBridge@2.4.1",
+        "pkg:nuget/Microsoft.Testing.Platform.MSBuild@2.4.1"
       ]
     },
     {
-      "ref": "pkg:nuget/PuppeteerSharp@25.12.0",
+      "ref": "pkg:nuget/PuppeteerSharp@25.13.1",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Logging@8.0.0",
         "pkg:nuget/Microsoft.IO.RecyclableMemoryStream@3.0.1",
@@ -5558,7 +5601,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Quartz@4.3.0",
+      "ref": "pkg:nuget/Quartz@4.4.0",
       "dependsOn": []
     },
     {
@@ -5577,7 +5620,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Scalar.AspNetCore@2.17.13",
+      "ref": "pkg:nuget/Scalar.AspNetCore@2.17.14",
       "dependsOn": []
     },
     {

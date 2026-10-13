@@ -33,10 +33,12 @@
       {{ fworch_log_dir }} is {{ log_dir_stat.stat.pw_name }}:{{ log_dir_stat.stat.gr_name }}
       {{ log_dir_stat.stat.mode }}, expected {{ fworch_log_owner }}:{{ fworch_log_group }} 0750
 
-- name: find all files in the fworch log directory
+# subdirectories and other files in the log dir are not written by rsyslog and are not checked
+- name: find all log files in the fworch log directory
   find:
     paths: "{{ fworch_log_dir }}"
-    file_type: any
+    patterns: "{{ fworch_log_file_patterns }}"
+    file_type: file
     hidden: true
   register: log_files
   become: true

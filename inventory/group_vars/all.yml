@@ -625,6 +625,11 @@ fworch_log_dir: "/var/log/{{ product_name }}"
 fworch_log_owner: "{{ 'syslog' if ansible_facts['distribution'] == 'Ubuntu' else 'root' }}"
 fworch_log_group: "{{ fworch_group }}"
 fworch_log_file_mode: "0640"
+# the files rsyslog writes to the log dir and their logrotate copies (numbered and dateext naming)
+fworch_log_file_patterns:
+  - "*.log"
+  - "*.log.*"
+  - "*.log-*"
 fworch_log_lock_dir: "/var/{{ product_name }}/lock"
 fworch_mw_lockfile: "{{ fworch_log_lock_dir }}/FWO.Middleware.Server_log.lock"
 fworch_ui_lockfile: "{{ fworch_log_lock_dir }}/FWO.Ui_log.lock"

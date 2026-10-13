@@ -14,15 +14,35 @@
   become: true
   when: fworch_log_owner != 'root'
 
-# also fixes the permissions of log files written by previous versions, including rotated ones
-- name: create log dir for {{ product_name }} and restrict all log files to group {{ fworch_log_group }}
+- name: create log dir for {{ product_name }} accessible to group {{ fworch_log_group }} only
   file:
     path: "{{ fworch_log_dir }}"
     state: directory
-    recurse: true
     owner: "{{ fworch_log_owner }}"
     group: "{{ fworch_log_group }}"
-    mode: "u=rwX,g=rX,o="
+    mode: "0750"
+  become: true
+
+# fixes the permissions of log files written by previous versions, including rotated ones;
+# subdirectories and other files in the log dir are not written by rsyslog and are left alone
+- name: find the log files rsyslog has written to {{ fworch_log_dir }}
+  find:
+    paths: "{{ fworch_log_dir }}"
+    patterns: "{{ fworch_log_file_patterns }}"
+    file_type: file
+    hidden: true
+  register: fworch_existing_log_files
+  become: true
+
+- name: restrict the existing log files to group {{ fworch_log_group }}
+  file:
+    path: "{{ item.path }}"
+    owner: "{{ fworch_log_owner }}"
+    group: "{{ fworch_log_group }}"
+    mode: "{{ fworch_log_file_mode }}"
+  loop: "{{ fworch_existing_log_files.files }}"
+  loop_control:
+    label: "{{ item.path }}"
   become: true
 
 - name: change rsyslog config to receive logs

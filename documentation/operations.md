@@ -19,7 +19,8 @@ All logs are written into the /var/log/fworch directory on the central backend s
 We recommend using a separate partition for logs.
 
 The log files are owned by root (by syslog on Ubuntu, where rsyslog runs as that user) and the group fworch with mode 0640.
-To read them without root privileges, add your user to the fworch group, e.g. `sudo usermod -aG fworch tim`.
+To read them without root privileges, add your user to the fworch group, e.g. `sudo usermod -aG fworch <username>`.
+The new group membership takes effect after logging in again (or in the current shell after `newgrp fworch`).
 
 View multiple logs at once with the following command:
 

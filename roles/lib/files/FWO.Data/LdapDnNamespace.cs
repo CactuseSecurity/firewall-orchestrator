@@ -83,8 +83,9 @@ namespace FWO.Data
         }
 
         /// <summary>
-        /// Finds the active connections whose namespace overlaps the namespace of the given connection,
-        /// i.e. where a path of one connection equals or contains a path of the other one.
+        /// Finds the active connections that share a search or write path with the given connection. A dn below such a
+        /// path belongs to neither connection. Nested paths are no overlap: the more specific path owns its subtree,
+        /// e.g. a connection to a child domain within a connection to the forest root.
         /// </summary>
         /// <param name="candidate">Connection to check, e.g. before it is saved.</param>
         /// <param name="ldaps">The other connections; inactive ones and the candidate itself are ignored.</param>
@@ -98,7 +99,7 @@ namespace FWO.Data
             List<List<string>> candidateRoots = GetNamespaceRoots(candidate);
             return ldaps
                 .Where(ldap => ldap.Active && (candidate.Id <= 0 || ldap.Id != candidate.Id))
-                .Where(ldap => GetNamespaceRoots(ldap).Any(root => candidateRoots.Any(candidateRoot => IsSuffix(root, candidateRoot) || IsSuffix(candidateRoot, root))))
+                .Where(ldap => GetNamespaceRoots(ldap).Any(root => candidateRoots.Any(candidateRoot => root.SequenceEqual(candidateRoot))))
                 .ToList();
         }
 

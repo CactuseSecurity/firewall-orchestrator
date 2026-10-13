@@ -217,8 +217,9 @@ namespace FWO.Middleware.Server.Controllers
                 (LdapEntry? entry, Ldap? ldap) = ldapResults[index];
                 if (entry != null && ldap != null && !LdapDnNamespace.IsOwnedBy(ldaps, ldap.Id, entry.Dn))
                 {
-                    Log.WriteWarning(UserAuthentication, $"Ignoring user dn={entry.Dn} found in ldap id={ldap.Id}: the dn is not within the paths of this connection or is also claimed by ldap id(s) " +
-                        $"{string.Join(", ", LdapDnNamespace.GetClaimingLdapIds(ldaps, entry.Dn).Where(id => id != ldap.Id))}. Make the search and write paths of the active LDAP connections disjoint.");
+                    Log.WriteWarning(UserAuthentication, $"Ignoring user dn={entry.Dn} found in ldap id={ldap.Id}: the dn is not within the paths of this connection, or ldap id(s) " +
+                        $"{string.Join(", ", LdapDnNamespace.GetClaimingLdapIds(ldaps, entry.Dn).Where(id => id != ldap.Id))} claim it with the same or a more specific path. " +
+                        "Give the active LDAP connections distinct paths.");
                     ldapResults[index] = (null, null);
                 }
             }

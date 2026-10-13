@@ -46,13 +46,13 @@ responsibles, workflow visibility groups and workflow assignments refer to users
 9.7.2 (GHSA-695m-f6mv-9g72) every dn therefore belongs to exactly one LDAP connection:
 
 - An active connection owns the subtrees below its paths: user, role and group search paths and the group write
-  path. If paths of two active connections are nested, the more specific path wins; a dn below the same path of two
-  active connections belongs to neither.
-- The paths of an active connection must not equal or contain a path of another active connection. Saving such a
+  path. If paths of two active connections are nested (e.g. the forest root and a child domain), the more specific
+  path wins; a dn below the same path of two active connections belongs to neither.
+- The paths of an active connection must not equal a path of another active connection. Saving such a
   connection is refused (UI message `E5273`, REST `400`). Replicas of one directory are therefore not configured as
-  separate connections but as servers of one connection (see below). Existing overlapping connections are reported as a warning
-  by the upgrade to 9.7.2 and at every start of the middleware; users below an overlapping path can no longer log in
-  until the paths are made disjoint (Settings - LDAP Connections).
+  separate connections but as servers of one connection (see below). Existing connections sharing a path are reported
+  as a warning by the upgrade to 9.7.2 and at every start of the middleware; users below a shared path can no longer
+  log in until the paths are distinct (Settings - LDAP Connections).
 - A user entry or a group whose dn lies outside the paths of the directory that returned it is ignored, so a
   directory cannot claim a dn of another directory.
 - The workflow compares the requester and the handler of a ticket by the local user id, and resolves the group

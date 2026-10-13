@@ -299,7 +299,7 @@
         }
         else
         {
-            deleteMessage = $"Are you sure you want to delete ldapConnection {actLdapConnection.Host()}?";
+            deleteMessage = userConfig.GetText("U5220") + actLdapConnection.Name + "?";
             DeleteMode = true;
         }
     }

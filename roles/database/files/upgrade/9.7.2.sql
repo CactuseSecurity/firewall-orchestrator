@@ -65,9 +65,10 @@ END $$;
 
 -- GHSA-695m-f6mv-9g72 (A): roles, groups, owner responsibles, workflow visibility groups and workflow assignments
 -- refer to subjects by their bare dn, which is unique only inside one directory. Each active LDAP connection now
--- owns the subtrees below its search and write paths; a dn below the paths of two active connections belongs to
--- neither, and its users can no longer log in. Name the overlapping connections, so that their paths can be made
--- disjoint (Settings - LDAP Connections). The comparison ignores case and blanks around separators.
+-- owns the subtrees below its search and write paths, the more specific path winning for nested paths. A dn below
+-- the same path of two active connections belongs to neither, and its users can no longer log in. Name the
+-- connections sharing a path, so that their paths can be made distinct (Settings - LDAP Connections). The
+-- comparison ignores case and blanks around separators.
 DO $$
 DECLARE
     v_overlaps TEXT;
@@ -82,11 +83,9 @@ BEGIN
     INTO v_overlaps
     FROM ldap_path first_path
     JOIN ldap_path second_path ON first_path.ldap_connection_id < second_path.ldap_connection_id
-    WHERE first_path.path = second_path.path
-        OR right(first_path.path, length(second_path.path) + 1) = ',' || second_path.path
-        OR right(second_path.path, length(first_path.path) + 1) = ',' || first_path.path;
+    WHERE first_path.path = second_path.path;
 
     IF v_overlaps IS NOT NULL THEN
-        RAISE WARNING 'ldap_connection: the search or write paths of the active LDAP connection pairs % overlap. Users and groups below an overlapping path can no longer log in or be resolved. Make the paths of the active connections disjoint (Settings - LDAP Connections). Connections to replicas of the same directory have to be combined into one connection listing all of their servers.', v_overlaps;
+        RAISE WARNING 'ldap_connection: the active LDAP connection pairs % share a search or write path. Users and groups below a shared path can no longer log in or be resolved. Give the active connections distinct paths (Settings - LDAP Connections). Connections to replicas of the same directory have to be combined into one connection listing all of their servers.', v_overlaps;
     END IF;
 END $$;

@@ -200,8 +200,8 @@ namespace FWO.Middleware.Server.Controllers
 
         /// <summary>
         /// Validates a connection before it is saved: it needs at least one and at most <see cref="LdapConnectionBase.kMaxServers"/>
-        /// distinct servers, and an active connection must not have search or write paths that equal or contain a path
-        /// of another active connection. Every dn has to belong to exactly one directory, as roles, groups, owner
+        /// distinct servers, and an active connection must not share a search or write path with another active
+        /// connection. Every dn has to belong to exactly one directory, as roles, groups, owner
         /// responsibles and workflow assignments refer to subjects by their bare dn (GHSA-695m-f6mv-9g72); replicas of
         /// one directory are therefore servers of one connection.
         /// </summary>
@@ -223,7 +223,7 @@ namespace FWO.Middleware.Server.Controllers
                 Log.WriteWarning("LDAP Settings", $"Refused to save LDAP connection {candidate.Host()}: its paths overlap those of active connection(s) {overlapText}.");
                 errors.Add(kNamespaceErrorKey, new List<string>
                 {
-                    $"The search and write paths of an active LDAP connection must not equal or contain a path of another active connection. " +
+                    $"An active LDAP connection must not share a search or write path with another active connection. " +
                     $"Connect to replicas of one directory by listing their servers in one connection. Overlapping connection(s): {overlapText}."
                 }.ToArray());
             }

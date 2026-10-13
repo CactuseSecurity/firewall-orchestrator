@@ -187,6 +187,80 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SynchronizeUiUserContext_RefusesWhenTheLocalUserCannotBeLookedUp()
+        {
+            // a failed lookup must not continue as a first login, which would return the stored local user of the dn
+            DirectoryObjectApiConnection apiConnection = new() { FailLookups = true };
+            apiConnection.StoredUsers.Add(StoredUser(kStoredUserId, kDn, kFirstObject));
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await UiUserHandler.SynchronizeUiUserContext(apiConnection, LoginOf(kDn, kSecondObject), bindDirectoryObject: true));
+            Assert.That(apiConnection.UpsertedObjectIds, Is.Empty);
+        }
+
+        [TestCase(0)]
+        [TestCase(kStoredUserId)]
+        public void SynchronizeUiUserContext_RefusesWhenNoLocalUserCanBeAdded(int knownDbId)
+        {
+            // without a local user the token would carry user id 0, the system user holding the global settings
+            DirectoryObjectApiConnection apiConnection = new() { UpsertReturnsNoId = true };
+            UiUser login = LoginOf(kDn, kFirstObject);
+            login.DbId = knownDbId;
+
+            InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await UiUserHandler.SynchronizeUiUserContext(apiConnection, login, bindDirectoryObject: true))!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception.Message, Does.Contain("could not be added"));
+                Assert.That(apiConnection.UpsertedObjectIds, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task WorkflowRecipientResolver_ResolvesTheDnInTheLdapOwningIt()
+        {
+            // the broader connection is listed first, but the more specific one owns the dn
+            DirectoryObjectApiConnection apiConnection = new();
+            RecordingLdapClient broadDirectory = CreateDirectoryWithSecondHolder();
+            TestableLdap broadLdap = CreateLdap(broadDirectory);
+            broadLdap.Id = kLdapId + 1;
+            broadLdap.UserSearchPath = "dc=example,dc=com";
+            List<Ldap> ldaps = [broadLdap, CreateLdap(CreateDirectoryWithSecondHolder())];
+            List<string> recipientDns = [kDn];
+            WorkflowRecipientResolver resolver = new(apiConnection, ldaps);
+
+            List<UiUser> recipients = await resolver.ResolveUsers(recipientDns);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(recipients.Select(user => user.LdapConnection.Id), Is.EqualTo(new List<int> { kLdapId }));
+                Assert.That(recipients[0].DirectoryObjectId, Is.EqualTo(kSecondObject));
+                Assert.That(broadDirectory.ReadCalls, Is.Empty);
+                Assert.That(apiConnection.UpsertedObjectIds, Is.EqualTo(new List<string?> { kSecondObject }));
+            });
+        }
+
+        [Test]
+        public async Task WorkflowRecipientResolver_DoesNotOverwriteALocalUserBoundToAnotherEntry()
+        {
+            DirectoryObjectApiConnection apiConnection = new();
+            apiConnection.StoredUsers.Add(StoredUser(kStoredUserId, kDn, kFirstObject));
+            List<Ldap> ldaps = [CreateLdap(CreateDirectoryWithSecondHolder())];
+            List<string> recipientDns = [kDn];
+            WorkflowRecipientResolver resolver = new(apiConnection, ldaps);
+
+            List<UiUser> recipients = await resolver.ResolveUsers(recipientDns);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(recipients, Has.Count.EqualTo(1));
+                Assert.That(recipients[0].DbId, Is.Zero);
+                Assert.That(apiConnection.UpsertedObjectIds, Is.Empty, "the local user of the former holder keeps its data");
+            });
+        }
+
+        [Test]
         public void AuthenticateAndBuildUser_DoesNotHandTheLocalUserOfADeletedAccountToTheNextHolderOfItsDn()
         {
             // A logged in with dn uid=x and object G1; A was deleted and B was created with the same dn and object G2
@@ -281,6 +355,8 @@ namespace FWO.Test
             public List<int> RevokedUserIds { get; } = [];
             public List<string?> UpsertedObjectIds { get; } = [];
             public int RefreshTokenUserId { get; set; }
+            public bool FailLookups { get; set; }
+            public bool UpsertReturnsNoId { get; set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
@@ -290,6 +366,10 @@ namespace FWO.Test
 
             private object? Answer(string query, object? variables, Type resultType)
             {
+                if (FailLookups && (query == AuthQueries.getUserByDirectoryObjectId || query == AuthQueries.getUserByDn))
+                {
+                    throw new InvalidOperationException("permission denied for uiuser");
+                }
                 if (query == AuthQueries.getUserByDirectoryObjectId)
                 {
                     return StoredUsers.Where(user => user.LdapConnection.Id == Variable<long>(variables, "ldapConnectionId")
@@ -329,7 +409,7 @@ namespace FWO.Test
                 if (query == AuthQueries.upsertUiUser)
                 {
                     UpsertedObjectIds.Add(Variable<string>(variables, "directoryObjectId"));
-                    return new ReturnIdWrapper { ReturnIds = [new ReturnId { NewId = kNewUserId }] };
+                    return UpsertReturnsNoId ? new ReturnIdWrapper() : new ReturnIdWrapper { ReturnIds = [new ReturnId { NewId = kNewUserId }] };
                 }
                 if (query == AuthQueries.updateUserLastLogin)
                 {

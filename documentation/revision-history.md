@@ -6,9 +6,9 @@
     specific path wins). Roles, groups, owner responsibles, workflow visibility groups and workflow assignments
     naming a dn therefore only apply to the user of that connection. User entries and groups that a directory reports
     outside its own paths are ignored
-  - the paths of active LDAP connections must not overlap; saving an overlapping connection is refused. The upgrade
-    and the middleware start log a warning for existing overlapping connections, whose users below the overlapping
-    paths can no longer log in until the paths are made disjoint
+  - active LDAP connections must not share a search or write path (nested paths are allowed, the more specific
+    one wins); saving such a connection is refused. The upgrade and the middleware start log a warning for existing
+    connections sharing a path, whose users below that path can no longer log in until the paths are distinct
   - an LDAP connection lists up to 10 servers of its directory (ldap_server becomes an array, the REST parameter
     Address becomes the list Addresses), tried in order with failover. Replicas that were configured as separate
     connections have to be combined into one connection

@@ -366,8 +366,8 @@ namespace FWO.Middleware.Server
             {
                 using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
 
-                // Try to read user entry directly
-                return await connection.ReadAsync(distinguishedName);
+                // Try to read user entry directly, including the immutable id that binds it to its local user
+                return await connection.ReadAsync(distinguishedName, LdapDirectoryObjectId.BuildUserAttributeList(), CancellationToken.None);
             }
             catch (LdapException ldapException)
             {

@@ -164,7 +164,7 @@ namespace FWO.Test
             {
                 Assert.That(messages, Is.Empty);
                 Assert.That(GetMember<bool>(component, "DeleteMode"), Is.True);
-                Assert.That(GetMember<string>(component, "deleteMessage"), Does.Contain("ldap-remove.example.org"));
+                Assert.That(GetMember<string>(component, "deleteMessage"), Does.StartWith("U5220").And.Contain("ldap-remove"));
             });
         }
 

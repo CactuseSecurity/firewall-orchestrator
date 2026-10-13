@@ -432,8 +432,9 @@ namespace FWO.Test
             {
                 Users = [CreateUser(42)]
             };
+            List<Ldap> ldaps = [new Ldap { Id = kUserLdapId }];
             UserController controller = CreateController(
-                [new Ldap { Id = kUserLdapId }],
+                ldaps,
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -571,8 +572,9 @@ namespace FWO.Test
             RecordingLdapClient ownClient = new();
             RecordingLdapClient otherClient = new();
             UserControllerTestApiConnection apiConnection = new() { Users = [CreateUser(42)] };
+            List<Ldap> ldaps = [CreateWritableLdap(kUserLdapId, ownClient), CreateWritableLdap(kOtherLdapId, otherClient, kOtherUserSearchPath)];
             UserController controller = CreateController(
-                [CreateWritableLdap(kUserLdapId, ownClient), CreateWritableLdap(kOtherLdapId, otherClient, kOtherUserSearchPath)],
+                ldaps,
                 apiConnection,
                 CreatePrincipal(42));
 
@@ -599,8 +601,9 @@ namespace FWO.Test
             RecordingLdapClient ownClient = new();
             RecordingLdapClient otherClient = new();
             UserControllerTestApiConnection apiConnection = new() { Users = [CreateUser(42)] };
+            List<Ldap> ldaps = [CreateWritableLdap(kOtherLdapId, otherClient, kOtherUserSearchPath), CreateWritableLdap(kUserLdapId, ownClient)];
             UserController controller = CreateController(
-                [CreateWritableLdap(kOtherLdapId, otherClient, kOtherUserSearchPath), CreateWritableLdap(kUserLdapId, ownClient)],
+                ldaps,
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -623,8 +626,9 @@ namespace FWO.Test
         {
             RecordingLdapClient otherClient = new();
             UserControllerTestApiConnection apiConnection = new() { Users = [CreateUser(42)] };
+            List<Ldap> ldaps = [CreateWritableLdap(kUserLdapId, new RecordingLdapClient()), CreateWritableLdap(kOtherLdapId, otherClient, kOtherUserSearchPath)];
             UserController controller = CreateController(
-                [CreateWritableLdap(kUserLdapId, new RecordingLdapClient()), CreateWritableLdap(kOtherLdapId, otherClient, kOtherUserSearchPath)],
+                ldaps,
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -649,8 +653,9 @@ namespace FWO.Test
             RecordingLdapClient ownClient = new();
             RecordingLdapClient otherClient = new();
             UserControllerTestApiConnection apiConnection = new() { Users = [CreateUser(42)] };
+            List<Ldap> ldaps = [CreateWritableLdap(kOtherLdapId, otherClient, kOtherUserSearchPath), CreateWritableLdap(kUserLdapId, ownClient)];
             UserController controller = CreateController(
-                [CreateWritableLdap(kOtherLdapId, otherClient, kOtherUserSearchPath), CreateWritableLdap(kUserLdapId, ownClient)],
+                ldaps,
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -670,8 +675,9 @@ namespace FWO.Test
             RecordingLdapClient firstClient = new();
             RecordingLdapClient secondClient = new();
             UserControllerTestApiConnection apiConnection = new();
+            List<Ldap> ldaps = [CreateWritableLdap(kUserLdapId, firstClient), CreateWritableLdap(kOtherLdapId, secondClient, kOtherUserSearchPath)];
             UserController controller = CreateController(
-                [CreateWritableLdap(kUserLdapId, firstClient), CreateWritableLdap(kOtherLdapId, secondClient, kOtherUserSearchPath)],
+                ldaps,
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -696,8 +702,9 @@ namespace FWO.Test
         {
             RecordingLdapClient ldapClient = new();
             UserControllerTestApiConnection apiConnection = new();
+            List<Ldap> ldaps = [CreateWritableLdap(kOtherLdapId, ldapClient, kOtherUserSearchPath)];
             UserController controller = CreateController(
-                [CreateWritableLdap(kOtherLdapId, ldapClient, kOtherUserSearchPath)],
+                ldaps,
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 

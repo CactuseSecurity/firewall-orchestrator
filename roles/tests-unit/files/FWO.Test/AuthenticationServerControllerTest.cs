@@ -288,12 +288,12 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task PostAsync_RejectsPathsOverlappingAnActiveConnection()
+        public async Task PostAsync_RejectsAPathOfAnotherActiveConnection()
         {
             List<MiddlewareLdap> ldaps = [BuildLdap(7, kInternalUserPath)];
             AuthenticationServerControllerTestApiConnection apiConnection = new();
             AuthenticationServerController controller = new(apiConnection, ldaps);
-            LdapGetUpdateParameters overlapping = BuildUpdateParameters(0, kInternalSubtreePath);
+            LdapGetUpdateParameters overlapping = BuildUpdateParameters(0, kInternalUserPath.ToUpperInvariant());
 
             ActionResult<int> result = await controller.PostAsync(overlapping);
 
@@ -304,6 +304,21 @@ namespace FWO.Test
                 Assert.That(ldaps, Has.Count.EqualTo(1));
                 Assert.That(apiConnection.QueryCount, Is.Zero);
             });
+        }
+
+        [Test]
+        public async Task PostAsync_AcceptsAPathNestedInAnotherActiveConnection()
+        {
+            List<MiddlewareLdap> ldaps = [BuildLdap(7, kInternalUserPath)];
+            AuthenticationServerControllerTestApiConnection apiConnection = new()
+            {
+                NewConnectionResult = new ReturnIdWrapper { ReturnIds = kNewIdEight }
+            };
+            AuthenticationServerController controller = new(apiConnection, ldaps);
+
+            ActionResult<int> result = await controller.PostAsync(BuildUpdateParameters(0, kInternalSubtreePath));
+
+            Assert.That(result.Value, Is.EqualTo(8));
         }
 
         [Test]

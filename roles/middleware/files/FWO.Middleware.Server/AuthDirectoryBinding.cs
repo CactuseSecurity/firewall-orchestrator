@@ -83,7 +83,7 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Warns about active connections whose paths overlap. Users and groups below an overlapping path are
+        /// Warns about active connections that share a search or write path. Users and groups below a shared path are
         /// claimed by more than one directory and therefore refused, see <see cref="LdapDnNamespace"/>.
         /// </summary>
         /// <param name="ldaps">All connected LDAPs.</param>
@@ -97,9 +97,9 @@ namespace FWO.Middleware.Server
                 if (overlappingLdaps.Count > 0)
                 {
                     overlappingCount++;
-                    Log.WriteWarning(kLogTitle, $"The paths of LDAP connection id={ldap.Id} ({ldap.Host()}) overlap those of connection id(s) " +
-                        $"{string.Join(", ", overlappingLdaps.Select(other => other.Id))}. Users and groups below an overlapping path cannot log in or be resolved " +
-                        "until the search and write paths of the active connections are made disjoint.");
+                    Log.WriteWarning(kLogTitle, $"LDAP connection id={ldap.Id} ({ldap.Host()}) shares a search or write path with connection id(s) " +
+                        $"{string.Join(", ", overlappingLdaps.Select(other => other.Id))}. Users and groups below a shared path cannot log in or be resolved " +
+                        "until the active connections have distinct paths. Replicas of one directory belong into the server list of one connection.");
                 }
             }
             return overlappingCount;

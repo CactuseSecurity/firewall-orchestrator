@@ -118,7 +118,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetOverlappingLdaps_FindsEqualAndNestedPaths()
+        public void GetOverlappingLdaps_FindsEqualPathsButNotNestedOnes()
         {
             LdapConnectionBase internalLdap = CreateInternal();
             LdapConnectionBase equalPaths = CreateExternal();
@@ -132,7 +132,8 @@ namespace FWO.Test
 
             List<LdapConnectionBase> overlapping = LdapDnNamespace.GetOverlappingLdaps(internalLdap, others);
 
-            Assert.That(overlapping.Select(ldap => ldap.Id), Is.EqualTo(new List<int> { kExternalId, 3 }));
+            // the broader path is no overlap: the more specific internal paths own their subtrees
+            Assert.That(overlapping.Select(ldap => ldap.Id), Is.EqualTo(new List<int> { kExternalId }));
         }
 
         [Test]

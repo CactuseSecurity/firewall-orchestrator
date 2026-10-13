@@ -27,6 +27,8 @@
   and id with the targets without name last, and limits the name filter to 256 characters; the ui reads every page
 
 ## 9.7.1 - 09.10.2026
+- installer: show a summary of elapsed task time per role at the end of the playbook, longest first;
+  repeated executions of the same role are combined, including handlers
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
   configurable with one switch per connection type, validated against the host trust store:
   - firewall connections (importCheckCertificates): now also covers autodiscovery and Check Point change

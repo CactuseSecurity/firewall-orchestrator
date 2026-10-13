@@ -161,6 +161,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public void MonitorEmailLog_EscapesErrorLikeWildcards()
+        {
+            MonitorTestApiConn apiConn = RenderApiConn();
+
+            using TestSetup<MonitorEmailLog> setup = RenderComponent<MonitorEmailLog>(apiConn);
+
+            SetPrivateField(setup.Component, "errorFilter", "folder_100%\\done");
+            MethodInfo buildWhereFilter = setup.Component.GetType().GetMethod("BuildWhereFilter", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            Dictionary<string, object> where = (Dictionary<string, object>)buildWhereFilter.Invoke(setup.Component, null)!;
+
+            Assert.That(GetFilterValue(where, "error"), Is.EqualTo("%folder\\_100\\%\\\\done%"));
+        }
+
+        [Test]
         public async Task MonitorEmailLog_PaginatesAndUpdatesPageSize()
         {
             MonitorTestApiConn apiConn = RenderApiConn();

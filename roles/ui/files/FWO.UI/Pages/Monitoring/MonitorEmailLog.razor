@@ -197,8 +197,14 @@ else
         }
         if (!string.IsNullOrWhiteSpace(errorFilter))
         {
-            where["error"] = new Dictionary<string, object> { ["_ilike"] = $"%{errorFilter.Trim()}%" };
+            string escapedErrorFilter = EscapeLikePattern(errorFilter.Trim());
+            where["error"] = new Dictionary<string, object> { ["_ilike"] = $"%{escapedErrorFilter}%" };
         }
         return where.Count > 0 ? where : null;
+    }
+
+    private static string EscapeLikePattern(string value)
+    {
+        return value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
     }
 }

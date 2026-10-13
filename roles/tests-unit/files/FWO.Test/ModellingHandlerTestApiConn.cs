@@ -29,6 +29,12 @@ namespace FWO.Test
         public int AddNwObjectCalls { get; private set; }
         public int RemoveNwObjectCalls { get; private set; }
         public bool FailUpdateAppRole { get; set; }
+        public bool FailNewAppRole { get; set; }
+
+        /// <summary>
+        /// Number of the call adding an app server to an app role which fails (counting from 1), 0 if none fails.
+        /// </summary>
+        public int FailingAddNwObjectCall { get; set; }
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
@@ -41,7 +47,15 @@ namespace FWO.Test
             if (responseType == typeof(ReturnIdWrapper) && query == ModellingQueries.newAppRole)
             {
                 NewAppRoleCalls++;
+                if (FailNewAppRole)
+                {
+                    throw new InvalidOperationException("simulated insert failure");
+                }
                 return Respond<QueryResponseType>(CreateNewAppRoleWrapper());
+            }
+            if (responseType == typeof(ReturnIdWrapper) && query == ModellingQueries.addHistoryEntry)
+            {
+                return Respond<QueryResponseType>(new ReturnIdWrapper());
             }
             if (responseType == typeof(ReturnId))
             {
@@ -108,6 +122,10 @@ namespace FWO.Test
             else if (query == ModellingQueries.addNwObjectToNwGroup)
             {
                 AddNwObjectCalls++;
+                if (AddNwObjectCalls == FailingAddNwObjectCall)
+                {
+                    throw new InvalidOperationException("simulated assignment failure");
+                }
             }
             else if (query == ModellingQueries.removeNwObjectFromNwGroup)
             {

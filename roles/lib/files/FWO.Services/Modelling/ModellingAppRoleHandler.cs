@@ -141,6 +141,7 @@ namespace FWO.Services.Modelling
 
         /// <summary>
         /// Persists the app role. Users who may only try out the dialog (IsOwner not set) are rejected.
+        /// If writing fails, the changes not yet written stay queued, so that saving can be retried.
         /// </summary>
         /// <returns>True if the app role has been saved.</returns>
         public async Task<bool> Save()
@@ -158,24 +159,12 @@ namespace FWO.Services.Modelling
                 }
                 if (await CheckAppRole())
                 {
-                    foreach (ModellingAppServer appServer in AppServerToDelete)
+                    bool saved = AddMode ? await AddAppRoleToDb(Application.Id) : await UpdateAppRoleInDb();
+                    if (saved)
                     {
-                        ActAppRole.AppServers.Remove(ActAppRole.AppServers.FirstOrDefault(x => x.Content.Id == appServer.Id) ?? throw new KeyNotFoundException("Did not find app server."));
+                        CleanUp();
                     }
-                    foreach (ModellingAppServer appServer in AppServerToAdd)
-                    {
-                        ActAppRole.AppServers.Add(new ModellingAppServerWrapper() { Content = appServer });
-                    }
-                    if (AddMode)
-                    {
-                        await AddAppRoleToDb(Application.Id);
-                    }
-                    else if (await UpdateAppRoleInDb())
-                    {
-                        ApplySavedChangesToOrigAppRole();
-                    }
-                    CleanUp();
-                    return true;
+                    return saved;
                 }
             }
             catch (Exception exception)
@@ -256,8 +245,15 @@ namespace FWO.Services.Modelling
             return aRNumber.ToString($"D{NamingConvention.FreePartLength}");
         }
 
-        private async Task AddAppRoleToDb(int? appId)
+        /// <summary>
+        /// Creates the app role and assigns its app servers in the database.
+        /// </summary>
+        /// <param name="appId">the owning application, null for the dummy app role</param>
+        /// <returns>True if the app role has been created. Saving again would create it a second time, so it is then
+        /// registered with the app servers actually assigned, even if assigning the others failed (error displayed).</returns>
+        private async Task<bool> AddAppRoleToDb(int? appId)
         {
+            ReturnId[]? returnIds;
             try
             {
                 var Variables = new
@@ -268,37 +264,44 @@ namespace FWO.Services.Modelling
                     comment = ActAppRole.Comment,
                     creator = userConfig.User.Name
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppRole, Variables)).ReturnIds;
-                if (returnIds != null)
-                {
-                    ActAppRole.Id = returnIds[0].NewIdLong;
-                    await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
-                        $"New App Role: {ActAppRole.Display()}", Application.Id);
-                    foreach (ModellingAppServerWrapper appServer in ActAppRole.AppServers)
-                    {
-                        var Vars = new
-                        {
-                            nwObjectId = appServer.Content.Id,
-                            nwGroupId = ActAppRole.Id
-                        };
-                        await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
-                        await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
-                            $"Added App Server {appServer.Content.Display()} to App Role: {ActAppRole.Display()}", Application.Id);
-                    }
-                    ActAppRole.Creator = userConfig.User.Name;
-                    ActAppRole.CreationDate = DateTime.Now;
-                    AppRoles.Add(ActAppRole);
-                    AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppRole, ActAppRole.Id));
-                }
+                returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.newAppRole, Variables)).ReturnIds;
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("add_app_role"), "", true);
+                return false;
             }
+            if (returnIds == null || returnIds.Length == 0)
+            {
+                return false;
+            }
+            ActAppRole.Id = returnIds[0].NewIdLong;
+            await LogChange(ModellingTypes.ChangeType.Insert, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
+                $"New App Role: {ActAppRole.Display()}", Application.Id);
+            QueueAllAppServersForAssignment();
+            await WriteAppServerChanges("add_app_role");
+            ActAppRole.Creator = userConfig.User.Name;
+            ActAppRole.CreationDate = DateTime.Now;
+            AppRoles.Add(ActAppRole);
+            AvailableNwElems.Add(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppRole, ActAppRole.Id));
+            return true;
+        }
+
+        /// <summary>
+        /// A new app role has no app servers assigned in the database yet, so all of its app servers are queued for adding.
+        /// </summary>
+        private void QueueAllAppServersForAssignment()
+        {
+            List<ModellingAppServer> selectedAppServers = [.. ModellingAppServerWrapper.Resolve(ActAppRole.AppServers)
+                .Where(appServer => !AppServerToDelete.Exists(toDelete => toDelete.Id == appServer.Id))];
+            AppServerToAdd = [.. selectedAppServers, .. AppServerToAdd];
+            AppServerToDelete = [];
+            ActAppRole.AppServers = [];
         }
 
         /// <summary>
         /// Updates the edited app role and its app server assignments in the database.
+        /// Whatever has been written is transferred to the app role shown elsewhere, even if a later step fails.
         /// </summary>
         /// <returns>True if all changes have been written without error.</returns>
         private async Task<bool> UpdateAppRoleInDb()
@@ -314,27 +317,43 @@ namespace FWO.Services.Modelling
                     comment = ActAppRole.Comment
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateAppRole, Variables);
-                await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
-                    $"Updated App Role: {ActAppRole.Display()}", Application.Id);
-                foreach (ModellingAppServer appServer in AppServerToDelete)
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("edit_app_role"), "", true);
+                return false;
+            }
+            OrigId = new(ActAppRole.ManagedIdString);
+            await LogChange(ModellingTypes.ChangeType.Update, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
+                $"Updated App Role: {ActAppRole.Display()}", Application.Id);
+            bool allWritten = await WriteAppServerChanges("edit_app_role");
+            ApplySavedChangesToOrigAppRole();
+            return allWritten;
+        }
+
+        /// <summary>
+        /// Writes the queued app server changes. Each written change is moved from its queue into the app role,
+        /// so that after a failure the app role matches the database and only the missing changes are written again.
+        /// </summary>
+        /// <param name="titleKey">text key of the title of a failure message</param>
+        /// <returns>True if all queued changes have been written without error.</returns>
+        private async Task<bool> WriteAppServerChanges(string titleKey)
+        {
+            try
+            {
+                foreach (ModellingAppServer appServer in AppServerToDelete.ToList())
                 {
-                    var Vars = new
-                    {
-                        nwObjectId = appServer.Id,
-                        nwGroupId = ActAppRole.Id
-                    };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwObjectFromNwGroup, Vars);
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.removeNwObjectFromNwGroup, new { nwObjectId = appServer.Id, nwGroupId = ActAppRole.Id });
+                    ActAppRole.AppServers.RemoveAll(wrapper => wrapper.Content.Id == appServer.Id);
+                    AppServerToDelete.Remove(appServer);
                     await LogChange(ModellingTypes.ChangeType.Unassign, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"Removed App Server {appServer.Display()} from App Role: {ActAppRole.Display()}", Application.Id);
                 }
-                foreach (ModellingAppServer appServer in AppServerToAdd)
+                foreach (ModellingAppServer appServer in AppServerToAdd.ToList())
                 {
-                    var Vars = new
-                    {
-                        nwObjectId = appServer.Id,
-                        nwGroupId = ActAppRole.Id
-                    };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, Vars);
+                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.addNwObjectToNwGroup, new { nwObjectId = appServer.Id, nwGroupId = ActAppRole.Id });
+                    ActAppRole.AppServers.Add(new ModellingAppServerWrapper() { Content = appServer });
+                    AppServerToAdd.Remove(appServer);
                     await LogChange(ModellingTypes.ChangeType.Assign, ModellingTypes.ModObjectType.AppRole, ActAppRole.Id,
                         $"Added App Server {appServer.Display()} to App Role: {ActAppRole.Display()}", Application.Id);
                 }
@@ -342,7 +361,7 @@ namespace FWO.Services.Modelling
             }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("edit_app_role"), "", true);
+                DisplayMessageInUi(exception, userConfig.GetText(titleKey), "", true);
                 return false;
             }
         }
@@ -359,7 +378,8 @@ namespace FWO.Services.Modelling
             OrigAppRole.Name = ActAppRole.Name;
             OrigAppRole.ManagedIdString = new(ActAppRole.ManagedIdString);
             OrigAppRole.Comment = ActAppRole.Comment;
-            OrigAppRole.AppServers = ActAppRole.AppServers;
+            // a copy: after a failure the dialog stays open and keeps changing its own list
+            OrigAppRole.AppServers = [.. ActAppRole.AppServers];
             OrigAppRole.Area = ActAppRole.Area;
         }
 

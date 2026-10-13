@@ -5,6 +5,8 @@
   - saving stays restricted to owning modellers: the save button is disabled and saving is rejected as well
   - deleting app roles stays restricted to owning modellers
 - modelling: cancelled changes in the edit dialog of an app role no longer show up in the library until the page is reloaded
+- modelling: if saving an app role fails, the dialog stays open with the changes not yet written, so saving can be retried;
+  the library shows what has already been written
 - update NuGet packages: Quartz 4.4.0, PuppeteerSharp 25.13.1, Scalar.AspNetCore 2.17.14, AngleSharp 1.8.4,
   NUnit3TestAdapter 6.3.1; regenerate SBOM
 - implementation tasks of object tasks are created per target management

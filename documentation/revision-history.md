@@ -1,10 +1,33 @@
 # Firewall Orchestrator Revision History
 
-## 9.7.2 - 12.10.2026
+## 9.7.2 - 13.10.2026
 - extend hierarchical provisioning configuration for Guardicore: object creation, modelling naming, app-zone and network-area switches, dynamic IP labels, rule implementation and planning overrides
 - migrate provisioning key names and option values; privately back up old overrides before enforcing the revised scope restrictions (see developer documentation on provisioning settings)
+- update NuGet packages: Quartz 4.4.0, PuppeteerSharp 25.13.1, Scalar.AspNetCore 2.17.14, AngleSharp 1.8.4,
+  NUnit3TestAdapter 6.3.1; regenerate SBOM
+- implementation tasks of object tasks are created per target management
+  (group create/modify/delete, object create/modify). The target management follows the provisioning settings
+  address/service object creation (super- or sub-management); request.impltask gets the new column mgm_id
+- new workflow action "create implementation tasks" creates the missing implementation tasks of a ticket, also
+  with an active planning phase; existing implementation tasks are kept
+- the path analysis algorithm moved to the workflow customizing settings; "after path analysis" without an algorithm
+  shows a hint, saving stays possible
+- fix: implementation tasks of rule_delete tasks take the gateway of the rule element instead of the first element,
+  so rule deletions from the modelling no longer get an implementation task without gateway
+- the target managements of object tasks are resolved in the middleware (new endpoint
+  POST /api/workflow/getImplTaskTargets for admin, the workflow roles and the modeller, limited to the managements
+  visible to the caller), so the ui finds every sub-management without read access to the provisioning settings;
+  the targets are resolved once per creation run; targets not visible to the caller are returned without name, so
+  their implementation tasks get no management suffix in the title
+- the implementation task table and the details of group and object implementation tasks show the target management
+  ("not visible" for managements hidden from the user)
+- getImplTaskTargets carries the expensive rate-limit policy and a request body size limit, pages its result with
+  options.limit (default and maximum 1000) / options.offset and the X-Has-More header, orders the targets by name
+  and id with the targets without name last, and limits the name filter to 256 characters; the ui reads every page
 
 ## 9.7.1 - 09.10.2026
+- installer: show a summary of elapsed task time per role at the end of the playbook, longest first;
+  repeated executions of the same role are combined, including handlers
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
   configurable with one switch per connection type, validated against the host trust store:
   - firewall connections (importCheckCertificates): now also covers autodiscovery and Check Point change

@@ -153,6 +153,25 @@
                 <input id="cbx_consider_bundling" type="checkbox" @bind="configData!.ReqConsiderBundling">
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5580"))">
+            <label for="pathAnalysisAlgorithm" class="col-form-label col-sm-3">@(userConfig.GetText("path_analysis_algorithm")):</label>
+            <div class="col-sm-3">
+                <select id="pathAnalysisAlgorithm" class="form-select form-select-sm" @bind="configData!.PathAnalysisAlgorithm">
+                    @foreach (PathAnalysisAlgorithm algorithm in pathAnalysisAlgorithms)
+                    {
+                        <option value="@algorithm.Id">@algorithm.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+        @if (!IsPathAnalysisSelectionValid())
+        {
+            <div class="form-group row">
+                <div class="col-sm-9 offset-sm-3">
+                    <span class="text-warning"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5504"))</span>
+                </div>
+            </div>
+        }
     </form>
 
     <hr />
@@ -200,6 +219,7 @@ else
 
     private List<WfPriority> prioList = [];
     private int? selectedApiTicketInitialStateId;
+    private List<PathAnalysisAlgorithm> pathAnalysisAlgorithms = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -222,6 +242,7 @@ else
                 taskTypesActiveDict.Add(type, availableTaskTypes.Contains(type));
             }
             prioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(configData.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
+            pathAnalysisAlgorithms = await apiConnection.SendQueryAsync<List<PathAnalysisAlgorithm>>(PathAnalysisAlgorithmQueries.getPathAnalysisAlgorithms) ?? [];
             InitComplete = true;
         }
         catch (Exception exception)
@@ -276,6 +297,21 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+    /// <summary>
+    /// Checks that the automatic creation after path analysis has a path analysis algorithm to work with.
+    /// </summary>
+    /// <remarks>
+    /// Only drives a hint, saving stays possible: the workflow still runs the routing based path analysis,
+    /// so the algorithm has no effect yet, and installations upgraded with "after path analysis" carry the
+    /// default None.
+    /// </remarks>
+    private bool IsPathAnalysisSelectionValid()
+    {
+        return configData == null
+            || configData.ReqAutoCreateImplTasks != AutoCreateImplTaskOptions.afterPathAnalysis
+            || configData.PathAnalysisAlgorithm != GlobalConst.kPathAnalysisAlgorithmNone;
     }
 
     private void ValidateApiTicketInitialStateSelection()

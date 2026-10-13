@@ -174,7 +174,7 @@
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5116"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("readonly_credential_mgm"))*:</label>
                         <div class="col-sm-8">
-                            <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ImportCredential" Elements="credentials">
+                            <Dropdown ElementType="Credential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ImportCredential" Elements="credentials">
                                 <ElementTemplate Context="cred">
                                     @cred.Name
                                 </ElementTemplate>
@@ -184,7 +184,7 @@
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5117"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_credential")):</label>
                         <div class="col-sm-8">
-                            <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ExportCredential" Elements="credentials" Nullable="true" NoneSelectedText="">
+                            <Dropdown ElementType="Credential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ExportCredential" Elements="credentials" Nullable="true" NoneSelectedText="">
                                 <ElementTemplate Context="cred">
                                     @cred.Name
                                 </ElementTemplate>
@@ -286,7 +286,7 @@
     private List<Management> managements = [];
     private List<Management> sampleManagements = [];
     private List<DeviceType> deviceTypes = [];
-    private List<ImportCredential> credentials = [];
+    private List<Credential> credentials = [];
 
     private ITable<Management>? table;
 
@@ -350,11 +350,11 @@
 
             if (jwt.ContainsAllowedRole(Roles.Admin))
             {
-                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
+                credentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentials);
             }
             else
             {
-                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentialsWithoutSecrets);
+                credentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentialsWithoutSecrets);
             }
         }
         catch (System.Exception exception)
@@ -449,7 +449,7 @@
         newManagement = new Management()
         {
             DeviceType = deviceTypes.Count > 0 ? deviceTypes.First() : new DeviceType(), 
-            ImportCredential = credentials.Count > 0 ? credentials.First() : new ImportCredential()
+            ImportCredential = credentials.Count > 0 ? credentials.First() : new Credential()
         };
         Edit(newManagement);
     }

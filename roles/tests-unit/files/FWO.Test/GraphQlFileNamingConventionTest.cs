@@ -24,7 +24,6 @@ namespace FWO.Test
             "compliance/updateViolationById.graphql",
             "config/deleteCustomText.graphql",
             "config/getTexts.graphql",
-            "device/deleteCredential.graphql",
             "device/deleteDevice.graphql",
             "device/deleteManagement.graphql",
             "device/fragments/importCredentials.graphql",

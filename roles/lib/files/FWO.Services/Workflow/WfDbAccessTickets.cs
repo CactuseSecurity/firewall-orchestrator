@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Api.Client.Queries;
 using System.Linq;
 using FWO.Data;
@@ -11,11 +12,21 @@ namespace FWO.Services.Workflow
 {
     public partial class WfDbAccess
     {
+        private const string kInitialActionsFailedText = "Initial workflow actions failed";
+
         /// <summary>
         /// Persists a newly created ticket and triggers the initial workflow actions.
         /// </summary>
-        public async Task<WfTicket> AddTicketToDb(WfTicket ticket)
+        /// <returns>
+        /// The ticket (with id 0 only if it was not saved) and whether its initial workflow actions failed. A failure
+        /// of the actions does not undo the saved ticket; it is shown, logged, raised as alert and recorded in the
+        /// ticket's change history, and returned so that callers do not report the creation as a plain success.
+        /// A ticket that was saved but could not be read back keeps its new id and is reported with failed initial
+        /// actions (which are not executed then), so that a caller does not create it a second time.
+        /// </returns>
+        public async Task<WfTicketCreationResult> AddTicketToDb(WfTicket ticket)
         {
+            long newTicketId = 0;
             try
             {
                 // Callers may supply either plain IP strings or parsed CIDRs. Deriving the CIDRs first makes sure
@@ -31,18 +42,35 @@ namespace FWO.Services.Workflow
                 if (returnIds == null)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8001"), true);
-                    return ticket;
+                    return new WfTicketCreationResult(ticket, false);
                 }
 
+                newTicketId = returnIds[0].NewIdLong;
                 int newStateId = ticket.StateId;
-                ticket = await GetTicket(returnIds[0].NewIdLong);
+                WfTicket savedTicket = await GetTicket(newTicketId);
+                if (savedTicket.Id != newTicketId)
+                {
+                    return await SavedWithoutInitialActions(ticket, newTicketId, null);
+                }
+                ticket = savedTicket;
                 await LogCreatedRequestTasks(ticket);
                 ticket.MarkCreatedStateChanged(newStateId);
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
-                return ticket;
+                if (newTicketId <= 0)
+                {
+                    return new WfTicketCreationResult(ticket, false);
+                }
+                if (ticket.Id == newTicketId)
+                {
+                    // read back completely, but failed while preparing the initial actions
+                    Log.WriteError("Create Request", $"Preparing the initial workflow actions of ticket {newTicketId} failed.", exception);
+                    await RecordInitialActionsFailure(ticket, exception);
+                    return new WfTicketCreationResult(ticket, true);
+                }
+                return await SavedWithoutInitialActions(ticket, newTicketId, exception);
             }
 
             try
@@ -54,9 +82,41 @@ namespace FWO.Services.Workflow
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
                 Log.WriteError("Create Request", "Workflow actions failed while creating the request ticket.", exception);
+                await RecordInitialActionsFailure(ticket, exception);
+                return new WfTicketCreationResult(ticket, true);
             }
 
-            return ticket;
+            return new WfTicketCreationResult(ticket, false);
+        }
+
+        /// <summary>
+        /// Reports a ticket that was saved but could not be read back: it keeps its new id, so that callers report it
+        /// as saved instead of creating it again, and its initial workflow actions are not executed on the incomplete
+        /// in-memory copy but recorded as failed.
+        /// </summary>
+        private async Task<WfTicketCreationResult> SavedWithoutInitialActions(WfTicket ticket, long newTicketId, Exception? cause)
+        {
+            ticket.Id = newTicketId;
+            InvalidOperationException failure = new(
+                $"Ticket {newTicketId} was saved but could not be read back, so its initial workflow actions were not executed.", cause);
+            Log.WriteError("Create Request", failure.Message, cause);
+            await RecordInitialActionsFailure(ticket, failure);
+            return new WfTicketCreationResult(ticket, true, true);
+        }
+
+        /// <summary>
+        /// Makes a failure of the initial workflow actions visible beyond the log: as an alert for the administrators
+        /// and as an entry in the ticket's change history, since the saved ticket may imply actions that did not run.
+        /// </summary>
+        private async Task RecordInitialActionsFailure(WfTicket ticket, Exception exception)
+        {
+            await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
+                kInitialActionsFailedText, null, new { initialActionsStatus = WfTicketCreationResult.kActionsFailed, error = exception.Message },
+                ticket.Requester, false);
+            await AlertHelper.SetAlert(ApiConnection, UserConfig.GetText("save_request"),
+                $"Ticket {ticket.Id} was saved, but its initial workflow actions failed: {exception.Message}",
+                GlobalConst.kWorkflow, AlertCode.WorkflowAlert,
+                new AlertHelper.AdditionalAlertData { JsonData = new { ticketId = ticket.Id }, CompareDesc = true });
         }
 
         /// <summary>

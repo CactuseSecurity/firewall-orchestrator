@@ -1,0 +1,9 @@
+query getManagementHierarchy {
+  management(order_by: { mgm_name: asc }) {
+    id: mgm_id
+    name: mgm_name
+    deviceType: stm_dev_typ { ...deviceTypeDetails }
+    multi_device_manager_id
+    hideInUi: hide_in_gui
+  }
+}

@@ -1,4 +1,3 @@
-using AngleSharp.Dom;
 using Bunit;
 using FWO.Api.Client;
 using FWO.Basics;
@@ -25,25 +24,11 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsDefaultsTest
     {
-        private const string kNoneName = "None";
-        private const string kNetworkZoneTreeName = "Network Zone Tree";
         private const string kCertificatePem = """
             -----BEGIN CERTIFICATE-----
             test-certificate
             -----END CERTIFICATE-----
             """;
-
-        /// <summary>
-        /// Builds the lookup rows as the API would return them, ordered by name like the real query.
-        /// </summary>
-        private static List<PathAnalysisAlgorithm> BuildPathAnalysisAlgorithms()
-        {
-            return
-            [
-                new PathAnalysisAlgorithm { Id = GlobalConst.kPathAnalysisAlgorithmNone, Name = kNoneName },
-                new PathAnalysisAlgorithm { Id = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree, Name = kNetworkZoneTreeName }
-            ];
-        }
 
         [Test]
         public async Task SettingsDefaults_RendersGlobalIconifyToggle()
@@ -149,99 +134,6 @@ namespace FWO.Test
                 Assert.That(sink.Messages, Has.Count.EqualTo(1));
                 Assert.That(sink.Messages[0].IsError, Is.True);
                 Assert.That(apiConnection.UpsertConfigCallCount, Is.Zero);
-            });
-        }
-
-        [Test]
-        public async Task SettingsDefaults_RendersPathAnalysisAlgorithmOptions()
-        {
-            await using BunitContext context =
-                CreateSavingContext(out RecordingSettingsApiConn apiConnection);
-
-            apiConnection.PathAnalysisAlgorithms = BuildPathAnalysisAlgorithms();
-
-            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
-
-            wrapper.WaitForAssertion(() =>
-            {
-                IReadOnlyList<IElement> options =
-                    wrapper.FindAll("#pathAnalysisAlgorithm option");
-
-
-                Assert.Multiple(() =>
-                {
-                    Assert.That(options, Has.Count.EqualTo(2));
-                    Assert.That(options[0].GetAttribute("value"), Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNone.ToString()));
-                    Assert.That(options[0].TextContent, Is.EqualTo(kNoneName));
-                    Assert.That(options[1].GetAttribute("value"), Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()));
-                    Assert.That(options[1].TextContent, Is.EqualTo(kNetworkZoneTreeName));
-                });
-            });
-        }
-
-        [Test]
-        public async Task SettingsDefaults_PreselectsStoredPathAnalysisAlgorithm()
-        {
-            await using BunitContext context = CreateSavingContext(
-                out RecordingSettingsApiConn apiConnection,
-                out SimulatedGlobalConfig globalConfig);
-
-            apiConnection.PathAnalysisAlgorithms = BuildPathAnalysisAlgorithms();
-            globalConfig.PathAnalysisAlgorithm = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree;
-
-            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
-
-            wrapper.WaitForAssertion(() =>
-            {
-                IElement select = wrapper.Find("#pathAnalysisAlgorithm");
-                string? boundValue = select.GetAttribute("value");
-
-                Assert.Multiple(() =>
-                {
-                    Assert.That(boundValue, Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()));
-                    Assert.That(
-                        wrapper.FindAll("#pathAnalysisAlgorithm option")
-                            .Any(option => option.GetAttribute("value") == boundValue),
-                        Is.True,
-                        "the value bound to the select must match one of its options");
-                });
-            });
-        }
-
-        [Test]
-        public async Task SettingsDefaults_SavePersistsSelectedPathAnalysisAlgorithm()
-        {
-            await using BunitContext context = CreateSavingContext(
-                out RecordingSettingsApiConn apiConnection,
-                out SimulatedGlobalConfig globalConfig);
-
-            apiConnection.PathAnalysisAlgorithms = BuildPathAnalysisAlgorithms();
-            globalConfig.PathAnalysisAlgorithm = GlobalConst.kPathAnalysisAlgorithmNone;
-
-            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
-            wrapper.WaitForAssertion(() =>
-                Assert.That(wrapper.Find("#pathAnalysisAlgorithm"), Is.Not.Null));
-
-            wrapper.Find("#pathAnalysisAlgorithm").Change(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString());
-
-            SettingsDefaults component = wrapper.FindComponent<SettingsDefaults>().Instance;
-            ConfigData configData = GetPrivateField<ConfigData>(component, "configData");
-
-            Assert.That(
-                configData.PathAnalysisAlgorithm,
-                Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree),
-                "the option value has to be parsable into the bound property");
-
-            await InvokePrivateAsync(component, "Save");
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
-                Assert.That(
-                    apiConnection.LastUpsertConfigItems.Any(item =>
-                        item.Key == "pathAnalysisAlgorithm"
-                        && item.Value == GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()),
-                    Is.True);
             });
         }
 

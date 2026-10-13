@@ -16,6 +16,8 @@
   visible to the caller), so the ui finds every sub-management without read access to the provisioning settings;
   the targets are resolved once per creation run; targets not visible to the caller are returned without name, so
   their implementation tasks get no management suffix in the title
+- the implementation task table and the details of group and object implementation tasks show the target management
+  ("not visible" for managements hidden from the user)
 
 ## 9.7.1 - 09.10.2026
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems

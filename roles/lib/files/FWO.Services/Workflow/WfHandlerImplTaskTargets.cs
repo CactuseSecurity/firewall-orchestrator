@@ -181,6 +181,37 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
+        /// Returns the name of the management an implementation task is implemented on, as shown in the
+        /// implementation task views. The management is taken from the task itself, else from its gateway, else from
+        /// the request task.
+        /// </summary>
+        /// <param name="implTask">The implementation task.</param>
+        /// <param name="reqTaskManagementId">Management of the request task, used when the implementation task has
+        /// neither its own management nor a gateway.</param>
+        /// <returns>The management name; a placeholder when the management or gateway is not visible to the user;
+        /// empty when no management is known.</returns>
+        public string GetImplTaskManagementName(WfImplTask implTask, int? reqTaskManagementId)
+        {
+            int? managementId = implTask.ManagementId;
+            if (managementId == null && implTask.DeviceId is int deviceId && deviceId > 0)
+            {
+                Device? device = Devices.FirstOrDefault(candidate => candidate.Id == deviceId);
+                if (device == null)
+                {
+                    return userConfig.GetText("not_visible");
+                }
+                managementId = device.Management.Id;
+            }
+            managementId ??= reqTaskManagementId;
+            if (managementId is not int visibleManagementId || visibleManagementId <= 0)
+            {
+                return "";
+            }
+            return Managements.FirstOrDefault(management => management.Id == visibleManagementId)?.Name
+                ?? userConfig.GetText("not_visible");
+        }
+
+        /// <summary>
         /// Loads the gateways if they are not loaded yet, which is the case when actions run in the middleware.
         /// </summary>
         private async Task EnsureDevicesLoaded()

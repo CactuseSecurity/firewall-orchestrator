@@ -8771,6 +8771,10 @@ INSERT INTO txt VALUES ('H8158', 'German',  'Start: Hier wird automatisch ein Ze
 INSERT INTO txt VALUES ('H8158', 'English', 'Start: Here the timestamp of the first change after planning is set automatically.');
 INSERT INTO txt VALUES ('H8159', 'German',  'Stop: Wird bei Bearbeitung in der Implementierungsphase ein Status im Ausgangsbereich erreicht, wird hier der aktuelle Zeitstempel gesetzt. ');
 INSERT INTO txt VALUES ('H8159', 'English', 'Stop: When reaching a state in the exit range, the actual timestamp is set.');
+INSERT INTO txt VALUES ('H8160', 'German',  'Management: Management, auf dem der Implementierungs-Auftrag umgesetzt wird. Bei Regel-Auftr&auml;gen ist es das Management des Gateways, bei Gruppen- und Objekt-Auftr&auml;gen das Ziel-Management aus den Provisionierungs-Einstellungen.
+    Ist das Management f&uuml;r den Nutzer nicht sichtbar, wird "Nicht sichtbar" angezeigt.');
+INSERT INTO txt VALUES ('H8160', 'English', 'Management: Management the implementation task is implemented on. For rule tasks it is the management of the gateway, for group and object tasks the target management from the provisioning settings.
+    If the management is not visible to the user, "Not Visible" is displayed.');
 INSERT INTO txt VALUES ('H8171', 'German',  'Genehmigungen werden als eigenst&auml;ndige Objekte dem fachlichen Auftrag zugeordnet. Ein Auftrag gilt dann als genehmigt, wenn alle zugeordneten Einzelgenehmigungen den entsprechenden Status aufweisen.
     Eine Genehmigung enth&auml;lt folgende Felder:
 ');

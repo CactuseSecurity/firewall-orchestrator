@@ -325,7 +325,7 @@ namespace FWO.Test
             string setPassword = await ldap.SetPassword("uid=user,ou=users,dc=example,dc=com", "new");
             bool added = await ldap.AddUser("uid=user,ou=users,dc=example,dc=com", "pw", "user@example.test");
             bool updated = await ldap.UpdateUser("uid=user,ou=users,dc=example,dc=com", "user@example.test");
-            bool deleted = await ldap.DeleteUser("uid=user,ou=users,dc=example,dc=com");
+            LdapUserDeletion deleted = await ldap.DeleteUser("uid=user,ou=users,dc=example,dc=com", null);
 
             Assert.Multiple(() =>
             {
@@ -333,7 +333,7 @@ namespace FWO.Test
                 Assert.That(setPassword, Is.Not.Empty);
                 Assert.That(added, Is.False);
                 Assert.That(updated, Is.False);
-                Assert.That(deleted, Is.False);
+                Assert.That(deleted, Is.EqualTo(LdapUserDeletion.Failed));
             });
         }
 
@@ -435,6 +435,42 @@ namespace FWO.Test
 
             Assert.That(members, Is.EqualTo(new List<string> { kGroupMemberDn }));
             Assert.That(connection.ReadCalls, Is.EqualTo(new List<string> { kGroupDn }));
+        }
+
+        [Test]
+        public async Task DeleteUser_DeletesAnUnboundUserByDnWithoutReading()
+        {
+            RecordingLdapClient client = new();
+            global::FWO.Test.TestableLdap ldap = new(client) { WriteUser = "cn=write,dc=example,dc=com", WriteUserPwd = "writepwd" };
+
+            LdapUserDeletion deletion = await ldap.DeleteUser(kUserDn, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(deletion, Is.EqualTo(LdapUserDeletion.Deleted));
+                Assert.That(client.ReadCalls, Is.Empty);
+                Assert.That(client.DeletedDns, Has.Count.EqualTo(1).And.Contains(kUserDn));
+            });
+        }
+
+        [Test]
+        public async Task DeleteUser_KeepsAMissingBoundEntryAndAnEntryWithoutObjectId()
+        {
+            RecordingLdapClient missingClient = new();
+            global::FWO.Test.TestableLdap missingLdap = new(missingClient) { WriteUser = "cn=write,dc=example,dc=com", WriteUserPwd = "writepwd" };
+            RecordingLdapClient noIdClient = new() { ReadResult = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("mail", kMail)) };
+            global::FWO.Test.TestableLdap noIdLdap = new(noIdClient) { WriteUser = "cn=write,dc=example,dc=com", WriteUserPwd = "writepwd" };
+
+            LdapUserDeletion missingDeletion = await missingLdap.DeleteUser(kUserDn, "entryUUID:6f1b6c2e-0c5b-4a55-9e5a-5d3e2c1b0a99");
+            LdapUserDeletion noIdDeletion = await noIdLdap.DeleteUser(kUserDn, "entryUUID:6f1b6c2e-0c5b-4a55-9e5a-5d3e2c1b0a99");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(missingDeletion, Is.EqualTo(LdapUserDeletion.NotBound));
+                Assert.That(noIdDeletion, Is.EqualTo(LdapUserDeletion.NotBound));
+                Assert.That(missingClient.DeletedDns, Is.Empty);
+                Assert.That(noIdClient.DeletedDns, Is.Empty);
+            });
         }
 
         [Test]

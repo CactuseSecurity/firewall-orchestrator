@@ -8,6 +8,7 @@ using FWO.Middleware.Server.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Novell.Directory.Ldap;
 using NUnit.Framework;
 using System.Reflection;
 using System.Security.Claims;
@@ -21,6 +22,8 @@ namespace FWO.Test
         private const int kOtherLdapId = 3;
         private const string kUserSearchPath = "ou=users,dc=fworch,dc=internal";
         private const string kOtherUserSearchPath = "ou=users,dc=example,dc=com";
+        private const string kBoundObjectUuid = "6f1b6c2e-0c5b-4a55-9e5a-5d3e2c1b0a99";
+        private const string kReplacementObjectUuid = "0d4c2b1a-9e8f-4a7b-8c6d-5e4f3a2b1c0d";
 
         private sealed class UserApiConnection : SimulatedApiConnection
         {
@@ -772,6 +775,128 @@ namespace FWO.Test
             Assert.That(apiConnection.ReturnIdQueryCount, Is.EqualTo(1));
             Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.deleteUser));
             Assert.That(ldapClient.DeletedDns, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task DeleteKeepsTheEntryOfAnotherAccountThatTookTheDn()
+        {
+            UiUser boundUser = CreateBoundUser(42);
+            RecordingLdapClient ldapClient = new() { ReadResult = CreateDirectoryEntry(boundUser.Dn, kReplacementObjectUuid) };
+            UserControllerTestApiConnection apiConnection = new() { Users = [boundUser] };
+            List<Ldap> ldaps = [CreateWritableLdap(kUserLdapId, ldapClient)];
+            UserController controller = CreateController(ldaps, apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            bool result = await controller.Delete(new UserDeleteParameters { LdapId = kUserLdapId, UserId = 42 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(ldapClient.ReadCalls, Has.Count.EqualTo(1).And.Contains(boundUser.Dn));
+                Assert.That(ldapClient.DeletedDns, Is.Empty);
+                Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getUserByDbId));
+                Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.deleteUser));
+            });
+        }
+
+        [Test]
+        public async Task DeleteRemovesOnlyTheLocalUserWhenTheBoundEntryIsGone()
+        {
+            UiUser boundUser = CreateBoundUser(42);
+            RecordingLdapClient ldapClient = new() { ReadException = new LdapException("no such object", LdapException.NoSuchObject, null) };
+            UserControllerTestApiConnection apiConnection = new() { Users = [boundUser] };
+            List<Ldap> ldaps = [CreateWritableLdap(kUserLdapId, ldapClient)];
+            UserController controller = CreateController(ldaps, apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            bool result = await controller.Delete(new UserDeleteParameters { LdapId = kUserLdapId, UserId = 42 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(ldapClient.DeletedDns, Is.Empty);
+                Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.deleteUser));
+            });
+        }
+
+        [Test]
+        public async Task DeleteRemovesTheEntryThatStillIsTheBoundObject()
+        {
+            UiUser boundUser = CreateBoundUser(42);
+            RecordingLdapClient ldapClient = new() { ReadResult = CreateDirectoryEntry(boundUser.Dn, kBoundObjectUuid.ToUpperInvariant()) };
+            UserControllerTestApiConnection apiConnection = new() { Users = [boundUser] };
+            List<Ldap> ldaps = [CreateWritableLdap(kUserLdapId, ldapClient)];
+            UserController controller = CreateController(ldaps, apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            bool result = await controller.Delete(new UserDeleteParameters { LdapId = kUserLdapId, UserId = 42 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(ldapClient.DeletedDns, Has.Count.EqualTo(1).And.Contains(boundUser.Dn));
+                Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.deleteUser));
+            });
+        }
+
+        [Test]
+        public async Task DeleteKeepsTheLocalUserWhenTheDirectoryCannotBeRead()
+        {
+            UiUser boundUser = CreateBoundUser(42);
+            RecordingLdapClient ldapClient = new() { ReadException = new LdapException("busy", LdapException.Busy, null) };
+            UserControllerTestApiConnection apiConnection = new() { Users = [boundUser] };
+            List<Ldap> ldaps = [CreateWritableLdap(kUserLdapId, ldapClient)];
+            UserController controller = CreateController(ldaps, apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            bool result = await controller.Delete(new UserDeleteParameters { LdapId = kUserLdapId, UserId = 42 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False);
+                Assert.That(ldapClient.DeletedDns, Is.Empty);
+                Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.deleteUser));
+            });
+        }
+
+        [Test]
+        public async Task DeleteKeepsTheLocalUserWhenItsBindingCannotBeRead()
+        {
+            RecordingLdapClient ldapClient = new();
+            List<Ldap> ldaps = [CreateWritableLdap(kUserLdapId, ldapClient)];
+            BindingQueryFailingApiConnection apiConnection = new() { Users = [CreateBoundUser(42)] };
+            UserController controller = CreateController(ldaps, apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            bool result = await controller.Delete(new UserDeleteParameters { LdapId = kUserLdapId, UserId = 42 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False);
+                Assert.That(ldapClient.ReadCalls, Is.Empty);
+                Assert.That(ldapClient.DeletedDns, Is.Empty);
+            });
+        }
+
+        private static UiUser CreateBoundUser(int id)
+        {
+            UiUser user = CreateUser(id);
+            user.DirectoryObjectId = $"{LdapDirectoryObjectId.kEntryUuid}:{kBoundObjectUuid}";
+            return user;
+        }
+
+        private static LdapEntry CreateDirectoryEntry(string dn, string entryUuid)
+        {
+            return LdapTestSupport.CreateEntry(dn, new LdapAttribute(LdapDirectoryObjectId.kEntryUuid, entryUuid));
+        }
+
+        private sealed class BindingQueryFailingApiConnection : SimulatedApiConnection
+        {
+            public UiUser[] Users { get; set; } = [];
+
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == AuthQueries.getUsers)
+                {
+                    return Task.FromResult((T)(object)Users);
+                }
+                throw new InvalidOperationException("query failed");
+            }
         }
 
         private static UserController CreateController(ApiConnection apiConnection, ClaimsPrincipal user)

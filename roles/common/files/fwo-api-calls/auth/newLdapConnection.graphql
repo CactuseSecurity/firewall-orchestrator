@@ -1,6 +1,6 @@
 mutation newLdapConnection(
   $name: String!
-  $addresses: _varchar!
+  $addresses: [String!]!
   $port: Int!
   $type: Int!
   $patternLength: Int!

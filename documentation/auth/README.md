@@ -90,7 +90,9 @@ including the internal LDAP, and newer 389 Directory Server), `nsUniqueId` (389 
 - When the dn of a bound local user names another entry, or an entry without object id, login, token refresh,
   scheduled reports and delegated tokens for it are refused with `A0008`, and all sessions of the local user are
   ended. The audit log names the local user. If the dn belongs to a new person, delete the old local user
-  (Settings - Users); the new person then gets a new local user at the next login. If it is still the same person
+  (Settings - Users); the new person then gets a new local user at the next login. Deleting a bound local user only
+  deletes its directory entry (in a writable directory) while the dn still names its own object; the entry of the new
+  person is kept and only the old local user is deleted. If it is still the same person
   (e.g. an account restored with a new object id), clear `uiuser.directory_object_id` of the local user instead; the
   next login with password binds it again.
 - Directories that provide none of these attributes keep the binding by connection and dn only.

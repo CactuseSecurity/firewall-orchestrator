@@ -702,23 +702,31 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Delete user
+        /// Deletes the directory entry of a local user. A dn can be handed to another account after the original one was
+        /// deleted, so when the local user is bound to a directory object, the entry is only deleted while the dn still
+        /// names that object (GHSA-695m-f6mv-9g72).
         /// </summary>
-        /// <returns>true if user deleted</returns>
-        public async Task<bool> DeleteUser(string userDn)
+        /// <param name="userDn">Dn of the local user.</param>
+        /// <param name="directoryObjectId">Immutable id the local user is bound to, see <see cref="LdapDirectoryObjectId"/>;
+        /// null if it is not bound yet, then the entry named by the dn is deleted.</param>
+        /// <returns>Whether the entry was deleted, left untouched because it is not the bound object, or could not be deleted.</returns>
+        public async Task<LdapUserDeletion> DeleteUser(string userDn, string? directoryObjectId)
         {
             Log.WriteInfo("Delete User", $"Trying to delete User: \"{userDn}\"");
-            bool userDeleted = false;
             try
             {
                 using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
+                if (directoryObjectId != null && !await NamesDirectoryObject(connection, userDn, directoryObjectId))
+                {
+                    return LdapUserDeletion.NotBound;
+                }
                 try
                 {
                     //Delete the entry in the directory
                     await connection.DeleteAsync(userDn);
-                    userDeleted = true;
                     Log.WriteDebug("Delete user", $"User {userDn} deleted in {Host()}");
+                    return LdapUserDeletion.Deleted;
                 }
                 catch (Exception exception)
                 {
@@ -729,7 +737,32 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to delete user", exception);
             }
-            return userDeleted;
+            return LdapUserDeletion.Failed;
+        }
+
+        /// <summary>
+        /// Checks whether a dn still names the given directory object. Other read errors are thrown, so that an
+        /// unreachable directory is not mistaken for a missing entry.
+        /// </summary>
+        private async Task<bool> NamesDirectoryObject(ILdapClient connection, string userDn, string directoryObjectId)
+        {
+            LdapEntry? entry;
+            try
+            {
+                entry = await connection.ReadAsync(userDn, LdapDirectoryObjectId.BuildUserAttributeList(), CancellationToken.None);
+            }
+            catch (LdapException ldapException) when (ldapException.ResultCode == LdapException.NoSuchObject)
+            {
+                entry = null;
+            }
+            string? currentObjectId = entry == null ? null : LdapDirectoryObjectId.GetFrom(entry);
+            if (string.Equals(currentObjectId, directoryObjectId, StringComparison.Ordinal))
+            {
+                return true;
+            }
+            Log.WriteWarning("Delete User", $"The dn {userDn} in {Host()} no longer names directory object {directoryObjectId} " +
+                $"but {(entry == null ? "no entry" : currentObjectId ?? "an entry without object id")}. The directory entry is left untouched.");
+            return false;
         }
 
         private static bool IsFullyQualifiedDn(string name)

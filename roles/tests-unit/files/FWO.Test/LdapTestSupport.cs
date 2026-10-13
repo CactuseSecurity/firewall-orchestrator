@@ -95,6 +95,7 @@ namespace FWO.Test
         public Dictionary<string, LdapEntry?> ReadResultsByDn { get; } = new(StringComparer.OrdinalIgnoreCase);
         public bool ThrowOnAdd { get; set; }
         public bool ThrowOnDelete { get; set; }
+        public Exception? ReadException { get; set; }
 
         public Task BindAsync(string user, string password)
         {
@@ -118,6 +119,10 @@ namespace FWO.Test
         public Task<LdapEntry?> ReadAsync(string distinguishedName)
         {
             ReadCalls.Add(distinguishedName);
+            if (ReadException != null)
+            {
+                throw ReadException;
+            }
             if (ReadResultsByDn.TryGetValue(distinguishedName, out LdapEntry? result))
             {
                 return Task.FromResult(result);

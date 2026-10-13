@@ -368,11 +368,7 @@ namespace FWO.Middleware.Server.Controllers
             Ldap? userLdap = ldaps.FirstOrDefault(ldap => ldap.Id == userLdapId);
             if (userLdap != null && userLdap.IsWritable())
             {
-                userDeleted = await userLdap.DeleteUser(user.Dn);
-                if (userDeleted)
-                {
-                    Log.WriteAudit("DeleteUser", $"User {user.Dn} deleted from Ldap Id: {userLdap.Id} Name: {userLdap.Host()}");
-                }
+                userDeleted = await DeleteDirectoryEntry(userLdap, user);
             }
             else
             {
@@ -394,6 +390,41 @@ namespace FWO.Middleware.Server.Controllers
                 }
             }
             return userDeleted;
+        }
+
+        /// <summary>
+        /// Deletes the directory entry of a local user, but only while its dn still names the directory object the local
+        /// user is bound to. When the dn was handed to another account, that account is preserved and only the local
+        /// user is deleted, so the other account gets a new local user on its next login (GHSA-695m-f6mv-9g72).
+        /// </summary>
+        /// <param name="userLdap">Writable LDAP of the local user.</param>
+        /// <param name="user">The local user.</param>
+        /// <returns>true if the local user may be deleted.</returns>
+        private async Task<bool> DeleteDirectoryEntry(Ldap userLdap, UiUser user)
+        {
+            string? directoryObjectId;
+            try
+            {
+                UiUser[] storedUsers = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = user.DbId });
+                directoryObjectId = storedUsers.FirstOrDefault()?.DirectoryObjectId;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteAudit("DeleteUser", $"Could not read the directory binding of user Id: {user.DbId} Dn: {user.Dn}: {exception.Message}");
+                return false;
+            }
+
+            LdapUserDeletion deletion = await userLdap.DeleteUser(user.Dn, directoryObjectId);
+            if (deletion == LdapUserDeletion.Deleted)
+            {
+                Log.WriteAudit("DeleteUser", $"User {user.Dn} deleted from Ldap Id: {userLdap.Id} Name: {userLdap.Host()}");
+            }
+            else if (deletion == LdapUserDeletion.NotBound)
+            {
+                Log.WriteAudit("DeleteUser", $"Directory entry {user.Dn} in Ldap Id: {userLdap.Id} is not the directory object of local user Id: {user.DbId} " +
+                    "and is kept. Only the local user is deleted.");
+            }
+            return deletion != LdapUserDeletion.Failed;
         }
 
         /// <summary>

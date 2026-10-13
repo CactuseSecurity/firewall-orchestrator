@@ -32,6 +32,40 @@ namespace FWO.Test
         }
 
         [Test]
+        public void IsManagementObjectTask_RecognizesGroupAndObjectTaskTypes()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfObjectTaskHelper.IsManagementObjectTask(WfTaskType.group_create.ToString()), Is.True);
+                Assert.That(WfObjectTaskHelper.IsManagementObjectTask(WfTaskType.group_modify.ToString()), Is.True);
+                Assert.That(WfObjectTaskHelper.IsManagementObjectTask(WfTaskType.group_delete.ToString()), Is.True);
+                Assert.That(WfObjectTaskHelper.IsManagementObjectTask(WfTaskType.object_create.ToString()), Is.True);
+                Assert.That(WfObjectTaskHelper.IsManagementObjectTask(WfTaskType.object_modify.ToString()), Is.True);
+                Assert.That(WfObjectTaskHelper.IsManagementObjectTask(WfTaskType.access.ToString()), Is.False);
+                Assert.That(WfObjectTaskHelper.IsManagementObjectTask(WfTaskType.rule_delete.ToString()), Is.False);
+                Assert.That(WfObjectTaskHelper.IsManagementObjectTask(null), Is.False);
+            });
+        }
+
+        [Test]
+        public void OrdersServiceObject_DetectsServiceElementsAndServiceGroups()
+        {
+            WfReqTask networkTask = new();
+            networkTask.Elements.Add(new WfReqElement { Field = ElemFieldType.source.ToString() });
+            WfReqTask serviceTask = new();
+            serviceTask.Elements.Add(new WfReqElement { Field = ElemFieldType.service.ToString() });
+            WfReqTask serviceGroupTask = new();
+            serviceGroupTask.SetAddInfo(AdditionalInfoKeys.SvcGrpId, "12");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfObjectTaskHelper.OrdersServiceObject(networkTask), Is.False);
+                Assert.That(WfObjectTaskHelper.OrdersServiceObject(serviceTask), Is.True);
+                Assert.That(WfObjectTaskHelper.OrdersServiceObject(serviceGroupTask), Is.True);
+            });
+        }
+
+        [Test]
         public void ToNwObjectElement_ReferencesTheImportedObject()
         {
             NetworkObject networkObject = new() { Id = 4711, Name = "srv_web01", IP = kHostCidr, IpEnd = kHostCidr };

@@ -315,6 +315,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public void WfImplTask_FromRuleDeleteTask_TakesDeviceOfRuleElement()
+        {
+            WfReqTask reqTask = new() { Id = 10, TaskType = WfTaskType.rule_delete.ToString(), RequestAction = "delete" };
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "src" });
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.destination.ToString(), Name = "dst" });
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.service.ToString(), Name = "svc" });
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.rule.ToString(), RuleUid = "rule-uid", DeviceId = 8 });
+
+            WfImplTask implTask = new(reqTask);
+
+            Assert.That(implTask.DeviceId, Is.EqualTo(8));
+        }
+
+        [Test]
         public void WfImplTask_FromReqTask_DoesNotCopyComments_WhenDisabled()
         {
             WfReqTask reqTask = new();

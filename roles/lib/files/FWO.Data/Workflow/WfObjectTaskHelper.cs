@@ -50,6 +50,28 @@ namespace FWO.Data.Workflow
         }
 
         /// <summary>
+        /// Determines whether the task type changes objects on a management, i.e. a group or a single object,
+        /// whose implementation tasks are created per target management instead of per gateway.
+        /// </summary>
+        public static bool IsManagementObjectTask(string? taskType)
+        {
+            return taskType == WfTaskType.group_create.ToString()
+                || taskType == WfTaskType.group_modify.ToString()
+                || taskType == WfTaskType.group_delete.ToString()
+                || IsObjectTask(taskType);
+        }
+
+        /// <summary>
+        /// Determines whether an object task orders services (service group or single service) rather than
+        /// network objects, which decides the provisioning setting for the object creation level.
+        /// </summary>
+        public static bool OrdersServiceObject(WfReqTask task)
+        {
+            return task.Elements.Any(element => element.Field == ElemFieldType.service.ToString())
+                || !string.IsNullOrEmpty(task.GetAddInfoValue(AdditionalInfoKeys.SvcGrpId));
+        }
+
+        /// <summary>
         /// Converts an imported network object into a request element referencing it.
         /// </summary>
         public static NwObjectElement ToNwObjectElement(NetworkObject networkObject, string requestAction, long taskId)

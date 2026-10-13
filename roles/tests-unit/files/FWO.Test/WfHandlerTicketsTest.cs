@@ -51,6 +51,10 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)Ticket);
                 }
+                if (query == RequestQueries.updateTicket)
+                {
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = Ticket.Id });
+                }
                 if (query == RequestQueries.getTicketsByParameters || query == RequestQueries.getTickets
                     || query == RequestQueries.getFullTickets || query == RequestQueries.getFullTicketsByTicketState)
                 {
@@ -1088,6 +1092,20 @@ namespace FWO.Test
                 Assert.That(requestPhase, Is.False);
                 Assert.That(newTicket, Is.False);
             });
+        }
+
+        [Test]
+        public async Task SaveTicket_UpdatesExistingTicketThroughDatabasePath()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = new WfTicket { Id = 7, StateId = 1 } };
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, new UserConfig());
+            WfTicket ticket = new() { Id = 7, StateId = 1 };
+            handler.ActTicket = ticket;
+            handler.TicketList.Add(ticket);
+
+            long ticketId = await handler.SaveTicket(new WfStatefulObject { StateId = 1 });
+
+            Assert.That(ticketId, Is.EqualTo(7));
         }
 
         [Test]

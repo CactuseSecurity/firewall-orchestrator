@@ -658,6 +658,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddImplicitApprovalComment_UsesConfiguredText()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqImplicitApprovalComment = "Automatically approved" }
+            };
+            WfApproval approval = new() { Id = 1 };
+            MethodInfo? method = typeof(WfHandler).GetMethod("AddImplicitApprovalComment", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            await (Task)(method!.Invoke(handler, [approval]) ?? throw new InvalidOperationException("Method not found."));
+
+            Assert.That(approval.Comments, Has.Count.EqualTo(1));
+            Assert.That(approval.Comments[0].Comment.CommentText, Is.EqualTo("Automatically approved"));
+        }
+
+        [Test]
         public async Task UpdateRequestTasksFromTicket_UpdatesApprovalStatesFromReqTask()
         {
             WfHandler handler = new();
@@ -774,6 +791,62 @@ namespace FWO.Test
             Assert.That(reqTask.StateId, Is.EqualTo(4));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(4));
             Assert.That(requestTaskActionsChangedState, Is.False);
+        }
+
+        [Test]
+        public async Task UpdateRequestTasksFromTicket_DoesNotChangeApprovalsWhenApprovalPhaseIsInactive()
+        {
+            WfHandler handler = new();
+            StateMatrix matrix = new()
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 5,
+                ApprovalLowestEndState = 5,
+                PhaseActive = new() { { WorkflowPhases.approval, false } },
+                MinImplTasksNeeded = 99
+            };
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+            handler.ActTicket = new WfTicket { Id = 1, StateId = 6 };
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 1,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 1,
+                Approvals = { new WfApproval { Id = 1, TaskId = 7, StateId = 1 } }
+            };
+            handler.ActTicket.Tasks.Add(reqTask);
+
+            MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
+            await (Task)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(reqTask.StateId, Is.EqualTo(6));
+                Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public void GetApprovalStateForRequestTask_PreservesConfiguredRejectionState()
+        {
+            StateMatrix matrix = new()
+            {
+                ApprovalLowestEndState = 5,
+                Matrix = new() { [610] = [610] }
+            };
+            MethodInfo? method = typeof(WfHandler).GetMethod("GetApprovalStateForRequestTask", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.That(method, Is.Not.Null);
+
+            int rejectionState = (int)method!.Invoke(null, [610, matrix])!;
+            int laterWorkflowState = (int)method.Invoke(null, [99, matrix])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rejectionState, Is.EqualTo(610));
+                Assert.That(laterWorkflowState, Is.EqualTo(5));
+            });
         }
 
         [Test]

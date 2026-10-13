@@ -65,6 +65,41 @@
                 </div>
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5580a"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAccessTaskFieldVisibility")):</label>
+            <div class="col-sm-9">
+                <div class="row">
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_management" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowManagement" />
+                        <label for="cbx_show_access_task_management" class="col-form-label">@(userConfig.GetText("management"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_owner" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowOwner" />
+                        <label for="cbx_show_access_task_owner" class="col-form-label">@(userConfig.GetText("owner"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_valid_from" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowValidFrom" />
+                        <label for="cbx_show_access_task_valid_from" class="col-form-label">@(userConfig.GetText("valid_from"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_valid_to" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowValidTo" />
+                        <label for="cbx_show_access_task_valid_to" class="col-form-label">@(userConfig.GetText("valid_to"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_reason" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowReason" />
+                        <label for="cbx_show_access_task_reason" class="col-form-label">@(userConfig.GetText("reason"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_free_text" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowFreeText" />
+                        <label for="cbx_show_access_task_free_text" class="col-form-label">@(userConfig.GetText("free_text"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_comments" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowComments" />
+                        <label for="cbx_show_access_task_comments" class="col-form-label">@(userConfig.GetText("comments"))</label>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5563"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqPriorities")):</label>
             <div class="col-sm-9">

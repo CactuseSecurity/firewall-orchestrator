@@ -75,6 +75,7 @@ public sealed class CreateTicketRequestExample : ApiExampleProvider<CreateTicket
         RuleContactName = "Bob Approver",
         RuleContactId = "bob",
         Title = "Allow HTTPS to application server",
+        Notes = "Access requested for the application service.",
         Options = new CreateTicketRequest.CreateTicketOptions { SortTasks = false },
         Rules =
         [
@@ -89,6 +90,8 @@ public sealed class CreateTicketRequestExample : ApiExampleProvider<CreateTicket
                 ServiceGroups = [-5],
                 TimeObjectId = -4,
                 OwnerId = 42,
+                Description = "Permit application HTTPS traffic.",
+                Reason = "Required for the application deployment.",
                 ViolationJustification = "Business-approved application traffic."
             }
         ],
@@ -139,8 +142,8 @@ public sealed class CreateTicketRequestExample : ApiExampleProvider<CreateTicket
             {
                 Id = -4,
                 Name = "Temporary rule window",
-                StartTime = "2026-08-01T00:00:00Z",
-                EndTime = "2026-08-31T23:59:59Z"
+                StartTime = "",
+                EndTime = "2026-08-31"
             }
         ]
     };

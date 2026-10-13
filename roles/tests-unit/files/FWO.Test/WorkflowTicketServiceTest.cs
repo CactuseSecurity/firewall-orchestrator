@@ -237,6 +237,7 @@ internal class WorkflowTicketServiceTest
             RuleContactId = "bob",
             PreWorkflowTicketReference = "Ticket-12345",
             Title = "Allow HTTPS to app server",
+            Notes = "Ticket-level notes",
             AddressObjects =
             [
                 new CreateTicketRequest.CreateAddressObjectRequest
@@ -274,6 +275,8 @@ internal class WorkflowTicketServiceTest
                 {
                     Action = "accept",
                     Name = "Allow app traffic",
+                    Description = "Task description",
+                    Reason = "Task reason",
                     SourceObjects = [-1],
                     DestinationObjects = [-1],
                     ServiceObjects = [-2],
@@ -307,9 +310,69 @@ internal class WorkflowTicketServiceTest
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate, Is.Not.Null);
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate!.Value.Kind, Is.EqualTo(expectedDateTimeKind));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate!.Value.Kind, Is.EqualTo(expectedDateTimeKind));
+            Assert.That(apiConnection.CreatedTicket!.Reason, Is.EqualTo("Ticket-level notes"));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].FreeText, Is.EqualTo("Task description"));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Reason, Is.EqualTo("Business approved.\nTask reason"));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("-3"));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeStart"), Is.EqualTo(""));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeEnd"), Is.EqualTo(""));
+        });
+    }
+
+    [Test]
+    public async Task CreateTicket_DateOnlyTimeObjectUsesStartOfDayAndEndOfDay()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
+
+        await service.CreateTicketAsync(new CreateTicketRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Date-only validity",
+            AddressObjects =
+            [
+                new CreateTicketRequest.CreateAddressObjectRequest
+                {
+                    Id = -1,
+                    Name = "server",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            TimeObjects =
+            [
+                new CreateTicketRequest.CreateTimeObjectRequest
+                {
+                    Id = -2,
+                    Name = "Until date",
+                    EndTime = "2026-12-31"
+                }
+            ],
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    TimeObjectId = -2
+                }
+            ]
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
+            Assert.That(apiConnection.LastTicketWriter!.Tasks[0].TargetBeginDate, Is.Null);
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate,
+                Is.EqualTo(new DateTime(2026, 12, 31, 23, 59, 59, 999, DateTimeKind.Unspecified).AddTicks(9999)));
         });
     }
 

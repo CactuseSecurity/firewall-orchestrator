@@ -74,17 +74,9 @@
                 <RequestTaskMetadataEditor @ref="metadataEditor" WfHandler="WfHandler"
                     AvailableTaskTypes="availableTaskTypes" Managements="managements"
                     TaskType="actTaskType" CanEditField="CanEditReqTaskField" TaskTypeChanged="OnMetadataTaskTypeChanged"
-                    TargetDatesValidChanged="SetTargetDatesValid" ManagementChanged="OnMetadataManagementChanged" />
-                @if(actTaskType == WfTaskType.generic)
-                {
-                    <div class="form-group row mt-2">
-                        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("free_text")):</label>
-                        <div class="col-sm-11">
-                            <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!CanEditReqTaskField(WorkflowEditableFieldKeys.FreeText))" @bind="WfHandler.ActReqTask.FreeText"/>   
-                        </div>
-                    </div>
-                }
-                else if(actTaskType == WfTaskType.access)
+                    TargetDatesValidChanged="SetTargetDatesValid" ManagementChanged="OnMetadataManagementChanged"
+                    ShowField="ShowTaskField" />
+                @if(actTaskType == WfTaskType.access)
                 {
                     <div class="form-group row mt-2">
                         <div class="col-sm-3">
@@ -130,15 +122,29 @@
                             CanEditTargetBeginDate="CanEditReqTaskField(WorkflowEditableFieldKeys.ValidFrom)"
                             CanEditTargetEndDate="CanEditReqTaskField(WorkflowEditableFieldKeys.ValidTo)"
                             TargetDatesValidChanged="SetTargetDatesValid"
+                            ShowTargetBeginDate="ShowTaskField(WorkflowEditableFieldKeys.ValidFrom)"
+                            ShowTargetEndDate="ShowTaskField(WorkflowEditableFieldKeys.ValidTo)"
                             HideFlowTimeObjectSelection="true" />
                     </div>
                 }
+                @if (actTaskType != WfTaskType.access || AccessTaskVisibility.ShowReason)
+                {
                 <div class="form-group row mt-2">
                     <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <div class="col-sm-11">
                         <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!CanEditReqTaskField(WorkflowEditableFieldKeys.Reason))" @bind="WfHandler.ActReqTask.Reason"/>   
                     </div>
                 </div>
+                }
+                @if(actTaskType == WfTaskType.generic || actTaskType == WfTaskType.access && AccessTaskVisibility.ShowFreeText)
+                {
+                    <div class="form-group row mt-2">
+                        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("free_text")):</label>
+                        <div class="col-sm-11">
+                            <textarea rows="2" type="text" class="form-control form-control-sm" readonly="@(!CanEditReqTaskField(WorkflowEditableFieldKeys.FreeText))" @bind="WfHandler.ActReqTask.FreeText"/>
+                        </div>
+                    </div>
+                }
 
                 <RequestTaskElementEditor @ref="elementEditor" WfHandler="WfHandler" TaskType="actTaskType"
                     CanEditField="CanEditReqTaskField" DisplayIpProtos="displayIpProtos"
@@ -147,7 +153,7 @@
                     DisplayTask="GetBundledDisplayTask()" />
 
                 <hr />
-                @if(!WfHandler.EditReqTaskMode)
+                @if(!WfHandler.EditReqTaskMode && (actTaskType != WfTaskType.access || AccessTaskVisibility.ShowComments))
                 {
                     <div class="form-group row mt-2">
                         <div class="col-sm-1">
@@ -927,6 +933,25 @@
     private ApproverAllowedChangesConfig GetApproverAllowedChanges()
     {
         return ApproverAllowedChangesConfig.Parse(userConfig.ReqAllowedChangesByApprover);
+    }
+
+    private AccessTaskFieldVisibilityConfig AccessTaskVisibility => TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask;
+
+    private bool ShowTaskField(string fieldKey)
+    {
+        if (actTaskType != WfTaskType.access)
+        {
+            return true;
+        }
+
+        return fieldKey switch
+        {
+            WorkflowEditableFieldKeys.Management => AccessTaskVisibility.ShowManagement,
+            WorkflowEditableFieldKeys.Owner => AccessTaskVisibility.ShowOwner,
+            WorkflowEditableFieldKeys.ValidFrom => AccessTaskVisibility.ShowValidFrom,
+            WorkflowEditableFieldKeys.ValidTo => AccessTaskVisibility.ShowValidTo,
+            _ => true
+        };
     }
 
     private ApproverAllowedChangesAccess.TaskFieldEditContext GetTaskFieldEditContext()

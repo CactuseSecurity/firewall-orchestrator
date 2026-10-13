@@ -24,6 +24,9 @@ namespace FWO.Data.Workflow
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public bool ShowComments { get; set; } = false;
 
+        [JsonProperty("accessTask"), JsonPropertyName("accessTask")]
+        public AccessTaskFieldVisibilityConfig AccessTask { get; set; } = new();
+
         public static TicketFieldVisibilityConfig Parse(string? serializedConfig)
         {
             if (string.IsNullOrWhiteSpace(serializedConfig))
@@ -33,7 +36,9 @@ namespace FWO.Data.Workflow
 
             try
             {
-                return System.Text.Json.JsonSerializer.Deserialize<TicketFieldVisibilityConfig>(serializedConfig) ?? new();
+                TicketFieldVisibilityConfig config = System.Text.Json.JsonSerializer.Deserialize<TicketFieldVisibilityConfig>(serializedConfig) ?? new();
+                config.AccessTask ??= new();
+                return config;
             }
             catch (System.Text.Json.JsonException)
             {
@@ -45,5 +50,32 @@ namespace FWO.Data.Workflow
         {
             return System.Text.Json.JsonSerializer.Serialize(this);
         }
+    }
+
+    /// <summary>
+    /// Configures which access-request-task fields are displayed in the task dialog.
+    /// </summary>
+    public class AccessTaskFieldVisibilityConfig
+    {
+        [JsonProperty("management"), JsonPropertyName("management")]
+        public bool ShowManagement { get; set; } = true;
+
+        [JsonProperty("owner"), JsonPropertyName("owner")]
+        public bool ShowOwner { get; set; } = true;
+
+        [JsonProperty("validFrom"), JsonPropertyName("validFrom")]
+        public bool ShowValidFrom { get; set; } = true;
+
+        [JsonProperty("validTo"), JsonPropertyName("validTo")]
+        public bool ShowValidTo { get; set; } = true;
+
+        [JsonProperty("reason"), JsonPropertyName("reason")]
+        public bool ShowReason { get; set; } = true;
+
+        [JsonProperty("freeText"), JsonPropertyName("freeText")]
+        public bool ShowFreeText { get; set; } = false;
+
+        [JsonProperty("comments"), JsonPropertyName("comments")]
+        public bool ShowComments { get; set; } = true;
     }
 }

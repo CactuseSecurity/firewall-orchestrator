@@ -47,6 +47,7 @@ internal sealed class WorkflowTicketBuilder
         return new WfTicket
         {
             Title = request.Title,
+            Reason = request.Notes,
             PreWorkflowTicketReference = request.PreWorkflowTicketReference,
             StateId = ticketStateId,
             Requester = BuildRequester(requesterId),
@@ -329,7 +330,8 @@ internal sealed class WorkflowTicketBuilder
             StateId = taskContext.TicketStateId,
             RuleAction = ruleActionId,
             Tracking = 1,
-            Reason = rule.ViolationJustification,
+            Reason = BuildTaskReason(rule),
+            FreeText = rule.Description,
             TargetBeginDate = timeEntity?.TimeStart,
             TargetEndDate = timeEntity?.TimeEnd,
             AdditionalInfo = BuildAdditionalInfo(timeEntity),
@@ -338,6 +340,21 @@ internal sealed class WorkflowTicketBuilder
             Owners = taskOwner == null ? [] : [new() { Owner = taskOwner }],
             Locked = true
         };
+    }
+
+    private static string BuildTaskReason(CreateTicketRequest.CreateTicketRuleRequest rule)
+    {
+        if (string.IsNullOrWhiteSpace(rule.ViolationJustification))
+        {
+            return rule.Reason ?? string.Empty;
+        }
+
+        if (string.IsNullOrWhiteSpace(rule.Reason))
+        {
+            return rule.ViolationJustification;
+        }
+
+        return rule.ViolationJustification + "\n" + rule.Reason;
     }
 
     private static FwoOwner? ResolveRuleOwner(int ownerId, Dictionary<int, FwoOwner> ownersById)

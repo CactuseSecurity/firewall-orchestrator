@@ -585,6 +585,13 @@ namespace FWO.Test
                 Assert.That(config.ShowDeadline, Is.True);
                 Assert.That(config.ShowReason, Is.True);
                 Assert.That(config.ShowComments, Is.False);
+                Assert.That(config.AccessTask.ShowManagement, Is.True);
+                Assert.That(config.AccessTask.ShowOwner, Is.True);
+                Assert.That(config.AccessTask.ShowValidFrom, Is.True);
+                Assert.That(config.AccessTask.ShowValidTo, Is.True);
+                Assert.That(config.AccessTask.ShowReason, Is.True);
+                Assert.That(config.AccessTask.ShowFreeText, Is.False);
+                Assert.That(config.AccessTask.ShowComments, Is.True);
             });
         }
 
@@ -602,6 +609,25 @@ namespace FWO.Test
                 Assert.That(config.ShowReason, Is.False);
                 Assert.That(config.ShowComments, Is.True);
                 Assert.That(TicketFieldVisibilityConfig.Parse(config.ToConfigValue()).ShowComments, Is.True);
+            });
+        }
+
+        [Test]
+        public void TicketFieldVisibilityConfig_ParsesAccessTaskFields()
+        {
+            TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse(
+                "{\"accessTask\":{\"management\":false,\"owner\":false,\"validFrom\":false,\"validTo\":true,\"reason\":false,\"freeText\":true,\"comments\":false}}");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(config.AccessTask.ShowReason, Is.False);
+                Assert.That(config.AccessTask.ShowManagement, Is.False);
+                Assert.That(config.AccessTask.ShowOwner, Is.False);
+                Assert.That(config.AccessTask.ShowValidFrom, Is.False);
+                Assert.That(config.AccessTask.ShowValidTo, Is.True);
+                Assert.That(config.AccessTask.ShowFreeText, Is.True);
+                Assert.That(config.AccessTask.ShowComments, Is.False);
+                Assert.That(TicketFieldVisibilityConfig.Parse(config.ToConfigValue()).AccessTask.ShowFreeText, Is.True);
             });
         }
 

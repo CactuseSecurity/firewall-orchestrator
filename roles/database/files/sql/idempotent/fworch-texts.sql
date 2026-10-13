@@ -2859,6 +2859,8 @@ INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auft
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
 INSERT INTO txt VALUES ('reqTicketFieldVisibility','German', 	'Sichtbarkeit der Ticketfelder');
 INSERT INTO txt VALUES ('reqTicketFieldVisibility','English', 	'Ticket Field Visibility');
+INSERT INTO txt VALUES ('reqAccessTaskFieldVisibility','German', 	'Sichtbarkeit der Zugriff-Aufgabenfelder');
+INSERT INTO txt VALUES ('reqAccessTaskFieldVisibility','English', 	'Access Task Field Visibility');
 INSERT INTO txt VALUES ('reqOwnerBased',        'German', 	'Eigent&uuml;merbasiert');
 INSERT INTO txt VALUES ('reqOwnerBased',        'English', 	'Owner based');
 INSERT INTO txt VALUES ('reqVisibilityBased',   'German', 	'Sichtbarkeit ber&uuml;cksichtigen');
@@ -7339,6 +7341,8 @@ INSERT INTO txt VALUES ('H5579', 'German',  'Sichtbarkeit ber&uuml;cksichtigen: 
 INSERT INTO txt VALUES ('H5579', 'English', 'Consider visibility: Activates workflow visibility restrictions. Tickets, tasks, and approvals are then filtered by their assigned visibility groups in addition to role and ownership checks. Approvals assigned directly to the current user or the user''s group stay visible as well.');
 INSERT INTO txt VALUES ('H5580', 'German',  'Sichtbarkeit der Ticketfelder: Legt fest, welche Felder im Ticketdialog angezeigt werden. Antragsteller, Priorit&auml;t, Deadline und Grund sind standardm&auml;&szlig;ig sichtbar; Kommentare sind standardm&auml;&szlig;ig ausgeblendet.');
 INSERT INTO txt VALUES ('H5580', 'English', 'Ticket field visibility: Defines which fields are displayed in the ticket dialog. Requester, priority, deadline, and reason are visible by default; comments are hidden by default.');
+INSERT INTO txt VALUES ('H5580a', 'German',  'Sichtbarkeit der Zugriff-Aufgabenfelder: Legt fest, welche beschreibenden Felder von Zugriff-Aufgaben angezeigt werden. Management, Eigent&uuml;mer, G&uuml;ltigkeitsdaten, Grund und Kommentare sind standardm&auml;&szlig;ig sichtbar; Freitext ist standardm&auml;&szlig;ig ausgeblendet.');
+INSERT INTO txt VALUES ('H5580a', 'English', 'Access task field visibility: Defines which descriptive access-task fields are displayed. Management, owner, validity dates, reason, and comments are visible by default; free text is hidden by default.');
 INSERT INTO txt VALUES ('H5581', 'German',  'In diesem Abschnitt k&ouml;nnen die vorhandenen Eigent&uuml;mer eingesehen und administriert (falls in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert) werden.
     Die Eigent&uuml;merschaft muss Nutzern entweder direkt oder &uuml;ber Eigent&uuml;mergruppen zugeordnet werden.
     Es ist geplant, die Eigent&uuml;merschaft mit der Zust&auml;ndigkeit bei der Antragsstellung zu verkn&uuml;pfen.

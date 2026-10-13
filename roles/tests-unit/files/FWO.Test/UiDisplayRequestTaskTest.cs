@@ -52,6 +52,69 @@ namespace FWO.Test
         }
 
         [Test]
+        public void AccessTaskVisibilityConfigControlsDescriptiveFields()
+        {
+            DisplayRequestTask component = new();
+            TicketFieldVisibilityConfig visibility = new();
+            visibility.AccessTask.ShowManagement = false;
+            visibility.AccessTask.ShowOwner = false;
+            visibility.AccessTask.ShowValidFrom = false;
+            visibility.AccessTask.ShowValidTo = false;
+            visibility.AccessTask.ShowReason = false;
+            visibility.AccessTask.ShowFreeText = true;
+            visibility.AccessTask.ShowComments = false;
+            SimulatedUserConfig userConfig = new() { ReqTicketFieldVisibility = visibility.ToConfigValue() };
+            SetPrivateField(component, "userConfig", userConfig);
+            SetPrivateField(component, "actTaskType", WfTaskType.access);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(component, "ShowTaskField", WorkflowEditableFieldKeys.Management), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "ShowTaskField", WorkflowEditableFieldKeys.Owner), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "ShowTaskField", WorkflowEditableFieldKeys.ValidFrom), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "ShowTaskField", WorkflowEditableFieldKeys.ValidTo), Is.False);
+                Assert.That(TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask.ShowFreeText, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task AccessTaskFreeTextVisibility_DoesNotHideVisibleEndDate()
+        {
+            TicketFieldVisibilityConfig visibility = new();
+            visibility.AccessTask.ShowFreeText = true;
+            visibility.AccessTask.ShowValidFrom = false;
+            visibility.AccessTask.ShowValidTo = true;
+
+            WfReqTask task = new()
+            {
+                Id = 1,
+                Title = "Access task",
+                TaskType = WfTaskType.access.ToString(),
+                TargetEndDate = DateTime.Today.AddDays(1)
+            };
+            WfHandler handler = new()
+            {
+                DisplayReqTaskMode = true,
+                ActReqTask = task,
+                ActTicket = new WfTicket { Tasks = [task] }
+            };
+
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig
+            {
+                ReqTicketFieldVisibility = visibility.ToConfigValue()
+            });
+            IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(
+                context, handler, new WfStateDict(), Roles.Requester);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Not.Contain("valid_from"));
+                Assert.That(component.Markup, Does.Contain("valid_to"));
+            });
+        }
+
+        [Test]
         public async Task DisplayRequestTask_ActionAndSaveMethods_DoNothingWhileBusy()
         {
             DisplayRequestTask component = new();

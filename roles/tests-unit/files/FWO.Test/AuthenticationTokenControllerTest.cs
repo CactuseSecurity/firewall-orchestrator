@@ -932,6 +932,82 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// The delegated login synchronizes the admin's user context as well, so an API outage
+        /// there has to be reported as a retryable 503, not as a 400 carrying transport details.
+        /// </summary>
+        [Test]
+        public async Task GetTokenPairForUser_ReportsServiceUnavailableWhenTheApiCannotBeReached()
+        {
+            AuthenticationTokenController controller = CreateControllerWithUnreachableUserSync();
+
+            ActionResult<TokenPair> result = await controller.GetTokenPairForUser(CreateDelegatedLoginParameters());
+
+            AssertServiceUnavailableWithoutTransportDetails(result.Result);
+        }
+
+        /// <summary>
+        /// The deprecated single-token login reaches the same user synchronization as GetTokenPair.
+        /// </summary>
+        [Test]
+        public async Task GetAsync_ReportsServiceUnavailableWhenTheApiCannotBeReached()
+        {
+            AuthenticationTokenController controller = CreateControllerWithUnreachableUserSync();
+
+            ActionResult<string> result = await controller.GetAsync(new AuthenticationTokenGetParameters
+            {
+                Username = "login-user",
+                Password = "password"
+            });
+
+            AssertServiceUnavailableWithoutTransportDetails(result.Result);
+        }
+
+        /// <summary>
+        /// GetForUser re-wraps failures as credential errors; an API outage must not be reported as one.
+        /// </summary>
+        [Test]
+        public async Task GetAsyncForUser_ReportsServiceUnavailableWhenTheApiCannotBeReached()
+        {
+            AuthenticationTokenController controller = CreateControllerWithUnreachableUserSync();
+
+            ActionResult<string> result = await controller.GetAsyncForUser(CreateDelegatedLoginParameters());
+
+            AssertServiceUnavailableWithoutTransportDetails(result.Result);
+        }
+
+        private static AuthenticationTokenController CreateControllerWithUnreachableUserSync()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, variables, resultType) => query == AuthQueries.getUserByDn
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            return CreateController(new List<Ldap> { CreateAuthLdap(CreateLoginLdapClient()) }, apiConnection);
+        }
+
+        private static AuthenticationTokenGetForUserParameters CreateDelegatedLoginParameters()
+        {
+            return new AuthenticationTokenGetForUserParameters
+            {
+                AdminUsername = "login-user",
+                AdminPassword = "password",
+                TargetUserName = "login-user"
+            };
+        }
+
+        private static void AssertServiceUnavailableWithoutTransportDetails(ActionResult? result)
+        {
+            Assert.That(result, Is.TypeOf<ObjectResult>());
+            ObjectResult objectResult = (ObjectResult)result!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(objectResult.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+                Assert.That(objectResult.Value?.ToString(), Does.Not.Contain("connection reset by peer"));
+            });
+        }
+
         private static RecordingLdapClient CreateLoginLdapClient()
         {
             return new RecordingLdapClient

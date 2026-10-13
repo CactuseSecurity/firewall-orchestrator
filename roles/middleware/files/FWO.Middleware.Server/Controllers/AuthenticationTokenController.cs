@@ -38,6 +38,7 @@ namespace FWO.Middleware.Server.Controllers
         private const string kRefreshLogCategory = "Token Refresh";
         private const string kRevokeLogCategory = "Token Revoke";
         private const string kLoginLogCategory = "User Authentication";
+        private const string kTokenGenerationLogCategory = "Token Generation";
 
         private enum RefreshTokenConsumptionState
         {
@@ -95,6 +96,21 @@ namespace FWO.Middleware.Server.Controllers
                 HttpContext.Response.Headers.RetryAfter = LoginThrottle.kRetryAfterSeconds.ToString();
             }
             return StatusCode(exception.StatusCode, exception.Message);
+        }
+
+        /// <summary>
+        /// Answers a login that failed because the API could not be reached. Same reasoning as for refresh:
+        /// an unreachable API is not a malformed request, and the transport error belongs in the log, not in
+        /// the response body, where it would expose the internal API endpoint.
+        /// </summary>
+        /// <param name="exception">Exception that indicates the unreachable API.</param>
+        /// <returns>A retryable 503 without transport details.</returns>
+        private ObjectResult ApiUnreachableLoginResult(Exception exception)
+        {
+            Log.WriteError(kTokenGenerationLogCategory, "Could not reach the API while logging in", exception);
+
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                "The API could not be reached while logging in. Please retry.");
         }
 
         /// <summary>
@@ -163,16 +179,11 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
             {
-                // Same reasoning as for refresh: an unreachable API is not a malformed request,
-                // and the transport error belongs in the log, not in the response body.
-                Log.WriteError("Token Generation", "Could not reach the API while generating a token pair", exception);
-
-                return StatusCode(StatusCodes.Status503ServiceUnavailable,
-                    "The API could not be reached while logging in. Please retry.");
+                return ApiUnreachableLoginResult(exception);
             }
             catch (Exception ex)
             {
-                Log.WriteError("Token Generation", "Error generating token pair", ex);
+                Log.WriteError(kTokenGenerationLogCategory, "Error generating token pair", ex);
                 return BadRequest(ex.Message);
             }
         }
@@ -227,6 +238,10 @@ namespace FWO.Middleware.Server.Controllers
             catch (LoginCapacityException e)
             {
                 return CapacityResult(e);
+            }
+            catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
+            {
+                return ApiUnreachableLoginResult(e);
             }
             catch (Exception e)
             {
@@ -286,6 +301,10 @@ namespace FWO.Middleware.Server.Controllers
             {
                 return CapacityResult(e);
             }
+            catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
+            {
+                return ApiUnreachableLoginResult(e);
+            }
             catch (Exception e)
             {
                 return BadRequest(e.Message);
@@ -328,7 +347,8 @@ namespace FWO.Middleware.Server.Controllers
                     }
                     adminUser = authenticatedAdminUser;
                 }
-                catch (Exception e) when (e is not LoginCapacityException)
+                // An unreachable API is no credential problem, so it must not be re-wrapped as one.
+                catch (Exception e) when (e is not LoginCapacityException && !ApiReachability.IndicatesUnreachableApi(e))
                 {
                     throw new AuthenticationException("Error while validating admin credentials: " + e.Message);
                 }
@@ -347,7 +367,7 @@ namespace FWO.Middleware.Server.Controllers
 
                     return Ok(jwt);
                 }
-                catch (Exception e) when (e is not LoginCapacityException)
+                catch (Exception e) when (e is not LoginCapacityException && !ApiReachability.IndicatesUnreachableApi(e))
                 {
                     throw new AuthenticationException("Error while validating user credentials (user name): " + e.Message);
                 }
@@ -355,6 +375,10 @@ namespace FWO.Middleware.Server.Controllers
             catch (LoginCapacityException e)
             {
                 return CapacityResult(e);
+            }
+            catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
+            {
+                return ApiUnreachableLoginResult(e);
             }
             catch (Exception e)
             {

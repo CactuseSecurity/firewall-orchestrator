@@ -309,7 +309,8 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Returns the request tasks that should receive initially generated implementation tasks.
         /// </summary>
-        private async Task<List<WfReqTask>> RequestTasksForInitialImplCreation(List<WfReqTask> requestTasks)
+        private async Task<List<WfReqTask>> RequestTasksForInitialImplCreation(
+            List<WfReqTask> requestTasks, bool includeExistingImplementationTasks = false)
         {
             // every implementation task creation run starts here
             ResetObjectTargetCache();
@@ -317,7 +318,7 @@ namespace FWO.Services.Workflow
             foreach (WfReqTask reqTask in requestTasks)
             {
                 WfReqTask detailedReqTask = await LoadReqTaskDetailsForImplCreation(reqTask);
-                if (detailedReqTask.ImplementationTasks.Count == 0
+                if ((includeExistingImplementationTasks || detailedReqTask.ImplementationTasks.Count == 0)
                     && TaskHasRequiredContentForImplCreation(detailedReqTask))
                 {
                     requestTasksWithDetails.Add(detailedReqTask);

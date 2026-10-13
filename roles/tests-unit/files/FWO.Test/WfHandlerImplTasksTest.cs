@@ -751,7 +751,7 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("RequestTasksForInitialImplCreation", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(typeof(WfHandler).FullName, "RequestTasksForInitialImplCreation");
-            Task<List<WfReqTask>> task = (Task<List<WfReqTask>>)(method.Invoke(handler, [requestTasks])
+            Task<List<WfReqTask>> task = (Task<List<WfReqTask>>)(method.Invoke(handler, [requestTasks, false])
                 ?? throw new InvalidOperationException("RequestTasksForInitialImplCreation returned null."));
             return await task;
         }

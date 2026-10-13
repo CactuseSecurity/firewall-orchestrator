@@ -23,46 +23,34 @@ public static class ResolvePathDevicesRequestValidator
                 ResolvePathDevicesRequestValidationSchema.DescribeKeys(ResolvePathDevicesRequestValidationSchema.RootKeys)));
             return result;
         }
-
-        ValidateTicketId(request, result);
-        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.AdditionalData, GetAuditProofCriticalChangesValidationSchema.kRootPath,
-            GetAuditProofCriticalChangesValidationSchema.RootKeys, result);
-        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.Options.AdditionalData, GetAuditProofCriticalChangesValidationSchema.kOptionsPath,
-            GetAuditProofCriticalChangesValidationSchema.OptionsKeys, result);
-        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.Options.Filter?.AdditionalData, GetAuditProofCriticalChangesValidationSchema.kFilterPath,
-            GetAuditProofCriticalChangesValidationSchema.FilterKeys, result);
+        
+        ValidateNoNullInputs(request, result);
+        ValidateIpInputs(request, result);
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.AdditionalData, ResolvePathDevicesRequestValidationSchema.kRootPath,
+            ResolvePathDevicesRequestValidationSchema.RootKeys, result);
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.Options.AdditionalData, ResolvePathDevicesRequestValidationSchema.kOptionsPath,
+            ResolvePathDevicesRequestValidationSchema.OptionsKeys, result);
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.Options.Filter?.AdditionalData, ResolvePathDevicesRequestValidationSchema.kFilterPath,
+            ResolvePathDevicesRequestValidationSchema.FilterKeys, result);
         return result;
     }
 
-    /// <summary>
-    /// Builds the error reported for a well-formed ticket id that names no workflow ticket.
-    /// </summary>
-    /// <param name="ticketId">Ticket id the caller supplied.</param>
-    /// <returns>An error response attributing the failure to the <c>ticketId</c> key.</returns>
-    /// <remarks>
-    /// Whether the ticket exists can only be answered by the API, so this error is raised after the
-    /// key-level validation above rather than inside it. It is reported in the same shape so that a
-    /// caller parses one error contract for every rejected request of this endpoint.
-    /// </remarks>
-    public static RequestValidationErrorResponse BuildUnknownTicketError(long ticketId)
+    private static void ValidateIpInputs(ResolvePathDevicesRequest request, RequestValidationErrorResponse result)
     {
-        RequestValidationErrorResponse result = new();
-        result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
-            GetAuditProofCriticalChangesValidationSchema.DescribeUnknownTicket(ticketId)));
-        return result;
+        ValidateIpBlockList(request.Sources, ResolvePathDevicesRequestValidationSchema.kSourcesPath, result);
+        ValidateIpBlockList(request.Destinations, ResolvePathDevicesRequestValidationSchema.kDestinationsPath, result);
     }
 
-    private static void ValidateTicketId(GetAuditProofCriticalChangesRequest request, RequestValidationErrorResponse result)
+    private static void ValidateIpBlockList(List<IpRangeOrNetworkRequest?>? ipBlocks, string path, RequestValidationErrorResponse result)
     {
-        if (request.TicketId == null)
+        if (ipBlocks == null)
         {
-            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
-                $"'{GetAuditProofCriticalChangesValidationSchema.kTicketIdPath}' is required."));
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(path, $"'{path}' is required."));
+            return;
         }
-        else if (request.TicketId <= 0)
+        for (int index = 0; index < ipBlocks.Count; index++)
         {
-            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
-                $"'{GetAuditProofCriticalChangesValidationSchema.kTicketIdPath}' must be greater than 0."));
+            IpRangeOrNetworkRequestValidator.Validate(ipBlocks[index], $"{path}[{index}]", result);
         }
     }
 }

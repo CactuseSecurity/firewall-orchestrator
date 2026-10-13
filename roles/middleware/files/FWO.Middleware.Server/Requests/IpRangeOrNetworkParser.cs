@@ -26,6 +26,11 @@ public static class IpRangeOrNetworkParser
     /// <summary>
     /// Parses one IP address block of a request.
     /// </summary>
+    /// <param name="ipBlock">The address block as supplied by the caller.</param>
+    /// <param name="range">The inclusive address range of the block; null when parsing failed.</param>
+    /// <param name="error">Why the block is invalid, without a subject; null when parsing succeeded.</param>
+    /// <returns>True when the block is a valid range or network.</returns>
+
     public static bool TryParse(IpRangeOrNetworkRequest ipBlock, out IPAddressRange? range, out string? error)
     {
         bool hasStart = !string.IsNullOrWhiteSpace(ipBlock.IpStart);
@@ -141,6 +146,9 @@ public static class IpRangeOrNetworkParser
     /// IPv4-compatible form of RFC 4291 section 2.5.5.1. Both are classified as IPv6 downstream and could
     /// therefore never match an IPv4 zone or range, so they are rejected instead of silently evaluated.
     /// </summary>
+    /// <param name="address">Address to classify.</param>
+    /// <returns>True when the address is an IPv4 address written in IPv6 notation.</returns>
+
     private static bool IsIpv4EncodedAsIpv6(IPAddress address)
     {
         if (address.IsIPv4MappedToIPv6)
@@ -233,7 +241,7 @@ public static class IpRangeOrNetworkParser
     }
 
     /// <summary>
-    /// Parses a CIDR network exactly once and returns the inclusive bounds of the addressed block.
+    /// Parses a CIDR network and returns the inclusive bounds of the addressed block.
     /// Networks carrying host bits are rejected so that no request is silently widened.
     /// </summary>
     private static bool TryNormalizeIpNetwork(string ipNetwork, out string normalizedIpStart, out string normalizedIpEnd, out string? errorMessage)

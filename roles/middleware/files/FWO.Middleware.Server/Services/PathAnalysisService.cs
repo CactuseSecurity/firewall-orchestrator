@@ -39,7 +39,33 @@ public sealed class PathAnalysisService
         };
     }
 
-    List<IPAddressRange>
+    /// <summary>
+    /// Converts validated IP address blocks of the request into address ranges.
+    /// </summary>
+    /// <remarks>
+    /// The request validator has already rejected missing lists, null elements and every invalid block, so a
+    /// failure here is a programming error and not the caller's fault; it surfaces as a server error.
+    /// </remarks>
+    private static List<IPAddressRange> ToRanges(List<IpRangeOrNetworkRequest?>? ipBlocks)
+    {
+        List<IPAddressRange> ranges = [];
+        ipBlocks ??= [];
+
+        for (int index = 0; index < ipBlocks.Count; index++)
+        {
+            IpRangeOrNetworkRequest? ipBlock = ipBlocks[index]
+                ?? throw new InvalidOperationException($"IP block at index {index} passed validation but is null.");
+            if (!IpRangeOrNetworkParser.TryParse(ipBlock, out IPAddressRange? range, out string? error))
+            {
+                throw new InvalidOperationException($"IP block at index {index} passed validation but could not be converted: {error}");
+            }
+
+            ranges.Add(range!);
+        }
+
+    return ranges;
+}
+
 
     /// <summary>
     /// Serializer with the settings the GraphQL client uses to write change-history snapshots.

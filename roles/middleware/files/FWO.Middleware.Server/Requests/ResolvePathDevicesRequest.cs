@@ -29,7 +29,7 @@ public sealed class ResolvePathDevicesRequest : IRequestWithRootAdditionalData
     /// </remarks>
     [OpenApiRequired]
     [JsonPropertyName("sources")]
-    public List<IpRangeOrNetworkRequest>? Sources { get; set; }
+    public List<IpRangeOrNetworkRequest?>? Sources { get; set; }
 
     /// <summary>
     /// Gets or sets the address blocks the paths end at. Required, must contain at least one entry.
@@ -38,7 +38,7 @@ public sealed class ResolvePathDevicesRequest : IRequestWithRootAdditionalData
     /// <remarks>Nullable for the same reason as <see cref="Sources"/>.</remarks>
     [OpenApiRequired]
     [JsonPropertyName("destinations")]
-    public List<IpRangeOrNetworkRequest>? Destinations { get; set; }
+    public List<IpRangeOrNetworkRequest?>? Destinations { get; set; }
 
     /// <summary>
     /// Gets or sets the optional analysis and output options. Defaults to an empty object, which uses the

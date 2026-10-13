@@ -30,6 +30,7 @@ namespace FWO.Test
         private const string kDn = "uid=x,ou=users,dc=example,dc=com";
         private const string kRenamedDn = "uid=x-renamed,ou=users,dc=example,dc=com";
         private const string kCaseChangedDn = "uid=X,ou=Users,dc=example,dc=com";
+        private const string kEscapedDn = @"uid=\78,ou=users,dc=example,dc=com";
         private const string kFirstObject = "entryUUID:11111111-1111-1111-1111-111111111111";
         private const string kSecondObject = "entryUUID:22222222-2222-2222-2222-222222222222";
         private const string kSecondEntryUuid = "22222222-2222-2222-2222-222222222222";
@@ -144,30 +145,32 @@ namespace FWO.Test
             });
         }
 
-        [Test]
-        public async Task ResolveLocalUser_FollowsACaseOnlyDnChange()
+        [TestCase(kCaseChangedDn)]
+        [TestCase(kEscapedDn)]
+        public async Task ResolveLocalUser_FollowsAnEquivalentDnChange(string changedDn)
         {
             DirectoryObjectApiConnection apiConnection = new();
             apiConnection.StoredUsers.Add(StoredUser(kStoredUserId, kDn, kFirstObject));
 
-            UiUser? result = await UiUserDirectoryObjectBinding.ResolveLocalUser(apiConnection, LoginOf(kCaseChangedDn, kFirstObject), kLdapId, false);
+            UiUser? result = await UiUserDirectoryObjectBinding.ResolveLocalUser(apiConnection, LoginOf(changedDn, kFirstObject), kLdapId, false);
 
             Assert.Multiple(() =>
             {
                 Assert.That(result?.DbId, Is.EqualTo(kStoredUserId));
-                Assert.That(result?.Dn, Is.EqualTo(kCaseChangedDn));
-                Assert.That(apiConnection.StoredUsers[0].Dn, Is.EqualTo(kCaseChangedDn));
+                Assert.That(result?.Dn, Is.EqualTo(changedDn));
+                Assert.That(apiConnection.StoredUsers[0].Dn, Is.EqualTo(changedDn));
                 Assert.That(apiConnection.RevokedUserIds, Is.Empty);
             });
         }
 
-        [Test]
-        public async Task SynchronizeUiUserContext_KeepsTheLocalUserAfterACaseOnlyDnChange()
+        [TestCase(kCaseChangedDn)]
+        [TestCase(kEscapedDn)]
+        public async Task SynchronizeUiUserContext_KeepsTheLocalUserAfterAnEquivalentDnChange(string changedDn)
         {
             DirectoryObjectApiConnection apiConnection = new();
             apiConnection.StoredUsers.Add(StoredUser(kStoredUserId, kDn, kFirstObject));
 
-            UiUser result = await UiUserHandler.SynchronizeUiUserContext(apiConnection, LoginOf(kCaseChangedDn, kFirstObject), bindDirectoryObject: true);
+            UiUser result = await UiUserHandler.SynchronizeUiUserContext(apiConnection, LoginOf(changedDn, kFirstObject), bindDirectoryObject: true);
 
             Assert.Multiple(() =>
             {
@@ -176,15 +179,16 @@ namespace FWO.Test
             });
         }
 
-        [Test]
-        public void ResolveLocalUser_RefusesACaseOnlyDnChangeOntoTheDnOfAnotherLocalUser()
+        [TestCase(kCaseChangedDn)]
+        [TestCase(kEscapedDn)]
+        public void ResolveLocalUser_RefusesAnEquivalentDnChangeOntoTheDnOfAnotherLocalUser(string changedDn)
         {
             DirectoryObjectApiConnection apiConnection = new();
             apiConnection.StoredUsers.Add(StoredUser(kStoredUserId, kDn, kFirstObject));
-            apiConnection.StoredUsers.Add(StoredUser(kStoredUserId + 1, kCaseChangedDn, null));
+            apiConnection.StoredUsers.Add(StoredUser(kStoredUserId + 1, changedDn, null));
 
             AuthenticationException exception = Assert.ThrowsAsync<AuthenticationException>(async () =>
-                await UiUserDirectoryObjectBinding.ResolveLocalUser(apiConnection, LoginOf(kCaseChangedDn, kFirstObject), kLdapId, true))!;
+                await UiUserDirectoryObjectBinding.ResolveLocalUser(apiConnection, LoginOf(changedDn, kFirstObject), kLdapId, true))!;
 
             Assert.Multiple(() =>
             {

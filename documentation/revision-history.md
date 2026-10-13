@@ -1,6 +1,10 @@
 # Firewall Orchestrator Revision History
 
-## 9.7.2 - 12.10.2026
+## 9.7.2 - 13.10.2026
+- update NuGet packages: Quartz 4.4.0, PuppeteerSharp 25.13.1, Scalar.AspNetCore 2.17.14, AngleSharp 1.8.4,
+  NUnit3TestAdapter 6.3.1; regenerate SBOM
+
+## 9.7.2 - 13.10.2026
 
 - implementation tasks of object tasks are created per target management
   (group create/modify/delete, object create/modify). The target management follows the provisioning settings

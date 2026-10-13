@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.2 - 13.10.2026
+- update NuGet packages: Quartz 4.4.0, PuppeteerSharp 25.13.1, Scalar.AspNetCore 2.17.14, AngleSharp 1.8.4,
+  NUnit3TestAdapter 6.3.1; regenerate SBOM
+
 ## 9.7.1 - 09.10.2026
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
   configurable with one switch per connection type, validated against the host trust store:

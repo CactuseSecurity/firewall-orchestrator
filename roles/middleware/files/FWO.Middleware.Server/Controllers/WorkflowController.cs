@@ -619,7 +619,13 @@ namespace FWO.Middleware.Server.Controllers
                 || (requestingOwnerId > 0 && editableOwnerIds.Contains(requestingOwnerId));
         }
 
-        private static HashSet<int> GetClaimIds(ClaimsPrincipal user, string claimName)
+        /// <summary>
+        /// Reads an id set claim in the hasura notation ({1,2,3}) of the caller.
+        /// </summary>
+        /// <param name="user">Authenticated caller.</param>
+        /// <param name="claimName">Name of the claim.</param>
+        /// <returns>The ids of the claim; empty when the claim is missing or holds no valid id.</returns>
+        internal static HashSet<int> GetClaimIds(ClaimsPrincipal user, string claimName)
         {
             string claimValue = GetClaimValue(user, claimName) ?? "";
             return claimValue

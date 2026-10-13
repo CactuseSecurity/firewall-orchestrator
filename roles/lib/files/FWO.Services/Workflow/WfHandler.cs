@@ -44,6 +44,12 @@ namespace FWO.Services.Workflow
 
         public WorkflowPhases Phase = WorkflowPhases.request;
         public List<Device> Devices = [];
+
+        /// <summary>
+        /// Managements visible to the user, used to show the target management of implementation tasks. Only loaded
+        /// in the ui, as the middleware server does not display implementation tasks.
+        /// </summary>
+        public List<Management> Managements = [];
         public List<FwoOwner> AllOwners { get; set; } = [];
         public List<WfPriority> PrioList = [];
         public List<WfImplTask> AllTicketImplTasks = [];
@@ -219,6 +225,10 @@ namespace FWO.Services.Workflow
                 AuthUser == null || userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor), Phase, !usedInMwServer)
             { ChangerId = ChangerId };
             Devices = await activeApiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+            if (!usedInMwServer)
+            {
+                await LoadVisibleManagements(activeApiConnection);
+            }
             AllOwners = await activeApiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             await stateMatrixDict.Init(Phase, activeApiConnection, states);
             MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
@@ -228,6 +238,23 @@ namespace FWO.Services.Workflow
             }
             ReloadTasks = !fullTickets;
             PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
+        }
+
+        /// <summary>
+        /// Loads the managements visible to the user. They are only displayed, so a failure must not stop the
+        /// workflow initialization; the implementation task views then show their management as not visible.
+        /// </summary>
+        private async Task LoadVisibleManagements(ApiConnection activeApiConnection)
+        {
+            try
+            {
+                Managements = await activeApiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementHierarchy) ?? [];
+            }
+            catch (Exception exception)
+            {
+                Managements = [];
+                Log.WriteError("Workflow", "Could not load the managements visible to the user.", exception);
+            }
         }
 
         public void FilterForRequester()

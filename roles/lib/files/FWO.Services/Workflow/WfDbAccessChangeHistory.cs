@@ -182,6 +182,7 @@ namespace FWO.Services.Workflow
                 task.Stop,
                 task.FreeText,
                 task.DeviceId,
+                task.ManagementId,
                 Elements = task.ImplElements.Select(element => new
                 {
                     element.Id,

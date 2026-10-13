@@ -119,6 +119,11 @@
                     </Column>
                 }
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
+                <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="false">
+                    <Template>
+                        @(GetManagementName(implTask))
+                    </Template>
+                </Column>
                 @if(userConfig.ReqOwnerBased)
                 {
                     <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("owner"))" Field="@(x => x.ReqTaskId)" Sortable="true">
@@ -274,6 +279,13 @@
             return reqTask.Owners.FirstOrDefault()?.Owner.Name ?? "";
         }
         return "";
+    }
+
+    private string GetManagementName(WfImplTask implTask)
+    {
+        int? reqTaskManagementId = implTask.ReqTaskId != 0 && reqTasksById.TryGetValue(implTask.ReqTaskId, out WfReqTask? reqTask)
+            ? reqTask.ManagementId : null;
+        return WfHandler.GetImplTaskManagementName(implTask, reqTaskManagementId);
     }
 
     private string GetDeviceName(WfImplTask implTask)

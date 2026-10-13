@@ -123,7 +123,7 @@ namespace FWO.Ui.Pages.Settings
 
         private const char kListSeparator = ',';
 
-        private static readonly IReadOnlyDictionary<string, string> HelpTextKeys = new Dictionary<string, string>(StringComparer.Ordinal)
+        private static readonly Dictionary<string, string> HelpTextKeys = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             { "prov_implementation_mode", "H5168" },
             { "prov_install_on", "H5169" },

@@ -103,21 +103,7 @@ public static class ProvisioningSettingValueSerializer
 
         if (key.ValueType.IsEnum)
         {
-            if (value.Type != JTokenType.String)
-            {
-                throw InvalidValue(key, value, "enum values must be JSON strings");
-            }
-
-            string enumName = value.Value<string>() ?? "";
-            object? parsed = Enum.GetValues(key.ValueType).Cast<object>()
-                .FirstOrDefault(candidate => IsStorableEnumValue(key.ValueType, candidate) && IsAllowedEnumValue(key, candidate)
-                    && StorageName(key, candidate) == enumName);
-            if (parsed is null)
-            {
-                throw InvalidValue(key, value, $"'{enumName}' is not a storable {key.ValueType.Name} value");
-            }
-
-            return parsed;
+            return DeserializeEnum(key, value);
         }
 
         if (key.ValueType == typeof(string))
@@ -147,6 +133,26 @@ public static class ProvisioningSettingValueSerializer
 
         throw new NotSupportedException(
             $"Provisioning setting type '{key.ValueType.Name}' has no JSONB deserializer.");
+    }
+
+    /// <summary>Reads a storable, allowed enum value from its JSON string storage name.</summary>
+    private static object DeserializeEnum(ProvisioningSettingKey key, JToken value)
+    {
+        if (value.Type != JTokenType.String)
+        {
+            throw InvalidValue(key, value, "enum values must be JSON strings");
+        }
+
+        string enumName = value.Value<string>() ?? "";
+        object? parsed = Enum.GetValues(key.ValueType).Cast<object>()
+            .FirstOrDefault(candidate => IsStorableEnumValue(key.ValueType, candidate) && IsAllowedEnumValue(key, candidate)
+                && StorageName(key, candidate) == enumName);
+        if (parsed is null)
+        {
+            throw InvalidValue(key, value, $"'{enumName}' is not a storable {key.ValueType.Name} value");
+        }
+
+        return parsed;
     }
 
     /// <summary>Validates and reads the complete naming JSON object.</summary>

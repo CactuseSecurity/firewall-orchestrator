@@ -9,7 +9,7 @@ SET LOCAL search_path = provisioning_upgrade_9_7_2_test, pg_temp;
 CREATE TEMP TABLE config (config_key varchar, config_value varchar, config_user integer,
     PRIMARY KEY (config_key, config_user));
 INSERT INTO config VALUES ('pathAnalysisAlgorithm', '2', 0);
-CREATE TEMP TABLE original_config AS SELECT * FROM config;
+CREATE TEMP TABLE original_config AS SELECT config_key, config_value, config_user FROM config;
 CREATE TEMP TABLE provisioning_config_node (id bigint PRIMARY KEY, node_type varchar, object_key varchar);
 CREATE TEMP TABLE provisioning_config_value (node_id bigint, config_key varchar, config_value jsonb,
     PRIMARY KEY (node_id, config_key));
@@ -29,7 +29,7 @@ INSERT INTO provisioning_config_value VALUES
     (4, 'serviceObjectCreation', '"Submanager"'), (4, 'addressObjectCreation', '"Submanager"'),
     (4, 'ruleCategory', '"CommonService"'), (4, 'templates', '"gateway-template"'),
     (4, 'logging', '"None"'), (4, 'installOn', '"gatewaysInPath"');
-CREATE TEMP TABLE original_values AS SELECT * FROM provisioning_config_value;
+CREATE TEMP TABLE original_values AS SELECT node_id, config_key, config_value FROM provisioning_config_value;
 
 \i :upgrade_file
 
@@ -47,12 +47,12 @@ INSERT INTO expected_values VALUES
     (4, 'ruleLoggingOverride', '"none"'), (4, 'installOn', '"gatewaysInPath"');
 CREATE FUNCTION pg_temp.assert_migration() RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
-    IF EXISTS ((SELECT * FROM config EXCEPT SELECT * FROM original_config)
-        UNION ALL (SELECT * FROM original_config EXCEPT SELECT * FROM config)) THEN
+    IF EXISTS ((SELECT config_key, config_value, config_user FROM config EXCEPT SELECT config_key, config_value, config_user FROM original_config)
+        UNION ALL (SELECT config_key, config_value, config_user FROM original_config EXCEPT SELECT config_key, config_value, config_user FROM config)) THEN
         RAISE EXCEPTION 'General settings must stay unchanged and must not contain provisioning backups';
     END IF;
-    IF EXISTS ((SELECT * FROM provisioning_config_value EXCEPT SELECT * FROM expected_values)
-        UNION ALL (SELECT * FROM expected_values EXCEPT SELECT * FROM provisioning_config_value)) THEN
+    IF EXISTS ((SELECT node_id, config_key, config_value FROM provisioning_config_value EXCEPT SELECT node_id, config_key, config_value FROM expected_values)
+        UNION ALL (SELECT node_id, config_key, config_value FROM expected_values EXCEPT SELECT node_id, config_key, config_value FROM provisioning_config_value)) THEN
         RAISE EXCEPTION 'Migrated values differ from the expected contract';
     END IF;
     IF EXISTS ((SELECT node_id, config_key, config_value FROM original_values

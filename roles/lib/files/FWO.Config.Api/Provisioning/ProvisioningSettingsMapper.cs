@@ -20,7 +20,7 @@ internal static class ProvisioningSettingsMapper
         };
     }
 
-    private static readonly IReadOnlyDictionary<ProvisioningSettingKey, System.Reflection.PropertyInfo> Properties =
+    private static readonly Dictionary<ProvisioningSettingKey, System.Reflection.PropertyInfo> Properties =
         ProvisioningSettingKeys.All.ToDictionary(key => key, key =>
             typeof(GlobalProvisioningSettings).GetProperty(char.ToUpperInvariant(key.DatabaseKey[0]) + key.DatabaseKey[1..])
                 ?? throw new InvalidOperationException($"Provisioning setting '{key.DatabaseKey}' has no DTO mapping."));

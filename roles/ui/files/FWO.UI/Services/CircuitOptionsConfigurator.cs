@@ -33,6 +33,8 @@ namespace FWO.Ui.Services
         /// navigation only changes the address line until the page is reloaded manually.
         /// Keeping no persisted circuits makes the resume fail, so the client falls back to reloading the page,
         /// which is the behaviour of .NET 9.
+        /// This only works as long as no HybridCache service is registered: the framework then persists circuits
+        /// via HybridCache, which ignores PersistedCircuitInMemoryMaxRetained, and the freeze returns.
         /// </remarks>
         /// <param name="options">Circuit options to adapt.</param>
         public static void Configure(CircuitOptions options)

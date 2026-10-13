@@ -20,7 +20,7 @@ updates:
     directory: "/roles/"
     target-branch: "develop"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     registries:
       - private-github
     assignees:

@@ -9,6 +9,21 @@
 <Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
     <div class="me-2 ms-2 mt-4 mb-4">
         <ul class="navbar-nav navbar-dark flex-column">
+            @* Temporary debug-only entry, see issue #5449 *@
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                @if (BuildConfiguration.IsDebug)
+                {
+                    <li class="nav-item px-2">
+                        <h5>@(userConfig.GetText("debug"))</h5>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="monitoring/fancy_table_preview">
+                            <span class="@Icons.Reporting"></span> @(userConfig.GetText("fancy_table_preview"))
+                        </NavLink>
+                    </li>
+                    <hr />
+                }
+            </ExecutionModeAuthorizeView>
             <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("system"))</h5>

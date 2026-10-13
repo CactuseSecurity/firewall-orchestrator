@@ -1,0 +1,114 @@
+@using FWO.Data.Report
+@using FWO.Report
+@using FWO.Report.Filter
+@using FWO.Services.RuleTreeBuilder
+@using FWO.Ui.Pages.Reporting.Reports
+
+@page "/monitoring/fancy_table_preview"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject IRuleTreeBuilder ruleTreeBuilder
+
+@* Temporary debug-only page to preview the FancyTable based rules report before it replaces the productive one. *@
+
+@if (BuildConfiguration.IsDebug)
+{
+    <Sidebar Collapsible="true" Resizeable="true" PositionLeft="false" @bind-Width="sidebarWidth">
+        <div class="btn-group p-3 w-100">
+            @if (processing)
+            {
+                <button type="button" class="btn btn-sm btn-danger" @onclick="CancelGeneration">@(userConfig.GetText("stop_fetching"))</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm btn-primary" @onclick="GenerateRulesReport">@(userConfig.GetText("generate_report"))</button>
+            }
+        </div>
+        <ManagementSelection @bind-DeviceFilter="deviceFilter" />
+    </Sidebar>
+
+    <div style="margin-right: @($"{sidebarWidth + 10}px");">
+        <h3>@(userConfig.GetText("fancy_table_preview"))</h3>
+        <hr />
+        <FancyRulesReport Managements="managementsReport" SelectedReportType="ReportType.Rules" RulesPerPage="0" @bind-SelectedRules="selectedRules" />
+    </div>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private int sidebarWidth = GlobalConst.kSidebarRightWidth;
+    private bool processing = false;
+    private CancellationTokenSource tokenSource = new();
+    private DeviceFilter deviceFilter = new();
+    private List<ManagementReport> managementsReport = [];
+    private List<Rule> selectedRules = [];
+
+    /// <summary>
+    /// Loads the selectable devices. Does nothing in release builds.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        if (!BuildConfiguration.IsDebug)
+        {
+            return;
+        }
+
+        try
+        {
+            deviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
+
+    /// <summary>
+    /// Generates a rules report for the selected devices and hands it to the FancyTable rules report.
+    /// </summary>
+    private async Task GenerateRulesReport()
+    {
+        if (!deviceFilter.IsAnyDeviceFilterSet())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+            return;
+        }
+
+        processing = true;
+        selectedRules.Clear();
+        tokenSource = new CancellationTokenSource();
+
+        try
+        {
+            ReportTemplate template = new("", new ReportParams((int)ReportType.Rules, deviceFilter));
+            ReportBase? report = await ReportGenerator.GenerateFromTemplate(template, apiConnection, userConfig, DisplayMessageInUi, tokenSource.Token, ruleTreeBuilder);
+            managementsReport = report?.ReportData.ManagementData ?? [];
+        }
+        catch (OperationCanceledException)
+        {
+            managementsReport = [];
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("generate_report"), "", true);
+        }
+        finally
+        {
+            processing = false;
+        }
+    }
+
+    /// <summary>
+    /// Cancels a running report generation.
+    /// </summary>
+    private void CancelGeneration()
+    {
+        tokenSource.Cancel();
+        DisplayMessageInUi(null, userConfig.GetText("report_data_fetch"), userConfig.GetText("E1003"), true);
+    }
+}

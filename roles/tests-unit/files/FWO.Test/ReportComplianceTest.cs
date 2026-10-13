@@ -28,6 +28,16 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Dispose_WhenCalledTwice_DoesNotThrow()
+        {
+            MockReportCompliance report = _complianceReport;
+
+            report.Dispose();
+
+            Assert.DoesNotThrow(report.Dispose);
+        }
+
+        [Test]
         public async Task ProcessChunksParallelized_BigDataSet_EvaluatesAllRules()
         {
             // ARRANGE

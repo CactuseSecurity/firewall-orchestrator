@@ -4,6 +4,9 @@
 - extend hierarchical provisioning configuration for Guardicore: object creation, modelling naming, app-zone and network-area switches, dynamic IP labels, rule implementation and planning overrides
 - migrate provisioning key names and option values; privately back up old overrides before enforcing the revised scope restrictions (see developer documentation on provisioning settings)
 
+## 9.7.3 - 14.10.2026
+- pin System.Security.Cryptography.Pkcs to 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
+
 ## 9.7.2 - 12.10.2026
 - security (GHSA-695m-f6mv-9g72): a dn no longer identifies a subject across LDAP connections
   - every dn belongs to exactly one active LDAP connection, the one whose search or write paths contain it (the most

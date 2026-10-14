@@ -3,6 +3,7 @@
 ## 9.7.3 - 14.10.2026
 - replace cloud client fields with selectable additional credentials; migrate existing values into encrypted credential secrets (#3766)
 - the Cisco ASA importer decrypts the selected additional credential for enable mode
+- pin System.Security.Cryptography.Pkcs to 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
 
 ## 9.7.2 - 12.10.2026
 - security (GHSA-695m-f6mv-9g72): a dn no longer identifies a subject across LDAP connections

@@ -39,7 +39,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5513"))">
             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("event")):</label>
             <div class="col-sm-8">
-                <Dropdown ElementType="string" @bind-SelectedElement="ActAction.Event" ElementToString="@(e => userConfig.GetText(e))" Elements="Enum.GetNames(typeof(StateActionEvents))">
+                <Dropdown ElementType="string" @bind-SelectedElement="ActAction.Event" ElementToString="@(e => userConfig.GetText(e))" Elements="SelectableEvents">
                     <ElementTemplate Context="eventt">
                         @(userConfig.GetText(eventt))
                     </ElementTemplate>
@@ -80,7 +80,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5515"))">
             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
             <div class="col-sm-8">
-                <Dropdown ElementType="string" SelectedElement="ActAction.Scope" SelectedElementChanged="OnScopeChanged" ElementToString="@(s => userConfig.GetText(s))" Elements="Enum.GetNames(typeof(WfObjectScopes))">
+                <Dropdown ElementType="string" SelectedElement="ActAction.Scope" SelectedElementChanged="OnScopeChanged" ElementToString="@(s => userConfig.GetText(s))" Elements="SelectableScopes">
                     <ElementTemplate Context="scope">
                         @(userConfig.GetText(scope))
                     </ElementTemplate>
@@ -127,6 +127,12 @@
     private string? selectedPhase;
     private WfTaskType? selectedTaskType;
 
+    private IEnumerable<string> SelectableScopes => GetSelectableScopes()
+        .Select(scope => scope.ToString());
+
+    private IEnumerable<string> SelectableEvents => GetSelectableEvents()
+        .Select(actionEvent => actionEvent.ToString());
+
     protected override void OnParametersSet()
     {
         selectedPhase = string.IsNullOrWhiteSpace(ActAction.Phase) ? null : ActAction.Phase;
@@ -138,6 +144,8 @@
     private async Task OnActionTypeChanged(string? actionType)
     {
         await ActionTypeChanged.InvokeAsync(actionType);
+        NormalizeScopeForActionType();
+        NormalizeEventForActionType();
     }
 
     private Task OnPhaseChanged(string? phase)
@@ -156,6 +164,70 @@
             ActAction.TaskType = "";
         }
         await ScopeChanged.InvokeAsync(scope);
+    }
+
+    private List<WfObjectScopes> GetSelectableScopes()
+    {
+        List<WfObjectScopes> allowedScopes = GetAllowedScopes(ActAction.ActionType);
+        if (Enum.TryParse(ActAction.Scope, out WfObjectScopes currentScope) && !allowedScopes.Contains(currentScope))
+        {
+            allowedScopes.Insert(0, currentScope);
+        }
+        return allowedScopes;
+    }
+
+    private static List<WfObjectScopes> GetAllowedScopes(string actionType)
+    {
+        return actionType switch
+        {
+            nameof(StateActionTypes.AddApproval) => new() { WfObjectScopes.RequestTask },
+            nameof(StateActionTypes.BundleTasks) => new() { WfObjectScopes.Ticket },
+            nameof(StateActionTypes.CreateFlow) => new() { WfObjectScopes.Ticket, WfObjectScopes.RequestTask },
+            nameof(StateActionTypes.UpdateConnectionOwner) => new() { WfObjectScopes.Ticket },
+            nameof(StateActionTypes.UpdateConnectionRelease) => new() { WfObjectScopes.Ticket },
+            nameof(StateActionTypes.UpdateConnectionReject) => new() { WfObjectScopes.Ticket },
+            _ => Enum.GetValues<WfObjectScopes>().ToList()
+        };
+    }
+
+    private List<StateActionEvents> GetSelectableEvents()
+    {
+        List<StateActionEvents> allowedEvents = GetAllowedEvents(ActAction.ActionType);
+        if (Enum.TryParse(ActAction.Event, out StateActionEvents currentEvent) && !allowedEvents.Contains(currentEvent))
+        {
+            allowedEvents.Insert(0, currentEvent);
+        }
+        return allowedEvents;
+    }
+
+    private static List<StateActionEvents> GetAllowedEvents(string actionType)
+    {
+        return actionType switch
+        {
+            nameof(StateActionTypes.DisplayConnection) => new() { StateActionEvents.OfferButton },
+            nameof(StateActionTypes.TrafficPathAnalysis) => new() { StateActionEvents.OfferButton },
+            _ => Enum.GetValues<StateActionEvents>().ToList()
+        };
+    }
+
+    private void NormalizeScopeForActionType()
+    {
+        List<WfObjectScopes> allowedScopes = GetAllowedScopes(ActAction.ActionType);
+        if (!Enum.TryParse(ActAction.Scope, out WfObjectScopes currentScope) || !allowedScopes.Contains(currentScope))
+        {
+            ActAction.Scope = allowedScopes[0].ToString();
+            selectedTaskType = null;
+            ActAction.TaskType = "";
+        }
+    }
+
+    private void NormalizeEventForActionType()
+    {
+        List<StateActionEvents> allowedEvents = GetAllowedEvents(ActAction.ActionType);
+        if (!Enum.TryParse(ActAction.Event, out StateActionEvents currentEvent) || !allowedEvents.Contains(currentEvent))
+        {
+            ActAction.Event = allowedEvents[0].ToString();
+        }
     }
 
     private Task OnTaskTypeChanged(WfTaskType? taskType)

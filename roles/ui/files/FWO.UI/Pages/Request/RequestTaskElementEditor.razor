@@ -11,19 +11,19 @@
     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
         Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-        IpProtos="DisplayIpProtos" SelectableIpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode"
-        EditSources="CanEditField(WorkflowEditableFieldKeys.Source)"
-        EditDestinations="CanEditField(WorkflowEditableFieldKeys.Destination)"
-        EditServices="CanEditField(WorkflowEditableFieldKeys.Services)" />
+        IpProtos="DisplayIpProtos" SelectableIpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" TicketTasks="WfHandler.ActTicket.Tasks" EditMode="IsEditable()"
+        EditSources="CanEditBundledField(WorkflowEditableFieldKeys.Source)"
+        EditDestinations="CanEditBundledField(WorkflowEditableFieldKeys.Destination)"
+        EditServices="CanEditBundledField(WorkflowEditableFieldKeys.Services)" />
 }
 else if (TaskType == WfTaskType.rule_delete)
 {
-    <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActReqTask.Id" EditMode="CanEditField(WorkflowEditableFieldKeys.Rules)" />
+    <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActReqTask.Id" EditMode="CanEditBundledField(WorkflowEditableFieldKeys.Rules)" />
 }
 else if (TaskType == WfTaskType.group_create)
 {
     <div class="form-group row mt-2">
-        @if (WfHandler.EditReqTaskMode)
+        @if (IsEditable())
         {
             <div class="col-sm-2">
                 <input class="form-check-input" type="radio" checked="@(!grpTypeSvc)" name="shortcutRange" id="nwGrp" @onchange="() => grpTypeSvc = false">
@@ -75,6 +75,13 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
     [Parameter]
     public WfHandler WfHandler { get; set; } = new();
 
+    /// <summary>
+    /// Optional read-only task used to display the merged elements of bundled request tasks.
+    /// The active task in <see cref="WfHandler"/> remains the task that is edited and saved.
+    /// </summary>
+    [Parameter]
+    public WfReqTask? DisplayTask { get; set; }
+
     [Parameter]
     public WfTaskType TaskType { get; set; } = WfTaskType.access;
 
@@ -114,11 +121,22 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
     private List<NwServiceElement> servicesToDelete = [];
     private bool grpTypeSvc;
     private long initializedTaskId = -1;
+    private bool initializedBundledDisplay;
 
     public int SourceCount => actSources.Count;
     public int DestinationCount => actDestinations.Count;
     public int ServiceCount => actServices.Count;
     public int RuleCount => actRules.Count;
+
+    private bool IsEditable()
+    {
+        return DisplayTask == null && WfHandler.EditReqTaskMode;
+    }
+
+    private bool CanEditBundledField(string fieldKey)
+    {
+        return DisplayTask == null && CanEditField(fieldKey);
+    }
 
     /// <summary>
     /// Checks the entered object of an object task and writes it into the request task. Returns the text key
@@ -132,9 +150,10 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 
     protected override void OnParametersSet()
     {
-        if (initializedTaskId != WfHandler.ActReqTask.Id)
+        if (initializedTaskId != WfHandler.ActReqTask.Id || initializedBundledDisplay != (DisplayTask != null))
         {
             initializedTaskId = WfHandler.ActReqTask.Id;
+            initializedBundledDisplay = DisplayTask != null;
             InitializeElements();
         }
     }
@@ -142,10 +161,11 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
     public void InitializeElements()
     {
         ResetPendingChanges();
-        actSources = WfHandler.ActReqTask.GetNwObjectElements(ElemFieldType.source);
-        actDestinations = WfHandler.ActReqTask.GetNwObjectElements(ElemFieldType.destination);
-        actServices = WfHandler.ActReqTask.GetServiceElements();
-        actRules = WfHandler.ActReqTask.GetRuleElements();
+        WfReqTask displayTask = DisplayTask ?? WfHandler.ActReqTask;
+        actSources = displayTask.GetNwObjectElements(ElemFieldType.source);
+        actDestinations = displayTask.GetNwObjectElements(ElemFieldType.destination);
+        actServices = displayTask.GetServiceElements();
+        actRules = displayTask.GetRuleElements();
         grpTypeSvc = actServices.Count > 0;
     }
 

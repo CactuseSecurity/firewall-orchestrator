@@ -40,6 +40,37 @@ internal class UiRequestTaskElementEditorTest
     }
 
     [Test]
+    public void InitializeElements_UsesDisplayTaskForBundledReadOnlyView()
+    {
+        WfReqTask activeTask = new()
+        {
+            Id = 42,
+            Elements = [new WfReqElement { Field = ElemFieldType.destination.ToString(), Name = "active" }]
+        };
+        WfReqTask displayTask = new()
+        {
+            Id = 42,
+            Elements =
+            [
+                new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "merged source" },
+                new WfReqElement { Field = ElemFieldType.destination.ToString(), Name = "merged destination" }
+            ]
+        };
+        RequestTaskElementEditor component = CreateComponent(activeTask);
+        SetMember(component, nameof(RequestTaskElementEditor.DisplayTask), displayTask);
+
+        component.InitializeElements();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(component.SourceCount, Is.EqualTo(1));
+            Assert.That(component.DestinationCount, Is.EqualTo(1));
+            Assert.That(InvokePrivate<bool>(component, "IsEditable"), Is.False);
+            Assert.That(activeTask.Elements, Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
     public void ApplyChanges_ReconcilesAddedRemovedAndRuleEntries()
     {
         WfReqTask reqTask = new()

@@ -8,6 +8,7 @@ mutation upsertUiUser(
   $loginTime: timestamptz
   $passwordMustBeChanged: Boolean
   $ldapConnectionId: bigint
+  $directoryObjectId: String
 ) {
   insert_uiuser(
     objects: {
@@ -20,6 +21,7 @@ mutation upsertUiUser(
       uiuser_last_login: $loginTime
       uiuser_password_must_be_changed: $passwordMustBeChanged
       ldap_connection_id: $ldapConnectionId
+      directory_object_id: $directoryObjectId
     }
     on_conflict: {
       constraint: uiuser_ldap_connection_id_uuid_key

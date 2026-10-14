@@ -68,6 +68,12 @@ namespace FWO.Test
             Interlocked.Increment(ref connectCount);
             return Task.FromResult(connection);
         }
+
+        protected override Task<ILdapClient> ConnectToServer(string address, CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref connectCount);
+            return Task.FromResult(connection);
+        }
     }
 
     internal sealed class RecordingLdapClient : ILdapClient
@@ -89,6 +95,7 @@ namespace FWO.Test
         public Dictionary<string, LdapEntry?> ReadResultsByDn { get; } = new(StringComparer.OrdinalIgnoreCase);
         public bool ThrowOnAdd { get; set; }
         public bool ThrowOnDelete { get; set; }
+        public Exception? ReadException { get; set; }
 
         public Task BindAsync(string user, string password)
         {
@@ -98,9 +105,24 @@ namespace FWO.Test
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Attribute lists of the reads that requested specific attributes.
+        /// </summary>
+        public List<string[]> ReadAttributeCalls { get; } = new();
+
+        public Task<LdapEntry?> ReadAsync(string distinguishedName, string[] attributes, CancellationToken cancellationToken)
+        {
+            ReadAttributeCalls.Add(attributes);
+            return ReadAsync(distinguishedName);
+        }
+
         public Task<LdapEntry?> ReadAsync(string distinguishedName)
         {
             ReadCalls.Add(distinguishedName);
+            if (ReadException != null)
+            {
+                throw ReadException;
+            }
             if (ReadResultsByDn.TryGetValue(distinguishedName, out LdapEntry? result))
             {
                 return Task.FromResult(result);

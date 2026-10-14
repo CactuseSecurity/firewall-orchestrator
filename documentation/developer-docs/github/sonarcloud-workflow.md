@@ -8,6 +8,11 @@ SonarCloud analysis (C# via the SonarScanner for .NET, Python with coverage) of 
 Both workflows use the repository secret `SONAR_TOKEN` and the repository variables
 `SONAR_PROJECT_KEY` and `SONAR_ORGANIZATION`.
 
+Python coverage includes importer code, scripts and installer callbacks in `callback_plugins`.
+The role-duration callback tests stub Ansible's callback base class, so they run without Ansible.
+Do not add Ansible to `scripts/requirements.txt`: the installer deploys that file into the
+customizing venv on every middleware host.
+
 ## Branch analysis (`sonarcloud.yml`)
 
 Runs on pushes to `main` and `develop` and on manual dispatch. It analyzes the pushed branch and

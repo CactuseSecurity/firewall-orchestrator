@@ -27376,6 +27376,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "directory_object_id",
                       "ldap_connection_id",
                       "tenant_id",
                       "uiuser_email",
@@ -27548,6 +27549,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "directory_object_id",
                       "ldap_connection_id",
                       "tenant_id",
                       "uiuser_email",
@@ -28012,6 +28014,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "directory_object_id",
                       "ldap_connection_id",
                       "tenant_id",
                       "uiuser_email",
@@ -31366,6 +31369,18 @@
                   }
                 },
                 {
+                  "name": "management",
+                  "using": {
+                    "foreign_key_constraint_on": "mgm_id"
+                  }
+                },
+                {
+                  "name": "nw_user",
+                  "using": {
+                    "foreign_key_constraint_on": "user_grp_id"
+                  }
+                },
+                {
                   "name": "object",
                   "using": {
                     "foreign_key_constraint_on": "nw_obj_grp_id"
@@ -31453,6 +31468,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31482,6 +31498,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31512,6 +31529,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31542,6 +31560,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31571,6 +31590,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31601,6 +31621,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31630,6 +31651,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31659,6 +31681,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31688,6 +31711,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31718,6 +31742,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31748,6 +31773,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31777,6 +31803,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31807,6 +31834,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31837,6 +31865,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31866,6 +31895,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -31957,6 +31987,7 @@
                       "title",
                       "current_handler",
                       "device_id",
+                      "mgm_id",
                       "nw_obj_grp_id",
                       "recent_handler",
                       "rule_action",
@@ -35672,6 +35703,18 @@
                 }
               ],
               "array_relationships": [
+                {
+                  "name": "change_histories",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ticket_id",
+                      "table": {
+                        "name": "change_history",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
                 {
                   "name": "ext_requests",
                   "using": {

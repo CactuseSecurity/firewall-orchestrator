@@ -131,13 +131,14 @@ namespace FWO.Middleware.Server
         {
             foreach (Ldap ldap in ldaps)
             {
-                if (!CanContainUser(ldap, dn))
+                // a dn names a user only in the directory that owns it (GHSA-695m-f6mv-9g72)
+                if (!LdapDnNamespace.IsOwnedBy(ldaps, ldap.Id, dn))
                 {
                     continue;
                 }
 
                 var ldapUser = await ldap.GetUserDetailsFromLdap(dn);
-                if (ldapUser == null || Ldap.IsGroupEntry(ldapUser))
+                if (ldapUser == null || Ldap.IsGroupEntry(ldapUser) || !LdapDnNamespace.IsOwnedBy(ldaps, ldap.Id, ldapUser.Dn))
                 {
                     continue;
                 }
@@ -146,6 +147,7 @@ namespace FWO.Middleware.Server
                 {
                     LdapConnection = new() { Id = ldap.Id },
                     Dn = ldapUser.Dn,
+                    DirectoryObjectId = LdapDirectoryObjectId.GetFrom(ldapUser),
                     Name = Ldap.GetName(ldapUser),
                     Firstname = Ldap.GetFirstName(ldapUser),
                     Lastname = Ldap.GetLastName(ldapUser),
@@ -154,12 +156,6 @@ namespace FWO.Middleware.Server
                 };
             }
             return null;
-        }
-
-        private static bool CanContainUser(Ldap ldap, string dn)
-        {
-            return string.IsNullOrWhiteSpace(ldap.UserSearchPath)
-                || dn.EndsWith(ldap.UserSearchPath, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

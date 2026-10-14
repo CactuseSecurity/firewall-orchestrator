@@ -1,0 +1,13 @@
+query getUserByDirectoryObjectId($ldapConnectionId: bigint!, $directoryObjectId: String!) {
+  uiuser(where: {ldap_connection_id: {_eq: $ldapConnectionId}, directory_object_id: {_eq: $directoryObjectId}}) {
+    uiuser_id
+    uuid
+    uiuser_username
+    uiuser_email
+    uiuser_first_name
+    uiuser_last_name
+    uiuser_language
+    uiuser_password_must_be_changed
+    directory_object_id
+  }
+}

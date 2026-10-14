@@ -77,7 +77,7 @@ namespace FWO.Test
             TestableLdap ldap = new(directory)
             {
                 Id = kLdapId,
-                Address = "ldap.example.test",
+                Addresses = ["ldap.example.test"],
                 Port = 389,
                 SearchUser = "cn=search,dc=example,dc=com",
                 SearchUserPwd = kSearchPassword,

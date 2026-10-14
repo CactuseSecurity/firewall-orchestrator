@@ -21,6 +21,15 @@ public static class CreateTicketRequestValidator
             return result;
         }
 
+        ValidateRootFields(request, result);
+        ValidateRules(request.Rules, result);
+        ValidateNestedCollections(request, result);
+
+        return result;
+    }
+
+    private static void ValidateRootFields(CreateTicketRequest request, RequestValidationErrorResponse result)
+    {
         AddRequiredError(request.RequestorName, "requestorName", result);
         AddRequiredError(request.RequestorId, "requestorId", result);
         AddRequiredError(request.RuleContactName, "ruleContactName", result);
@@ -38,60 +47,45 @@ public static class CreateTicketRequestValidator
         ValidateCollection(request.ServiceGroups, "serviceGroups", result);
         ValidateCollection(request.TimeObjects, "timeObjects", result);
         ValidateText(request.Notes, "notes", result);
+    }
 
-        if (request.Rules is not { Count: > 0 })
+    private static void ValidateRules(List<CreateTicketRequest.CreateTicketRuleRequest>? rules,
+        RequestValidationErrorResponse result)
+    {
+        if (rules is not { Count: > 0 })
         {
             result.Errors.Add(BuildError("rules", "'rules' must contain at least one rule."));
-        }
-        else
-        {
-            if (request.Rules.Count > CreateTicketRequest.kMaxCollectionCount)
-            {
-                result.Errors.Add(BuildError("rules", $"'rules' must not contain more than {CreateTicketRequest.kMaxCollectionCount} items."));
-            }
-            for (int index = 0; index < Math.Min(request.Rules.Count, CreateTicketRequest.kMaxCollectionCount); index++)
-            {
-                ValidateRule(request.Rules[index], $"rules[{index}]", result);
-            }
+            return;
         }
 
-        if (request.AddressObjects is { Count: > 0 } addressObjects)
+        if (rules.Count > CreateTicketRequest.kMaxCollectionCount)
         {
-            for (int index = 0; index < Math.Min(addressObjects.Count, CreateTicketRequest.kMaxCollectionCount); index++)
-            {
-                ValidateAddressObject(addressObjects[index], $"addressObjects[{index}]", result);
-            }
+            result.Errors.Add(BuildError("rules", $"'rules' must not contain more than {CreateTicketRequest.kMaxCollectionCount} items."));
         }
-        if (request.AddressGroups is { Count: > 0 } addressGroups)
+        ValidateItems(rules, "rules", ValidateRule, result);
+    }
+
+    private static void ValidateNestedCollections(CreateTicketRequest request, RequestValidationErrorResponse result)
+    {
+        ValidateItems(request.AddressObjects, "addressObjects", ValidateAddressObject, result);
+        ValidateItems(request.AddressGroups, "addressGroups", ValidateAddressGroup, result);
+        ValidateItems(request.ServiceObjects, "serviceObjects", ValidateServiceObject, result);
+        ValidateItems(request.ServiceGroups, "serviceGroups", ValidateServiceGroup, result);
+        ValidateItems(request.TimeObjects, "timeObjects", ValidateTimeObject, result);
+    }
+
+    private static void ValidateItems<T>(List<T>? values, string path,
+        Action<T, string, RequestValidationErrorResponse> validator, RequestValidationErrorResponse result)
+    {
+        if (values == null)
         {
-            for (int index = 0; index < Math.Min(addressGroups.Count, CreateTicketRequest.kMaxCollectionCount); index++)
-            {
-                ValidateAddressGroup(addressGroups[index], $"addressGroups[{index}]", result);
-            }
-        }
-        if (request.ServiceObjects is { Count: > 0 } serviceObjects)
-        {
-            for (int index = 0; index < Math.Min(serviceObjects.Count, CreateTicketRequest.kMaxCollectionCount); index++)
-            {
-                ValidateServiceObject(serviceObjects[index], $"serviceObjects[{index}]", result);
-            }
-        }
-        if (request.ServiceGroups is { Count: > 0 } serviceGroups)
-        {
-            for (int index = 0; index < Math.Min(serviceGroups.Count, CreateTicketRequest.kMaxCollectionCount); index++)
-            {
-                ValidateServiceGroup(serviceGroups[index], $"serviceGroups[{index}]", result);
-            }
-        }
-        if (request.TimeObjects is { Count: > 0 } timeObjects)
-        {
-            for (int index = 0; index < Math.Min(timeObjects.Count, CreateTicketRequest.kMaxCollectionCount); index++)
-            {
-                ValidateTimeObject(timeObjects[index], $"timeObjects[{index}]", result);
-            }
+            return;
         }
 
-        return result;
+        for (int index = 0; index < Math.Min(values.Count, CreateTicketRequest.kMaxCollectionCount); index++)
+        {
+            validator(values[index], $"{path}[{index}]", result);
+        }
     }
 
     /// <summary>

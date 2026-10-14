@@ -1109,6 +1109,39 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SynchronizeRequestTasks_SetsTicketBackToRequestedTarget()
+        {
+            WfHandler handler = new()
+            {
+                ActTicket = new WfTicket { Id = 7, StateId = 1 }
+            };
+            MethodInfo? method = typeof(WfHandler).GetMethod("SynchronizeRequestTasks", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            object[] arguments = [6, null!];
+            await (Task)(method!.Invoke(handler, arguments) ?? throw new InvalidOperationException("Method not found."));
+
+            Assert.That(handler.ActTicket.StateId, Is.EqualTo(6));
+        }
+
+        [Test]
+        public async Task UpdateRequestTasksAndTicket_LeavesTicketWhenNoTaskStateChanged()
+        {
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.approval,
+                ActTicket = new WfTicket { Id = 7, StateId = 6 }
+            };
+            MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksAndTicket", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            object[] arguments = [null!];
+            await (Task)(method!.Invoke(handler, arguments) ?? throw new InvalidOperationException("Method not found."));
+
+            Assert.That(handler.ActTicket.StateId, Is.EqualTo(6));
+        }
+
+        [Test]
         public async Task ConfAddCommentToTicket_AddsComment()
         {
             WfHandler handler = new();

@@ -96,4 +96,99 @@ internal class CreateTicketEndpointTest
         });
     }
 
+    [Test]
+    public void ValidationCoversAllNestedCreateTicketCollections()
+    {
+        CreateTicketRequest request = new()
+        {
+            PreWorkflowTicketReference = "previous-ticket",
+            RequestorName = "Requester",
+            RequestorId = "requester-id",
+            RuleContactName = "Contact",
+            RuleContactId = "contact-id",
+            Title = "Ticket",
+            Notes = "Ticket notes",
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Predicate = "create",
+                    Action = "accept",
+                    Name = "Rule",
+                    Description = "Task description",
+                    Reason = "Task reason",
+                    ViolationJustification = "Justification",
+                    SourceObjects = [1],
+                    SourceGroups = [2],
+                    DestinationObjects = [3],
+                    DestinationGroups = [4],
+                    ServiceObjects = [5],
+                    ServiceGroups = [6]
+                }
+            ],
+            AddressObjects =
+            [
+                new CreateTicketRequest.CreateAddressObjectRequest
+                {
+                    Predicate = "create",
+                    Name = "Address",
+                    IpStart = "192.0.2.1",
+                    IpEnd = "192.0.2.2"
+                }
+            ],
+            AddressGroups =
+            [new CreateTicketRequest.CreateAddressGroupRequest { Name = "Address group", MemberIds = [1] }],
+            ServiceObjects =
+            [
+                new CreateTicketRequest.CreateServiceObjectRequest
+                {
+                    Predicate = "create",
+                    Name = "Service",
+                    Protocol = "tcp"
+                }
+            ],
+            ServiceGroups =
+            [new CreateTicketRequest.CreateServiceGroupRequest { Name = "Service group", MemberIds = [1] }],
+            TimeObjects =
+            [
+                new CreateTicketRequest.CreateTimeObjectRequest
+                {
+                    Name = "Time object",
+                    StartTime = "2026-01-01",
+                    EndTime = "2026-01-31"
+                }
+            ]
+        };
+
+        RequestValidationErrorResponse result = CreateTicketRequestValidator.Validate(request);
+
+        Assert.That(result.Errors, Is.Empty);
+    }
+
+    [Test]
+    public void ValidationHandlesNullCollectionsAndMissingRules()
+    {
+        CreateTicketRequest request = new()
+        {
+            AddressObjects = null!,
+            AddressGroups = null!,
+            ServiceObjects = null!,
+            ServiceGroups = null!,
+            TimeObjects = null!,
+            Rules = null!
+        };
+
+        RequestValidationErrorResponse result = CreateTicketRequestValidator.Validate(request);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Errors.Select(error => error.Path), Does.Contain("rules"));
+            Assert.That(result.Errors.Select(error => error.Path), Does.Contain("addressObjects"));
+            Assert.That(result.Errors.Select(error => error.Path), Does.Contain("addressGroups"));
+            Assert.That(result.Errors.Select(error => error.Path), Does.Contain("serviceObjects"));
+            Assert.That(result.Errors.Select(error => error.Path), Does.Contain("serviceGroups"));
+            Assert.That(result.Errors.Select(error => error.Path), Does.Contain("timeObjects"));
+        });
+    }
+
 }

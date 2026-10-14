@@ -37,6 +37,69 @@
                 </div>
             </div>
         </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5579a"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqTicketFieldVisibility")):</label>
+            <div class="col-sm-9">
+                <div class="row">
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_ticket_requester" type="checkbox" @bind="ticketFieldVisibilityConfig.ShowRequester" />
+                        <label for="cbx_show_ticket_requester" class="col-form-label">@(userConfig.GetText("requester"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_ticket_priority" type="checkbox" @bind="ticketFieldVisibilityConfig.ShowPriority" />
+                        <label for="cbx_show_ticket_priority" class="col-form-label">@(userConfig.GetText("priority"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_ticket_deadline" type="checkbox" @bind="ticketFieldVisibilityConfig.ShowDeadline" />
+                        <label for="cbx_show_ticket_deadline" class="col-form-label">@(userConfig.GetText("deadline"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_ticket_reason" type="checkbox" @bind="ticketFieldVisibilityConfig.ShowReason" />
+                        <label for="cbx_show_ticket_reason" class="col-form-label">@(userConfig.GetText("reason"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_ticket_comments" type="checkbox" @bind="ticketFieldVisibilityConfig.ShowComments" />
+                        <label for="cbx_show_ticket_comments" class="col-form-label">@(userConfig.GetText("comments"))</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5579b"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAccessTaskFieldVisibility")):</label>
+            <div class="col-sm-9">
+                <div class="row">
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_management" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowManagement" />
+                        <label for="cbx_show_access_task_management" class="col-form-label">@(userConfig.GetText("management"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_owner" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowOwner" />
+                        <label for="cbx_show_access_task_owner" class="col-form-label">@(userConfig.GetText("owner"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_valid_from" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowValidFrom" />
+                        <label for="cbx_show_access_task_valid_from" class="col-form-label">@(userConfig.GetText("valid_from"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_valid_to" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowValidTo" />
+                        <label for="cbx_show_access_task_valid_to" class="col-form-label">@(userConfig.GetText("valid_to"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_reason" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowReason" />
+                        <label for="cbx_show_access_task_reason" class="col-form-label">@(userConfig.GetText("reason"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_free_text" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowFreeText" />
+                        <label for="cbx_show_access_task_free_text" class="col-form-label">@(userConfig.GetText("free_text"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_comments" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowComments" />
+                        <label for="cbx_show_access_task_comments" class="col-form-label">@(userConfig.GetText("comments"))</label>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5563"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqPriorities")):</label>
             <div class="col-sm-9">
@@ -137,7 +200,13 @@
                 </button>
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5566") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" +
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5582a"))">
+            <label for="txt_implicit_approval_comment" class="col-form-label col-sm-3">@(userConfig.GetText("reqImplicitApprovalComment")):</label>
+            <div class="col-sm-9">
+                <textarea id="txt_implicit_approval_comment" class="form-control" rows="2" @bind="configData!.ReqImplicitApprovalComment"></textarea>
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5566") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" +
                 userConfig.PureLine("H5572") + "\r\n" + userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" +
                 userConfig.PureLine("H5577") + "\r\n" + userConfig.PureLine("H5575"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
@@ -151,6 +220,10 @@
             <label for="cbx_consider_bundling" class="col-form-label col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">@(userConfig.GetText("reqConsiderBundling")):</label>
             <div class="col-sm-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">
                 <input id="cbx_consider_bundling" type="checkbox" @bind="configData!.ReqConsiderBundling">
+            </div>
+            <label for="cbx_display_bundled_tasks_as_one" class="col-form-label col-sm-2">@(userConfig.GetText("reqDisplayBundledTasksAsOne")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_display_bundled_tasks_as_one" type="checkbox" @bind="configData!.ReqDisplayBundledTasksAsOne">
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5580"))">
@@ -216,6 +289,7 @@ else
     private StateMatrixConfigurationSnapshot? masterStateMatrix;
     private List<WfTaskType> availableTaskTypes { get; set; } = [];
     private Dictionary<WfTaskType, bool> taskTypesActiveDict = [];
+    private TicketFieldVisibilityConfig ticketFieldVisibilityConfig = new();
 
     private List<WfPriority> prioList = [];
     private int? selectedApiTicketInitialStateId;
@@ -236,6 +310,7 @@ else
             }
             selectedApiTicketInitialStateId = configData.ReqApiTicketInitialStateId >= 0 ? configData.ReqApiTicketInitialStateId : null;
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(configData.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
+            ticketFieldVisibilityConfig = TicketFieldVisibilityConfig.Parse(configData.ReqTicketFieldVisibility);
             taskTypesActiveDict = [];
             foreach(WfTaskType type in Enum.GetValues<WfTaskType>())
             {
@@ -285,6 +360,7 @@ else
                 }
                 configData.ReqAvailableTaskTypes = JsonSerializer.Serialize(availableTaskTypes);
                 configData.ReqPriorities = JsonSerializer.Serialize(prioList);
+                configData.ReqTicketFieldVisibility = ticketFieldVisibilityConfig.ToConfigValue();
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

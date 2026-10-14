@@ -105,6 +105,14 @@
         </div>
     }
 }
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
+        <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmAutoPromoteMessage">@(userConfig.GetText("confirm_action_message")):</label>
+        <div class="col-sm-2">
+            <input id="confirmAutoPromoteMessage" class="form-check-input mt-2" type="checkbox" checked="@confirmUiMessage" @onchange="OnConfirmMessageChanged" />
+        </div>
+    </div>
+</div>
 
 @code {
     [Parameter]
@@ -118,11 +126,12 @@
 
     private IEnumerable<CompliancePolicy> selectedPolicies = [];
     private ConditionalAutoPromoteParams actConditionalAutoPromoteParams = new();
-    private static WfState AutomaticState = new() { Id = -1, Name = "automatic" };
+    private static WfState AutomaticState = new() { Id = WfStateAction.AutomaticStateId, Name = "automatic" };
     private static WfState ConditionalState = new() { Id = -2, Name = "Conditional" };
     private WfState selectedToState = AutomaticState;
     private WfState selectedStateOk = AutomaticState;
     private WfState selectedStateNotOk = AutomaticState;
+    private bool confirmUiMessage;
     private ToBeCalled selectedToBeCalled = ToBeCalled.PolicyCheck;
     private List<WfState> statesPlus = [];
 
@@ -147,6 +156,7 @@
         selectedStateNotOk = AutomaticState;
         selectedPolicies = [];
         selectedToBeCalled = ToBeCalled.PolicyCheck;
+        confirmUiMessage = false;
     }
 
     private void LoadFromExternalParams()
@@ -164,10 +174,12 @@
             selectedToState = ConditionalState;
             selectedStateOk = statesPlus.Where(x => x.Id != ConditionalState.Id).FirstOrDefault(x => x.Id == conditionalParams.IfCompliantState) ?? AutomaticState;
             selectedStateNotOk = statesPlus.Where(x => x.Id != ConditionalState.Id).FirstOrDefault(x => x.Id == conditionalParams.IfNotCompliantState) ?? AutomaticState;
+            confirmUiMessage = conditionalParams.ConfirmUiMessage;
             return;
         }
 
         selectedToState = statesPlus.FirstOrDefault(x => x.Id == parsedToState) ?? AutomaticState;
+        confirmUiMessage = WfStateAction.HasConfirmUiMessage(ActAction.ExternalParams);
     }
 
     private Task OnToStateChanged(WfState state)
@@ -212,11 +224,20 @@
         return Task.CompletedTask;
     }
 
+    private Task OnConfirmMessageChanged(ChangeEventArgs changeEventArgs)
+    {
+        confirmUiMessage = bool.TryParse(changeEventArgs.Value?.ToString(), out bool checkedValue) && checkedValue;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
     private void UpdateExternalParams()
     {
         if (selectedToState.Id != ConditionalState.Id)
         {
-            ActAction.ExternalParams = selectedToState.Id.ToString();
+            ActAction.ExternalParams = confirmUiMessage
+                ? JsonSerializer.Serialize(new SimpleAutoPromoteParams { ToStateId = selectedToState.Id, ConfirmUiMessage = true })
+                : selectedToState.Id.ToString();
             return;
         }
 
@@ -225,6 +246,7 @@
         actConditionalAutoPromoteParams.CheckResultLabel = actConditionalAutoPromoteParams.CheckResultLabel?.Trim() ?? "";
         actConditionalAutoPromoteParams.IfCompliantState = selectedStateOk.Id;
         actConditionalAutoPromoteParams.IfNotCompliantState = selectedStateNotOk.Id;
+        actConditionalAutoPromoteParams.ConfirmUiMessage = confirmUiMessage;
         ActAction.ExternalParams = JsonSerializer.Serialize(actConditionalAutoPromoteParams);
     }
 }

@@ -58,6 +58,44 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayTaskTargetDates_HidesConfiguredDateFields()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.HideFlowTimeObjectSelection, true)
+                .Add(p => p.ShowTargetBeginDate, false)
+                .Add(p => p.ShowTargetEndDate, false));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Not.Contain("valid_from"));
+                Assert.That(component.Markup, Does.Not.Contain("valid_to"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayTaskTargetDates_KeepsEndDateWhenBeginDateIsHidden()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.HideFlowTimeObjectSelection, true)
+                .Add(p => p.ShowTargetBeginDate, false)
+                .Add(p => p.ShowTargetEndDate, true));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Not.Contain("valid_from"));
+                Assert.That(component.Markup, Does.Contain("valid_to"));
+            });
+        }
+
+        [Test]
         public async Task DisplayTaskTargetDates_IncompleteDateTimeMarksInputInvalid()
         {
             DateTime? targetBeginDate = new DateTime(2026, 7, 1, 8, 15, 30);

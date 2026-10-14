@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.7.1"
+product_version: "9.7.3"
 # The oldest product version an upgrade may start from, enforced by
 # roles/common/tasks/validate-upgrade-source-version.yml before anything touches the
 # database. It exists because 9.5.0 removed the migration files below 8.0:
@@ -620,6 +620,16 @@ ui_syslog_id: "{{ product_name }}-ui"
 ldap_syslog_id: slapd
 api_log_level: info
 fworch_log_dir: "/var/log/{{ product_name }}"
+# log files are readable by the fworch group only; the owner is the user rsyslog writes as -
+# root, except on Ubuntu where rsyslog drops its privileges to the syslog user
+fworch_log_owner: "{{ 'syslog' if ansible_facts['distribution'] == 'Ubuntu' else 'root' }}"
+fworch_log_group: "{{ fworch_group }}"
+fworch_log_file_mode: "0640"
+# the files rsyslog writes to the log dir and their logrotate copies (numbered and dateext naming)
+fworch_log_file_patterns:
+  - "*.log"
+  - "*.log.*"
+  - "*.log-*"
 fworch_log_lock_dir: "/var/{{ product_name }}/lock"
 fworch_mw_lockfile: "{{ fworch_log_lock_dir }}/FWO.Middleware.Server_log.lock"
 fworch_ui_lockfile: "{{ fworch_log_lock_dir }}/FWO.Ui_log.lock"

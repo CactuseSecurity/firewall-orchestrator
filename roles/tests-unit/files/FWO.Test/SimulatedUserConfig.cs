@@ -295,6 +295,7 @@ namespace FWO.Test
             {"connections_not_implemented", "Connections not implemented"},
             {"connections_with_diffs", "Connections with Diffs"},
             {"management", "Management"},
+            {"not_visible", "Not Visible"},
             {"gateway", "Gateway"},
             {"U1003", "In this report..."},
             {"fully_modelled", "fullymodelled"},

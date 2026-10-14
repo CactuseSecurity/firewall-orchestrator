@@ -21,6 +21,8 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsLdapTest
     {
+        private const string kElevenServers = "s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11";
+
         [Test]
         public async Task OnInitializedAsync_LoadsLdapsAndTenants()
         {
@@ -33,7 +35,7 @@ namespace FWO.Test
                   {
                     "Id": 7,
                     "Name": "Primary LDAP",
-                    "Address": "ldap.example.org",
+                    "Addresses": ["ldap.example.org"],
                     "Port": 636,
                     "Type": 1,
                     "PatternLength": 3,
@@ -162,7 +164,7 @@ namespace FWO.Test
             {
                 Assert.That(messages, Is.Empty);
                 Assert.That(GetMember<bool>(component, "DeleteMode"), Is.True);
-                Assert.That(GetMember<string>(component, "deleteMessage"), Does.Contain("ldap-remove.example.org"));
+                Assert.That(GetMember<string>(component, "deleteMessage"), Does.StartWith("U5220").And.Contain("ldap-remove"));
             });
         }
 
@@ -199,6 +201,24 @@ namespace FWO.Test
                         BuildLdap(1, "ldap-existing", "ldap.example.org", roleHandling: false, internalLdap: true)
                     });
                     SetMember(component, "actLdapConnection", BuildLdap(2, "ldap-duplicate", "ldap.example.org", roleHandling: false, internalLdap: true));
+                });
+
+            AssertValidationFailure(
+                expectedMessageKey: "E5264",
+                configure: component =>
+                {
+                    SetMember(component, "connectedLdaps", new List<UiLdapConnection>
+                    {
+                        BuildLdap(1, "ldap-existing", "ldap1.example.org, ldap2.example.org", roleHandling: false, internalLdap: true)
+                    });
+                    SetMember(component, "actLdapConnection", BuildLdap(2, "ldap-sharing-a-server", "ldap3.example.org, LDAP2.example.org", roleHandling: false, internalLdap: true));
+                });
+
+            AssertValidationFailure(
+                expectedMessageKey: "E5274",
+                configure: component =>
+                {
+                    SetMember(component, "actLdapConnection", BuildLdap(0, "ldap-too-many-servers", kElevenServers, roleHandling: false, internalLdap: true));
                 });
 
             AssertValidationFailure(
@@ -366,7 +386,7 @@ namespace FWO.Test
             {
                 Id = id,
                 Name = name,
-                Address = address,
+                Addresses = LdapConnectionBase.ParseAddresses(address),
                 Port = port,
                 Type = (int)LdapType.OpenLdap,
                 PatternLength = patternLength,

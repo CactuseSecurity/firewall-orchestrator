@@ -1,6 +1,55 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.3 - 14.10.2026
+- pin System.Security.Cryptography.Pkcs to 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
+
+## 9.7.2 - 12.10.2026
+- security (GHSA-695m-f6mv-9g72): a dn no longer identifies a subject across LDAP connections
+  - every dn belongs to exactly one active LDAP connection, the one whose search or write paths contain it (the most
+    specific path wins). Roles, groups, owner responsibles, workflow visibility groups and workflow assignments
+    naming a dn therefore only apply to the user of that connection. User entries and groups that a directory reports
+    outside its own paths are ignored
+  - active LDAP connections must not share a search or write path (nested paths are allowed, the more specific
+    one wins); saving such a connection is refused. The upgrade and the middleware start log a warning for existing
+    connections sharing a path, whose users below that path can no longer log in until the paths are distinct
+  - an LDAP connection lists up to 10 servers of its directory (ldap_server becomes an array, the REST parameter
+    Address becomes the list Addresses), tried in order with failover. Replicas that were configured as separate
+    connections have to be combined into one connection
+  - the workflow compares requester and handler by local user id and resolves the groups of a caller in the
+    directory of its local user
+  - user administration acts on the directory of the local user only: change, password change and reset, and delete
+    reject the id of another LDAP connection instead of acting on every directory holding the dn; adding a user
+    requires the target connection when several are writable, and a group search covers one connection
+  - local users are bound to the immutable object id of their directory entry (objectGUID, entryUUID, nsUniqueId,
+    ipaUniqueID or GUID) at their next login with password, and follow a renamed entry (also a case-only change of
+    its dn). If the dn of a bound local user later names another entry, login and token refresh are refused (A0008)
+    and its sessions are ended until an admin deletes the local user. The upgrade ends the sessions of local users that are not bound yet, so every user
+    has to log in with password once after the upgrade
+- update NuGet packages: Quartz 4.4.0, PuppeteerSharp 25.13.1, Scalar.AspNetCore 2.17.14, AngleSharp 1.8.4,
+  NUnit3TestAdapter 6.3.1; regenerate SBOM
+- implementation tasks of object tasks are created per target management
+  (group create/modify/delete, object create/modify). The target management follows the provisioning settings
+  address/service object creation (super- or sub-management); request.impltask gets the new column mgm_id
+- new workflow action "create implementation tasks" creates the missing implementation tasks of a ticket, also
+  with an active planning phase; existing implementation tasks are kept
+- the path analysis algorithm moved to the workflow customizing settings; "after path analysis" without an algorithm
+  shows a hint, saving stays possible
+- fix: implementation tasks of rule_delete tasks take the gateway of the rule element instead of the first element,
+  so rule deletions from the modelling no longer get an implementation task without gateway
+- the target managements of object tasks are resolved in the middleware (new endpoint
+  POST /api/workflow/getImplTaskTargets for admin, the workflow roles and the modeller, limited to the managements
+  visible to the caller), so the ui finds every sub-management without read access to the provisioning settings;
+  the targets are resolved once per creation run; targets not visible to the caller are returned without name, so
+  their implementation tasks get no management suffix in the title
+- the implementation task table and the details of group and object implementation tasks show the target management
+  ("not visible" for managements hidden from the user)
+- getImplTaskTargets carries the expensive rate-limit policy and a request body size limit, pages its result with
+  options.limit (default and maximum 1000) / options.offset and the X-Has-More header, orders the targets by name
+  and id with the targets without name last, and limits the name filter to 256 characters; the ui reads every page
+
 ## 9.7.1 - 09.10.2026
+- installer: show a summary of elapsed task time per role at the end of the playbook, longest first;
+  repeated executions of the same role are combined, including handlers
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
   configurable with one switch per connection type, validated against the host trust store:
   - firewall connections (importCheckCertificates): now also covers autodiscovery and Check Point change

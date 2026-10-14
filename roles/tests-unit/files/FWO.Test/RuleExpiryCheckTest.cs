@@ -594,7 +594,7 @@ namespace FWO.Test
                     [
                         new Ldap
                         {
-                            Address = "127.0.0.1",
+                            Addresses = ["127.0.0.1"],
                             Port = 1,
                             UserSearchPath = "uid=intuser2,ou=users,ou=tenant2,dc=fworch,dc=internal",
                             GroupSearchPath = "ou=groups,dc=fworch,dc=internal"

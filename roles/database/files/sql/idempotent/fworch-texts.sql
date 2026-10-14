@@ -145,6 +145,8 @@ INSERT INTO txt VALUES ('CreateFlow',	        'German', 	'Flow erzeugen');
 INSERT INTO txt VALUES ('CreateFlow',		    'English', 	'Create flow');
 INSERT INTO txt VALUES ('BundleTasks',	        'German', 	'Aufgaben b&uuml;ndeln');
 INSERT INTO txt VALUES ('BundleTasks',		    'English', 	'Bundle tasks');
+INSERT INTO txt VALUES ('CreateImplTasks',	    'German', 	'Implementierungs-Auftr&auml;ge erzeugen');
+INSERT INTO txt VALUES ('CreateImplTasks',	    'English', 	'Create implementation tasks');
 INSERT INTO txt VALUES ('bundle_type',	        'German', 	'B&uuml;ndelungstyp');
 INSERT INTO txt VALUES ('bundle_type',		    'English', 	'Bundle type');
 INSERT INTO txt VALUES ('flow_bundle_id',	    'German', 	'B&uuml;ndel-ID');
@@ -571,6 +573,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
+    <li>Der Installer zeigt am Ende eine kurze &Uuml;bersicht der Laufzeiten je Rolle, sortiert nach Dauer. Mehrfache Ausf&uuml;hrungen derselben Rolle werden zusammengefasst.</li>
     <li>Die Middleware-REST-API begrenzt Aufrufe standardm&auml;&szlig;ig auf 600 pro Minute und zwei gleichzeitig laufende aufwendige Aufrufe je Benutzer. Die Flow-Kataloglisten liefern Seiten mit h&ouml;chstens 1000 Objekten bzw. 250 Gruppen, <code>getIpDataForOwners</code> h&ouml;chstens 10000 Anwendungen. API-Clients m&uuml;ssen mit <code>limit</code> und <code>offset</code> weiterbl&auml;ttern, bis <code>X-Has-More</code> den Wert <code>false</code> hat. <code>getFlowComplianceState</code> akzeptiert h&ouml;chstens 100 Eintr&auml;ge je Liste; bei mehreren passenden portlosen Diensten liefert <code>getServiceObjectId</code> HTTP 409 mit den Kandidaten.</li>
     <li><code>createTicket</code> liefert neben der Ticket-Id den Aktionsstatus <code>actionsStatus</code>: <code>completed</code> oder <code>failed</code>. Fehlschl&auml;ge initialer Workflow-Aktionen werden als Alarm und in der &Auml;nderungshistorie gemeldet. Ein bereits gespeichertes Ticket beh&auml;lt auch bei fehlgeschlagener Statusermittlung seine Id; der Status enth&auml;lt dann die numerische Zustands-Id. Den Request nicht erneut senden, da dies ein zweites Ticket erzeugt.</li>
     <li>Externe Ticket-Systeme verwenden ausw&auml;hlbare Login-Daten mit verschl&uuml;sseltem Passwort statt eines gespeicherten Authorization-Headers. Passwort&auml;nderungen und neue Login-Daten gelten auch f&uuml;r offene Requests desselben Endpunkts. Das Upgrade &uuml;bernimmt g&uuml;ltige Basic-Authentication-Header automatisch; andere konfigurierte Header, etwa Tokens, werden mit einer Warnung entfernt. F&uuml;r betroffene Ticket-Systeme m&uuml;ssen Login-Daten ausgew&auml;hlt werden. Verwendete Login-Daten k&ouml;nnen erst nach einer neuen Zuordnung gel&ouml;scht werden.</li>
@@ -583,11 +586,15 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Importierte Logdaten zeigen f&uuml;r Quell- und Zieladressen die zugeh&ouml;rigen externen App-IDs, Netzwerk-Areas und Reverse-DNS-Namen. DNS-Ergebnisse werden wiederverwendet; neue Lookups k&ouml;nnen unter Einstellungen - Logging deaktiviert werden.</li>
     <li>Die Logdaten-Tabelle zeigt den Aggregationszeitraum und Importzeitpunkt der angezeigten Daten. Bei unterschiedlichen oder unbekannten Zeitr&auml;umen erscheinen diese Angaben pro Zeile. Der Standardzeitraum ist unter Einstellungen - Logging einstellbar (7 Tage) und kann von JSON-Importdateien &uuml;berschrieben werden. Die Spalte Zeitpunkt ist standardm&auml;&szlig;ig ausgeblendet. Die &Uuml;berschrift nennt das Ende des Zeitraums und zeigt standardm&auml;&szlig;ig nur das Importdatum; die Uhrzeit des Imports kann unter Einstellungen - Logging aktiviert werden.</li>
     <li>Die Area-IP-Daten-Konvertierung hei&szlig;t nun convert_area_ip_data_from_git.py. generate_area_ip_data.py erzeugt Area-IP-Testdaten.</li>
+    <li>Aktualisierte .NET-Bibliotheken, u.a. Quartz.NET 4.4 und PuppeteerSharp 25.13 (PDF-Erzeugung).</li>
+    <li>Implementierungs-Auftr&auml;ge entstehen f&uuml;r Objekt-Auftr&auml;ge pro Ziel-Management laut den Provisioning-Einstellungen (Super- oder Submanager). Die neue Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; erzeugt sie auch bei aktiver Planungsphase. Der Pfadanalyse-Algorithmus wird nun in den Workflow-Anpassungen gew&auml;hlt.</li>
+    <li>LDAP: Eine Verbindung kann bis zu 10 Server (Replikate) eines Verzeichnisses enthalten, die der Reihe nach versucht werden. Aktive Verbindungen d&uuml;rfen keine gleichen Such- oder Schreibpfade haben; bisher als getrennte Verbindungen eingerichtete Replikate m&uuml;ssen zu einer Verbindung zusammengefasst werden. Lokale Nutzer werden an die unver&auml;nderliche Objekt-Id ihres Verzeichniseintrags gebunden, daher muss sich nach dem Upgrade jeder Nutzer einmal mit Passwort anmelden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
+    <li>The installer ends with a short overview of elapsed time per role, sorted by duration. Repeated executions of the same role are combined.</li>
     <li>The middleware REST API defaults to 600 calls per minute and two concurrent expensive calls per user. Flow catalog lists return pages of at most 1000 objects or 250 groups; <code>getIpDataForOwners</code> returns at most 10000 applications. API clients must page with <code>limit</code> and <code>offset</code> until <code>X-Has-More</code> is <code>false</code>. <code>getFlowComplianceState</code> accepts at most 100 entries per list; when several portless services match, <code>getServiceObjectId</code> returns HTTP 409 with the candidates.</li>
     <li><code>createTicket</code> returns <code>actionsStatus</code> alongside the ticket ID: <code>completed</code> or <code>failed</code>. Initial workflow action failures are reported in an alert and the change history. A saved ticket keeps its ID even if status enrichment fails; its status then contains the numeric state ID. Do not resend the request, as this creates a second ticket.</li>
     <li>External ticket systems use selectable credentials with an encrypted password instead of a stored authorization header. Password changes and newly selected credentials also apply to open requests for the same endpoint. The upgrade migrates valid basic authentication headers automatically; other configured headers, such as tokens, are removed with a warning. Select credentials for affected ticket systems. Credentials in use can only be deleted after selecting replacements.</li>
@@ -600,6 +607,9 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>Imported log data shows matching external application IDs, network areas, and reverse-DNS names for source and destination addresses. DNS results are reused; new lookups can be disabled under Settings - Logging.</li>
     <li>The log data table shows the aggregation period and import time of the displayed data. When periods differ or are unknown, these values appear per row. The default period is configurable under Settings - Logging (7 days) and can be overridden by JSON import files. The log time column is hidden by default. The heading names the end of the period and shows only the import date by default; the time of the import can be enabled under Settings - Logging.</li>
     <li>The area IP data converter is now named convert_area_ip_data_from_git.py. generate_area_ip_data.py generates area IP test data.</li>
+    <li>Updated .NET libraries, among others Quartz.NET 4.4 and PuppeteerSharp 25.13 (PDF generation).</li>
+    <li>Implementation tasks are created per target management of the provisioning settings (super- or sub-management) for object tasks. The new action &quot;Create implementation tasks&quot; also creates them with an active planning phase. The path analysis algorithm is now selected in the workflow customizing settings.</li>
+    <li>LDAP: a connection can list up to 10 servers (replicas) of one directory, which are tried in order. Active connections must not share a search or write path; replicas configured as separate connections so far have to be combined into one connection. Local users are bound to the immutable object id of their directory entry, so every user has to log in with password once after the upgrade.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -4417,6 +4427,8 @@ INSERT INTO txt VALUES ('U5218', 'German',  'L&ouml;scht alle Beispiel-Eigent&uu
 INSERT INTO txt VALUES ('U5218', 'English', 'Deletes all sample owners (ending with "_demo")');
 INSERT INTO txt VALUES ('U5219', 'German',  'Sind sie sicher, dass sie folgenden Lifecycle Status l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5219', 'English', 'Are you sure you want to delete Owner Lifecycle State: ');
+INSERT INTO txt VALUES ('U5220', 'German',  'Sind sie sicher, dass sie folgende LDAP-Verbindung l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5220', 'English', 'Are you sure you want to delete LDAP connection: ');
 
 INSERT INTO txt VALUES ('U5301', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5301', 'English', 'Settings changed.');
@@ -4490,6 +4502,8 @@ INSERT INTO txt VALUES ('U5502', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U5502', 'English', 'Are you sure you want to delete action: ');
 INSERT INTO txt VALUES ('U5503', 'German',  'Eigent&uuml;merzuordnung neu berechnet.');
 INSERT INTO txt VALUES ('U5503', 'English', 'Owner mapping recalculated.');
+INSERT INTO txt VALUES ('U5504', 'German',  'Bei &quot;Nach Pfadanalyse&quot; sollte ein Pfadanalyse-Algorithmus gew&auml;hlt sein.');
+INSERT INTO txt VALUES ('U5504', 'English', 'With &quot;After path analysis&quot; a path analysis algorithm should be selected.');
 
 INSERT INTO txt VALUES ('U5601', 'German',  'Sind sie sicher, dass sie das letzte Senden f&uuml;r folgende Benachrichtigung zur&uuml;cksetzen wollen: ');
 INSERT INTO txt VALUES ('U5601', 'English', 'Are you sure you want to reset the last sending for following notification: ');
@@ -4851,6 +4865,10 @@ INSERT INTO txt VALUES ('E5271', 'German',  'Keine Gateways zum Hinzuf&uuml;gen 
 INSERT INTO txt VALUES ('E5271', 'English', 'No remaining gateways found to add');
 INSERT INTO txt VALUES ('E5272', 'German',  'Keine Gateways zum L&ouml;schen gefunden');
 INSERT INTO txt VALUES ('E5272', 'English', 'No remaining gateways found to delete');
+INSERT INTO txt VALUES ('E5273', 'German',  'Die Suchpfade und der Schreibpfad einer aktiven LDAP-Verbindung d&uuml;rfen keinem Pfad einer anderen aktiven Verbindung entsprechen. Jeder DN muss genau einer Verbindung zugeordnet sein. Replikate eines Verzeichnisses werden als Server einer Verbindung eingetragen. &Uuml;berschneidung mit: ');
+INSERT INTO txt VALUES ('E5273', 'English', 'The search and write paths of an active LDAP connection must not equal a path of another active connection. Each DN has to belong to exactly one connection. Enter replicas of one directory as servers of one connection. Overlapping with: ');
+INSERT INTO txt VALUES ('E5274', 'German',  'Bitte h&ouml;chstens 10 Server angeben.');
+INSERT INTO txt VALUES ('E5274', 'English', 'Please enter at most 10 servers.');
 INSERT INTO txt VALUES ('E5281', 'German',  'Mandant konnte im LDAP nicht angelegt werden');
 INSERT INTO txt VALUES ('E5281', 'English', 'Tenant could not be added in LDAP');
 INSERT INTO txt VALUES ('E5282', 'German',  'Mandant konnte im LDAP nicht gel&ouml;scht werden');
@@ -6609,19 +6627,37 @@ INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere untersch
     Eine L&ouml;schung ist nur zul&auml;ssig, wenn es nicht das interne Ldap (definiert durch den gesetzten Rollensuchpfad) und nicht das letzte vorhandene Ldap ist.<br>
     Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren einer neuen Ldap-Verbindung, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss mindestens Adresse oder Portnummer ge&auml;ndert werden.<br>
-    Beim Editieren kann mit der "Verbindung testen"-Schaltfl&auml;che gepr&uuml;ft werden, ob eine Verbindung mit den aktuellen Parametern aufgebaut werden kann.
+    Beim Editieren kann mit der "Verbindung testen"-Schaltfl&auml;che gepr&uuml;ft werden, ob eine Verbindung mit den aktuellen Parametern aufgebaut werden kann.<br>
+    Die Such- und Schreibpfade der aktiven Ldap-Verbindungen d&uuml;rfen sich nicht &uuml;berschneiden: kein Pfad darf einem Pfad einer anderen aktiven Verbindung entsprechen.
+    Liegt ein Pfad unterhalb des Pfads einer anderen Verbindung (z.B. eine Kind-Dom&auml;ne), geh&ouml;rt dieser Teilbaum der Verbindung mit dem spezielleren Pfad.
+    So geh&ouml;rt jeder Distinguished Name (Dn) zu genau einer Verbindung, und Rollen, Gruppen, Verantwortliche und Workflow-Zuordnungen, die einen Dn nennen, gelten nur f&uuml;r den Nutzer dieser Verbindung.
+    Nutzer und Gruppen, deren Dn nicht in den Pfaden der eigenen Verbindung liegt, werden ignoriert.<br>
+    Ein lokaler Nutzer wird bei der Anmeldung mit Passwort an die unver&auml;nderliche Objekt-Id seines Ldap-Eintrags gebunden (objectGUID, entryUUID, nsUniqueId, ipaUniqueID oder GUID).
+    Erh&auml;lt sp&auml;ter ein anderer Eintrag denselben Dn, wird dessen Anmeldung abgewiesen und die Sitzungen des lokalen Nutzers werden beendet, bis ein Admin den lokalen Nutzer l&ouml;scht.
 ');
 INSERT INTO txt VALUES ('H5201', 'English', 'Admins can create and administrate several different Ldap connections. All of them can be used for user authentication.<br>
     The internal Ldap (part of the initial installation) is needed at least for role assignment, but can also be used for user authentication and user group handling.<br>
     The Ldap connections can be added, changed and deleted.
     Deletion is only allowed, if it is not the internal Ldap (defined by the existence of a role search path) and if it is not the last Ldap.<br>
     The clone button helps defining new Ldaps by copying the data from existing ones. Before saving at least the address or port number have to be changed.<br>
-    While editing, a "Test connection" button helps checking, if a connection can be built up with the actual parameters.
+    While editing, a "Test connection" button helps checking, if a connection can be built up with the actual parameters.<br>
+    The search and write paths of the active Ldap connections must not overlap: no path may equal a path of another active connection.
+    If a path lies below the path of another connection (e.g. a child domain), that subtree belongs to the connection with the more specific path.
+    So every distinguished name (Dn) belongs to exactly one connection, and roles, groups, responsibles and workflow assignments naming a Dn only apply to the user of that connection.
+    Users and groups whose Dn is not within the paths of their own connection are ignored.<br>
+    A local user is bound to the immutable object id of its Ldap entry (objectGUID, entryUUID, nsUniqueId, ipaUniqueID or GUID) when logging in with a password.
+    If another entry gets the same Dn later, its login is refused and the sessions of the local user are ended until an admin deletes the local user.
 ');
 INSERT INTO txt VALUES ('H5210', 'German',  'Name*: Name des verbundenen Ldap. Kann frei gew&auml;hlt werden. Wenn nicht vergeben, wird der Host (Adresse:Port) dargestellt.');
 INSERT INTO txt VALUES ('H5210', 'English', 'Name*: Name of the connected Ldap to be freely given. If not assigned the Host (Address:Port) is displayed.');
-INSERT INTO txt VALUES ('H5211', 'German',  'Adresse*: Adresse des verbundenen Ldap (z.B. IP-Adresse)');
-INSERT INTO txt VALUES ('H5211', 'English', 'Address*: Address of the connected Ldap (e.g. IP address).');
+INSERT INTO txt VALUES ('H5211', 'German',  'Adresse*: Namen oder IP-Adressen der Server des verbundenen Ldap, durch Kommas getrennt (h&ouml;chstens 10).
+    Mehrere Server m&uuml;ssen Replikate desselben Verzeichnisses sein und teilen sich alle anderen Einstellungen einschlie&szlig;lich des Ports.
+    Sie werden in der angegebenen Reihenfolge versucht; nach einem Ausfall wird der zuletzt erreichbare Server weiter verwendet.
+');
+INSERT INTO txt VALUES ('H5211', 'English', 'Address*: Names or IP addresses of the servers of the connected Ldap, separated by commas (at most 10).
+    Several servers have to be replicas of the same directory and share all other settings including the port.
+    They are tried in the given order; after a failure the server that answered last is used further on.
+');
 INSERT INTO txt VALUES ('H5212', 'German',  'Port*: Portnummer des verbundenen Ldap.');
 INSERT INTO txt VALUES ('H5212', 'English', 'Port*: Port number of the connected Ldap.');
 INSERT INTO txt VALUES ('H5213', 'German',  'Tls: Zeigt an, ob TLS in der Kommunikation verwendet wird.');
@@ -7123,6 +7159,8 @@ INSERT INTO txt VALUES ('H5501', 'German',  'Aktionen m&uuml;ssen zuerst in den 
 INSERT INTO txt VALUES ('H5501', 'English', 'Actions have to be defined first in the customizing settings before they can be assigned to the desired states.
     The action is offered resp. performed when the defined conditions are met.
 ');
+INSERT INTO txt VALUES ('H5502', 'German',  'Implementierungs-Auftr&auml;ge erzeugen: Erzeugt f&uuml;r alle offenen Antrags-Auftr&auml;ge des Tickets die noch fehlenden Implementierungs-Auftr&auml;ge, mit derselben Logik wie die automatische Erzeugung in den Anpassungen. So entstehen Implementierungs-Auftr&auml;ge auch bei aktiver Planungsphase, automatisch beim Setzen eines Status oder &uuml;ber eine Schaltfl&auml;che. Vorhandene Implementierungs-Auftr&auml;ge bleiben erhalten, ein Gateway oder Management mit vorhandenem Auftrag wird &uuml;bersprungen, es wird nie gel&ouml;scht. Sollen Zugriffs-Auftr&auml;ge vorher geb&uuml;ndelt werden, muss die Aktion &quot;Aufgaben b&uuml;ndeln&quot; im selben Status eine kleinere Reihenfolge haben.');
+INSERT INTO txt VALUES ('H5502', 'English', 'Create implementation tasks: Creates the implementation tasks still missing for all open request tasks of the ticket, using the same logic as the automatic creation in the customizing settings. This way implementation tasks are also created with an active planning phase, automatically when a state is set or via a button. Existing implementation tasks are kept, a gateway or management that already has one is skipped, nothing is ever deleted. If access tasks should be bundled first, the action &quot;Bundle tasks&quot; has to have a lower sort order in the same state.');
 INSERT INTO txt VALUES ('H5511', 'German',  'Allgemeine Parameter f&uuml;r alle Aktionstypen: Hier wird definiert, unter welchen Bedingungen eine Aktion ausgel&ouml;st werden soll.');
 INSERT INTO txt VALUES ('H5511', 'English', 'General parameters for all action types: Here it can be defined, under which conditions an action should be performed.');
 INSERT INTO txt VALUES ('H5512', 'German',  'Name: Der Name, unter dem die Aktion den Status zugeordnet wird (da intern eine Id verarbeitet wird, sind auch doppelt vergebene Namen m&ouml;glich).');
@@ -7273,6 +7311,8 @@ INSERT INTO txt VALUES ('H5553', 'German',  '"Niedrigster Ausgangsstatus": Ab di
 INSERT INTO txt VALUES ('H5553', 'English', '"Lowest exit state": From this state the handler of the current phase can not do any changes anymore. A ticket in this state is not visible anymore.');
 INSERT INTO txt VALUES ('H5554', 'German',  'Nur in der Ticket-Matrix: Beliebige Aufgabe macht das Ticket sichtbar, sobald mindestens eine Aufgabe die Eingangsphase erreicht. Ticketstatus macht das Ticket anhand seines eigenen Status sichtbar.');
 INSERT INTO txt VALUES ('H5554', 'English', 'Ticket matrix only: Any task makes the ticket visible when at least one task reaches the input phase. Ticket state makes the ticket visible according to its own state.');
+INSERT INTO txt VALUES ('H5560', 'German',  'Implementierungs-Auftr&auml;ge pro Management: Objekt-Auftr&auml;ge (Gruppe anlegen, &auml;ndern, l&ouml;schen, Objekt anlegen, &auml;ndern) erhalten je Ziel-Management einen eigenen Implementierungs-Auftrag. Das Ziel ergibt sich aus den Provisioning-Einstellungen &quot;Anlage Adress-Objekte&quot; bzw. &quot;Anlage Service-Objekte&quot; der Submanager: Bei &quot;Supermanager&quot; entsteht ein Auftrag auf dem Supermanager, bei &quot;Submanager&quot; je ein Auftrag auf jedem Submanager. Ein Management ohne Submanager ist selbst das Ziel.');
+INSERT INTO txt VALUES ('H5560', 'English', 'Implementation tasks per management: Object tasks (create, modify, delete group, create, modify object) get one implementation task per target management. The target follows the provisioning settings &quot;Address object creation&quot; resp. &quot;Service object creation&quot; of the sub-managements: &quot;Supermanager&quot; creates one task on the super-management, &quot;Submanager&quot; one task on each sub-management. A management without sub-managements is its own target.');
 INSERT INTO txt VALUES ('H5561', 'German',  'In diesem Abschnitt k&ouml;nnen allgemeine Einstellungen zur Konfiguration der Workflows vorgenommen werden.');
 INSERT INTO txt VALUES ('H5561', 'English', 'In this chapter general settings for workflow configuration can be done.');
 INSERT INTO txt VALUES ('H5562', 'German',  'Verf&uuml;gbare Auftragstypen: Es kann ausgew&auml;hlt werden, welche der technisch vorhandenen Auftragstypen zur Verwendung in den Workflows angeboten werden sollen.');
@@ -7319,8 +7359,8 @@ INSERT INTO txt VALUES ('H5574', 'German',  'Ger&auml;t im Antrag eingeben: Bere
 INSERT INTO txt VALUES ('H5574', 'English', 'Enter device in request: A mandatory field to select the affected devices is already displayed during request task creation,
     if needed in the task type (in this case some technical know-how is presumed from the requester). One implementation task is created for each selected device; if all is selected, one task is created for every existing device.
 ');
-INSERT INTO txt VALUES ('H5575', 'German',  'Nach Pfadanalyse: F&uuml;r jedes bei der automatischen Pfadanalyse gefundene Ger&auml;t wird ein eigener Implementierungs-Auftrag angelegt.');
-INSERT INTO txt VALUES ('H5575', 'English', 'After path analysis: For each device found in the automatic path analysis an own implementation task is created.');
+INSERT INTO txt VALUES ('H5575', 'German',  'Nach Pfadanalyse: F&uuml;r jedes bei der automatischen Pfadanalyse gefundene Ger&auml;t wird ein eigener Implementierungs-Auftrag angelegt. Der Algorithmus wird unter Pfadanalyse-Algorithmus gew&auml;hlt.');
+INSERT INTO txt VALUES ('H5575', 'English', 'After path analysis: For each device found in the automatic path analysis an own implementation task is created. The algorithm is selected under path analysis algorithm.');
 INSERT INTO txt VALUES ('H5576', 'German',  'Erlaubte &Auml;nderungen durch Genehmiger: Hier wird festgelegt, welche Ticket- und Auftragsfelder ein Genehmiger in der Genehmigungsphase bearbeiten darf. Felder, die bereits in Implementierungsauftr&auml;ge kopiert wurden, k&ouml;nnen danach nicht mehr ge&auml;ndert werden.');
 INSERT INTO txt VALUES ('H5576', 'English', 'Allowed changes by approver: Defines which ticket and task fields an approver may edit during the approval phase. Fields already copied to implementation tasks can no longer be changed afterwards.');
 INSERT INTO txt VALUES ('H5577', 'German',  'Ein Auftrag f&uuml;r alle Ger&auml;te: Wie bei Ger&auml;t im Antrag eingeben wird die Ger&auml;teauswahl bereits im Antrag gepflegt. Der Unterschied ist nur: Falls dort Alle gew&auml;hlt ist, wird genau ein Implementierungs-Auftrag angelegt statt eines pro vorhandenem Ger&auml;t.');
@@ -7329,6 +7369,8 @@ INSERT INTO txt VALUES ('H5578', 'German',  'B&uuml;ndelung ber&uuml;cksichtigen
 INSERT INTO txt VALUES ('H5578', 'English', 'Consider bundling: When enabled, automatically created implementation tasks for request tasks with the same flow bundle id are created from one merged task. Tasks without a bundle id are still handled individually.');
 INSERT INTO txt VALUES ('H5579', 'German',  'Sichtbarkeit ber&uuml;cksichtigen: Aktiviert die Sichtbarkeitseinschr&auml;nkungen f&uuml;r den Workflow. Tickets, Auftr&auml;ge und Genehmigungen werden dann zus&auml;tzlich zu Rolle und Eigentum nach den zugeordneten Sichtbarkeitsgruppen gefiltert. Genehmigungen, die direkt an den eigenen Benutzer oder dessen Gruppe zugewiesen sind, bleiben ebenfalls sichtbar.');
 INSERT INTO txt VALUES ('H5579', 'English', 'Consider visibility: Activates workflow visibility restrictions. Tickets, tasks, and approvals are then filtered by their assigned visibility groups in addition to role and ownership checks. Approvals assigned directly to the current user or the user''s group stay visible as well.');
+INSERT INTO txt VALUES ('H5580', 'German',  'Pfadanalyse-Algorithmus: Legt fest, mit welchem Algorithmus die Pfadanalyse die betroffenen Gateways ermittelt. Ist &quot;Nach Pfadanalyse&quot; gew&auml;hlt, sollte hier nicht &quot;None&quot; stehen; ein Hinweis weist darauf hin, das Speichern bleibt m&ouml;glich. Der Algorithmus &quot;Network Zone Tree&quot; ben&ouml;tigt eine festgelegte Zonen-Matrix. Die Auswahl wird wirksam, sobald der Workflow die Gateways &uuml;ber diesen Algorithmus ermittelt; bis dahin verwendet er die routing-basierte Pfadanalyse.');
+INSERT INTO txt VALUES ('H5580', 'English', 'Path analysis algorithm: Defines the algorithm the path analysis uses to determine the affected gateways. If &quot;After path analysis&quot; is selected, this should not be &quot;None&quot;; a hint points this out, saving remains possible. The algorithm &quot;Network Zone Tree&quot; needs a designated zone matrix. The selection takes effect once the workflow determines the gateways with this algorithm; until then it uses the routing based path analysis.');
 INSERT INTO txt VALUES ('H5581', 'German',  'In diesem Abschnitt k&ouml;nnen die vorhandenen Eigent&uuml;mer eingesehen und administriert (falls in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert) werden.
     Die Eigent&uuml;merschaft muss Nutzern entweder direkt oder &uuml;ber Eigent&uuml;mergruppen zugeordnet werden.
     Es ist geplant, die Eigent&uuml;merschaft mit der Zust&auml;ndigkeit bei der Antragsstellung zu verkn&uuml;pfen.
@@ -8759,6 +8801,10 @@ INSERT INTO txt VALUES ('H8158', 'German',  'Start: Hier wird automatisch ein Ze
 INSERT INTO txt VALUES ('H8158', 'English', 'Start: Here the timestamp of the first change after planning is set automatically.');
 INSERT INTO txt VALUES ('H8159', 'German',  'Stop: Wird bei Bearbeitung in der Implementierungsphase ein Status im Ausgangsbereich erreicht, wird hier der aktuelle Zeitstempel gesetzt. ');
 INSERT INTO txt VALUES ('H8159', 'English', 'Stop: When reaching a state in the exit range, the actual timestamp is set.');
+INSERT INTO txt VALUES ('H8160', 'German',  'Management: Management, auf dem der Implementierungs-Auftrag umgesetzt wird. Bei Regel-Auftr&auml;gen ist es das Management des Gateways, bei Gruppen- und Objekt-Auftr&auml;gen das Ziel-Management aus den Provisionierungs-Einstellungen.
+    Ist das Management f&uuml;r den Nutzer nicht sichtbar, wird "Nicht sichtbar" angezeigt.');
+INSERT INTO txt VALUES ('H8160', 'English', 'Management: Management the implementation task is implemented on. For rule tasks it is the management of the gateway, for group and object tasks the target management from the provisioning settings.
+    If the management is not visible to the user, "Not Visible" is displayed.');
 INSERT INTO txt VALUES ('H8171', 'German',  'Genehmigungen werden als eigenst&auml;ndige Objekte dem fachlichen Auftrag zugeordnet. Ein Auftrag gilt dann als genehmigt, wenn alle zugeordneten Einzelgenehmigungen den entsprechenden Status aufweisen.
     Eine Genehmigung enth&auml;lt folgende Felder:
 ');

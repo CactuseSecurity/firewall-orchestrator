@@ -70,7 +70,8 @@ namespace FWO.Middleware.Server.Controllers
             user.LdapConnection ??= new();
             user.LdapConnection.Id = ldap.Id;
 
-            UiUser synchronizedUser = await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: updateLoginState, createIfMissing: updateLoginState);
+            UiUser synchronizedUser = await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: updateLoginState, createIfMissing: updateLoginState,
+                bindDirectoryObject: validatePassword);
             AuthDirectoryBinding.EnsureSameLocalUser(expectedDbId, synchronizedUser);
             return synchronizedUser;
         }
@@ -90,8 +91,9 @@ namespace FWO.Middleware.Server.Controllers
                 // Retrieve ldap entry for user (throws exception if credentials are invalid)
                 (LdapEntry ldapUser, Ldap ldap) = await AuthenticateInAnyLdap(user, validatePassword, boundLdapId, deadline.Token);
 
-                // Get dn of user
+                // Get dn and immutable directory object id of user
                 user.Dn = ldapUser.Dn;
+                user.DirectoryObjectId = LdapDirectoryObjectId.GetFrom(ldapUser);
                 Log.WriteInfo(UserAuthentication, $"User {user.Name} authenticated with dn={user.Dn}, selected_ldap=({AuthLoggingHelper.FormatSelectedLdap(ldap)})");
 
                 // Get email of user
@@ -182,12 +184,12 @@ namespace FWO.Middleware.Server.Controllers
             {
                 attempts.Add(async token =>
                 {
-                    Log.WriteDebug(UserAuthentication, $"Trying to authenticate {user.Name + " " + user.Dn} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
+                    Log.WriteDebug(UserAuthentication, $"Trying to authenticate {user.Name + " " + user.Dn} against LDAP {currentLdap.Host()} ...");
                     LdapEntry? entry = await TryLogin(currentLdap, user, validatePassword, token);
                     return (entry, entry != null ? currentLdap : null);
                 });
             }
-            (LdapEntry? Entry, Ldap? Ldap)[] ldapResults = await LdapAuthenticationGate.RunAsync(attempts, cancellationToken);
+            (LdapEntry? Entry, Ldap? Ldap)[] ldapResults = DiscardForeignEntries(await LdapAuthenticationGate.RunAsync(attempts, cancellationToken));
 
             if (!validatePassword && boundLdapId <= 0 && ldapResults.Count(result => result.Entry != null) > 1)
             {
@@ -201,6 +203,27 @@ namespace FWO.Middleware.Server.Controllers
                 return ldapResults[preferredLdapIndex];
             }
             return (null, null);
+        }
+
+        /// <summary>
+        /// Drops every entry whose dn the answering LDAP does not own, see <see cref="LdapDnNamespace"/>. Such a dn
+        /// lies outside the paths of that connection or also belongs to another active connection, so grants
+        /// recorded for that dn would be handed to a subject of the wrong directory.
+        /// </summary>
+        private (LdapEntry? Entry, Ldap? Ldap)[] DiscardForeignEntries((LdapEntry? Entry, Ldap? Ldap)[] ldapResults)
+        {
+            for (int index = 0; index < ldapResults.Length; index++)
+            {
+                (LdapEntry? entry, Ldap? ldap) = ldapResults[index];
+                if (entry != null && ldap != null && !LdapDnNamespace.IsOwnedBy(ldaps, ldap.Id, entry.Dn))
+                {
+                    Log.WriteWarning(UserAuthentication, $"Ignoring user dn={entry.Dn} found in ldap id={ldap.Id}: the dn is not within the paths of this connection, or ldap id(s) " +
+                        $"{string.Join(", ", LdapDnNamespace.GetClaimingLdapIds(ldaps, entry.Dn).Where(id => id != ldap.Id))} claim it with the same or a more specific path. " +
+                        "Give the active LDAP connections distinct paths.");
+                    ldapResults[index] = (null, null);
+                }
+            }
+            return ldapResults;
         }
 
         private async Task<LdapEntry?> TryLogin(Ldap currentLdap, UiUser user, bool validatePassword, CancellationToken cancellationToken)

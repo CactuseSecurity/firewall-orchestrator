@@ -22,7 +22,8 @@ namespace FWO.Data.Workflow
         // CreateReport = 30
 
         CreateFlow = 31,
-        BundleTasks = 32
+        BundleTasks = 32,
+        CreateImplTasks = 33
     }
 
     public enum StateActionEvents

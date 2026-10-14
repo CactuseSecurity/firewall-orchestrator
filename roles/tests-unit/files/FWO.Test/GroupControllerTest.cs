@@ -212,12 +212,51 @@ namespace FWO.Test
             Assert.That(client.DeletedDns, Is.EqualTo(new List<string> { kGroupDn }));
         }
 
+        [Test]
+        public async Task SearchGroups_SearchesOnlyTheNamedLdap()
+        {
+            RecordingLdapClient namedClient = new()
+            {
+                SearchResults = LdapTestSupport.CreateSearchResults(LdapTestSupport.CreateEntry(kGroupDn))
+            };
+            RecordingLdapClient otherClient = new();
+            MiddlewareLdap otherLdap = CreateInternalGroupLdap(otherClient);
+            otherLdap.Id = 2;
+            List<MiddlewareLdap> ldaps = [CreateInternalGroupLdap(namedClient), otherLdap];
+            GroupController controller = new(ldaps);
+
+            ActionResult<List<string>> result = await controller.Get(new GroupGetParameters { LdapId = 1, SearchPattern = "" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Value, Is.EqualTo(new List<string> { kGroupDn }));
+                Assert.That(otherClient.SearchCalls, Is.Empty);
+            });
+        }
+
+        [TestCase(0)]
+        [TestCase(5)]
+        public async Task SearchGroups_RejectsAnLdapIdThatNamesNoConnectedLdap(int ldapId)
+        {
+            RecordingLdapClient client = new();
+            List<MiddlewareLdap> ldaps = [CreateInternalGroupLdap(client)];
+            GroupController controller = new(ldaps);
+
+            ActionResult<List<string>> result = await controller.Get(new GroupGetParameters { LdapId = ldapId, SearchPattern = "" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(client.SearchCalls, Is.Empty);
+            });
+        }
+
         private static TestableLdap CreateInternalGroupLdap(RecordingLdapClient client)
         {
             return new TestableLdap(client)
             {
                 Id = 1,
-                Address = "ldap.example.test",
+                Addresses = ["ldap.example.test"],
                 Port = 389,
                 SearchUser = kSearchUser,
                 SearchUserPwd = kSearchPassword,
@@ -232,7 +271,7 @@ namespace FWO.Test
             return new TestableLdap(client)
             {
                 Id = 1,
-                Address = "ldap.example.test",
+                Addresses = ["ldap.example.test"],
                 Port = 389,
                 SearchUser = kSearchUser,
                 SearchUserPwd = kSearchPassword,

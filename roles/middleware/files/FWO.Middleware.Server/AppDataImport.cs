@@ -923,21 +923,23 @@ namespace FWO.Middleware.Server
             bool inputLooksLikeDn = LooksLikeDistinguishedName(userDn);
             foreach (Ldap ldap in connectedLdaps)
             {
-                if (!inputLooksLikeDn
-                    && (string.IsNullOrEmpty(ldap.UserSearchPath)
-                        || !userDn.Contains(ldap.UserSearchPath, StringComparison.OrdinalIgnoreCase)))
+                // a dn names a user only in the directory that owns it (GHSA-695m-f6mv-9g72)
+                if (inputLooksLikeDn
+                    ? !LdapDnNamespace.IsOwnedBy(connectedLdaps, ldap.Id, userDn)
+                    : string.IsNullOrEmpty(ldap.UserSearchPath) || !userDn.Contains(ldap.UserSearchPath, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
                 LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
-                if (ldapUser != null && !Ldap.IsGroupEntry(ldapUser))
+                if (ldapUser != null && !Ldap.IsGroupEntry(ldapUser) && LdapDnNamespace.IsOwnedBy(connectedLdaps, ldap.Id, ldapUser.Dn))
                 {
                     // add data from ldap entry to uiUser
                     return new()
                     {
                         LdapConnection = new UiLdapConnection() { Id = ldap.Id },
                         Dn = ldapUser.Dn,
+                        DirectoryObjectId = LdapDirectoryObjectId.GetFrom(ldapUser),
                         Name = Ldap.GetName(ldapUser),
                         Firstname = Ldap.GetFirstName(ldapUser),
                         Lastname = Ldap.GetLastName(ldapUser),

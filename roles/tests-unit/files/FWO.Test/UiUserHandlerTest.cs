@@ -17,7 +17,10 @@ namespace FWO.Test
         private static readonly int[] kExpectedRecertOwnerships = [3];
         private static readonly int[] kExpectedVisibilityGroupIds = [7];
         private static readonly string[] kGetWorkflowVisibilityGroupsQuery = [RequestQueries.getWorkflowVisibilityGroups];
+        private const string kRecycledDn = "uid=x,ou=users,dc=example,dc=com";
         private static readonly string[] kUpsertUiUserQuery = [AuthQueries.upsertUiUser];
+        private static readonly string[] kLookupAndUpsertUiUserQueries = [AuthQueries.getUserByDn, AuthQueries.upsertUiUser];
+        private static readonly string[] kLookupOnlyQuery = [AuthQueries.getUserByDn];
         private static readonly string[] kUpdatePasswordChangeQuery = [AuthQueries.updateUserPasswordChange];
         private const int kLdapConnectionId = 1;
         private const int kOtherLdapConnectionId = 2;
@@ -408,6 +411,50 @@ namespace FWO.Test
             };
 
             await UiUserHandler.UpsertUiUser(apiConnection, user, loginHappened: false);
+
+            Assert.That(apiConnection.Queries, Is.EqualTo(kLookupAndUpsertUiUserQueries));
+        }
+
+        [Test]
+        public async Task UpsertUiUser_WithoutLogin_LeavesALocalUserBoundToAnotherDirectoryEntryUntouched()
+        {
+            UiUserContextApiConnection apiConnection = new()
+            {
+                ExistingUsers = [new UiUser { DbId = 17, Dn = kRecycledDn, DirectoryObjectId = "entryUUID:first" }]
+            };
+            UiUser nextHolder = new() { Name = "x", Dn = kRecycledDn, DirectoryObjectId = "entryUUID:second", LdapConnection = new() { Id = 3 } };
+
+            await UiUserHandler.UpsertUiUser(apiConnection, nextHolder, loginHappened: false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries, Is.EqualTo(kLookupOnlyQuery));
+                Assert.That(nextHolder.DbId, Is.Zero);
+            });
+        }
+
+        [TestCase("entryUUID:first")]
+        [TestCase(null)]
+        public async Task UpsertUiUser_WithoutLogin_UpdatesALocalUserOfTheSameOrNoDirectoryEntry(string? storedObjectId)
+        {
+            UiUserContextApiConnection apiConnection = new()
+            {
+                ExistingUsers = [new UiUser { DbId = 17, Dn = kRecycledDn, DirectoryObjectId = storedObjectId }]
+            };
+            UiUser holder = new() { Name = "x", Dn = kRecycledDn, DirectoryObjectId = "entryUUID:first", LdapConnection = new() { Id = 3 } };
+
+            await UiUserHandler.UpsertUiUser(apiConnection, holder, loginHappened: false);
+
+            Assert.That(apiConnection.Queries, Is.EqualTo(kLookupAndUpsertUiUserQueries));
+        }
+
+        [Test]
+        public async Task UpsertUiUser_AtLogin_DoesNotLookUpTheLocalUserAgain()
+        {
+            UiUserContextApiConnection apiConnection = new();
+            UiUser user = new() { Name = "x", Dn = kRecycledDn, LdapConnection = new() { Id = 3 } };
+
+            await UiUserHandler.UpsertUiUser(apiConnection, user, loginHappened: true);
 
             Assert.That(apiConnection.Queries, Is.EqualTo(kUpsertUiUserQuery));
         }

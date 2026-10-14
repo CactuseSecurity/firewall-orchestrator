@@ -605,6 +605,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
+    <li>Der Installer zeigt am Ende eine kurze &Uuml;bersicht der Laufzeiten je Rolle, sortiert nach Dauer. Mehrfache Ausf&uuml;hrungen derselben Rolle werden zusammengefasst.</li>
     <li>Die Middleware-REST-API begrenzt Aufrufe standardm&auml;&szlig;ig auf 600 pro Minute und zwei gleichzeitig laufende aufwendige Aufrufe je Benutzer. Die Flow-Kataloglisten liefern Seiten mit h&ouml;chstens 1000 Objekten bzw. 250 Gruppen, <code>getIpDataForOwners</code> h&ouml;chstens 10000 Anwendungen. API-Clients m&uuml;ssen mit <code>limit</code> und <code>offset</code> weiterbl&auml;ttern, bis <code>X-Has-More</code> den Wert <code>false</code> hat. <code>getFlowComplianceState</code> akzeptiert h&ouml;chstens 100 Eintr&auml;ge je Liste; bei mehreren passenden portlosen Diensten liefert <code>getServiceObjectId</code> HTTP 409 mit den Kandidaten.</li>
     <li><code>createTicket</code> liefert neben der Ticket-Id den Aktionsstatus <code>actionsStatus</code>: <code>completed</code> oder <code>failed</code>. Fehlschl&auml;ge initialer Workflow-Aktionen werden als Alarm und in der &Auml;nderungshistorie gemeldet. Ein bereits gespeichertes Ticket beh&auml;lt auch bei fehlgeschlagener Statusermittlung seine Id; der Status enth&auml;lt dann die numerische Zustands-Id. Den Request nicht erneut senden, da dies ein zweites Ticket erzeugt.</li>
     <li>Externe Ticket-Systeme verwenden ausw&auml;hlbare Login-Daten mit verschl&uuml;sseltem Passwort statt eines gespeicherten Authorization-Headers. Passwort&auml;nderungen und neue Login-Daten gelten auch f&uuml;r offene Requests desselben Endpunkts. Das Upgrade &uuml;bernimmt g&uuml;ltige Basic-Authentication-Header automatisch; andere konfigurierte Header, etwa Tokens, werden mit einer Warnung entfernt. F&uuml;r betroffene Ticket-Systeme m&uuml;ssen Login-Daten ausgew&auml;hlt werden. Verwendete Login-Daten k&ouml;nnen erst nach einer neuen Zuordnung gel&ouml;scht werden.</li>
@@ -619,11 +620,13 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Die Area-IP-Daten-Konvertierung hei&szlig;t nun convert_area_ip_data_from_git.py. generate_area_ip_data.py erzeugt Area-IP-Testdaten.</li>
     <li>Aktualisierte .NET-Bibliotheken, u.a. Quartz.NET 4.4 und PuppeteerSharp 25.13 (PDF-Erzeugung).</li>
     <li>Implementierungs-Auftr&auml;ge entstehen f&uuml;r Objekt-Auftr&auml;ge pro Ziel-Management laut den Provisioning-Einstellungen (Super- oder Submanager). Die neue Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; erzeugt sie auch bei aktiver Planungsphase. Der Pfadanalyse-Algorithmus wird nun in den Workflow-Anpassungen gew&auml;hlt.</li>
+    <li>LDAP: Eine Verbindung kann bis zu 10 Server (Replikate) eines Verzeichnisses enthalten, die der Reihe nach versucht werden. Aktive Verbindungen d&uuml;rfen keine gleichen Such- oder Schreibpfade haben; bisher als getrennte Verbindungen eingerichtete Replikate m&uuml;ssen zu einer Verbindung zusammengefasst werden. Lokale Nutzer werden an die unver&auml;nderliche Objekt-Id ihres Verzeichniseintrags gebunden, daher muss sich nach dem Upgrade jeder Nutzer einmal mit Passwort anmelden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
+    <li>The installer ends with a short overview of elapsed time per role, sorted by duration. Repeated executions of the same role are combined.</li>
     <li>The middleware REST API defaults to 600 calls per minute and two concurrent expensive calls per user. Flow catalog lists return pages of at most 1000 objects or 250 groups; <code>getIpDataForOwners</code> returns at most 10000 applications. API clients must page with <code>limit</code> and <code>offset</code> until <code>X-Has-More</code> is <code>false</code>. <code>getFlowComplianceState</code> accepts at most 100 entries per list; when several portless services match, <code>getServiceObjectId</code> returns HTTP 409 with the candidates.</li>
     <li><code>createTicket</code> returns <code>actionsStatus</code> alongside the ticket ID: <code>completed</code> or <code>failed</code>. Initial workflow action failures are reported in an alert and the change history. A saved ticket keeps its ID even if status enrichment fails; its status then contains the numeric state ID. Do not resend the request, as this creates a second ticket.</li>
     <li>External ticket systems use selectable credentials with an encrypted password instead of a stored authorization header. Password changes and newly selected credentials also apply to open requests for the same endpoint. The upgrade migrates valid basic authentication headers automatically; other configured headers, such as tokens, are removed with a warning. Select credentials for affected ticket systems. Credentials in use can only be deleted after selecting replacements.</li>
@@ -638,6 +641,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>The area IP data converter is now named convert_area_ip_data_from_git.py. generate_area_ip_data.py generates area IP test data.</li>
     <li>Updated .NET libraries, among others Quartz.NET 4.4 and PuppeteerSharp 25.13 (PDF generation).</li>
     <li>Implementation tasks are created per target management of the provisioning settings (super- or sub-management) for object tasks. The new action &quot;Create implementation tasks&quot; also creates them with an active planning phase. The path analysis algorithm is now selected in the workflow customizing settings.</li>
+    <li>LDAP: a connection can list up to 10 servers (replicas) of one directory, which are tried in order. Active connections must not share a search or write path; replicas configured as separate connections so far have to be combined into one connection. Local users are bound to the immutable object id of their directory entry, so every user has to log in with password once after the upgrade.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -4471,6 +4475,8 @@ INSERT INTO txt VALUES ('U5218', 'German',  'L&ouml;scht alle Beispiel-Eigent&uu
 INSERT INTO txt VALUES ('U5218', 'English', 'Deletes all sample owners (ending with "_demo")');
 INSERT INTO txt VALUES ('U5219', 'German',  'Sind sie sicher, dass sie folgenden Lifecycle Status l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5219', 'English', 'Are you sure you want to delete Owner Lifecycle State: ');
+INSERT INTO txt VALUES ('U5220', 'German',  'Sind sie sicher, dass sie folgende LDAP-Verbindung l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5220', 'English', 'Are you sure you want to delete LDAP connection: ');
 
 INSERT INTO txt VALUES ('U5301', 'German',  'Einstellungen ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5301', 'English', 'Settings changed.');
@@ -4907,6 +4913,10 @@ INSERT INTO txt VALUES ('E5271', 'German',  'Keine Gateways zum Hinzuf&uuml;gen 
 INSERT INTO txt VALUES ('E5271', 'English', 'No remaining gateways found to add');
 INSERT INTO txt VALUES ('E5272', 'German',  'Keine Gateways zum L&ouml;schen gefunden');
 INSERT INTO txt VALUES ('E5272', 'English', 'No remaining gateways found to delete');
+INSERT INTO txt VALUES ('E5273', 'German',  'Die Suchpfade und der Schreibpfad einer aktiven LDAP-Verbindung d&uuml;rfen keinem Pfad einer anderen aktiven Verbindung entsprechen. Jeder DN muss genau einer Verbindung zugeordnet sein. Replikate eines Verzeichnisses werden als Server einer Verbindung eingetragen. &Uuml;berschneidung mit: ');
+INSERT INTO txt VALUES ('E5273', 'English', 'The search and write paths of an active LDAP connection must not equal a path of another active connection. Each DN has to belong to exactly one connection. Enter replicas of one directory as servers of one connection. Overlapping with: ');
+INSERT INTO txt VALUES ('E5274', 'German',  'Bitte h&ouml;chstens 10 Server angeben.');
+INSERT INTO txt VALUES ('E5274', 'English', 'Please enter at most 10 servers.');
 INSERT INTO txt VALUES ('E5281', 'German',  'Mandant konnte im LDAP nicht angelegt werden');
 INSERT INTO txt VALUES ('E5281', 'English', 'Tenant could not be added in LDAP');
 INSERT INTO txt VALUES ('E5282', 'German',  'Mandant konnte im LDAP nicht gel&ouml;scht werden');
@@ -6665,19 +6675,37 @@ INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere untersch
     Eine L&ouml;schung ist nur zul&auml;ssig, wenn es nicht das interne Ldap (definiert durch den gesetzten Rollensuchpfad) und nicht das letzte vorhandene Ldap ist.<br>
     Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren einer neuen Ldap-Verbindung, indem Daten von einem existierenden kopiert werden.
     Vor dem Speichern muss mindestens Adresse oder Portnummer ge&auml;ndert werden.<br>
-    Beim Editieren kann mit der "Verbindung testen"-Schaltfl&auml;che gepr&uuml;ft werden, ob eine Verbindung mit den aktuellen Parametern aufgebaut werden kann.
+    Beim Editieren kann mit der "Verbindung testen"-Schaltfl&auml;che gepr&uuml;ft werden, ob eine Verbindung mit den aktuellen Parametern aufgebaut werden kann.<br>
+    Die Such- und Schreibpfade der aktiven Ldap-Verbindungen d&uuml;rfen sich nicht &uuml;berschneiden: kein Pfad darf einem Pfad einer anderen aktiven Verbindung entsprechen.
+    Liegt ein Pfad unterhalb des Pfads einer anderen Verbindung (z.B. eine Kind-Dom&auml;ne), geh&ouml;rt dieser Teilbaum der Verbindung mit dem spezielleren Pfad.
+    So geh&ouml;rt jeder Distinguished Name (Dn) zu genau einer Verbindung, und Rollen, Gruppen, Verantwortliche und Workflow-Zuordnungen, die einen Dn nennen, gelten nur f&uuml;r den Nutzer dieser Verbindung.
+    Nutzer und Gruppen, deren Dn nicht in den Pfaden der eigenen Verbindung liegt, werden ignoriert.<br>
+    Ein lokaler Nutzer wird bei der Anmeldung mit Passwort an die unver&auml;nderliche Objekt-Id seines Ldap-Eintrags gebunden (objectGUID, entryUUID, nsUniqueId, ipaUniqueID oder GUID).
+    Erh&auml;lt sp&auml;ter ein anderer Eintrag denselben Dn, wird dessen Anmeldung abgewiesen und die Sitzungen des lokalen Nutzers werden beendet, bis ein Admin den lokalen Nutzer l&ouml;scht.
 ');
 INSERT INTO txt VALUES ('H5201', 'English', 'Admins can create and administrate several different Ldap connections. All of them can be used for user authentication.<br>
     The internal Ldap (part of the initial installation) is needed at least for role assignment, but can also be used for user authentication and user group handling.<br>
     The Ldap connections can be added, changed and deleted.
     Deletion is only allowed, if it is not the internal Ldap (defined by the existence of a role search path) and if it is not the last Ldap.<br>
     The clone button helps defining new Ldaps by copying the data from existing ones. Before saving at least the address or port number have to be changed.<br>
-    While editing, a "Test connection" button helps checking, if a connection can be built up with the actual parameters.
+    While editing, a "Test connection" button helps checking, if a connection can be built up with the actual parameters.<br>
+    The search and write paths of the active Ldap connections must not overlap: no path may equal a path of another active connection.
+    If a path lies below the path of another connection (e.g. a child domain), that subtree belongs to the connection with the more specific path.
+    So every distinguished name (Dn) belongs to exactly one connection, and roles, groups, responsibles and workflow assignments naming a Dn only apply to the user of that connection.
+    Users and groups whose Dn is not within the paths of their own connection are ignored.<br>
+    A local user is bound to the immutable object id of its Ldap entry (objectGUID, entryUUID, nsUniqueId, ipaUniqueID or GUID) when logging in with a password.
+    If another entry gets the same Dn later, its login is refused and the sessions of the local user are ended until an admin deletes the local user.
 ');
 INSERT INTO txt VALUES ('H5210', 'German',  'Name*: Name des verbundenen Ldap. Kann frei gew&auml;hlt werden. Wenn nicht vergeben, wird der Host (Adresse:Port) dargestellt.');
 INSERT INTO txt VALUES ('H5210', 'English', 'Name*: Name of the connected Ldap to be freely given. If not assigned the Host (Address:Port) is displayed.');
-INSERT INTO txt VALUES ('H5211', 'German',  'Adresse*: Adresse des verbundenen Ldap (z.B. IP-Adresse)');
-INSERT INTO txt VALUES ('H5211', 'English', 'Address*: Address of the connected Ldap (e.g. IP address).');
+INSERT INTO txt VALUES ('H5211', 'German',  'Adresse*: Namen oder IP-Adressen der Server des verbundenen Ldap, durch Kommas getrennt (h&ouml;chstens 10).
+    Mehrere Server m&uuml;ssen Replikate desselben Verzeichnisses sein und teilen sich alle anderen Einstellungen einschlie&szlig;lich des Ports.
+    Sie werden in der angegebenen Reihenfolge versucht; nach einem Ausfall wird der zuletzt erreichbare Server weiter verwendet.
+');
+INSERT INTO txt VALUES ('H5211', 'English', 'Address*: Names or IP addresses of the servers of the connected Ldap, separated by commas (at most 10).
+    Several servers have to be replicas of the same directory and share all other settings including the port.
+    They are tried in the given order; after a failure the server that answered last is used further on.
+');
 INSERT INTO txt VALUES ('H5212', 'German',  'Port*: Portnummer des verbundenen Ldap.');
 INSERT INTO txt VALUES ('H5212', 'English', 'Port*: Port number of the connected Ldap.');
 INSERT INTO txt VALUES ('H5213', 'German',  'Tls: Zeigt an, ob TLS in der Kommunikation verwendet wird.');

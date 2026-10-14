@@ -34,8 +34,8 @@ public class UserGroupResolver
     public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap hostingLdap, CancellationToken cancellationToken = default)
     {
         HashSet<string> userGroups = new(DistName.DnComparer);
-        userGroups.UnionWith(hostingLdap.GetGroups(ldapUser));
-        AddResolvedGroupMemberships(userGroups, await GetGroupsForDn(hostingLdap, ldapUser.Dn, cancellationToken), GetGroupPath(hostingLdap));
+        AddOwnedGroups(userGroups, hostingLdap.GetGroups(ldapUser), hostingLdap);
+        AddResolvedGroupMemberships(userGroups, await GetGroupsForDn(hostingLdap, ldapUser.Dn, cancellationToken), hostingLdap);
         if (!hostingLdap.IsInternal())
         {
             await AddInternalLdapMemberships(userGroups, ldapUser.Dn, cancellationToken);
@@ -44,29 +44,35 @@ public class UserGroupResolver
     }
 
     /// <summary>
-    /// Resolves the group dns of a user identified by its dn, locating the hosting ldap first.
+    /// Resolves the group dns of a user identified by its dn in the directory the user belongs to.
     /// Used outside the login flow, where no ldap entry has been read yet.
     /// </summary>
     /// <param name="userDn">Distinguished name of the user.</param>
-    /// <returns>Distinct list of group dns the user belongs to, empty if the user cannot be located.</returns>
-    public async Task<List<string>> GetGroupsForUserDn(string userDn)
+    /// <param name="ldapId">Id of the LDAP connection of the user, taken from its local user. The dn alone does not
+    /// identify the directory: the same dn in another directory names a different subject (GHSA-695m-f6mv-9g72).</param>
+    /// <returns>Distinct list of group dns the user belongs to, empty if the user cannot be located in its directory.</returns>
+    public async Task<List<string>> GetGroupsForUser(string userDn, int ldapId)
     {
         if (string.IsNullOrWhiteSpace(userDn))
         {
             return [];
         }
 
-        foreach (Ldap ldap in ldaps.Where(ldap => ldap.Active))
+        Ldap? ldap = ldaps.FirstOrDefault(ldap => ldap.Active && ldap.Id == ldapId);
+        if (ldap == null || !LdapDnNamespace.IsOwnedBy(ldaps, ldap.Id, userDn))
         {
-            // GetUserDetailsFromLdap logs and swallows connection problems itself, returning null
-            LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
-            if (ldapUser != null)
-            {
-                return await GetGroups(ldapUser, ldap);
-            }
+            Log.WriteWarning("Resolve user groups", $"User {userDn} does not belong to an active ldap with id {ldapId}, assuming no group memberships.");
+            return [];
         }
 
-        Log.WriteWarning("Resolve user groups", $"User {userDn} could not be found in any ldap, assuming no group memberships.");
+        // GetUserDetailsFromLdap logs and swallows connection problems itself, returning null
+        LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
+        if (ldapUser != null)
+        {
+            return await GetGroups(ldapUser, ldap);
+        }
+
+        Log.WriteWarning("Resolve user groups", $"User {userDn} could not be found in ldap id {ldapId}, assuming no group memberships.");
         return [];
     }
 
@@ -82,7 +88,7 @@ public class UserGroupResolver
                 List<string> currentGroups = await GetGroupsForDn(currentLdap, userDn, cancellationToken);
                 lock (groupsLock)
                 {
-                    AddResolvedGroupMemberships(userGroups, currentGroups, GetGroupPath(currentLdap));
+                    AddResolvedGroupMemberships(userGroups, currentGroups, currentLdap);
                 }
             }, cancellationToken));
         }
@@ -100,8 +106,27 @@ public class UserGroupResolver
         return !string.IsNullOrWhiteSpace(ldap.GroupSearchPath) ? ldap.GroupSearchPath : ldap.GroupWritePath;
     }
 
-    private static void AddResolvedGroupMemberships(HashSet<string> userGroups, IEnumerable<string> groupNames, string? groupPath)
+    private void AddResolvedGroupMemberships(HashSet<string> userGroups, IEnumerable<string> groupNames, Ldap ldap)
     {
-        userGroups.UnionWith(Ldap.BuildGroupDns(groupNames, groupPath));
+        AddOwnedGroups(userGroups, Ldap.BuildGroupDns(groupNames, GetGroupPath(ldap)), ldap);
+    }
+
+    /// <summary>
+    /// Adds only the group dns that the reporting ldap owns. A group dn that lies outside its paths or also
+    /// belongs to another active connection would match grants recorded for a group of another directory.
+    /// </summary>
+    private void AddOwnedGroups(HashSet<string> userGroups, IEnumerable<string> groupDns, Ldap ldap)
+    {
+        foreach (string groupDn in groupDns)
+        {
+            if (LdapDnNamespace.IsOwnedBy(ldaps, ldap.Id, groupDn))
+            {
+                userGroups.Add(groupDn);
+            }
+            else
+            {
+                Log.WriteInfo("Resolve user groups", $"Ignoring group {groupDn} reported by ldap id {ldap.Id}: the dn is not within the paths of this connection or is also claimed by another active connection.");
+            }
+        }
     }
 }

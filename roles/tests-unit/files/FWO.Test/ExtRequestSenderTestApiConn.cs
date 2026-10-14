@@ -17,12 +17,14 @@ namespace FWO.Test
         public int TriedToGetLdapsForHandleStateChange = 0;
         public bool ManualRequestsOnly = false;
         public bool CheckPointRequestsOnly = false;
+        public List<ExternalRequest>? OpenRequests { get; set; }
+        public Credential? Credential { get; set; }
+        public List<string> CredentialQueryVars { get; } = [];
 
         readonly ExternalTicketSystem ticketSystem = new()
         {
             Id = 1,
             TypeId = BuiltInExternalTicketSystemTypes.TufinSecureChangeId,
-            Authorization = "xyz",
             Name = "Tufin",
             Url = "https://tufin-test.xxx.de/securechangeworkflow/api/securechange/",
             Templates =
@@ -51,7 +53,6 @@ namespace FWO.Test
         {
             Id = 2,
             TypeId = 99,
-            Authorization = "xyz",
             Name = "Custom",
             Url = "https://custom-ticket-system.example/api/"
         };
@@ -96,6 +97,11 @@ namespace FWO.Test
             }
             else if (responseType == typeof(ExternalRequestDataHelper))
             {
+                if (OpenRequests != null)
+                {
+                    GraphQLResponse<dynamic> requestsResponse = new() { Data = new ExternalRequestDataHelper { ExternalRequests = OpenRequests } };
+                    return requestsResponse.Data;
+                }
                 string serializedTicketSystem = System.Text.Json.JsonSerializer.Serialize(ticketSystem);
                 if (ManualRequestsOnly)
                 {
@@ -170,6 +176,12 @@ namespace FWO.Test
                 ];
 
                 GraphQLResponse<dynamic> response = new() { Data = managements };
+                return response.Data;
+            }
+            else if (responseType == typeof(Credential) && query == DeviceQueries.getCredentialById)
+            {
+                CredentialQueryVars.Add(variables?.ToString() ?? "");
+                GraphQLResponse<dynamic> response = new() { Data = Credential! };
                 return response.Data;
             }
             else if (responseType == typeof(List<Ldap>))

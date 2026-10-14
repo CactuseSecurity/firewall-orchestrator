@@ -10,6 +10,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getManagementNames;
         public static readonly string getManagementsDetails;
         public static readonly string getManagementDetailsWithoutSecrets;
+        public static readonly string getManagementHierarchy;
         public static readonly string getManagementsWithRulebases;
         public static readonly string getDeviceTypeDetails;
         public static readonly string newManagement;
@@ -28,6 +29,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteDevice;
         public static readonly string getCredentials;
         public static readonly string getCredentialsWithoutSecrets;
+        public static readonly string getCredentialById;
         public static readonly string newCredential;
         public static readonly string updateCredential;
         public static readonly string deleteCredential;
@@ -54,6 +56,8 @@ namespace FWO.Api.Client.Queries
                                         + GetQueryText("device/fragments/managementDetailsWithoutSecrets.graphql")
                                         + GetQueryText("device/fragments/deviceTypeDetails.graphql")
                                         + GetQueryText("device/fragments/importCredentialsWithoutSecrets.graphql");
+                getManagementHierarchy = GetQueryText("device/getManagementHierarchy.graphql")
+                                        + GetQueryText("device/fragments/deviceTypeDetails.graphql");
                 getManagementsWithRulebases = GetQueryText("device/getManagementsWithRulebases.graphql");
                 getDeviceTypeDetails = GetQueryText("device/getDeviceTypeDetails.graphql")
                                         + GetQueryText("device/fragments/deviceTypeDetails.graphql");
@@ -78,6 +82,8 @@ namespace FWO.Api.Client.Queries
                                     + GetQueryText("device/fragments/importCredentials.graphql");
                 getCredentialsWithoutSecrets = GetQueryText("device/getCredentialsWithoutSecrets.graphql")
                                     + GetQueryText("device/fragments/importCredentialsWithoutSecrets.graphql");
+                getCredentialById = GetQueryText("device/getCredentialById.graphql")
+                                    + GetQueryText("device/fragments/importCredentials.graphql");
                 newCredential = GetQueryText("device/newCredential.graphql");
                 updateCredential = GetQueryText("device/updateCredential.graphql");
                 deleteCredential = GetQueryText("device/deleteCredential.graphql");

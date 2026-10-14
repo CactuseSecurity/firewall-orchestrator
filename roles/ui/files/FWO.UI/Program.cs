@@ -49,7 +49,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
+builder.Services.AddFwoServerSideBlazor();
 
 builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 builder.Services.AddScoped<KeyboardInputService, KeyboardInputService>();

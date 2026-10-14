@@ -278,6 +278,18 @@ namespace FWO.Middleware.Client
         }
 
         /// <summary>
+        /// Resolves the target managements of an object task with the rights of the middleware server.
+        /// </summary>
+        /// <param name="parameters">Management of the request task and kind of the ordered objects.</param>
+        /// <returns>The REST response containing the target managements.</returns>
+        public virtual async Task<RestResponse<ImplTaskTargetResult>> GetImplTaskTargets(ImplTaskTargetParameters parameters)
+        {
+            RestRequest request = new("workflow/getImplTaskTargets", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<ImplTaskTargetResult>(request);
+        }
+
+        /// <summary>
         /// Processes the configured immediate notification for an interface request.
         /// </summary>
         /// <param name="connectionId">Database ID of the requested modelling connection.</param>

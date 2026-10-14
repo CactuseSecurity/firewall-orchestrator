@@ -302,6 +302,9 @@ namespace FWO.Services.Workflow
                 case nameof(StateActionTypes.BundleTasks):
                     await BundleTasks(action, statefulObject, scope, owner, ticketId);
                     break;
+                case nameof(StateActionTypes.CreateImplTasks):
+                    await CreateImplTasks(action, statefulObject, scope);
+                    break;
                 case nameof(StateActionTypes.UpdateConnectionOwner):
                     await UpdateConnectionOwner(owner, ticketId);
                     break;
@@ -621,6 +624,25 @@ namespace FWO.Services.Workflow
                 }
                 await PromoteAfterActionResult(action.ExternalParams, (bool)success, statefulObject, scope);
             }
+        }
+
+        /// <summary>
+        /// Creates the implementation tasks still missing for the ticket of the stateful object, using the same
+        /// logic as the automatic creation. Bundles from a preceding bundle tasks action are taken into account.
+        /// </summary>
+        /// <param name="action">The executed action.</param>
+        /// <param name="statefulObject">Ticket or request task the action is attached to.</param>
+        /// <param name="scope">Scope of the stateful object.</param>
+        public async Task CreateImplTasks(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            WfTicket? ticket = GetTicketForBundling(statefulObject, scope);
+            if (ticket == null)
+            {
+                Log.WriteWarning("Create Implementation Tasks", $"Action '{action.Name}' found no ticket request tasks.");
+                return;
+            }
+            int createdCount = await wfHandler.CreateMissingImplTasksForTicket(ticket);
+            Log.WriteDebug("Create Implementation Tasks", $"Action '{action.Name}' created {createdCount} implementation tasks for ticket {ticket.Id}.");
         }
 
         public async Task BundleTasks(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, long? ticketId)

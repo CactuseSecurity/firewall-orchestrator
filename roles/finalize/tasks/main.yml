@@ -134,10 +134,10 @@
     - "'frontends' in group_names"
     - "ansible_facts['os_family'] == 'RedHat'"
 
-- name: restart apache without maintenance site
+- name: reload apache without maintenance site
   service:
     name: "{{ webserver_package_name }}"
-    state: restarted
+    state: reloaded
   become: true
 
 - name: finally restart MW
@@ -157,4 +157,4 @@
 
 # the importer is deliberately not started here: it has to come up after every task which restarts
 # one of its dependencies, and the plays which follow this role still restart the middleware and
-# apache. it is started by the last play in site.yml instead.
+# reload apache. it is started by the last play in site.yml instead.

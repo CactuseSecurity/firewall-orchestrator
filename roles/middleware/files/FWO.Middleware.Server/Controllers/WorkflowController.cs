@@ -13,7 +13,6 @@ using FWO.Services;
 using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Concurrent;
 using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers
@@ -30,7 +29,7 @@ namespace FWO.Middleware.Server.Controllers
         private readonly List<Ldap> ldaps;
         private readonly JwtWriter jwtWriter;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
-        private static readonly ConcurrentDictionary<long, SemaphoreSlim> TicketActionLocks = new();
+        private static readonly KeyedAsyncLock<long> TicketActionLocks = new();
         private static readonly WorkflowEmailBundleStore EmailBundleStore = new();
         private static readonly List<string> kNoGroups = [];
         private const string kStateChangeRefusalTitleKey = "actions";
@@ -77,7 +76,19 @@ namespace FWO.Middleware.Server.Controllers
                 }
 
                 long lockTicketId = GetTicketId(parameters, scope);
+                if (lockTicketId <= 0)
+                {
+                    SetWarning(result, $"Invalid ticket id {lockTicketId}.");
+                    return result;
+                }
                 return await ExecuteActionsWithTicketLock(parameters, scope, phase, lockTicketId, result);
+            }
+            catch (OperationCanceledException) when (HttpContext?.RequestAborted.IsCancellationRequested == true)
+            {
+                // the client went away (e.g. closed the page) while waiting for the ticket lock: nothing failed here
+                Log.WriteDebug("Workflow Actions", "Workflow action request was cancelled by the client.");
+                result.ErrorMessage = "The request was cancelled.";
+                return result;
             }
             catch (Exception exc)
             {
@@ -135,16 +146,15 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<WorkflowActionResult> ExecuteActionsWithTicketLock(WorkflowActionParameters parameters, WfObjectScopes scope,
             WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
         {
-            SemaphoreSlim ticketActionLock = TicketActionLocks.GetOrAdd(lockTicketId, _ => new SemaphoreSlim(1, 1));
-            await ticketActionLock.WaitAsync();
-            try
+            string caller = User.FindFirstValue("x-hasura-uuid") ?? "";
+            using IDisposable? ticketActionLock = await TicketActionLocks.TryAcquireAsync(lockTicketId, caller,
+                HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (ticketActionLock == null)
             {
-                return await ExecuteActionsWithApi(parameters, scope, phase, lockTicketId, result);
+                SetWarning(result, $"Too many concurrent workflow action requests. Ticket {lockTicketId} was not processed, please retry.");
+                return result;
             }
-            finally
-            {
-                ticketActionLock.Release();
-            }
+            return await ExecuteActionsWithApi(parameters, scope, phase, lockTicketId, result);
         }
 
         private async Task<WorkflowActionResult> ExecuteActionsWithApi(WorkflowActionParameters parameters, WfObjectScopes scope,
@@ -194,7 +204,7 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
-            if (!await CallerCanAccessVisibility(User, wfHandler, scope, statefulObject))
+            if (!await CallerCanAccessVisibility(User, actionApiConnection, wfHandler, scope, statefulObject))
             {
                 SetWarning(result, $"User is not authorized to access workflow visibility for scope '{scope}' and state {statefulObject.StateId}.");
                 return result;
@@ -553,7 +563,7 @@ namespace FWO.Middleware.Server.Controllers
             return editableOwnerIds.Count > 0 && ticket.Tasks.Any(task => CallerOwnsTask(task, editableOwnerIds));
         }
 
-        private async Task<bool> CallerCanAccessVisibility(ClaimsPrincipal user, WfHandler wfHandler, WfObjectScopes scope, WfStatefulObject statefulObject)
+        private async Task<bool> CallerCanAccessVisibility(ClaimsPrincipal user, ApiConnection actionApiConnection, WfHandler wfHandler, WfObjectScopes scope, WfStatefulObject statefulObject)
         {
             if (!wfHandler.userConfig.ReqVisibilityBased)
             {
@@ -566,15 +576,16 @@ namespace FWO.Middleware.Server.Controllers
             {
                 return true;
             }
-            return await IsExplicitlyAssigned(user, statefulObject);
+            return await IsExplicitlyAssigned(user, actionApiConnection, statefulObject);
         }
 
         /// <summary>
         /// Decides whether the caller is explicitly assigned, resolving the ldap group memberships only if a
         /// group assignment exists that could match at all. The group dns are no longer part of the jwt, so
-        /// every lookup costs an ldap round trip.
+        /// every lookup costs an ldap round trip. The groups are resolved in the directory of the caller's local user,
+        /// not in the first directory that knows the dn (GHSA-695m-f6mv-9g72).
         /// </summary>
-        private async Task<bool> IsExplicitlyAssigned(ClaimsPrincipal user, WfStatefulObject statefulObject)
+        private async Task<bool> IsExplicitlyAssigned(ClaimsPrincipal user, ApiConnection actionApiConnection, WfStatefulObject statefulObject)
         {
             if (IsExplicitlyAssignedToUserOrGroups(user, statefulObject, kNoGroups))
             {
@@ -585,8 +596,29 @@ namespace FWO.Middleware.Server.Controllers
                 return false;
             }
 
-            List<string> userGroups = await new UserGroupResolver(ldaps).GetGroupsForUserDn(GetClaimValue(user, "x-hasura-uuid") ?? "");
+            UiUser? caller = await GetCallerLocalUser(user, actionApiConnection);
+            if (caller == null)
+            {
+                return false;
+            }
+            List<string> userGroups = await new UserGroupResolver(ldaps).GetGroupsForUser(caller.Dn, caller.LdapConnection?.Id ?? 0);
             return IsExplicitlyAssignedToUserOrGroups(user, statefulObject, userGroups);
+        }
+
+        /// <summary>
+        /// Loads the local user of the caller by its id claim. The dn claim must still name that user.
+        /// </summary>
+        /// <returns>The local user, or null if the token carries no id or the ids and dns disagree.</returns>
+        private static async Task<UiUser?> GetCallerLocalUser(ClaimsPrincipal user, ApiConnection actionApiConnection)
+        {
+            int? userId = GetClaimInt(user, "x-hasura-user-id");
+            if (userId == null)
+            {
+                return null;
+            }
+            UiUser[] storedUsers = await actionApiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId });
+            UiUser? storedUser = storedUsers.FirstOrDefault();
+            return storedUser != null && DistName.DnEquals(storedUser.Dn, GetClaimValue(user, "x-hasura-uuid")) ? storedUser : null;
         }
 
         private static bool CallerCanUseRole(ClaimsPrincipal user, string executionMode, string role)
@@ -594,12 +626,27 @@ namespace FWO.Middleware.Server.Controllers
             return ExecutionModeHelper.HasAnyRoleInExecutionMode(ExecutionModeHelper.GetUserRoles(user), executionMode, [role]);
         }
 
+        /// <summary>
+        /// Decides whether the caller requested the ticket. A requester with a local user is compared by its local user id
+        /// only, as the dn names a subject only within its directory (GHSA-695m-f6mv-9g72). The dn is compared only for
+        /// tickets without a local requester.
+        /// </summary>
         private static bool CallerIsRequester(ClaimsPrincipal user, WfTicket ticket)
         {
-            int? userId = GetClaimInt(user, "x-hasura-user-id");
-            string? userDn = GetClaimValue(user, "x-hasura-uuid");
-            return (userId != null && ticket.Requester?.DbId == userId)
-                || (!string.IsNullOrWhiteSpace(userDn) && string.Equals(GetRequesterDn(ticket), userDn, StringComparison.OrdinalIgnoreCase));
+            return IsCurrentUser(user, ticket.Requester?.DbId ?? 0, GetRequesterDn(ticket));
+        }
+
+        /// <summary>
+        /// Compares a recorded subject with the caller: by local user id if the subject has one, otherwise by dn.
+        /// </summary>
+        private static bool IsCurrentUser(ClaimsPrincipal user, int subjectUserId, string? subjectDn)
+        {
+            if (subjectUserId > 0)
+            {
+                int? userId = GetClaimInt(user, "x-hasura-user-id");
+                return userId != null && subjectUserId == userId;
+            }
+            return IsAssignedToCurrentUserDn(user, subjectDn);
         }
 
         private static bool CallerOwnsTask(WfReqTask task, HashSet<int> editableOwnerIds)
@@ -609,7 +656,13 @@ namespace FWO.Middleware.Server.Controllers
                 || (requestingOwnerId > 0 && editableOwnerIds.Contains(requestingOwnerId));
         }
 
-        private static HashSet<int> GetClaimIds(ClaimsPrincipal user, string claimName)
+        /// <summary>
+        /// Reads an id set claim in the hasura notation ({1,2,3}) of the caller.
+        /// </summary>
+        /// <param name="user">Authenticated caller.</param>
+        /// <param name="claimName">Name of the claim.</param>
+        /// <returns>The ids of the claim; empty when the claim is missing or holds no valid id.</returns>
+        internal static HashSet<int> GetClaimIds(ClaimsPrincipal user, string claimName)
         {
             string claimValue = GetClaimValue(user, claimName) ?? "";
             return claimValue
@@ -668,8 +721,7 @@ namespace FWO.Middleware.Server.Controllers
 
         private static bool IsAssignedToCurrentUser(ClaimsPrincipal user, UiUser? handler)
         {
-            int? userId = GetClaimInt(user, "x-hasura-user-id");
-            return handler != null && ((userId != null && handler.DbId == userId) || IsAssignedToCurrentUserDn(user, handler.Dn));
+            return handler != null && IsCurrentUser(user, handler.DbId, handler.Dn);
         }
 
         private static bool IsAssignedToCurrentUserDn(ClaimsPrincipal user, string? dn)

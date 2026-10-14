@@ -26,10 +26,29 @@
           retries: 3
           delay: 5
 
+        - name: require a pinned Microsoft signing key for RedHat {{ distribution_version }}
+          assert:
+            that: dotnet_ms_signing_keys[distribution_version | string] is defined
+            fail_msg: >-
+              No Microsoft signing key is pinned for Red Hat {{ distribution_version }}: add its url and fingerprint to
+              dotnet_ms_signing_keys in inventory/group_vars/all.yml.
+
         - name: import Microsoft RPM GPG key for RedHat
           rpm_key:
             state: present
-            key: "https://packages.microsoft.com/keys/microsoft.asc"
+            key: "{{ dotnet_ms_signing_keys[distribution_version | string].url }}"
+            fingerprint: "{{ dotnet_ms_signing_keys[distribution_version | string].fingerprint }}"
+
+        # the package runs scripts as root on installation, so it is only installed with a valid signature
+        - name: verify the signature of the ms package list for RedHat
+          command:
+            argv:
+              - rpmkeys
+              - --checksig
+              - "{{ lib_tmp_dir }}/{{ dotnet_rpm_name }}"
+          register: dotnet_ms_repo_signature_redhat
+          changed_when: false
+          failed_when: dotnet_ms_repo_signature_redhat.rc != 0 or 'signatures OK' not in dotnet_ms_repo_signature_redhat.stdout
 
         - name: install ms package list for RedHat
           yum:

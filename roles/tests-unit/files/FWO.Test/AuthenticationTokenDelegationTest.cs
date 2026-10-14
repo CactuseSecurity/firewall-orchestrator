@@ -33,15 +33,24 @@ namespace FWO.Test
         [Test]
         public void AddResolvedGroupMemberships_MergesResolvedGroupDnsIntoExistingMemberships()
         {
-            MethodInfo addResolvedGroupMemberships = typeof(UserGroupResolver).GetMethod("AddResolvedGroupMemberships", BindingFlags.NonPublic | BindingFlags.Static)
+            MethodInfo addResolvedGroupMemberships = typeof(UserGroupResolver).GetMethod("AddResolvedGroupMemberships", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingMethodException(typeof(UserGroupResolver).FullName, "AddResolvedGroupMemberships");
+            TestableLdap ldap = new(new RecordingLdapClient())
+            {
+                Id = 1,
+                UserSearchPath = "ou=users,dc=example,dc=com",
+                GroupSearchPath = "ou=groups,dc=example,dc=com"
+            };
+            List<Ldap> configuredLdaps = [ldap];
+            UserGroupResolver resolver = new(configuredLdaps);
 
             HashSet<string> userGroups = new(DistName.DnComparer)
             {
                 "cn=DirectApprover,ou=groups,dc=example,dc=com"
             };
 
-            addResolvedGroupMemberships.Invoke(null, [userGroups, kResolvedGroupNames, "ou=groups,dc=example,dc=com"]);
+            object?[] arguments = [userGroups, kResolvedGroupNames, ldap];
+            addResolvedGroupMemberships.Invoke(resolver, arguments);
 
             Assert.That(userGroups, Does.Contain("cn=DirectApprover,ou=groups,dc=example,dc=com"));
             Assert.That(userGroups, Does.Contain("cn=ApproverGroup,ou=groups,dc=example,dc=com"));

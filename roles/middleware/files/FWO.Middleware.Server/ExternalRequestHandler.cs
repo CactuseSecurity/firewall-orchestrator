@@ -534,6 +534,13 @@ namespace FWO.Middleware.Server
 
         private async Task CreateExtRequest(WfTicket ticket, List<WfReqTask> tasks, List<WfReqTask> handledTasks, int waitCycles)
         {
+            // the copy stored with the request only references the credential, the header is built for each call
+            actSystem.Authorization = null;
+            if (actSystem.LookupRequesterId)
+            {
+                // the requester lookup already calls the ticket system while the content is constructed
+                await ExternalTicketAuthorization.ResolveHeader(actSystem, ApiConnection);
+            }
             string taskContent = await ConstructContent(tasks, ticket.Requester);
             Dictionary<string, List<int>> handledTaskNumbers = BuildExtQueryVariables(tasks, handledTasks);
             string extQueryVars = handledTaskNumbers.Count > 0

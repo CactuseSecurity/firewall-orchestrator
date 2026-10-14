@@ -8,5 +8,6 @@ query getUserByDn($dn: String!, $ldapConnectionId: bigint!) {
     uiuser_last_name
     uiuser_language
     uiuser_password_must_be_changed
+    directory_object_id
   }
 }

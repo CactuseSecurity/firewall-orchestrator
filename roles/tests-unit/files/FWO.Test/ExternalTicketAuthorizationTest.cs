@@ -15,6 +15,10 @@ namespace FWO.Test
     {
         private const string kMainKey = "0123456789ABCDEF0123456789ABCDEF";
         private const string kOtherKey = "FEDCBA9876543210FEDCBA9876543210";
+        // kPassword encrypted with kOtherKey and a fixed IV. A freshly encrypted secret gets a random IV, and about one
+        // in 250 of those decrypts with kMainKey to a valid padding, so the wrong key goes unnoticed and the test flakes.
+        // This ciphertext decrypts with kMainKey to a last byte of 220, which is never a valid padding.
+        private const string kPasswordEncryptedWithOtherKey = "AAECAwQFBgcICQoLDA0ODxFcDA027hBvCxTC/0FVQ/M=";
         private const string kUsername = "probe_user";
         private const string kPassword = "pw:with:colon";
         private const string kBasicHeader = "Basic cHJvYmVfdXNlcjpwdzp3aXRoOmNvbG9u";
@@ -49,11 +53,15 @@ namespace FWO.Test
         [Test]
         public void BuildHeader_ThrowsWhenSecretCannotBeDecrypted()
         {
-            Credential credential = new() { Name = "probe", ImportUser = kUsername, Secret = AesEnc.Encrypt(kPassword, kOtherKey) };
+            Credential credential = new() { Name = "probe", ImportUser = kUsername, Secret = kPasswordEncryptedWithOtherKey };
 
             InvalidOperationException? exception = Assert.Throws<InvalidOperationException>(() => ExternalTicketAuthorization.BuildHeader(credential, kMainKey));
 
-            Assert.That(exception?.Message, Does.Contain("probe").And.Not.Contain(kPassword));
+            Assert.Multiple(() =>
+            {
+                Assert.That(AesEnc.Decrypt(kPasswordEncryptedWithOtherKey, kOtherKey), Is.EqualTo(kPassword));
+                Assert.That(exception?.Message, Does.Contain("probe").And.Not.Contain(kPassword));
+            });
         }
 
         [Test]

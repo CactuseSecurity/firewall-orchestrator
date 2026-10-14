@@ -38,7 +38,7 @@
             </Template>
         </Column>
         <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("host"))" Field="@(x => x.Address)" Sortable="true">
+        <Column TableItem="UiLdapConnection" Title="@(userConfig.GetText("host"))" Field="@(x => x.AddressText)" Sortable="true">
             <Template>
                 @(context.Host())
             </Template>
@@ -91,7 +91,7 @@
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5211"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("address"))*:</label>
                     <div class="col-sm-8">
-                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.Address" />
+                        <input type="text" class="form-control form-control-sm" @bind="actLdapConnection.AddressText" />
                     </div>
                 </div>
                 <div class="form-group row mt-2">
@@ -299,7 +299,7 @@
         }
         else
         {
-            deleteMessage = $"Are you sure you want to delete ldapConnection {actLdapConnection.Address}?";
+            deleteMessage = userConfig.GetText("U5220") + actLdapConnection.Name + "?";
             DeleteMode = true;
         }
     }
@@ -325,7 +325,7 @@
 
             Log.WriteAudit(
                 Title: $"LDAP Connection Settings",
-                Text: $"Deleted LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.Address})",
+                Text: $"Deleted LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.AddressText})",
                 UserName: userConfig.User.Name,
                 UserDN: userConfig.User.Dn);
         }
@@ -357,7 +357,7 @@
         {
             LdapGetUpdateParameters ldapParams = new()
             {
-                Address = actLdapConnection.Address,
+                Addresses = [.. actLdapConnection.Addresses],
                 Port = actLdapConnection.Port,
                 Tls = actLdapConnection.Tls,
                 SearchUser = actLdapConnection.SearchUser,
@@ -427,7 +427,7 @@
 
                         Log.WriteAudit(
                             Title: $"LDAP Connection Settings",
-                            Text: $"Added LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.Address})",
+                            Text: $"Added LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.AddressText})",
                             UserName: userConfig.User.Name,
                             UserDN: userConfig.User.Dn);
                     }
@@ -447,7 +447,7 @@
 
                         Log.WriteAudit(
                             Title: $"LDAP Connection Settings",
-                            Text: $"Edited LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.Address})",
+                            Text: $"Edited LDAP: {actLdapConnection.Name} (Address: {actLdapConnection.AddressText})",
                             UserName: userConfig.User.Name,
                             UserDN: userConfig.User.Dn);
                     }
@@ -481,12 +481,22 @@
 
     private bool CheckValues()
     {
-        if (actLdapConnection.Address == null || actLdapConnection.Address == "" ||
+        return CheckFieldValues() && CheckConsistencyWithOtherConnections();
+    }
+
+    private bool CheckFieldValues()
+    {
+        if (actLdapConnection.Addresses.Count == 0 ||
             actLdapConnection.SearchUser == null || actLdapConnection.SearchUser == "" ||
             (AddMode && string.IsNullOrEmpty(actLdapConnection.SearchUserPwd)) ||
             actLdapConnection.UserSearchPath == null || actLdapConnection.UserSearchPath == "")
         {
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+        if (actLdapConnection.Addresses.Count > LdapConnectionBase.kMaxServers)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5274"), true);
             return false;
         }
         if (actLdapConnection.Port < 1 || actLdapConnection.Port > GlobalConst.kMaxPortNumber)
@@ -499,14 +509,25 @@
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5263"), true);
             return false;
         }
-        if (connectedLdaps.FirstOrDefault(x => x.Address == actLdapConnection.Address && x.Port == actLdapConnection.Port && x.Id != actLdapConnection.Id) != null)
+        if (actLdapConnection.HasRoleHandling() && !actLdapConnection.IsInternal())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5265"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private bool CheckConsistencyWithOtherConnections()
+    {
+        if (connectedLdaps.FirstOrDefault(x => x.Addresses.Intersect(actLdapConnection.Addresses, StringComparer.OrdinalIgnoreCase).Any() && x.Port == actLdapConnection.Port && x.Id != actLdapConnection.Id) != null)
         {
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5264"), true);
             return false;
         }
-        if (actLdapConnection.HasRoleHandling() && !actLdapConnection.IsInternal())
+        List<UiLdapConnection> overlappingLdaps = LdapDnNamespace.GetOverlappingLdaps(actLdapConnection, connectedLdaps);
+        if (overlappingLdaps.Count > 0)
         {
-            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5265"), true);
+            DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5273") + string.Join(", ", overlappingLdaps.Select(x => string.IsNullOrEmpty(x.Name) ? x.Host() : x.Name)), true);
             return false;
         }
         if (!AddMode && wasActive && !actLdapConnection.Active && connectedLdaps.Where(x => x.Active).Count() == 1)

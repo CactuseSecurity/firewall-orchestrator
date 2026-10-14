@@ -27376,6 +27376,7 @@
                   "permission": {
                     "check": {},
                     "columns": [
+                      "directory_object_id",
                       "ldap_connection_id",
                       "tenant_id",
                       "uiuser_email",
@@ -27548,6 +27549,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "directory_object_id",
                       "ldap_connection_id",
                       "tenant_id",
                       "uiuser_email",
@@ -28012,6 +28014,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "directory_object_id",
                       "ldap_connection_id",
                       "tenant_id",
                       "uiuser_email",

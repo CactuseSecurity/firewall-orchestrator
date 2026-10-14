@@ -105,13 +105,13 @@ namespace FWO.Middleware.Server
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get memberships", exception);
+                    Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to get memberships", exception);
                 }
             }
             // a cancelled login closes the connection, which ends the lookup early: incomplete memberships must not be used
             cancellationToken.ThrowIfCancellationRequested();
 
-            Log.WriteDebug($"Found the following roles / groups for user {dnList.FirstOrDefault()} in {Address}:{Port}:", string.Join("\n", userMemberships));
+            Log.WriteDebug($"Found the following roles / groups for user {dnList.FirstOrDefault()} in {Host()}:", string.Join("\n", userMemberships));
             return userMemberships;
         }
 
@@ -120,7 +120,7 @@ namespace FWO.Middleware.Server
             string mainKey = AesEnc.GetMainKey();
             if (!AesEnc.TryDecrypt(SearchUserPwd, mainKey, out string decryptedSearchUserPwd))
             {
-                Log.WriteError($"LDAP decrypt {Address}:{Port}", "Failed to decrypt LDAP search user password.");
+                Log.WriteError($"LDAP decrypt {Host()}", "Failed to decrypt LDAP search user password.");
                 return false;
             }
 
@@ -205,7 +205,7 @@ namespace FWO.Middleware.Server
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all roles", exception);
+                    Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to get all roles", exception);
                 }
             }
             return roleUsers;
@@ -238,7 +238,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all groups", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to get all groups", exception);
             }
             return allGroups;
         }
@@ -279,7 +279,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all internal groups", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to get all internal groups", exception);
             }
             return allGroups;
         }
@@ -324,7 +324,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all internal groups", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to get all internal groups", exception);
             }
             return allGroups;
         }
@@ -383,7 +383,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception ex)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", $"Unexpected error while reading members of group {groupDn}", ex);
+                Log.WriteError($"Non-LDAP exception {Host()}", $"Unexpected error while reading members of group {groupDn}", ex);
             }
 
             return allMembers;
@@ -554,16 +554,16 @@ namespace FWO.Middleware.Server
                     //Add the entry to the directory
                     await connection.AddAsync(newEntry);
                     groupAdded = true;
-                    Log.WriteDebug("Add group", $"Group {groupName} added in {Address}:{Port}");
+                    Log.WriteDebug("Add group", $"Group {groupName} added in {Host()}");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteInfo("Add Group", $"couldn't add group to LDAP {Address}:{Port}: {exception}");
+                    Log.WriteInfo("Add Group", $"couldn't add group to LDAP {Host()}: {exception}");
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to add group", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to add group", exception);
             }
             return groupAdded ? groupDn : "";
         }
@@ -588,16 +588,16 @@ namespace FWO.Middleware.Server
                     //Add the entry to the directory
                     await connection.RenameAsync(oldGroupDn, newGroupRdn, true);
                     groupUpdated = true;
-                    Log.WriteDebug("Update group", $"Group {oldName} renamed to {newName} in {Address}:{Port}");
+                    Log.WriteDebug("Update group", $"Group {oldName} renamed to {newName} in {Host()}");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteInfo("Update Group", $"couldn't update group in LDAP {Address}:{Port}: {exception}");
+                    Log.WriteInfo("Update Group", $"couldn't update group in LDAP {Host()}: {exception}");
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to update group", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to update group", exception);
             }
             return groupUpdated ? $"{newGroupRdn},{GroupWritePath}" : "";
         }
@@ -620,16 +620,16 @@ namespace FWO.Middleware.Server
                     string groupDn = $"cn={groupName},{GroupWritePath}";
                     await connection.DeleteAsync(groupDn);
                     groupDeleted = true;
-                    Log.WriteDebug("Delete group", $"Group {groupName} deleted in {Address}:{Port}");
+                    Log.WriteDebug("Delete group", $"Group {groupName} deleted in {Host()}");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteInfo("Delete Group", $"couldn't delete group in LDAP {Address}:{Port}: {exception}");
+                    Log.WriteInfo("Delete Group", $"couldn't delete group in LDAP {Host()}: {exception}");
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to delete group", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to delete group", exception);
             }
             return groupDeleted;
         }

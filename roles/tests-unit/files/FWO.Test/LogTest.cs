@@ -1,6 +1,7 @@
 using FWO.Logging;
 using NUnit.Framework;
 using FWO.Test.Helpers;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -69,6 +70,22 @@ namespace FWO.Test
             Assert.That(writtenLog, Does.Not.Contain("write that fails"));
         }
 
+        /// <summary>
+        /// Replaces a log semaphore left held by a failed test, so a regression fails only that
+        /// test instead of blocking every later log call of the test process.
+        /// </summary>
+        [TearDown]
+        public void ReleaseHeldLogSemaphore()
+        {
+            FieldInfo semaphoreField = typeof(Log).GetField(kSemaphoreFieldName, BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingFieldException(nameof(Log), kSemaphoreFieldName);
+            if (semaphoreField.GetValue(null) is SemaphoreSlim { CurrentCount: 0 })
+            {
+                semaphoreField.SetValue(null, new SemaphoreSlim(1, 1));
+            }
+        }
+
+        private const string kSemaphoreFieldName = "semaphore";
         private static readonly TimeSpan kSecondWriteTimeout = TimeSpan.FromSeconds(5);
 
         /// <summary>

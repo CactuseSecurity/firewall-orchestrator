@@ -29,6 +29,8 @@ namespace FWO.Test
         private static readonly List<Ldap> kNoLdaps = [];
         private const string kVisibilityUserPath = "ou=users,ou=operator,dc=fworch,dc=internal";
         private const string kVisibilityGroupPath = "ou=groups,ou=operator,dc=fworch,dc=internal";
+        private const int kVisibilityLdapId = 3;
+        private const int kVisibilityCallerId = 21;
         private const string kLdapSearchUser = "cn=search,dc=example,dc=com";
         private const string kRemovedFwAdminRole = "fw-admin";
         private static readonly string kLdapSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
@@ -39,6 +41,7 @@ namespace FWO.Test
         ];
         private static readonly string[] kGetUserEmailsQuery = [AuthQueries.getUserEmails];
         private static readonly string[] kApproverRole = [Roles.Approver];
+        private static readonly string[] kRequesterRole = [Roles.Requester];
         private static readonly string[] kAdminRole = [Roles.Admin];
         private const int kCallerUserId = 93;
         private static readonly string[] kExpectedResolvedUserDns = ["uid=user,ou=users,dc=test"];
@@ -1295,7 +1298,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void WorkflowController_CallerCanAccessTicket_AllowsRequesterByIdOrDn()
+        public void WorkflowController_CallerCanAccessTicket_AllowsRequesterByIdOrDnWithoutLocalUser()
         {
             SimulatedUserConfig userConfig = new() { ReqOwnerBased = true };
             WfTicket ticket = new()
@@ -1303,16 +1306,25 @@ namespace FWO.Test
                 Id = 42,
                 Requester = new UiUser { DbId = 5, Dn = "uid=requester,dc=fworch,dc=internal" }
             };
+            WfTicket ticketWithoutLocalRequester = new()
+            {
+                Id = 43,
+                RequesterDn = "uid=requester,dc=fworch,dc=internal"
+            };
 
             bool byIdAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
-                PrincipalWithRolesAndClaims([Roles.Requester], new Claim("x-hasura-user-id", "5")), "", userConfig, ticket);
-            bool byDnAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
-                PrincipalWithRolesAndClaims([Roles.Requester], new Claim("x-hasura-uuid", "UID=REQUESTER,dc=fworch,dc=internal")), "", userConfig, ticket);
+                PrincipalWithRolesAndClaims(kRequesterRole, new Claim("x-hasura-user-id", "5")), "", userConfig, ticket);
+            // the same dn of another local user (e.g. of another directory) must not count as requester
+            bool byDnOfOtherLocalUserAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRolesAndClaims(kRequesterRole, new Claim("x-hasura-user-id", "9"), new Claim("x-hasura-uuid", "UID=REQUESTER,dc=fworch,dc=internal")), "", userConfig, ticket);
+            bool byDnWithoutLocalRequesterAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRolesAndClaims(kRequesterRole, new Claim("x-hasura-uuid", "UID=REQUESTER,dc=fworch,dc=internal")), "", userConfig, ticketWithoutLocalRequester);
 
             Assert.Multiple(() =>
             {
                 Assert.That(byIdAllowed, Is.True);
-                Assert.That(byDnAllowed, Is.True);
+                Assert.That(byDnOfOtherLocalUserAllowed, Is.False);
+                Assert.That(byDnWithoutLocalRequesterAllowed, Is.True);
             });
         }
 
@@ -1556,12 +1568,66 @@ namespace FWO.Test
                 AssignedGroup = $"cn=assignees,{kVisibilityGroupPath}"
             };
 
+            List<Ldap> ldaps = [CreateGroupResolvingLdap("assignees", userDn)];
             bool allowed = await InvokeCallerCanAccessVisibility(
-                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-uuid", userDn)),
+                PrincipalWithRolesAndClaims(kApproverRole, new Claim("x-hasura-uuid", userDn), new Claim("x-hasura-user-id", $"{kVisibilityCallerId}")),
                 CreateVisibilityHandler(), WfObjectScopes.Ticket, ticket,
-                [CreateGroupResolvingLdap("assignees", userDn)]);
+                ldaps, StoredCaller(userDn));
 
             Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_ResolvesGroupsOnlyInTheCallersDirectory()
+        {
+            // a local user of another directory with the same dn must not inherit the group assignment
+            string userDn = "cn=approver,ou=users,ou=operator,dc=fworch,dc=internal";
+            TestableLdap groupResolvingLdap = CreateGroupResolvingLdap("assignees", userDn);
+            WfTicket ticket = new()
+            {
+                StateId = 10,
+                AssignedGroup = $"cn=assignees,{kVisibilityGroupPath}"
+            };
+
+            List<Ldap> ldaps = [groupResolvingLdap];
+            bool allowed = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims(kApproverRole, new Claim("x-hasura-uuid", userDn), new Claim("x-hasura-user-id", $"{kVisibilityCallerId}")),
+                CreateVisibilityHandler(), WfObjectScopes.Ticket, ticket,
+                ldaps, StoredCaller(userDn, kVisibilityLdapId + 1));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(allowed, Is.False);
+                Assert.That(groupResolvingLdap.ConnectCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_DeniesGroupAssignmentWithoutMatchingLocalUser()
+        {
+            string userDn = "cn=approver,ou=users,ou=operator,dc=fworch,dc=internal";
+            WfTicket ticket = new()
+            {
+                StateId = 10,
+                AssignedGroup = $"cn=assignees,{kVisibilityGroupPath}"
+            };
+
+            List<Ldap> ldaps = [CreateGroupResolvingLdap("assignees", userDn)];
+            List<Ldap> ldaps2 = [CreateGroupResolvingLdap("assignees", userDn)];
+            bool withoutUserId = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims(kApproverRole, new Claim("x-hasura-uuid", userDn)),
+                CreateVisibilityHandler(), WfObjectScopes.Ticket, ticket,
+                ldaps, StoredCaller(userDn));
+            bool withOtherDn = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims(kApproverRole, new Claim("x-hasura-uuid", userDn), new Claim("x-hasura-user-id", $"{kVisibilityCallerId}")),
+                CreateVisibilityHandler(), WfObjectScopes.Ticket, ticket,
+                ldaps2, StoredCaller("cn=other,ou=users,ou=operator,dc=fworch,dc=internal"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(withoutUserId, Is.False);
+                Assert.That(withOtherDn, Is.False);
+            });
         }
 
         [Test]
@@ -1574,10 +1640,11 @@ namespace FWO.Test
                 AssignedGroup = $"cn=assignees,{kVisibilityGroupPath}"
             };
 
+            List<Ldap> ldaps = [CreateGroupResolvingLdap("some-other-group", userDn)];
             bool allowed = await InvokeCallerCanAccessVisibility(
-                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-uuid", userDn)),
+                PrincipalWithRolesAndClaims(kApproverRole, new Claim("x-hasura-uuid", userDn), new Claim("x-hasura-user-id", $"{kVisibilityCallerId}")),
                 CreateVisibilityHandler(), WfObjectScopes.Ticket, ticket,
-                [CreateGroupResolvingLdap("some-other-group", userDn)]);
+                ldaps, StoredCaller(userDn));
 
             Assert.That(allowed, Is.False);
         }
@@ -1973,12 +2040,30 @@ namespace FWO.Test
         }
 
         private static async Task<bool> InvokeCallerCanAccessVisibility(ClaimsPrincipal user, WfHandler handler,
-            WfObjectScopes scope, WfStatefulObject statefulObject, List<Ldap> ldaps)
+            WfObjectScopes scope, WfStatefulObject statefulObject, List<Ldap> ldaps, UiUser? storedCaller = null)
         {
             WorkflowController controller = CreateWorkflowController(user, ldaps);
             MethodInfo method = typeof(WorkflowController).GetMethod("CallerCanAccessVisibility", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("CallerCanAccessVisibility not found.");
-            return await (Task<bool>)method.Invoke(controller, [user, handler, scope, statefulObject])!;
+            using StoredCallerApiConnection apiConnection = new(storedCaller);
+            object?[] arguments = [user, apiConnection, handler, scope, statefulObject];
+            return await (Task<bool>)method.Invoke(controller, arguments)!;
+        }
+
+        /// <summary>
+        /// Answers the lookup of the caller's local user by its id.
+        /// </summary>
+        private sealed class StoredCallerApiConnection(UiUser? storedCaller) : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query != AuthQueries.getUserByDbId)
+                {
+                    throw new NotImplementedException(query);
+                }
+                UiUser[] storedUsers = storedCaller == null ? [] : [storedCaller];
+                return Task.FromResult((QueryResponseType)(object)storedUsers);
+            }
         }
 
         private static async Task<T> InvokePrivateStaticAsync<T>(Type type, string methodName, params object?[] parameters)
@@ -2068,11 +2153,17 @@ namespace FWO.Test
             };
             return new TestableLdap(connection)
             {
+                Id = kVisibilityLdapId,
                 SearchUser = kLdapSearchUser,
                 SearchUserPwd = kLdapSearchPassword,
                 UserSearchPath = kVisibilityUserPath,
                 GroupSearchPath = kVisibilityGroupPath
             };
+        }
+
+        private static UiUser StoredCaller(string userDn, int ldapId = kVisibilityLdapId)
+        {
+            return new UiUser { DbId = kVisibilityCallerId, Dn = userDn, LdapConnection = new() { Id = ldapId } };
         }
 
         private static WorkflowController CreateWorkflowController(ClaimsPrincipal user, List<Ldap> ldaps)

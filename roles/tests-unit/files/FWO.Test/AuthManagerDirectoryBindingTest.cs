@@ -25,7 +25,10 @@ namespace FWO.Test
     [Parallelizable]
     internal class AuthManagerDirectoryBindingTest
     {
+        private const string kInternalRoot = "dc=fworch,dc=internal";
+        private const string kOtherRoot = "dc=example,dc=com";
         private const string kSharedDn = "uid=shared,ou=users,dc=fworch,dc=internal";
+        private const string kOtherDn = "uid=shared,ou=users,dc=example,dc=com";
         private const string kRoleSearchPath = "ou=roles,dc=fworch,dc=internal";
         private const int kFirstLdapId = 11;
         private const int kSecondLdapId = 12;
@@ -42,7 +45,7 @@ namespace FWO.Test
             RecordingLdapClient firstDirectory = CreateDirectoryHoldingSharedDn();
             RecordingLdapClient secondDirectory = CreateDirectoryHoldingSharedDn();
             DirectoryApiConnection apiConnection = new() { ResolvedUserId = kStoredUserId };
-            object authManager = CreateAuthManager(apiConnection, CreateLdap(kFirstLdapId, firstDirectory), CreateLdap(kSecondLdapId, secondDirectory));
+            object authManager = CreateAuthManager(apiConnection, CreateLdap(kFirstLdapId, firstDirectory, kOtherRoot), CreateLdap(kSecondLdapId, secondDirectory));
             UiUser storedUser = new() { DbId = kStoredUserId, Name = "shared", Dn = kSharedDn, LdapConnection = new() { Id = kSecondLdapId } };
 
             UiUser? result = await AuthenticateAndBuildUser(authManager, storedUser);
@@ -67,7 +70,7 @@ namespace FWO.Test
                 ResolvedUserId = kStoredUserId,
                 StoredUser = new() { DbId = kStoredUserId, Dn = kSharedDn, LdapConnection = new() { Id = kSecondLdapId } }
             };
-            object authManager = CreateAuthManager(apiConnection, CreateLdap(kFirstLdapId, firstDirectory), CreateLdap(kSecondLdapId, secondDirectory));
+            object authManager = CreateAuthManager(apiConnection, CreateLdap(kFirstLdapId, firstDirectory, kOtherRoot), CreateLdap(kSecondLdapId, secondDirectory));
             UiUser callerFromToken = new() { DbId = kStoredUserId, Name = "shared", Dn = kSharedDn };
 
             UiUser? result = await AuthenticateAndBuildUser(authManager, callerFromToken);
@@ -145,7 +148,7 @@ namespace FWO.Test
             RecordingLdapClient firstDirectory = CreateDirectoryHoldingSharedDn();
             RecordingLdapClient secondDirectory = CreateDirectoryHoldingSharedDn();
             DirectoryApiConnection apiConnection = new() { ResolvedUserId = kStoredUserId };
-            object authManager = CreateAuthManager(apiConnection, CreateLdap(kFirstLdapId, firstDirectory), CreateLdap(kSecondLdapId, secondDirectory));
+            object authManager = CreateAuthManager(apiConnection, CreateLdap(kFirstLdapId, firstDirectory, kOtherRoot), CreateLdap(kSecondLdapId, secondDirectory));
             AuthenticationTokenGetForUserParameters parameters = new()
             {
                 TargetUserDn = kSharedDn,
@@ -168,9 +171,9 @@ namespace FWO.Test
         {
             DirectoryApiConnection apiConnection = new() { ResolvedUserId = kStoredUserId };
             object authManager = CreateAuthManager(apiConnection,
-                CreateLdap(kFirstLdapId, CreateDirectoryHoldingSharedDn()),
-                CreateLdap(kSecondLdapId, CreateDirectoryHoldingSharedDn()));
-            AuthenticationTokenGetForUserParameters parameters = new() { TargetUserDn = kSharedDn };
+                CreateLdap(kFirstLdapId, CreateDirectoryHoldingUserByName(kOtherDn), kOtherRoot),
+                CreateLdap(kSecondLdapId, CreateDirectoryHoldingUserByName(kSharedDn)));
+            AuthenticationTokenGetForUserParameters parameters = new() { TargetUserName = "shared" };
 
             AuthenticationException exception = Assert.ThrowsAsync<AuthenticationException>(async () =>
                 await AuthenticateAndBuildUser(authManager, AuthDirectoryBinding.BuildDelegatedTargetUser(parameters)))!;
@@ -179,6 +182,64 @@ namespace FWO.Test
             {
                 Assert.That(exception.Message, Does.StartWith("A0005"));
                 Assert.That(apiConnection.Queries, Is.Empty, "an ambiguous target must not update either local user");
+            });
+        }
+
+        [Test]
+        public async Task DelegatedTarget_WithoutDirectory_ResolvesDnInTheDirectoryOwningIt()
+        {
+            RecordingLdapClient firstDirectory = CreateDirectoryHoldingSharedDn();
+            RecordingLdapClient secondDirectory = CreateDirectoryHoldingSharedDn();
+            DirectoryApiConnection apiConnection = new() { ResolvedUserId = kStoredUserId };
+            object authManager = CreateAuthManager(apiConnection, CreateLdap(kFirstLdapId, firstDirectory, kOtherRoot), CreateLdap(kSecondLdapId, secondDirectory));
+            AuthenticationTokenGetForUserParameters parameters = new() { TargetUserDn = kSharedDn };
+
+            UiUser? result = await AuthenticateAndBuildUser(authManager, AuthDirectoryBinding.BuildDelegatedTargetUser(parameters));
+
+            // the first directory answers for the dn too, but the dn lies outside its paths
+            Assert.Multiple(() =>
+            {
+                Assert.That(result?.LdapConnection.Id, Is.EqualTo(kSecondLdapId));
+                Assert.That(apiConnection.LookedUpLdapIds, Is.EqualTo(kSecondLdapIdOnly));
+            });
+        }
+
+        [Test]
+        public void AuthenticateAndBuildUser_WithStoredDirectory_RefusesDnOutsideItsPaths()
+        {
+            // an external directory reporting the dn of an internal subject must not log in as that dn
+            RecordingLdapClient externalDirectory = CreateDirectoryHoldingSharedDn();
+            DirectoryApiConnection apiConnection = new() { ResolvedUserId = kStoredUserId };
+            object authManager = CreateAuthManager(apiConnection,
+                CreateLdap(kFirstLdapId, CreateDirectoryHoldingSharedDn()),
+                CreateLdap(kSecondLdapId, externalDirectory, kOtherRoot));
+            UiUser storedUser = new() { DbId = kStoredUserId, Name = "shared", Dn = kSharedDn, LdapConnection = new() { Id = kSecondLdapId } };
+
+            AuthenticationException exception = Assert.ThrowsAsync<AuthenticationException>(async () => await AuthenticateAndBuildUser(authManager, storedUser))!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception.Message, Does.StartWith("A0002"));
+                Assert.That(externalDirectory.ReadCalls, Does.Contain(kSharedDn));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.getUserByDn));
+            });
+        }
+
+        [Test]
+        public void AuthenticateAndBuildUser_WithoutLocalUser_RefusesDnClaimedByTwoDirectories()
+        {
+            DirectoryApiConnection apiConnection = new() { ResolvedUserId = kStoredUserId };
+            object authManager = CreateAuthManager(apiConnection,
+                CreateLdap(kFirstLdapId, CreateDirectoryHoldingSharedDn()),
+                CreateLdap(kSecondLdapId, CreateDirectoryHoldingSharedDn()));
+            UiUser newLogin = new() { Name = "shared", Dn = kSharedDn };
+
+            AuthenticationException exception = Assert.ThrowsAsync<AuthenticationException>(async () => await AuthenticateAndBuildUser(authManager, newLogin))!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception.Message, Does.StartWith("A0002"));
+                Assert.That(apiConnection.Queries, Is.Empty, "neither directory owns the dn, so no local user may be touched");
             });
         }
 
@@ -229,18 +290,31 @@ namespace FWO.Test
                 null)!;
         }
 
-        private static TestableLdap CreateLdap(int id, RecordingLdapClient client)
+        private static TestableLdap CreateLdap(int id, RecordingLdapClient client, string root = kInternalRoot)
         {
             return new TestableLdap(client)
             {
                 Id = id,
-                Address = $"ldap{id}.example.test",
+                Addresses = [$"ldap{id}.example.test"],
                 Port = 389,
-                SearchUser = "cn=search,dc=fworch,dc=internal",
+                SearchUser = $"cn=search,{root}",
                 SearchUserPwd = kSearchPassword,
-                RoleSearchPath = kRoleSearchPath,
-                UserSearchPath = "ou=users,dc=fworch,dc=internal",
+                RoleSearchPath = $"ou=roles,{root}",
+                UserSearchPath = $"ou=users,{root}",
                 TenantId = 1
+            };
+        }
+
+        /// <summary>
+        /// A directory that finds a user named "shared" with the given dn when searched by name.
+        /// </summary>
+        private static RecordingLdapClient CreateDirectoryHoldingUserByName(string userDn)
+        {
+            return new RecordingLdapClient
+            {
+                SearchResponder = (baseDn, scope, filter, attributes, typesOnly) => baseDn != null && baseDn.StartsWith("ou=users,", StringComparison.Ordinal)
+                    ? LdapTestSupport.CreateSearchResults(LdapTestSupport.CreateEntry(userDn, new LdapAttribute("cn", kUserCn)))
+                    : LdapTestSupport.CreateSearchResults()
             };
         }
 

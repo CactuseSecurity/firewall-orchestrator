@@ -97,3 +97,65 @@ D-015 supersedes D-011. After rebasing onto `Cactus/develop` at `ed03a8529`, `9.
 Local validation passed on 2026-10-12: 78 focused tests and the complete unit suite (7,366 passed, 29 skipped) succeeded, the Debug solution build completed with no warnings or errors, changed C# files passed formatting, and new production files reached 91.77% line coverage. Disposable-VM fresh-install and `9.7.0` to `9.7.1` upgrade validation was not executed because the FWO VM tools were unavailable, so Phase 1 remains open.
 
 Rationale: migrations must follow the active upstream release line, and completion may not be claimed without the installer gates required by the approved Phase 1 plan.
+
+## 2026-10-12 — D-016 — Rephase customer behavior to Phase 3
+
+D-016 supersedes the Phase 2 scope in D-002 and D-012. Phase 2 now builds the generic block-composition framework, immutable Check Point snapshot, semantic position, and minimal structural blocks. Customer-document analysis, customer-specific recipes, enum-to-recipe mapping, and production strategy wiring move to deferred Phase 3. `FWO_Regel_Platzierung_Regelwerk.md` remains unopened during Phase 2.
+
+Rationale: structural composition can be designed and verified independently from customer-specific policy while preserving a deliberate boundary before production activation.
+
+## 2026-10-12 — D-017 — Snapshot a typed recipe tree at construction
+
+An in-memory recipe is rooted at `IPositioningBlock<TContext,TOutput>`. Every block declares a stable kind, output role, ordered children, and required child roles. Recipe construction validates null children, declaration counts, role compatibility, and cycles, then snapshots the execution tree so later mutation of a block's child collection cannot change the recipe.
+
+Rationale: a validated immutable plan keeps executor behavior deterministic and supports future zero-, one-, and multi-child blocks without executor changes.
+
+## 2026-10-12 — D-018 — Use one immutable gateway-specific Check Point snapshot
+
+All Phase 2 Check Point blocks inspect one caller-supplied snapshot identified by management, gateway, and initial-layer identity. The snapshot preserves ordered direct-rule/section interleaving, copies all collections, and validates identifiers, rule order, and inline-layer relationships. Loading it from GraphQL or imported data remains deferred.
+
+Rationale: blocks remain side-effect-free and testable while the eventual policy-loading boundary stays explicit.
+
+## 2026-10-12 — D-019 — Fail fast with originating block identity
+
+Block results use the stable categories `InvalidRecipe`, `InvalidSnapshot`, `ScopeNotFound`, `ScopeAmbiguous`, `NoInsertionPoint`, and `UnexpectedExecutionFailure`. Child failures propagate unchanged and stop sibling and parent evaluation. Caller cancellation propagates, while unexpected exceptions become safe diagnostics attributed only to the originating block kind.
+
+Rationale: recipes must not hide data-quality or scope errors by falling back to another branch, parent scope, or placement method.
+
+## 2026-10-12 — D-020 — Persist semantic Check Point anchors
+
+`CheckPointRulePosition` uses discriminator `check-point.rule-position.v1` and stores layer UID, the existing positioning algorithm, and one semantic anchor: `Top`, `Bottom`, `Above`, or `Below`. Above/below require a rule UID; top/bottom prohibit one. Conversion to a Check Point API request is deferred.
+
+Rationale: semantic anchors are stable across loading and persistence and avoid prematurely coupling Phase 2 to a vendor request payload.
+
+## 2026-10-12 — D-021 — Start with structural scope and boundary blocks
+
+The initial production block library selects an initial/name/UID layer, selects a name/UID section within its exact parent, and resolves the beginning or end of that scope. Names use ordinal exact matching and must resolve once. Empty sections use their single canonical gap: above the next rule, otherwise below the previous rule, otherwise top.
+
+Rationale: these blocks establish useful composition semantics and acceptance examples without guessing the customer's algorithm or mapping enum values to recipes.
+
+## 2026-10-12 — D-022 — Do not create automatic recovery commits
+
+D-022 supersedes the automatic-commit direction in D-014. Planning and implementation changes remain unstaged and uncommitted unless the user explicitly requests a commit.
+
+Rationale: the repository contribution workflow reserves staging and commits for the user unless they grant explicit authorization.
+
+## 2026-10-13 — D-023 — Keep existing-rule semantics out of creation placement
+
+The current and anticipated customer behavior calculates the new rule's source/destination zones, maps that zone pair to a structural scope, and places the rule at a boundary. It requires workflow elements, resolved zones, rulebase topology, and existing rule UID/order anchors, but not existing rules' source, destination, service, action, zone, NAT, or other semantic content. Those fields remain outside the positioning snapshot until a concrete block requires comparison with existing rule contents.
+
+Rationale: FWO can load rich existing-rule data, but exposing it now would widen the calculation contract without serving the agreed creation-only behavior.
+
+## 2026-10-13 — D-024 — Replace the Check Point snapshot with an immutable rulebase graph
+
+D-024 supersedes the Check Point-specific snapshot shape in D-018 while retaining its immutable, single-calculation boundary. Before Phase 3, replace `CheckPointPolicySnapshot` and its layer/section/rule snapshot types with a vendor-neutral `RulebaseGraphSnapshot` constructed from already-loaded normalized `Rulebase`, `RulebaseLink`, and structural rule identity/order data. Check Point-specific blocks interpret layers, sections, and inline layers from this graph and continue producing `CheckPointRulePosition`.
+
+The Phase 2 follow-up remains I/O-free. It does not use the report-oriented `RuleTreeBuilder` output as the positioning model, but follows the same normalized link semantics and retains strict ambiguity failures.
+
+Rationale: the calculation still needs defensive copying and deterministic validation, but rulebases and links are the existing normalized source of structural truth and should not be replaced by a parallel per-vendor policy model.
+
+## 2026-10-13 — D-025 — Accept the latest successful import regardless of age
+
+When Phase 3 adds production loading, positioning uses the latest successfully completed FWO import regardless of its age. Do not add a maximum-age setting, stale-import rejection, automatic re-import, or a required snapshot fingerprint. Missing successful import data or an internally inconsistent graph fails explicitly.
+
+Rationale: imported policy data is sufficient for the agreed positioning use case, and freshness policy would add complexity without a current product requirement.

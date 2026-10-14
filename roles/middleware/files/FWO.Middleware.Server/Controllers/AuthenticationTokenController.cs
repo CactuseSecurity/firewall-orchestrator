@@ -421,32 +421,7 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
             {
-                // The API could not be reached, which is not the caller's fault: answering
-                // 400 tells a client its request was malformed and must not be repeated,
-                // while the truthful answer is that this attempt could not be completed.
-                // Whether it may be repeated depends on how far it got, so say which.
-                Log.WriteError(kRefreshLogCategory, "Could not reach the API while refreshing a token", exception);
-
-                if (consumptionState == RefreshTokenConsumptionState.Consumed)
-                {
-                    // Audited like every other terminal outcome of this endpoint: a token
-                    // was spent and a session ended, which is exactly what the trail is for.
-                    WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} was consumed, but no new token pair could be issued because the API could not be reached.");
-
-                    // The token is spent, so it genuinely is invalid now, and 401 is both the
-                    // truthful answer and the one a client can act on: a 503 here reads as
-                    // retryable, so the client would hold on to a token that cannot work and
-                    // reach the login one refresh cycle later than it needs to.
-                    return Unauthorized("The refresh token was consumed, but the API could not be reached to issue a new token pair. Please log in again.");
-                }
-
-                if (consumptionState == RefreshTokenConsumptionState.MayBeConsumed)
-                {
-                    WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} may have been consumed because the API became unreachable during the operation.");
-                }
-
-                return StatusCode(StatusCodes.Status503ServiceUnavailable,
-                    "The API could not be reached while refreshing the token. Please retry.");
+                return UnreachableApiRefreshResult(exception, consumptionState, auditIdentity);
             }
             catch (LoginCapacityException exception)
             {
@@ -454,11 +429,55 @@ namespace FWO.Middleware.Server.Controllers
                 // token that still works and must be told to retry rather than to log in again.
                 return CapacityResult(new LoginCapacityException(exception.Message, StatusCodes.Status503ServiceUnavailable));
             }
+            catch (AuthenticationException exception)
+            {
+                // The stored user could not be authenticated again in its directory, e.g. because its dn now names
+                // another directory entry. The session has ended, so the client has to log in again.
+                WriteAudit(nameof(RefreshToken), $"Refresh refused for {(auditIdentity == "" ? "a stored user" : auditIdentity)}: {exception.Message}");
+                return Unauthorized(exception.Message);
+            }
             catch (Exception ex)
             {
                 Log.WriteError(kRefreshLogCategory, "Failed to refresh token", ex);
                 return BadRequest("The refresh could not be completed.");
             }
+        }
+
+        /// <summary>
+        /// Answers a refresh that failed because the API could not be reached.
+        /// </summary>
+        /// <param name="exception">The failure that indicates the unreachable API.</param>
+        /// <param name="consumptionState">How far the consumption of the refresh token got.</param>
+        /// <param name="auditIdentity">The user of the token for the audit trail, empty if not known yet.</param>
+        /// <returns>401 if the token was consumed, otherwise 503 inviting a retry.</returns>
+        private ObjectResult UnreachableApiRefreshResult(Exception exception, RefreshTokenConsumptionState consumptionState, string auditIdentity)
+        {
+            // The API could not be reached, which is not the caller's fault: answering
+            // 400 tells a client its request was malformed and must not be repeated,
+            // while the truthful answer is that this attempt could not be completed.
+            // Whether it may be repeated depends on how far it got, so say which.
+            Log.WriteError(kRefreshLogCategory, "Could not reach the API while refreshing a token", exception);
+
+            if (consumptionState == RefreshTokenConsumptionState.Consumed)
+            {
+                // Audited like every other terminal outcome of this endpoint: a token
+                // was spent and a session ended, which is exactly what the trail is for.
+                WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} was consumed, but no new token pair could be issued because the API could not be reached.");
+
+                // The token is spent, so it genuinely is invalid now, and 401 is both the
+                // truthful answer and the one a client can act on: a 503 here reads as
+                // retryable, so the client would hold on to a token that cannot work and
+                // reach the login one refresh cycle later than it needs to.
+                return Unauthorized("The refresh token was consumed, but the API could not be reached to issue a new token pair. Please log in again.");
+            }
+
+            if (consumptionState == RefreshTokenConsumptionState.MayBeConsumed)
+            {
+                WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} may have been consumed because the API became unreachable during the operation.");
+            }
+
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                "The API could not be reached while refreshing the token. Please retry.");
         }
 
         /// <summary>

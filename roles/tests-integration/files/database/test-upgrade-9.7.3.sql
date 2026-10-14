@@ -16,7 +16,9 @@ WITH inserted AS (
     RETURNING id, cloud_client_id, cloud_client_secret, credential_name
 )
 INSERT INTO additional_credential_probe
-SELECT id, COALESCE(cloud_client_id, ''),
+SELECT id,
+    CASE WHEN COALESCE(cloud_client_id, '') = '' AND COALESCE(cloud_client_secret, '') = '' THEN ''
+        ELSE COALESCE(NULLIF(cloud_client_id, ''), 'enable') END,
     CASE WHEN credential_name = 'upgrade-9.7.3-encrypted' THEN 'already-encrypted' ELSE COALESCE(cloud_client_secret, '') END
 FROM inserted;
 

@@ -35,9 +35,10 @@ BEGIN
                     RAISE EXCEPTION 'upgrade 9.7.3 requires a valid main encryption key';
                 END IF;
             END IF;
+            -- A secret without client id is a Cisco ASA enable password. The UI requires a username, so use a placeholder.
             INSERT INTO credential (credential_name, username, secret)
                 VALUES (concat(r_credential.credential_name, ' (additional credential ', r_credential.id, ')'),
-                    COALESCE(r_credential.cloud_client_id, ''),
+                    COALESCE(NULLIF(r_credential.cloud_client_id, ''), 'enable'),
                     encryptText(COALESCE(r_credential.cloud_client_secret, ''), t_main_key))
                 RETURNING id INTO i_additional_credential_id;
             UPDATE credential SET additional_credential_id = i_additional_credential_id WHERE id = r_credential.id;

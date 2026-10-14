@@ -6494,8 +6494,8 @@ INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sic
 ');
 INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
 ');
-INSERT INTO txt VALUES ('H5136', 'German', 'Zus&auml;tzliche Zugangsdaten: W&auml;hlen Sie separat angelegte Zugangsdaten, z.B. mit Cloud Client ID als Nutzer und Cloud Client Secret als Passwort oder mit dem Cisco ASA Enable-Passwort. Das Passwort wird verschl&uuml;sselt gespeichert. Entfernen Sie Verweise vor dem L&ouml;schen.');
-INSERT INTO txt VALUES ('H5136', 'English', 'Additional credential: Select separately created credentials, e.g. with the cloud client ID as username and client secret as password, or with the Cisco ASA enable password. The password is stored encrypted. Remove references before deleting a credential.');
+INSERT INTO txt VALUES ('H5136', 'German', 'Zus&auml;tzliche Zugangsdaten: W&auml;hlen Sie separat angelegte Zugangsdaten, z.B. mit Cloud Client ID als Nutzer und Cloud Client Secret als Passwort oder mit dem Cisco ASA Enable-Passwort (Nutzer frei w&auml;hlbar, z.B. enable). Das Passwort wird verschl&uuml;sselt gespeichert. Entfernen Sie Verweise vor dem L&ouml;schen.');
+INSERT INTO txt VALUES ('H5136', 'English', 'Additional credential: Select separately created credentials, e.g. with the cloud client ID as username and client secret as password, or with the Cisco ASA enable password (any username, e.g. enable). The password is stored encrypted. Remove references before deleting a credential.');
 
 INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways einrichten und verwalten.<br>
     Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren eines neuen Gateways, indem Daten von einem existierenden kopiert werden.

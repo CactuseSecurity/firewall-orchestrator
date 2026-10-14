@@ -3,6 +3,27 @@
 ## 9.7.2 - 13.10.2026
 - extend hierarchical provisioning configuration for Guardicore: object creation, modelling naming, app-zone and network-area switches, dynamic IP labels, rule implementation and planning overrides
 - migrate provisioning key names and option values; privately back up old overrides before enforcing the revised scope restrictions (see developer documentation on provisioning settings)
+- security (GHSA-695m-f6mv-9g72): a dn no longer identifies a subject across LDAP connections
+  - every dn belongs to exactly one active LDAP connection, the one whose search or write paths contain it (the most
+    specific path wins). Roles, groups, owner responsibles, workflow visibility groups and workflow assignments
+    naming a dn therefore only apply to the user of that connection. User entries and groups that a directory reports
+    outside its own paths are ignored
+  - active LDAP connections must not share a search or write path (nested paths are allowed, the more specific
+    one wins); saving such a connection is refused. The upgrade and the middleware start log a warning for existing
+    connections sharing a path, whose users below that path can no longer log in until the paths are distinct
+  - an LDAP connection lists up to 10 servers of its directory (ldap_server becomes an array, the REST parameter
+    Address becomes the list Addresses), tried in order with failover. Replicas that were configured as separate
+    connections have to be combined into one connection
+  - the workflow compares requester and handler by local user id and resolves the groups of a caller in the
+    directory of its local user
+  - user administration acts on the directory of the local user only: change, password change and reset, and delete
+    reject the id of another LDAP connection instead of acting on every directory holding the dn; adding a user
+    requires the target connection when several are writable, and a group search covers one connection
+  - local users are bound to the immutable object id of their directory entry (objectGUID, entryUUID, nsUniqueId,
+    ipaUniqueID or GUID) at their next login with password, and follow a renamed entry (also a case-only change of
+    its dn). If the dn of a bound local user later names another entry, login and token refresh are refused (A0008)
+    and its sessions are ended until an admin deletes the local user. The upgrade ends the sessions of local users that are not bound yet, so every user
+    has to log in with password once after the upgrade
 - update NuGet packages: Quartz 4.4.0, PuppeteerSharp 25.13.1, Scalar.AspNetCore 2.17.14, AngleSharp 1.8.4,
   NUnit3TestAdapter 6.3.1; regenerate SBOM
 - implementation tasks of object tasks are created per target management

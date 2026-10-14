@@ -345,6 +345,10 @@ namespace FWO.Services.Workflow
             }
         }
 
+        /// <summary>
+        /// Disposes the workflow handler owned by this creator.
+        /// </summary>
+        /// <param name="disposing">True when called from <see cref="Dispose()"/>, false when called from a finalizer.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (disposed)
@@ -360,6 +364,9 @@ namespace FWO.Services.Workflow
             disposed = true;
         }
 
+        /// <summary>
+        /// Releases the resources owned by this creator.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

@@ -10,6 +10,10 @@ namespace FWO.Api.Client
 
         internal abstract void Rebind(GraphQLHttpClient graphQlClient);
 
+        /// <summary>
+        /// Marks the subscription as disposed. Derived classes release their stream resources.
+        /// </summary>
+        /// <param name="disposing">True when called from <see cref="Dispose()"/>, false when called from a finalizer.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (_disposed)
@@ -20,6 +24,9 @@ namespace FWO.Api.Client
             _disposed = true;
         }
 
+        /// <summary>
+        /// Releases the subscription.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

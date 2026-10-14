@@ -140,6 +140,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <returns>The address groups of the page separated into standard groups and zone groups, and whether further groups follow.</returns>
     public async Task<(SeparatedAddressGroupsResponse Groups, bool HasMore)> GetSeparatedAddressGroupsAsync(bool? visibleInRequest, int limit, int? offset)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         ListPage<FlowNwGroup> page = await LoadPageAsync<FlowNwGroup>(FlowQueries.getFlowAddressGroups, visibleInRequest, limit, offset);
         IReadOnlyList<FlowZoneGroupPattern> configuredZonePatterns = GetZonePatterns();
         SeparatedAddressGroupsResponse separatedGroups = new();
@@ -193,6 +194,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// </summary>
     public async Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(FlowGroupResolutionParameters parameters)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         parameters.NetworkGroupIds ??= [];
         parameters.NetworkGroupNames ??= [];
         parameters.ServiceGroupIds ??= [];

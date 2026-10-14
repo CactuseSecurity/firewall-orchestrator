@@ -357,6 +357,10 @@ namespace FWO.Services.Workflow
             DisplayMessageInUi(exception, title, message, errorFlag);
         }
 
+        /// <summary>
+        /// Disposes the user config if this handler created it. An injected user config belongs to the caller.
+        /// </summary>
+        /// <param name="disposing">True when called from <see cref="Dispose()"/>, false when called from a finalizer.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (disposed)
@@ -372,6 +376,9 @@ namespace FWO.Services.Workflow
             disposed = true;
         }
 
+        /// <summary>
+        /// Releases the resources owned by this handler.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

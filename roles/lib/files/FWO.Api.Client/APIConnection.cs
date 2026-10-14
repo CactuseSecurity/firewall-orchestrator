@@ -115,6 +115,10 @@ namespace FWO.Api.Client
         public abstract GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler,
             GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null);
 
+        /// <summary>
+        /// Releases the registered subscriptions and detaches all event handlers.
+        /// </summary>
+        /// <param name="disposing">True when called from <see cref="Dispose()"/>, false when called from the finalizer.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (disposed)
@@ -124,12 +128,19 @@ namespace FWO.Api.Client
 
             if (disposing)
             {
-                foreach (ApiSubscription subscription in subscriptions)
+                List<ApiSubscription> subscriptionsToDispose;
+                lock (subscriptionsLock)
+                {
+                    subscriptionsToDispose = [.. subscriptions];
+                    subscriptions.Clear();
+                }
+
+                // Disposed outside the lock because disposing a subscription reaches back into this instance.
+                foreach (ApiSubscription subscription in subscriptionsToDispose)
                 {
                     subscription.Dispose();
                 }
 
-                subscriptions.Clear();
                 OnAuthHeaderChanged = null;
                 OnExecutionModeChanged = null;
             }
@@ -144,6 +155,9 @@ namespace FWO.Api.Client
             Dispose(false);
         }
 
+        /// <summary>
+        /// Releases the registered subscriptions and detaches all event handlers.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

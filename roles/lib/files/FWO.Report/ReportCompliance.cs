@@ -689,6 +689,10 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Disposes the semaphore and the global config if this report created it.
+        /// </summary>
+        /// <param name="disposing">True when called from <see cref="Dispose()"/>, false when called from a finalizer.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (_disposed)
@@ -708,6 +712,9 @@ namespace FWO.Report
             _disposed = true;
         }
 
+        /// <summary>
+        /// Releases the resources owned by this report.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

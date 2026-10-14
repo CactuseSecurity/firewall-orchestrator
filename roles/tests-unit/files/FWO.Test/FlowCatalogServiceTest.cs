@@ -52,6 +52,24 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
+    public void GetSeparatedAddressGroupsAsync_AfterDispose_Throws()
+    {
+        FlowCatalogService service = new(new FlowCatalogServiceApiConn(), new GlobalConfig());
+        service.Dispose();
+
+        Assert.ThrowsAsync<ObjectDisposedException>(() => service.GetSeparatedAddressGroupsAsync(null, 10, null));
+    }
+
+    [Test]
+    public void ResolveFlowGroupMembersAsync_AfterDispose_Throws()
+    {
+        FlowCatalogService service = new(new FlowCatalogServiceApiConn(), new GlobalConfig());
+        service.Dispose();
+
+        Assert.ThrowsAsync<ObjectDisposedException>(() => service.ResolveFlowGroupMembersAsync(new FlowGroupResolutionParameters()));
+    }
+
+    [Test]
     public async Task GetServiceObjectsAsync_UsesReadableProtocolNamesAndFiltersWhenRequested()
     {
         FlowCatalogServiceApiConn apiConnection = new();

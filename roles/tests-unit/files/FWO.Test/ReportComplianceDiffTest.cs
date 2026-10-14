@@ -22,6 +22,12 @@ namespace FWO.Test
             _testDiffReport = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport);
         }
 
+        [TearDown]
+        public void TearDownTest()
+        {
+            _testDiffReport?.Dispose();
+        }
+
         public void Dispose()
         {
             _testDiffReport?.Dispose();
@@ -171,7 +177,7 @@ namespace FWO.Test
                 ComplianceDiffFilterExistingViolations = false
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            using MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
             {
                 DiffReferenceInDays = 7
             };
@@ -210,7 +216,7 @@ namespace FWO.Test
                 ComplianceDiffFilterExistingViolations = false
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            using MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
             {
                 DiffReferenceInDays = 7,
                 ShowNonImpactRules = true
@@ -245,7 +251,8 @@ namespace FWO.Test
         [Test]
         public async Task Generate_DiffReportWithNonImpactRulesReturnsRulesForEmptyInterval()
         {
-            MockReportComplianceDiff report = new(new(""), new(), Basics.ReportType.ComplianceDiffReport)
+            using UserConfig userConfig = new();
+            using MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
             {
                 DiffReferenceInDays = 7,
                 ShowNonImpactRules = true
@@ -275,7 +282,7 @@ namespace FWO.Test
                 ComplianceDiffFilterExistingViolations = true
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            using MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
             {
                 DiffReferenceInDays = 7
             };
@@ -320,7 +327,7 @@ namespace FWO.Test
                 ComplianceFilterOutInitialViolations = true
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            using MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
             {
                 DiffReferenceInDays = 7
             };
@@ -354,7 +361,7 @@ namespace FWO.Test
                 ComplianceDiffFilterExistingViolations = true
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            using MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
             {
                 DiffReferenceInDays = 7
             };
@@ -382,7 +389,7 @@ namespace FWO.Test
                 ComplianceDiffFilterExistingViolations = true
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            using MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
             {
                 DiffReferenceInDays = 7,
                 ShowNonImpactRules = true
@@ -455,7 +462,7 @@ namespace FWO.Test
                 ComplianceDiffFilterExistingViolations = true
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            using MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
             {
                 DiffReferenceInDays = 7,
                 ShowNonImpactRules = true
@@ -509,7 +516,7 @@ namespace FWO.Test
                 ComplianceDiffFilterExistingViolations = true
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            using MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
             {
                 DiffReferenceInDays = 7,
                 ShowNonImpactRules = true
@@ -559,7 +566,7 @@ namespace FWO.Test
                 ComplianceDiffFilterExistingViolations = true
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            using MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
             {
                 DiffReferenceInDays = 7,
                 ShowNonImpactRules = true

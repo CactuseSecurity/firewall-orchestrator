@@ -1,6 +1,6 @@
 ## C# Memory & Resource Management
 - every long-lived registration must have a matching cleanup in the same type
-- every `+=` must have a matching `-=`
+- every event subscription (`+=`) must have a matching unsubscription (`-=`)
 - every `Subscribe(...)` must have a matching `Unsubscribe(...)`
 - every created `CancellationTokenSource` must be cancelled and disposed
 - every created `Timer`, `PeriodicTimer`, subscription or background runner must have a defined shutdown path

@@ -1,12 +1,15 @@
 # Firewall Orchestrator Revision History
 
-## 9.7.2 - 13.10.2026
+## 9.7.3 - 14.10.2026
 - modelling: auditors and admins can open the add and edit dialog of app roles again to try it out (closes #4968)
   - saving stays restricted to owning modellers: the save button is disabled and saving is rejected as well
   - deleting app roles stays restricted to owning modellers
 - modelling: cancelled changes in the edit dialog of an app role no longer show up in the library until the page is reloaded
 - modelling: if saving an app role fails, the dialog stays open with the changes not yet written, so saving can be retried;
   the library shows what has already been written
+- pin System.Security.Cryptography.Pkcs to 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
+
+## 9.7.2 - 14.10.2026
 - security (GHSA-695m-f6mv-9g72): a dn no longer identifies a subject across LDAP connections
   - every dn belongs to exactly one active LDAP connection, the one whose search or write paths contain it (the most
     specific path wins). Roles, groups, owner responsibles, workflow visibility groups and workflow assignments

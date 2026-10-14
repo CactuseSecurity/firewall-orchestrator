@@ -1512,7 +1512,7 @@ namespace FWO.Test
             return new TestableLdap(client)
             {
                 Id = 11,
-                Address = "ldap.example.test",
+                Addresses = ["ldap.example.test"],
                 Port = 389,
                 SearchUser = "cn=search,dc=fworch,dc=internal",
                 SearchUserPwd = kSearchPassword,
@@ -1546,7 +1546,7 @@ namespace FWO.Test
         {
             return new TestableLdap(new RecordingLdapClient())
             {
-                Address = "ldap.example.test",
+                Addresses = ["ldap.example.test"],
                 Port = 389,
                 SearchUser = "cn=search,dc=fworch,dc=internal",
                 SearchUserPwd = kSearchPassword,

@@ -4,12 +4,13 @@
 
 This directory is the repository source of truth for firewall rule positioning work. Active planning documents override chat history and any material under `archive/`.
 
-Phase 1 is implemented and locally validated on the current `Cactus/develop` baseline. It remains open only because the mandatory disposable-VM fresh-install and `9.7.0` to `9.7.1` upgrade checks could not be run in the current session. Phase 2 is intentionally deferred.
+Phase 1 is implemented and locally validated on the current `Cactus/develop` baseline. It remains open only because the mandatory disposable-VM fresh-install and `9.7.0` to `9.7.1` upgrade checks could not be run in the available validation session. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Customer-specific analysis and wiring remain deferred to Phase 3.
 
 | Phase | Status | Purpose |
 | --- | --- | --- |
 | Phase 1 | Implemented; VM validation pending | Build a calculation-only, cross-vendor positioning foundation and independent position persistence. |
-| Phase 2 | Deferred | Analyze the customer rule-positioning document and build the Check Point strategy from small helpers. |
+| Phase 2 | Implemented and locally validated | Build generic composition contracts, a reusable immutable structural graph, semantic positions, and structural blocks. |
+| Phase 3 | Deferred | Analyze the customer document, add customer-specific blocks and recipes, map enum values to recipes, and wire a production strategy. |
 | Previous proposal | Archived | Historical context only; it is not an alternative active plan. |
 
 ## Reading order
@@ -24,12 +25,15 @@ New sessions must read these files in order:
 6. `documentation/work-packages/firewall-rule-placement/phase-1/WP-01-contracts-and-serialization.md`
 7. `documentation/work-packages/firewall-rule-placement/phase-1/WP-02-positioning-manager.md`
 8. `documentation/work-packages/firewall-rule-placement/phase-1/WP-03-position-persistence.md`
+9. `documentation/work-packages/firewall-rule-placement/phase-2/README.md`
+10. the four Phase 2 work packages in the order listed there
+11. `documentation/work-packages/firewall-rule-placement/phase-3/README.md`
 
-Read `phase-2/README.md` only when checking the deferred boundary. Do not use the archived proposal to make current decisions. Do not analyze `FWO_Regel_Platzierung_Regelwerk.md` before Phase 2 is explicitly started.
+Do not use the archived proposal to make current decisions. Do not inspect or analyze `FWO_Regel_Platzierung_Regelwerk.md` until Phase 3 is explicitly started.
 
 Use this bootstrap prompt for a new planning session:
 
-> Read `.agents/AGENTS.md`, then `documentation/work-packages/firewall-rule-placement/SESSION-HANDOFF.md`, `README.md`, `DECISIONS.md`, and the active phase work packages in the order listed there. Treat those files as the source of truth. The archived proposal is historical only. Do not analyze `FWO_Regel_Platzierung_Regelwerk.md` until phase 2. Continue from the “Next action” in `SESSION-HANDOFF.md`.
+> Read `.agents/AGENTS.md`, then `documentation/work-packages/firewall-rule-placement/SESSION-HANDOFF.md`, `README.md`, `DECISIONS.md`, and the active phase work packages in the order listed there. Treat those files as the source of truth. The archived proposal is historical only. Do not analyze `FWO_Regel_Platzierung_Regelwerk.md` until Phase 3. Continue from the “Next action” in `SESSION-HANDOFF.md`.
 
 ## Roadmap boundary
 
@@ -55,6 +59,17 @@ Phase 1 excludes:
 - position-change auditing; and
 - vendor API conversion.
 
+Phase 2 adds only in-memory, side-effect-free building blocks:
+
+- generic typed recipe nodes, immutable recipe construction, and a cancellation-aware executor;
+- stable block failures that retain their originating block kind;
+- a defensively copied structural graph for one management and gateway derived from normalized rulebases and links;
+- a persistable semantic Check Point position using top, bottom, above, or below anchors;
+- exact layer and section scope selection; and
+- beginning/end boundary resolution for populated and empty scopes.
+
+Phase 2 does not add a strategy, policy loader, dependency-injection registration, workflow caller, setting, UI, vendor request renderer, or enum-to-recipe mapping.
+
 ## Work packages
 
 | Work package | Outcome |
@@ -62,6 +77,10 @@ Phase 1 excludes:
 | [WP-01](phase-1/WP-01-contracts-and-serialization.md) | Shared contracts, safe failures, polymorphic serialization, and copy semantics. |
 | [WP-02](phase-1/WP-02-positioning-manager.md) | Context validation and exact registered-strategy selection without vendor switches. |
 | [WP-03](phase-1/WP-03-position-persistence.md) | Nullable JSONB persistence propagated through schema, Hasura, GraphQL, and `WfImplTask`. |
+| [Phase 2 WP-01](phase-2/WP-01-composition-contracts.md) | Generic recipe contracts, validation, typed results, and executor. |
+| [Phase 2 WP-02](phase-2/WP-02-check-point-snapshot-and-position.md) | Immutable Check Point snapshot and persisted semantic position. |
+| [Phase 2 WP-03](phase-2/WP-03-structural-blocks.md) | Structural scopes, boundary blocks, and composed acceptance scenarios. |
+| [Phase 2 WP-04](phase-2/WP-04-rulebase-graph-snapshot.md) | Replace the Check Point-specific snapshot with an immutable normalized rulebase graph before Phase 3. |
 
 ## Dependency graph
 
@@ -73,6 +92,17 @@ WP-01 contracts and serialization
 WP-02 + WP-03
   `---> independent calculation/persistence acceptance tests
          `---> full Phase 1 validation
+
+Phase 2 WP-01 composition contracts
+  |---> Phase 2 WP-02 snapshot and position
+  `---> Phase 2 WP-03 structural blocks
+         `---> composed in-memory acceptance tests
+
+Phase 2 WP-02 + WP-03
+  `---> Phase 2 WP-04 rulebase graph snapshot
+
+Phase 2 including WP-04
+  `---> Phase 3 customer analysis, recipes, mapping, and production wiring
 ```
 
 WP-02 and WP-03 may proceed in parallel after WP-01 stabilizes. Phase 1 is not complete until all three packages and their combined acceptance checks pass.
@@ -86,6 +116,12 @@ WP-02 and WP-03 may proceed in parallel after WP-01 stabilizes. Phase 1 is not c
 - Production calls return a safe not-implemented result while no production strategy is registered.
 - Safe diagnostics contain neither credentials nor complete rule contents.
 - The schema migration is part of the open `9.7.1` upgrade and leaves `product_version` unchanged (D-015).
+- Phase 2 recipes are in-memory only and use one caller-supplied immutable snapshot.
+- The final Phase 2 snapshot is a vendor-neutral projection of normalized `Rulebase` and `RulebaseLink` structure; Check Point blocks interpret that graph.
+- Existing-rule semantics remain excluded until a concrete block needs them; structural rule identity and order remain available for anchors.
+- Phase 3 production loading accepts the latest successfully completed import regardless of age, without a freshness threshold or fingerprint requirement.
+- Existing empty scopes are valid; missing, ambiguous, and malformed scopes fail explicitly.
+- The existing positioning enum remains unchanged and no value maps to a recipe until Phase 3.
 
 ## Session protocol
 
@@ -93,7 +129,7 @@ At the end of every planning session:
 
 1. Append a new entry to `DECISIONS.md` if a decision was added, changed, superseded, or marked for reconsideration. Do not rewrite earlier decision entries.
 2. Replace `SESSION-HANDOFF.md` with a short current recovery point.
-3. Commit only those planning-document changes as the final recovery checkpoint. Do not include unrelated working-tree changes.
+3. Leave changes unstaged and uncommitted unless the user explicitly requests a recovery commit.
 
 ## Historical material
 

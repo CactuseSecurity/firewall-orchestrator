@@ -28,6 +28,9 @@ public static class CreateTicketRequestValidator
         return result;
     }
 
+    /// <summary>Validates required root fields and root-level collection limits.</summary>
+    /// <param name="request">The request to validate.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateRootFields(CreateTicketRequest request, RequestValidationErrorResponse result)
     {
         AddRequiredError(request.RequestorName, "requestorName", result);
@@ -49,6 +52,9 @@ public static class CreateTicketRequestValidator
         ValidateText(request.Notes, "notes", result);
     }
 
+    /// <summary>Validates the required rules collection and each contained rule.</summary>
+    /// <param name="rules">The rules supplied by the caller.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateRules(List<CreateTicketRequest.CreateTicketRuleRequest>? rules,
         RequestValidationErrorResponse result)
     {
@@ -65,6 +71,9 @@ public static class CreateTicketRequestValidator
         ValidateItems(rules, "rules", ValidateRule, result);
     }
 
+    /// <summary>Validates the elements of all optional object, group, service, and time collections.</summary>
+    /// <param name="request">The request containing the nested collections.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateNestedCollections(CreateTicketRequest request, RequestValidationErrorResponse result)
     {
         ValidateItems(request.AddressObjects, "addressObjects", ValidateAddressObject, result);
@@ -74,6 +83,12 @@ public static class CreateTicketRequestValidator
         ValidateItems(request.TimeObjects, "timeObjects", ValidateTimeObject, result);
     }
 
+    /// <summary>Runs an element validator for the bounded portion of a collection.</summary>
+    /// <typeparam name="T">The collection element type.</typeparam>
+    /// <param name="values">The values to validate.</param>
+    /// <param name="path">The request path of the collection.</param>
+    /// <param name="validator">The element validator to invoke.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateItems<T>(List<T>? values, string path,
         Action<T, string, RequestValidationErrorResponse> validator, RequestValidationErrorResponse result)
     {
@@ -101,6 +116,10 @@ public static class CreateTicketRequestValidator
         };
     }
 
+    /// <summary>Adds an error when a required string is null, empty, or whitespace.</summary>
+    /// <param name="value">The value to check.</param>
+    /// <param name="path">The request path of the value.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void AddRequiredError(string? value, string path, RequestValidationErrorResponse result)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -109,6 +128,10 @@ public static class CreateTicketRequestValidator
         }
     }
 
+    /// <summary>Validates a rule and all of its references and descriptive fields.</summary>
+    /// <param name="rule">The rule to validate.</param>
+    /// <param name="path">The request path of the rule.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateRule(CreateTicketRequest.CreateTicketRuleRequest rule, string path,
         RequestValidationErrorResponse result)
     {
@@ -128,6 +151,10 @@ public static class CreateTicketRequestValidator
         ValidateReferences(rule.ServiceGroups, $"{path}.serviceGroups", result);
     }
 
+    /// <summary>Validates one declared network object.</summary>
+    /// <param name="value">The network object to validate.</param>
+    /// <param name="path">The request path of the object.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateAddressObject(CreateTicketRequest.CreateAddressObjectRequest value, string path,
         RequestValidationErrorResponse result)
     {
@@ -137,6 +164,10 @@ public static class CreateTicketRequestValidator
         ValidateShortString(value.IpEnd, $"{path}.ipEnd", result);
     }
 
+    /// <summary>Validates one declared network group and its members.</summary>
+    /// <param name="value">The network group to validate.</param>
+    /// <param name="path">The request path of the group.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateAddressGroup(CreateTicketRequest.CreateAddressGroupRequest value, string path,
         RequestValidationErrorResponse result)
     {
@@ -144,6 +175,10 @@ public static class CreateTicketRequestValidator
         ValidateReferences(value.MemberIds, $"{path}.memberIds", result);
     }
 
+    /// <summary>Validates one declared service object.</summary>
+    /// <param name="value">The service object to validate.</param>
+    /// <param name="path">The request path of the object.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateServiceObject(CreateTicketRequest.CreateServiceObjectRequest value, string path,
         RequestValidationErrorResponse result)
     {
@@ -152,6 +187,10 @@ public static class CreateTicketRequestValidator
         ValidateShortString(value.Protocol, $"{path}.protocol", result);
     }
 
+    /// <summary>Validates one declared service group and its members.</summary>
+    /// <param name="value">The service group to validate.</param>
+    /// <param name="path">The request path of the group.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateServiceGroup(CreateTicketRequest.CreateServiceGroupRequest value, string path,
         RequestValidationErrorResponse result)
     {
@@ -159,6 +198,10 @@ public static class CreateTicketRequestValidator
         ValidateReferences(value.MemberIds, $"{path}.memberIds", result);
     }
 
+    /// <summary>Validates one declared time object.</summary>
+    /// <param name="value">The time object to validate.</param>
+    /// <param name="path">The request path of the object.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateTimeObject(CreateTicketRequest.CreateTimeObjectRequest value, string path,
         RequestValidationErrorResponse result)
     {
@@ -167,6 +210,10 @@ public static class CreateTicketRequestValidator
         ValidateDateTimeString(value.EndTime, $"{path}.endTime", result);
     }
 
+    /// <summary>Validates a reference collection's presence, size, and non-zero values.</summary>
+    /// <param name="references">The references to validate.</param>
+    /// <param name="path">The request path of the references.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateReferences(List<long>? references, string path,
         RequestValidationErrorResponse result)
     {
@@ -187,6 +234,11 @@ public static class CreateTicketRequestValidator
         }
     }
 
+    /// <summary>Validates the size and presence of a root-level collection.</summary>
+    /// <typeparam name="T">The collection element type.</typeparam>
+    /// <param name="values">The collection to validate.</param>
+    /// <param name="path">The request path of the collection.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateCollection<T>(List<T>? values, string path, RequestValidationErrorResponse result)
     {
         if (values == null)
@@ -199,6 +251,10 @@ public static class CreateTicketRequestValidator
         }
     }
 
+    /// <summary>Validates the maximum length of an identifier-like string.</summary>
+    /// <param name="value">The string to validate.</param>
+    /// <param name="path">The request path of the string.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateShortString(string? value, string path, RequestValidationErrorResponse result)
     {
         if (value?.Length > CreateTicketRequest.kMaxIdentifierLength)
@@ -207,6 +263,10 @@ public static class CreateTicketRequestValidator
         }
     }
 
+    /// <summary>Validates the maximum length of a descriptive text value.</summary>
+    /// <param name="value">The text to validate.</param>
+    /// <param name="path">The request path of the text.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateText(string? value, string path, RequestValidationErrorResponse result)
     {
         if (value?.Length > CreateTicketRequest.kMaxTextLength)
@@ -215,6 +275,10 @@ public static class CreateTicketRequestValidator
         }
     }
 
+    /// <summary>Validates the maximum length of a date-time representation.</summary>
+    /// <param name="value">The date-time string to validate.</param>
+    /// <param name="path">The request path of the date-time string.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateDateTimeString(string? value, string path, RequestValidationErrorResponse result)
     {
         if (value?.Length > CreateTicketRequest.kMaxDateTimeLength)
@@ -223,6 +287,10 @@ public static class CreateTicketRequestValidator
         }
     }
 
+    /// <summary>Validates the combined size of the rule justification and reason persisted as task reason.</summary>
+    /// <param name="rule">The rule whose text values are combined.</param>
+    /// <param name="path">The request path of the rule.</param>
+    /// <param name="result">The response receiving validation errors.</param>
     private static void ValidateCombinedTaskReason(CreateTicketRequest.CreateTicketRuleRequest rule, string path,
         RequestValidationErrorResponse result)
     {
@@ -238,6 +306,10 @@ public static class CreateTicketRequestValidator
         }
     }
 
+    /// <summary>Creates a structured validation error.</summary>
+    /// <param name="path">The request path associated with the error.</param>
+    /// <param name="message">The human-readable validation message.</param>
+    /// <returns>The structured validation error.</returns>
     private static RequestValidationError BuildError(string path, string message)
     {
         return new RequestValidationError { Path = path, Message = message };

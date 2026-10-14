@@ -2516,7 +2516,8 @@ namespace FWO.Test
         {
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
 
-            Task<int?> task = (Task<int?>)GetPrivateMethod("GetAutoPromoteTargetState").Invoke(handler, ["5", new WfTicket(), WfObjectScopes.Ticket])!;
+            object[] arguments = ["5", new WfTicket(), WfObjectScopes.Ticket];
+            Task<int?> task = (Task<int?>)GetPrivateMethod("GetAutoPromoteTargetState").Invoke(handler, arguments)!;
             int? targetState = await task;
 
             Assert.That(targetState, Is.EqualTo(5));
@@ -2527,8 +2528,8 @@ namespace FWO.Test
         {
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
 
-            Task<int?> task = (Task<int?>)GetPrivateMethod("GetAutoPromoteTargetState").Invoke(handler,
-                [WfStateAction.AutomaticStateId.ToString(), new WfTicket(), WfObjectScopes.Ticket])!;
+            object[] arguments = [WfStateAction.AutomaticStateId.ToString(), new WfTicket(), WfObjectScopes.Ticket];
+            Task<int?> task = (Task<int?>)GetPrivateMethod("GetAutoPromoteTargetState").Invoke(handler, arguments)!;
             int? targetState = await task;
 
             Assert.That(targetState, Is.Null);

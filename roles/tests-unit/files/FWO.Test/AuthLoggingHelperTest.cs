@@ -13,7 +13,7 @@ namespace FWO.Test
             LdapConnectionBase ldap = new()
             {
                 Id = 7,
-                Address = "ldap.example.local",
+                Addresses = ["ldap.example.local"],
                 Port = 636,
                 Type = (int)LdapType.OpenLdap,
                 TenantId = 3
@@ -33,7 +33,7 @@ namespace FWO.Test
             LdapConnectionBase ldap = new()
             {
                 Id = 8,
-                Address = "ldap.example.local",
+                Addresses = ["ldap.example.local"],
                 Port = 389,
                 Type = (int)LdapType.Default,
                 TenantId = null

@@ -60,7 +60,8 @@ catch (ApiUnavailableAtStartupException exception)
 GraphQlApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscriptionUpdate = (List<Ldap> ldapsChanges) => { lock (changesLock) { connectedLdaps = ldapsChanges; } };
 
 GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(GraphqlExceptionHandler.Handle, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
-Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
+Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => ldap.Host())));
+AuthDirectoryBinding.WarnAboutOverlappingNamespaces(connectedLdaps);
 
 // GlobalConfig for Quartz DI
 GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);

@@ -1,8 +1,10 @@
 # Firewall Orchestrator Revision History
 
-## 9.7.2 - 13.10.2026
+## 9.7.4 - 14.10.2026
 - extend hierarchical provisioning configuration for Guardicore: object creation, modelling naming, app-zone and network-area switches, dynamic IP labels, rule implementation and planning overrides
 - migrate provisioning key names and option values; privately back up old overrides before enforcing the revised scope restrictions (see developer documentation on provisioning settings)
+
+## 9.7.2 - 12.10.2026
 - security (GHSA-695m-f6mv-9g72): a dn no longer identifies a subject across LDAP connections
   - every dn belongs to exactly one active LDAP connection, the one whose search or write paths contain it (the most
     specific path wins). Roles, groups, owner responsibles, workflow visibility groups and workflow assignments

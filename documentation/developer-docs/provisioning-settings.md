@@ -61,10 +61,10 @@ or AZ1234567; `{name}` represents the object name. These templates describe the
 configuration contract for the future writer. They do not change the existing
 modelling ID-generation scheme.
 
-## Upgrade to 9.7.2
+## Upgrade to 9.7.4
 
 The upgrade saves the original provisioning rows once in `public.provisioning_config_backup`
-under version `9.7.2` before making any changes. It renames
+under version `9.7.4` before making any changes. It renames
 `logging`, `zoneFrom`, and `zoneTo` and converts the old enum member names to the
 wire values above. If old and canonical keys both exist, the canonical key wins.
 `TufinSc` becomes the external-ticket mode; `None` becomes `Manual` with planning
@@ -81,12 +81,10 @@ metadata, so anonymous and ordinary GraphQL roles cannot read it. Administrators
 can inspect it through PostgreSQL:
 
 ```sql
-SELECT config_values FROM public.provisioning_config_backup WHERE version = '9.7.2';
+SELECT config_values FROM public.provisioning_config_backup WHERE version = '9.7.4';
 ```
 
-The migration regression probe uses temporary tables and rolls back its transaction:
-
-```bash
-psql -v upgrade_file="$PWD/roles/database/files/upgrade/9.7.2.sql" \
-  -f roles/tests-integration/files/database/test-upgrade-9.7.2.sql
-```
+The migration regression probe `roles/tests-integration/files/database/test-upgrade-9.7.4.sql`
+uses temporary tables and rolls back its transaction. The database integration tests
+(`roles/tests-integration/tasks/test-database.yml`) run it with the upgrade file inserted at
+its two `-- @run-upgrade-9.7.4` markers.

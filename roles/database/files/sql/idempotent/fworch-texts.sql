@@ -573,6 +573,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
+    <li>Cloud-Zugangsdaten werden als zus&auml;tzliche Zugangsdaten mit verschl&uuml;sseltem Passwort verwaltet. Das Upgrade &uuml;bertr&auml;gt vorhandene Cloud Client IDs und Secrets automatisch. Cisco ASA verwendet das zus&auml;tzliche Passwort f&uuml;r den Enable-Modus.</li>
     <li>Der Installer zeigt am Ende eine kurze &Uuml;bersicht der Laufzeiten je Rolle, sortiert nach Dauer. Mehrfache Ausf&uuml;hrungen derselben Rolle werden zusammengefasst.</li>
     <li>Die Middleware-REST-API begrenzt Aufrufe standardm&auml;&szlig;ig auf 600 pro Minute und zwei gleichzeitig laufende aufwendige Aufrufe je Benutzer. Die Flow-Kataloglisten liefern Seiten mit h&ouml;chstens 1000 Objekten bzw. 250 Gruppen, <code>getIpDataForOwners</code> h&ouml;chstens 10000 Anwendungen. API-Clients m&uuml;ssen mit <code>limit</code> und <code>offset</code> weiterbl&auml;ttern, bis <code>X-Has-More</code> den Wert <code>false</code> hat. <code>getFlowComplianceState</code> akzeptiert h&ouml;chstens 100 Eintr&auml;ge je Liste; bei mehreren passenden portlosen Diensten liefert <code>getServiceObjectId</code> HTTP 409 mit den Kandidaten.</li>
     <li><code>createTicket</code> liefert neben der Ticket-Id den Aktionsstatus <code>actionsStatus</code>: <code>completed</code> oder <code>failed</code>. Fehlschl&auml;ge initialer Workflow-Aktionen werden als Alarm und in der &Auml;nderungshistorie gemeldet. Ein bereits gespeichertes Ticket beh&auml;lt auch bei fehlgeschlagener Statusermittlung seine Id; der Status enth&auml;lt dann die numerische Zustands-Id. Den Request nicht erneut senden, da dies ein zweites Ticket erzeugt.</li>
@@ -594,6 +595,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 ');
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
+    <li>Cloud credentials are managed as additional credentials with encrypted passwords. The upgrade automatically transfers existing cloud client IDs and secrets. Cisco ASA uses the additional password for enable mode.</li>
     <li>The installer ends with a short overview of elapsed time per role, sorted by duration. Repeated executions of the same role are combined.</li>
     <li>The middleware REST API defaults to 600 calls per minute and two concurrent expensive calls per user. Flow catalog lists return pages of at most 1000 objects or 250 groups; <code>getIpDataForOwners</code> returns at most 10000 applications. API clients must page with <code>limit</code> and <code>offset</code> until <code>X-Has-More</code> is <code>false</code>. <code>getFlowComplianceState</code> accepts at most 100 entries per list; when several portless services match, <code>getServiceObjectId</code> returns HTTP 409 with the candidates.</li>
     <li><code>createTicket</code> returns <code>actionsStatus</code> alongside the ticket ID: <code>completed</code> or <code>failed</code>. Initial workflow action failures are reported in an alert and the change history. A saved ticket keeps its ID even if status enrichment fails; its status then contains the numeric state ID. Do not resend the request, as this creates a second ticket.</li>
@@ -2519,10 +2521,6 @@ INSERT INTO txt VALUES ('port',                 'German', 	'Port');
 INSERT INTO txt VALUES ('port',                 'English', 	'Port');
 INSERT INTO txt VALUES ('config_path',          'German', 	'Domain');
 INSERT INTO txt VALUES ('config_path',          'English', 	'Domain');
-INSERT INTO txt VALUES ('cloud_client_id',      'German', 	'Cloud Client ID');
-INSERT INTO txt VALUES ('cloud_client_id',      'English', 	'Cloud Client ID');
-INSERT INTO txt VALUES ('cloud_client_secret',  'German', 	'Cloud Client Secret');
-INSERT INTO txt VALUES ('cloud_client_secret',  'English', 	'Cloud Client Secret');
 INSERT INTO txt VALUES ('cloud_sub_id',         'German', 	'Cloud Subscription ID');
 INSERT INTO txt VALUES ('cloud_sub_id',         'English', 	'Cloud Subscription ID');
 INSERT INTO txt VALUES ('cloud_tenant_id',      'German', 	'Cloud Tenant ID');
@@ -3027,6 +3025,8 @@ INSERT INTO txt VALUES ('save_management',      'German', 	'Management speichern
 INSERT INTO txt VALUES ('save_management',      'English', 	'Save Management');
 INSERT INTO txt VALUES ('fetch_gateways',       'German', 	'Gateways abholen');
 INSERT INTO txt VALUES ('fetch_gateways',       'English', 	'Fetch Gateways');
+INSERT INTO txt VALUES ('additional_credential', 'German', 'Zus&auml;tzliche Zugangsdaten');
+INSERT INTO txt VALUES ('additional_credential', 'English', 'Additional credential');
 INSERT INTO txt VALUES ('fetch_credentials',    'German', 	'Login-Daten abholen');
 INSERT INTO txt VALUES ('fetch_credentials',    'English', 	'Fetch credentials');
 INSERT INTO txt VALUES ('save_gateway',         'German', 	'Gateway speichern');
@@ -4752,6 +4752,8 @@ INSERT INTO txt VALUES ('E5126', 'German',  'Bitte das zu &auml;ndernde Objekt a
 INSERT INTO txt VALUES ('E5126', 'English', 'Please select the object to be modified.');
 INSERT INTO txt VALUES ('E5127', 'German',  'Bitte ein Management ausw&auml;hlen, zu dem das Objekt geh&ouml;rt.');
 INSERT INTO txt VALUES ('E5127', 'English', 'Please select the management the object belongs to.');
+INSERT INTO txt VALUES ('E5128', 'German', 'Zugangsdaten werden von anderen Zugangsdaten verwendet');
+INSERT INTO txt VALUES ('E5128', 'English', 'Credential is used by other credentials');
 INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten Managements verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by the managements named. Change the credentials of these managements before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
@@ -6492,14 +6494,8 @@ INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sic
 ');
 INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
 ');
-INSERT INTO txt VALUES ('H5136', 'German',  'Cloud Client ID: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
-');
-INSERT INTO txt VALUES ('H5136', 'English', 'Cloud Client ID: If you have a cloud installation (e.g. Azure) - enter your Azure client ID here. For all other installations, leave this field empty.
-');
-INSERT INTO txt VALUES ('H5137', 'German',  'Cloud Client Secret: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
-');
-INSERT INTO txt VALUES ('H5137', 'English', 'Cloud Client Secret: If you have a cloud installation (e.g. Azure) - enter your Azure client secret here. For all other installations, leave this field empty.
-');
+INSERT INTO txt VALUES ('H5136', 'German', 'Zus&auml;tzliche Zugangsdaten: W&auml;hlen Sie separat angelegte Zugangsdaten, z.B. mit Cloud Client ID als Nutzer und Cloud Client Secret als Passwort oder mit dem Cisco ASA Enable-Passwort. Das Passwort wird verschl&uuml;sselt gespeichert. Entfernen Sie Verweise vor dem L&ouml;schen.');
+INSERT INTO txt VALUES ('H5136', 'English', 'Additional credential: Select separately created credentials, e.g. with the cloud client ID as username and client secret as password, or with the Cisco ASA enable password. The password is stored encrypted. Remove references before deleting a credential.');
 
 INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways einrichten und verwalten.<br>
     Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren eines neuen Gateways, indem Daten von einem existierenden kopiert werden.

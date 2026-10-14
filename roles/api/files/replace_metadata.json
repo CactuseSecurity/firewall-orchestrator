@@ -10263,6 +10263,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "primary_credentials",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "additional_credential_id",
+                      "table": {
+                        "name": "credential",
+                        "schema": "public"
+                      }
+                    }
+                  }
                 }
               ],
               "select_permissions": [
@@ -10270,12 +10282,12 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "cloud_client_id",
                       "credential_name",
                       "id",
                       "is_key_pair",
                       "public_key",
-                      "username"
+                      "username",
+                      "additional_credential_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -10286,13 +10298,12 @@
                   "permission": {
                     "columns": [
                       "is_key_pair",
-                      "cloud_client_id",
-                      "cloud_client_secret",
                       "credential_name",
                       "username",
                       "id",
                       "public_key",
-                      "secret"
+                      "secret",
+                      "additional_credential_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -10303,16 +10314,23 @@
                   "permission": {
                     "columns": [
                       "is_key_pair",
-                      "cloud_client_id",
-                      "cloud_client_secret",
                       "credential_name",
                       "username",
                       "id",
                       "public_key",
-                      "secret"
+                      "secret",
+                      "additional_credential_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                }
+              ],
+              "object_relationships": [
+                {
+                  "name": "additional_credential",
+                  "using": {
+                    "foreign_key_constraint_on": "additional_credential_id"
                   }
                 }
               ]

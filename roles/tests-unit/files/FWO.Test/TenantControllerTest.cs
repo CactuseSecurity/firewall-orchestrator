@@ -201,7 +201,7 @@ namespace FWO.Test
             return new TestableLdap(client)
             {
                 Id = 1,
-                Address = "ldap.example.test",
+                Addresses = ["ldap.example.test"],
                 Port = 389,
                 SearchUser = kSearchUser,
                 SearchUserPwd = kSearchPassword,

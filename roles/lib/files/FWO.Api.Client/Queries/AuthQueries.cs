@@ -26,6 +26,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getUserEmails;
         public static readonly string getUserByDn;
         public static readonly string getUserByDbId;
+        public static readonly string getUserByDirectoryObjectId;
+        public static readonly string bindUiUserDirectoryObject;
         public static readonly string getOwnUser;
         public static readonly string upsertUiUser;
         public static readonly string updateUserEmail;
@@ -50,6 +52,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string storeRefreshToken;
         public static readonly string getRefreshToken;
         public static readonly string revokeRefreshToken;
+        public static readonly string revokeRefreshTokensOfUser;
 
         static AuthQueries()
         {
@@ -75,6 +78,8 @@ namespace FWO.Api.Client.Queries
                 getUserEmails = GetQueryText("auth/getUserEmails.graphql");
                 getUserByDn = GetQueryText("auth/getUserByDn.graphql");
                 getUserByDbId = GetQueryText("auth/getUserByDbId.graphql");
+                getUserByDirectoryObjectId = GetQueryText("auth/getUserByDirectoryObjectId.graphql");
+                bindUiUserDirectoryObject = GetQueryText("auth/bindUiUserDirectoryObject.graphql");
                 getOwnUser = GetQueryText("auth/getOwnUser.graphql");
                 upsertUiUser = GetQueryText("auth/upsertUiUser.graphql");
                 updateUserEmail = GetQueryText("auth/updateUserEmail.graphql");
@@ -99,6 +104,7 @@ namespace FWO.Api.Client.Queries
                 storeRefreshToken = GetQueryText(Path.Combine("auth", "storeRefreshToken.graphql"));
                 getRefreshToken = GetQueryText(Path.Combine("auth", "getRefreshToken.graphql"));
                 revokeRefreshToken = GetQueryText(Path.Combine("auth", "revokeRefreshToken.graphql"));
+                revokeRefreshTokensOfUser = GetQueryText(Path.Combine("auth", "revokeRefreshTokensOfUser.graphql"));
             }
             catch (Exception exception)
             {

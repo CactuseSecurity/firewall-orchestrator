@@ -88,6 +88,17 @@
                             </div>
                         </div>
                     }
+                    else if(WfObjectTaskHelper.IsManagementObjectTask(WfHandler.ActImplTask.TaskType))
+                    {
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("management")):</label>
+                                <div class="col-sm-8">
+                                    <label class="col-sm-12 h-100 border bg-secondary">@(WfHandler.GetImplTaskManagementName(WfHandler.ActImplTask, WfHandler.ActReqTask.ManagementId))</label>
+                                </div>
+                            </div>
+                        </div>
+                    }
                     else if(WfHandler.ActImplTask.TaskType == WfTaskType.new_interface.ToString())
                     {
                         <div class="col-sm-8">

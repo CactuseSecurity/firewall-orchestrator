@@ -27,6 +27,11 @@ namespace FWO.Data.Workflow
         [JsonProperty("accessTask"), JsonPropertyName("accessTask")]
         public AccessTaskFieldVisibilityConfig AccessTask { get; set; } = new();
 
+        /// <summary>
+        /// Parses a serialized ticket and access-task field visibility configuration.
+        /// </summary>
+        /// <param name="serializedConfig">The JSON configuration, or <see langword="null"/> for defaults.</param>
+        /// <returns>The parsed configuration, or the default configuration when the input is empty or invalid.</returns>
         public static TicketFieldVisibilityConfig Parse(string? serializedConfig)
         {
             if (string.IsNullOrWhiteSpace(serializedConfig))
@@ -46,6 +51,10 @@ namespace FWO.Data.Workflow
             }
         }
 
+        /// <summary>
+        /// Serializes this field visibility configuration for storage in workflow settings.
+        /// </summary>
+        /// <returns>The JSON representation of this configuration.</returns>
         public string ToConfigValue()
         {
             return System.Text.Json.JsonSerializer.Serialize(this);

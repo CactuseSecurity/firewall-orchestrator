@@ -293,6 +293,44 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task PromoteReqTask_DoesNotPromoteBundledTaskInDifferentStateRow()
+        {
+            WfReqTask selectedTask = new()
+            {
+                Id = 7,
+                TicketId = 10,
+                StateId = 0,
+                TaskType = WfTaskType.access.ToString()
+            };
+            selectedTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-7-8");
+            WfReqTask differentStateTask = new()
+            {
+                Id = 8,
+                TicketId = 10,
+                StateId = 3,
+                TaskType = WfTaskType.access.ToString()
+            };
+            differentStateTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-7-8");
+            WfHandler handler = new()
+            {
+                ActReqTask = selectedTask,
+                ActTicket = new WfTicket { Id = 10, Tasks = [selectedTask, differentStateTask] },
+                MasterStateMatrix = new StateMatrix { MinTicketCompleted = 99, LowestEndState = 10 },
+                ActStateMatrix = new StateMatrix { LowestStartedState = 2, LowestEndState = 10 }
+            };
+            handler.userConfig.ReqConsiderBundling = true;
+            SetMatrix(handler, WfTaskType.access.ToString(), handler.ActStateMatrix);
+
+            await handler.PromoteReqTask(new WfStatefulObject { StateId = 2 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(selectedTask.StateId, Is.EqualTo(2));
+                Assert.That(differentStateTask.StateId, Is.EqualTo(3));
+            });
+        }
+
+        [Test]
         public async Task PromoteReqTask_WithStartedHandlerDisabled_DoesNotSetStartOrHandler()
         {
             WfHandler handler = new();
@@ -384,6 +422,30 @@ namespace FWO.Test
                 Assert.That(firstReqTask.Stop, Is.Not.Null);
                 Assert.That(secondReqTask.Stop, Is.EqualTo(firstReqTask.Stop));
                 Assert.That(handler.ActTicket.StateId, Is.EqualTo(5));
+            });
+        }
+
+        [Test]
+        public async Task PromoteImplTask_DoesNotUpdateBundledTaskInDifferentStateRow()
+        {
+            WfHandler handler = CreateImplementationHandler(considerBundling: true);
+            WfImplTask implTask = new() { Id = 3, ReqTaskId = 7, StateId = 2 };
+            WfReqTask selectedReqTask = CreateBundledReqTask(7, implTask);
+            WfReqTask differentStateReqTask = CreateBundledReqTask(8);
+            differentStateReqTask.StateId = 3;
+            selectedReqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-7-8");
+            differentStateReqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-7-8");
+            handler.ActImplTask = implTask;
+            handler.ActReqTask = selectedReqTask;
+            handler.ActTicket = new WfTicket { Id = 1, Tasks = { selectedReqTask, differentStateReqTask } };
+
+            await handler.PromoteImplTask(new WfStatefulObject { StateId = 5 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(selectedReqTask.StateId, Is.EqualTo(5));
+                Assert.That(differentStateReqTask.StateId, Is.EqualTo(3));
+                Assert.That(differentStateReqTask.Stop, Is.Null);
             });
         }
 

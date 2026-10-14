@@ -150,6 +150,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public void TryParseAutoPromoteParams_ParsesAutomaticStateWithConfirmation()
+        {
+            string payload = "{\"to_state_id\":-1,\"confirm_ui_message\":true}";
+
+            bool parsed = WfStateAction.TryParseAutoPromoteParams(payload, out int? toStateId,
+                out ConditionalAutoPromoteParams? conditionalParams);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed, Is.True);
+                Assert.That(toStateId, Is.Null);
+                Assert.That(conditionalParams, Is.Null);
+                Assert.That(WfStateAction.HasConfirmUiMessage(payload), Is.True);
+            });
+        }
+
+        [Test]
+        public void TryParseAutoPromoteParams_MapsLegacyAutomaticStateToFallback()
+        {
+            bool parsed = WfStateAction.TryParseAutoPromoteParams("-1", out int? toStateId,
+                out ConditionalAutoPromoteParams? conditionalParams);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed, Is.True);
+                Assert.That(toStateId, Is.Null);
+                Assert.That(conditionalParams, Is.Null);
+            });
+        }
+
+        [Test]
         public void WfStateActionParsers_RejectInvalidOrUnsupportedValues()
         {
             Assert.Multiple(() =>

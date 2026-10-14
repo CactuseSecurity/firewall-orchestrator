@@ -90,6 +90,7 @@ namespace FWO.Test
             {"H5537","Clean zones: When enabled, tasks are bundled only if their source and destination objects can be mapped to the same network zones using the selected policy matrix."},
             {"source_zone","Source Zone"},
             {"source","Source"},
+            {"element_origin","Element origin"},
             {"destination_zone","Destination Zone"},
             {"destination","Destination"},
             {"services","Services"},

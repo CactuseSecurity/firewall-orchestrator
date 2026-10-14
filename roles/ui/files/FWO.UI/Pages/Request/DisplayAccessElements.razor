@@ -88,7 +88,7 @@
                     {
                         <div class="list-group-item border bg-secondary">
                             <div class="d-flex align-items-center">
-                                <span class="flex-grow-1">@DisplayNetworkObject(source) <small class="text-muted" title="Element origin">(@ElementOrigin(source))</small></span>
+                                <span class="flex-grow-1">@DisplayNetworkObject(source) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(source))</small></span>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(source)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             </div>
                         </div>
@@ -97,7 +97,7 @@
                     {
                         <div class="list-group-item border bg-secondary">
                             <div class="d-flex align-items-center">
-                                <span class="flex-grow-1">@DisplayNetworkElement(source) <small class="text-muted" title="Element origin">(@ElementOrigin(source))</small></span>
+                                <span class="flex-grow-1">@DisplayNetworkElement(source) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(source))</small></span>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(source)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             </div>
                         </div>
@@ -128,7 +128,7 @@
                     {
                         <div class="list-group-item border bg-secondary">
                             <div class="d-flex align-items-center">
-                                <span class="flex-grow-1">@DisplayNetworkObject(destination) <small class="text-muted" title="Element origin">(@ElementOrigin(destination))</small></span>
+                                <span class="flex-grow-1">@DisplayNetworkObject(destination) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(destination))</small></span>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(destination)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             </div>
                         </div>
@@ -137,7 +137,7 @@
                     {
                         <div class="list-group-item border bg-secondary">
                             <div class="d-flex align-items-center">
-                                <span class="flex-grow-1">@DisplayNetworkElement(destination) <small class="text-muted" title="Element origin">(@ElementOrigin(destination))</small></span>
+                                <span class="flex-grow-1">@DisplayNetworkElement(destination) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(destination))</small></span>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(destination)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             </div>
                         </div>
@@ -165,7 +165,7 @@
                     @foreach(var service in Services.Where(HasServiceObjectReference))
                     {
                         <div class="list-group-item border bg-secondary d-flex align-items-center">
-                            <span class="flex-grow-1">@DisplayNetworkService(service) <small class="text-muted" title="Element origin">(@ElementOrigin(service))</small></span>
+                            <span class="flex-grow-1">@DisplayNetworkService(service) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(service))</small></span>
                             <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowServiceDetails(service)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                         </div>
                     }
@@ -173,7 +173,7 @@
                     {
                         <div class="list-group-item border bg-secondary">
                             <div class="d-flex align-items-center">
-                                <span class="flex-grow-1">@DisplayServiceElement(service) <small class="text-muted" title="Element origin">(@ElementOrigin(service))</small></span>
+                                <span class="flex-grow-1">@DisplayServiceElement(service) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(service))</small></span>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowServiceDetails(service)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             </div>
                         </div>

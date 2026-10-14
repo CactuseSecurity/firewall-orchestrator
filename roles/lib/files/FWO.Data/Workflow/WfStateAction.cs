@@ -50,6 +50,8 @@ namespace FWO.Data.Workflow
 
     public class WfStateAction
     {
+        public const int AutomaticStateId = -1;
+
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
@@ -132,7 +134,7 @@ namespace FWO.Data.Workflow
 
             if (int.TryParse(externalParams, out int parsedStateId))
             {
-                toStateId = parsedStateId;
+                toStateId = parsedStateId == AutomaticStateId ? null : parsedStateId;
                 return true;
             }
 
@@ -140,10 +142,17 @@ namespace FWO.Data.Workflow
             {
                 using JsonDocument document = JsonDocument.Parse(externalParams);
                 if (document.RootElement.TryGetProperty("to_state_id", out JsonElement simpleState)
-                    && simpleState.TryGetInt32(out int parsedSimpleStateId) && parsedSimpleStateId > 0)
+                    && simpleState.TryGetInt32(out int parsedSimpleStateId))
                 {
-                    toStateId = parsedSimpleStateId;
-                    return true;
+                    if (parsedSimpleStateId == AutomaticStateId)
+                    {
+                        return true;
+                    }
+                    if (parsedSimpleStateId > 0)
+                    {
+                        toStateId = parsedSimpleStateId;
+                        return true;
+                    }
                 }
 
                 conditionalParams = System.Text.Json.JsonSerializer.Deserialize<ConditionalAutoPromoteParams>(externalParams);
@@ -155,6 +164,11 @@ namespace FWO.Data.Workflow
             }
         }
 
+        /// <summary>
+        /// Determines whether serialized action parameters request a confirmation message in the UI.
+        /// </summary>
+        /// <param name="externalParams">The serialized action parameters to inspect.</param>
+        /// <returns><see langword="true"/> when <c>confirm_ui_message</c> is explicitly enabled; otherwise, <see langword="false"/>.</returns>
         public static bool HasConfirmUiMessage(string externalParams)
         {
             if (string.IsNullOrWhiteSpace(externalParams) || int.TryParse(externalParams, out _))

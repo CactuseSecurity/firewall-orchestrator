@@ -126,7 +126,7 @@
 
     private IEnumerable<CompliancePolicy> selectedPolicies = [];
     private ConditionalAutoPromoteParams actConditionalAutoPromoteParams = new();
-    private static WfState AutomaticState = new() { Id = -1, Name = "automatic" };
+    private static WfState AutomaticState = new() { Id = WfStateAction.AutomaticStateId, Name = "automatic" };
     private static WfState ConditionalState = new() { Id = -2, Name = "Conditional" };
     private WfState selectedToState = AutomaticState;
     private WfState selectedStateOk = AutomaticState;

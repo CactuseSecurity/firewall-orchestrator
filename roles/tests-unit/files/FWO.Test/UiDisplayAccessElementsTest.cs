@@ -63,6 +63,7 @@ namespace FWO.Test
                 Assert.That(component.Markup, Does.Not.Contain("HiddenDestinationName"));
                 Assert.That(component.Markup, Does.Not.Contain("HiddenServiceName"));
                 Assert.That(component.Markup, Does.Contain("manually"));
+                Assert.That(component.Markup, Does.Contain("title=\"Element origin\""));
             });
         }
 

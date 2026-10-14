@@ -56,4 +56,44 @@ internal class CreateTicketEndpointTest
         Assert.That(errors.Errors.Select(error => error.Path), Does.Contain("rules[0].sourceObjects"));
     }
 
+    [Test]
+    public async Task ValidationRejectsOversizedPersistedStringsAndCollections()
+    {
+        CreateTicketRequest request = new()
+        {
+            RequestorName = new string('r', CreateTicketRequest.kMaxIdentifierLength + 1),
+            RequestorId = "requestor",
+            RuleContactName = "Contact",
+            RuleContactId = "contact",
+            Title = "Ticket",
+            Notes = new string('n', CreateTicketRequest.kMaxTextLength + 1),
+            Rules = Enumerable.Range(0, CreateTicketRequest.kMaxCollectionCount + 1)
+                .Select(_ => new CreateTicketRequest.CreateTicketRuleRequest { Action = "accept" }).ToList(),
+            AddressGroups =
+            [
+                new CreateTicketRequest.CreateAddressGroupRequest
+                {
+                    Id = -1,
+                    Name = "group",
+                    MemberIds = Enumerable.Range(1, CreateTicketRequest.kMaxCollectionCount + 1).Select(value => (long)-value).ToList()
+                }
+            ]
+        };
+
+        RequestValidationErrorResponse result = CreateTicketRequestValidator.Validate(request);
+        ActionResult<CreateTicketResponse> controllerResult = await new WorkflowTicketController(null!).CreateTicket(request);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Errors.Select(error => error.Path), Does.Contain("requestorName"));
+            Assert.That(result.Errors.Select(error => error.Path), Does.Contain("notes"));
+            Assert.That(result.Errors.Select(error => error.Path), Does.Contain("rules"));
+            Assert.That(result.Errors.Select(error => error.Path), Does.Contain("addressGroups[0].memberIds"));
+            Assert.That(result.Errors.All(error => error.Message.Contains(CreateTicketRequest.kMaxCollectionCount.ToString())
+                || error.Message.Contains(CreateTicketRequest.kMaxIdentifierLength.ToString())
+                || error.Message.Contains(CreateTicketRequest.kMaxTextLength.ToString())), Is.True);
+            Assert.That(controllerResult.Result, Is.TypeOf<BadRequestObjectResult>());
+        });
+    }
+
 }

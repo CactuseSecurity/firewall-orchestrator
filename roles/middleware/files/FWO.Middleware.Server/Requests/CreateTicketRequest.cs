@@ -5,8 +5,25 @@ namespace FWO.Middleware.Server.Requests;
 /// <summary>
 /// Represents the CreateTicketRequest type.
 /// </summary>
+/// <remarks>
+/// Collections contain at most <see cref="kMaxCollectionCount"/> items. Short persisted strings contain at most
+/// <see cref="kMaxIdentifierLength"/> characters and persisted descriptive text contains at most
+/// <see cref="kMaxTextLength"/> characters.
+/// </remarks>
 public sealed class CreateTicketRequest
 {
+    /// <summary>Maximum number of items in any create-ticket collection.</summary>
+    public const int kMaxCollectionCount = 1000;
+
+    /// <summary>Maximum length of identifiers, names and other short persisted strings.</summary>
+    public const int kMaxIdentifierLength = 256;
+
+    /// <summary>Maximum length of persisted descriptive text.</summary>
+    public const int kMaxTextLength = 4096;
+
+    /// <summary>Maximum length of date-time strings accepted by the API.</summary>
+    public const int kMaxDateTimeLength = 64;
+
     private CreateTicketOptions options = new();
 
     /// <summary>

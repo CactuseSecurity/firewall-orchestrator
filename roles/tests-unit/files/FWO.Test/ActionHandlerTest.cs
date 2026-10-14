@@ -2523,6 +2523,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetAutoPromoteTargetState_MapsAutomaticSentinelToFallback()
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
+
+            Task<int?> task = (Task<int?>)GetPrivateMethod("GetAutoPromoteTargetState").Invoke(handler,
+                [WfStateAction.AutomaticStateId.ToString(), new WfTicket(), WfObjectScopes.Ticket])!;
+            int? targetState = await task;
+
+            Assert.That(targetState, Is.Null);
+        }
+
+        [Test]
         public void GetAutoPromoteTargetState_ThrowsForInvalidExternalParams()
         {
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());

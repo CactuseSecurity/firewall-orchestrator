@@ -302,6 +302,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AutoPromote_UpdateExternalParams_SerializesAutomaticStateWithConfirmation()
+        {
+            EditActionAutoPromote component = new();
+            WfStateAction action = new();
+            SetMember(component, "ActAction", action);
+            SetMember(component, "selectedToState", new WfState { Id = WfStateAction.AutomaticStateId, Name = "automatic" });
+            SetMember(component, "confirmUiMessage", true);
+
+            await InvokeAsync(component, "UpdateExternalParams");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfStateAction.TryParseAutoPromoteParams(action.ExternalParams, out int? stateId, out ConditionalAutoPromoteParams? conditionalParams), Is.True);
+                Assert.That(stateId, Is.Null);
+                Assert.That(conditionalParams, Is.Null);
+                Assert.That(WfStateAction.HasConfirmUiMessage(action.ExternalParams), Is.True);
+            });
+        }
+
+        [Test]
         public async Task AutoPromote_UpdateExternalParams_SerializesConditionalParams()
         {
             EditActionAutoPromote component = new();

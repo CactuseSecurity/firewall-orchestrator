@@ -182,7 +182,7 @@ namespace FWO.Services.Workflow
         {
             try
             {
-                List<WfReqTask> requestTasks = GetBundledRequestTasks(ActReqTask);
+                List<WfReqTask> requestTasks = GetBundledRequestTasks(ActReqTask, ActReqTask.StateId);
                 foreach (WfReqTask requestTask in requestTasks)
                 {
                     // ActReqTask is a working copy; use it for the selected task and the
@@ -541,7 +541,8 @@ namespace FWO.Services.Workflow
             foreach (WfReqTask reqtask in requestTasks)
             {
                 StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[reqtask.TaskType];
-                int newReqTaskState = reqTaskMatrix.getDerivedStateFromSubStates([synchronizationTicketStateId]);
+                List<int> synchronizationTicketStates = new() { synchronizationTicketStateId };
+                int newReqTaskState = reqTaskMatrix.getDerivedStateFromSubStates(synchronizationTicketStates);
                 if (Phase == WorkflowPhases.approval && synchronizationTicketStateId >= reqTaskMatrix.LowestEndState)
                 {
                     newReqTaskState = synchronizationTicketStateId;
@@ -732,11 +733,13 @@ namespace FWO.Services.Workflow
         private async Task UpdateReqTaskStatesFromActImplTask(bool triggerActions = true,
             NotificationPlaceholderData? placeholderData = null)
         {
+            int selectedRequestTaskState = ActReqTask.StateId;
             SyncReqTaskStopTime(ActReqTask);
             WfTicket? storedTicket = dbAcc != null ? await dbAcc.LoadPreviousTicket(ActReqTask.TicketId) : null;
             await UpdateReqTaskStateFromImplTasks(ActReqTask, triggerActions, storedTicket, placeholderData);
 
-            List<WfReqTask> bundledTasks = [.. GetBundledRequestTasks(ActReqTask).Where(task => task.Id != ActReqTask.Id)];
+            List<WfReqTask> bundledTasks = [.. GetBundledRequestTasks(ActReqTask, selectedRequestTaskState)
+                .Where(task => task.Id != ActReqTask.Id)];
             foreach (WfReqTask bundledTask in bundledTasks)
             {
                 bundledTask.StateId = ActReqTask.StateId;
@@ -753,7 +756,7 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private List<WfReqTask> GetBundledRequestTasks(WfReqTask reqTask)
+        private List<WfReqTask> GetBundledRequestTasks(WfReqTask reqTask, int? stateId = null)
         {
             if (!userConfig.ReqConsiderBundling)
             {
@@ -763,7 +766,8 @@ namespace FWO.Services.Workflow
             string bundleId = reqTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
             return string.IsNullOrWhiteSpace(bundleId)
                 ? [reqTask]
-                : [.. ActTicket.Tasks.Where(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId)];
+                : [.. ActTicket.Tasks.Where(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId
+                    && (!stateId.HasValue || task.StateId == stateId.Value))];
         }
 
         private async Task UpdateActImplTaskState(bool triggerActions = true, NotificationPlaceholderData? placeholderData = null)

@@ -186,31 +186,28 @@ namespace FWO.Middleware.Server.Controllers
         /// Search group in specified Ldap
         /// </summary>
         /// <remarks>
-        /// LdapId (required) &#xA;
+        /// LdapId (required): id of the LDAP connection to search. A group dn names a group only inside its directory,
+        /// so the search covers exactly one connection. &#xA;
         /// SearchPattern (optional) &#xA;
         /// </remarks>
         /// <param name="parameters">GroupGetParameters</param>
         /// <returns>List of groups</returns>
+        /// <response code="400">LdapId does not name a connected LDAP.</response>
         [HttpPost("Get")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
-        public async Task<List<string>> Get([FromBody] GroupGetParameters parameters)
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<List<string>>> Get([FromBody] GroupGetParameters parameters)
         {
-            List<string> allGroups = [];
-
-            foreach (Ldap currentLdap in ldaps)
+            Ldap? ldap = ldaps.FirstOrDefault(ldap => ldap.Id == parameters.LdapId);
+            if (parameters.LdapId <= 0 || ldap == null)
             {
-                if ((currentLdap.Id == parameters.LdapId || parameters.LdapId == 0) && currentLdap.HasGroupHandling())
-                {
-                    await Task.Run(async () =>
-                    {
-                        // Get all groups from current Ldap
-                        allGroups = await currentLdap.GetAllGroups(parameters.SearchPattern);
-                    });
-                }
+                Dictionary<string, string[]> errors = [];
+                errors.Add("ldapId", new List<string> { "LdapId has to name a connected LDAP connection." }.ToArray());
+                return BadRequest(new ValidationProblemDetails(errors) { Status = StatusCodes.Status400BadRequest });
             }
 
             // Return status and result
-            return allGroups;
+            return ldap.HasGroupHandling() ? await ldap.GetAllGroups(parameters.SearchPattern) : [];
         }
 
         /// <summary>

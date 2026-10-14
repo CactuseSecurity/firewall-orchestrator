@@ -83,6 +83,29 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// Warns about active connections that share a search or write path. Users and groups below a shared path are
+        /// claimed by more than one directory and therefore refused, see <see cref="LdapDnNamespace"/>.
+        /// </summary>
+        /// <param name="ldaps">All connected LDAPs.</param>
+        /// <returns>The number of active connections overlapping another active connection.</returns>
+        public static int WarnAboutOverlappingNamespaces(List<Ldap> ldaps)
+        {
+            int overlappingCount = 0;
+            foreach (Ldap ldap in ldaps.Where(ldap => ldap.Active))
+            {
+                List<Ldap> overlappingLdaps = LdapDnNamespace.GetOverlappingLdaps(ldap, ldaps);
+                if (overlappingLdaps.Count > 0)
+                {
+                    overlappingCount++;
+                    Log.WriteWarning(kLogTitle, $"LDAP connection id={ldap.Id} ({ldap.Host()}) shares a search or write path with connection id(s) " +
+                        $"{string.Join(", ", overlappingLdaps.Select(other => other.Id))}. Users and groups below a shared path cannot log in or be resolved " +
+                        "until the active connections have distinct paths. Replicas of one directory belong into the server list of one connection.");
+                }
+            }
+            return overlappingCount;
+        }
+
+        /// <summary>
         /// Ensures that a locally known user resolved to its own local user again.
         /// </summary>
         /// <param name="expectedDbId">Local db id the user was given with, 0 if it was not known locally.</param>

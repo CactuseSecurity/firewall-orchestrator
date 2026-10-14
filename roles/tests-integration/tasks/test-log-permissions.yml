@@ -1,0 +1,63 @@
+# verifies that the fworch log directory and every log file in it (including rotated ones) are
+# readable by the fworch group only, both for files the installer fixed and files rsyslog created
+
+- debug:
+    msg: starting log permission integration tests
+
+# makes sure rsyslog has written at least one log file with the permissions it was configured with
+- name: send a test message to the fworch api log
+  command: logger -t "{{ product_name }}-api" "log permission integration test"
+  changed_when: false
+
+- name: wait for rsyslog to write the test message to the api log
+  wait_for:
+    path: "{{ fworch_log_dir }}/api.log"
+    search_regex: "log permission integration test"
+    timeout: 30
+  become: true
+
+- name: check the fworch log directory
+  stat:
+    path: "{{ fworch_log_dir }}"
+  register: log_dir_stat
+  become: true
+
+- name: the log directory must be accessible to the log owner and group {{ fworch_log_group }} only
+  assert:
+    that:
+      - log_dir_stat.stat.isdir
+      - log_dir_stat.stat.pw_name == fworch_log_owner
+      - log_dir_stat.stat.gr_name == fworch_log_group
+      - log_dir_stat.stat.mode == '0750'
+    fail_msg: >-
+      {{ fworch_log_dir }} is {{ log_dir_stat.stat.pw_name }}:{{ log_dir_stat.stat.gr_name }}
+      {{ log_dir_stat.stat.mode }}, expected {{ fworch_log_owner }}:{{ fworch_log_group }} 0750
+
+# subdirectories and other files in the log dir are not written by rsyslog and are not checked
+- name: find all log files in the fworch log directory
+  find:
+    paths: "{{ fworch_log_dir }}"
+    patterns: "{{ fworch_log_file_patterns }}"
+    file_type: file
+    hidden: true
+  register: log_files
+  become: true
+
+- name: every log file must be owned by {{ fworch_log_owner }}:{{ fworch_log_group }} with mode {{ fworch_log_file_mode }}
+  assert:
+    that:
+      - log_files.files | length > 0
+      - wrong_log_files | length == 0
+    fail_msg: >-
+      log files with wrong owner, group or mode (expected {{ fworch_log_owner }}:{{ fworch_log_group }}
+      {{ fworch_log_file_mode }}): {{ wrong_log_files }}
+  vars:
+    wrong_log_files: >-
+      {{
+        (
+          (log_files.files | rejectattr('pw_name', 'equalto', fworch_log_owner) | list)
+          + (log_files.files | rejectattr('gr_name', 'equalto', fworch_log_group) | list)
+          + (log_files.files | rejectattr('mode', 'equalto', fworch_log_file_mode) | list)
+        )
+        | map(attribute='path') | unique | list
+      }}

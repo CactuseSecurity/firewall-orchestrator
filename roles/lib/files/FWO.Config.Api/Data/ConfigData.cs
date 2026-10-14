@@ -271,6 +271,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
         public string ReqAvailableTaskTypes { get; set; } = "";
 
+        [JsonProperty("reqTicketFieldVisibility"), JsonPropertyName("reqTicketFieldVisibility")]
+        public string ReqTicketFieldVisibility { get; set; } = System.Text.Json.JsonSerializer.Serialize(new TicketFieldVisibilityConfig());
+
         [JsonProperty("reqOwnerBased"), JsonPropertyName("reqOwnerBased")]
         public bool ReqOwnerBased { get; set; } = false;
 
@@ -304,6 +307,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqConsiderBundling"), JsonPropertyName("reqConsiderBundling")]
         public bool ReqConsiderBundling { get; set; } = false;
 
+        [JsonProperty("reqDisplayBundledTasksAsOne"), JsonPropertyName("reqDisplayBundledTasksAsOne")]
+        public bool ReqDisplayBundledTasksAsOne { get; set; } = false;
+
         [JsonProperty("reqActivatePathAnalysis"), JsonPropertyName("reqActivatePathAnalysis")]
         public bool ReqActivatePathAnalysis { get; set; } = true;
 
@@ -312,6 +318,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reqAllowedChangesByApprover"), JsonPropertyName("reqAllowedChangesByApprover")]
         public string ReqAllowedChangesByApprover { get; set; } = System.Text.Json.JsonSerializer.Serialize(new ApproverAllowedChangesConfig());
+
+        [JsonProperty("reqImplicitApprovalComment"), JsonPropertyName("reqImplicitApprovalComment")]
+        public string ReqImplicitApprovalComment { get; set; } = "Automatically approved because the request task was promoted beyond the approval phase.";
 
         [JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
         public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;

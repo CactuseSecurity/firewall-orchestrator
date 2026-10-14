@@ -3,6 +3,7 @@ mutation newTicket(
   $reason: String
   $state: Int
   $requesterId: Int
+  $additionalInfo: String
   $deadline: timestamp
   $priority: Int
   $preWorkflowTicketReference: String
@@ -14,6 +15,7 @@ mutation newTicket(
     reason: $reason
     state_id: $state
     requester_id: $requesterId
+    additional_info: $additionalInfo
     ticket_deadline: $deadline
     ticket_priority: $priority
     pre_workflow_ticket_reference: $preWorkflowTicketReference

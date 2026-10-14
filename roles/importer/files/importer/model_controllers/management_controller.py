@@ -219,8 +219,8 @@ class ManagementController(Management):
     def decrypt_additional_credentials(management: dict[str, Any]) -> None:
         """Decrypt linked secrets for the management and its queried sub-managers, failing closed."""
         for manager in [management, *management.get("subManagers", [])]:
-            credential = manager.get("import_credential") or {}
-            additional_credential = credential.get("additional_credential")
+            credential: dict[str, Any] = manager.get("import_credential") or {}
+            additional_credential: dict[str, Any] | None = credential.get("additional_credential")
             if additional_credential is None:
                 continue
             try:

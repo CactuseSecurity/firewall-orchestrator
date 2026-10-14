@@ -7,7 +7,9 @@ from unittest.mock import MagicMock
 import pytest
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from fw_modules.ciscoasa9.fwcommon import _ensure_enable_mode
+
+# Exercise the enable-mode helper directly without opening an SSH connection.
+from fw_modules.ciscoasa9.fwcommon import _ensure_enable_mode  # pyright: ignore[reportPrivateUsage]
 from fwo_exceptions import SecretDecryptionFailedError
 from model_controllers.management_controller import ManagementController
 from models.credential import AdditionalCredential
@@ -32,8 +34,8 @@ def encrypt_secret(secret: str) -> str:
 def test_decrypts_linked_credentials_of_parent_and_submanager(mocker: MockerFixture, secret: str) -> None:
     mocker.patch("model_controllers.management_controller.read_main_key", return_value=k_main_key)
     encrypted = encrypt_secret(secret)
-    credential = {"id": 2, "user": "client-id", "secret": encrypted}
-    management = {
+    credential: dict[str, Any] = {"id": 2, "user": "client-id", "secret": encrypted}
+    management: dict[str, Any] = {
         "import_credential": {"additional_credential": credential.copy()},
         "subManagers": [{"import_credential": {"additional_credential": credential.copy()}}],
     }

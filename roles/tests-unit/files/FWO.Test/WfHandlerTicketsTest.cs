@@ -51,6 +51,10 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)Ticket);
                 }
+                if (query == RequestQueries.updateTicket)
+                {
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = Ticket.Id });
+                }
                 if (query == RequestQueries.getTicketsByParameters || query == RequestQueries.getTickets
                     || query == RequestQueries.getFullTickets || query == RequestQueries.getFullTicketsByTicketState)
                 {
@@ -1062,6 +1066,79 @@ namespace FWO.Test
             long ticketId = await handler.SaveTicket(new WfStatefulObject { StateId = 5 });
 
             Assert.That(ticketId, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void ShouldSynchronizeRequestTasks_OnlyForExistingTicketsOutsideRequestPhase()
+        {
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.approval,
+                ActTicket = new WfTicket { StateId = 1 }
+            };
+            MethodInfo? method = typeof(WfHandler).GetMethod("ShouldSynchronizeRequestTasks", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            bool approvalPhase = (bool)method!.Invoke(handler, [0])!;
+            handler.Phase = WorkflowPhases.request;
+            bool requestPhase = (bool)method.Invoke(handler, [0])!;
+            handler.Phase = WorkflowPhases.approval;
+            handler.AddTicketMode = true;
+            bool newTicket = (bool)method.Invoke(handler, [0])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(approvalPhase, Is.True);
+                Assert.That(requestPhase, Is.False);
+                Assert.That(newTicket, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task SaveTicket_UpdatesExistingTicketThroughDatabasePath()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = new WfTicket { Id = 7, StateId = 1 } };
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, new UserConfig());
+            WfTicket ticket = new() { Id = 7, StateId = 1 };
+            handler.ActTicket = ticket;
+            handler.TicketList.Add(ticket);
+
+            long ticketId = await handler.SaveTicket(new WfStatefulObject { StateId = 1 });
+
+            Assert.That(ticketId, Is.EqualTo(7));
+        }
+
+        [Test]
+        public async Task SynchronizeRequestTasks_SetsTicketBackToRequestedTarget()
+        {
+            WfHandler handler = new()
+            {
+                ActTicket = new WfTicket { Id = 7, StateId = 1 }
+            };
+            MethodInfo? method = typeof(WfHandler).GetMethod("SynchronizeRequestTasks", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            object[] arguments = [6, null!];
+            await (Task)(method!.Invoke(handler, arguments) ?? throw new InvalidOperationException("Method not found."));
+
+            Assert.That(handler.ActTicket.StateId, Is.EqualTo(6));
+        }
+
+        [Test]
+        public async Task UpdateRequestTasksAndTicket_LeavesTicketWhenNoTaskStateChanged()
+        {
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.approval,
+                ActTicket = new WfTicket { Id = 7, StateId = 6 }
+            };
+            MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksAndTicket", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            object[] arguments = [null!];
+            await (Task)(method!.Invoke(handler, arguments) ?? throw new InvalidOperationException("Method not found."));
+
+            Assert.That(handler.ActTicket.StateId, Is.EqualTo(6));
         }
 
         [Test]

@@ -233,6 +233,105 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task DisplayImplementationTask_PerformAction_ExecutesNormalPath()
+        {
+            WfReqTask reqTask = new() { Id = 20, TaskType = WfTaskType.generic.ToString() };
+            WfImplTask implTask = new()
+            {
+                Id = 30,
+                TaskNumber = 1,
+                ReqTaskId = reqTask.Id,
+                TaskType = WfTaskType.generic.ToString(),
+                Title = "Implementation task"
+            };
+            reqTask.ImplementationTasks = [implTask];
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                ActReqTask = reqTask,
+                ActImplTask = implTask,
+                ActTicket = new WfTicket { Tasks = [reqTask] }
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler,
+                new WfStateDict(), Roles.Implementer);
+
+            await component.InvokeAsync(() => InvokePrivateTask(typeof(DisplayImplementationTask), component.Instance,
+                "PerformAction", new WfStateAction()));
+
+            Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+        }
+
+        [Test]
+        public async Task DisplayImplementationTask_SaveImplTask_ChangesExistingTaskThroughNormalPath()
+        {
+            WfReqTask reqTask = new() { Id = 20, TaskType = WfTaskType.generic.ToString() };
+            WfImplTask implTask = new()
+            {
+                Id = 30,
+                TaskNumber = 1,
+                ReqTaskId = reqTask.Id,
+                TaskType = WfTaskType.generic.ToString(),
+                Title = "Implementation task",
+                FreeText = "instructions"
+            };
+            reqTask.ImplementationTasks = [implTask];
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                EditImplTaskMode = true,
+                ActReqTask = reqTask,
+                ActImplTask = implTask,
+                ActTicket = new WfTicket { Tasks = [reqTask] }
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler,
+                new WfStateDict(), Roles.Implementer);
+
+            await component.InvokeAsync(() => InvokePrivateTask(typeof(DisplayImplementationTask), component.Instance,
+                "SaveImplTask"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+                Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
+                Assert.That(reqTask.ImplementationTasks[0], Is.SameAs(implTask));
+            });
+        }
+
+        [Test]
+        public async Task DisplayImplementationTask_ConfAddComment_UpdatesCommentsThroughNormalPath()
+        {
+            WfImplTask implTask = new()
+            {
+                Id = 30,
+                TaskType = WfTaskType.generic.ToString(),
+                Title = "Implementation task"
+            };
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                ActReqTask = new WfReqTask(),
+                ActImplTask = implTask
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler,
+                new WfStateDict(), Roles.Implementer);
+
+            await component.InvokeAsync(() => InvokePrivateTask(typeof(DisplayImplementationTask), component.Instance,
+                "ConfAddComment", "Implementation comment"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(implTask.Comments.Any(comment => comment.Comment.CommentText == "Implementation comment"), Is.True);
+                Assert.That(handler.DisplayImplTaskCommentMode, Is.False);
+            });
+        }
+
         private static SimulatedUserConfig CreateUserConfig(params string[] roles)
         {
             SimulatedUserConfig userConfig = new();

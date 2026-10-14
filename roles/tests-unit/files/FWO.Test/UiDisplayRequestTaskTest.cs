@@ -20,6 +20,9 @@ namespace FWO.Test
     [TestFixture]
     internal class UiDisplayRequestTaskTest
     {
+        private static readonly int[] kRemovedOwnerIds = [1];
+        private static readonly int[] kNewOwnerIds = [2];
+
         /// <summary>
         /// Verifies that approver-specific field permissions control editing and saving.
         /// </summary>
@@ -46,6 +49,345 @@ namespace FWO.Test
                 Assert.That(InvokePrivate<bool>(component, "CanEditReqTaskField", WorkflowEditableFieldKeys.Services), Is.True);
                 Assert.That(InvokePrivate<bool>(component, "CanSaveReqTaskChanges"), Is.True);
             });
+        }
+
+        [Test]
+        public void AccessTaskVisibilityConfigControlsDescriptiveFields()
+        {
+            DisplayRequestTask component = new();
+            TicketFieldVisibilityConfig visibility = new();
+            visibility.AccessTask.ShowManagement = false;
+            visibility.AccessTask.ShowOwner = false;
+            visibility.AccessTask.ShowValidFrom = false;
+            visibility.AccessTask.ShowValidTo = false;
+            visibility.AccessTask.ShowReason = false;
+            visibility.AccessTask.ShowFreeText = true;
+            visibility.AccessTask.ShowComments = false;
+            SimulatedUserConfig userConfig = new() { ReqTicketFieldVisibility = visibility.ToConfigValue() };
+            SetPrivateField(component, "userConfig", userConfig);
+            SetPrivateField(component, "actTaskType", WfTaskType.access);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(component, "ShowTaskField", WorkflowEditableFieldKeys.Management), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "ShowTaskField", WorkflowEditableFieldKeys.Owner), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "ShowTaskField", WorkflowEditableFieldKeys.ValidFrom), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "ShowTaskField", WorkflowEditableFieldKeys.ValidTo), Is.False);
+                Assert.That(TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask.ShowFreeText, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task AccessTaskFreeTextVisibility_DoesNotHideVisibleEndDate()
+        {
+            TicketFieldVisibilityConfig visibility = new();
+            visibility.AccessTask.ShowFreeText = true;
+            visibility.AccessTask.ShowValidFrom = false;
+            visibility.AccessTask.ShowValidTo = true;
+
+            WfReqTask task = new()
+            {
+                Id = 1,
+                Title = "Access task",
+                TaskType = WfTaskType.access.ToString(),
+                TargetEndDate = DateTime.Today.AddDays(1)
+            };
+            WfHandler handler = new()
+            {
+                DisplayReqTaskMode = true,
+                ActReqTask = task,
+                ActTicket = new WfTicket { Tasks = [task] }
+            };
+
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig
+            {
+                ReqTicketFieldVisibility = visibility.ToConfigValue()
+            });
+            IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(
+                context, handler, new WfStateDict(), Roles.Requester);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Not.Contain("valid_from"));
+                Assert.That(component.Markup, Does.Contain("valid_to"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_ActionAndSaveMethods_DoNothingWhileBusy()
+        {
+            DisplayRequestTask component = new();
+            SetPrivateField(component, "WorkInProgress", true);
+            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = new WfReqTask { Title = "Task", TaskType = WfTaskType.generic.ToString() }
+            });
+
+            await InvokePrivateTask(component, "PerformAction", new WfStateAction());
+            await InvokePrivateTask(component, "ConfApproveTask", new WfApproval());
+            await InvokePrivateTask(component, "SaveReqTask");
+
+            Assert.That(GetPrivateField<bool>(component, "WorkInProgress"), Is.True);
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_PerformAction_ExecutesNormalReloadAndResetPath()
+        {
+            WfReqTask task = new() { Id = 0, TaskNumber = 1, Title = "Task", TaskType = WfTaskType.generic.ToString() };
+            WfHandler handler = new()
+            {
+                DisplayReqTaskMode = true,
+                EditReqTaskMode = true,
+                ActReqTask = task,
+                ActTicket = new WfTicket { Tasks = [task] }
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, new WfStateDict(), Roles.Requester);
+
+            await component.InvokeAsync(() => InvokePrivateTask(component.Instance, "PerformAction", new WfStateAction()));
+
+            Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_SaveReqTask_ChangesExistingTaskThroughNormalPath()
+        {
+            WfReqTask task = new() { Id = 0, TaskNumber = 1, Title = "Task", TaskType = WfTaskType.generic.ToString() };
+            WfHandler handler = new()
+            {
+                DisplayReqTaskMode = true,
+                EditReqTaskMode = true,
+                ActReqTask = task,
+                ActTicket = new WfTicket { Tasks = [task] }
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, new WfStateDict(), Roles.Requester);
+
+            await component.InvokeAsync(() => InvokePrivateTask(component.Instance, "SaveReqTask"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+                Assert.That(handler.ActTicket.Tasks, Has.Count.EqualTo(1));
+                Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(task));
+            });
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_ConfApproveTask_ForwardsApprovalInNormalPath()
+        {
+            WfApproval approval = new() { Id = 7, StateId = 0 };
+            WfReqTask task = new()
+            {
+                Id = 0,
+                TaskType = WfTaskType.generic.ToString(),
+                Approvals = [approval]
+            };
+            WfHandler handler = new()
+            {
+                ActReqTask = task,
+                ActApproval = approval,
+                ActTicket = new WfTicket { Tasks = [task] },
+                ActStateMatrix = new StateMatrix { LowestEndState = 99 }
+            };
+            DisplayRequestTask component = new();
+            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), handler);
+            SetPrivateField(component, "userConfig", CreateUserConfig());
+
+            WfApproval target = new() { Id = 7, StateId = 5 };
+            await InvokePrivateTask(component, "ConfApproveTask", target);
+
+            Assert.That(approval.StateId, Is.EqualTo(5));
+        }
+
+        [Test]
+        public void DisplayRequestTask_StateHelpersAndMetadataCallbacks_UpdateState()
+        {
+            DisplayRequestTask component = new();
+            WfHandler handler = new()
+            {
+                ActReqTask = new WfReqTask { TaskType = WfTaskType.access.ToString() },
+                ActStateMatrix = new StateMatrix { PhaseActive = { [WorkflowPhases.approval] = true } }
+            };
+            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), handler);
+            SetPrivateField(component, "userConfig", CreateUserConfig());
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                PhaseActive = { [WorkflowPhases.approval] = true }
+            });
+            SetPrivateField(component, nameof(DisplayRequestTask.Phase), WorkflowPhases.approval);
+            SetPrivateField(component, "availableTaskTypes", new List<WfTaskType> { WfTaskType.master, WfTaskType.generic, WfTaskType.access });
+
+            InvokePrivate(component, "OnMetadataTaskTypeChanged", WfTaskType.generic);
+            Management management = new() { Id = 4, Name = "management" };
+            InvokePrivate(component, "OnMetadataManagementChanged", management);
+            InvokePrivate(component, "SetTargetDatesValid", false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<WfTaskType>(component, "GetDefaultTaskType"), Is.EqualTo(WfTaskType.access));
+                Assert.That(GetPrivateField<Management?>(component, "actManagement"), Is.EqualTo(management));
+                Assert.That(InvokePrivate<bool>(component, "RejectInvalidTargetDates"), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "CanShowApprovalsButton"), Is.True);
+                Assert.That(InvokePrivate<bool>(component, "IsRequestTaskReadOnly"), Is.True);
+            });
+
+            handler.ApproveReqTaskMode = true;
+            Assert.That(InvokePrivate<bool>(component, "IsRequestTaskReadOnly"), Is.False);
+
+            handler.DisplayPromoteReqTaskMode = true;
+            handler.DisplayApproveMode = true;
+            Assert.That(InvokePrivate<bool>(component, "Cancel"), Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayPromoteReqTaskMode, Is.False);
+                Assert.That(handler.DisplayApproveMode, Is.False);
+            });
+        }
+
+        [Test]
+        public void DisplayRequestTask_ConfiguredActionVisibility_RespectsModesAndReadOnlyActions()
+        {
+            DisplayRequestTask component = new();
+            WfHandler handler = new() { ActReqTask = new WfReqTask() };
+            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), handler);
+
+            WfStateAction normalAction = new() { ActionType = StateActionTypes.DoNothing.ToString() };
+            WfStateAction readOnlyAction = new() { ActionType = StateActionTypes.DisplayConnection.ToString() };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(component, "CanShowConfiguredActionButton", normalAction), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "CanShowConfiguredActionButton", readOnlyAction), Is.True);
+            });
+
+            handler.EditReqTaskMode = true;
+            Assert.That(InvokePrivate<bool>(component, "CanShowConfiguredActionButton", normalAction), Is.True);
+        }
+
+        [Test]
+        public void DisplayRequestTask_ObjectReferencesAndServicePortsAreValidated()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(new DisplayRequestTask(), "HasObjectReference", new WfReqElement { NetworkId = 1 }), Is.True);
+                Assert.That(InvokePrivate<bool>(new DisplayRequestTask(), "HasObjectReference", new WfReqElement { ServiceId = 1 }), Is.True);
+                Assert.That(InvokePrivate<bool>(new DisplayRequestTask(), "HasObjectReference", new WfReqElement { FlowNetworkObjectId = 1 }), Is.True);
+                Assert.That(InvokePrivate<bool>(new DisplayRequestTask(), "HasObjectReference", new WfReqElement { FlowNetworkGroupId = 1 }), Is.True);
+                Assert.That(InvokePrivate<bool>(new DisplayRequestTask(), "HasObjectReference", new WfReqElement { FlowServiceObjectId = 1 }), Is.True);
+                Assert.That(InvokePrivate<bool>(new DisplayRequestTask(), "HasObjectReference", new WfReqElement { FlowServiceGroupId = 1 }), Is.True);
+                Assert.That(InvokePrivate<bool>(new DisplayRequestTask(), "HasObjectReference", new WfReqElement()), Is.False);
+            });
+
+            DisplayRequestTask component = new();
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(component, "IsInvalidServicePort", new WfReqElement { Field = ElemFieldType.source.ToString(), Port = 0, ProtoId = 6 }), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "IsInvalidServicePort", new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 443, ProtoId = 6 }), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "IsInvalidServicePort", new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 0, ProtoId = 6 }), Is.True);
+                Assert.That(InvokePrivate<bool>(component, "IsInvalidServicePort", new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 65536, ProtoId = 6 }), Is.True);
+            });
+        }
+
+        [Test]
+        public void DisplayRequestTask_OwnerAndTaskTypeChangesArePreparedForSave()
+        {
+            FwoOwner oldOwner = new() { Id = 1, Name = "old" };
+            FwoOwner newOwner = new() { Id = 2, Name = "new" };
+            WfReqTask task = new() { TaskType = WfTaskType.new_interface.ToString() };
+            DisplayRequestTask component = new();
+            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), new WfHandler { ActReqTask = task });
+            SetPrivateField(component, "oldOwner", oldOwner);
+            SetPrivateField(component, "actOwner", newOwner);
+            SetPrivateField(component, "actTaskType", WfTaskType.new_interface);
+            SetPrivateField(component, "actRequestingOwner", new FwoOwner { Id = 3, Name = "requesting" });
+
+            InvokePrivate(component, "ApplyOwnerChanges");
+            InvokePrivate(component, "ApplyTaskTypeSpecificValues");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(task.RemovedOwners.Select(owner => owner.Id), Is.EqualTo(kRemovedOwnerIds));
+                Assert.That(task.NewOwners.Select(owner => owner.Id), Is.EqualTo(kNewOwnerIds));
+                Assert.That(task.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner), Is.EqualTo(3));
+            });
+        }
+
+        [Test]
+        public void GetBundledTaskCount_OnlyCountsTasksWithSameStateWhenDisplayGroupingIsEnabled()
+        {
+            WfReqTask activeTask = new() { Id = 1, StateId = 2 };
+            activeTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-1-2");
+            WfReqTask sameStateTask = new() { Id = 2, StateId = 2 };
+            sameStateTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-1-2");
+            WfReqTask differentStateTask = new() { Id = 3, StateId = 3 };
+            differentStateTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-1-2");
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqConsiderBundling = true,
+                ReqDisplayBundledTasksAsOne = true
+            };
+            DisplayRequestTask component = new();
+            SetPrivateField(component, "userConfig", userConfig);
+            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = activeTask,
+                ActTicket = new WfTicket { Tasks = [activeTask, sameStateTask, differentStateTask] }
+            });
+            SetPrivateField(component, nameof(DisplayRequestTask.Phase), WorkflowPhases.approval);
+
+            Assert.That(InvokePrivate<int>(component, "GetBundledTaskCount"), Is.EqualTo(2));
+        }
+
+        [Test]
+        public void GetBundledDisplayTask_MergesDistinctElementsWithoutChangingActiveTask()
+        {
+            WfReqTask activeTask = CreateBundledAccessTask(1, "10.0.0.1/32", "10.0.1.1/32");
+            WfReqTask secondTask = CreateBundledAccessTask(2, "10.0.0.1/32", "10.0.1.2/32");
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqConsiderBundling = true,
+                ReqDisplayBundledTasksAsOne = true
+            };
+            DisplayRequestTask component = new();
+            SetPrivateField(component, "userConfig", userConfig);
+            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = activeTask,
+                ActTicket = new WfTicket { Tasks = [activeTask, secondTask] }
+            });
+            SetPrivateField(component, nameof(DisplayRequestTask.Phase), WorkflowPhases.approval);
+
+            WfReqTask mergedTask = InvokePrivate<WfReqTask>(component, "GetBundledDisplayTask");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(mergedTask.GetNwObjectElements(ElemFieldType.source), Has.Count.EqualTo(1));
+                Assert.That(mergedTask.GetNwObjectElements(ElemFieldType.destination)
+                    .Select(destination => destination.IpString), Is.EquivalentTo(["10.0.1.1/32", "10.0.1.2/32"]));
+                Assert.That(mergedTask.GetServiceElements(), Has.Count.EqualTo(1));
+                Assert.That(activeTask.Elements, Has.Count.EqualTo(3));
+            });
+        }
+
+        private static WfReqTask CreateBundledAccessTask(long id, string source, string destination)
+        {
+            WfReqTask task = new()
+            {
+                Id = id,
+                StateId = 2,
+                Elements =
+                [
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = source, Name = "source" },
+                    new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = destination, Name = destination },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 443, ProtoId = 6, Name = "https" }
+                ]
+            };
+            task.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-1-2");
+            return task;
         }
 
         private static void SetPrivateField<T>(object component, string fieldName, T value)
@@ -93,7 +435,7 @@ namespace FWO.Test
 
         private static MethodInfo GetPrivateMethod(object component, string methodName)
         {
-            return component.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+            return component.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
                 ?? throw new MissingMethodException(component.GetType().FullName, methodName);
         }
 

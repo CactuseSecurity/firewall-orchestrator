@@ -129,7 +129,6 @@ internal class FlowComplianceValidationTest
 
     [TestCase("10.0.0.10", "10.0.0.10")]
     [TestCase("2001:db8::10", "2001:db8::10")]
-    [TestCase("192.000.002.010", "192.0.2.8")]
     public void GetFlowComplianceState_AcceptsIpHost(string ipNetwork, string expectedAddress)
     {
         GetFlowComplianceStateRequest request = new()
@@ -205,6 +204,10 @@ internal class FlowComplianceValidationTest
     [TestCase("10.0.0.1/33")]
     [TestCase("2001:db8::1/129")]
     [TestCase("10.0.0.1/not-a-prefix")]
+    [TestCase("010.0.0.0/24")]
+    [TestCase("10.0.0.0/+24")]
+    [TestCase("fe80::%3/64")]
+    [TestCase("::ffff:192.0.2.0/120")]
     public void GetFlowComplianceState_RejectsInvalidNetworkPrefix(string ipNetwork)
     {
         bool valid = TryValidateSourceNetwork(ipNetwork, out ActionResult? errorResult);

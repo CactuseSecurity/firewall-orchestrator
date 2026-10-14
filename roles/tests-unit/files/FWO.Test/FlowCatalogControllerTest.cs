@@ -51,11 +51,6 @@ namespace FWO.Test
             {
                 IpRange = ["10.0.0.1", "10.0.0.2"]
             });
-            GetAddressObjectIdRequest normalizedAddressObjectIdRequest = new()
-            {
-                IpRange = ["010.000.000.001", "010.000.000.002"]
-            };
-            ActionResult<AddressObjectIdResponse> normalizedAddressObjectIdResult = await controller.GetAddressObjectId(normalizedAddressObjectIdRequest);
             GetAddressObjectIdRequest ipv6AddressObjectIdRequest = new()
             {
                 IpRange = ["2001:db8::", "2001:db8::3"]
@@ -100,10 +95,6 @@ namespace FWO.Test
                 Assert.That(addressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
                 Assert.That(ExtractValue<AddressObjectIdResponse>(addressObjectIdResult).Name, Is.EqualTo("Host"));
 
-                Assert.That(normalizedAddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
-                Assert.That(normalizedAddressObjectIdRequest.NormalizedIpStart, Is.EqualTo("8.0.0.1"));
-                Assert.That(normalizedAddressObjectIdRequest.NormalizedIpEnd, Is.EqualTo("8.0.0.2"));
-
                 Assert.That(ipv6AddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
                 Assert.That(networkAddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
                 Assert.That(networkAddressObjectIdRequest.NormalizedIpStart, Is.EqualTo("192.0.2.0"));
@@ -118,6 +109,20 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Contain(StmQueries.getIpProtocols));
             Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowServiceObjectId));
             Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowAddressObjectId));
+        }
+
+        [Test]
+        public async Task GetAddressObjectId_RejectsLeadingZeroIpv4Octets()
+        {
+            using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
+            FlowCatalogController controller = new(service);
+
+            ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
+            {
+                IpRange = ["010.0.0.1", "010.0.0.2"]
+            });
+
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
         }
 
         [Test]

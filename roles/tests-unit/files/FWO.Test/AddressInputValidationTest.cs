@@ -7,12 +7,8 @@ namespace FWO.Test;
 internal class AddressInputValidationTest
 {
     [TestCase("192.0.2.10", "192.0.2.10")]
-    [TestCase("192.000.002.010", "192.0.2.8")]
     [TestCase("2001:0db8:0:0:0:0:0:10", "2001:db8::10")]
-    [TestCase("fe80::1%3", "fe80::1%3")]
-    [TestCase("::ffff:192.0.2.10", "::ffff:192.0.2.10")]
-    [TestCase("::192.0.2.10", "::192.0.2.10")]
-    public void IpHost_FollowsExistingParserBehavior(string input, string expected)
+    public void IpHost_AcceptsStandardAddressNotation(string input, string expected)
     {
         AddressInput inputModel = new() { IpHost = input };
 
@@ -38,7 +34,16 @@ internal class AddressInputValidationTest
 
     [TestCase("127.1")]
     [TestCase("2130706433")]
-    public void IpHost_UsesStrictFourOctetIpv4Parsing(string value)
+    [TestCase("0x7f000001")]
+    [TestCase("010.0.0.1")]
+    [TestCase("192.000.002.010")]
+    [TestCase("[2001:db8::1]")]
+    [TestCase("fe80::1%3")]
+    [TestCase("::ffff:192.0.2.10")]
+    [TestCase("::192.0.2.10")]
+    [TestCase("::ffff:c000:20a")]
+    [TestCase("::c000:20a")]
+    public void IpHost_RejectsNonCanonicalAddressNotation(string value)
     {
         bool valid = AddressInputNormalizer.TryValidateAndNormalize(
             new AddressInput { IpHost = value }, "address", out _, out string? error);
@@ -47,15 +52,16 @@ internal class AddressInputValidationTest
         Assert.That(error, Does.Contain("ipHost"));
     }
 
-    [Test]
-    public void IpRange_ParsesScopedIpv6EntriesIndependently()
+    [TestCase("fe80::1%3", "fe80::2%3")]
+    [TestCase("010.0.0.1", "010.0.0.2")]
+    public void IpRange_RejectsNonCanonicalAddressNotation(string start, string end)
     {
-        AddressInput input = new() { IpRange = ["fe80::1%3", "fe80::2%3"] };
+        AddressInput input = new() { IpRange = [start, end] };
 
-        bool valid = AddressInputNormalizer.TryValidateAndNormalize(input, "address", out NormalizedAddressBounds bounds, out string? error);
+        bool valid = AddressInputNormalizer.TryValidateAndNormalize(input, "address", out _, out string? error);
 
-        Assert.That(valid, Is.True, error);
-        Assert.That(bounds, Is.EqualTo(new NormalizedAddressBounds("fe80::1%3", "fe80::2%3")));
+        Assert.That(valid, Is.False);
+        Assert.That(error, Does.Contain("ipRange[0]"));
     }
 
     [TestCase("192.0.2.10", "192.0.2.20")]
@@ -89,6 +95,10 @@ internal class AddressInputValidationTest
         yield return new(new AddressInput { IpHost = "10.0.0.1/32" }, "ipHost");
         yield return new(new AddressInput { IpHost = "10.0.0.1-10.0.0.1" }, "ipHost");
         yield return new(new AddressInput { IpNetwork = "10.0.0.1" }, "ipNetwork");
+        yield return new(new AddressInput { IpNetwork = "010.0.0.0/24" }, "ipNetwork");
+        yield return new(new AddressInput { IpNetwork = "10.0.0.0/+24" }, "ipNetwork");
+        yield return new(new AddressInput { IpNetwork = "fe80::%3/64" }, "ipNetwork");
+        yield return new(new AddressInput { IpNetwork = "::ffff:192.0.2.0/120" }, "ipNetwork");
         yield return new(new AddressInput { IpRange = ["", "10.0.0.1"] }, "ipRange[0]");
         yield return new(new AddressInput { IpRange = [null!, "10.0.0.1"] }, "ipRange[0]");
         yield return new(new AddressInput { IpRange = ["10.0.0.1/32", "10.0.0.2"] }, "ipRange[0]");

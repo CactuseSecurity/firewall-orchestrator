@@ -39,6 +39,7 @@ public static class TicketResponseMapper
             RequesterName = ticket.Requester?.Name ?? string.Empty,
             RequesterDn = ticket.RequesterDn ?? string.Empty,
             RequesterGroup = ticket.RequesterGroup ?? string.Empty,
+            AdditionalInfo = ticket.AdditionalInfo ?? string.Empty,
             TenantId = ticket.TenantId,
             Reason = ticket.Reason ?? string.Empty,
             ExternalTicketId = ticket.ExternalTicketId ?? string.Empty,

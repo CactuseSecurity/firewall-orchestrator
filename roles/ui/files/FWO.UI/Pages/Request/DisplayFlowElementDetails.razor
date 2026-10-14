@@ -1,0 +1,279 @@
+@using FWO.Data.Flow
+@using FWO.Data.Workflow
+@using FWO.Data
+
+@inject UserConfig userConfig
+
+@if (Display)
+{
+    <PopUp Title="@Title" Size="PopupSize.Medium" Show="@Display" OnClose="Close">
+        <Body>
+            @if (NetworkObject != null)
+            {
+                <DisplayFlowDetailRow Label="@userConfig.GetText("name")" Value="@NetworkObjectDisplayName()" />
+                <DisplayFlowDetailRow Label="@userConfig.GetText("ip")" Value="@NetworkObjectDisplayRange()" />
+            }
+            @if (NetworkGroup != null)
+            {
+                <DisplayFlowDetailRow Label="@userConfig.GetText("name")" Value="@NetworkGroupDisplayName()" />
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("members"):</label>
+                    <div class="col-sm-8">
+                        @foreach (string member in NetworkGroupMemberDisplays())
+                        {
+                            <div>@member</div>
+                        }
+                    </div>
+                </div>
+            }
+            @if (NetworkGroupMode && NetworkGroup == null)
+            {
+                <DisplayFlowDetailRow Label="@userConfig.GetText("name")" Value="@DisplayNetworkFallback()" />
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("members"):</label>
+                    <div class="col-sm-8">
+                        @foreach (string member in NetworkFallbackMemberDisplays())
+                        {
+                            <div>@member</div>
+                        }
+                    </div>
+                </div>
+            }
+            @if (!NetworkGroupMode && NetworkFallback.Count > 0 && NetworkObject == null && NetworkGroup == null)
+            {
+                <DisplayFlowDetailRow Label="@userConfig.GetText("name")" Value="@DisplayNetworkFallback()" />
+                <DisplayFlowDetailRow Label="@userConfig.GetText("ip")" Value="@DisplayNetworkRange()" />
+            }
+            @if (ServiceObject != null)
+            {
+                <DisplayFlowDetailRow Label="@userConfig.GetText("name")" Value="@ServiceObject.Name" />
+                <DisplayFlowDetailRow Label="@userConfig.GetText("protocol")" Value="@ProtocolName(ServiceObject.ProtoId)" />
+                <DisplayFlowDetailRow Label="@userConfig.GetText("port")" Value="@DisplayBase.DisplayPort(ServiceObject.PortStart, ServiceObject.PortEnd)" />
+            }
+            @if (ServiceGroup != null)
+            {
+                <DisplayFlowDetailRow Label="@userConfig.GetText("name")" Value="@ServiceGroup.Name" />
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("members"):</label>
+                    <div class="col-sm-8">
+                        @foreach (string member in ServiceGroupMemberDisplays())
+                        {
+                            <div>@member</div>
+                        }
+                    </div>
+                </div>
+            }
+            @if (ServiceGroupMode && ServiceGroup == null)
+            {
+                <DisplayFlowDetailRow Label="@userConfig.GetText("name")" Value="@DisplayServiceFallback()" />
+                <div class="form-group row mt-2">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@userConfig.GetText("members"):</label>
+                    <div class="col-sm-8">
+                        @foreach (string member in ServiceFallbackMemberDisplays())
+                        {
+                            <div>@member</div>
+                        }
+                    </div>
+                </div>
+            }
+            @if (!ServiceGroupMode && ServiceFallback.Count > 0 && ServiceObject == null && ServiceGroup == null)
+            {
+                <DisplayFlowDetailRow Label="@userConfig.GetText("name")" Value="@DisplayServiceFallback()" />
+                <DisplayFlowDetailRow Label="@userConfig.GetText("protocol")" Value="@ProtocolName(ServiceFallback[0].ProtoId)" />
+                <DisplayFlowDetailRow Label="@userConfig.GetText("port")" Value="@DisplayBase.DisplayPort(ServiceFallback[0].Port, ServiceFallback[0].PortEnd)" />
+            }
+        </Body>
+        <Footer>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@userConfig.GetText("ok")</button>
+        </Footer>
+    </PopUp>
+}
+
+@code
+{
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public FlowNwObject? NetworkObject { get; set; }
+    [Parameter] public FlowNwGroup? NetworkGroup { get; set; }
+    [Parameter] public List<FlowNwObject> NetworkObjects { get; set; } = [];
+    [Parameter] public List<NwObjectElement> NetworkFallback { get; set; } = [];
+    [Parameter] public bool NetworkGroupMode { get; set; }
+    [Parameter] public FlowSvcObject? ServiceObject { get; set; }
+    [Parameter] public FlowSvcGroup? ServiceGroup { get; set; }
+    [Parameter] public List<FlowSvcObject> ServiceObjects { get; set; } = [];
+    [Parameter] public bool ServiceGroupMode { get; set; }
+    [Parameter] public List<NwServiceElement> ServiceFallback { get; set; } = [];
+    [Parameter] public List<IpProtocol> IpProtocols { get; set; } = [];
+
+    private void Close()
+    {
+        Display = false;
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+
+    private string DisplayNetworkFallback() => NetworkFallback.FirstOrDefault(element => !string.IsNullOrWhiteSpace(element.GroupName))?.GroupName
+        ?? NetworkFallback.FirstOrDefault(element => !string.IsNullOrWhiteSpace(element.Name))?.Name
+        ?? "";
+
+    private string NetworkObjectDisplayName() => !string.IsNullOrWhiteSpace(NetworkObject?.Name)
+        ? NetworkObject!.Name!
+        : DisplayNetworkFallback();
+
+    private string NetworkObjectDisplayRange() => NetworkObject != null
+        && (!string.IsNullOrWhiteSpace(NetworkObject.IpStart) || !string.IsNullOrWhiteSpace(NetworkObject.IpEnd))
+        ? DisplayBase.DisplayIp(NetworkObject.IpStart ?? "", NetworkObject.IpEnd ?? "")
+        : DisplayNetworkRange();
+
+    private string NetworkGroupDisplayName() => !string.IsNullOrWhiteSpace(NetworkGroup?.Name)
+        ? NetworkGroup!.Name
+        : DisplayNetworkFallback();
+
+    private string NetworkMemberDisplay(FlowNwGroupMember member)
+    {
+        FlowNwObject flowObject = NetworkObjects.FirstOrDefault(networkObject => networkObject.Id == member.NwObjectId)
+            ?? member.NwObject;
+        if (string.IsNullOrWhiteSpace(flowObject.IpStart) && string.IsNullOrWhiteSpace(flowObject.IpEnd))
+        {
+            NwObjectElement? fallback = NetworkFallback.FirstOrDefault(element => string.Equals(element.Name, flowObject.Name, StringComparison.Ordinal)
+                || element.FlowNetworkObjectId == member.NwObjectId);
+            if (fallback != null)
+            {
+                return DisplayNetworkMember(flowObject.Name, fallback.IpString, fallback.IpEndString);
+            }
+        }
+        return DisplayNetworkMember(flowObject.Name, flowObject.IpStart, flowObject.IpEnd);
+    }
+
+    private static string NetworkMemberDisplay(NetworkObject member)
+    {
+        return DisplayBase.DisplayIpWithName(member);
+    }
+
+    private static string NetworkFallbackMemberDisplay(NwObjectElement element)
+    {
+        return DisplayNetworkMember(element.Name, element.IpString, element.IpEndString);
+    }
+
+    private IEnumerable<string> NetworkGroupMemberDisplays()
+    {
+        List<string> flowMembers = NetworkGroup!.NwGroupMembers
+            .Select(NetworkMemberDisplay)
+            .Concat(NetworkGroup.Objects?.Select(NetworkMemberDisplay) ?? [])
+            .Where(member => !IsGroupPlaceholder(member))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        return flowMembers
+            .Concat(NetworkFallbackMemberDisplays())
+            .Distinct(StringComparer.Ordinal);
+    }
+
+    private IEnumerable<string> NetworkFallbackMemberDisplays()
+    {
+        return NetworkFallback
+            .Where(HasNetworkFallbackDetails)
+            .Where(element => !IsGroupPlaceholder(element))
+            .Select(NetworkFallbackMemberDisplay)
+            .Where(member => !string.IsNullOrWhiteSpace(member))
+            .Distinct(StringComparer.Ordinal);
+    }
+
+    private IEnumerable<string> ServiceGroupMemberDisplays()
+    {
+        return ServiceGroup!.SvcGroupMembers
+            .Where(member => !IsServiceGroupPlaceholder(member))
+            .Select(ServiceMemberDisplay)
+            .Concat(ServiceFallbackMemberDisplays())
+            .Where(member => !string.IsNullOrWhiteSpace(member))
+            .Distinct(StringComparer.Ordinal);
+    }
+
+    private string ServiceMemberDisplay(FlowSvcGroupMember member)
+    {
+        FlowSvcObject serviceObject = ServiceObjects.FirstOrDefault(service => service.Id == member.SvcObjectId)
+            ?? member.SvcObject;
+        return DisplayServiceMember(serviceObject.Name, serviceObject.PortStart, serviceObject.PortEnd, serviceObject.ProtoId);
+    }
+
+    private IEnumerable<string> ServiceFallbackMemberDisplays()
+    {
+        return ServiceFallback
+            .Where(element => !IsServiceGroupPlaceholder(element))
+            .Select(element => DisplayServiceMember(element.Name, element.Port, element.PortEnd, element.ProtoId))
+            .Where(member => !string.IsNullOrWhiteSpace(member))
+            .Distinct(StringComparer.Ordinal);
+    }
+
+    private string DisplayServiceMember(string? name, int? port, int? portEnd, int protocolId)
+    {
+        IpProtocol? protocol = IpProtocols.FirstOrDefault(candidate => candidate.Id == protocolId);
+        NetworkService service = new()
+        {
+            Name = name ?? "",
+            DestinationPort = port,
+            DestinationPortEnd = portEnd,
+            Protocol = protocol != null ? new NetworkProtocol(protocol) : new NetworkProtocol { Id = protocolId, Name = ProtocolName(protocolId) }
+        };
+        return DisplayBase.DisplayService(service, false).ToString();
+    }
+
+    private bool IsServiceGroupPlaceholder(FlowSvcGroupMember member)
+    {
+        FlowSvcObject serviceObject = ServiceObjects.FirstOrDefault(service => service.Id == member.SvcObjectId)
+            ?? member.SvcObject;
+        return string.Equals(serviceObject.Name, ServiceGroup?.Name, StringComparison.Ordinal);
+    }
+
+    private bool IsServiceGroupPlaceholder(NwServiceElement element)
+    {
+        string groupName = ServiceGroup?.Name ?? DisplayServiceFallback();
+        bool hasServiceDetails = element.Port.HasValue || element.PortEnd.HasValue || element.ProtoId != 0;
+        return !hasServiceDetails
+            && (string.Equals(element.Name, groupName, StringComparison.Ordinal)
+                || string.Equals(element.GroupName, groupName, StringComparison.Ordinal));
+    }
+
+    private bool IsGroupPlaceholder(string member)
+    {
+        return string.Equals(member, NetworkGroup?.Name, StringComparison.Ordinal);
+    }
+
+    private bool IsGroupPlaceholder(NwObjectElement element)
+    {
+        string groupName = NetworkGroup?.Name ?? DisplayNetworkFallback();
+        return !HasNetworkRange(element)
+            && (string.Equals(element.GroupName, groupName, StringComparison.Ordinal)
+                || string.Equals(element.Name, groupName, StringComparison.Ordinal));
+    }
+
+    private static string DisplayNetworkMember(string? name, string? ipStart, string? ipEnd)
+    {
+        NetworkObject networkObject = new() { Name = name ?? "", IP = ipStart, IpEnd = ipEnd };
+        return DisplayBase.DisplayIpWithName(networkObject);
+    }
+
+    private string DisplayNetworkRange() => NetworkFallback.FirstOrDefault(HasNetworkRange) is NwObjectElement element
+        ? DisplayBase.DisplayIp(element.IpString, element.IpEndString)
+        : "";
+
+    private string DisplayServiceFallback() => ServiceFallback.FirstOrDefault(element => !string.IsNullOrWhiteSpace(element.GroupName))?.GroupName
+        ?? ServiceFallback.FirstOrDefault(element => !string.IsNullOrWhiteSpace(element.Name))?.Name
+        ?? "";
+
+    private static bool HasNetworkFallbackDetails(NwObjectElement element)
+    {
+        return !string.IsNullOrWhiteSpace(element.Name)
+            || !string.IsNullOrWhiteSpace(element.GroupName)
+            || HasNetworkRange(element);
+    }
+
+    private static bool HasNetworkRange(NwObjectElement element)
+    {
+        return !string.IsNullOrWhiteSpace(element.IpString) || !string.IsNullOrWhiteSpace(element.IpEndString);
+    }
+
+    private string ProtocolName(int protocolId) => IpProtocols.FirstOrDefault(protocol => protocol.Id == protocolId)?.Name
+        ?? protocolId.ToString();
+
+}

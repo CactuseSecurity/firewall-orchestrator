@@ -120,6 +120,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task BundleTasks_UpdateExternalParams_SerializesConfirmMessage()
+        {
+            EditActionBundleTasks component = new();
+            WfStateAction action = new();
+            SetMember(component, "ActAction", action);
+            SetMember(component, "confirmUiMessage", true);
+
+            await InvokeAsync(component, "UpdateExternalParams");
+
+            BundleTasksActionParams parameters = BundleTasksActionParams.FromExternalParams(action.ExternalParams);
+            Assert.That(parameters.ConfirmUiMessage, Is.True);
+        }
+
+        [Test]
         public async Task BundleTasks_OnParametersSet_LoadsExternalParams()
         {
             EditActionBundleTasks component = new();
@@ -136,6 +150,33 @@ namespace FWO.Test
             Assert.That(GetMember<BundleTaskType>(component, "selectedBundleTaskType"), Is.EqualTo(BundleTaskType.TwoOutOfThree));
             Assert.That(GetMember<bool>(component, "cleanBundleZones"), Is.True);
             Assert.That(GetMember<CompliancePolicy?>(component, "selectedBundlePolicy"), Is.SameAs(policies[0]));
+        }
+
+        [Test]
+        public async Task BundleTasks_OnParametersSet_LoadsConfirmMessage()
+        {
+            EditActionBundleTasks component = new();
+            WfStateAction action = new()
+            {
+                ExternalParams = new BundleTasksActionParams { ConfirmUiMessage = true }.ToExternalParams()
+            };
+            SetMember(component, "ActAction", action);
+
+            await InvokeAsync(component, "OnParametersSet");
+
+            Assert.That(GetMember<bool>(component, "confirmUiMessage"), Is.True);
+        }
+
+        [Test]
+        public async Task BundleTasks_OnConfirmMessageChanged_UpdatesExternalParams()
+        {
+            EditActionBundleTasks component = new();
+            WfStateAction action = new();
+            SetMember(component, "ActAction", action);
+
+            await InvokeAsync(component, "OnConfirmMessageChanged", new ChangeEventArgs { Value = "true" });
+
+            Assert.That(BundleTasksActionParams.FromExternalParams(action.ExternalParams).ConfirmUiMessage, Is.True);
         }
 
         [Test]
@@ -245,6 +286,42 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AutoPromote_UpdateExternalParams_SerializesConfirmMessageWithoutBreakingLegacyState()
+        {
+            EditActionAutoPromote component = new();
+            WfStateAction action = new();
+            SetMember(component, "ActAction", action);
+            SetMember(component, "selectedToState", new WfState { Id = 9, Name = "Done" });
+            SetMember(component, "confirmUiMessage", true);
+
+            await InvokeAsync(component, "UpdateExternalParams");
+
+            Assert.That(WfStateAction.TryParseAutoPromoteParams(action.ExternalParams, out int? stateId, out _), Is.True);
+            Assert.That(stateId, Is.EqualTo(9));
+            Assert.That(WfStateAction.HasConfirmUiMessage(action.ExternalParams), Is.True);
+        }
+
+        [Test]
+        public async Task AutoPromote_UpdateExternalParams_SerializesAutomaticStateWithConfirmation()
+        {
+            EditActionAutoPromote component = new();
+            WfStateAction action = new();
+            SetMember(component, "ActAction", action);
+            SetMember(component, "selectedToState", new WfState { Id = WfStateAction.AutomaticStateId, Name = "automatic" });
+            SetMember(component, "confirmUiMessage", true);
+
+            await InvokeAsync(component, "UpdateExternalParams");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfStateAction.TryParseAutoPromoteParams(action.ExternalParams, out int? stateId, out ConditionalAutoPromoteParams? conditionalParams), Is.True);
+                Assert.That(stateId, Is.Null);
+                Assert.That(conditionalParams, Is.Null);
+                Assert.That(WfStateAction.HasConfirmUiMessage(action.ExternalParams), Is.True);
+            });
+        }
+
+        [Test]
         public async Task AutoPromote_UpdateExternalParams_SerializesConditionalParams()
         {
             EditActionAutoPromote component = new();
@@ -326,6 +403,39 @@ namespace FWO.Test
 
             Assert.That(GetMember<WfState>(component, "selectedToState"), Is.SameAs(states[1]));
             Assert.That(action.ExternalParams, Is.EqualTo("12"));
+        }
+
+        [Test]
+        public async Task AutoPromote_OnParametersSet_LoadsConfirmMessageFromSimpleState()
+        {
+            EditActionAutoPromote component = new();
+            List<WfState> states = new() { new() { Id = 12, Name = "Done" } };
+            WfStateAction action = new()
+            {
+                ExternalParams = JsonSerializer.Serialize(new SimpleAutoPromoteParams { ToStateId = 12, ConfirmUiMessage = true })
+            };
+            SetMember(component, "States", states);
+            SetMember(component, "ActAction", action);
+
+            await InvokeAsync(component, "OnParametersSet");
+
+            Assert.That(GetMember<bool>(component, "confirmUiMessage"), Is.True);
+            Assert.That(GetMember<WfState>(component, "selectedToState").Id, Is.EqualTo(12));
+        }
+
+        [Test]
+        public async Task AutoPromote_OnConfirmMessageChanged_UpdatesExternalParams()
+        {
+            EditActionAutoPromote component = new();
+            WfStateAction action = new();
+            SetMember(component, "ActAction", action);
+            SetMember(component, "selectedToState", new WfState { Id = 9, Name = "Done" });
+
+            await InvokeAsync(component, "OnConfirmMessageChanged", new ChangeEventArgs { Value = "true" });
+
+            Assert.That(WfStateAction.HasConfirmUiMessage(action.ExternalParams), Is.True);
+            Assert.That(WfStateAction.TryParseAutoPromoteParams(action.ExternalParams, out int? stateId, out _), Is.True);
+            Assert.That(stateId, Is.EqualTo(9));
         }
 
         [Test]
@@ -636,6 +746,109 @@ namespace FWO.Test
 
             Assert.That(action.ActionType, Is.EqualTo(StateActionTypes.SetAlert.ToString()));
             Assert.That(callbackCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task EditActionGeneral_BundleTasks_OffersOnlyTicketScope()
+        {
+            EditActionGeneral component = new();
+            SetMember(component, "ActAction", new WfStateAction
+            {
+                ActionType = StateActionTypes.BundleTasks.ToString(),
+                Scope = WfObjectScopes.Ticket.ToString()
+            });
+
+            IEnumerable<string> scopes = GetMember<IEnumerable<string>>(component, "SelectableScopes");
+
+            Assert.That(scopes, Is.EqualTo(new List<string> { WfObjectScopes.Ticket.ToString() }));
+        }
+
+        [TestCase(StateActionTypes.DisplayConnection)]
+        [TestCase(StateActionTypes.TrafficPathAnalysis)]
+        public async Task EditActionGeneral_InteractiveActions_OfferOnlyButtonEvent(StateActionTypes actionType)
+        {
+            EditActionGeneral component = new();
+            SetMember(component, "ActAction", new WfStateAction
+            {
+                ActionType = actionType.ToString(),
+                Event = StateActionEvents.OfferButton.ToString()
+            });
+
+            IEnumerable<string> events = GetMember<IEnumerable<string>>(component, "SelectableEvents");
+
+            Assert.That(events, Is.EqualTo(new List<string> { StateActionEvents.OfferButton.ToString() }));
+        }
+
+        [Test]
+        public async Task EditActionGeneral_ActionTypeChange_NormalizesEventForInteractiveAction()
+        {
+            EditActionGeneral component = new();
+            WfStateAction action = new()
+            {
+                ActionType = StateActionTypes.SetAlert.ToString(),
+                Event = StateActionEvents.OnSet.ToString()
+            };
+            SetMember(component, "ActAction", action);
+            SetMember(component, "ActionTypeChanged", EventCallback.Factory.Create<string?>(new object(),
+                actionType => action.ActionType = actionType ?? ""));
+
+            await InvokeAsync(component, "OnActionTypeChanged", StateActionTypes.DisplayConnection.ToString());
+
+            Assert.That(action.Event, Is.EqualTo(StateActionEvents.OfferButton.ToString()));
+        }
+
+        [TestCase(StateActionTypes.UpdateConnectionOwner)]
+        [TestCase(StateActionTypes.UpdateConnectionRelease)]
+        [TestCase(StateActionTypes.UpdateConnectionReject)]
+        public async Task EditActionGeneral_ConnectionActions_OfferOnlyTicketScope(StateActionTypes actionType)
+        {
+            EditActionGeneral component = new();
+            SetMember(component, "ActAction", new WfStateAction
+            {
+                ActionType = actionType.ToString(),
+                Scope = WfObjectScopes.Ticket.ToString()
+            });
+
+            IEnumerable<string> scopes = GetMember<IEnumerable<string>>(component, "SelectableScopes");
+
+            Assert.That(scopes, Is.EqualTo(new List<string> { WfObjectScopes.Ticket.ToString() }));
+        }
+
+        [Test]
+        public async Task EditActionGeneral_ExistingInvalidScope_RemainsVisibleForEditing()
+        {
+            EditActionGeneral component = new();
+            SetMember(component, "ActAction", new WfStateAction
+            {
+                ActionType = StateActionTypes.BundleTasks.ToString(),
+                Scope = WfObjectScopes.Approval.ToString()
+            });
+
+            IEnumerable<string> scopes = GetMember<IEnumerable<string>>(component, "SelectableScopes");
+
+            Assert.That(scopes, Is.EqualTo(new List<string>
+            {
+                WfObjectScopes.Approval.ToString(),
+                WfObjectScopes.Ticket.ToString()
+            }));
+        }
+
+        [Test]
+        public async Task EditActionGeneral_ActionTypeChange_NormalizesScopeAfterParentUpdate()
+        {
+            EditActionGeneral component = new();
+            WfStateAction action = new()
+            {
+                ActionType = StateActionTypes.SetAlert.ToString(),
+                Scope = WfObjectScopes.Approval.ToString()
+            };
+            SetMember(component, "ActAction", action);
+            SetMember(component, "ActionTypeChanged", EventCallback.Factory.Create<string?>(new object(),
+                actionType => action.ActionType = actionType ?? ""));
+
+            await InvokeAsync(component, "OnActionTypeChanged", StateActionTypes.BundleTasks.ToString());
+
+            Assert.That(action.Scope, Is.EqualTo(WfObjectScopes.Ticket.ToString()));
         }
 
         [Test]

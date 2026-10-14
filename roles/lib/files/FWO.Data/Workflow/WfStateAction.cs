@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Logging;
 using Newtonsoft.Json;
@@ -49,6 +50,8 @@ namespace FWO.Data.Workflow
 
     public class WfStateAction
     {
+        public const int AutomaticStateId = -1;
+
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
@@ -131,12 +134,27 @@ namespace FWO.Data.Workflow
 
             if (int.TryParse(externalParams, out int parsedStateId))
             {
-                toStateId = parsedStateId;
+                toStateId = parsedStateId == AutomaticStateId ? null : parsedStateId;
                 return true;
             }
 
             try
             {
+                using JsonDocument document = JsonDocument.Parse(externalParams);
+                if (document.RootElement.TryGetProperty("to_state_id", out JsonElement simpleState)
+                    && simpleState.TryGetInt32(out int parsedSimpleStateId))
+                {
+                    if (parsedSimpleStateId == AutomaticStateId)
+                    {
+                        return true;
+                    }
+                    if (parsedSimpleStateId > 0)
+                    {
+                        toStateId = parsedSimpleStateId;
+                        return true;
+                    }
+                }
+
                 conditionalParams = System.Text.Json.JsonSerializer.Deserialize<ConditionalAutoPromoteParams>(externalParams);
                 return conditionalParams != null;
             }
@@ -145,10 +163,37 @@ namespace FWO.Data.Workflow
                 return false;
             }
         }
+
+        /// <summary>
+        /// Determines whether serialized action parameters request a confirmation message in the UI.
+        /// </summary>
+        /// <param name="externalParams">The serialized action parameters to inspect.</param>
+        /// <returns><see langword="true"/> when <c>confirm_ui_message</c> is explicitly enabled; otherwise, <see langword="false"/>.</returns>
+        public static bool HasConfirmUiMessage(string externalParams)
+        {
+            if (string.IsNullOrWhiteSpace(externalParams) || int.TryParse(externalParams, out _))
+            {
+                return false;
+            }
+
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(externalParams);
+                return document.RootElement.TryGetProperty("confirm_ui_message", out JsonElement value)
+                    && value.ValueKind == JsonValueKind.True;
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return false;
+            }
+        }
     }
 
     public class ConditionalAutoPromoteParams
     {
+        [JsonProperty("confirm_ui_message"), JsonPropertyName("confirm_ui_message")]
+        public bool ConfirmUiMessage { get; set; }
+
         [Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
         [System.Text.Json.Serialization.JsonConverter(typeof(JsonStringEnumConverter))]
         [JsonProperty("to_be_called"), JsonPropertyName("to_be_called")]
@@ -165,6 +210,15 @@ namespace FWO.Data.Workflow
 
         [JsonProperty("if_not_compliant_state"), JsonPropertyName("if_not_compliant_state")]
         public int IfNotCompliantState { get; set; }
+    }
+
+    public class SimpleAutoPromoteParams
+    {
+        [JsonProperty("to_state_id"), JsonPropertyName("to_state_id")]
+        public int ToStateId { get; set; }
+
+        [JsonProperty("confirm_ui_message"), JsonPropertyName("confirm_ui_message")]
+        public bool ConfirmUiMessage { get; set; }
     }
 
     public class ActionResultStateParams
@@ -189,6 +243,9 @@ namespace FWO.Data.Workflow
 
         [JsonPropertyName("policy_id")]
         public int? PolicyId { get; set; }
+
+        [JsonPropertyName("confirm_ui_message")]
+        public bool ConfirmUiMessage { get; set; }
 
         private static readonly System.Text.Json.JsonSerializerOptions SerializerOptions = new()
         {

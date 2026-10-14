@@ -50,7 +50,8 @@ BEGIN
         BEGIN
             DELETE FROM credential WHERE id = i_link;
             RAISE EXCEPTION 'upgrade 9.7.3: a referenced credential could be deleted';
-        EXCEPTION WHEN foreign_key_violation THEN
+        -- PostgreSQL 18+ reports ON DELETE RESTRICT as restrict_violation, older versions as foreign_key_violation
+        EXCEPTION WHEN foreign_key_violation OR restrict_violation THEN
             NULL;
         END;
     END LOOP;

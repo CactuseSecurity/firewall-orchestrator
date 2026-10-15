@@ -144,9 +144,7 @@ namespace FWO.Logging
                 (Text != null ? $"{Text}" : "") +
                 (Error != null ?
                 "\n ---\n" +
-                $"Exception thrown: \n {Error?.GetType().Name} \n" +
-                $"Message: \n {Error?.Message.TrimStart()} \n" +
-                $"Stack Trace: \n {Error?.StackTrace?.TrimStart()}"
+                $"Exception thrown: \n {Error}"
                 : "");
 
             WriteLog("Error", Title, DisplayText, callerName, callerFile, callerLineNumber, ConsoleColor.Red);

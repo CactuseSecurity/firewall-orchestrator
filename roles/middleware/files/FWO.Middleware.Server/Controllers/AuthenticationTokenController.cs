@@ -31,9 +31,14 @@ namespace FWO.Middleware.Server.Controllers
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private readonly LoginThrottle loginThrottle;
 
+        // Longer than a healthy refresh ever takes, short enough that a caller stuck behind
+        // a hanging one gets an answer before its own HTTP timeout.
+        private static readonly TimeSpan kRefreshLockTimeout = TimeSpan.FromSeconds(30);
+
         private const string kRefreshLogCategory = "Token Refresh";
         private const string kRevokeLogCategory = "Token Revoke";
         private const string kLoginLogCategory = "User Authentication";
+        private const string kTokenGenerationLogCategory = "Token Generation";
 
         private enum RefreshTokenConsumptionState
         {
@@ -91,6 +96,21 @@ namespace FWO.Middleware.Server.Controllers
                 HttpContext.Response.Headers.RetryAfter = LoginThrottle.kRetryAfterSeconds.ToString();
             }
             return StatusCode(exception.StatusCode, exception.Message);
+        }
+
+        /// <summary>
+        /// Answers a login that failed because the API could not be reached. Same reasoning as for refresh:
+        /// an unreachable API is not a malformed request, and the transport error belongs in the log, not in
+        /// the response body, where it would expose the internal API endpoint.
+        /// </summary>
+        /// <param name="exception">Exception that indicates the unreachable API.</param>
+        /// <returns>A retryable 503 without transport details.</returns>
+        private ObjectResult ApiUnreachableLoginResult(Exception exception)
+        {
+            Log.WriteError(kTokenGenerationLogCategory, "Could not reach the API while logging in", exception);
+
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                "The API could not be reached while logging in. Please retry.");
         }
 
         /// <summary>
@@ -157,9 +177,13 @@ namespace FWO.Middleware.Server.Controllers
             {
                 return CapacityResult(ex);
             }
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+            {
+                return ApiUnreachableLoginResult(exception);
+            }
             catch (Exception ex)
             {
-                Log.WriteError("Token Generation", "Error generating token pair", ex);
+                Log.WriteError(kTokenGenerationLogCategory, "Error generating token pair", ex);
                 return BadRequest(ex.Message);
             }
         }
@@ -214,6 +238,10 @@ namespace FWO.Middleware.Server.Controllers
             catch (LoginCapacityException e)
             {
                 return CapacityResult(e);
+            }
+            catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
+            {
+                return ApiUnreachableLoginResult(e);
             }
             catch (Exception e)
             {
@@ -273,6 +301,10 @@ namespace FWO.Middleware.Server.Controllers
             {
                 return CapacityResult(e);
             }
+            catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
+            {
+                return ApiUnreachableLoginResult(e);
+            }
             catch (Exception e)
             {
                 return BadRequest(e.Message);
@@ -315,7 +347,8 @@ namespace FWO.Middleware.Server.Controllers
                     }
                     adminUser = authenticatedAdminUser;
                 }
-                catch (Exception e) when (e is not LoginCapacityException)
+                // An unreachable API is no credential problem, so it must not be re-wrapped as one.
+                catch (Exception e) when (e is not LoginCapacityException && !ApiReachability.IndicatesUnreachableApi(e))
                 {
                     throw new AuthenticationException("Error while validating admin credentials: " + e.Message);
                 }
@@ -334,7 +367,7 @@ namespace FWO.Middleware.Server.Controllers
 
                     return Ok(jwt);
                 }
-                catch (Exception e) when (e is not LoginCapacityException)
+                catch (Exception e) when (e is not LoginCapacityException && !ApiReachability.IndicatesUnreachableApi(e))
                 {
                     throw new AuthenticationException("Error while validating user credentials (user name): " + e.Message);
                 }
@@ -342,6 +375,10 @@ namespace FWO.Middleware.Server.Controllers
             catch (LoginCapacityException e)
             {
                 return CapacityResult(e);
+            }
+            catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
+            {
+                return ApiUnreachableLoginResult(e);
             }
             catch (Exception e)
             {
@@ -357,6 +394,50 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("Refresh")]
         public async Task<ActionResult<TokenPair>> RefreshToken([FromBody] RefreshTokenRequest request)
         {
+            CancellationToken requestAborted = RequestAborted;
+            try
+            {
+                if (string.IsNullOrEmpty(request.RefreshToken))
+                {
+                    return BadRequest("Refresh token is required");
+                }
+
+                using IDisposable? refreshTokenLock = await RefreshTokenLockRegistry.TryAcquireAsync(
+                    AuthManager.GenerateTokenHash(request.RefreshToken), kRefreshLockTimeout, requestAborted);
+                if (refreshTokenLock == null)
+                {
+                    // Another request with this token has been running for too long; this one
+                    // has not touched the token, so a retry is safe.
+                    Log.WriteWarning(kRefreshLogCategory, $"Timed out after {kRefreshLockTimeout.TotalSeconds} s waiting for a concurrent refresh with the same token.");
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                        "Another refresh with this token is still in progress. Please retry.");
+                }
+
+                return await RefreshTokenCore(request.RefreshToken);
+            }
+            catch (OperationCanceledException) when (requestAborted.IsCancellationRequested)
+            {
+                // The caller disconnected while waiting; nobody is left to read an answer.
+                return StatusCode(StatusCodes.Status499ClientClosedRequest);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(kRefreshLogCategory, "Failed to refresh token", ex);
+                return BadRequest("The refresh could not be completed.");
+            }
+        }
+
+        /// <summary>
+        /// Validates the refresh token, rebuilds its user and rotates the token pair.
+        /// Must only run while the caller holds the lock of this token.
+        /// </summary>
+        /// <param name="refreshToken">Raw refresh token supplied by the caller.</param>
+        /// <returns>
+        /// The new token pair, 401 if the token is invalid or already consumed, or 503 if
+        /// the API could not be reached before the token was consumed.
+        /// </returns>
+        private async Task<ActionResult<TokenPair>> RefreshTokenCore(string refreshToken)
+        {
             // Track the consuming call separately from confirmed consumption because a
             // connection failure during the mutation cannot reveal whether it committed.
             RefreshTokenConsumptionState consumptionState = RefreshTokenConsumptionState.NotAttempted;
@@ -368,15 +449,10 @@ namespace FWO.Middleware.Server.Controllers
 
             try
             {
-                if (string.IsNullOrEmpty(request.RefreshToken))
-                {
-                    return BadRequest("Refresh token is required");
-                }
-
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
 
                 // Validate refresh token
-                RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(request.RefreshToken);
+                RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(refreshToken);
 
                 if (tokenInfo == null)
                 {
@@ -402,7 +478,7 @@ namespace FWO.Middleware.Server.Controllers
 
                 // Consume the old refresh token exactly once before minting a new pair.
                 consumptionState = RefreshTokenConsumptionState.MayBeConsumed;
-                int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
+                int revokedTokens = await authManager.RevokeRefreshToken(refreshToken);
 
                 if (revokedTokens != 1)
                 {

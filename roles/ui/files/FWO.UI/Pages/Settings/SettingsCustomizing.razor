@@ -221,8 +221,8 @@
             <div class="col-sm-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">
                 <input id="cbx_consider_bundling" type="checkbox" @bind="configData!.ReqConsiderBundling">
             </div>
-            <label for="cbx_display_bundled_tasks_as_one" class="col-form-label col-sm-2">@(userConfig.GetText("reqDisplayBundledTasksAsOne")):</label>
-            <div class="col-sm-1">
+            <label for="cbx_display_bundled_tasks_as_one" class="col-form-label col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5579c"))">@(userConfig.GetText("reqDisplayBundledTasksAsOne")):</label>
+            <div class="col-sm-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5579c"))">
                 <input id="cbx_display_bundled_tasks_as_one" type="checkbox" @bind="configData!.ReqDisplayBundledTasksAsOne">
             </div>
         </div>

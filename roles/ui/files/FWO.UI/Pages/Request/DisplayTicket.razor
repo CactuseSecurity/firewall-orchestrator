@@ -367,8 +367,9 @@
             if(WfHandler.ActionHandler != null)
             {
                 await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActTicket, WfObjectScopes.Ticket, null, WfHandler.ActTicket.Id);
+                await WfHandler.ReloadActTicket();
             }
-            await ResetParent();
+            await Reset();
         }
         catch (Exception exception)
         {

@@ -598,6 +598,8 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Die Area-IP-Daten-Konvertierung hei&szlig;t nun convert_area_ip_data_from_git.py. generate_area_ip_data.py erzeugt Area-IP-Testdaten.</li>
     <li>Aktualisierte .NET-Bibliotheken, u.a. Quartz.NET 4.4 und PuppeteerSharp 25.13 (PDF-Erzeugung).</li>
     <li>Implementierungs-Auftr&auml;ge entstehen f&uuml;r Objekt-Auftr&auml;ge pro Ziel-Management laut den ger&auml;tespezifischen Einstellungen (Super- oder Submanager). Die neue Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; erzeugt sie auch bei aktiver Planungsphase. Der Pfadanalyse-Algorithmus wird nun in den Workflow-Anpassungen gew&auml;hlt.</li>
+    <li>Implementierungs-Auftr&auml;ge entstehen f&uuml;r Objekt-Auftr&auml;ge pro Ziel-Management laut den Provisioning-Einstellungen (Super- oder Submanager). Die neue Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; erzeugt sie auch bei aktiver Planungsphase. Der Pfadanalyse-Algorithmus wird nun in den Workflow-Anpassungen gew&auml;hlt.</li>
+    <li>Das Email-Protokoll kann nach Benachrichtigungs-ID, Benachrichtigungstyp, Status und Fehlertext gefiltert werden.</li>
     <li>LDAP: Eine Verbindung kann bis zu 10 Server (Replikate) eines Verzeichnisses enthalten, die der Reihe nach versucht werden. Aktive Verbindungen d&uuml;rfen keine gleichen Such- oder Schreibpfade haben; bisher als getrennte Verbindungen eingerichtete Replikate m&uuml;ssen zu einer Verbindung zusammengefasst werden. Lokale Nutzer werden an die unver&auml;nderliche Objekt-Id ihres Verzeichniseintrags gebunden, daher muss sich nach dem Upgrade jeder Nutzer einmal mit Passwort anmelden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
@@ -627,6 +629,8 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>The area IP data converter is now named convert_area_ip_data_from_git.py. generate_area_ip_data.py generates area IP test data.</li>
     <li>Updated .NET libraries, among others Quartz.NET 4.4 and PuppeteerSharp 25.13 (PDF generation).</li>
     <li>Implementation tasks are created per target management of the device specific settings (super- or sub-management) for object tasks. The new action &quot;Create implementation tasks&quot; also creates them with an active planning phase. The path analysis algorithm is now selected in the workflow customizing settings.</li>
+    <li>Implementation tasks are created per target management of the provisioning settings (super- or sub-management) for object tasks. The new action &quot;Create implementation tasks&quot; also creates them with an active planning phase. The path analysis algorithm is now selected in the workflow customizing settings.</li>
+    <li>The email log can be filtered by notification ID, notification type, status and error text.</li>
     <li>LDAP: a connection can list up to 10 servers (replicas) of one directory, which are tried in order. Active connections must not share a search or write path; replicas configured as separate connections so far have to be combined into one connection. Local users are bound to the immutable object id of their directory entry, so every user has to log in with password once after the upgrade.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
@@ -3728,6 +3732,10 @@ INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Modu
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
 INSERT INTO txt VALUES ('notification',   		'English', 	'Notification');
+INSERT INTO txt VALUES ('notification_id',       'German',   'Benachrichtigungs-ID');
+INSERT INTO txt VALUES ('notification_id',       'English',  'Notification Id');
+INSERT INTO txt VALUES ('notification_type',     'German',   'Benachrichtigungstyp');
+INSERT INTO txt VALUES ('notification_type',     'English',  'Notification type');
 INSERT INTO txt VALUES ('notifications',   		'German', 	'Benachrichtigungen');
 INSERT INTO txt VALUES ('notifications',   		'English', 	'Notifications');
 INSERT INTO txt VALUES ('reminder',             'German', 	'Erinnerung');
@@ -8717,9 +8725,9 @@ INSERT INTO txt VALUES ('H7413', 'German', 'Die Tabellen sind in Abschnitte gegl
 INSERT INTO txt VALUES ('H7413', 'English', 'The tables are grouped in sections. Use the action column to remove orphaned entries from the connection.
 ');
 
-INSERT INTO txt VALUES ('H7414', 'German', 'Email-Protokoll: Zeigt alle protokollierten Benachrichtigungs-Emails mit Zeitstempel, Benachrichtigungstyp, Empf&auml;ngern und Betreff.
+INSERT INTO txt VALUES ('H7414', 'German', 'Email-Protokoll: Zeigt alle protokollierten Benachrichtigungs-Emails mit Zeitstempel, Benachrichtigungstyp, Empf&auml;ngern und Betreff. Die Eintr&auml;ge k&ouml;nnen nach Benachrichtigungs-ID, Benachrichtigungstyp, Status und Fehler gefiltert werden.
 ');
-INSERT INTO txt VALUES ('H7414', 'English', 'Email log: Shows all logged notification emails with timestamp, notification type, recipients and subject.
+INSERT INTO txt VALUES ('H7414', 'English', 'Email log: Shows all logged notification emails with timestamp, notification type, recipients and subject. Entries can be filtered by notification ID, notification type, status and error.
 ');
 
 INSERT INTO txt VALUES ('H7421', 'German', 'Diese Seite zeigt alle angeforderten Schnittstellen mit beantragender und angefragter Applikation, Ticket, Status und Erstellungsdatum.

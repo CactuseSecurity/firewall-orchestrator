@@ -5,6 +5,10 @@
 - migrate provisioning key names and option values; privately back up old overrides before enforcing the revised scope restrictions (see developer documentation on provisioning settings)
 
 ## 9.7.3 - 14.10.2026
+- request workflow: implicit approvals created when a task bypasses the approval phase are marked as system-generated and receive a configurable approval comment; the comment can be changed under Workflow Customizing
+- request workflow: optionally display request tasks sharing a flow bundle ID as one task when their states match; differing states remain separate
+- request workflow: ticket requester, priority, deadline, reason, and comments can be shown or hidden independently under Workflow Customizing; comments are hidden by default
+- REST-created workflow tickets store requestor and request-contact metadata once at ticket level instead of duplicating it in every request task; the UI displays the external requestor as `name (id)` when available
 - pin System.Security.Cryptography.Pkcs to 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
 
 ## 9.7.2 - 12.10.2026

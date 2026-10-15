@@ -7,6 +7,7 @@ using FWO.Ui.Pages.Request;
 using FWO.Ui.Services;
 using FWO.Ui.Shared;
 using Bunit;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Generic;
@@ -51,6 +52,20 @@ internal class UiRequestTaskMetadataEditorTest
     }
 
     [Test]
+    public void AccessOwnerLayout_UsesOwnerFieldEditability()
+    {
+        string source = File.ReadAllText(LocateRepositoryFile(Path.Combine(
+            "roles", "ui", "files", "FWO.UI", "Pages", "Request", "RequestTaskMetadataEditor.razor")));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain("@if (TaskType == WfTaskType.access)"));
+            Assert.That(source, Does.Contain("Elements=\"NewInterfaceOwnerOptions\" Nullable=\"true\""));
+            Assert.That(source, Does.Contain("CanEditField(WorkflowEditableFieldKeys.Owner)"));
+        });
+    }
+
+    [Test]
     public void SetDeviceAndSetDevices_HandleAllAndConcreteSelections()
     {
         Device gatewayOne = new() { Id = 1, Name = "gw-1" };
@@ -71,6 +86,55 @@ internal class UiRequestTaskMetadataEditorTest
         component.SetDevices([gatewayOne, gatewayTwo]);
         Assert.That(component.CurrentSelectedDevices.Select(device => device.Id), Is.EqualTo(kTwoGatewayIds));
         Assert.That(component.DisplayDevices(), Is.EqualTo("gw-1, gw-2"));
+    }
+
+    [Test]
+    public void RefreshSelectableDevices_ProvidesSharedAllDevicesOption()
+    {
+        Device gateway = new() { Id = 1, Name = "gw-1" };
+        SimulatedUserConfig userConfig = new();
+        RequestTaskMetadataEditor component = CreateComponent(new WfHandler { Devices = [gateway] }, userConfig);
+
+        InvokePrivate(component, "RefreshSelectableDevices");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(component.SelectableDevices.Select(device => device.Id), Is.EqualTo(new[] { WfReqTaskBase.kAllDevicesId, 1 }));
+            Assert.That(component.SelectableDevices.First().Name, Is.EqualTo(userConfig.GetText("all")));
+        });
+    }
+
+    [Test]
+    public void PrivateFieldChangeHandlers_UpdateCurrentValuesAndInvokeCallbacks()
+    {
+        RequestTaskMetadataEditor component = CreateComponent(new WfHandler(), new SimulatedUserConfig());
+        WfTaskType changedTaskType = WfTaskType.group_create;
+        Management changedManagement = new() { Id = 9, Name = "changed-management" };
+        bool taskTypeCallbackCalled = false;
+        bool managementCallbackCalled = false;
+        SetMember(component, nameof(RequestTaskMetadataEditor.TaskTypeChanged), EventCallback.Factory.Create<WfTaskType>(
+            new object(), (WfTaskType value) => { taskTypeCallbackCalled = value == changedTaskType; }));
+        SetMember(component, nameof(RequestTaskMetadataEditor.ManagementChanged), EventCallback.Factory.Create<Management?>(
+            new object(), (Management? value) => { managementCallbackCalled = value == changedManagement; }));
+
+        InvokePrivateTask(component, "OnTaskTypeChanged", changedTaskType).GetAwaiter().GetResult();
+        InvokePrivateTask(component, "OnManagementChanged", changedManagement).GetAwaiter().GetResult();
+        InvokePrivateTask(component, "OnRuleDeviceChanged", new Device { Id = 4, Name = "changed-gateway" }).GetAwaiter().GetResult();
+        InvokePrivateTask(component, "OnOwnerChanged", new FwoOwner { Id = 5, Name = "changed-owner" }).GetAwaiter().GetResult();
+        InvokePrivateTask(component, "OnRequestingOwnerChanged", new FwoOwner { Id = 6, Name = "requesting-owner" }).GetAwaiter().GetResult();
+        InvokePrivateTask(component, "GroupNameChangedFromInput", new ChangeEventArgs { Value = "changed-group" }).GetAwaiter().GetResult();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(component.CurrentTaskType, Is.EqualTo(changedTaskType));
+            Assert.That(component.CurrentManagement, Is.EqualTo(changedManagement));
+            Assert.That(component.CurrentRuleDevice?.Id, Is.EqualTo(4));
+            Assert.That(component.CurrentOwner?.Id, Is.EqualTo(5));
+            Assert.That(component.CurrentRequestingOwner?.Id, Is.EqualTo(6));
+            Assert.That(component.CurrentGroupName, Is.EqualTo("changed-group"));
+            Assert.That(taskTypeCallbackCalled, Is.True);
+            Assert.That(managementCallbackCalled, Is.True);
+        });
     }
 
     [Test]
@@ -172,6 +236,19 @@ internal class UiRequestTaskMetadataEditorTest
         SetMember(component, "userConfig", userConfig ?? new SimulatedUserConfig());
         SetMember(component, nameof(RequestTaskMetadataEditor.Managements), managements ?? []);
         return component;
+    }
+
+    private static object? InvokePrivate(object instance, string methodName, params object?[] args)
+    {
+        MethodInfo method = instance.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new MissingMethodException(instance.GetType().FullName, methodName);
+        return method.Invoke(instance, args);
+    }
+
+    private static Task InvokePrivateTask(object instance, string methodName, params object?[] args)
+    {
+        return (Task)(InvokePrivate(instance, methodName, args)
+            ?? throw new InvalidOperationException($"Method '{methodName}' returned null."));
     }
 
     private static string ReadNewInterfaceBranch()

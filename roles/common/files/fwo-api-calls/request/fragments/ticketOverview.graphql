@@ -12,6 +12,7 @@ fragment ticketOverview on request_ticket {
   }
   requester_dn
   requester_group
+  additional_info
   reason
   external_ticket_id
   external_ticket_source

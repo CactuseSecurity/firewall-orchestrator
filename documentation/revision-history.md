@@ -1,6 +1,8 @@
 # Firewall Orchestrator Revision History
 
 ## 9.7.3 - 14.10.2026
+- replace cloud client fields with selectable additional credentials; migrate existing values into encrypted credential secrets (#3766)
+- the Cisco ASA importer decrypts the selected additional credential for enable mode
 - modelling: auditors and admins can open the add and edit dialog of app roles again to try it out (closes #4968)
   - saving stays restricted to owning modellers: the save button is disabled and saving is rejected as well
   - deleting app roles stays restricted to owning modellers

@@ -7295,6 +7295,17 @@
                   "comment": ""
                 },
                 {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "node_type",
+                      "object_key"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -7376,6 +7387,21 @@
                       "node_id"
                     ],
                     "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value"
+                    ],
+                    "filter": {
+                      "config_key": {
+                        "_eq": "importerHostName"
+                      }
+                    }
                   },
                   "comment": ""
                 },
@@ -11892,7 +11918,6 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "import_credential_id",
-                      "importer_hostname",
                       "is_super_manager",
                       "last_import_attempt",
                       "last_import_attempt_successful",
@@ -11954,7 +11979,6 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "import_credential_id",
-                      "importer_hostname",
                       "is_super_manager",
                       "last_import_attempt",
                       "last_import_attempt_successful",
@@ -11992,7 +12016,6 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "import_credential_id",
-                      "importer_hostname",
                       "is_super_manager",
                       "last_import_attempt",
                       "last_import_attempt_successful",
@@ -12078,7 +12101,6 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "import_credential_id",
-                      "importer_hostname",
                       "is_super_manager",
                       "last_import_attempt",
                       "last_import_attempt_successful",

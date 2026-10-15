@@ -173,3 +173,78 @@ WHERE v.node_id = n.id AND (
     (n.node_type <> 'device_type' AND v.config_key = 'templates')
     OR (n.node_type = 'global' AND v.config_key = 'securityProfiles')
 );
+
+-- The importer host moves from management.importer_hostname to the device specific setting importerHostName.
+-- The most common host becomes the global value, and managements with another host override it on their own level.
+-- Managements without a host inherit it; an empty setting would make every importer responsible.
+-- The old column values are backed up once, and the migration is skipped once the column is gone.
+DO $$
+DECLARE
+    i_global_node bigint;
+    i_device_type_node bigint;
+    i_management_node bigint;
+    t_global_host text;
+    r_management RECORD;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('management')
+        AND attname = 'importer_hostname' AND NOT attisdropped) THEN
+        RETURN;
+    END IF;
+
+    INSERT INTO device_specific_config_backup (version, config_values)
+    SELECT '9.7.4 management.importer_hostname', COALESCE(jsonb_agg(jsonb_build_object(
+        'mgm_id', mgm_id, 'mgm_name', mgm_name, 'importer_hostname', importer_hostname) ORDER BY mgm_id), '[]'::jsonb)
+    FROM management
+    ON CONFLICT DO NOTHING;
+
+    INSERT INTO device_specific_config_node (node_type, object_key, display_name, sort_order)
+    VALUES ('global', 'global', 'Global', 0)
+    ON CONFLICT (node_type, object_key) DO NOTHING;
+    SELECT id INTO i_global_node FROM device_specific_config_node WHERE node_type = 'global';
+
+    SELECT btrim(importer_hostname) INTO t_global_host FROM management
+    WHERE btrim(COALESCE(importer_hostname, '')) <> ''
+    GROUP BY btrim(importer_hostname)
+    ORDER BY count(*) DESC, btrim(importer_hostname)
+    LIMIT 1;
+
+    IF t_global_host IS NOT NULL THEN
+        INSERT INTO device_specific_config_value (node_id, config_key, config_value)
+        VALUES (i_global_node, 'importerHostName', to_jsonb(t_global_host))
+        ON CONFLICT (node_id, config_key) DO NOTHING;
+    END IF;
+
+    FOR r_management IN
+        SELECT m.mgm_id, m.mgm_name, m.dev_typ_id, btrim(m.importer_hostname) AS host,
+            concat_ws(' ', t.dev_typ_name, t.dev_typ_version) AS device_type_name
+        FROM management m
+        JOIN stm_dev_typ t ON t.dev_typ_id = m.dev_typ_id
+        WHERE btrim(COALESCE(m.importer_hostname, '')) <> ''
+            AND btrim(m.importer_hostname) IS DISTINCT FROM COALESCE(
+                (SELECT v.config_value #>> '{}' FROM device_specific_config_node n
+                    JOIN device_specific_config_value v ON v.node_id = n.id AND v.config_key = 'importerHostName'
+                    WHERE n.node_type = 'device_type' AND n.object_key = m.dev_typ_id::text),
+                (SELECT v.config_value #>> '{}' FROM device_specific_config_value v
+                    WHERE v.node_id = i_global_node AND v.config_key = 'importerHostName'),
+                '')
+        ORDER BY m.mgm_id
+    LOOP
+        INSERT INTO device_specific_config_node (node_type, object_key, parent_id, display_name)
+        VALUES ('device_type', r_management.dev_typ_id::text, i_global_node, r_management.device_type_name)
+        ON CONFLICT (node_type, object_key) DO NOTHING;
+        SELECT id INTO i_device_type_node FROM device_specific_config_node
+        WHERE node_type = 'device_type' AND object_key = r_management.dev_typ_id::text;
+
+        INSERT INTO device_specific_config_node (node_type, object_key, parent_id, display_name)
+        VALUES ('management', r_management.mgm_id::text, i_device_type_node, r_management.mgm_name)
+        ON CONFLICT (node_type, object_key) DO NOTHING;
+        SELECT id INTO i_management_node FROM device_specific_config_node
+        WHERE node_type = 'management' AND object_key = r_management.mgm_id::text;
+
+        INSERT INTO device_specific_config_value (node_id, config_key, config_value)
+        VALUES (i_management_node, 'importerHostName', to_jsonb(r_management.host))
+        ON CONFLICT (node_id, config_key) DO NOTHING;
+    END LOOP;
+END $$;
+
+ALTER TABLE IF EXISTS management DROP COLUMN IF EXISTS importer_hostname;

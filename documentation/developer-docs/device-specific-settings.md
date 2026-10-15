@@ -36,7 +36,7 @@ remains effective and is shown as a dormant override that can be cleared there.
 | securityProfiles | string array | [] | Device type, manager, gateway | Device type, manager |
 | ownerIdCustomFieldName | string | OwnerId | Global, device type, manager | Global to manager |
 | changeIdCustomFieldName | string | ChangeId | Global, device type, manager | Global to manager |
-| importerHostName | string | empty (host of the importer running the firewall configuration import) | Global, device type, manager | Global to manager |
+| importerHostName | string | empty (every importer is responsible) | Global, device type, manager | Global to manager |
 | planImplementation | boolean | true | All | All |
 | planImplementationOverrideForRules | boolean | true | All | All |
 | modellingCreateAppZones | boolean | true | Global, device type, manager | Global to manager |
@@ -64,9 +64,16 @@ Positioning offers `DefaultEndOfRulebase`, `cpInlineLayerPerZonePair`, `endOfZon
 
 `modellingConnectionIdField` offers `Name`, `Comment`, and `CustomField`: the field of
 a provisioned object that carries the ID of the modelling connection, formatted by
-`modellingConnectionIdTemplate`. The compiled `importerHostName` default is empty: the
-importer that runs the import then uses its own host name. The default therefore
-does not depend on which FWO host (UI, middleware or importer) resolves the settings.
+`modellingConnectionIdTemplate`.
+
+`importerHostName` is the host name of the server whose importer imports the
+managements of a level; it replaces the former column `management.importer_hostname`.
+The importer resolves it for each management along Global > device type > management
+(query `deviceSpecificSettings/getImporterHostName.graphql`; the Hasura role `importer`
+may read only this setting). An importer imports a management if the effective value is
+empty or equals its own host name. The compiled default is empty, so with a single
+importer nothing has to be configured; with several distributed importers set the host
+on the levels that each importer is responsible for.
 
 ## Upgrade to 9.7.4
 
@@ -85,6 +92,15 @@ system is configured in the external ticket systems, former `TufinSc` levels rer
 it via `rerouteToExternalTicketSystem`; otherwise select the ticket system on those
 levels after upgrading. `ruleCategory` becomes `commonServiceSeparation` (`common_service`
 is `true`, `app` is `false`).
+
+The upgrade moves `management.importer_hostname` into `importerHostName` and then drops
+the column. The most common non-empty host name becomes the global value (unless a global
+value already exists), and each management whose host name differs from the value it
+would inherit gets its own override, creating its device type and management nodes if
+needed. Managements without a host name inherit the global value; previously no importer
+imported them unless forced, so disable their import if that is still wanted. The old
+column values are saved once in `public.device_specific_config_backup` under version
+`9.7.4 management.importer_hostname`.
 
 Templates outside the device type level and custom install-on targets other than the
 two permitted choices are removed from active device specific settings data. Before upgrading,

@@ -62,7 +62,6 @@ Create table "management" -- contains an entry for each firewall management syst
 	"config_path" Varchar,
 	"domain_uid" Varchar,
 	"hide_in_gui" Boolean NOT NULL Default false,
-	"importer_hostname" Varchar,
 	"debug_level" Integer,
 	"multi_device_manager_id" integer,		-- if this manager belongs to another multi_device_manager, then this id points to it
 	"is_super_manager" BOOLEAN DEFAULT FALSE,

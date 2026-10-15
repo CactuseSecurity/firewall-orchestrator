@@ -576,6 +576,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firew
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
     <li>Die hierarchischen Provisionierungs-Einstellungen hei&szlig;en nun ger&auml;tespezifische Einstellungen, da sie z.B. auch f&uuml;r den Import genutzt werden. Sie enthalten nun Guardicore-Objektanlage, Modellierungslabels und Verbindungs-IDs, Importer-Host, externes Ticketsystem sowie &Uuml;berschreibungen f&uuml;r Regelumsetzung und Planung.</li>
+    <li>Der Importer-Hostname wird nicht mehr pro Management, sondern in den ger&auml;tespezifischen Einstellungen (Global, Ger&auml;tetyp oder Manager) festgelegt. Ist er leer, importiert jeder Importer. Das Upgrade &uuml;bernimmt den h&auml;ufigsten Hostnamen als globalen Wert und abweichende als Manager-Werte.</li>
     <li>Cloud-Zugangsdaten werden als zus&auml;tzliche Zugangsdaten mit verschl&uuml;sseltem Passwort verwaltet. Das Upgrade &uuml;bertr&auml;gt vorhandene Cloud Client IDs und Secrets automatisch. Cisco ASA verwendet das zus&auml;tzliche Passwort f&uuml;r den Enable-Modus.</li>
     <li>Wenn eine Aufgabe die Genehmigungsphase &uuml;berspringt, werden implizite Genehmigungen als systemerzeugt markiert und mit einem konfigurierbaren Kommentar versehen.</li>
     <li>Geb&uuml;ndelte Zugriff-Auftr&auml;ge k&ouml;nnen in der Aufgabenansicht als ein Auftrag angezeigt werden, wenn sie denselben Status haben. Unterschiedliche Status bleiben getrennt; die enthaltenen Elemente werden zusammengef&uuml;hrt und dedupliziert.</li>
@@ -604,6 +605,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
     <li>The hierarchical provisioning settings are renamed to device specific settings, as they are also used e.g. for importing. They now include Guardicore object creation, modelling labels and connection IDs, importer host and external ticket system, plus rule implementation and planning overrides.</li>
+    <li>The importer host name is no longer set per management but in the device specific settings (Global, device type or manager). If it is empty, every importer imports. The upgrade takes the most common host name as global value and differing ones as manager values.</li>
     <li>Cloud credentials are managed as additional credentials with encrypted passwords. The upgrade automatically transfers existing cloud client IDs and secrets. Cisco ASA uses the additional password for enable mode.</li>
     <li>When a task bypasses the approval phase, implicit approvals are marked as system-generated and receive a configurable comment.</li>
     <li>Bundled access tasks can be displayed as one task in task views when they have the same state. Different states remain separate; their elements are merged and deduplicated.</li>
@@ -2545,8 +2547,6 @@ INSERT INTO txt VALUES ('domain_uid',           'German', 	'Domain UID');
 INSERT INTO txt VALUES ('domain_uid',           'English', 	'Domain UID');
 INSERT INTO txt VALUES ('super_manager',        'German', 	'Multi Domain Manager');
 INSERT INTO txt VALUES ('super_manager',        'English', 	'Multi Domain Manager');
-INSERT INTO txt VALUES ('importer_host',        'German', 	'Importer Host');
-INSERT INTO txt VALUES ('importer_host',        'English', 	'Importer Host');
 INSERT INTO txt VALUES ('import_disabled',      'German', 	'Import Deaktiviert');
 INSERT INTO txt VALUES ('import_disabled',      'English', 	'Import Disabled');
 INSERT INTO txt VALUES ('import_enabled',       'German', 	'Import Aktiviert');
@@ -6451,12 +6451,8 @@ INSERT INTO txt VALUES ('H5119', 'German',  'Domain: Firewall Domain Name <br>
 INSERT INTO txt VALUES ('H5119', 'English', 'Domain: Firewall Domain Name<br>
     Empty except for Check Point R8x MDS / Fortimanager installations.
 ');
-INSERT INTO txt VALUES ('H5120', 'German',  'Importer Hostname: Der Name des Servers, auf dem der Importprozess laufen soll.
-    Muss individuell konfiguriert werden, wenn mehrere verteilte Importmodule laufen sollen, so dass nicht jeder Importer alle Managements importiert.
-');
-INSERT INTO txt VALUES ('H5120', 'English', 'Importer Hostname: This must be the name of the server, the import process should run on.
-    Needs to be individually configured if you want to have multiple distributed import modules, so that not every importer imports all managements.
-');
+INSERT INTO txt VALUES ('H5120', 'German',  'Importer Hostname: wird in den ger&auml;tespezifischen Einstellungen auf den Ebenen Global, Ger&auml;tetyp oder Manager festgelegt.');
+INSERT INTO txt VALUES ('H5120', 'English', 'Importer host name: is set in the device specific settings on the levels Global, device type or manager.');
 INSERT INTO txt VALUES ('H5121', 'German',  'Debug Stufe (0-9): Erlaubt individuelle Debug-Granularit&auml;t pro Management.');
 INSERT INTO txt VALUES ('H5121', 'English', 'Debug Level (0-9): For allowing for individual debug granularity per management.');
 INSERT INTO txt VALUES ('H5122', 'German',  'Import Deaktiviert: Schalter um den Datenimport zu deaktivieren.');
@@ -6677,8 +6673,8 @@ INSERT INTO txt VALUES ('H5199j', 'German', 'Ob Netzwerk-Area-Objekte in den Man
 INSERT INTO txt VALUES ('H5199j', 'English', 'Whether network-area objects are written to the manager. Default: No. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5199k', 'German', 'Ob modellierte Verbindungen als dynamische IP-Labels sichtbar als Gruppen dargestellt werden. Standard: Ja. Global, Ger&auml;tetyp und Manager.');
 INSERT INTO txt VALUES ('H5199k', 'English', 'Whether modelling connections are represented by dynamic IP labels visible as groups. Default: Yes. Global, device type and manager.');
-INSERT INTO txt VALUES ('H5199l', 'German', 'Hostname des Servers, auf dem der Importer f&uuml;r den Firewall Konfigurationsimport  l&auml;uft. Standard: leer, dann verwendet der Importer, der den Import ausf&uuml;hrt, seinen eigenen Hostnamen. Global, Ger&auml;tetyp und Manager.');
-INSERT INTO txt VALUES ('H5199l', 'English', 'Host name of the server running the importer for the firewall configuration import. Default: empty, the importer running the import then uses its own host name. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199l', 'German', 'Hostname des Servers, dessen Importer die Managements dieser Ebene importiert. Standard: leer, dann importiert jeder Importer sie, was zu Installationen mit nur einem Importer passt. Muss gesetzt werden, wenn mehrere verteilte Importer laufen, damit nicht jeder Importer alle Managements importiert. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199l', 'English', 'Host name of the server whose importer imports the managements of this level. Default: empty, then every importer imports them, which suits installations with a single importer. Set it if several distributed importers run, so that not every importer imports all managements. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5199m', 'German',  'Verbindungs-ID: Feld des umgesetzten Objekts (Name, Kommentar oder benutzerdefiniertes Feld), das die ID der Modellierungsverbindung tr&auml;gt, und Vorlage f&uuml;r diesen Wert. Standard: Name und FWOC{ID}. Global, Ger&auml;tetyp und Manager.');
 INSERT INTO txt VALUES ('H5199m', 'English', 'Connection ID: field of the implemented object (name, comment or custom field) that carries the ID of the modelling connection, and the template for this value. Default: name and FWOC{ID}. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Ldap-Verbindungen einrichten und verwalten. Sie k&ouml;nnen alle zur Nutzerauthentifizierung genutzt werden.<br>

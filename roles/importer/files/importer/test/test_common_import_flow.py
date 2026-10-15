@@ -228,6 +228,17 @@ class TestImportManagementInner:
         assert import_state_controller.state.responsible_for_importing is False
         inner_mocks["get_config"].assert_not_called()
 
+    def test_imports_management_without_importer_host(
+        self, inner_mocks: dict[str, MagicMock], import_state_controller: ImportStateController
+    ) -> None:
+        import_state_controller.state.mgm_details.importer_hostname = ""
+        inner_mocks["get_config"].return_value = (False, MagicMock())
+
+        self._run()
+
+        _mock(import_state_controller.api_call.set_import_lock).assert_called_once()
+        inner_mocks["get_config"].assert_called_once()
+
     def test_imports_changed_config_and_checks_consistency(
         self, inner_mocks: dict[str, MagicMock], import_state_controller: ImportStateController, tmp_path: Path
     ) -> None:

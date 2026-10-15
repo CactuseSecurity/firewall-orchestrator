@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation and local validation are complete on the rebased `Cactus/develop` baseline. Phase 1 remains open until the disposable-VM fresh-install and `9.7.0` to `9.7.1` upgrade scenarios pass; those tools were unavailable in the validation session.
+Implementation and local validation are complete on the rebased `Cactus/develop` baseline. Phase 1 remains open until the disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade scenarios pass.
 
 ## Objective
 
@@ -32,7 +32,7 @@ At completion:
 ## Shared implementation rules
 
 - Reuse the current hierarchical provisioning settings and `ProvisioningPositioningAlgorithm` unchanged.
-- Do not add `management_id` to the implementation task.
+- Use the implementation task's target management when present, otherwise the parent request task's management.
 - Do not include credentials or complete rule contents in diagnostics, logs, exception messages surfaced to callers, or test fixtures intended to model safe failures.
 - Do not write failures to `rule_position`.
 - Do not let calculation invoke persistence or workflow actions.
@@ -65,14 +65,13 @@ Implementation is complete only after the repository-required checks and these f
 
 Because WP-03 changes schema, GraphQL/Hasura, upgrade SQL, and product versioning, implementation must use the repository's schema-change and installer skills. Significant installer-affecting changes must use the disposable installation-test skill rather than a manually run installation.
 
-Local evidence from 2026-10-12:
+Local evidence from 2026-10-15:
 
-- 78 focused positioning tests passed;
-- the complete unit suite passed with 7,366 passed, 29 skipped, and 0 failed;
+- 150 focused positioning tests passed;
+- the complete unit suite passed with 7,722 passed, 29 skipped, and 0 failed;
 - the Debug solution build succeeded with 0 warnings and 0 errors;
-- new production files reached 91.77% line coverage (301/328 executable lines);
-- all changed C# files passed `dotnet format --verify-no-changes`; and
-- the full formatter remains blocked by unrelated upstream formatting in `UiDisplayImplementationTaskTest.cs` and `UiDisplayRequestTaskTest.cs`.
+- dedicated positioning production files reached 92.83% line coverage (1,126/1,213 executable lines); and
+- all changed C# files passed targeted `dotnet format`.
 
 ## Out of scope
 

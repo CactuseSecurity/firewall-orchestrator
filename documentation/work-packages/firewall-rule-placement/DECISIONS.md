@@ -159,3 +159,15 @@ Rationale: the calculation still needs defensive copying and deterministic valid
 When Phase 3 adds production loading, positioning uses the latest successfully completed FWO import regardless of its age. Do not add a maximum-age setting, stale-import rejection, automatic re-import, or a required snapshot fingerprint. Missing successful import data or an internally inconsistent graph fails explicitly.
 
 Rationale: imported policy data is sufficient for the agreed positioning use case, and freshness policy would add complexity without a current product requirement.
+
+## 2026-10-15 — D-026 — Retarget persistence migration to 9.7.3
+
+D-026 supersedes D-015. After rebasing onto current `Cactus/develop`, `9.7.1` and `9.7.2` were sealed and `9.7.3` was the open product version. The nullable, idempotent `request.impltask.rule_position` migration therefore belongs in `9.7.3.sql`, with feature notes under `9.7.3` and upgrade acceptance from `9.7.2` to `9.7.3`.
+
+Rationale: feature branches must not modify sealed upgrade scripts, and the schema change must follow the active release's fresh-install and upgrade paths.
+
+## 2026-10-15 — D-027 — Use the implementation task's effective target management
+
+The upstream `request.impltask.mgm_id` field is preserved alongside `rule_position`. Positioning derives the target as `implTask.ManagementId ?? requestTask.ManagementId`. That effective ID must agree with the supplied management and the gateway's management; any loaded request-management object must independently agree with the request task's own management ID.
+
+Rationale: implementation tasks may legitimately target a management different from their parent request, while contradictory caller-supplied context must still fail before strategy selection.

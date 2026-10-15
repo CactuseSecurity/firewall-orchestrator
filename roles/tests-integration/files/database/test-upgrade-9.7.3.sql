@@ -3,6 +3,15 @@
 BEGIN;
 ALTER TABLE credential ADD COLUMN IF NOT EXISTS cloud_client_id varchar;
 ALTER TABLE credential ADD COLUMN IF NOT EXISTS cloud_client_secret varchar;
+ALTER TABLE request.impltask DROP COLUMN IF EXISTS rule_position;
+
+CREATE TEMP TABLE rule_position_probe (impltask_id bigint) ON COMMIT DROP;
+WITH inserted AS (
+    INSERT INTO request.impltask (state_id, task_type, implementation_action)
+    VALUES (0, 'upgrade-rule-position-probe', 'create')
+    RETURNING id
+)
+INSERT INTO rule_position_probe SELECT id FROM inserted;
 
 CREATE TEMP TABLE additional_credential_probe (parent_id integer, expected_user text, expected_secret text) ON COMMIT DROP;
 WITH inserted AS (
@@ -29,6 +38,7 @@ DECLARE
     r_probe record;
     r_additional record;
     i_link integer;
+    i_impltask_id bigint;
 BEGIN
     FOR r_probe IN SELECT * FROM additional_credential_probe LOOP
         SELECT additional_credential_id INTO i_link FROM credential WHERE id = r_probe.parent_id;
@@ -59,6 +69,21 @@ BEGIN
         AND column_name IN ('cloud_client_id', 'cloud_client_secret')) THEN
         RAISE EXCEPTION 'upgrade 9.7.3: legacy cleartext columns remain';
     END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'request' AND table_name = 'impltask' AND column_name = 'rule_position'
+            AND data_type = 'jsonb' AND is_nullable = 'YES'
+    ) THEN
+        RAISE EXCEPTION 'upgrade 9.7.3: nullable request.impltask.rule_position jsonb column is missing';
+    END IF;
+    SELECT impltask_id INTO i_impltask_id FROM rule_position_probe;
+    IF (SELECT rule_position FROM request.impltask WHERE id = i_impltask_id) IS NOT NULL THEN
+        RAISE EXCEPTION 'upgrade 9.7.3: existing implementation task did not receive a NULL rule position';
+    END IF;
+    UPDATE request.impltask
+    SET rule_position = '{"type":"upgrade.test-position.v1","probe":true}'::jsonb
+    WHERE id = i_impltask_id;
 END $$;
 
 CREATE TEMP TABLE additional_credential_after_first_run AS SELECT id, additional_credential_id, secret FROM credential;
@@ -66,6 +91,8 @@ CREATE TEMP TABLE additional_credential_after_first_run AS SELECT id, additional
 -- @run-upgrade-9.7.3
 
 DO $$
+DECLARE
+    i_impltask_id bigint;
 BEGIN
     IF EXISTS (
         (SELECT id, additional_credential_id, secret FROM credential EXCEPT SELECT * FROM additional_credential_after_first_run)
@@ -73,6 +100,19 @@ BEGIN
         (SELECT * FROM additional_credential_after_first_run EXCEPT SELECT id, additional_credential_id, secret FROM credential)
     ) THEN
         RAISE EXCEPTION 'upgrade 9.7.3: rerunning the migration changed credentials';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'request' AND table_name = 'impltask' AND column_name = 'rule_position'
+            AND data_type = 'jsonb' AND is_nullable = 'YES'
+    ) THEN
+        RAISE EXCEPTION 'upgrade 9.7.3: rerunning the migration changed the rule-position column';
+    END IF;
+    SELECT impltask_id INTO i_impltask_id FROM rule_position_probe;
+    IF (SELECT rule_position FROM request.impltask WHERE id = i_impltask_id)
+        IS DISTINCT FROM '{"type":"upgrade.test-position.v1","probe":true}'::jsonb THEN
+        RAISE EXCEPTION 'upgrade 9.7.3: rerunning the migration changed an existing rule position';
     END IF;
 END $$;
 ROLLBACK;

@@ -153,21 +153,23 @@ public sealed class RulePositioningManager
     }
 
     /// <summary>
-    /// Verifies management identity on the request task, gateway, and supplied context.
+    /// Verifies effective task management and the loaded request, gateway, and supplied context.
     /// </summary>
     private static bool HasConsistentManagementReferences(RulePositioningContext context)
     {
-        int managementId = context.TargetManagement.Id;
-        if (managementId <= 0
-            || context.ParentRequestTask.ManagementId != managementId
+        int? effectiveManagementId = context.ImplementationTask.ManagementId
+            ?? context.ParentRequestTask.ManagementId;
+        if (effectiveManagementId == null
+            || effectiveManagementId <= 0
+            || context.TargetManagement.Id != effectiveManagementId
             || context.TargetGateway.Management == null
-            || context.TargetGateway.Management.Id != managementId)
+            || context.TargetGateway.Management.Id != effectiveManagementId)
         {
             return false;
         }
 
         return context.ParentRequestTask.OnManagement == null
-            || context.ParentRequestTask.OnManagement.Id == managementId;
+            || context.ParentRequestTask.OnManagement.Id == context.ParentRequestTask.ManagementId;
     }
 
     /// <summary>

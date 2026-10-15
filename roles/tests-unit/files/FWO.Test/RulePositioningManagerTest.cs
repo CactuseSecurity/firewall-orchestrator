@@ -53,6 +53,23 @@ public class RulePositioningManagerTest
     }
 
     [Test]
+    public async Task CalculateAsync_UsesImplementationTaskManagementOverride()
+    {
+        RulePositioningContext context = ValidContext();
+        int requestManagementId = kManagementId + 1;
+        context.ImplementationTask.ManagementId = kManagementId;
+        context.ParentRequestTask.ManagementId = requestManagementId;
+        context.ParentRequestTask.OnManagement = new Management { Id = requestManagementId };
+        RecordingStrategy strategy = CheckPointStrategy();
+
+        RulePositioningResult result = await new RulePositioningManager([strategy])
+            .CalculateAsync(context, CancellationToken.None);
+
+        Assert.That(result, Is.TypeOf<RulePositioningSuccess>());
+        AssertStrategyCalls(strategy, 1, 1);
+    }
+
+    [Test]
     public async Task CalculateAsync_RejectsNullContextBeforeStrategyWork()
     {
         RecordingStrategy strategy = CheckPointStrategy();
@@ -80,6 +97,8 @@ public class RulePositioningManagerTest
     [TestCase(InvalidContextCase.SuppliedGatewayMismatch)]
     [TestCase(InvalidContextCase.MissingRequestManagement)]
     [TestCase(InvalidContextCase.RequestManagementMismatch)]
+    [TestCase(InvalidContextCase.InvalidImplementationManagement)]
+    [TestCase(InvalidContextCase.ImplementationManagementMismatch)]
     [TestCase(InvalidContextCase.InvalidSuppliedManagement)]
     [TestCase(InvalidContextCase.MissingGatewayManagement)]
     [TestCase(InvalidContextCase.GatewayManagementMismatch)]
@@ -423,6 +442,12 @@ public class RulePositioningManagerTest
             case InvalidContextCase.RequestManagementMismatch:
                 context.ParentRequestTask.ManagementId++;
                 break;
+            case InvalidContextCase.InvalidImplementationManagement:
+                context.ImplementationTask.ManagementId = 0;
+                break;
+            case InvalidContextCase.ImplementationManagementMismatch:
+                context.ImplementationTask.ManagementId = kManagementId + 1;
+                break;
             case InvalidContextCase.InvalidSuppliedManagement:
                 context.TargetManagement.Id = 0;
                 break;
@@ -539,6 +564,8 @@ public class RulePositioningManagerTest
         SuppliedGatewayMismatch,
         MissingRequestManagement,
         RequestManagementMismatch,
+        InvalidImplementationManagement,
+        ImplementationManagementMismatch,
         InvalidSuppliedManagement,
         MissingGatewayManagement,
         GatewayManagementMismatch,

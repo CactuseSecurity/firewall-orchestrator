@@ -4,7 +4,7 @@
 
 This directory is the repository source of truth for firewall rule positioning work. Active planning documents override chat history and any material under `archive/`.
 
-Phase 1 is implemented and locally validated on the current `Cactus/develop` baseline. It remains open only because the mandatory disposable-VM fresh-install and `9.7.0` to `9.7.1` upgrade checks could not be run in the available validation session. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Customer-specific analysis and wiring remain deferred to Phase 3.
+Phase 1 is implemented and locally validated on the current `Cactus/develop` baseline. It remains open until the mandatory disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade checks pass. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Customer-specific analysis and wiring remain deferred to Phase 3.
 
 | Phase | Status | Purpose |
 | --- | --- | --- |
@@ -110,12 +110,12 @@ WP-02 and WP-03 may proceed in parallel after WP-01 stabilizes. Phase 1 is not c
 ## Fixed assumptions
 
 - Existing hierarchical provisioning configuration and `ProvisioningPositioningAlgorithm` are reused unchanged.
-- Management is derived from the parent request task and gateway relationship. No duplicate `management_id` is added to the implementation task.
+- Effective management is `implTask.ManagementId ?? requestTask.ManagementId`; it must agree with the supplied management and gateway relationship.
 - Only new access-rule tasks are supported in Phase 1. Modification, deletion, object, and unknown task types are declined safely.
 - Calculation and persistence are separate operations.
 - Production calls return a safe not-implemented result while no production strategy is registered.
 - Safe diagnostics contain neither credentials nor complete rule contents.
-- The schema migration is part of the open `9.7.1` upgrade and leaves `product_version` unchanged (D-015).
+- The schema migration is part of the open `9.7.3` upgrade and leaves `product_version` unchanged (D-026).
 - Phase 2 recipes are in-memory only and use one caller-supplied immutable snapshot.
 - The final Phase 2 snapshot is a vendor-neutral projection of normalized `Rulebase` and `RulebaseLink` structure; Check Point blocks interpret that graph.
 - Existing-rule semantics remain excluded until a concrete block needs them; structural rule identity and order remain available for anchors.

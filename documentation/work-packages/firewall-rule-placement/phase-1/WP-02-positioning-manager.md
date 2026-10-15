@@ -30,7 +30,7 @@ Validate all of the following before invoking a strategy:
 3. The implementation task belongs to/corresponds to the supplied parent request task using the repository's canonical task relationship fields.
 4. Exactly one target gateway is identified.
 5. The supplied gateway agrees with implementation-task and request-task references.
-6. The supplied management agrees with the parent request task and the gateway-management relationship.
+6. The supplied management and gateway agree with the effective implementation-task management (`implTask.ManagementId ?? requestTask.ManagementId`); any loaded request-management object agrees with the request task's own management ID.
 7. Effective `GatewayProvisioningSettings` are present.
 8. The effective positioning algorithm is a defined, usable enum value.
 

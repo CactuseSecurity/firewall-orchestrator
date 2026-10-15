@@ -26,7 +26,8 @@ internal class ProvisioningSettingsServiceTest
         [("global", "global"), ("device_type", "11"), ("management", "101"), ("gateway", "210")];
     private static readonly string[] kExpectedZoneFromKeys = [ProvisioningSettingKeys.RuleZoneFromOverride.DatabaseKey];
     private static readonly string[] kExpectedLoggingKeys = [ProvisioningSettingKeys.RuleLoggingOverride.DatabaseKey];
-    private static readonly string[] kExpectedRuleTypeKeys = [ProvisioningSettingKeys.RuleType.DatabaseKey];
+    private static readonly string[] kExpectedPositioningKeys = [ProvisioningSettingKeys.PositioningAlgorithm.DatabaseKey];
+    private static readonly string[] kExpectedInstallOnKeys = [ProvisioningSettingKeys.InstallOn.DatabaseKey];
 
     [Test]
     public async Task LoadHierarchy_WithoutPersistedNodes_BuildsUnpersistedTree()
@@ -73,7 +74,7 @@ internal class ProvisioningSettingsServiceTest
         using (Assert.EnterMultipleScope())
         {
             Assert.That(State(form, ProvisioningSettingKeys.RuleLoggingOverride).DisplayedValue, Is.EqualTo(nameof(ProvisioningLoggingMode.Log)));
-            Assert.That(State(form, ProvisioningSettingKeys.RuleZoneFromOverride).DisplayedValue, Is.EqualTo("ANY"));
+            Assert.That(form.Fields.Any(f => f.Field.Key == ProvisioningSettingKeys.RuleZoneFromOverride), Is.False);
             Assert.That(form.Fields.All(f => !f.IsLocal && f.InheritedSource == null), Is.True);
             Assert.That(form.HasChanges, Is.False);
         }
@@ -155,10 +156,10 @@ internal class ProvisioningSettingsServiceTest
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
         ProvisioningNode gateway = Node(root, ProvisioningScopeType.Gateway, "210");
         ProvisioningLevelForm form = await service.LoadFormAsync(gateway);
-        ProvisioningFieldState zoneFrom = State(form, ProvisioningSettingKeys.RuleZoneFromOverride);
+        ProvisioningFieldState installOn = State(form, ProvisioningSettingKeys.InstallOn);
 
-        zoneFrom.Override();
-        zoneFrom.LocalValue = "dmz";
+        installOn.Override();
+        installOn.LocalValue = nameof(ProvisioningInstallOn.GatewaysInPath);
         await service.SaveAsync(form);
 
         using (Assert.EnterMultipleScope())
@@ -166,11 +167,11 @@ internal class ProvisioningSettingsServiceTest
             Assert.That(gateway.SelfAndAncestors().All(n => n.IsPersisted), Is.True);
             Assert.That(api.Nodes.Select(n => (n.NodeType, n.ObjectKey)), Is.EquivalentTo(kExpectedCreatedChain));
             Assert.That(api.Nodes.Single(n => n.Id == gateway.Scope.NodeId).DisplayName, Is.EqualTo("fgt-1"));
-            Assert.That(api.Nodes.SelectMany(n => n.Values).Select(v => v.ConfigKey), Is.EqualTo(kExpectedZoneFromKeys));
+            Assert.That(api.Nodes.SelectMany(n => n.Values).Select(v => v.ConfigKey), Is.EqualTo(kExpectedInstallOnKeys));
         }
 
         ProvisioningLevelForm reloaded = await service.LoadFormAsync(gateway);
-        Assert.That(State(reloaded, ProvisioningSettingKeys.RuleZoneFromOverride).WasLocal, Is.True);
+        Assert.That(State(reloaded, ProvisioningSettingKeys.InstallOn).WasLocal, Is.True);
     }
 
     [Test]
@@ -201,16 +202,16 @@ internal class ProvisioningSettingsServiceTest
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
         ProvisioningLevelForm form = await service.LoadFormAsync(Node(root, ProvisioningScopeType.Gateway, "200"));
 
-        ProvisioningFieldState ruleType = State(form, ProvisioningSettingKeys.RuleType);
-        ruleType.Override();
-        ruleType.LocalValue = nameof(ProvisioningRuleType.HandleAccessAndNat);
+        ProvisioningFieldState positioning = State(form, ProvisioningSettingKeys.PositioningAlgorithm);
+        positioning.Override();
+        positioning.LocalValue = nameof(ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection);
         State(form, ProvisioningSettingKeys.RuleZoneFromOverride).Inherit();
         await service.SaveAsync(form);
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(api.PatchCallCount, Is.EqualTo(1));
-            Assert.That(api.LastPatchUpsertKeys, Is.EqualTo(kExpectedRuleTypeKeys));
+            Assert.That(api.LastPatchUpsertKeys, Is.EqualTo(kExpectedPositioningKeys));
             Assert.That(api.LastPatchRemoveKeys, Is.EqualTo(kExpectedZoneFromKeys));
             Assert.That(api.ReadValue(kGatewayNodeId, ProvisioningSettingKeys.InstallOn)?.ToString(), Is.EqualTo("gatewaysInPath"));
             Assert.That(api.ReadValue(kGatewayNodeId, ProvisioningSettingKeys.RuleZoneFromOverride), Is.Null);
@@ -353,14 +354,48 @@ internal class ProvisioningSettingsServiceTest
         }
     }
 
+    /// <summary>
+    /// The API accepts object creation overrides at gateway level although the page offers them only down to
+    /// manager; such an override is shown as dormant on the gateway and can be cleared there.
+    /// </summary>
+    [Test]
+    public async Task LoadForm_OverrideBelowUiLevel_ExposesAndClearsDormantOverride()
+    {
+        InMemoryProvisioningApiConnection api = PersistedCheckPointChain(includeGateway: true);
+        api.SetValue(kGatewayNodeId, ProvisioningSettingKeys.ServiceObjectCreation, ProvisioningObjectCreationMode.Submanager);
+        ProvisioningSettingsService service = Service(api);
+        ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
+        ProvisioningNode gateway = Node(root, ProvisioningScopeType.Gateway, "200");
+
+        ProvisioningLevelForm form = await service.LoadFormAsync(gateway);
+        ProvisioningFieldState serviceObjects = State(form, ProvisioningSettingKeys.ServiceObjectCreation);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(serviceObjects.IsDormant, Is.True);
+            Assert.That(serviceObjects.OriginalValue, Is.EqualTo(nameof(ProvisioningObjectCreationMode.Submanager)));
+            Assert.That(form.Fields.Any(f => f.Field.Key == ProvisioningSettingKeys.AddressObjectCreation), Is.False);
+        }
+
+        serviceObjects.Inherit();
+        await service.SaveAsync(form);
+        ProvisioningLevelForm reloaded = await service.LoadFormAsync(gateway);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(api.ReadValue(kGatewayNodeId, ProvisioningSettingKeys.ServiceObjectCreation), Is.Null);
+            Assert.That(reloaded.Fields.Any(f => f.Field.Key == ProvisioningSettingKeys.ServiceObjectCreation), Is.False);
+        }
+    }
+
     [Test]
     public async Task Save_CapturesChangedValuesBeforeFirstHierarchyRequest()
     {
         InMemoryProvisioningApiConnection api = new();
         ProvisioningSettingsService service = Service(api);
         ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
-        ProvisioningNode gateway = Node(root, ProvisioningScopeType.Gateway, "210");
-        ProvisioningLevelForm form = await service.LoadFormAsync(gateway);
+        ProvisioningNode management = Node(root, ProvisioningScopeType.Management, "101");
+        ProvisioningLevelForm form = await service.LoadFormAsync(management);
         ProvisioningFieldState zoneFrom = State(form, ProvisioningSettingKeys.RuleZoneFromOverride);
         zoneFrom.Override();
         zoneFrom.LocalValue = "captured-before-save";
@@ -389,7 +424,7 @@ internal class ProvisioningSettingsServiceTest
         }
         await saveTask;
 
-        Assert.That(api.ReadValue(gateway.Scope.NodeId, ProvisioningSettingKeys.RuleZoneFromOverride)?.ToString(),
+        Assert.That(api.ReadValue(management.Scope.NodeId, ProvisioningSettingKeys.RuleZoneFromOverride)?.ToString(),
             Is.EqualTo("captured-before-save"));
     }
 

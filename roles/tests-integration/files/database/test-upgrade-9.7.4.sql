@@ -20,7 +20,7 @@ INSERT INTO provisioning_config_value VALUES
     (1, 'logging', '"Log"'), (1, 'zoneFrom', '"internal"'),
     (1, 'ruleType', '"AlwaysAccess"'), (1, 'ruleCategory', '"App"'),
     (1, 'positioningAlgorithm', '"CheckPointEndOfAppSectionDistinguishCommonServices"'),
-    (1, 'implementationMode', '"None"'), (1, 'planImplementation', '"Enable"'),
+    (1, 'implementationMode', '"None"'), (1, 'planImplementation', 'true'),
     (1, 'installOn', '"custom-cluster"'), (1, 'templates', '"{}"'),
     (2, 'logging', '"Log"'), (2, 'ruleLoggingOverride', '"LogTrack"'),
     (2, 'zoneTo', '"ANY"'), (2, 'implementationMode', '"TufinSc"'),
@@ -29,7 +29,7 @@ INSERT INTO provisioning_config_value VALUES
     (3, 'ruleType', '"HandleAccessAndIps"'),
     (4, 'serviceObjectCreation', '"Submanager"'), (4, 'addressObjectCreation', '"Submanager"'),
     (4, 'ruleCategory', '"CommonService"'), (4, 'templates', '"gateway-template"'),
-    (4, 'logging', '"None"'), (4, 'installOn', '"gatewaysInPath"');
+    (4, 'logging', '"None"'), (4, 'installOn', '"gatewaysInPath"'), (4, 'implementationMode', '"FwoAuto"');
 CREATE TEMP TABLE original_values AS SELECT node_id, config_key, config_value FROM provisioning_config_value;
 
 -- @run-upgrade-9.7.4
@@ -37,15 +37,17 @@ CREATE TEMP TABLE original_values AS SELECT node_id, config_key, config_value FR
 CREATE TEMP TABLE expected_values (LIKE provisioning_config_value);
 INSERT INTO expected_values VALUES
     (1, 'ruleLoggingOverride', '"log"'), (1, 'ruleZoneFromOverride', '"internal"'),
-    (1, 'ruleType', '"access"'), (1, 'ruleCategory', '"app"'),
+    (1, 'ruleType', '"access"'), (1, 'commonServiceSeparation', 'false'),
     (1, 'positioningAlgorithm', '"endOfAppSectionDistinguishCommonServices"'),
-    (1, 'implementationMode', '"Manual"'), (1, 'planImplementation', '"Enable"'),
+    (1, 'implementationMode', '"Manual"'), (1, 'planImplementation', 'true'),
     (2, 'ruleLoggingOverride', '"log_track"'), (2, 'ruleZoneToOverride', '"ANY"'),
     (2, 'implementationMode', '"reroute_to_external_ticket_system"'),
     (2, 'securityProfiles', '["strict"]'), (2, 'templates', '"template"'),
-    (3, 'implementationMode', '"Manual"'), (3, 'planImplementation', '"Disable"'),
+    (3, 'implementationMode', '"Manual"'), (3, 'planImplementation', 'false'),
     (3, 'addressObjectCreation', '"Submanager"'), (3, 'ruleType', '"accessAndIPS"'),
-    (4, 'ruleLoggingOverride', '"none"'), (4, 'installOn', '"gatewaysInPath"');
+    (4, 'serviceObjectCreation', '"Submanager"'), (4, 'addressObjectCreation', '"Submanager"'),
+    (4, 'commonServiceSeparation', 'true'), (4, 'ruleLoggingOverride', '"none"'),
+    (4, 'installOn', '"gatewaysInPath"'), (4, 'implementationMode', '"Automatic"');
 CREATE FUNCTION pg_temp.assert_migration() RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
     IF EXISTS ((SELECT config_key, config_value, config_user FROM config EXCEPT SELECT config_key, config_value, config_user FROM original_config)

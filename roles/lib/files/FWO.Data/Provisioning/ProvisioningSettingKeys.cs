@@ -11,12 +11,7 @@ public static class ProvisioningSettingKeys
         [ProvisioningScopeType.Global, ProvisioningScopeType.DeviceType, ProvisioningScopeType.Management];
     private static readonly List<ProvisioningScopeType> DeviceScopeTypes =
         [ProvisioningScopeType.DeviceType, ProvisioningScopeType.Management, ProvisioningScopeType.Gateway];
-    private static readonly List<ProvisioningScopeType> TemplateScopeTypes =
-        [ProvisioningScopeType.DeviceType, ProvisioningScopeType.Management];
-    private static readonly List<ProvisioningScopeType> GlobalScopeTypes = [ProvisioningScopeType.Global];
-
-    public static readonly ProvisioningSettingKey<ProvisioningImplementationMode> ImplementationMode =
-        new("implementationMode", AllScopeTypes);
+    private static readonly List<ProvisioningScopeType> DeviceTypeScopeTypes = [ProvisioningScopeType.DeviceType];
 
     public static readonly ProvisioningSettingKey<ProvisioningInstallOn> InstallOn =
         new("installOn", AllScopeTypes);
@@ -28,22 +23,22 @@ public static class ProvisioningSettingKeys
         new("ruleLoggingOverride", AllScopeTypes);
 
     public static readonly ProvisioningSettingKey<ProvisioningObjectCreationMode> ServiceObjectCreation =
-        new("serviceObjectCreation", ManagerScopeTypes);
+        new("serviceObjectCreation", AllScopeTypes);
 
     public static readonly ProvisioningSettingKey<ProvisioningObjectCreationMode> AddressObjectCreation =
-        new("addressObjectCreation", ManagerScopeTypes);
+        new("addressObjectCreation", AllScopeTypes);
 
     public static readonly ProvisioningSettingKey<ProvisioningObjectCreationMode> TimeObjectCreation =
-        new("timeObjectCreation", ManagerScopeTypes);
+        new("timeObjectCreation", AllScopeTypes);
 
     public static readonly ProvisioningSettingKey<ProvisioningObjectCreationMode> LabelCreation =
-        new("labelCreation", ManagerScopeTypes);
+        new("labelCreation", AllScopeTypes);
 
     public static readonly ProvisioningSettingKey<ProvisioningRuleType> RuleType =
         new("ruleType", AllScopeTypes);
 
-    public static readonly ProvisioningSettingKey<ProvisioningRuleCategory> RuleCategory =
-        new("ruleCategory", ManagerScopeTypes);
+    public static readonly ProvisioningSettingKey<bool> CommonServiceSeparation =
+        new("commonServiceSeparation", AllScopeTypes);
 
     public static readonly ProvisioningSettingKey<string> RuleZoneFromOverride =
         new("ruleZoneFromOverride", AllScopeTypes);
@@ -51,8 +46,15 @@ public static class ProvisioningSettingKeys
     public static readonly ProvisioningSettingKey<string> RuleZoneToOverride =
         new("ruleZoneToOverride", AllScopeTypes);
 
+    public static readonly ProvisioningSettingKey<ProvisioningImplementationMode> ImplementationMode =
+        new("implementationMode", AllScopeTypes);
+
     public static readonly ProvisioningSettingKey<ProvisioningRuleImplementationMode> ImplementationModeOverrideForRules =
         new("implementationModeOverrideForRules", AllScopeTypes);
+
+    /// <summary>ID of the configured external ticket system; undefined (null) unless overridden.</summary>
+    public static readonly ProvisioningSettingKey<int?> RerouteToExternalTicketSystem =
+        new("rerouteToExternalTicketSystem", AllScopeTypes);
 
     public static readonly ProvisioningSettingKey<List<string>> SecurityProfiles =
         new("securityProfiles", DeviceScopeTypes);
@@ -60,33 +62,38 @@ public static class ProvisioningSettingKeys
     public static readonly ProvisioningSettingKey<string> OwnerIdCustomFieldName =
         new("ownerIdCustomFieldName", ManagerScopeTypes);
 
-    public static readonly ProvisioningSettingKey<string> ChangeNumberCustomFieldName =
-        new("changeNumberCustomFieldName", ManagerScopeTypes);
+    public static readonly ProvisioningSettingKey<string> ChangeIdCustomFieldName =
+        new("changeIdCustomFieldName", ManagerScopeTypes);
 
-    public static readonly ProvisioningSettingKey<ProvisioningPlanningMode> PlanImplementation =
+    public static readonly ProvisioningSettingKey<string> ImporterHostName =
+        new("importerHostName", ManagerScopeTypes);
+
+    public static readonly ProvisioningSettingKey<bool> PlanImplementation =
         new("planImplementation", AllScopeTypes);
 
-    public static readonly ProvisioningSettingKey<ProvisioningPlanningMode> PlanImplementationOverrideForRules =
+    public static readonly ProvisioningSettingKey<bool> PlanImplementationOverrideForRules =
         new("planImplementationOverrideForRules", AllScopeTypes);
 
-    public static readonly ProvisioningSettingKey<Dictionary<string, string>> ModellingNamingConventions =
-        new("modellingNamingConventions", GlobalScopeTypes);
-
-    public static readonly ProvisioningSettingKey<ProvisioningYesNo> ModellingCreateAppZones =
+    public static readonly ProvisioningSettingKey<bool> ModellingCreateAppZones =
         new("modellingCreateAppZones", ManagerScopeTypes);
 
-    public static readonly ProvisioningSettingKey<ProvisioningYesNo> ModellingImplementNetworkAreaObjects =
+    public static readonly ProvisioningSettingKey<bool> ModellingImplementNetworkAreaObjects =
         new("modellingImplementNetworkAreaObjects", ManagerScopeTypes);
 
-    public static readonly ProvisioningSettingKey<ProvisioningYesNo> ModellingDynIpLabelsVisibleAsGroups =
+    public static readonly ProvisioningSettingKey<bool> ModellingDynIpLabelsVisibleAsGroups =
         new("modellingDynIpLabelsVisibleAsGroups", ManagerScopeTypes);
 
+    public static readonly ProvisioningSettingKey<ProvisioningConnectionIdField> ModellingConnectionIdField =
+        new("modellingConnectionIdField", ManagerScopeTypes);
+
+    public static readonly ProvisioningSettingKey<string> ModellingConnectionIdTemplate =
+        new("modellingConnectionIdTemplate", ManagerScopeTypes);
+
     public static readonly ProvisioningSettingKey<string> Templates =
-        new("templates", TemplateScopeTypes);
+        new("templates", DeviceTypeScopeTypes);
 
     public static IReadOnlyList<ProvisioningSettingKey> All { get; } = new List<ProvisioningSettingKey>
     {
-        ImplementationMode,
         InstallOn,
         PositioningAlgorithm,
         RuleLoggingOverride,
@@ -95,19 +102,23 @@ public static class ProvisioningSettingKeys
         TimeObjectCreation,
         LabelCreation,
         RuleType,
-        RuleCategory,
+        CommonServiceSeparation,
         RuleZoneFromOverride,
         RuleZoneToOverride,
+        ImplementationMode,
         ImplementationModeOverrideForRules,
+        RerouteToExternalTicketSystem,
         SecurityProfiles,
         OwnerIdCustomFieldName,
-        ChangeNumberCustomFieldName,
+        ChangeIdCustomFieldName,
+        ImporterHostName,
         PlanImplementation,
         PlanImplementationOverrideForRules,
-        ModellingNamingConventions,
         ModellingCreateAppZones,
         ModellingImplementNetworkAreaObjects,
         ModellingDynIpLabelsVisibleAsGroups,
+        ModellingConnectionIdField,
+        ModellingConnectionIdTemplate,
         Templates,
     }.AsReadOnly();
 

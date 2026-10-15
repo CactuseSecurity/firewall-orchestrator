@@ -345,12 +345,31 @@ else
                 builder.CloseElement();
                 break;
 
-            case ProvisioningFieldKind.NamingConventions:
+            case ProvisioningFieldKind.ExtTicketSystem:
+                builder.OpenElement(0, "select");
+                builder.AddAttribute(1, "class", "form-select form-select-sm w-auto");
+                builder.AddAttribute(2, "value", value);
+                builder.AddAttribute(3, "onchange", changeCallback);
+                builder.AddAttribute(4, "disabled", disabled);
+                builder.OpenElement(5, "option");
+                builder.AddAttribute(6, "value", "");
+                builder.AddContent(7, userConfig.GetText("undefined"));
+                builder.CloseElement();
+                foreach ((string optionValue, string name) in ProvisioningSettingsData.ExtTicketSystemOptions(userConfig.ExtTicketSystems, value))
+                {
+                    builder.OpenElement(8, "option");
+                    builder.AddAttribute(9, "value", optionValue);
+                    builder.AddContent(10, name);
+                    builder.CloseElement();
+                }
+                builder.CloseElement();
+                break;
+
             case ProvisioningFieldKind.TemplateText:
                 builder.OpenElement(0, "textarea");
                 builder.AddAttribute(1, "class", "form-control form-control-sm");
                 builder.AddAttribute(2, "rows", 4);
-                builder.AddAttribute(3, "placeholder", field.Kind == ProvisioningFieldKind.NamingConventions ? "" : userConfig.GetText("prov_templates_placeholder"));
+                builder.AddAttribute(3, "placeholder", userConfig.GetText("prov_templates_placeholder"));
                 builder.AddAttribute(4, "value", value);
                 builder.AddAttribute(5, "onchange", changeCallback);
                 builder.AddAttribute(6, "disabled", disabled);

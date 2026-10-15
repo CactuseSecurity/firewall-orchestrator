@@ -1,8 +1,6 @@
 using FWO.Data;
-using FWO.Config.Api.Provisioning;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using FWO.Data.Provisioning;
+using System.Globalization;
 
 namespace FWO.Ui.Pages.Settings
 {
@@ -15,7 +13,7 @@ namespace FWO.Ui.Pages.Settings
         Text,
         TemplateText,
         StringList,
-        NamingConventions
+        ExtTicketSystem
     }
 
     /// <summary>
@@ -127,36 +125,40 @@ namespace FWO.Ui.Pages.Settings
         {
             { "prov_implementation_mode", "H5168" },
             { "prov_install_on", "H5169" },
+            { "prov_time_object_creation", "H5170" },
+            { "prov_label_creation", "H5172" },
+            { "prov_implementation_mode_override_for_rules", "H5173" },
+            { "prov_owner_id_custom_field_name", "H5174" },
+            { "prov_change_id_custom_field_name", "H5175" },
+            { "prov_reroute_to_external_ticket_system", "H5176" },
+            { "prov_plan_implementation", "H5177" },
+            { "prov_plan_implementation_override_for_rules", "H5178" },
+            { "prov_modelling_create_app_zones", "H5179" },
+            { "prov_modelling_implement_network_area_objects", "H5180" },
+            { "prov_modelling_dyn_ip_labels_visible_as_groups", "H5188" },
+            { "prov_importer_host_name", "H5189" },
             { "prov_logging", "H5190" },
             { "prov_service_object_creation", "H5191" },
             { "prov_address_object_creation", "H5192" },
             { "prov_rule_type", "H5193" },
             { "prov_templates", "H5194" },
             { "prov_positioning_algorithm", "H5195" },
-            { "prov_rule_category", "H5196" },
+            { "prov_common_service_separation", "H5196" },
             { "prov_zone_from", "H5198" },
             { "prov_zone_to", "H5199" },
-            { "prov_time_object_creation", "H5170" },
-            { "prov_label_creation", "H5172" },
-            { "prov_implementation_mode_override_for_rules", "H5173" },
-            { "prov_owner_id_custom_field_name", "H5174" },
-            { "prov_change_number_custom_field_name", "H5175" },
-            { "prov_plan_implementation", "H5177" },
-            { "prov_plan_implementation_override_for_rules", "H5178" },
-            { "prov_modelling_create_app_zones", "H5179" },
-            { "prov_modelling_implement_network_area_objects", "H5180" },
-            { "prov_modelling_dyn_ip_labels_visible_as_groups", "H5188" },
-            { "prov_modelling_naming_conventions", "H5189" },
+            { "prov_modelling_connection_id_field", "H5200" },
+            { "prov_modelling_connection_id_template", "H5200" },
         };
 
-        /// <summary>Localized editors with the same scope restrictions as the typed API keys.</summary>
+        private static readonly List<ProvisioningFieldOption> BoolOptions =
+        [
+            new(bool.TrueString, "yes"),
+            new(bool.FalseString, "no")
+        ];
+
+        /// <summary>Localized editors; config may store deeper overrides than the UI offers (MaxLevel).</summary>
         public static readonly IReadOnlyList<ProvisioningFieldDefinition> Fields =
         [
-            EnumField(ProvisioningSettingKeys.ImplementationMode, "prov_implementation_mode", s => s.ImplementationMode,
-                EnumOptions(
-                    (ProvisioningImplementationMode.FwoAuto, "prov_opt_fwo_auto"),
-                    (ProvisioningImplementationMode.Manual, "prov_opt_manual"),
-                    (ProvisioningImplementationMode.RerouteToExternalTicketSystem, "prov_opt_reroute"))),
             EnumField(ProvisioningSettingKeys.InstallOn, "prov_install_on", s => s.InstallOn,
                 EnumOptions(
                     (ProvisioningInstallOn.Any, "prov_opt_any"),
@@ -198,13 +200,18 @@ namespace FWO.Ui.Pages.Settings
                     (ProvisioningRuleType.HandleAccessAndNat, "prov_opt_access_nat"),
                     (ProvisioningRuleType.HandleAccessAndIps, "prov_opt_access_ips"),
                     (ProvisioningRuleType.HandleAccessNatIps, "prov_opt_access_nat_ips"),
-                    (ProvisioningRuleType.AppSecurity, "prov_opt_app_security"))),
-            EnumField(ProvisioningSettingKeys.RuleCategory, "prov_rule_category", s => s.RuleCategory,
+                    (ProvisioningRuleType.AppSecurity, "prov_opt_app_security")), maxLevel: ProvisioningScopeType.Management),
+            BoolField(ProvisioningSettingKeys.CommonServiceSeparation, "prov_common_service_separation", s => s.CommonServiceSeparation,
+                ProvisioningScopeType.Management),
+            TextField(ProvisioningSettingKeys.RuleZoneFromOverride, "prov_zone_from", s => s.RuleZoneFromOverride, fortinetOnly: true,
+                maxLevel: ProvisioningScopeType.Management),
+            TextField(ProvisioningSettingKeys.RuleZoneToOverride, "prov_zone_to", s => s.RuleZoneToOverride, fortinetOnly: true,
+                maxLevel: ProvisioningScopeType.Management),
+            EnumField(ProvisioningSettingKeys.ImplementationMode, "prov_implementation_mode", s => s.ImplementationMode,
                 EnumOptions(
-                    (ProvisioningRuleCategory.App, "prov_opt_app"),
-                    (ProvisioningRuleCategory.CommonService, "prov_opt_common_service")), maxLevel: ProvisioningScopeType.Management),
-            TextField(ProvisioningSettingKeys.RuleZoneFromOverride, "prov_zone_from", s => s.RuleZoneFromOverride, fortinetOnly: true),
-            TextField(ProvisioningSettingKeys.RuleZoneToOverride, "prov_zone_to", s => s.RuleZoneToOverride, fortinetOnly: true),
+                    (ProvisioningImplementationMode.Automatic, "prov_opt_automatic"),
+                    (ProvisioningImplementationMode.Manual, "prov_opt_manual"),
+                    (ProvisioningImplementationMode.RerouteToExternalTicketSystem, "prov_opt_reroute"))),
             EnumField(ProvisioningSettingKeys.ImplementationModeOverrideForRules, "prov_implementation_mode_override_for_rules", s => s.ImplementationModeOverrideForRules,
                 EnumOptions(
                     (ProvisioningRuleImplementationMode.Automatic, "prov_opt_automatic"),
@@ -212,49 +219,45 @@ namespace FWO.Ui.Pages.Settings
                     (ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem, "prov_opt_reroute"))),
             new()
             {
+                Key = ProvisioningSettingKeys.RerouteToExternalTicketSystem,
+                LabelTextKey = "prov_reroute_to_external_ticket_system",
+                HelpTextKey = HelpKey("prov_reroute_to_external_ticket_system"),
+                Kind = ProvisioningFieldKind.ExtTicketSystem,
+                Read = s => s.RerouteToExternalTicketSystem?.ToString(CultureInfo.InvariantCulture) ?? "",
+                SetOverride = SetExtTicketSystemOverride
+            },
+            new()
+            {
                 Key = ProvisioningSettingKeys.SecurityProfiles,
                 LabelTextKey = "prov_security_profiles",
                 HelpTextKey = "H5197",
                 Kind = ProvisioningFieldKind.StringList,
                 MinLevel = ProvisioningScopeType.DeviceType,
+                MaxLevel = ProvisioningScopeType.Management,
                 Read = s => string.Join(kListSeparator, s.SecurityProfiles),
                 SetOverride = (changes, value) => changes.Set(ProvisioningSettingKeys.SecurityProfiles,
                     ParseStringList(value).Where(entry => entry.Length > 0).ToList())
             },
             TextField(ProvisioningSettingKeys.OwnerIdCustomFieldName, "prov_owner_id_custom_field_name", s => s.OwnerIdCustomFieldName, maxLevel: ProvisioningScopeType.Management),
-            TextField(ProvisioningSettingKeys.ChangeNumberCustomFieldName, "prov_change_number_custom_field_name", s => s.ChangeNumberCustomFieldName, maxLevel: ProvisioningScopeType.Management),
-            EnumField(ProvisioningSettingKeys.PlanImplementation, "prov_plan_implementation", s => s.PlanImplementation,
+            TextField(ProvisioningSettingKeys.ChangeIdCustomFieldName, "prov_change_id_custom_field_name", s => s.ChangeIdCustomFieldName, maxLevel: ProvisioningScopeType.Management),
+            TextField(ProvisioningSettingKeys.ImporterHostName, "prov_importer_host_name", s => s.ImporterHostName, maxLevel: ProvisioningScopeType.Management),
+            BoolField(ProvisioningSettingKeys.PlanImplementation, "prov_plan_implementation", s => s.PlanImplementation),
+            BoolField(ProvisioningSettingKeys.PlanImplementationOverrideForRules, "prov_plan_implementation_override_for_rules", s => s.PlanImplementationOverrideForRules),
+            BoolField(ProvisioningSettingKeys.ModellingCreateAppZones, "prov_modelling_create_app_zones", s => s.ModellingCreateAppZones,
+                ProvisioningScopeType.Management),
+            BoolField(ProvisioningSettingKeys.ModellingImplementNetworkAreaObjects, "prov_modelling_implement_network_area_objects", s => s.ModellingImplementNetworkAreaObjects,
+                ProvisioningScopeType.Management),
+            BoolField(ProvisioningSettingKeys.ModellingDynIpLabelsVisibleAsGroups, "prov_modelling_dyn_ip_labels_visible_as_groups", s => s.ModellingDynIpLabelsVisibleAsGroups,
+                ProvisioningScopeType.Management),
+            EnumField(ProvisioningSettingKeys.ModellingConnectionIdField, "prov_modelling_connection_id_field", s => s.ModellingConnectionIdField,
                 EnumOptions(
-                    (ProvisioningPlanningMode.Enable, "prov_opt_enable"),
-                    (ProvisioningPlanningMode.Disable, "prov_opt_disable"))),
-            EnumField(ProvisioningSettingKeys.PlanImplementationOverrideForRules, "prov_plan_implementation_override_for_rules", s => s.PlanImplementationOverrideForRules,
-                EnumOptions(
-                    (ProvisioningPlanningMode.Enable, "prov_opt_enable"),
-                    (ProvisioningPlanningMode.Disable, "prov_opt_disable"))),
-            new()
-            {
-                Key = ProvisioningSettingKeys.ModellingNamingConventions,
-                LabelTextKey = "prov_modelling_naming_conventions",
-                HelpTextKey = "H5189",
-                Kind = ProvisioningFieldKind.NamingConventions,
-                MaxLevel = ProvisioningScopeType.Global,
-                Read = s => JsonConvert.SerializeObject(s.ModellingNamingConventions),
-                SetOverride = (changes, value) => changes.Set(ProvisioningSettingKeys.ModellingNamingConventions,
-                    ProvisioningSettingValueSerializer.Deserialize(ProvisioningSettingKeys.ModellingNamingConventions, JObject.Parse(value)))
-            },
-            EnumField(ProvisioningSettingKeys.ModellingCreateAppZones, "prov_modelling_create_app_zones", s => s.ModellingCreateAppZones,
-                EnumOptions(
-                    (ProvisioningYesNo.Yes, "yes"),
-                    (ProvisioningYesNo.No, "no")), maxLevel: ProvisioningScopeType.Management),
-            EnumField(ProvisioningSettingKeys.ModellingImplementNetworkAreaObjects, "prov_modelling_implement_network_area_objects", s => s.ModellingImplementNetworkAreaObjects,
-                EnumOptions(
-                    (ProvisioningYesNo.Yes, "yes"),
-                    (ProvisioningYesNo.No, "no")), maxLevel: ProvisioningScopeType.Management),
-            EnumField(ProvisioningSettingKeys.ModellingDynIpLabelsVisibleAsGroups, "prov_modelling_dyn_ip_labels_visible_as_groups", s => s.ModellingDynIpLabelsVisibleAsGroups,
-                EnumOptions(
-                    (ProvisioningYesNo.Yes, "yes"),
-                    (ProvisioningYesNo.No, "no")), maxLevel: ProvisioningScopeType.Management),
-            TextField(ProvisioningSettingKeys.Templates, "prov_templates", s => s.Templates, ProvisioningFieldKind.TemplateText, minLevel: ProvisioningScopeType.DeviceType, maxLevel: ProvisioningScopeType.Management),
+                    (ProvisioningConnectionIdField.Name, "name"),
+                    (ProvisioningConnectionIdField.Comment, "comment"),
+                    (ProvisioningConnectionIdField.CustomField, "prov_opt_custom_field")), maxLevel: ProvisioningScopeType.Management),
+            TextField(ProvisioningSettingKeys.ModellingConnectionIdTemplate, "prov_modelling_connection_id_template", s => s.ModellingConnectionIdTemplate,
+                maxLevel: ProvisioningScopeType.Management),
+            TextField(ProvisioningSettingKeys.Templates, "prov_templates", s => s.Templates, ProvisioningFieldKind.TemplateText,
+                minLevel: ProvisioningScopeType.DeviceType, maxLevel: ProvisioningScopeType.DeviceType),
         ];
 
         /// <summary>Returns the field definition of a setting key, or null if the key is not edited in the UI.</summary>
@@ -376,6 +379,50 @@ namespace FWO.Ui.Pages.Settings
                 Read = get,
                 SetOverride = (changes, value) => changes.Set(key, value)
             };
+
+        private static ProvisioningFieldDefinition BoolField(
+            ProvisioningSettingKey<bool> key,
+            string textKey,
+            Func<GlobalProvisioningSettings, bool> get,
+            ProvisioningScopeType maxLevel = ProvisioningScopeType.Gateway) => new()
+            {
+                Key = key,
+                LabelTextKey = textKey,
+                HelpTextKey = HelpKey(textKey),
+                Kind = ProvisioningFieldKind.SingleSelect,
+                Options = BoolOptions,
+                MaxLevel = maxLevel,
+                Read = s => get(s).ToString(),
+                SetOverride = (changes, value) => changes.Set(key, bool.Parse(value))
+            };
+
+        /// <summary>An empty selection means undefined, which is never stored, so the level inherits instead.</summary>
+        private static void SetExtTicketSystemOverride(ProvisioningSettingsChangeSet changes, string value)
+        {
+            if (value.Length == 0)
+            {
+                changes.Remove(ProvisioningSettingKeys.RerouteToExternalTicketSystem);
+            }
+            else
+            {
+                changes.Set(ProvisioningSettingKeys.RerouteToExternalTicketSystem, (int?)int.Parse(value, CultureInfo.InvariantCulture));
+            }
+        }
+
+        /// <summary>
+        /// Selectable external ticket systems as (ID, display name). A stored ID no longer configured stays selectable
+        /// so the editor still shows it.
+        /// </summary>
+        public static List<(string Value, string Name)> ExtTicketSystemOptions(string? configuredTicketSystems, string currentValue)
+        {
+            List<(string Value, string Name)> options = [.. ExternalTicketSystem.ParseConfigured(configuredTicketSystems)
+                .Select(system => (system.Id.ToString(CultureInfo.InvariantCulture), $"{system.Name} ({system.Id})"))];
+            if (currentValue.Length > 0 && !options.Any(option => option.Value == currentValue))
+            {
+                options.Add((currentValue, currentValue));
+            }
+            return options;
+        }
 
         /// <summary>Maps labels to the sorted provisioning help entries.</summary>
         private static string HelpKey(string textKey) =>

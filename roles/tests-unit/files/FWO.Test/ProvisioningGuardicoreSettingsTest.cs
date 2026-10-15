@@ -16,22 +16,55 @@ internal class ProvisioningGuardicoreSettingsTest
     private static readonly DeviceType kDeviceType = new() { Id = 10, Name = "Guardicore" };
     private static readonly List<string> kExpectedKeys =
     [
-        "implementationMode", "installOn", "positioningAlgorithm", "ruleLoggingOverride",
+        "installOn", "positioningAlgorithm", "ruleLoggingOverride",
         "serviceObjectCreation", "addressObjectCreation", "timeObjectCreation", "labelCreation",
-        "ruleType", "ruleCategory", "ruleZoneFromOverride", "ruleZoneToOverride",
-        "implementationModeOverrideForRules", "securityProfiles", "ownerIdCustomFieldName",
-        "changeNumberCustomFieldName", "planImplementation",
-        "planImplementationOverrideForRules", "modellingNamingConventions", "modellingCreateAppZones",
-        "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups", "templates"
+        "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride",
+        "implementationMode", "implementationModeOverrideForRules", "rerouteToExternalTicketSystem",
+        "securityProfiles", "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName",
+        "planImplementation", "planImplementationOverrideForRules", "modellingCreateAppZones",
+        "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
+        "modellingConnectionIdField", "modellingConnectionIdTemplate", "templates"
     ];
-    private static readonly HashSet<string> kManagerKeys =
+    private static readonly HashSet<string> kManagerConfigKeys =
+    [
+        "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName",
+        "modellingCreateAppZones", "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
+        "modellingConnectionIdField", "modellingConnectionIdTemplate"
+    ];
+    private static readonly HashSet<string> kManagerUiKeys =
     [
         "serviceObjectCreation", "addressObjectCreation", "timeObjectCreation", "labelCreation",
-        "ruleCategory", "ownerIdCustomFieldName", "changeNumberCustomFieldName",
-        "modellingCreateAppZones", "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups"
+        "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride", "securityProfiles"
     ];
-    private static readonly HashSet<string> kGlobalKeys = ["modellingNamingConventions"];
-    private static readonly HashSet<string> kDeviceKeys = ["securityProfiles", "templates"];
+    private static readonly List<ProvisioningScopeType> kAllLevels =
+        [ProvisioningScopeType.Global, ProvisioningScopeType.DeviceType, ProvisioningScopeType.Management, ProvisioningScopeType.Gateway];
+    private static readonly List<ProvisioningScopeType> kManagerLevels =
+        [ProvisioningScopeType.Global, ProvisioningScopeType.DeviceType, ProvisioningScopeType.Management];
+    private static readonly List<ProvisioningScopeType> kDeviceLevels =
+        [ProvisioningScopeType.DeviceType, ProvisioningScopeType.Management, ProvisioningScopeType.Gateway];
+    private static readonly List<ProvisioningScopeType> kDeviceUiLevels =
+        [ProvisioningScopeType.DeviceType, ProvisioningScopeType.Management];
+    private static readonly List<ProvisioningScopeType> kDeviceTypeLevel = [ProvisioningScopeType.DeviceType];
+    private const string kTicketSystems = "[{\"Id\":3,\"Name\":\"Ticketing\"}]";
+    private static readonly List<JValue> kInvalidTicketSystemIds = [new("3"), new(3.5), new(long.MaxValue)];
+    private static readonly List<(string Value, string Name)> kConfiguredTicketSystemOptions = [("3", "Ticketing (3)")];
+    private static readonly List<(string Value, string Name)> kOptionsWithRemovedTicketSystem = [("3", "Ticketing (3)"), ("9", "9")];
+
+    /// <summary>Levels at which the API accepts an override, per the issue's config column.</summary>
+    private static List<ProvisioningScopeType> ConfigLevels(ProvisioningSettingKey key) => key.DatabaseKey switch
+    {
+        "templates" => kDeviceTypeLevel,
+        "securityProfiles" => kDeviceLevels,
+        _ => kManagerConfigKeys.Contains(key.DatabaseKey) ? kManagerLevels : kAllLevels
+    };
+
+    /// <summary>Levels at which the settings page offers the field, per the issue's UI max level column.</summary>
+    private static List<ProvisioningScopeType> UiLevels(ProvisioningSettingKey key) => key.DatabaseKey switch
+    {
+        "templates" => kDeviceTypeLevel,
+        "securityProfiles" => kDeviceUiLevels,
+        _ => kManagerConfigKeys.Contains(key.DatabaseKey) || kManagerUiKeys.Contains(key.DatabaseKey) ? kManagerLevels : kAllLevels
+    };
 
     /// <summary>Creates a real four-level locator hierarchy for persistence tests.</summary>
     private static InMemoryProvisioningApiConnection CreateHierarchy()
@@ -58,17 +91,12 @@ internal class ProvisioningGuardicoreSettingsTest
         Assert.That(ProvisioningSettingsData.Fields.Select(field => field.Key), Is.EquivalentTo(ProvisioningSettingKeys.All));
     }
 
-    /// <summary>Writes reject forbidden scopes, and editors use the same restrictions.</summary>
+    /// <summary>Writes reject forbidden scopes, and editors are offered no deeper than the UI max level.</summary>
     [TestCaseSource(nameof(ScopeCases))]
     public void ScopeRestrictionsMatchContract(ProvisioningSettingKey key, ProvisioningScopeType scope)
     {
-        bool expected = scope != ProvisioningScopeType.Undefined
-            && (!kManagerKeys.Contains(key.DatabaseKey) || scope != ProvisioningScopeType.Gateway)
-            && (!kGlobalKeys.Contains(key.DatabaseKey) || scope == ProvisioningScopeType.Global)
-            && (!kDeviceKeys.Contains(key.DatabaseKey) || scope != ProvisioningScopeType.Global)
-            && (key != ProvisioningSettingKeys.Templates || scope != ProvisioningScopeType.Gateway);
-        Assert.That(key.IsAllowedAt(scope), Is.EqualTo(expected), $"{key}@{scope}");
-        Assert.That(ProvisioningSettingsData.FindField(key)!.AppliesToLevel(scope), Is.EqualTo(expected));
+        Assert.That(key.IsAllowedAt(scope), Is.EqualTo(ConfigLevels(key).Contains(scope)), $"{key}@{scope}");
+        Assert.That(ProvisioningSettingsData.FindField(key)!.AppliesToLevel(scope), Is.EqualTo(UiLevels(key).Contains(scope)), $"UI {key}@{scope}");
     }
 
     /// <summary>New settings have the documented defaults.</summary>
@@ -78,21 +106,24 @@ internal class ProvisioningGuardicoreSettingsTest
         GlobalProvisioningSettings settings = new();
         using (Assert.EnterMultipleScope())
         {
+            Assert.That(settings.ImplementationMode, Is.EqualTo(ProvisioningImplementationMode.Automatic));
             Assert.That(settings.TimeObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
             Assert.That(settings.LabelCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
+            Assert.That(settings.CommonServiceSeparation, Is.False);
             Assert.That(settings.ImplementationModeOverrideForRules, Is.EqualTo(ProvisioningRuleImplementationMode.Automatic));
+            Assert.That(settings.RerouteToExternalTicketSystem, Is.Null);
             Assert.That(settings.OwnerIdCustomFieldName, Is.EqualTo("OwnerId"));
-            Assert.That(settings.ChangeNumberCustomFieldName, Is.EqualTo("ChangeId"));
-            Assert.That(settings.PlanImplementation, Is.EqualTo(ProvisioningPlanningMode.Enable));
-            Assert.That(settings.PlanImplementationOverrideForRules, Is.EqualTo(ProvisioningPlanningMode.Enable));
-            Assert.That(settings.ModellingCreateAppZones, Is.EqualTo(ProvisioningYesNo.Yes));
-            Assert.That(settings.ModellingImplementNetworkAreaObjects, Is.EqualTo(ProvisioningYesNo.No));
-            Assert.That(settings.ModellingDynIpLabelsVisibleAsGroups, Is.EqualTo(ProvisioningYesNo.Yes));
-            Assert.That(settings.ModellingNamingConventions["appRole"], Is.EqualTo("{idString}"));
-            Assert.That(settings.ModellingNamingConventions["appZone"], Is.EqualTo("{idString}"));
+            Assert.That(settings.ChangeIdCustomFieldName, Is.EqualTo("ChangeId"));
+            Assert.That(settings.ImporterHostName, Is.EqualTo(System.Net.Dns.GetHostName()));
+            Assert.That(settings.PlanImplementation, Is.True);
+            Assert.That(settings.PlanImplementationOverrideForRules, Is.True);
+            Assert.That(settings.ModellingCreateAppZones, Is.True);
+            Assert.That(settings.ModellingImplementNetworkAreaObjects, Is.False);
+            Assert.That(settings.ModellingDynIpLabelsVisibleAsGroups, Is.True);
+            Assert.That(settings.ModellingConnectionIdField, Is.EqualTo(ProvisioningConnectionIdField.Name));
+            Assert.That(settings.ModellingConnectionIdTemplate, Is.EqualTo("FWOC{ID}"));
+            Assert.That(settings.Templates, Is.EqualTo("{}"));
         }
-        settings.ModellingNamingConventions["appRole"] = "custom";
-        Assert.That(new GlobalProvisioningSettings().ModellingNamingConventions["appRole"], Is.EqualTo("{idString}"));
     }
 
     /// <summary>Every allowed UI value travels through persistence and the typed mapper.</summary>
@@ -110,7 +141,7 @@ internal class ProvisioningGuardicoreSettingsTest
         string editorValue = field.Kind switch
         {
             ProvisioningFieldKind.SingleSelect => field.Options.Last().Value,
-            ProvisioningFieldKind.NamingConventions => "{\"appRole\":\"AR-{idString}\",\"appZone\":\"AZ-{idString}\",\"network\":\"n\",\"host\":\"h\",\"networkArea\":\"a\",\"range\":\"r\"}",
+            ProvisioningFieldKind.ExtTicketSystem => "7",
             ProvisioningFieldKind.StringList => "profile1,profile2",
             _ => "custom value"
         };
@@ -135,53 +166,83 @@ internal class ProvisioningGuardicoreSettingsTest
 
     /// <summary>Reads of settings with restricted write scopes still inherit at gateway.</summary>
     [Test]
-    public async Task EffectiveReadSupportsGlobalOnlyKeysAtGateway()
+    public async Task EffectiveReadSupportsManagerOnlyKeysAtGateway()
     {
         InMemoryProvisioningApiConnection api = CreateHierarchy();
-        Dictionary<string, string> conventions = ProvisioningModellingNamingConventions.CreateDefaults();
-        conventions["appRole"] = "Role-{idString}";
-        api.SetValue(1, ProvisioningSettingKeys.ModellingNamingConventions, conventions);
+        api.SetValue(1, ProvisioningSettingKeys.ModellingConnectionIdTemplate, "CONN-{ID}");
         Management management = new() { Id = 100, DeviceType = kDeviceType };
         Device gateway = new() { Id = 200, Management = management };
         ProvisioningSettingsManager manager = new(api);
-        var value = await manager.LoadEffectiveValueAsync(ProvisioningScopePath.ForGateway(management, gateway),
-            ProvisioningSettingKeys.ModellingNamingConventions);
-        Assert.That(value.Value["appRole"], Is.EqualTo("Role-{idString}"));
+        ResolvedProvisioningValue<string> value = await manager.LoadEffectiveValueAsync(ProvisioningScopePath.ForGateway(management, gateway),
+            ProvisioningSettingKeys.ModellingConnectionIdTemplate);
+        Assert.That(value.Value, Is.EqualTo("CONN-{ID}"));
         Assert.That(value.Source.Scope?.NodeId, Is.EqualTo(1));
     }
 
-    /// <summary>Malformed naming JSON is rejected before a patch can be persisted.</summary>
-    [TestCase("[]")]
-    [TestCase("{}")]
-    [TestCase("{\"appRole\":123}")]
-    [TestCase("null")]
-    public void NamingEditorRejectsInvalidJson(string json)
+    /// <summary>An undefined ticket system resolves to null from the compiled default.</summary>
+    [Test]
+    public async Task EffectiveReadOfUndefinedTicketSystemIsNull()
     {
-        ProvisioningSettingsChangeSet changes = new(new GlobalProvisioningSettings().Scope);
-        Assert.Catch(() => ProvisioningSettingsData.FindField(ProvisioningSettingKeys.ModellingNamingConventions)!
-            .SetOverride(changes, json));
-        Assert.That(changes.IsEmpty, Is.True);
+        ProvisioningSettingsManager manager = new(CreateHierarchy());
+        ResolvedProvisioningValue<int?> value = await manager.LoadEffectiveValueAsync(ProvisioningScopePath.Global(),
+            ProvisioningSettingKeys.RerouteToExternalTicketSystem);
+        Assert.That(value.Value, Is.Null);
+        Assert.That(value.Source.UsesCompiledDefault, Is.True);
     }
 
-    /// <summary>Missing, unknown, null and empty naming values cannot enter storage.</summary>
-    [TestCase("missing")]
-    [TestCase("unknown")]
-    [TestCase("null")]
-    [TestCase("empty")]
-    public void NamingSerializerRejectsIncompleteContracts(string mutation)
+    /// <summary>Booleans are stored as JSON booleans only.</summary>
+    [Test]
+    public void BooleansUseJsonBooleans()
     {
-        Dictionary<string, string> conventions = ProvisioningModellingNamingConventions.CreateDefaults();
-        switch (mutation)
-        {
-            case "missing": conventions.Remove("appRole"); break;
-            case "unknown": conventions.Add("unknown", "value"); break;
-            case "null": conventions["appRole"] = null!; break;
-            case "empty": conventions["appRole"] = " "; break;
-        }
-        Assert.Throws<ArgumentException>(() => ProvisioningSettingValueSerializer.Serialize(
-            ProvisioningSettingKeys.ModellingNamingConventions, conventions));
+        Assert.That(ProvisioningSettingValueSerializer.Serialize(ProvisioningSettingKeys.PlanImplementation, false), Is.EqualTo(new JValue(false)));
+        Assert.That(ProvisioningSettingValueSerializer.Deserialize(ProvisioningSettingKeys.PlanImplementation, new JValue(true)), Is.True);
         Assert.Throws<InvalidOperationException>(() => ProvisioningSettingValueSerializer.Deserialize(
-            ProvisioningSettingKeys.ModellingNamingConventions, JObject.FromObject(conventions)));
+            ProvisioningSettingKeys.ModellingCreateAppZones, new JValue("Yes")));
+    }
+
+    /// <summary>Ticket system IDs are positive JSON integers; undefined is never stored.</summary>
+    [TestCase(0)]
+    [TestCase(-1)]
+    public void TicketSystemRejectsNonPositiveIds(int id)
+    {
+        Assert.Throws<ArgumentException>(() => ProvisioningSettingValueSerializer.Serialize(
+            ProvisioningSettingKeys.RerouteToExternalTicketSystem, (int?)id));
+        Assert.Throws<InvalidOperationException>(() => ProvisioningSettingValueSerializer.Deserialize(
+            ProvisioningSettingKeys.RerouteToExternalTicketSystem, new JValue(id)));
+    }
+
+    /// <summary>Strings, fractions and values outside the integer range are not ticket system IDs.</summary>
+    [Test]
+    public void TicketSystemRejectsNonIntegerValues()
+    {
+        Assert.Throws<ArgumentNullException>(() => ProvisioningSettingValueSerializer.Serialize(
+            ProvisioningSettingKeys.RerouteToExternalTicketSystem, null));
+        foreach (JValue stored in kInvalidTicketSystemIds)
+        {
+            Assert.Throws<InvalidOperationException>(() => ProvisioningSettingValueSerializer.Deserialize(
+                ProvisioningSettingKeys.RerouteToExternalTicketSystem, stored));
+        }
+    }
+
+    /// <summary>Selecting undefined in the editor removes the override instead of storing a value.</summary>
+    [Test]
+    public void TicketSystemEditorTreatsEmptyAsInherit()
+    {
+        ProvisioningSettingsChangeSet changes = new(new GlobalProvisioningSettings().Scope);
+        ProvisioningSettingsData.FindField(ProvisioningSettingKeys.RerouteToExternalTicketSystem)!.SetOverride(changes, "");
+        Assert.That(changes.Upserts, Is.Empty);
+        Assert.That(changes.Removals, Does.Contain(ProvisioningSettingKeys.RerouteToExternalTicketSystem));
+    }
+
+    /// <summary>Configured ticket systems are offered by name; a stored but removed ID stays selectable.</summary>
+    [Test]
+    public void TicketSystemOptionsListConfiguredSystems()
+    {
+        Assert.That(ProvisioningSettingsData.ExtTicketSystemOptions(kTicketSystems, ""),
+            Is.EqualTo(kConfiguredTicketSystemOptions));
+        Assert.That(ProvisioningSettingsData.ExtTicketSystemOptions(kTicketSystems, "9"),
+            Is.EqualTo(kOptionsWithRemovedTicketSystem));
+        Assert.That(ProvisioningSettingsData.ExtTicketSystemOptions("", ""), Is.Empty);
     }
 
     /// <summary>Wire values are independent of enum display names.</summary>
@@ -197,6 +258,8 @@ internal class ProvisioningGuardicoreSettingsTest
     [TestCase("positioningAlgorithm", "AllowCategoryEndOfAppSectionDistinguishCommonServices", "allowCategoryEndOfAppSectionDistinguishCommonServices")]
     [TestCase("implementationMode", "RerouteToExternalTicketSystem", "reroute_to_external_ticket_system")]
     [TestCase("implementationModeOverrideForRules", "RerouteToExternalTicketSystem", "rerouteToExternalTicketSystem")]
+    [TestCase("implementationMode", "Automatic", "Automatic")]
+    [TestCase("modellingConnectionIdField", "CustomField", "CustomField")]
     public void SerializedValuesMatchContract(string databaseKey, string enumName, string wireValue)
     {
         ProvisioningSettingKey key = ProvisioningSettingKeys.ByDatabaseKey[databaseKey];

@@ -28,9 +28,14 @@ internal class ProvisioningSettingValueSerializerTest
                 yield return new TestCaseData(key, $"{key.DatabaseKey}-value")
                     .SetName($"RoundTrip_{key.DatabaseKey}_String");
             }
-            else if (key.ValueType == typeof(Dictionary<string, string>))
+            else if (key.ValueType == typeof(bool))
             {
-                yield return new TestCaseData(key, ProvisioningModellingNamingConventions.CreateDefaults());
+                yield return new TestCaseData(key, true).SetName($"RoundTrip_{key.DatabaseKey}_True");
+                yield return new TestCaseData(key, false).SetName($"RoundTrip_{key.DatabaseKey}_False");
+            }
+            else if (key.ValueType == typeof(int?))
+            {
+                yield return new TestCaseData(key, 7).SetName($"RoundTrip_{key.DatabaseKey}_Id");
             }
             else if (key.ValueType == typeof(List<string>))
             {
@@ -62,9 +67,9 @@ internal class ProvisioningSettingValueSerializerTest
         JToken serialized = ProvisioningSettingValueSerializer.Serialize(key, originalValue);
         object roundTripped = ProvisioningSettingValueSerializer.Deserialize(key, serialized);
 
-        if (key.ValueType == typeof(Dictionary<string, string>))
+        if (key.ValueType == typeof(bool) || key.ValueType == typeof(int?))
         {
-            Assert.That(serialized.Type, Is.EqualTo(JTokenType.Object));
+            Assert.That(serialized.Type, Is.EqualTo(key.ValueType == typeof(bool) ? JTokenType.Boolean : JTokenType.Integer));
             Assert.That(roundTripped, Is.EqualTo(originalValue));
         }
         else if (key.ValueType == typeof(List<string>))

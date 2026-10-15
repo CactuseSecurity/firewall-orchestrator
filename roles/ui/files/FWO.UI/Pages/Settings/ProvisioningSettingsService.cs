@@ -141,7 +141,7 @@ namespace FWO.Ui.Pages.Settings
 
             List<ProvisioningFieldState> fields = [];
             IEnumerable<ProvisioningFieldDefinition> visibleFields = ProvisioningSettingsData.Fields.Where(field =>
-                field.AppliesTo(node) || (field.FortinetOnly && level.DirectOverrides.Contains(field.Key)));
+                field.AppliesTo(node) || level.DirectOverrides.Contains(field.Key));
             foreach (ProvisioningFieldDefinition field in visibleFields)
             {
                 bool wasLocal = level.DirectOverrides.Contains(field.Key);

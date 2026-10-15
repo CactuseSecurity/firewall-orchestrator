@@ -44,7 +44,7 @@ internal class ProvisioningSettingsManagerTest
             Assert.That(result.Settings.RuleLoggingOverride, Is.EqualTo(ProvisioningLoggingMode.LogTrack));
             Assert.That(result.Settings.InstallOn, Is.EqualTo(ProvisioningInstallOn.GatewaysInPath));
             Assert.That(result.Settings.RuleZoneToOverride, Is.EqualTo("dmz"));
-            Assert.That(result.Settings.Templates, Is.Empty);
+            Assert.That(result.Settings.Templates, Is.EqualTo("{}"));
             Assert.That(result.DirectOverrides, Is.EquivalentTo(kExpectedZoneToKey));
             Assert.That(result.ValueSources[ProvisioningSettingKeys.ImplementationMode].Scope?.NodeId, Is.EqualTo(1));
             Assert.That(result.ValueSources[ProvisioningSettingKeys.RuleLoggingOverride].Scope?.NodeId, Is.EqualTo(2));

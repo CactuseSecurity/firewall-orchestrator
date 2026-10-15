@@ -20,7 +20,7 @@ public enum ProvisioningScopeType
 public enum ProvisioningImplementationMode
 {
     Undefined,
-    FwoAuto,
+    Automatic,
     Manual,
     [EnumMember(Value = "reroute_to_external_ticket_system")]
     RerouteToExternalTicketSystem
@@ -88,18 +88,6 @@ public enum ProvisioningPositioningAlgorithm
     AllowCategoryEndOfAppSectionDistinguishCommonServices
 }
 
-/// <summary>
-/// Whether a rule is treated as an application rule or as a common-service rule.
-/// </summary>
-public enum ProvisioningRuleCategory
-{
-    Undefined,
-    [EnumMember(Value = "app")]
-    App,
-    [EnumMember(Value = "common_service")]
-    CommonService
-}
-
 /// <summary>Gateways on which generated rules are installed.</summary>
 public enum ProvisioningInstallOn
 {
@@ -120,18 +108,11 @@ public enum ProvisioningRuleImplementationMode
     RerouteToExternalTicketSystem
 }
 
-/// <summary>Whether implementation planning is enabled.</summary>
-public enum ProvisioningPlanningMode
+/// <summary>Where a provisioned object stores the ID of the modelling connection it implements.</summary>
+public enum ProvisioningConnectionIdField
 {
     Undefined,
-    Enable,
-    Disable
-}
-
-/// <summary>Whether a modelling object or label is provisioned.</summary>
-public enum ProvisioningYesNo
-{
-    Undefined,
-    Yes,
-    No
+    Name,
+    Comment,
+    CustomField
 }

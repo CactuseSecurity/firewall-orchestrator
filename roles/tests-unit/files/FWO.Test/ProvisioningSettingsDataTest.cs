@@ -13,6 +13,7 @@ namespace FWO.Test;
 [Parallelizable]
 internal class ProvisioningSettingsDataTest
 {
+    private static readonly List<string> kBoolOptionValues = [bool.TrueString, bool.FalseString];
     private static readonly string[] ExpectedDeviceTypeNames = ["Check Point R8x", "FortiADOM 5ff"];
     private static readonly string[] ExpectedDeviceTypeKeys = ["9", "11"];
     private static readonly string[] ExpectedManagementNames = ["cp-mgr"];
@@ -156,6 +157,7 @@ internal class ProvisioningSettingsDataTest
         List<ProvisioningSettingKey> global = [.. ProvisioningSettingsData.FieldsFor(root).Select(f => f.Key)];
         List<ProvisioningSettingKey> checkPointGateway = [.. ProvisioningSettingsData.FieldsFor(Node(root, ProvisioningScopeType.Gateway, "200")).Select(f => f.Key)];
         List<ProvisioningSettingKey> fortiGateway = [.. ProvisioningSettingsData.FieldsFor(Node(root, ProvisioningScopeType.Gateway, "210")).Select(f => f.Key)];
+        List<ProvisioningSettingKey> fortiManagement = [.. ProvisioningSettingsData.FieldsFor(Node(root, ProvisioningScopeType.Management, "101")).Select(f => f.Key)];
 
         using (Assert.EnterMultipleScope())
         {
@@ -164,8 +166,11 @@ internal class ProvisioningSettingsDataTest
             Assert.That(checkPointGateway, Does.Not.Contain(ProvisioningSettingKeys.ServiceObjectCreation));
             Assert.That(checkPointGateway, Does.Contain(ProvisioningSettingKeys.PositioningAlgorithm));
             Assert.That(checkPointGateway, Does.Not.Contain(ProvisioningSettingKeys.RuleZoneFromOverride));
-            Assert.That(fortiGateway, Does.Contain(ProvisioningSettingKeys.RuleZoneFromOverride));
-            Assert.That(fortiGateway, Does.Contain(ProvisioningSettingKeys.SecurityProfiles));
+            Assert.That(fortiManagement, Does.Contain(ProvisioningSettingKeys.RuleZoneFromOverride));
+            Assert.That(fortiManagement, Does.Contain(ProvisioningSettingKeys.SecurityProfiles));
+            Assert.That(fortiGateway, Does.Not.Contain(ProvisioningSettingKeys.RuleZoneFromOverride));
+            Assert.That(fortiGateway, Does.Not.Contain(ProvisioningSettingKeys.SecurityProfiles));
+            Assert.That(fortiGateway, Does.Contain(ProvisioningSettingKeys.PlanImplementation));
         }
     }
 
@@ -276,8 +281,8 @@ internal class ProvisioningSettingsDataTest
         {
             foreach (ProvisioningFieldDefinition field in selectFields)
             {
-                List<string> storable = [.. Enum.GetNames(field.Key.ValueType)
-                    .Where(name => name != ProvisioningSettingValueSerializer.kUndefinedEnumName)];
+                List<string> storable = field.Key.ValueType == typeof(bool) ? [.. kBoolOptionValues]
+                    : [.. Enum.GetNames(field.Key.ValueType).Where(name => name != ProvisioningSettingValueSerializer.kUndefinedEnumName)];
                 if (field.Key == ProvisioningSettingKeys.ServiceObjectCreation || field.Key == ProvisioningSettingKeys.AddressObjectCreation)
                 {
                     storable.Remove(nameof(ProvisioningObjectCreationMode.Ignore));

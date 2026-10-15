@@ -67,14 +67,19 @@ public static class ProvisioningSettingValueSerializer
             return new JArray(values);
         }
 
-        if (key.ValueType == typeof(Dictionary<string, string>))
+        if (key.ValueType == typeof(bool))
         {
-            Dictionary<string, string> templates = (Dictionary<string, string>)value;
-            if (!ValidNamingConventions(templates))
+            return new JValue((bool)value);
+        }
+
+        if (key.ValueType == typeof(int?))
+        {
+            int id = (int)value;
+            if (id <= 0)
             {
-                throw new ArgumentException("Naming conventions require one non-empty string for each supported object type.", nameof(value));
+                throw new ArgumentException($"Setting '{key.DatabaseKey}' requires a positive ID.", nameof(value));
             }
-            return JObject.FromObject(templates);
+            return new JValue(id);
         }
 
         throw new NotSupportedException(
@@ -126,9 +131,18 @@ public static class ProvisioningSettingValueSerializer
             return array.Select(item => item.Value<string>()!).ToList();
         }
 
-        if (key.ValueType == typeof(Dictionary<string, string>))
+        if (key.ValueType == typeof(bool))
         {
-            return DeserializeNamingConventions(key, value);
+            return value.Type == JTokenType.Boolean
+                ? value.Value<bool>()
+                : throw InvalidValue(key, value, "a JSON boolean is required");
+        }
+
+        if (key.ValueType == typeof(int?))
+        {
+            return value.Type == JTokenType.Integer && value.Value<long>() is > 0 and <= int.MaxValue
+                ? (int?)value.Value<int>()
+                : throw InvalidValue(key, value, "a positive JSON integer is required");
         }
 
         throw new NotSupportedException(
@@ -155,21 +169,6 @@ public static class ProvisioningSettingValueSerializer
         return parsed;
     }
 
-    /// <summary>Validates and reads the complete naming JSON object.</summary>
-    private static Dictionary<string, string> DeserializeNamingConventions(ProvisioningSettingKey key, JToken value)
-    {
-        if (value is not JObject templates || templates.Properties().Any(property => property.Value.Type != JTokenType.String))
-        {
-            throw InvalidValue(key, value, "a JSON object containing string naming conventions is required");
-        }
-        Dictionary<string, string> conventions = templates.ToObject<Dictionary<string, string>>()!;
-        if (!ValidNamingConventions(conventions))
-        {
-            throw InvalidValue(key, value, "one non-empty string for each supported object type is required");
-        }
-        return conventions;
-    }
-
     /// <summary>Uses the label-specific lowercase manager names from the provisioning contract.</summary>
     public static string StorageName(ProvisioningSettingKey key, object value) =>
         key == ProvisioningSettingKeys.LabelCreation
@@ -179,12 +178,6 @@ public static class ProvisioningSettingValueSerializer
     /// <summary>Returns the external setting value, independent of C# enum member naming.</summary>
     public static string EnumStorageName(Type enumType, object value) =>
         enumType.GetField(value.ToString()!)?.GetCustomAttribute<EnumMemberAttribute>()?.Value ?? value.ToString()!;
-
-    /// <summary>Checks the complete modelling naming convention contract.</summary>
-    private static bool ValidNamingConventions(Dictionary<string, string> templates) =>
-        templates.Count == ProvisioningModellingNamingConventions.ObjectTypes.Count
-        && ProvisioningModellingNamingConventions.ObjectTypes.All(key =>
-            templates.TryGetValue(key, out string? value) && !string.IsNullOrWhiteSpace(value));
 
     /// <summary>Ignore is only supported by time objects and labels.</summary>
     private static bool IsAllowedEnumValue(ProvisioningSettingKey key, object value) =>

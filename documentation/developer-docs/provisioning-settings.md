@@ -10,56 +10,59 @@ The settings page exposes the configuration contract for Guardicore integration.
 The Guardicore writer is separate work. Path analysis remains configured under
 General settings; no additional provisioning path-analysis setting is introduced.
 
-| Key | Default | Override levels |
-| --- | --- | --- |
-| implementationMode | FwoAuto | All |
-| installOn | ANY | All |
-| positioningAlgorithm | DefaultEndOfRulebase | All |
-| ruleLoggingOverride | log | All |
-| serviceObjectCreation | Supermanager | Global, device type, manager |
-| addressObjectCreation | Supermanager | Global, device type, manager |
-| timeObjectCreation | Supermanager | Global, device type, manager |
-| labelCreation | supermanager | Global, device type, manager |
-| ruleType | access | All |
-| ruleCategory | app | Global, device type, manager |
-| ruleZoneFromOverride | ANY | All (Fortinet editor only) |
-| ruleZoneToOverride | ANY | All (Fortinet editor only) |
-| implementationModeOverrideForRules | Automatic | All |
-| securityProfiles | [] | Device type, manager, gateway |
-| ownerIdCustomFieldName | OwnerId | Global, device type, manager |
-| changeNumberCustomFieldName | ChangeId | Global, device type, manager |
-| planImplementation | Enable | All |
-| planImplementationOverrideForRules | Enable | All |
-| modellingNamingConventions | JSON below | Global |
-| modellingCreateAppZones | Yes | Global, device type, manager |
-| modellingImplementNetworkAreaObjects | No | Global, device type, manager |
-| modellingDynIpLabelsVisibleAsGroups | Yes | Global, device type, manager |
-| templates | empty string | Device type, manager |
+"Config levels" are the levels at which the API accepts an override. The settings
+page offers a setting only down to its "UI levels"; an override stored deeper
+remains effective and is shown as a dormant override that can be cleared there.
 
-`installOn` offers `ANY` and `gatewaysInPath`. `ruleType` additionally offers
-`accessAndNat`, `accessAndIPS`, `accessNatIPS`, and `AppSecurity`. Logging offers
-`log`, `log_track`, and `none`. Time objects and labels can additionally be
-`ignore`; service and address objects cannot. Labels use lowercase manager names.
-Templates remain configurable at manager as well as device type; the issue marks manager availability as uncertain.
+| Key | Type | Default | Config levels | UI levels |
+| --- | --- | --- | --- | --- |
+| installOn | enum | ANY | All | All |
+| positioningAlgorithm | enum | DefaultEndOfRulebase | All | All |
+| ruleLoggingOverride | enum | log | All | All |
+| serviceObjectCreation | enum | Supermanager | All | Global to manager |
+| addressObjectCreation | enum | Supermanager | All | Global to manager |
+| timeObjectCreation | enum | Supermanager | All | Global to manager |
+| labelCreation | enum | supermanager | All | Global to manager |
+| ruleType | enum | access | All | Global to manager |
+| commonServiceSeparation | boolean | false | All | Global to manager |
+| ruleZoneFromOverride | string | ANY | All | Global to manager (Fortinet only) |
+| ruleZoneToOverride | string | ANY | All | Global to manager (Fortinet only) |
+| implementationMode | enum | Automatic | All | All |
+| implementationModeOverrideForRules | enum | Automatic | All | All |
+| rerouteToExternalTicketSystem | integer | undefined | All | All |
+| securityProfiles | string array | [] | Device type, manager, gateway | Device type, manager |
+| ownerIdCustomFieldName | string | OwnerId | Global, device type, manager | Global to manager |
+| changeIdCustomFieldName | string | ChangeId | Global, device type, manager | Global to manager |
+| importerHostName | string | FWO host name | Global, device type, manager | Global to manager |
+| planImplementation | boolean | true | All | All |
+| planImplementationOverrideForRules | boolean | true | All | All |
+| modellingCreateAppZones | boolean | true | Global, device type, manager | Global to manager |
+| modellingImplementNetworkAreaObjects | boolean | false | Global, device type, manager | Global to manager |
+| modellingDynIpLabelsVisibleAsGroups | boolean | true | Global, device type, manager | Global to manager |
+| modellingConnectionIdField | enum | Name | Global, device type, manager | Global to manager |
+| modellingConnectionIdTemplate | string | FWOC{ID} | Global, device type, manager | Global to manager |
+| templates | string | {} | Device type | Device type |
 
-Implementation modes are `FwoAuto`, `Manual`, and
+Booleans are stored as JSON `true`/`false`. `installOn` offers `ANY` and `gatewaysInPath`.
+`ruleType` additionally offers `accessAndNat`, `accessAndIPS`, `accessNatIPS`, and
+`AppSecurity`. Logging offers `log`, `log_track`, and `none`. Time objects and labels
+can additionally be `ignore`; service and address objects cannot. Labels use
+lowercase manager names.
+
+Implementation modes are `Automatic`, `Manual`, and
 `reroute_to_external_ticket_system`; the rule override uses `Automatic`, `Manual`,
-and `rerouteToExternalTicketSystem`. Planning offers `Enable` and `Disable`.
+and `rerouteToExternalTicketSystem`. `rerouteToExternalTicketSystem` stores the
+positive ID of a configured external ticket system (JSON integer); undefined is not
+stored, so the level inherits instead.
 
 Positioning offers `DefaultEndOfRulebase`, `cpInlineLayerPerZonePair`, `endOfZone`,
 `endOfAppSection`, `endOfAppSectionDistinguishCommonServices`, and
 `allowCategoryEndOfAppSectionDistinguishCommonServices`.
 
-Naming conventions require exactly these six keys with non-empty string values:
-
-```json
-{"appRole":"{idString}","appZone":"{idString}","network":"{name}","host":"{name}","networkArea":"{idString}","range":"{name}"}
-```
-
-`{idString}` represents the existing managed identifier, such as AR1234567-123
-or AZ1234567; `{name}` represents the object name. These templates describe the
-configuration contract for the future writer. They do not change the existing
-modelling ID-generation scheme.
+`modellingConnectionIdField` offers `Name`, `Comment`, and `CustomField`: the field of
+a provisioned object that carries the ID of the modelling connection, formatted by
+`modellingConnectionIdTemplate`. The compiled `importerHostName` default is the host
+name of the machine resolving the settings.
 
 ## Upgrade to 9.7.4
 
@@ -67,18 +70,19 @@ The upgrade saves the original provisioning rows once in `public.provisioning_co
 under version `9.7.4` before making any changes. It renames
 `logging`, `zoneFrom`, and `zoneTo` and converts the old enum member names to the
 wire values above. If old and canonical keys both exist, the canonical key wins.
-`TufinSc` becomes the external-ticket mode; `None` becomes `Manual` with planning
-set to `Disable` unless an explicit planning override already exists.
+`FwoAuto` becomes `Automatic` and `TufinSc` the external-ticket mode; `None` becomes
+`Manual` with planning set to `false` unless an explicit planning override already
+exists. `ruleCategory` becomes `commonServiceSeparation` (`common_service` is `true`,
+`app` is `false`).
 
-Overrides at newly forbidden levels are removed from active provisioning data.
-Custom install-on targets other than the two permitted choices are also removed.
-Before upgrading, review gateway object-creation and rule-category overrides and
-global and gateway templates. After upgrading, reconfigure these at permitted levels where
-appropriate. The backup retains their node IDs, types, object keys and values so
-no original setting data is lost. Re-running the migration preserves the original
-backup and the converted values. The archive is intentionally absent from Hasura
-metadata, so anonymous and ordinary GraphQL roles cannot read it. Administrators
-can inspect it through PostgreSQL:
+Templates outside the device type level and custom install-on targets other than the
+two permitted choices are removed from active provisioning data. Before upgrading,
+review global, manager and gateway templates; after upgrading, reconfigure them at
+device type level where appropriate. The backup retains their node IDs, types, object
+keys and values so no original setting data is lost. Re-running the migration
+preserves the original backup and the converted values. The archive is intentionally
+absent from Hasura metadata, so anonymous and ordinary GraphQL roles cannot read it.
+Administrators can inspect it through PostgreSQL:
 
 ```sql
 SELECT config_values FROM public.provisioning_config_backup WHERE version = '9.7.4';

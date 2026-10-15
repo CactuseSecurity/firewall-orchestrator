@@ -24,22 +24,35 @@ internal sealed class UiSettingsFwConfigProvisioningTest
     private static readonly string kLoggingSwitchSelector = $"#prov-override-{ProvisioningSettingKeys.RuleLoggingOverride.DatabaseKey}";
     private static readonly string kLoggingSelectSelector = $"#prov-field-{ProvisioningSettingKeys.RuleLoggingOverride.DatabaseKey} select";
 
-    /// <summary>Admin can edit and save the global naming convention JSON object.</summary>
+    /// <summary>Admin can pick a configured external ticket system, which is stored by its ID.</summary>
     [Test]
-    public async Task Admin_CanSaveModellingNamingJson()
+    public async Task Admin_CanSelectExternalTicketSystem()
+    {
+        InMemoryProvisioningApiConnection api = CreateApi();
+        await using BunitContext context = CreateContext(Roles.Admin, api, "[{\"Id\":3,\"Name\":\"Ticketing\"}]");
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        string key = ProvisioningSettingKeys.RerouteToExternalTicketSystem.DatabaseKey;
+        page.Find($"#prov-override-{key}").Change(true);
+        Assert.That(page.FindAll($"#prov-field-{key} select option").Select(option => option.TextContent),
+            Does.Contain("Ticketing (3)"));
+        page.Find($"#prov-field-{key} select").Change("3");
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        Assert.That(api.ReadValue(kGlobalNodeId, ProvisioningSettingKeys.RerouteToExternalTicketSystem)?.ToObject<int>(), Is.EqualTo(3));
+    }
+
+    /// <summary>Boolean settings are edited as yes/no and stored as JSON booleans.</summary>
+    [Test]
+    public async Task Admin_SavesBooleanSettingsAsJsonBooleans()
     {
         InMemoryProvisioningApiConnection api = CreateApi();
         await using BunitContext context = CreateContext(Roles.Admin, api);
         IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
-        string key = ProvisioningSettingKeys.ModellingNamingConventions.DatabaseKey;
+        string key = ProvisioningSettingKeys.PlanImplementation.DatabaseKey;
         page.Find($"#prov-override-{key}").Change(true);
-        Dictionary<string, string> conventions = ProvisioningModellingNamingConventions.CreateDefaults();
-        conventions["appRole"] = "Role-{idString}";
-        string json = Newtonsoft.Json.JsonConvert.SerializeObject(conventions);
-        page.Find($"#prov-field-{key} textarea").Change(json);
+        page.Find($"#prov-field-{key} select").Change(bool.FalseString);
         await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
-        Assert.That(api.ReadValue(kGlobalNodeId, ProvisioningSettingKeys.ModellingNamingConventions)?["appRole"]?.ToString(),
-            Is.EqualTo("Role-{idString}"));
+        Assert.That(api.ReadValue(kGlobalNodeId, ProvisioningSettingKeys.PlanImplementation)?.Type, Is.EqualTo(Newtonsoft.Json.Linq.JTokenType.Boolean));
+        Assert.That(api.ReadValue(kGlobalNodeId, ProvisioningSettingKeys.PlanImplementation)?.ToObject<bool>(), Is.False);
     }
 
     /// <summary>Install-on targets are restricted to the two contract values.</summary>
@@ -218,12 +231,13 @@ internal sealed class UiSettingsFwConfigProvisioningTest
         return api;
     }
 
-    private static BunitContext CreateContext(string role, InMemoryProvisioningApiConnection? api = null)
+    private static BunitContext CreateContext(string role, InMemoryProvisioningApiConnection? api = null, string extTicketSystems = "")
     {
         api ??= CreateApi();
 
         SimulatedUserConfig userConfig = new();
         userConfig.User.Roles = new List<string> { role };
+        userConfig.ExtTicketSystems = extTicketSystems;
 
         BunitContext context = new();
         context.JSInterop.Mode = JSRuntimeMode.Loose;

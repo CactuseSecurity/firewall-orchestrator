@@ -15,9 +15,9 @@ request.impltask.rule_position jsonb
 Apply it to:
 
 - the fresh-install schema; and
-- the idempotent upgrade script for the open product version `9.7.1`.
+- the idempotent upgrade script for the open product version `9.7.3`.
 
-The original `9.5.11` target was obsolete when implementation was rebased. The migration is appended to the open `9.7.1.sql`, `product_version` remains `9.7.1`, and revision history is recorded under `9.7.1`. The upgrade must be safe to re-run and must preserve existing implementation tasks with `NULL` positions.
+Earlier `9.5.11` and `9.7.1` targets became obsolete after rebases onto later release lines. The migration is appended to the open `9.7.3.sql`, `product_version` remains `9.7.3`, and revision history is recorded under `9.7.3`. The upgrade must be safe to re-run and must preserve existing implementation tasks with `NULL` positions.
 
 This work is a schema/GraphQL/installer change and must follow the repository's schema-change and installer skill instructions during implementation.
 
@@ -82,7 +82,7 @@ Where existing test infrastructure permits, assert the generated GraphQL operati
 After unit/build/coverage checks:
 
 1. Validate a fresh installation through the disposable installer-test workflow.
-2. Validate upgrade from `9.7.0` to `9.7.1` through the same workflow.
+2. Validate upgrade from `9.7.2` to `9.7.3` through the same workflow.
 3. Confirm the column is nullable and existing tasks load.
 4. Exercise store, load, replace, and clear against the installed backend.
 

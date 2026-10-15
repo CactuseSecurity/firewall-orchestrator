@@ -101,6 +101,8 @@
 - replace management.importer_hostname with the device specific setting importerHostName (Global, device type, manager; empty means every importer imports); the upgrade moves the most common host to Global and differing hosts to manager overrides, backs up and drops the column; the importer role may read only this setting
 
 ## 9.7.3 - 14.10.2026
+- add nullable, forward-compatible rule-position storage to implementation tasks
+- add a dedicated GraphQL persistence operation that stores, replaces, or clears only the rule position
 - replace cloud client fields with selectable additional credentials; migrate existing values into encrypted credential secrets (#3766)
 - the Cisco ASA importer decrypts the selected additional credential for enable mode
 - modelling: auditors and admins can open the add and edit dialog of app roles again to try it out (closes #4968)
@@ -162,8 +164,6 @@
 ## 9.7.1 - 09.10.2026
 - installer: show a summary of elapsed task time per role at the end of the playbook, longest first;
   repeated executions of the same role are combined, including handlers
-- add nullable, forward-compatible rule-position storage to implementation tasks
-- add a dedicated GraphQL persistence operation that stores, replaces, or clears only the rule position
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
   configurable with one switch per connection type, validated against the host trust store:
   - firewall connections (importCheckCertificates): now also covers autodiscovery and Check Point change

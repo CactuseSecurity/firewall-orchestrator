@@ -63,3 +63,6 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 
 ALTER TABLE request.ticket
     ADD COLUMN IF NOT EXISTS additional_info varchar;
+
+ALTER TABLE request.impltask
+    ADD COLUMN IF NOT EXISTS rule_position jsonb;

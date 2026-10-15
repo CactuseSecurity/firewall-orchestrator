@@ -221,9 +221,11 @@ public class RulePositionPersistenceTest
     }
 
     [Test]
-    public void UpgradeAndCreationSchema_DeclareNullableIdempotentJsonbColumn()
+    public void OpenUpgradeAndCreationSchema_DeclareNullableIdempotentJsonbColumn()
     {
         string upgrade = File.ReadAllText(LocateRepositoryFile(
+            "roles", "database", "files", "upgrade", "9.7.3.sql"));
+        string sealedUpgrade = File.ReadAllText(LocateRepositoryFile(
             "roles", "database", "files", "upgrade", "9.7.1.sql"));
         string creation = File.ReadAllText(LocateRepositoryFile(
             "roles", "database", "files", "sql", "creation", "fworch-create-tables-request.sql"));
@@ -232,6 +234,8 @@ public class RulePositionPersistenceTest
         {
             Assert.That(upgrade, Does.Contain("ADD COLUMN IF NOT EXISTS rule_position jsonb"));
             Assert.That(upgrade, Does.Not.Contain("rule_position jsonb NOT NULL"));
+            Assert.That(sealedUpgrade, Does.Not.Contain("rule_position"));
+            Assert.That(creation, Does.Contain("mgm_id int,"));
             Assert.That(creation, Does.Contain("rule_position jsonb"));
             Assert.That(creation, Does.Not.Contain("rule_position jsonb NOT NULL"));
         });

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from models.credential import AdditionalCredential  # noqa: TC002 - Pydantic resolves this type at runtime
 from pydantic import BaseModel
 
 
@@ -25,5 +26,4 @@ class Management(BaseModel):
     domain_name: str | None
     domain_uid: str | None
     sub_managers: list[Management]
-    cloud_client_id: str | None = None
-    cloud_client_secret: str | None = None
+    additional_credential: AdditionalCredential | None = None

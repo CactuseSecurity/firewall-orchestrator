@@ -108,7 +108,8 @@ def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController) 
     if current_prompt.endswith(">"):
         FWOLogger.debug("Device is in user mode, entering enable mode")
         try:
-            conn.send_interactive([("enable", "Password", False), (mgm_details.cloud_client_secret, "#", True)])
+            enable_secret = mgm_details.additional_credential.secret if mgm_details.additional_credential else ""
+            conn.send_interactive([("enable", "Password", False), (enable_secret, "#", True)])
         except Exception as e:
             FWOLogger.warning(f"Could not enter enable mode: {e}")
             current_prompt = _get_current_prompt(conn)

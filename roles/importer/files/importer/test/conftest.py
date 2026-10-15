@@ -142,8 +142,7 @@ def management_controller() -> ManagementController:
         credential_info=CredentialInfo(
             secret="mock-secret",  # noqa: S106
             import_user="mock-user",
-            cloud_client_id="",
-            cloud_client_secret="",
+            additional_credential=None,
         ),
         manager_info=ManagerInfo(is_super_manager=False, sub_manager_ids=[], sub_managers=[]),
         domain_info=DomainInfo(domain_name="mock-domain", domain_uid="mock-domain-uid"),

@@ -82,8 +82,7 @@ create table credential
     username varchar NOT NULL,
     secret text NOT NULL,
 	public_key Text,
-	cloud_client_id VARCHAR,
-	cloud_client_secret VARCHAR
+	additional_credential_id integer
 );
 
 

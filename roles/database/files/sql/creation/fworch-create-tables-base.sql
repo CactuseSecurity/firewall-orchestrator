@@ -394,15 +394,15 @@ Create table "config"
 	primary key ("config_key","config_user")
 );
 
--- Upgrade snapshots contain restricted provisioning data. Keep this archive
+-- Upgrade snapshots contain restricted device specific settings data. Keep this archive
 -- outside Hasura metadata; administrators can inspect it through PostgreSQL.
-Create table "provisioning_config_backup"
+Create table "device_specific_config_backup"
 (
     "version" Varchar PRIMARY KEY,
     "config_values" Jsonb NOT NULL
 );
 
-Create table "provisioning_config_node"
+Create table "device_specific_config_node"
 (
 	"id" BIGSERIAL,
 	"node_type" Varchar NOT NULL,
@@ -411,12 +411,12 @@ Create table "provisioning_config_node"
 	"display_name" Varchar NOT NULL Default '',
 	"sort_order" Integer,
 	primary key ("id"),
-	CONSTRAINT provisioning_config_node_node_type_object_key_key UNIQUE ("node_type", "object_key"),
-	CONSTRAINT provisioning_config_node_node_type_check CHECK ("node_type" IN ('global', 'device_type', 'management', 'gateway')),
-	CONSTRAINT provisioning_config_node_parent_check CHECK (("node_type" = 'global') = ("parent_id" IS NULL))
+	CONSTRAINT device_specific_config_node_node_type_object_key_key UNIQUE ("node_type", "object_key"),
+	CONSTRAINT device_specific_config_node_node_type_check CHECK ("node_type" IN ('global', 'device_type', 'management', 'gateway')),
+	CONSTRAINT device_specific_config_node_parent_check CHECK (("node_type" = 'global') = ("parent_id" IS NULL))
 );
 
-Create table "provisioning_config_value"
+Create table "device_specific_config_value"
 (
 	"node_id" BIGINT NOT NULL,
 	"config_key" Varchar NOT NULL,

@@ -1,60 +1,100 @@
+-- The provisioning settings are now device specific settings, as they also serve other purposes such as
+-- importing. Rename their tables and the constraints, indexes and sequence named after them. Every rename is
+-- skipped once it has been done, and the migration below already uses the new names.
+DO $$
+DECLARE
+    r_table RECORD;
+    r_object RECORD;
+BEGIN
+    FOR r_table IN
+        SELECT old_name, new_name FROM (VALUES
+            ('provisioning_config_node', 'device_specific_config_node'),
+            ('provisioning_config_value', 'device_specific_config_value'),
+            ('provisioning_config_backup', 'device_specific_config_backup')) AS renamed (old_name, new_name)
+    LOOP
+        IF to_regclass(r_table.old_name) IS NOT NULL AND to_regclass(r_table.new_name) IS NULL THEN
+            EXECUTE format('ALTER TABLE %I RENAME TO %I', r_table.old_name, r_table.new_name);
+        END IF;
+    END LOOP;
+
+    -- renaming a primary key or unique constraint also renames its index
+    FOR r_object IN
+        SELECT conrelid::regclass AS table_name, conname FROM pg_constraint
+        WHERE conname LIKE 'provisioning\_config\_%' AND conrelid IN (
+            to_regclass('device_specific_config_node'), to_regclass('device_specific_config_value'),
+            to_regclass('device_specific_config_backup'))
+    LOOP
+        EXECUTE format('ALTER TABLE %s RENAME CONSTRAINT %I TO %I', r_object.table_name, r_object.conname,
+            replace(r_object.conname, 'provisioning_config_', 'device_specific_config_'));
+    END LOOP;
+
+    FOR r_object IN
+        SELECT c.relname, c.relkind FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = current_schema() AND c.relkind IN ('i', 'S')
+            AND (c.relname LIKE 'provisioning\_config\_%' OR c.relname LIKE 'idx\_provisioning\_config\_%')
+    LOOP
+        EXECUTE format('ALTER %s %I RENAME TO %I', CASE r_object.relkind WHEN 'S' THEN 'SEQUENCE' ELSE 'INDEX' END,
+            r_object.relname, replace(r_object.relname, 'provisioning_config_', 'device_specific_config_'));
+    END LOOP;
+END $$;
+
 -- Retain the pre-migration values once, including overrides no longer permitted
 -- at their old levels and any nonstandard install-on targets. Review this JSON
--- backup when selecting the replacement overrides in provisioning settings.
+-- backup when selecting the replacement overrides in device specific settings.
 -- This archive is intentionally not tracked in Hasura. Global config is readable
--- anonymously and must not contain these restricted provisioning values.
-CREATE TABLE IF NOT EXISTS provisioning_config_backup
+-- anonymously and must not contain these restricted device specific setting values.
+CREATE TABLE IF NOT EXISTS device_specific_config_backup
 (
     version varchar PRIMARY KEY,
     config_values jsonb NOT NULL
 );
-INSERT INTO provisioning_config_backup (version, config_values)
+INSERT INTO device_specific_config_backup (version, config_values)
 SELECT '9.7.4',
        COALESCE(jsonb_agg(jsonb_build_object(
            'node_id', v.node_id, 'node_type', n.node_type,
            'object_key', n.object_key, 'config_key', v.config_key,
            'config_value', v.config_value)), '[]'::jsonb)
-FROM provisioning_config_value v
-JOIN provisioning_config_node n ON n.id = v.node_id
+FROM device_specific_config_value v
+JOIN device_specific_config_node n ON n.id = v.node_id
 ON CONFLICT DO NOTHING;
 
 -- Prefer an already stored canonical override if both old and new keys exist.
-INSERT INTO provisioning_config_value (node_id, config_key, config_value)
+INSERT INTO device_specific_config_value (node_id, config_key, config_value)
 SELECT node_id,
        CASE config_key
            WHEN 'logging' THEN 'ruleLoggingOverride'
            WHEN 'zoneFrom' THEN 'ruleZoneFromOverride'
            WHEN 'zoneTo' THEN 'ruleZoneToOverride'
        END, config_value
-FROM provisioning_config_value
+FROM device_specific_config_value
 WHERE config_key IN ('logging', 'zoneFrom', 'zoneTo')
 ON CONFLICT (node_id, config_key) DO NOTHING;
-DELETE FROM provisioning_config_value WHERE config_key IN ('logging', 'zoneFrom', 'zoneTo');
+DELETE FROM device_specific_config_value WHERE config_key IN ('logging', 'zoneFrom', 'zoneTo');
 
 -- The old None implementation mode becomes manual with planning disabled.
-INSERT INTO provisioning_config_value (node_id, config_key, config_value)
+INSERT INTO device_specific_config_value (node_id, config_key, config_value)
 SELECT node_id, 'planImplementation', 'false'::jsonb
-FROM provisioning_config_value
+FROM device_specific_config_value
 WHERE config_key = 'implementationMode' AND config_value = '"None"'::jsonb
 ON CONFLICT (node_id, config_key) DO NOTHING;
 
 -- The other old modes always planned the implementation. A level overriding one of them below a None level
 -- would otherwise inherit the disabled planning, so it keeps planning explicitly.
 WITH RECURSIVE ancestors (node_id, ancestor_id, depth) AS (
-    SELECT id, parent_id, 1 FROM provisioning_config_node WHERE parent_id IS NOT NULL
+    SELECT id, parent_id, 1 FROM device_specific_config_node WHERE parent_id IS NOT NULL
     UNION ALL
     SELECT a.node_id, n.parent_id, a.depth + 1
-    FROM ancestors a JOIN provisioning_config_node n ON n.id = a.ancestor_id
+    FROM ancestors a JOIN device_specific_config_node n ON n.id = a.ancestor_id
     WHERE n.parent_id IS NOT NULL AND a.depth < 100 -- recursion limit, the hierarchy has four levels
 ), inherited_planning AS (
     SELECT DISTINCT ON (a.node_id) a.node_id, p.config_value
     FROM ancestors a
-    JOIN provisioning_config_value p ON p.node_id = a.ancestor_id AND p.config_key = 'planImplementation'
+    JOIN device_specific_config_value p ON p.node_id = a.ancestor_id AND p.config_key = 'planImplementation'
     ORDER BY a.node_id, a.depth
 )
-INSERT INTO provisioning_config_value (node_id, config_key, config_value)
+INSERT INTO device_specific_config_value (node_id, config_key, config_value)
 SELECT v.node_id, 'planImplementation', 'true'::jsonb
-FROM provisioning_config_value v
+FROM device_specific_config_value v
 JOIN inherited_planning i ON i.node_id = v.node_id
 WHERE v.config_key = 'implementationMode' AND v.config_value #>> '{}' IN ('FwoAuto', 'Manual', 'TufinSc')
     AND i.config_value = 'false'::jsonb
@@ -81,15 +121,15 @@ BEGIN
     END;
 
     IF i_tufin_id IS NOT NULL THEN
-        INSERT INTO provisioning_config_value (node_id, config_key, config_value)
+        INSERT INTO device_specific_config_value (node_id, config_key, config_value)
         SELECT node_id, 'rerouteToExternalTicketSystem', to_jsonb(i_tufin_id)
-        FROM provisioning_config_value
+        FROM device_specific_config_value
         WHERE config_key = 'implementationMode' AND config_value = '"TufinSc"'::jsonb
         ON CONFLICT (node_id, config_key) DO NOTHING;
     END IF;
 END $$;
 
-UPDATE provisioning_config_value
+UPDATE device_specific_config_value
 SET config_value = to_jsonb(CASE config_value #>> '{}'
     WHEN 'FwoAuto' THEN 'Automatic'
     WHEN 'TufinSc' THEN 'reroute_to_external_ticket_system'
@@ -97,14 +137,14 @@ SET config_value = to_jsonb(CASE config_value #>> '{}'
 WHERE config_key = 'implementationMode' AND config_value #>> '{}' IN ('FwoAuto', 'TufinSc', 'None');
 
 -- The old rule category becomes the common-service separation switch.
-INSERT INTO provisioning_config_value (node_id, config_key, config_value)
+INSERT INTO device_specific_config_value (node_id, config_key, config_value)
 SELECT node_id, 'commonServiceSeparation', to_jsonb(config_value #>> '{}' IN ('CommonService', 'common_service'))
-FROM provisioning_config_value
+FROM device_specific_config_value
 WHERE config_key = 'ruleCategory'
 ON CONFLICT (node_id, config_key) DO NOTHING;
-DELETE FROM provisioning_config_value WHERE config_key = 'ruleCategory';
+DELETE FROM device_specific_config_value WHERE config_key = 'ruleCategory';
 
-UPDATE provisioning_config_value v
+UPDATE device_specific_config_value v
 SET config_value = to_jsonb(mapping.new_value)
 FROM (VALUES
     ('ruleLoggingOverride', 'Log', 'log'),
@@ -123,12 +163,12 @@ WHERE v.config_key = mapping.config_key AND v.config_value #>> '{}' = mapping.ol
 
 -- Only the two documented install-on choices remain active; other old targets
 -- are preserved in the backup above for an administrator to reassess.
-DELETE FROM provisioning_config_value
+DELETE FROM device_specific_config_value
 WHERE config_key = 'installOn' AND config_value NOT IN ('"ANY"'::jsonb, '"gatewaysInPath"'::jsonb);
 
 -- Templates are now device-type settings only, and security profiles were never
 -- global. Removed overrides are backed up above.
-DELETE FROM provisioning_config_value v USING provisioning_config_node n
+DELETE FROM device_specific_config_value v USING device_specific_config_node n
 WHERE v.node_id = n.id AND (
     (n.node_type <> 'device_type' AND v.config_key = 'templates')
     OR (n.node_type = 'global' AND v.config_key = 'securityProfiles')

@@ -4,7 +4,7 @@ using System.Text.Json;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Middleware;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -199,7 +199,7 @@ internal class WorkflowImplTaskTargetControllerTest
     [Test]
     public async Task GetImplTaskTargetsOrdersTargetsWithoutNameLastSoTheOrderDoesNotRevealHiddenNames()
     {
-        InMemoryProvisioningApiConnection api = CreateApi();
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
         api.Managements.Single(management => management.Id == kFirstSubManagementId).Name = "aa-hidden";
         WorkflowImplTaskTargetController controller = CreateController(api, Planner(kSecondSubManagementId));
 
@@ -217,7 +217,7 @@ internal class WorkflowImplTaskTargetControllerTest
     [Test]
     public async Task GetImplTaskTargetsAnswers500WhenTheResolutionFails()
     {
-        InMemoryProvisioningApiConnection api = CreateApi();
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
         api.FailingQuery = FWO.Api.Client.Queries.DeviceQueries.getManagementHierarchy;
         WorkflowImplTaskTargetController controller = CreateController(api, Planner(kSuperManagementId));
 
@@ -342,20 +342,20 @@ internal class WorkflowImplTaskTargetControllerTest
         });
     }
 
-    private static InMemoryProvisioningApiConnection CreateApi()
+    private static InMemoryDeviceSpecificSettingsApiConnection CreateApi()
     {
         DeviceType mdsType = new() { Id = 13, Name = "Check Point MDS", Version = "R8x" };
         DeviceType domainType = new() { Id = 9, Name = "Check Point", Version = "R8x" };
-        InMemoryProvisioningApiConnection api = new();
+        InMemoryDeviceSpecificSettingsApiConnection api = new();
         api.Managements.Add(new Management { Id = kSuperManagementId, Name = "mds", DeviceType = mdsType, IsSupermanager = true });
         api.Managements.Add(new Management { Id = kSecondSubManagementId, Name = kSecondSubName, DeviceType = domainType, SuperManagerId = kSuperManagementId });
         api.Managements.Add(new Management { Id = kFirstSubManagementId, Name = kFirstSubName, DeviceType = domainType, SuperManagerId = kSuperManagementId });
-        api.AddNode(kGlobalNodeId, ProvisioningScopeType.Global, ProvisioningScopePath.GlobalObjectKey, displayName: "Global");
-        api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
+        api.AddNode(kGlobalNodeId, DeviceSpecificScopeType.Global, DeviceSpecificScopePath.GlobalObjectKey, displayName: "Global");
+        api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
         return api;
     }
 
-    private static WorkflowImplTaskTargetController CreateController(InMemoryProvisioningApiConnection api, ClaimsPrincipal user)
+    private static WorkflowImplTaskTargetController CreateController(InMemoryDeviceSpecificSettingsApiConnection api, ClaimsPrincipal user)
     {
         return new WorkflowImplTaskTargetController(new ImplTaskTargetService(api))
         {

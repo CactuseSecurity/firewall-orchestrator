@@ -7225,7 +7225,7 @@
             },
             {
               "table": {
-                "name": "provisioning_config_node",
+                "name": "device_specific_config_node",
                 "schema": "public"
               },
               "array_relationships": [
@@ -7235,7 +7235,7 @@
                     "foreign_key_constraint_on": {
                       "column": "parent_id",
                       "table": {
-                        "name": "provisioning_config_node",
+                        "name": "device_specific_config_node",
                         "schema": "public"
                       }
                     }
@@ -7247,7 +7247,7 @@
                     "foreign_key_constraint_on": {
                       "column": "node_id",
                       "table": {
-                        "name": "provisioning_config_value",
+                        "name": "device_specific_config_value",
                         "schema": "public"
                       }
                     }
@@ -7341,7 +7341,7 @@
             },
             {
               "table": {
-                "name": "provisioning_config_value",
+                "name": "device_specific_config_value",
                 "schema": "public"
               },
               "object_relationships": [

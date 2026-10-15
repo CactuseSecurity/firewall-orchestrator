@@ -1,8 +1,9 @@
 # Firewall Orchestrator Revision History
 
 ## 9.7.4 - 14.10.2026
-- extend hierarchical provisioning configuration for Guardicore: object creation, common service separation, external ticket system, importer host, app-zone and network-area switches, dynamic IP labels, connection IDs, rule implementation and planning overrides
-- migrate provisioning key names and option values; privately back up old overrides before enforcing the revised scope restrictions (see developer documentation on provisioning settings)
+- rename the hierarchical provisioning settings to device specific settings, as they are also used e.g. for importing: UI page (now settings/devicespecificsettings), help page, code and the tables provisioning_config_* (now device_specific_config_*)
+- extend the device specific settings for Guardicore: object creation, common service separation, external ticket system, importer host, app-zone and network-area switches, dynamic IP labels, connection IDs, rule implementation and planning overrides
+- migrate setting key names and option values; privately back up old overrides before enforcing the revised scope restrictions (see developer documentation on device specific settings)
 - the migration keeps implementation planning on levels below a former "None" level and reroutes former Tufin SecureChange levels to the configured SecureChange system
 
 ## 9.7.3 - 14.10.2026

@@ -11,7 +11,7 @@ namespace FWO.Middleware.Server.Services;
 /// </summary>
 /// <remarks>
 /// Runs with the shared internal API connection as middleware-server, so every sub-management and the
-/// provisioning settings are found regardless of the managements visible to the caller.
+/// device specific settings are found regardless of the managements visible to the caller.
 /// </remarks>
 public sealed class ImplTaskTargetService
 {
@@ -30,7 +30,7 @@ public sealed class ImplTaskTargetService
     /// Returns one page of the target managements of an object task.
     /// </summary>
     /// <remarks>
-    /// The targets are computed from the management hierarchy and the provisioning settings, so the page cannot
+    /// The targets are computed from the management hierarchy and the device specific settings, so the page cannot
     /// be cut in the GraphQL query; it is cut here after the filter is applied. Targets are ordered by name and
     /// then id after the names hidden from the caller are removed, so the order does not reveal hidden names:
     /// visible targets come first, targets without name follow by id.

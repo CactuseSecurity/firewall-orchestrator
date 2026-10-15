@@ -1,17 +1,18 @@
--- Test of the provisioning data changes of upgrade/9.7.4.sql. The test task inserts the upgrade file at the two
+-- Test of the device specific settings data changes of upgrade/9.7.4.sql. The test task inserts the upgrade file at the two
 -- run-upgrade markers below, which also shows that the upgrade can be repeated.
 -- An isolated schema and temporary tables protect production data; the transaction is rolled back.
--- This probes legacy renames, canonical-key conflicts, restricted scopes, option conversion, planning kept
+-- This probes the table renames, legacy key renames, canonical-key conflicts, restricted scopes, option conversion, planning kept
 -- below a None level, the Tufin SecureChange reroute target, original-data backup and repeat execution.
 \set ON_ERROR_STOP 1
 BEGIN;
-CREATE SCHEMA provisioning_upgrade_9_7_4_test;
-SET LOCAL search_path = provisioning_upgrade_9_7_4_test, pg_temp;
+CREATE SCHEMA device_specific_upgrade_9_7_4_test;
+SET LOCAL search_path = device_specific_upgrade_9_7_4_test, pg_temp;
 CREATE TEMP TABLE config (config_key varchar, config_value varchar, config_user integer,
     PRIMARY KEY (config_key, config_user));
 INSERT INTO config VALUES ('pathAnalysisAlgorithm', '2', 0),
     ('extTicketSystems', '[{"Id":5,"TypeId":2,"Name":"SecureChange"},{"Id":6,"Name":"Generic"}]', 0);
 CREATE TEMP TABLE original_config AS SELECT config_key, config_value, config_user FROM config;
+-- the fixture uses the table names before 9.7.4, which the upgrade renames
 CREATE TEMP TABLE provisioning_config_node (id bigint PRIMARY KEY, node_type varchar, object_key varchar,
     parent_id bigint);
 CREATE TEMP TABLE provisioning_config_value (node_id bigint, config_key varchar, config_value jsonb,
@@ -36,7 +37,7 @@ CREATE TEMP TABLE original_values AS SELECT node_id, config_key, config_value FR
 
 -- @run-upgrade-9.7.4
 
-CREATE TEMP TABLE expected_values (LIKE provisioning_config_value);
+CREATE TEMP TABLE expected_values (LIKE device_specific_config_value);
 INSERT INTO expected_values VALUES
     (1, 'ruleLoggingOverride', '"log"'), (1, 'ruleZoneFromOverride', '"internal"'),
     (1, 'ruleType', '"access"'), (1, 'commonServiceSeparation', 'false'),
@@ -53,20 +54,25 @@ INSERT INTO expected_values VALUES
     (4, 'planImplementation', 'true');
 CREATE FUNCTION pg_temp.assert_migration() RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
+    IF to_regclass('provisioning_config_node') IS NOT NULL OR to_regclass('provisioning_config_value') IS NOT NULL
+        OR NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'device_specific_config_value_pkey'
+            AND conrelid = to_regclass('device_specific_config_value')) THEN
+        RAISE EXCEPTION 'Tables and constraints must be renamed to device_specific_config_*';
+    END IF;
     IF EXISTS ((SELECT config_key, config_value, config_user FROM config EXCEPT SELECT config_key, config_value, config_user FROM original_config)
         UNION ALL (SELECT config_key, config_value, config_user FROM original_config EXCEPT SELECT config_key, config_value, config_user FROM config)) THEN
-        RAISE EXCEPTION 'General settings must stay unchanged and must not contain provisioning backups';
+        RAISE EXCEPTION 'General settings must stay unchanged and must not contain device specific settings backups';
     END IF;
-    IF EXISTS ((SELECT node_id, config_key, config_value FROM provisioning_config_value EXCEPT SELECT node_id, config_key, config_value FROM expected_values)
-        UNION ALL (SELECT node_id, config_key, config_value FROM expected_values EXCEPT SELECT node_id, config_key, config_value FROM provisioning_config_value)) THEN
+    IF EXISTS ((SELECT node_id, config_key, config_value FROM device_specific_config_value EXCEPT SELECT node_id, config_key, config_value FROM expected_values)
+        UNION ALL (SELECT node_id, config_key, config_value FROM expected_values EXCEPT SELECT node_id, config_key, config_value FROM device_specific_config_value)) THEN
         RAISE EXCEPTION 'Migrated values differ from the expected contract';
     END IF;
     IF EXISTS ((SELECT node_id, config_key, config_value FROM original_values
         EXCEPT SELECT (item->>'node_id')::bigint, item->>'config_key', item->'config_value'
-        FROM provisioning_config_backup, jsonb_array_elements(config_values) item
+        FROM device_specific_config_backup, jsonb_array_elements(config_values) item
         WHERE version = '9.7.4')
         UNION ALL (SELECT (item->>'node_id')::bigint, item->>'config_key', item->'config_value'
-        FROM provisioning_config_backup, jsonb_array_elements(config_values) item
+        FROM device_specific_config_backup, jsonb_array_elements(config_values) item
         WHERE version = '9.7.4'
         EXCEPT SELECT node_id, config_key, config_value FROM original_values)) THEN
         RAISE EXCEPTION 'Original values were not preserved in the backup';
@@ -77,4 +83,4 @@ SELECT pg_temp.assert_migration();
 -- @run-upgrade-9.7.4
 SELECT pg_temp.assert_migration();
 ROLLBACK;
-\echo '9.7.4 provisioning migration and idempotency checks passed'
+\echo '9.7.4 device specific settings migration and idempotency checks passed'

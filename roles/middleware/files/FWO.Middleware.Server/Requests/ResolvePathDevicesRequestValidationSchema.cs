@@ -38,6 +38,26 @@ public static class ResolvePathDevicesRequestValidationSchema
     public const string kFilterPath = "options.filter";
 
     /// <summary>
+    /// JSON path of the algorithm option.
+    /// </summary>
+    public const string kAlgorithmPath = "options.algorithm";
+
+    /// <summary>
+    /// JSON path of the matrix id option.
+    /// </summary>
+    public const string kMatrixIdPath = "options.matrixId";
+
+    /// <summary>
+    /// JSON path of the device id filter.
+    /// </summary>
+    public const string kFilterIdPath = "options.filter.id";
+
+    /// <summary>
+    /// JSON path of the device name filter.
+    /// </summary>
+    public const string kFilterNamePath = "options.filter.name";
+
+    /// <summary>
     /// Maximum list length for sources and destinations.
     /// </summary>
     public const int kMaximumIpBlocksPerList = 100;
@@ -85,5 +105,15 @@ public static class ResolvePathDevicesRequestValidationSchema
     public static string DescribeKeys(IReadOnlyList<RequestKeyDefinition> allowedKeys)
     {
         return AggregatedRequestKeyValidation.DescribeKeys(allowedKeys);
+    }
+
+    /// <summary>
+    /// Builds the message reported for a syntactically valid matrix id that names no usable zone matrix.
+    /// </summary>
+    /// <param name="matrixId">Matrix id the caller supplied.</param>
+    /// <returns>Message naming the id and stating that it cannot be used.</returns>
+    public static string DescribeUnknownMatrix(int matrixId)
+    {
+        return $"Zone matrix with '{kMatrixIdPath}' {matrixId} does not exist or holds no zones.";
     }
 }

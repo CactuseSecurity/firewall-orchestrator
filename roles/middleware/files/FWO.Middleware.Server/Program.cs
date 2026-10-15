@@ -12,6 +12,7 @@ using FWO.Middleware.Server.Services;
 using FWO.Services;
 using FWO.Services.RuleTreeBuilder;
 using FWO.Services.Workflow;
+using FWO.Services.PathAnalysis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
@@ -110,6 +111,8 @@ builder.Services.AddSingleton<ComplianceZoneService>();
 builder.Services.AddSingleton<FlowComplianceService>();
 builder.Services.AddSingleton<WorkflowTicketService>();
 builder.Services.AddSingleton<WorkflowChangeHistoryService>();
+builder.Services.AddSingleton<PathAnalyzerFactory>();
+builder.Services.AddSingleton<PathAnalysisService>();
 builder.Services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
 builder.Services.AddSingleton<IRequestedRulePolicyCheckerFactory, ComplianceRequestedRulePolicyCheckerFactory>();
 

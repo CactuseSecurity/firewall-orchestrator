@@ -1,5 +1,6 @@
 using FWO.Basics;
 using FWO.Basics.Exceptions;
+using FWO.Config.Api;
 using FWO.Logging;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -20,14 +21,17 @@ namespace FWO.Middleware.Server.Controllers;
 public class PathAnalysisController : ControllerBase
 {
     private readonly PathAnalysisService pathAnalysisService;
+    private readonly GlobalConfig globalConfig;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WorkflowChangeHistoryController"/> class.
     /// </summary>
     /// <param name="pathAnalysisService">The workflow change history service.</param>
-    public PathAnalysisController(PathAnalysisService pathAnalysisService)
+    /// /// <param name="globalConfig">The workflow change history service.</param>
+    public PathAnalysisController(PathAnalysisService pathAnalysisService, GlobalConfig globalConfig)
     {
         this.pathAnalysisService = pathAnalysisService;
+        this.globalConfig = globalConfig;
     }
 
     /// <summary>
@@ -51,7 +55,8 @@ public class PathAnalysisController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ResolvePathDevicesResponse>> ResolvePathDevices([FromBody] ResolvePathDevicesRequest request)
     {
-        RequestValidationErrorResponse validationErrors = ResolvePathDevicesRequestValidator.Validate(request);
+        RequestValidationErrorResponse validationErrors = ResolvePathDevicesRequestValidator.Validate(
+            request, globalConfig.PathAnalysisAlgorithm, globalConfig.DesignatedZoneMatrixId);
         if (validationErrors.Errors.Count > 0)
         {
             return BadRequest(validationErrors);

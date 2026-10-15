@@ -43,7 +43,8 @@ namespace FWO.Services.PathAnalysis
             {
                 AlgorithmId = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree,
                 Segments = pathSegments,
-                Devices = [.. pathSegments.SelectMany(segment => segment.Devices).Distinct()]
+                Devices = [.. pathSegments.SelectMany(segment => segment.Devices).Distinct()],
+                MatrixId = matrixId
             };
         }
 

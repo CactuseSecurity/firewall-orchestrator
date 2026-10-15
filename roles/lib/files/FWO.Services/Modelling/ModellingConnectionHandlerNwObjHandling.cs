@@ -36,6 +36,16 @@ namespace FWO.Services.Modelling
         }
 
         /// <summary>
+        /// Determines whether the current user may open the add or edit dialog of an application role.
+        /// Auditors and admins may try out the dialog, but saving stays restricted to CanModifyAppRoles.
+        /// </summary>
+        /// <returns>True if the add or edit dialog of application roles may be opened.</returns>
+        public bool CanOpenAppRoleEditor()
+        {
+            return IsOwner;
+        }
+
+        /// <summary>
         /// Tells the user why an application role cannot be changed, instead of silently doing nothing.
         /// </summary>
         private void DisplayAppRoleChangeForbidden()
@@ -527,7 +537,7 @@ namespace FWO.Services.Modelling
 
         public void CreateAppRole()
         {
-            if (!CanModifyAppRoles())
+            if (!CanOpenAppRoleEditor())
             {
                 DisplayAppRoleChangeForbidden();
                 return;
@@ -543,7 +553,7 @@ namespace FWO.Services.Modelling
             {
                 return;
             }
-            if (!CanModifyAppRoles())
+            if (!CanOpenAppRoleEditor())
             {
                 DisplayAppRoleChangeForbidden();
                 return;
@@ -568,8 +578,9 @@ namespace FWO.Services.Modelling
             try
             {
                 EditAppRoleMode = false;
+                // the dialog handler only lets users save who may change application roles
                 AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, AvailableAppRoles,
-                    appRole, AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner, DisplayAppRoleMode);
+                    appRole, AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, CanModifyAppRoles(), DisplayAppRoleMode);
                 if (!AppRoleHandler.AreaConversionValid)
                 {
                     // no dialog is usable: an existing area cannot be derived and a new identifier cannot be proposed

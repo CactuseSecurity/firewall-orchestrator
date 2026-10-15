@@ -113,40 +113,64 @@ public static class ProvisioningSettingValueSerializer
 
         if (key.ValueType == typeof(string))
         {
-            if (value.Type != JTokenType.String)
-            {
-                throw InvalidValue(key, value, "a JSON string is required");
-            }
-
-            return value.Value<string>()!;
+            return DeserializeString(key, value);
         }
 
         if (key.ValueType == typeof(List<string>))
         {
-            if (value is not JArray array || array.Any(item => item.Type != JTokenType.String))
-            {
-                throw InvalidValue(key, value, "an array containing only JSON strings is required");
-            }
-
-            return array.Select(item => item.Value<string>()!).ToList();
+            return DeserializeStringList(key, value);
         }
 
         if (key.ValueType == typeof(bool))
         {
-            return value.Type == JTokenType.Boolean
-                ? value.Value<bool>()
-                : throw InvalidValue(key, value, "a JSON boolean is required");
+            return DeserializeBool(key, value);
         }
 
         if (key.ValueType == typeof(int?))
         {
-            return value.Type == JTokenType.Integer && value.Value<long>() is > 0 and <= int.MaxValue
-                ? (int?)value.Value<int>()
-                : throw InvalidValue(key, value, "a positive JSON integer is required");
+            return DeserializePositiveId(key, value);
         }
 
         throw new NotSupportedException(
             $"Provisioning setting type '{key.ValueType.Name}' has no JSONB deserializer.");
+    }
+
+    /// <summary>Reads a JSON string value.</summary>
+    private static string DeserializeString(ProvisioningSettingKey key, JToken value)
+    {
+        if (value.Type != JTokenType.String)
+        {
+            throw InvalidValue(key, value, "a JSON string is required");
+        }
+
+        return value.Value<string>()!;
+    }
+
+    /// <summary>Reads a JSON array that contains only strings.</summary>
+    private static List<string> DeserializeStringList(ProvisioningSettingKey key, JToken value)
+    {
+        if (value is not JArray array || array.Any(item => item.Type != JTokenType.String))
+        {
+            throw InvalidValue(key, value, "an array containing only JSON strings is required");
+        }
+
+        return array.Select(item => item.Value<string>()!).ToList();
+    }
+
+    /// <summary>Reads a JSON boolean value.</summary>
+    private static bool DeserializeBool(ProvisioningSettingKey key, JToken value)
+    {
+        return value.Type == JTokenType.Boolean
+            ? value.Value<bool>()
+            : throw InvalidValue(key, value, "a JSON boolean is required");
+    }
+
+    /// <summary>Reads a positive JSON integer that fits into an <see cref="int"/>.</summary>
+    private static int DeserializePositiveId(ProvisioningSettingKey key, JToken value)
+    {
+        return value.Type == JTokenType.Integer && value.Value<long>() is > 0 and <= int.MaxValue
+            ? value.Value<int>()
+            : throw InvalidValue(key, value, "a positive JSON integer is required");
     }
 
     /// <summary>Reads a storable, allowed enum value from its JSON string storage name.</summary>

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from fw_modules.ciscoasa9.asa_normalize import normalize_config
 from fw_modules.ciscoasa9.asa_parser import parse_asa_config
@@ -19,12 +19,16 @@ from fwo_base import write_native_config_to_file
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 from models.fw_common import FwCommon
-from scrapli.driver import GenericDriver
+from scrapli import AuthOptions, Cli, TransportBinOptions
 
 if TYPE_CHECKING:
     from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
     from model_controllers.import_state_controller import ImportStateController
     from model_controllers.management_controller import ManagementController
+
+SCRAPLI_DEFINITION = "default"
+SSH_EXTRA_OPEN_ARGS = ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]
+SHOW_RUNNING_TIMEOUT_NS = 600 * 1_000_000_000
 
 
 class CiscoAsa9Common(FwCommon):
@@ -34,31 +38,32 @@ class CiscoAsa9Common(FwCommon):
         return get_config(config_in, import_state)
 
 
-def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
+def _connect_to_device(mgm_details: ManagementController) -> Cli:
     """
     Establish SSH connection to the device.
+
+    The generic "default" definition is used on purpose: the cisco_asa definition enters
+    privileged mode on open, which must not happen before the virtual ASA module console is attached.
 
     Args:
         mgm_details: ManagementController object with connection details.
 
     Returns:
-        Connected GenericDriver instance.
+        Connected Cli instance.
 
     """
-    device: dict[str, Any] = {
-        "host": mgm_details.hostname,
-        "port": mgm_details.port,
-        "auth_username": mgm_details.import_user,
-        "auth_password": mgm_details.secret,
-        "auth_strict_key": False,
-        "transport_options": {"open_cmd": ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]},
-    }
-    conn = GenericDriver(**device)
+    conn = Cli(
+        mgm_details.hostname,
+        port=mgm_details.port,
+        definition_file_or_name=SCRAPLI_DEFINITION,
+        auth_options=AuthOptions(username=mgm_details.import_user, password=mgm_details.secret),
+        transport_options=TransportBinOptions(extra_open_args=SSH_EXTRA_OPEN_ARGS, enable_strict_key=False),
+    )
     conn.open()
     return conn
 
 
-def _prepare_virtual_asa(conn: GenericDriver) -> None:
+def _prepare_virtual_asa(conn: Cli) -> None:
     """
     Connect to ASA module on virtual device.
 
@@ -66,13 +71,13 @@ def _prepare_virtual_asa(conn: GenericDriver) -> None:
         conn: Active connection to the device.
 
     """
-    conn.send_command("connect module 1 console\n")
+    conn.write_and_return("connect module 1 console")
     time.sleep(2)
-    conn.send_command("\n")
+    conn.write_return()
     time.sleep(2)
 
 
-def _get_current_prompt(conn: GenericDriver) -> str:
+def _get_current_prompt(conn: Cli) -> str:
     """
     Get the current prompt from the device.
 
@@ -84,13 +89,13 @@ def _get_current_prompt(conn: GenericDriver) -> str:
 
     """
     try:
-        return conn.get_prompt().strip()
+        return conn.get_prompt().result.strip()
     except Exception:
         FWOLogger.warning("Could not get current prompt")
         return ""
 
 
-def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController) -> None:
+def _ensure_enable_mode(conn: Cli, mgm_details: ManagementController) -> None:
     """
     Ensure device is in enabled mode.
 
@@ -108,7 +113,13 @@ def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController) 
     if current_prompt.endswith(">"):
         FWOLogger.debug("Device is in user mode, entering enable mode")
         try:
-            conn.send_interactive([("enable", "Password", False), (mgm_details.cloud_client_secret, "#", True)])
+            conn.send_prompted_input(
+                "enable",
+                prompt="Password",
+                prompt_pattern="",
+                response=mgm_details.cloud_client_secret or "",
+                hidden_response=True,
+            )
         except Exception as e:
             FWOLogger.warning(f"Could not enter enable mode: {e}")
             current_prompt = _get_current_prompt(conn)
@@ -128,7 +139,7 @@ def _ensure_enable_mode(conn: GenericDriver, mgm_details: ManagementController) 
     FWOLogger.debug("Device is in enabled mode")
 
 
-def _get_running_config(conn: GenericDriver) -> str:
+def _get_running_config(conn: Cli) -> str:
     """
     Retrieve running configuration from device.
 
@@ -140,15 +151,15 @@ def _get_running_config(conn: GenericDriver) -> str:
 
     """
     try:
-        conn.send_command("terminal pager 0")
+        conn.send_input("terminal pager 0")
     except Exception as e:
         FWOLogger.warning(f"Could not disable paging: {e}")
 
-    response = conn.send_interactive([("show running", ": end", False)], timeout_ops=600)
+    response = conn.send_input("show running", operation_timeout_ns=SHOW_RUNNING_TIMEOUT_NS)
     return response.result.strip()
 
 
-def _safe_close_connection(conn: GenericDriver | None) -> None:
+def _safe_close_connection(conn: Cli | None) -> None:
     """
     Safely close connection with proper cleanup.
 
@@ -159,14 +170,9 @@ def _safe_close_connection(conn: GenericDriver | None) -> None:
     if conn is None:
         return
 
-    if not conn.isalive():
-        FWOLogger.debug("Connection already closed")
+    if conn.ptr is None:
+        FWOLogger.debug("Connection was never opened")
         return
-
-    try:
-        conn.send_command("exit")
-    except Exception as e:
-        FWOLogger.warning(f"Could not exit session cleanly: {e}")
 
     try:
         conn.close()
@@ -218,7 +224,7 @@ def _log_retry_attempt(attempt: int, max_retries: int) -> None:
         FWOLogger.debug(f"Connection attempt {attempt + 1}/{max_retries}")
 
 
-def _retrieve_config_from_device(conn: GenericDriver, mgm_details: ManagementController, is_virtual_asa: bool) -> str:
+def _retrieve_config_from_device(conn: Cli, mgm_details: ManagementController, is_virtual_asa: bool) -> str:
     """
     Retrieve configuration from connected device.
 

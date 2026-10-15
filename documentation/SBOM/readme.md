@@ -135,7 +135,6 @@ The installed mode is intended to run on the target host after installation or u
 
 ### SSH
     scrapli>=2025.01.30
-    scrapli-community>=2025.01.30
 
 ### Test
     pytest>=7.0

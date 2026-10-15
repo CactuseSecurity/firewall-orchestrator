@@ -21,8 +21,10 @@
         </div>
     </div>
 }
-@if (!ShowOnlyFlowTimeObjectSelection)
+@if (!ShowOnlyFlowTimeObjectSelection && (ShowTargetBeginDate || ShowTargetEndDate))
 {
+    @if (ShowTargetBeginDate)
+    {
     <div class="col-sm-3">
         <div class="form-group row">
             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
@@ -48,6 +50,9 @@
             </div>
         </div>
     </div>
+    }
+    @if (ShowTargetEndDate)
+    {
     <div class="col-sm-3">
         <div class="form-group row">
             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
@@ -73,6 +78,7 @@
             </div>
         </div>
     </div>
+    }
 }
 
 @code
@@ -94,6 +100,12 @@
 
     [Parameter]
     public bool CanEditTargetEndDate { get; set; }
+
+    [Parameter]
+    public bool ShowTargetBeginDate { get; set; } = true;
+
+    [Parameter]
+    public bool ShowTargetEndDate { get; set; } = true;
 
     [Parameter]
     public EventCallback<bool> TargetDatesValidChanged { get; set; }

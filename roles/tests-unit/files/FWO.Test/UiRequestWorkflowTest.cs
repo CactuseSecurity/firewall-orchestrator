@@ -382,6 +382,17 @@ namespace FWO.Test
             WfStatefulObject statefulObject,
             params string[] roles)
         {
+            return RenderPromoteObject(context, states, stateMatrix, statefulObject, false, roles);
+        }
+
+        internal static IRenderedComponent<PromoteObject> RenderPromoteObject(
+            BunitContext context,
+            WfStateDict states,
+            StateMatrix stateMatrix,
+            WfStatefulObject statefulObject,
+            bool withComment,
+            params string[] roles)
+        {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
@@ -394,6 +405,7 @@ namespace FWO.Test
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<PromoteObject>(child => child
                     .Add(p => p.Promote, true)
+                    .Add(p => p.WithComment, withComment)
                     .Add(p => p.States, states)
                     .Add(p => p.StateMatrix, stateMatrix)
                     .Add(p => p.StatefulObject, statefulObject)
@@ -629,7 +641,9 @@ namespace FWO.Test
         {
             public List<string> Queries { get; } = [];
             public List<FlowNwObject> FlowNwObjects { get; set; } = [];
+            public List<FlowNwGroup> FlowNwGroups { get; set; } = [];
             public List<FlowSvcObject> FlowSvcObjects { get; set; } = [];
+            public List<FlowSvcGroup> FlowSvcGroups { get; set; } = [];
             public List<FlowTimeObject> FlowTimeObjects { get; set; } = [];
             public List<Management> Managements { get; set; } = [];
 
@@ -656,9 +670,17 @@ namespace FWO.Test
                 {
                     return Task.FromResult((QueryResponseType)(object)FlowNwObjects);
                 }
+                if (query == FlowQueries.getFlowAddressGroups)
+                {
+                    return Task.FromResult((QueryResponseType)(object)FlowNwGroups);
+                }
                 if (query == FlowQueries.getFlowRequestSvcObjectCatalog)
                 {
                     return Task.FromResult((QueryResponseType)(object)FlowSvcObjects);
+                }
+                if (query == FlowQueries.getFlowServiceGroups)
+                {
+                    return Task.FromResult((QueryResponseType)(object)FlowSvcGroups);
                 }
                 if (query == FlowQueries.getFlowRequestTimeObjectCatalog)
                 {

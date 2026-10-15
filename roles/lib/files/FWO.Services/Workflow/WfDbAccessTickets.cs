@@ -36,6 +36,7 @@ namespace FWO.Services.Workflow
                 var variables = BuildTicketVariables(ticket);
                 variables["preWorkflowTicketReference"] = ticket.PreWorkflowTicketReference;
                 variables["requesterId"] = ticket.Requester?.DbId;
+                variables["additionalInfo"] = ticket.AdditionalInfo;
                 variables["requestTasks"] = new WfTicketWriter(ticket);
                 variables["locked"] = ticket.Locked;
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newTicket, variables)).ReturnIds;

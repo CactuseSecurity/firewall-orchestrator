@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    @if (TaskType == WfTaskType.access || TaskType == WfTaskType.rule_modify || TaskType == WfTaskType.rule_delete || TaskType == WfTaskType.group_create
+    @if ((TaskType == WfTaskType.access && ShowField(WorkflowEditableFieldKeys.Management)) || TaskType == WfTaskType.rule_modify || TaskType == WfTaskType.rule_delete || TaskType == WfTaskType.group_create
         || WfObjectTaskHelper.IsObjectTask(TaskType))
     {
         <div class="col-sm-3">
@@ -74,12 +74,38 @@
     }
     @if (TaskType == WfTaskType.access)
     {
+        @if (ShowField(WorkflowEditableFieldKeys.Owner))
+        {
+        <div class="col-sm-3">
+            <div class="form-group row">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner")):</label>
+                <div class="col-sm-8">
+                    @if (CanEditField(WorkflowEditableFieldKeys.Owner))
+                    {
+                        <Dropdown ElementType="FwoOwner" SelectedElement="Owner" SelectedElementChanged="OnOwnerChanged"
+                            ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" Elements="NewInterfaceOwnerOptions" Nullable="true">
+                            <ElementTemplate Context="app">
+                                @app.Display(userConfig.GetText("common_service"))
+                            </ElementTemplate>
+                        </Dropdown>
+                    }
+                    else
+                    {
+                        <label class="col-sm-12 h-100 border bg-secondary">@Owner?.Display()</label>
+                    }
+                </div>
+            </div>
+        </div>
+        }
+        @if (ShowField(WorkflowEditableFieldKeys.ValidFrom) || ShowField(WorkflowEditableFieldKeys.ValidTo))
+        {
         <DisplayTaskTargetDates @bind-TargetBeginDate="WfHandler.ActReqTask.TargetBeginDate"
             @bind-TargetEndDate="WfHandler.ActReqTask.TargetEndDate"
             CanEditTargetBeginDate="CanEditField(WorkflowEditableFieldKeys.ValidFrom)"
             CanEditTargetEndDate="CanEditField(WorkflowEditableFieldKeys.ValidTo)"
             TargetDatesValidChanged="TargetDatesValidChanged"
             ShowOnlyFlowTimeObjectSelection="true" />
+        }
     }
     else if (TaskType == WfTaskType.rule_delete || TaskType == WfTaskType.rule_modify)
     {
@@ -194,6 +220,9 @@
 
     [Parameter]
     public Func<string, bool> CanEditField { get; set; } = _ => false;
+
+    [Parameter]
+    public Func<string, bool> ShowField { get; set; } = _ => true;
 
     private Management? Management { get; set; }
     private Device? RuleDevice { get; set; }

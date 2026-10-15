@@ -11,5 +11,6 @@ subscription subscribeTicketStateChanges ($id: bigint!){
     uiuser_email
   }
   requester_dn
+  additional_info
   }
 }

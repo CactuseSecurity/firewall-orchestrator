@@ -1,4 +1,5 @@
 @using FWO.Ui.Services
+@using System.Runtime.CompilerServices
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
@@ -13,7 +14,7 @@
     @if (WfHandler.ActTicket.Tasks.Count > 0)
     {
         <div class="m-2">
-            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="WfHandler.ActTicket.Tasks.OrderBy(x => x.Id)" PageSize="0" ColumnReorder="true">
+            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="GetDisplayedTasks()" PageSize="0" ColumnReorder="true">
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>
                         @{
@@ -229,5 +230,39 @@
     private bool HasBundleIds()
     {
         return WfHandler.ActTicket.Tasks.Any(task => !string.IsNullOrWhiteSpace(task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId)));
+    }
+
+    private IEnumerable<WfReqTask> GetDisplayedTasks()
+    {
+        IEnumerable<WfReqTask> tasks = WfHandler.ActTicket.Tasks.OrderBy(task => task.Id);
+        if (!CanDisplayBundledTasks())
+        {
+            return tasks.ToList();
+        }
+
+        return tasks
+            .GroupBy(GetDisplayGroupKey)
+            .Select(group => group.First())
+            .ToList();
+    }
+
+    private bool CanDisplayBundledTasks()
+    {
+        return Phase != WorkflowPhases.request
+            && WfHandler.userConfig.ReqDisplayBundledTasksAsOne
+            && WfHandler.userConfig.ReqConsiderBundling;
+    }
+
+    private static string GetDisplayGroupKey(WfReqTask task)
+    {
+        string bundleId = task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
+        if (!string.IsNullOrWhiteSpace(bundleId))
+        {
+            return $"bundle:{bundleId}:state:{task.StateId}";
+        }
+
+        return task.Id > 0
+            ? $"task:{task.Id}"
+            : $"new-task:{RuntimeHelpers.GetHashCode(task)}";
     }
 }

@@ -101,7 +101,8 @@ create table request.ticket
 	pre_workflow_ticket_reference varchar,
 	ticket_deadline Timestamp,
 	ticket_priority int,
-	locked boolean NOT NULL DEFAULT FALSE
+	locked boolean NOT NULL DEFAULT FALSE,
+	additional_info varchar
 );
 
 create table request.comment 

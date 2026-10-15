@@ -544,6 +544,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CanAutoCreateInitialImplTasks_ReturnsFalseBeforeImplementationInputState()
+        {
+            WfReqTask requestTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = WfTaskType.group_create.ToString(),
+                StateId = 49
+            };
+            WfHandler handler = CreateImplementationCreationHandler(requestTask, implementationInputState: 99);
+
+            bool canAutoCreate = handler.CanAutoCreateInitialImplTasks(requestTask);
+
+            requestTask.StateId = 99;
+            bool canAutoCreateAtInput = handler.CanAutoCreateInitialImplTasks(requestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(canAutoCreate, Is.False);
+                Assert.That(canAutoCreateAtInput, Is.True);
+            });
+        }
+
+        [Test]
         public async Task AutoCreateInitialImplTasksForMonitoring_ReturnsFalseWhenBundledSiblingAlreadyHasImplTask()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
@@ -648,6 +672,57 @@ namespace FWO.Test
             Assert.That(requestTasks[0], Is.SameAs(newInterfaceTask));
         }
 
+        [Test]
+        public async Task RequestTasksForInitialImplCreation_SkipsTaskFoundDuringDatabaseReload()
+        {
+            WfReqTask overviewTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = WfTaskType.group_create.ToString(),
+                StateId = 99,
+                Title = "Group"
+            };
+            WfReqTask storedTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = WfTaskType.group_create.ToString(),
+                StateId = 99,
+                Title = "Group",
+                ImplementationTasks = { new WfImplTask { Id = 673, ReqTaskId = 11, StateId = 100 } }
+            };
+            WfTicket storedTicket = new() { Id = 7, Tasks = { storedTask } };
+            WfHandler handler = CreateImplementationCreationHandler(overviewTask, implementationInputState: 99);
+            SetDbAccess(handler, new RequestTaskDetailsApiConn(storedTicket));
+            List<WfReqTask> candidateTasks = new() { overviewTask };
+
+            List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler, candidateTasks);
+
+            Assert.That(requestTasks, Is.Empty);
+        }
+
+        [Test]
+        public async Task LoadReqTaskDetailsForImplCreation_PreservesDerivedTicketState()
+        {
+            WfReqTask overviewTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = WfTaskType.group_create.ToString(),
+                StateId = 99
+            };
+            WfReqTask storedTask = new(overviewTask);
+            WfTicket storedTicket = new() { Id = 7, StateId = 49, Tasks = { storedTask } };
+            WfHandler handler = CreateImplementationCreationHandler(overviewTask, implementationInputState: 99);
+            handler.ActTicket.StateId = 100;
+            SetDbAccess(handler, new RequestTaskDetailsApiConn(storedTicket));
+
+            await InvokeLoadReqTaskDetailsForImplCreation(handler, overviewTask);
+
+            Assert.That(handler.ActTicket.StateId, Is.EqualTo(100));
+        }
+
         private static async Task InvokeAutoCreateImplTasks(WfHandler handler, WfReqTask reqTask)
         {
             MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateImplTasks", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -668,7 +743,7 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(typeof(WfHandler).FullName, "UpdateRequestTasksFromTicket");
-            Task task = (Task)(method.Invoke(handler, [true, true]) ?? throw new InvalidOperationException("UpdateRequestTasksFromTicket returned null."));
+            Task task = (Task)(method.Invoke(handler, [true, true, null, null]) ?? throw new InvalidOperationException("UpdateRequestTasksFromTicket returned null."));
             await task;
         }
 
@@ -676,8 +751,17 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("RequestTasksForInitialImplCreation", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(typeof(WfHandler).FullName, "RequestTasksForInitialImplCreation");
-            Task<List<WfReqTask>> task = (Task<List<WfReqTask>>)(method.Invoke(handler, [requestTasks])
+            Task<List<WfReqTask>> task = (Task<List<WfReqTask>>)(method.Invoke(handler, [requestTasks, false])
                 ?? throw new InvalidOperationException("RequestTasksForInitialImplCreation returned null."));
+            return await task;
+        }
+
+        private static async Task<WfReqTask> InvokeLoadReqTaskDetailsForImplCreation(WfHandler handler, WfReqTask reqTask)
+        {
+            MethodInfo method = typeof(WfHandler).GetMethod("LoadReqTaskDetailsForImplCreation", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(typeof(WfHandler).FullName, "LoadReqTaskDetailsForImplCreation");
+            Task<WfReqTask> task = (Task<WfReqTask>)(method.Invoke(handler, [reqTask])
+                ?? throw new InvalidOperationException("LoadReqTaskDetailsForImplCreation returned null."));
             return await task;
         }
 
@@ -713,6 +797,37 @@ namespace FWO.Test
                 MinImplTasksNeeded = 3,
                 MinTicketCompleted = 99,
                 PhaseActive = new() { { WorkflowPhases.planning, false } }
+            });
+            return handler;
+        }
+
+        private static WfHandler CreateImplementationCreationHandler(WfReqTask requestTask,
+            int implementationInputState)
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestEndState = 49,
+                    PhaseActive = new() { { WorkflowPhases.planning, false } }
+                },
+                ActTicket = new WfTicket { Id = 7, StateId = 99, Tasks = { requestTask } }
+            };
+            SetMatrix(handler, requestTask.TaskType, new StateMatrix
+            {
+                LowestInputState = 0,
+                LowestEndState = 249,
+                MinImplTasksNeeded = implementationInputState,
+                MinTicketCompleted = 299,
+                PhaseActive = new()
+                {
+                    { WorkflowPhases.planning, false },
+                    { WorkflowPhases.implementation, true }
+                }
             });
             return handler;
         }

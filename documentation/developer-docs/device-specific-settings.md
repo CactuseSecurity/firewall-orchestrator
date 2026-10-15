@@ -87,7 +87,9 @@ wire values above. If old and canonical keys both exist, the canonical key wins.
 `Manual` with planning set to `false` unless an explicit planning override already
 exists. The other old modes always planned the implementation: a level that overrides
 `FwoAuto`, `Manual` or `TufinSc` and would inherit the disabled planning of a `None`
-level above it gets `planImplementation` set to `true`. If exactly one Tufin SecureChange
+level above it gets `planImplementation` set to `true`. Only a level that still has the old
+`None` mode counts, so a repeated upgrade leaves planning that was disabled after the upgrade
+unchanged. If exactly one Tufin SecureChange
 system is configured in the external ticket systems, former `TufinSc` levels reroute to
 it via `rerouteToExternalTicketSystem`; otherwise select the ticket system on those
 levels after upgrading. `ruleCategory` becomes `commonServiceSeparation` (`common_service`

@@ -79,7 +79,9 @@ WHERE config_key = 'implementationMode' AND config_value = '"None"'::jsonb
 ON CONFLICT (node_id, config_key) DO NOTHING;
 
 -- The other old modes always planned the implementation. A level overriding one of them below a None level
--- would otherwise inherit the disabled planning, so it keeps planning explicitly.
+-- would otherwise inherit the disabled planning, so it keeps planning explicitly. Only planning disabled by a level
+-- that still has the old None mode counts: no planning values existed before 9.7.4, and once None is converted
+-- below, a repeated upgrade leaves planning that an administrator disabled after the upgrade untouched.
 WITH RECURSIVE ancestors (node_id, ancestor_id, depth) AS (
     SELECT id, parent_id, 1 FROM device_specific_config_node WHERE parent_id IS NOT NULL
     UNION ALL
@@ -87,9 +89,10 @@ WITH RECURSIVE ancestors (node_id, ancestor_id, depth) AS (
     FROM ancestors a JOIN device_specific_config_node n ON n.id = a.ancestor_id
     WHERE n.parent_id IS NOT NULL AND a.depth < 100 -- recursion limit, the hierarchy has four levels
 ), inherited_planning AS (
-    SELECT DISTINCT ON (a.node_id) a.node_id, p.config_value
+    SELECT DISTINCT ON (a.node_id) a.node_id, p.config_value, m.config_value AS ancestor_mode
     FROM ancestors a
     JOIN device_specific_config_value p ON p.node_id = a.ancestor_id AND p.config_key = 'planImplementation'
+    LEFT JOIN device_specific_config_value m ON m.node_id = a.ancestor_id AND m.config_key = 'implementationMode'
     ORDER BY a.node_id, a.depth
 )
 INSERT INTO device_specific_config_value (node_id, config_key, config_value)
@@ -97,7 +100,7 @@ SELECT v.node_id, 'planImplementation', 'true'::jsonb
 FROM device_specific_config_value v
 JOIN inherited_planning i ON i.node_id = v.node_id
 WHERE v.config_key = 'implementationMode' AND v.config_value #>> '{}' IN ('FwoAuto', 'Manual', 'TufinSc')
-    AND i.config_value = 'false'::jsonb
+    AND i.config_value = 'false'::jsonb AND i.ancestor_mode = '"None"'::jsonb
 ON CONFLICT (node_id, config_key) DO NOTHING;
 
 -- TufinSc becomes the reroute mode. If exactly one Tufin SecureChange system (type 2) is configured, the

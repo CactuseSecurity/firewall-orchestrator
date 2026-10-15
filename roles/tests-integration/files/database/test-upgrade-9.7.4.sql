@@ -3,7 +3,8 @@
 -- An isolated schema and temporary tables protect production data; the transaction is rolled back.
 -- This probes the table renames, legacy key renames, canonical-key conflicts, restricted scopes, option conversion, planning kept
 -- below a None level, the Tufin SecureChange reroute target, original-data backup, the move of the management importer host
--- into the device specific settings and repeat execution.
+-- into the device specific settings and repeat execution, including an administrator change between both runs that
+-- a repeated upgrade must leave untouched.
 \set ON_ERROR_STOP 1
 BEGIN;
 CREATE SCHEMA device_specific_upgrade_9_7_4_test;
@@ -96,7 +97,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM device_specific_config_node d JOIN device_specific_config_node m ON m.parent_id = d.id
         WHERE d.node_type = 'device_type' AND d.object_key = '11' AND d.parent_id = 1 AND d.display_name = 'FortiGate 7'
             AND m.node_type = 'management' AND m.object_key = '102' AND m.display_name = 'mgm102')
-        OR (SELECT count(*) FROM device_specific_config_node) <> 6 THEN
+        OR (SELECT count(*) FROM device_specific_config_node WHERE node_type IN ('device_type', 'management')) <> 4 THEN
         RAISE EXCEPTION 'Only the differing management and its device type must get a node';
     END IF;
     IF EXISTS ((SELECT mgm_id, mgm_name, importer_hostname FROM original_management
@@ -111,6 +112,14 @@ BEGIN
     END IF;
 END $$;
 SELECT pg_temp.assert_migration();
+
+-- after the upgrade an administrator adds a gateway with the manual mode below management 3, whose planning is
+-- disabled; the gateway inherits the disabled planning, and a repeated upgrade must not enable it
+INSERT INTO device_specific_config_node (node_type, object_key, parent_id) VALUES ('gateway', '201', 3);
+INSERT INTO device_specific_config_value
+SELECT id, 'implementationMode', '"Manual"' FROM device_specific_config_node WHERE node_type = 'gateway' AND object_key = '201';
+INSERT INTO expected_values
+SELECT id, 'implementationMode', '"Manual"' FROM device_specific_config_node WHERE node_type = 'gateway' AND object_key = '201';
 
 -- @run-upgrade-9.7.4
 SELECT pg_temp.assert_migration();

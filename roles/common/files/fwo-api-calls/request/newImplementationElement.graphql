@@ -14,6 +14,9 @@ mutation newImplementationElement(
   $ruleUid: String
   $groupName: String
   $name: String
+  $startTime: timestamptz
+  $endTime: timestamptz
+  $timeObjId: bigint
   ) {
   insert_request_implelement(objects: {
     implementation_action: $implementationAction
@@ -31,6 +34,9 @@ mutation newImplementationElement(
     rule_uid: $ruleUid
     group_name: $groupName
     name: $name
+    start_time: $startTime
+    end_time: $endTime
+    time_obj_id: $timeObjId
   }) {
     returning {
       newIdLong: id

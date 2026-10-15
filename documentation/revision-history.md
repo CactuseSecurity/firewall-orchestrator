@@ -1,5 +1,12 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.4 - 15.10.2026
+- request workflow: the task types create object and modify object support time objects with name, start and end time
+  - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)
+  - modify object searches the imported time objects of the management by name; the requester role may read them
+  - a created time object is stored in the Flow DB like other single objects
+- request workflow: new setting "create objects separately (planned)" under Workflow Customizing, currently without effect
+
 ## 9.7.3 - 14.10.2026
 - replace cloud client fields with selectable additional credentials; migrate existing values into encrypted credential secrets (#3766)
 - the Cisco ASA importer decrypts the selected additional credential for enable mode

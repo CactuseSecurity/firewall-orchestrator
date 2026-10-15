@@ -53,6 +53,7 @@ insert into config (config_key, config_value, config_user) VALUES ('reqPrioritie
 insert into config (config_key, config_value, config_user) VALUES ('reqAutoCreateImplTasks', 'enterInReqTask', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqConsiderBundling', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqDisplayBundledTasksAsOne', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reqCreateObjectsSeparately', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqOwnerBased', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqVisibilityBased', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqUseFlowDb', 'False', 0);

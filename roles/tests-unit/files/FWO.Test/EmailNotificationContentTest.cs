@@ -267,6 +267,31 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FromRequestTasksShowsTheBoundsOfATimeObject()
+        {
+            DateTime start = new(2026, 11, 1, 8, 0, 0);
+            DateTime end = new(2026, 11, 30, 18, 0, 0);
+            WfReqTask timeChange = new()
+            {
+                Id = 24,
+                TaskNumber = 4,
+                Title = "Extend maintenance",
+                TaskType = WfTaskType.object_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.unchanged.ToString(), Name = "maintenance", TimeObjId = 77, StartTime = start, EndTime = end },
+                    new WfReqElement { Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.modify.ToString(), Name = "maintenance", TimeObjId = 77, EndTime = end }
+                }
+            };
+            List<WfReqTask> tasks = [timeChange];
+
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks(tasks, new EmailNotificationUserConfig(), kProtocolNames);
+
+            Assert.That(content.Csv, Does.Contain("\"maintenance (2026-11-01 08:00 - 2026-11-30 18:00)\",\"maintenance (<= 2026-11-30 18:00)\""));
+        }
+
+        [Test]
         public void FromImplementationTasksListsObjectTasksApartFromConnections()
         {
             WfImplTask objectTask = new()

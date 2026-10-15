@@ -114,7 +114,7 @@ internal class ProvisioningGuardicoreSettingsTest
             Assert.That(settings.RerouteToExternalTicketSystem, Is.Null);
             Assert.That(settings.OwnerIdCustomFieldName, Is.EqualTo("OwnerId"));
             Assert.That(settings.ChangeIdCustomFieldName, Is.EqualTo("ChangeId"));
-            Assert.That(settings.ImporterHostName, Is.EqualTo(System.Net.Dns.GetHostName()));
+            Assert.That(settings.ImporterHostName, Is.Empty);
             Assert.That(settings.PlanImplementation, Is.True);
             Assert.That(settings.PlanImplementationOverrideForRules, Is.True);
             Assert.That(settings.ModellingCreateAppZones, Is.True);

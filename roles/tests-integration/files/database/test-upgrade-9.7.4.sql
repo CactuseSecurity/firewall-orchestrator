@@ -1,21 +1,23 @@
 -- Test of the provisioning data changes of upgrade/9.7.4.sql. The test task inserts the upgrade file at the two
 -- run-upgrade markers below, which also shows that the upgrade can be repeated.
 -- An isolated schema and temporary tables protect production data; the transaction is rolled back.
--- This probes legacy renames, canonical-key conflicts, restricted scopes,
--- option conversion, original-data backup and repeat execution.
+-- This probes legacy renames, canonical-key conflicts, restricted scopes, option conversion, planning kept
+-- below a None level, the Tufin SecureChange reroute target, original-data backup and repeat execution.
 \set ON_ERROR_STOP 1
 BEGIN;
 CREATE SCHEMA provisioning_upgrade_9_7_4_test;
 SET LOCAL search_path = provisioning_upgrade_9_7_4_test, pg_temp;
 CREATE TEMP TABLE config (config_key varchar, config_value varchar, config_user integer,
     PRIMARY KEY (config_key, config_user));
-INSERT INTO config VALUES ('pathAnalysisAlgorithm', '2', 0);
+INSERT INTO config VALUES ('pathAnalysisAlgorithm', '2', 0),
+    ('extTicketSystems', '[{"Id":5,"TypeId":2,"Name":"SecureChange"},{"Id":6,"Name":"Generic"}]', 0);
 CREATE TEMP TABLE original_config AS SELECT config_key, config_value, config_user FROM config;
-CREATE TEMP TABLE provisioning_config_node (id bigint PRIMARY KEY, node_type varchar, object_key varchar);
+CREATE TEMP TABLE provisioning_config_node (id bigint PRIMARY KEY, node_type varchar, object_key varchar,
+    parent_id bigint);
 CREATE TEMP TABLE provisioning_config_value (node_id bigint, config_key varchar, config_value jsonb,
     PRIMARY KEY (node_id, config_key));
 INSERT INTO provisioning_config_node VALUES
-    (1, 'global', 'global'), (2, 'device_type', '10'), (3, 'management', '100'), (4, 'gateway', '200');
+    (1, 'global', 'global', NULL), (2, 'device_type', '10', 1), (3, 'management', '100', 2), (4, 'gateway', '200', 3);
 INSERT INTO provisioning_config_value VALUES
     (1, 'logging', '"Log"'), (1, 'zoneFrom', '"internal"'),
     (1, 'ruleType', '"AlwaysAccess"'), (1, 'ruleCategory', '"App"'),
@@ -41,13 +43,14 @@ INSERT INTO expected_values VALUES
     (1, 'positioningAlgorithm', '"endOfAppSectionDistinguishCommonServices"'),
     (1, 'implementationMode', '"Manual"'), (1, 'planImplementation', 'true'),
     (2, 'ruleLoggingOverride', '"log_track"'), (2, 'ruleZoneToOverride', '"ANY"'),
-    (2, 'implementationMode', '"reroute_to_external_ticket_system"'),
+    (2, 'implementationMode', '"reroute_to_external_ticket_system"'), (2, 'rerouteToExternalTicketSystem', '5'),
     (2, 'securityProfiles', '["strict"]'), (2, 'templates', '"template"'),
     (3, 'implementationMode', '"Manual"'), (3, 'planImplementation', 'false'),
     (3, 'addressObjectCreation', '"Submanager"'), (3, 'ruleType', '"accessAndIPS"'),
     (4, 'serviceObjectCreation', '"Submanager"'), (4, 'addressObjectCreation', '"Submanager"'),
     (4, 'commonServiceSeparation', 'true'), (4, 'ruleLoggingOverride', '"none"'),
-    (4, 'installOn', '"gatewaysInPath"'), (4, 'implementationMode', '"Automatic"');
+    (4, 'installOn', '"gatewaysInPath"'), (4, 'implementationMode', '"Automatic"'),
+    (4, 'planImplementation', 'true');
 CREATE FUNCTION pg_temp.assert_migration() RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
     IF EXISTS ((SELECT config_key, config_value, config_user FROM config EXCEPT SELECT config_key, config_value, config_user FROM original_config)

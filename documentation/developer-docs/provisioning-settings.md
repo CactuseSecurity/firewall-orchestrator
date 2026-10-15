@@ -33,7 +33,7 @@ remains effective and is shown as a dormant override that can be cleared there.
 | securityProfiles | string array | [] | Device type, manager, gateway | Device type, manager |
 | ownerIdCustomFieldName | string | OwnerId | Global, device type, manager | Global to manager |
 | changeIdCustomFieldName | string | ChangeId | Global, device type, manager | Global to manager |
-| importerHostName | string | FWO host name | Global, device type, manager | Global to manager |
+| importerHostName | string | empty (host of the provisioning importer) | Global, device type, manager | Global to manager |
 | planImplementation | boolean | true | All | All |
 | planImplementationOverrideForRules | boolean | true | All | All |
 | modellingCreateAppZones | boolean | true | Global, device type, manager | Global to manager |
@@ -61,8 +61,9 @@ Positioning offers `DefaultEndOfRulebase`, `cpInlineLayerPerZonePair`, `endOfZon
 
 `modellingConnectionIdField` offers `Name`, `Comment`, and `CustomField`: the field of
 a provisioned object that carries the ID of the modelling connection, formatted by
-`modellingConnectionIdTemplate`. The compiled `importerHostName` default is the host
-name of the machine resolving the settings.
+`modellingConnectionIdTemplate`. The compiled `importerHostName` default is empty: the
+importer that runs the provisioning then uses its own host name. The default therefore
+does not depend on which FWO host (UI, middleware or importer) resolves the settings.
 
 ## Upgrade to 9.7.4
 
@@ -72,8 +73,13 @@ under version `9.7.4` before making any changes. It renames
 wire values above. If old and canonical keys both exist, the canonical key wins.
 `FwoAuto` becomes `Automatic` and `TufinSc` the external-ticket mode; `None` becomes
 `Manual` with planning set to `false` unless an explicit planning override already
-exists. `ruleCategory` becomes `commonServiceSeparation` (`common_service` is `true`,
-`app` is `false`).
+exists. The other old modes always planned the implementation: a level that overrides
+`FwoAuto`, `Manual` or `TufinSc` and would inherit the disabled planning of a `None`
+level above it gets `planImplementation` set to `true`. If exactly one Tufin SecureChange
+system is configured in the external ticket systems, former `TufinSc` levels reroute to
+it via `rerouteToExternalTicketSystem`; otherwise select the ticket system on those
+levels after upgrading. `ruleCategory` becomes `commonServiceSeparation` (`common_service`
+is `true`, `app` is `false`).
 
 Templates outside the device type level and custom install-on targets other than the
 two permitted choices are removed from active provisioning data. Before upgrading,

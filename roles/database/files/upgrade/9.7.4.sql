@@ -38,6 +38,57 @@ FROM provisioning_config_value
 WHERE config_key = 'implementationMode' AND config_value = '"None"'::jsonb
 ON CONFLICT (node_id, config_key) DO NOTHING;
 
+-- The other old modes always planned the implementation. A level overriding one of them below a None level
+-- would otherwise inherit the disabled planning, so it keeps planning explicitly.
+WITH RECURSIVE ancestors (node_id, ancestor_id, depth) AS (
+    SELECT id, parent_id, 1 FROM provisioning_config_node WHERE parent_id IS NOT NULL
+    UNION ALL
+    SELECT a.node_id, n.parent_id, a.depth + 1
+    FROM ancestors a JOIN provisioning_config_node n ON n.id = a.ancestor_id
+    WHERE n.parent_id IS NOT NULL AND a.depth < 100 -- recursion limit, the hierarchy has four levels
+), inherited_planning AS (
+    SELECT DISTINCT ON (a.node_id) a.node_id, p.config_value
+    FROM ancestors a
+    JOIN provisioning_config_value p ON p.node_id = a.ancestor_id AND p.config_key = 'planImplementation'
+    ORDER BY a.node_id, a.depth
+)
+INSERT INTO provisioning_config_value (node_id, config_key, config_value)
+SELECT v.node_id, 'planImplementation', 'true'::jsonb
+FROM provisioning_config_value v
+JOIN inherited_planning i ON i.node_id = v.node_id
+WHERE v.config_key = 'implementationMode' AND v.config_value #>> '{}' IN ('FwoAuto', 'Manual', 'TufinSc')
+    AND i.config_value = 'false'::jsonb
+ON CONFLICT (node_id, config_key) DO NOTHING;
+
+-- TufinSc becomes the reroute mode. If exactly one Tufin SecureChange system (type 2) is configured, the
+-- reroute targets it; otherwise the administrator selects the ticket system after the upgrade.
+DO $$
+DECLARE
+    t_ticket_systems text;
+    i_tufin_id integer;
+BEGIN
+    SELECT config_value INTO t_ticket_systems FROM config WHERE config_key = 'extTicketSystems' AND config_user = 0;
+    BEGIN
+        -- missing TypeId: the default the middleware assumes when reading the ticket system (generic, 1)
+        SELECT CASE WHEN count(DISTINCT s ->> 'Id') = 1 THEN min((s ->> 'Id')::integer) END INTO i_tufin_id
+        FROM jsonb_array_elements(CASE WHEN jsonb_typeof(t_ticket_systems::jsonb) = 'array'
+            THEN t_ticket_systems::jsonb ELSE '[]'::jsonb END) s
+        WHERE jsonb_typeof(s) = 'object' AND COALESCE(s ->> 'TypeId', '1') = '2'
+            AND s ->> 'Id' ~ '^[1-9][0-9]{0,8}$';
+    EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING 'upgrade 9.7.4: external ticket systems are no valid JSON, TufinSc levels need a ticket system';
+        i_tufin_id := NULL;
+    END;
+
+    IF i_tufin_id IS NOT NULL THEN
+        INSERT INTO provisioning_config_value (node_id, config_key, config_value)
+        SELECT node_id, 'rerouteToExternalTicketSystem', to_jsonb(i_tufin_id)
+        FROM provisioning_config_value
+        WHERE config_key = 'implementationMode' AND config_value = '"TufinSc"'::jsonb
+        ON CONFLICT (node_id, config_key) DO NOTHING;
+    END IF;
+END $$;
+
 UPDATE provisioning_config_value
 SET config_value = to_jsonb(CASE config_value #>> '{}'
     WHEN 'FwoAuto' THEN 'Automatic'

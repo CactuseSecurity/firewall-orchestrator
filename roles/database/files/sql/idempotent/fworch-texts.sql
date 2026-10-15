@@ -6593,18 +6593,16 @@ INSERT INTO txt VALUES ('H5163', 'German',  'Bei geerbten Werten wird die Ebene 
 INSERT INTO txt VALUES ('H5163', 'English', 'For inherited values the level the value comes from is shown. Clicking it switches to that level and highlights the field, so that the value can be changed there.');
 INSERT INTO txt VALUES ('H5164', 'German',  'Solange eine Ebene ungespeicherte &Auml;nderungen hat, kann keine andere Ebene ausgew&auml;hlt werden. Die &Auml;nderungen m&uuml;ssen zuerst gespeichert oder verworfen werden. Gespeichert werden nur die Felder, die tats&auml;chlich ge&auml;ndert wurden.');
 INSERT INTO txt VALUES ('H5164', 'English', 'While a level has unsaved changes, no other level can be selected. The changes have to be saved or discarded first. Only the fields that were actually changed are saved.');
-INSERT INTO txt VALUES ('H5165', 'German', 'Einstellungen sind nur auf zul&auml;ssigen Ebenen verf&uuml;gbar. Objektanlage, Regeltyp, Common Services, Fortinet-Zonen und Modellierungseinstellungen reichen bis Manager. Sicherheitsprofile beginnen beim Ger&auml;tetyp, Vorlagen gibt es nur auf Ger&auml;tetyp-Ebene. Fortinet-Zonen werden auf Fortinet-Pfaden angeboten.');
-INSERT INTO txt VALUES ('H5165', 'English', 'Settings are available only at their permitted levels. Object creation, rule type, common service separation, Fortinet zones and modelling settings can be overridden down to manager. Security profiles start at device type; templates exist on device type level only. Fortinet zone overrides are shown on Fortinet paths.');
+INSERT INTO txt VALUES ('H5165', 'German', 'Administratoren k&ouml;nnen die Einstellungen &auml;ndern, Auditoren k&ouml;nnen sie nur einsehen.');
+INSERT INTO txt VALUES ('H5165', 'English', 'Administrators can change the settings, auditors can only view them.');
 INSERT INTO txt VALUES ('H5166', 'German',  'Die Hierarchie folgt den Ger&auml;ten: Wird der Ger&auml;tetyp eines Managers ge&auml;ndert oder ein Gateway einem anderen Manager zugeordnet, nimmt er seine eigenen Werte mit und erbt ab dann von seinen neuen &uuml;bergeordneten Ebenen.');
 INSERT INTO txt VALUES ('H5166', 'English', 'The hierarchy follows the devices: if the device type of a manager is changed or a gateway is assigned to another manager, it keeps its own values and from then on inherits from its new parent levels.');
-INSERT INTO txt VALUES ('H5167', 'German',  'Nicht jede Einstellung wird auf jeder Ebene angeboten. Ger&auml;tespezifische Einstellungen gibt es erst ab der Ebene Ger&auml;tetyp, die Anlage von Objekten nur bis zur Ebene Manager, und die Fortinet-spezifischen Einstellungen nur unterhalb eines Fortinet-Ger&auml;tetyps. &Uuml;berschreibungen, die auf einer Ebene gespeichert sind, dort aber nicht angeboten werden (z.B. Fortinet-Werte nach dem Verschieben weg von Fortinet), bleiben als inaktive &Uuml;berschreibungen sichtbar und k&ouml;nnen dort entfernt werden.');
-INSERT INTO txt VALUES ('H5167', 'English', 'Not every setting is offered on every level. Device-specific settings are only available from the device type level downwards, object creation only down to the manager level, and the Fortinet-specific settings only below a Fortinet device type. Overrides stored on a level that does not offer the setting (e.g. Fortinet values after the level was moved away from Fortinet) remain visible as dormant overrides and can be cleared there.');
+INSERT INTO txt VALUES ('H5167', 'German', 'Nicht jede Einstellung wird auf jeder Ebene angeboten. Objektanlage, Regeltyp, Common Services, Fortinet-Zonen, benutzerdefinierte Felder, Importer-Host und die Modellierungseinstellungen werden bis zur Ebene Manager angeboten. Sicherheitsprofile gibt es auf den Ebenen Ger&auml;tetyp und Manager, Vorlagen nur auf Ebene Ger&auml;tetyp. Die Fortinet-Zonen werden auf globaler Ebene und unterhalb eines Fortinet-Ger&auml;tetyps angeboten. &Uuml;berschreibungen, die auf einer Ebene gespeichert sind, dort aber nicht angeboten werden (z.B. Fortinet-Werte nach dem Verschieben weg von Fortinet oder &uuml;ber die API auf Gateway-Ebene gespeicherte Werte), bleiben als inaktive &Uuml;berschreibungen sichtbar und k&ouml;nnen dort entfernt werden.');
+INSERT INTO txt VALUES ('H5167', 'English', 'Not every setting is offered on every level. Object creation, rule type, common service separation, Fortinet zones, custom field names, importer host and the modelling settings are offered down to the manager level. Security profiles are offered on device type and manager level, templates on device type level only. The Fortinet zones are offered on global level and below a Fortinet device type. Overrides stored on a level that does not offer the setting (e.g. Fortinet values after the level was moved away from Fortinet, or values stored on gateway level via the API) remain visible as dormant overrides and can be cleared there.');
 INSERT INTO txt VALUES ('H5168', 'German', 'Umsetzungsmodus: automatisch (Standard), manuell oder externes Ticketsystem. Regelumsetzung und Planung haben eigene &Uuml;berschreibungen.');
 INSERT INTO txt VALUES ('H5168', 'English', 'Implementation mode: automatic (default), manual or external ticket system. Rule implementation and planning have separate overrides.');
 INSERT INTO txt VALUES ('H5169', 'German', 'Installieren auf: ANY (Standard) oder Gateways im geplanten Pfad.');
 INSERT INTO txt VALUES ('H5169', 'English', 'Install on: ANY (default) or gateways in the planned path.');
-INSERT INTO txt VALUES ('H5170', 'German', 'Wo Zeitobjekte angelegt werden; ignore deaktiviert die Anlage. Global, Ger&auml;tetyp und Manager.');
-INSERT INTO txt VALUES ('H5170', 'English', 'Where time objects are created; ignore disables creation. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5171', 'German',  'Hier wird ein &Uuml;berblick &uuml;ber den Status der Importjobs der verschiedenen Managements gegeben.
     Dabei werden Managements, die Auff&auml;lligkeiten aufweisen (wie sie auch vom <a href="/help/monitoring/daily_checks">T&auml;glichen Check</a> beanstandet w&uuml;rden), rot unterlegt und zuerst aufgelistet,
     danach folgen gelb unterlegt die laufenden Imports, dann erst die &uuml;brigen Managements.
@@ -6613,24 +6611,6 @@ INSERT INTO txt VALUES ('H5171', 'English', 'The status of the import jobs for t
     Managements which show anomalies (which would also lead to alerts in the <a href="/help/monitoring/daily_checks">Daily Check</a>) are highlighted in red and listed first,
     followed by running imports highlighted in yellow, finally the remaining managements.
 ');
-INSERT INTO txt VALUES ('H5172', 'German', 'Wo Labels angelegt werden; ignore deaktiviert die Anlage. Global, Ger&auml;tetyp und Manager.');
-INSERT INTO txt VALUES ('H5172', 'English', 'Where labels are created; ignore disables creation. Global, device type and manager.');
-INSERT INTO txt VALUES ('H5173', 'German', '&Uuml;berschreibt den Umsetzungsmodus f&uuml;r Regeln: automatisch, manuell oder externes Ticketsystem.');
-INSERT INTO txt VALUES ('H5173', 'English', 'Overrides the implementation mode for rules: automatic, manual or external ticket system.');
-INSERT INTO txt VALUES ('H5174', 'German', 'Name des Manager-Feldes f&uuml;r die Eigent&uuml;mer-ID. Standard: OwnerId. Global, Ger&auml;tetyp und Manager.');
-INSERT INTO txt VALUES ('H5174', 'English', 'Name of the manager custom field for the owner ID. Default: OwnerId. Global, device type and manager.');
-INSERT INTO txt VALUES ('H5175', 'German', 'Name des Manager-Feldes f&uuml;r die &Auml;nderungs-ID. Standard: ChangeId. Global, Ger&auml;tetyp und Manager.');
-INSERT INTO txt VALUES ('H5175', 'English', 'Name of the manager custom field for the change ID. Default: ChangeId. Global, device type and manager.');
-INSERT INTO txt VALUES ('H5176', 'German', 'Externes Ticketsystem f&uuml;r Umleitung: eines der konfigurierten externen Ticketsysteme, an das die Umsetzung umgeleitet wird. Standard: nicht definiert.');
-INSERT INTO txt VALUES ('H5176', 'English', 'Reroute to external ticket system: one of the configured external ticket systems implementation is rerouted to. Default: undefined.');
-INSERT INTO txt VALUES ('H5177', 'German', 'Ob die Umsetzung geplant wird. Standard: Ja.');
-INSERT INTO txt VALUES ('H5177', 'English', 'Whether implementation is planned. Default: Yes.');
-INSERT INTO txt VALUES ('H5178', 'German', '&Uuml;berschreibt die Umsetzungsplanung f&uuml;r Regeln. Standard: Ja.');
-INSERT INTO txt VALUES ('H5178', 'English', 'Overrides implementation planning for rules. Default: Yes.');
-INSERT INTO txt VALUES ('H5179', 'German', 'Ob App-Zonen in den Manager geschrieben werden. Standard: Ja. Global, Ger&auml;tetyp und Manager.');
-INSERT INTO txt VALUES ('H5179', 'English', 'Whether app-zone objects are written to the manager. Default: Yes. Global, device type and manager.');
-INSERT INTO txt VALUES ('H5180', 'German', 'Ob Netzwerk-Area-Objekte in den Manager geschrieben werden. Standard: Nein. Global, Ger&auml;tetyp und Manager.');
-INSERT INTO txt VALUES ('H5180', 'English', 'Whether network-area objects are written to the manager. Default: No. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5181', 'German',  'Aktualisieren: Aktualisiert die dargestellten Daten.');
 INSERT INTO txt VALUES ('H5181', 'English', 'Refresh: Updates the displayed data.');
 INSERT INTO txt VALUES ('H5182', 'German',  'Details: F&uuml;r das ausgew&auml;hlte Management wird hier eine genauere &Uuml;bersicht &uuml;ber die Import-Ids, Start/Stop-Zeiten,
@@ -6655,10 +6635,6 @@ INSERT INTO txt VALUES ('H5186', 'German',  'Erfolg: Zeigt an, ob der letzte Imp
 INSERT INTO txt VALUES ('H5186', 'English', 'Success: Flag showing the success of the last import.');
 INSERT INTO txt VALUES ('H5187', 'German',  'Fehler: Zeigt die Fehlermeldung, falls der letzte Import nicht erfolgreich war.');
 INSERT INTO txt VALUES ('H5187', 'English', 'Errors: Is only filled with an error message, if the success flag is false.');
-INSERT INTO txt VALUES ('H5188', 'German', 'Ob modellierte Verbindungen als dynamische IP-Labels sichtbar als Gruppen dargestellt werden. Standard: Ja. Global, Ger&auml;tetyp und Manager.');
-INSERT INTO txt VALUES ('H5188', 'English', 'Whether modelling connections are represented by dynamic IP labels visible as groups. Default: Yes. Global, device type and manager.');
-INSERT INTO txt VALUES ('H5189', 'German', 'Hostname des Servers, auf dem der Importer f&uuml;r die Provisionierung l&auml;uft. Standard: Hostname des FWO-Servers. Global, Ger&auml;tetyp und Manager.');
-INSERT INTO txt VALUES ('H5189', 'English', 'Host name of the server running the importer for provisioning. Default: host name of the FWO server. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5190', 'German',  'Logging: Logging-Verhalten der erzeugten Regeln: Loggen, Loggen und verfolgen oder Keine.');
 INSERT INTO txt VALUES ('H5190', 'English', 'Logging: logging behaviour of the generated rules: Log, Log and track, or None.');
 INSERT INTO txt VALUES ('H5191', 'German',  'Anlage Service-Objekte: Ob Service-Objekte im Supermanager oder im Submanager angelegt werden. Nur relevant, wenn ein Supermanager existiert.');
@@ -6679,10 +6655,32 @@ INSERT INTO txt VALUES ('H5198', 'German',  'Zone von (nur Fortinet): Quellzone 
 INSERT INTO txt VALUES ('H5198', 'English', 'Zone from (Fortinet only): source zone of the generated rules.');
 INSERT INTO txt VALUES ('H5199', 'German',  'Zone nach (nur Fortinet): Zielzone der erzeugten Regeln.');
 INSERT INTO txt VALUES ('H5199', 'English', 'Zone to (Fortinet only): destination zone of the generated rules.');
-INSERT INTO txt VALUES ('H5200', 'German',  'Verbindungs-ID: Feld des umgesetzten Objekts (Name, Kommentar oder benutzerdefiniertes Feld), das die ID der Modellierungsverbindung tr&auml;gt, und Vorlage f&uuml;r diesen Wert. Standard: Name und FWOC{ID}. Global, Ger&auml;tetyp und Manager.');
-INSERT INTO txt VALUES ('H5200', 'English', 'Connection ID: field of the implemented object (name, comment or custom field) that carries the ID of the modelling connection, and the template for this value. Default: name and FWOC{ID}. Global, device type and manager.');
-
-
+INSERT INTO txt VALUES ('H5199a', 'German', 'Wo Zeitobjekte angelegt werden; ignore deaktiviert die Anlage. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199a', 'English', 'Where time objects are created; ignore disables creation. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199b', 'German', 'Wo Labels angelegt werden; ignore deaktiviert die Anlage. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199b', 'English', 'Where labels are created; ignore disables creation. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199c', 'German', '&Uuml;berschreibt den Umsetzungsmodus f&uuml;r Regeln: automatisch, manuell oder externes Ticketsystem.');
+INSERT INTO txt VALUES ('H5199c', 'English', 'Overrides the implementation mode for rules: automatic, manual or external ticket system.');
+INSERT INTO txt VALUES ('H5199d', 'German', 'Name des Manager-Feldes f&uuml;r die Eigent&uuml;mer-ID. Standard: OwnerId. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199d', 'English', 'Name of the manager custom field for the owner ID. Default: OwnerId. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199e', 'German', 'Name des Manager-Feldes f&uuml;r die &Auml;nderungs-ID. Standard: ChangeId. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199e', 'English', 'Name of the manager custom field for the change ID. Default: ChangeId. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199f', 'German', 'Externes Ticketsystem f&uuml;r Umleitung: eines der konfigurierten externen Ticketsysteme, an das die Umsetzung umgeleitet wird. Standard: nicht definiert.');
+INSERT INTO txt VALUES ('H5199f', 'English', 'Reroute to external ticket system: one of the configured external ticket systems implementation is rerouted to. Default: undefined.');
+INSERT INTO txt VALUES ('H5199g', 'German', 'Ob die Umsetzung geplant wird. Standard: Ja.');
+INSERT INTO txt VALUES ('H5199g', 'English', 'Whether implementation is planned. Default: Yes.');
+INSERT INTO txt VALUES ('H5199h', 'German', '&Uuml;berschreibt die Umsetzungsplanung f&uuml;r Regeln. Standard: Ja.');
+INSERT INTO txt VALUES ('H5199h', 'English', 'Overrides implementation planning for rules. Default: Yes.');
+INSERT INTO txt VALUES ('H5199i', 'German', 'Ob App-Zonen in den Manager geschrieben werden. Standard: Ja. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199i', 'English', 'Whether app-zone objects are written to the manager. Default: Yes. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199j', 'German', 'Ob Netzwerk-Area-Objekte in den Manager geschrieben werden. Standard: Nein. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199j', 'English', 'Whether network-area objects are written to the manager. Default: No. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199k', 'German', 'Ob modellierte Verbindungen als dynamische IP-Labels sichtbar als Gruppen dargestellt werden. Standard: Ja. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199k', 'English', 'Whether modelling connections are represented by dynamic IP labels visible as groups. Default: Yes. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199l', 'German', 'Hostname des Servers, auf dem der Importer f&uuml;r die Provisionierung l&auml;uft. Standard: leer, dann verwendet der Importer, der die Provisionierung ausf&uuml;hrt, seinen eigenen Hostnamen. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199l', 'English', 'Host name of the server running the importer for provisioning. Default: empty, the importer running the provisioning then uses its own host name. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199m', 'German',  'Verbindungs-ID: Feld des umgesetzten Objekts (Name, Kommentar oder benutzerdefiniertes Feld), das die ID der Modellierungsverbindung tr&auml;gt, und Vorlage f&uuml;r diesen Wert. Standard: Name und FWOC{ID}. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199m', 'English', 'Connection ID: field of the implemented object (name, comment or custom field) that carries the ID of the modelling connection, and the template for this value. Default: name and FWOC{ID}. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Ldap-Verbindungen einrichten und verwalten. Sie k&ouml;nnen alle zur Nutzerauthentifizierung genutzt werden.<br>
     Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
     Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.

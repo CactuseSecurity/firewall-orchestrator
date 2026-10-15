@@ -3,6 +3,7 @@
 ## 9.7.4 - 14.10.2026
 - extend hierarchical provisioning configuration for Guardicore: object creation, common service separation, external ticket system, importer host, app-zone and network-area switches, dynamic IP labels, connection IDs, rule implementation and planning overrides
 - migrate provisioning key names and option values; privately back up old overrides before enforcing the revised scope restrictions (see developer documentation on provisioning settings)
+- the migration keeps implementation planning on levels below a former "None" level and reroutes former Tufin SecureChange levels to the configured SecureChange system
 
 ## 9.7.3 - 14.10.2026
 - replace cloud client fields with selectable additional credentials; migrate existing values into encrypted credential secrets (#3766)

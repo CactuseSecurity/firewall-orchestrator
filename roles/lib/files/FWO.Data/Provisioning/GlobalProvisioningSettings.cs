@@ -40,8 +40,11 @@ public class GlobalProvisioningSettings
 
     public string ChangeIdCustomFieldName { get; set; } = "ChangeId";
 
-    /// <summary>Host running the importer for provisioning; defaults to the FWO host name.</summary>
-    public string ImporterHostName { get; set; } = System.Net.Dns.GetHostName();
+    /// <summary>
+    /// Host running the importer for provisioning. Empty by default: the importer running the provisioning uses
+    /// its own host name, so the default does not depend on which FWO host resolves the settings.
+    /// </summary>
+    public string ImporterHostName { get; set; } = "";
 
     public bool PlanImplementation { get; set; } = true;
 

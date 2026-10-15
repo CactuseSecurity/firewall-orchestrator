@@ -25,10 +25,6 @@ app {
     flex-direction: column;
 }
 
-.text-left {
-    text-align: left !important;
-}
-
 header {
     background-image: linear-gradient(#e4e8ec, #9b9797);
 }
@@ -219,10 +215,6 @@ h5 {
 
 .main {
     flex: 1;
-}
-
-.me-auto {
-    margin-right: auto !important;
 }
 
 .nav-main-left {
@@ -477,7 +469,7 @@ thead {
 }
 
 .draggable-selected {
-    color: black !important;
+    color: black;
     background-color: #a4d7f5;
 }
 
@@ -502,12 +494,6 @@ div[role="tooltip"] {
 
 .cursor-pointer {
     cursor: pointer;
-}
-
-/* EditAppRoleLeftSide.razor */
-
-#app-role-library-ordered-draggable-list .border {
-    border: none !important;
 }
 
 .h-90 {

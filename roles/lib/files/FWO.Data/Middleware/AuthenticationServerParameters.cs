@@ -3,7 +3,11 @@ namespace FWO.Data.Middleware
     public class LdapAddParameters
     {
         public string? Name { get; set; }
-        public string Address { get; set; } = "";
+        /// <summary>
+        /// Servers of the directory (names or ip addresses), tried in this order. Several servers are replicas of one
+        /// directory and share the port and all other settings. At least one server is required.
+        /// </summary>
+        public List<string> Addresses { get; set; } = [];
         public int Port { get; set; } = 636;
         public int Type { get; set; } = 0;
         public int PatternLength { get; set; } = 0;
@@ -27,7 +31,7 @@ namespace FWO.Data.Middleware
         public LdapAddParameters(LdapAddParameters ldapAddParameters)
         {
             Name = ldapAddParameters.Name;
-            Address = ldapAddParameters.Address;
+            Addresses = [.. ldapAddParameters.Addresses];
             Port = ldapAddParameters.Port;
             Type = ldapAddParameters.Type;
             PatternLength = ldapAddParameters.PatternLength;

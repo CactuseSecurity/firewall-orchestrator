@@ -31,6 +31,8 @@ namespace FWO.Middleware.Server
         Task<LdapEntry?> ReadAsync(string distinguishedName);
         /// <summary>Reads with cancellation for authentication requests.</summary>
         Task<LdapEntry?> ReadAsync(string distinguishedName, CancellationToken cancellationToken) => ReadAsync(distinguishedName).WaitAsync(cancellationToken);
+        /// <summary>Reads the given attributes of an entry, including operational attributes requested by name.</summary>
+        Task<LdapEntry?> ReadAsync(string distinguishedName, string[] attributes, CancellationToken cancellationToken) => ReadAsync(distinguishedName, cancellationToken);
         /// <summary>
         /// Executes an LDAP search.
         /// </summary>
@@ -136,6 +138,12 @@ namespace FWO.Middleware.Server
         public Task<LdapEntry?> ReadAsync(string distinguishedName, CancellationToken cancellationToken)
         {
             return connection.ReadAsync(distinguishedName, cancellationToken);
+        }
+
+        /// <inheritdoc />
+        public Task<LdapEntry?> ReadAsync(string distinguishedName, string[] attributes, CancellationToken cancellationToken)
+        {
+            return connection.ReadAsync(distinguishedName, attributes, cancellationToken);
         }
 
         public async Task<ILdapSearchResults?> SearchAsync(string? baseDn, int scope, string filter, string[]? attributes, bool typesOnly)

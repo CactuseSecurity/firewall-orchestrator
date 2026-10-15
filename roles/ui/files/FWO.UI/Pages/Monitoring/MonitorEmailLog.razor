@@ -13,6 +13,43 @@
 
 @if (InitComplete)
 {
+    <div class="form-group row mb-2">
+        <div class="col-sm-3">
+            <label for="notification-log-id" class="col-form-label col-form-label-sm">@(userConfig.GetText("notification_id"))</label>
+            <input id="notification-log-id" type="number" class="form-control form-control-sm" @bind="notificationIdFilter" />
+        </div>
+        <div class="col-sm-3">
+            <label for="notification-log-type" class="col-form-label col-form-label-sm">@(userConfig.GetText("notification_type"))</label>
+            <select id="notification-log-type" class="form-select form-select-sm" @bind="notificationTypeFilter">
+                <option value="">@(userConfig.GetText("all"))</option>
+                @foreach (NotificationClient notificationClient in Enum.GetValues<NotificationClient>())
+                {
+                    if (notificationClient != NotificationClient.None)
+                    {
+                        <option value="@notificationClient">@(userConfig.GetText(notificationClient.ToString()))</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-sm-3">
+            <label for="notification-log-status" class="col-form-label col-form-label-sm">@(userConfig.GetText("state"))</label>
+            <select id="notification-log-status" class="form-select form-select-sm" @bind="statusFilter">
+                <option value="">@(userConfig.GetText("all"))</option>
+                @foreach (NotificationLogStatus status in Enum.GetValues<NotificationLogStatus>())
+                {
+                    <option value="@status">@(userConfig.GetText(status.ToString()))</option>
+                }
+            </select>
+        </div>
+        <div class="col-sm-3">
+            <label for="notification-log-error" class="col-form-label col-form-label-sm">@(userConfig.GetText("error"))</label>
+            <input id="notification-log-error" type="text" class="form-control form-control-sm" @bind="errorFilter" />
+        </div>
+        <div class="col-12 mt-2">
+            <button type="button" class="btn btn-sm btn-primary me-2" @onclick="ApplyFilters">@(userConfig.GetText("filter"))</button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="ClearFilters">@(userConfig.GetText("clear_all"))</button>
+        </div>
+    </div>
     <div class="vheight75">
         <PageSizeComponent PageSize="@PageSize" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
         <div class="btn-group mb-2">
@@ -65,6 +102,11 @@ else
     private int CurrentPage { get; set; }
     private bool HasNextPage { get; set; }
 
+    private int? notificationIdFilter;
+    private string notificationTypeFilter = "";
+    private string statusFilter = "";
+    private string errorFilter = "";
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -109,6 +151,21 @@ else
         }
     }
 
+    private async Task ApplyFilters()
+    {
+        CurrentPage = 0;
+        await FetchPage();
+    }
+
+    private async Task ClearFilters()
+    {
+        notificationIdFilter = null;
+        notificationTypeFilter = "";
+        statusFilter = "";
+        errorFilter = "";
+        await ApplyFilters();
+    }
+
     private async Task FetchPage()
     {
         List<NotificationLogEntry> fetchedEntries = await apiConnection.SendQueryAsync<List<NotificationLogEntry>>(
@@ -116,9 +173,38 @@ else
             new
             {
                 limit = PageSize + 1,
-                offset = CurrentPage * PageSize
+                offset = CurrentPage * PageSize,
+                where = BuildWhereFilter()
             });
         HasNextPage = fetchedEntries.Count > PageSize;
         notificationLogEntries = [.. fetchedEntries.Take(PageSize)];
+    }
+
+    private Dictionary<string, object>? BuildWhereFilter()
+    {
+        Dictionary<string, object> where = [];
+        if (notificationIdFilter.HasValue)
+        {
+            where["notification_id"] = new Dictionary<string, object> { ["_eq"] = notificationIdFilter.Value };
+        }
+        if (!string.IsNullOrWhiteSpace(notificationTypeFilter))
+        {
+            where["notification_type"] = new Dictionary<string, object> { ["_eq"] = notificationTypeFilter };
+        }
+        if (!string.IsNullOrWhiteSpace(statusFilter))
+        {
+            where["status"] = new Dictionary<string, object> { ["_eq"] = statusFilter };
+        }
+        if (!string.IsNullOrWhiteSpace(errorFilter))
+        {
+            string escapedErrorFilter = EscapeLikePattern(errorFilter.Trim());
+            where["error"] = new Dictionary<string, object> { ["_ilike"] = $"%{escapedErrorFilter}%" };
+        }
+        return where.Count > 0 ? where : null;
+    }
+
+    private static string EscapeLikePattern(string value)
+    {
+        return value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
     }
 }

@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.7."
+product_version: "9.7.5"
 
 # Reserved exclusively for unallocated development migrations. It sorts after
 # released versions so those migrations run in installer tests, but an upgrade
@@ -613,6 +613,11 @@ dotnet_ms_repo_package_sha256:
   ubuntu/26.04: "b2e7c6b9328e0c6a68bfe5d0045be90ceb192b32e0ca906c6c529b9012726f39"
 dotnet_mode: "Release"
 # dotnet_mode: "Debug"
+# dotnet keeps its named mutexes under $XDG_RUNTIME_DIR. sudo can pass the invoking user's
+# /run/user/<uid> on to the dotnet commands run as {{ fworch_user }}, which cannot open it, so they
+# get a runtime directory of their own (owner only, as the XDG base directory spec requires)
+dotnet_xdg_runtime_dir: "{{ fworch_home }}/.xdg-runtime"
+dotnet_env: "{{ proxy_env | combine({'XDG_RUNTIME_DIR': dotnet_xdg_runtime_dir}) }}"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 lib_tmp_dir: "{{ fworch_home }}/lib/tmp"
@@ -628,6 +633,16 @@ ui_syslog_id: "{{ product_name }}-ui"
 ldap_syslog_id: slapd
 api_log_level: info
 fworch_log_dir: "/var/log/{{ product_name }}"
+# log files are readable by the fworch group only; the owner is the user rsyslog writes as -
+# root, except on Ubuntu where rsyslog drops its privileges to the syslog user
+fworch_log_owner: "{{ 'syslog' if ansible_facts['distribution'] == 'Ubuntu' else 'root' }}"
+fworch_log_group: "{{ fworch_group }}"
+fworch_log_file_mode: "0640"
+# the files rsyslog writes to the log dir and their logrotate copies (numbered and dateext naming)
+fworch_log_file_patterns:
+  - "*.log"
+  - "*.log.*"
+  - "*.log-*"
 fworch_log_lock_dir: "/var/{{ product_name }}/lock"
 fworch_mw_lockfile: "{{ fworch_log_lock_dir }}/FWO.Middleware.Server_log.lock"
 fworch_ui_lockfile: "{{ fworch_log_lock_dir }}/FWO.Ui_log.lock"

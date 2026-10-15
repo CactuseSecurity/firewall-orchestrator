@@ -213,6 +213,13 @@
     [Parameter]
     public WfHandler WfHandler { get; set; } = new ();
 
+    /// <summary>
+    /// Merged request task used as the source when manually creating an implementation task
+    /// for a bundled request-task display.
+    /// </summary>
+    [Parameter]
+    public WfReqTask? RequestTaskForCreation { get; set; }
+
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
@@ -315,7 +322,8 @@
 
     private void AddImplTask()
     {
-        WfImplTask newTask = new (WfHandler.ActReqTask, false)
+        WfReqTask requestTask = RequestTaskForCreation ?? WfHandler.ActReqTask;
+        WfImplTask newTask = new (requestTask, false)
         {
             TaskNumber = WfHandler.ActReqTask.HighestImplTaskNumber() + 1,
             DeviceId = (WfHandler.Devices.Count > 0 ? WfHandler.Devices[0].Id : 0)

@@ -45,6 +45,13 @@ namespace FWO.Data
         [JsonProperty("ldap_connection"), JsonPropertyName("ldap_connection")]
         public UiLdapConnection LdapConnection { get; set; } = new();
 
+        /// <summary>
+        /// Immutable id of the user's directory entry, prefixed with the attribute it was read from (e.g. "entryUUID:..."),
+        /// or null if the directory provides none. Unlike the dn, it is never handed to another person.
+        /// </summary>
+        [JsonProperty("directory_object_id"), JsonPropertyName("directory_object_id")]
+        public string? DirectoryObjectId { get; set; }
+
         public List<string> Roles { get; set; } = [];
         public List<string> Groups { get; set; } = [];
         public List<int> Ownerships { get; set; } = [];
@@ -72,6 +79,7 @@ namespace FWO.Data
             Lastname = user.Lastname;
             Email = user.Email;
             Language = user.Language;
+            DirectoryObjectId = user.DirectoryObjectId;
             Groups = user.Groups;
             Roles = user.Roles;
             Ownerships = user.Ownerships;

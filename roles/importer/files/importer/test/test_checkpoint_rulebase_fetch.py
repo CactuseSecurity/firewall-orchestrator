@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fw_modules.checkpointR8x import cp_getter
 
@@ -46,6 +46,7 @@ def test_get_rulebases_in_chunks_merges_sections_split_across_api_pages():
         patch.object(cp_getter, "resolve_ref_list_from_object_dictionary"),
     ):
         rulebase = cp_getter.get_rulebases_in_chunks(
+            MagicMock(),
             "rb-uid",
             {"limit": 500},
             "https://example.invalid/",

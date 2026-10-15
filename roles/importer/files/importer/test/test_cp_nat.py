@@ -17,7 +17,7 @@ from fw_modules.checkpointR8x.cp_nat import (
 from models.rulebase import Rulebase
 
 if TYPE_CHECKING:
-    from model_controllers.import_state_controller import ImportStateController
+    from states.import_state import ImportState
 
 
 def _make_nat_rule(uid: str = "rule-uid-1") -> dict[str, Any]:
@@ -137,20 +137,20 @@ class TestInsertRulebaseLink:
 
 
 class TestInsertParentNatRulebase:
-    def test_creates_nat_rulebase_when_missing(self, import_state_controller: ImportStateController):
+    def test_creates_nat_rulebase_when_missing(self, import_state: ImportState):
         normalized_config: dict[str, Any] = {"policies": []}
 
-        result = insert_parent_nat_rulebase("policy-1", import_state_controller.state, normalized_config)
+        result = insert_parent_nat_rulebase("policy-1", import_state, normalized_config)
 
         assert result.uid == "nat-rulebase-policy-1"
         assert result.name == "NAT"
         assert len(normalized_config["policies"]) == 1
 
-    def test_returns_existing_nat_rulebase_without_duplicate(self, import_state_controller: ImportStateController):
+    def test_returns_existing_nat_rulebase_without_duplicate(self, import_state: ImportState):
         existing = Rulebase(uid="nat-rulebase-policy-2", name="NAT", mgm_uid="mgm-uid-1")
         normalized_config = {"policies": [existing]}
 
-        result = insert_parent_nat_rulebase("policy-2", import_state_controller.state, normalized_config)
+        result = insert_parent_nat_rulebase("policy-2", import_state, normalized_config)
 
         assert result is existing
         assert len(normalized_config["policies"]) == 1
@@ -300,7 +300,7 @@ class TestParseNatRuleChunk:
         assert set(rulebase.rules.keys()) == {"rule-4", "rule-4_translated"}
         assert normalized_config["policies"] == []
 
-    def test_section_entry_creates_section_rulebase(self, import_state_controller: ImportStateController):
+    def test_section_entry_creates_section_rulebase(self, import_state: ImportState):
         rulebase = self._make_rulebase()
         gateway = {"uid": "gw-1"}
         normalized_config: dict[str, Any] = {"policies": []}
@@ -314,7 +314,7 @@ class TestParseNatRuleChunk:
             rulebase,
             gateway,
             {"policies": []},
-            import_state_controller.state,
+            import_state,
             normalized_config,
             normalized_gateway,
         )
@@ -329,7 +329,7 @@ class TestParseNatRulebase:
     def _make_normalized_gateway(self) -> dict[str, Any]:
         return {"Uid": "gw-1", "RulebaseLinks": []}
 
-    def test_appends_new_section_rulebase_to_policies(self, import_state_controller: ImportStateController):
+    def test_appends_new_section_rulebase_to_policies(self, import_state: ImportState):
         normalized_nat_rulebase = Rulebase(uid="nat-rb-1", mgm_uid="mgm-uid-1", name="NAT", rules={})
         normalized_config: dict[str, Any] = {"policies": []}
         normalized_gateway = self._make_normalized_gateway()
@@ -340,7 +340,7 @@ class TestParseNatRulebase:
             normalized_nat_rulebase,
             {"uid": "gw-1"},
             {"policies": []},
-            import_state_controller.state,
+            import_state,
             normalized_config,
             normalized_gateway,
         )
@@ -349,7 +349,7 @@ class TestParseNatRulebase:
         assert normalized_config["policies"][0].uid == "section-uid"
         assert normalized_config["policies"][0].name == "Section1"
 
-    def test_does_not_duplicate_existing_section_rulebase(self, import_state_controller: ImportStateController):
+    def test_does_not_duplicate_existing_section_rulebase(self, import_state: ImportState):
         normalized_nat_rulebase = Rulebase(uid="nat-rb-1", mgm_uid="mgm-uid-1", name="NAT", rules={})
         existing_section = Rulebase(uid="section-uid", mgm_uid="mgm-uid-1", name="Section1", rules={})
         normalized_config: dict[str, Any] = {"policies": [existing_section]}
@@ -361,7 +361,7 @@ class TestParseNatRulebase:
             normalized_nat_rulebase,
             {"uid": "gw-1"},
             {"policies": []},
-            import_state_controller.state,
+            import_state,
             normalized_config,
             normalized_gateway,
         )
@@ -369,7 +369,7 @@ class TestParseNatRulebase:
         assert len(normalized_config["policies"]) == 1
         assert normalized_config["policies"][0] is existing_section
 
-    def test_creates_link_from_nat_rulebase_to_section(self, import_state_controller: ImportStateController):
+    def test_creates_link_from_nat_rulebase_to_section(self, import_state: ImportState):
         normalized_nat_rulebase = Rulebase(uid="nat-rb-1", mgm_uid="mgm-uid-1", name="NAT", rules={})
         normalized_config: dict[str, Any] = {"policies": []}
         normalized_gateway = self._make_normalized_gateway()
@@ -380,7 +380,7 @@ class TestParseNatRulebase:
             normalized_nat_rulebase,
             {"uid": "gw-1"},
             {"policies": []},
-            import_state_controller.state,
+            import_state,
             normalized_config,
             normalized_gateway,
         )
@@ -391,7 +391,7 @@ class TestParseNatRulebase:
         assert link["to_rulebase_uid"] == "section-uid"
         assert link["link_type"] == "nat"
 
-    def test_parses_rules_from_src_rulebase(self, import_state_controller: ImportStateController):
+    def test_parses_rules_from_src_rulebase(self, import_state: ImportState):
         normalized_nat_rulebase = Rulebase(uid="nat-rb-1", mgm_uid="mgm-uid-1", name="NAT", rules={})
         normalized_config: dict[str, Any] = {"policies": []}
         normalized_gateway = self._make_normalized_gateway()
@@ -403,7 +403,7 @@ class TestParseNatRulebase:
             normalized_nat_rulebase,
             {"uid": "gw-1"},
             {"policies": []},
-            import_state_controller.state,
+            import_state,
             normalized_config,
             normalized_gateway,
         )
@@ -425,57 +425,51 @@ class TestParseNativeNatRulebases:
             ],
         }
 
-    def test_skips_nat_rulebase_without_chunks(self, import_state_controller: ImportStateController):
+    def test_skips_nat_rulebase_without_chunks(self, import_state: ImportState):
         gateway: dict[str, Any] = {"uid": "gw-1"}
         normalized_config: dict[str, Any] = self._make_normalized_config(
             {"is_initial": True, "link_type": "policy", "to_rulebase_uid": "rb-access"}
         )
 
         parse_native_nat_rulebases(
-            gateway, [{"not_a_chunk_field": True}], import_state_controller.state, normalized_config, {"policies": []}
+            gateway, [{"not_a_chunk_field": True}], import_state, normalized_config, {"policies": []}
         )
 
         assert normalized_config["policies"] == []
 
-    def test_skips_when_normalized_gateway_missing(self, import_state_controller: ImportStateController):
+    def test_skips_when_normalized_gateway_missing(self, import_state: ImportState):
         gateway: dict[str, Any] = {"uid": "unknown-gw"}
         normalized_config: dict[str, Any] = self._make_normalized_config(
             {"is_initial": True, "link_type": "policy", "to_rulebase_uid": "rb-access"}
         )
         nat_rulebases: list[dict[str, Any]] = [{"nat_rule_chunks": [{"rulebase": []}]}]
 
-        parse_native_nat_rulebases(
-            gateway, nat_rulebases, import_state_controller.state, normalized_config, {"policies": []}
-        )
+        parse_native_nat_rulebases(gateway, nat_rulebases, import_state, normalized_config, {"policies": []})
 
         assert normalized_config["policies"] == []  # no orphan NAT rulebase for an unknown gateway
         assert normalized_config["gateways"][0]["RulebaseLinks"] == [
             {"is_initial": True, "link_type": "policy", "to_rulebase_uid": "rb-access"}
         ]
 
-    def test_skips_when_no_initial_policy_link(self, import_state_controller: ImportStateController):
+    def test_skips_when_no_initial_policy_link(self, import_state: ImportState):
         gateway: dict[str, Any] = {"uid": "gw-1"}
         normalized_config: dict[str, Any] = self._make_normalized_config(None)
         nat_rulebases: list[dict[str, Any]] = [{"nat_rule_chunks": [{"rulebase": []}]}]
 
-        parse_native_nat_rulebases(
-            gateway, nat_rulebases, import_state_controller.state, normalized_config, {"policies": []}
-        )
+        parse_native_nat_rulebases(gateway, nat_rulebases, import_state, normalized_config, {"policies": []})
 
         assert normalized_config["gateways"][0]["RulebaseLinks"] == []
 
-    def test_skips_when_initial_link_missing_to_rulebase_uid(self, import_state_controller: ImportStateController):
+    def test_skips_when_initial_link_missing_to_rulebase_uid(self, import_state: ImportState):
         gateway: dict[str, Any] = {"uid": "gw-1"}
         normalized_config: dict[str, Any] = self._make_normalized_config({"is_initial": True, "link_type": "policy"})
         nat_rulebases: list[dict[str, Any]] = [{"nat_rule_chunks": [{"rulebase": []}]}]
 
-        parse_native_nat_rulebases(
-            gateway, nat_rulebases, import_state_controller.state, normalized_config, {"policies": []}
-        )
+        parse_native_nat_rulebases(gateway, nat_rulebases, import_state, normalized_config, {"policies": []})
 
         assert len(normalized_config["gateways"][0]["RulebaseLinks"]) == 1  # unchanged, no nat link added
 
-    def test_happy_path_links_and_parses_rules(self, import_state_controller: ImportStateController):
+    def test_happy_path_links_and_parses_rules(self, import_state: ImportState):
         gateway: dict[str, Any] = {"uid": "gw-1"}
         normalized_config: dict[str, Any] = self._make_normalized_config(
             {"is_initial": True, "link_type": "policy", "to_rulebase_uid": "rb-access"}
@@ -485,7 +479,7 @@ class TestParseNativeNatRulebases:
         nat_rulebases: list[dict[str, Any]] = [{"nat_rule_chunks": [{"rulebase": [nat_rule]}]}]
 
         parse_native_nat_rulebases(
-            gateway, nat_rulebases, import_state_controller.state, normalized_config, {"policies": [], "gateways": []}
+            gateway, nat_rulebases, import_state, normalized_config, {"policies": [], "gateways": []}
         )
 
         assert len(normalized_config["policies"]) == 1
@@ -503,23 +497,23 @@ class TestParseNativeNatRulebases:
 
 
 class TestNormalizeNatRules:
-    def test_returns_early_when_nat_rulebases_key_missing(self, import_state_controller: ImportStateController):
+    def test_returns_early_when_nat_rulebases_key_missing(self, import_state: ImportState):
         native_config: dict[str, Any] = {"gateways": [{"uid": "gw-1"}]}
         normalized_config: dict[str, Any] = {"policies": [], "gateways": []}
 
-        normalize_nat_rules(native_config, import_state_controller.state, normalized_config)
+        normalize_nat_rules(native_config, import_state, normalized_config)
 
         assert normalized_config["policies"] == []
 
-    def test_returns_early_when_nat_rulebases_empty(self, import_state_controller: ImportStateController):
+    def test_returns_early_when_nat_rulebases_empty(self, import_state: ImportState):
         native_config: dict[str, Any] = {"nat_rulebases": [], "gateways": [{"uid": "gw-1"}]}
         normalized_config: dict[str, Any] = {"policies": [], "gateways": []}
 
-        normalize_nat_rules(native_config, import_state_controller.state, normalized_config)
+        normalize_nat_rules(native_config, import_state, normalized_config)
 
         assert normalized_config["policies"] == []
 
-    def test_processes_each_gateway(self, import_state_controller: ImportStateController):
+    def test_processes_each_gateway(self, import_state: ImportState):
         nat_rule = _make_nat_rule("rule-8")
         nat_rule["rule-number"] = 1
         native_config: dict[str, Any] = {
@@ -537,15 +531,13 @@ class TestNormalizeNatRules:
             ],
         }
 
-        normalize_nat_rules(native_config, import_state_controller.state, normalized_config)
+        normalize_nat_rules(native_config, import_state, normalized_config)
 
         assert len(normalized_config["policies"]) == 1
         nat_rulebase = normalized_config["policies"][0]
         assert set(nat_rulebase.rules.keys()) == {"rule-8", "rule-8_translated"}
 
-    def test_does_not_leak_nat_rules_between_gateways_on_different_policies(
-        self, import_state_controller: ImportStateController
-    ):
+    def test_does_not_leak_nat_rules_between_gateways_on_different_policies(self, import_state: ImportState):
         rule_gw1 = _make_nat_rule("rule-gw1")
         rule_gw1["rule-number"] = 1
         rule_gw2 = _make_nat_rule("rule-gw2")
@@ -572,7 +564,7 @@ class TestNormalizeNatRules:
             ],
         }
 
-        normalize_nat_rules(native_config, import_state_controller.state, normalized_config)
+        normalize_nat_rules(native_config, import_state, normalized_config)
 
         nat_rulebase_gw1 = next(rb for rb in normalized_config["policies"] if rb.uid == "nat-rulebase-policy-1")
         nat_rulebase_gw2 = next(rb for rb in normalized_config["policies"] if rb.uid == "nat-rulebase-policy-2")
@@ -580,9 +572,7 @@ class TestNormalizeNatRules:
         assert set(nat_rulebase_gw1.rules.keys()) == {"rule-gw1", "rule-gw1_translated"}
         assert set(nat_rulebase_gw2.rules.keys()) == {"rule-gw2", "rule-gw2_translated"}
 
-    def test_shares_one_parent_nat_rulebase_across_gateways_on_the_same_policy(
-        self, import_state_controller: ImportStateController
-    ):
+    def test_shares_one_parent_nat_rulebase_across_gateways_on_the_same_policy(self, import_state: ImportState):
         # Two gateways installed with the same NAT policy see the same section-less NAT rule
         # uid. If each gateway got its own parent NAT rulebase keyed by gateway uid, the rule
         # would be stored twice under the identical uid, and the uid-keyed dicts further down
@@ -609,7 +599,7 @@ class TestNormalizeNatRules:
             ],
         }
 
-        normalize_nat_rules(native_config, import_state_controller.state, normalized_config)
+        normalize_nat_rules(native_config, import_state, normalized_config)
 
         nat_rulebases = [rb for rb in normalized_config["policies"] if rb.uid == "nat-rulebase-policy-shared"]
         assert len(nat_rulebases) == 1

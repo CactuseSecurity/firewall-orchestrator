@@ -7,7 +7,7 @@ from fwo_log import FWOLogger
 from models.rulebase import Rulebase
 
 if TYPE_CHECKING:
-    from models.import_state import ImportState
+    from states.import_state import ImportState
 
 
 def normalize_nat_rules(

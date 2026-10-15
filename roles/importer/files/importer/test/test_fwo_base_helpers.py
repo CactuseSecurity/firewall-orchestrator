@@ -11,8 +11,6 @@ from fwo_base import (
     extend_string_list,
     find_all_diffs,
     generate_hash_from_dict,
-    init_service_provider,
-    register_global_state,
     replace_none_with_empty,
     sanitize,
     sort_and_join,
@@ -23,16 +21,12 @@ from fwo_base import (
 )
 from fwo_const import LIST_DELIMITER
 from fwo_log import FWOLogger
-from services.enums import Services
-from services.global_state import GlobalState
-from services.group_flats_mapper import GroupFlatsMapper
-from services.uid2id_mapper import Uid2IdMapper
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from model_controllers.import_state_controller import ImportStateController
-    from services.service_provider import ServiceProvider
+    from states.global_state import GlobalState
+    from states.import_state import ImportState
 
 NATIVE_CONFIG_DEBUG_LEVEL = 7
 
@@ -150,11 +144,11 @@ class TestFindAllDiffs:
 
 class TestWriteNativeConfigToFile:
     def test_writes_config_in_debug_mode(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, import_state_controller: ImportStateController
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, import_state: ImportState
     ) -> None:
         monkeypatch.setattr(FWOLogger.instance, "debug_level", NATIVE_CONFIG_DEBUG_LEVEL)
         monkeypatch.setattr(fwo_base, "IMPORT_TMP_PATH", str(tmp_path))
-        state = import_state_controller.state
+        state = import_state
 
         write_native_config_to_file(state, {"native": True})
 
@@ -162,87 +156,59 @@ class TestWriteNativeConfigToFile:
         assert json.loads(written_file.read_text()) == {"native": True}
 
     def test_skips_writing_below_debug_level(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, import_state_controller: ImportStateController
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, import_state: ImportState
     ) -> None:
         monkeypatch.setattr(FWOLogger.instance, "debug_level", 0)
         monkeypatch.setattr(fwo_base, "IMPORT_TMP_PATH", str(tmp_path))
 
-        write_native_config_to_file(import_state_controller.state, {"native": True})
+        write_native_config_to_file(import_state, {"native": True})
 
         assert list(tmp_path.iterdir()) == []
 
     def test_reraises_write_errors(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, import_state_controller: ImportStateController
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, import_state: ImportState
     ) -> None:
         monkeypatch.setattr(FWOLogger.instance, "debug_level", NATIVE_CONFIG_DEBUG_LEVEL)
         monkeypatch.setattr(fwo_base, "IMPORT_TMP_PATH", str(tmp_path / "missing"))
 
         with pytest.raises(FileNotFoundError):
-            write_native_config_to_file(import_state_controller.state, {})
+            write_native_config_to_file(import_state, {})
 
 
 class TestEnsureDeviceName:
-    def test_keeps_existing_device_matching_gateway_map(self, import_state_controller: ImportStateController) -> None:
-        mgm_details = import_state_controller.state.mgm_details
+    def test_keeps_existing_device_matching_gateway_map(
+        self, global_state: GlobalState, import_state: ImportState
+    ) -> None:
+        mgm_details = import_state.mgm_details
         mgm_details.devices = [{"name": "gw1"}]
-        import_state_controller.state.gateway_map = {mgm_details.current_mgm_id: {"gw1": 1}}
+        global_state.stm_mapper.gateway_map = {mgm_details.mgm_id: {"gw1": 1}}
 
-        ensure_device_name(import_state_controller)
+        ensure_device_name(global_state, import_state)
 
         assert mgm_details.devices == [{"name": "gw1"}]
 
-    def test_replaces_device_with_first_gateway_uid(self, import_state_controller: ImportStateController) -> None:
-        mgm_details = import_state_controller.state.mgm_details
+    def test_replaces_device_with_first_gateway_uid(self, global_state: GlobalState, import_state: ImportState) -> None:
+        mgm_details = import_state.mgm_details
         mgm_details.devices = [{"name": "unknown"}]
-        import_state_controller.state.gateway_map = {mgm_details.current_mgm_id: {"gw1": 1}}
+        global_state.stm_mapper.gateway_map = {mgm_details.mgm_id: {"gw1": 1}}
 
-        ensure_device_name(import_state_controller)
+        ensure_device_name(global_state, import_state)
 
         assert mgm_details.devices == [{"name": "gw1"}]
 
-    def test_falls_back_to_management_name(self, import_state_controller: ImportStateController) -> None:
-        mgm_details = import_state_controller.state.mgm_details
+    def test_falls_back_to_management_name(self, global_state: GlobalState, import_state: ImportState) -> None:
+        mgm_details = import_state.mgm_details
         mgm_details.devices = []
 
-        ensure_device_name(import_state_controller)
+        ensure_device_name(global_state, import_state)
 
         assert mgm_details.devices == [{"name": mgm_details.name}]
 
-    def test_falls_back_to_hostname_without_name(self, import_state_controller: ImportStateController) -> None:
-        mgm_details = import_state_controller.state.mgm_details
+    def test_falls_back_to_hostname_without_name(self, global_state: GlobalState, import_state: ImportState) -> None:
+        mgm_details = import_state.mgm_details
         mgm_details.devices = []
         mgm_details.name = ""
 
-        ensure_device_name(import_state_controller)
+        ensure_device_name(global_state, import_state)
 
         assert mgm_details.devices == [{"name": mgm_details.hostname}]
-
-
-class TestServiceProviderSetup:
-    def test_init_service_provider_registers_import_services(
-        self,
-        service_provider: ServiceProvider,
-        import_state_controller: ImportStateController,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        monkeypatch.setattr(fwo_base.fwo_config, "read_config", lambda: {"fwo_api_base_url": "https://api"})
-        service_provider.reset()
-
-        provider = init_service_provider()
-        register_global_state(import_state_controller)
-
-        assert provider.get_fwo_config() == {"fwo_api_base_url": "https://api"}
-        assert isinstance(provider.get_service(Services.GROUP_FLATS_MAPPER, import_id=1), GroupFlatsMapper)
-        assert isinstance(provider.get_service(Services.PREV_GROUP_FLATS_MAPPER, import_id=1), GroupFlatsMapper)
-        assert isinstance(provider.get_service(Services.UID2ID_MAPPER, import_id=1), Uid2IdMapper)
-
-    def test_register_global_state_wraps_import_state(
-        self, service_provider: ServiceProvider, import_state_controller: ImportStateController
-    ) -> None:
-        service_provider.reset()
-
-        register_global_state(import_state_controller)
-
-        global_state = service_provider.get_global_state()
-        assert isinstance(global_state, GlobalState)
-        assert global_state.import_state is import_state_controller

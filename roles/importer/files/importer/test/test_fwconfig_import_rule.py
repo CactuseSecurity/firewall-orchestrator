@@ -7,10 +7,14 @@ from fwo_exceptions import FwoImporterError
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 from models.rulebase import Rulebase
+from pytest_mock import MockerFixture
 from test.utils.test_utils import mock_get_graphql_code
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
+    from states.global_state import GlobalState
+    from states.import_state import ImportState
+    from states.management_state import ManagementState
 
 
 def build_normalized_rule(
@@ -59,17 +63,17 @@ class TestFwConfigImportRule:
 
     def test_prepare_rule_for_import_populates_zone_text(
         self,
+        import_state: ImportState,
+        global_state: GlobalState,
         fwconfig_import_rule: FwConfigImportRule,
         mocker: MockerFixture,
     ):
         # The retained rule_src_zone/rule_dst_zone text columns must keep being written on import.
-        fwconfig_import_rule.uid2id_mapper = mocker.Mock()
-        fwconfig_import_rule.uid2id_mapper.get_rulebase_id.return_value = 1
-        fwconfig_import_rule.import_details = mocker.Mock()
-        fwconfig_import_rule.import_details.state.mgm_details.current_mgm_id = 1
-        fwconfig_import_rule.import_details.state.import_id = 1
-        fwconfig_import_rule.import_details.state.lookup_action.return_value = 1
-        fwconfig_import_rule.import_details.state.lookup_track.return_value = 1
+        import_state.mgm_details.mgm_id = 1
+        import_state.import_id = 1
+        global_state.stm_mapper.lookup_action = mocker.Mock(return_value=1)
+        global_state.stm_mapper.lookup_track = mocker.Mock(return_value=1)
+        fwconfig_import_rule.uid2id_mapper.add_rulebase_mappings([{"uid": "rulebase-uid", "id": 1}])
 
         normalized_rule = build_normalized_rule("rule-uid", rule_src_zone="src_zone", rule_dst_zone="dst_zone")
 
@@ -82,6 +86,7 @@ class TestFwConfigImportRule:
         self,
         fwconfig_import_rule: FwConfigImportRule,
         mocker: MockerFixture,
+        global_state: GlobalState,
     ):
         # Arrange
         mock_get_graphql_code(mocker, "mutation { dummy }")
@@ -95,7 +100,7 @@ class TestFwConfigImportRule:
 
         fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(side_effect=get_rule_id_side_effect)
         fwconfig_import_rule.is_change_security_relevant = mocker.Mock(return_value=True)
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"data": {}})
+        global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
 
         old_rule = mocker.Mock(rule_uid=rule_uid)
         new_rule = mocker.Mock(rule_uid=rule_uid)
@@ -108,8 +113,8 @@ class TestFwConfigImportRule:
         )
 
         # Assert
-        fwconfig_import_rule.import_details.api_call.call.assert_called_once()
-        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        global_state.fwo_api.call.assert_called_once()
+        query_variables = global_state.fwo_api.call.call_args.kwargs["query_variables"]
         rule_changes = query_variables["rule_changes"]
 
         assert len(rule_changes) == 1
@@ -167,7 +172,7 @@ class TestFwConfigImportRule:
             return old_rule_id if before_update else new_rule_id
 
         fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(side_effect=get_rule_id_side_effect)
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"data": {}})
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
 
         old_rule = build_normalized_rule(rule_uid, rule_src_zone=None, rule_dst_zone=None)
         new_rule = build_normalized_rule(rule_uid, rule_src_zone=None, rule_dst_zone=None)
@@ -179,8 +184,8 @@ class TestFwConfigImportRule:
             changed_rules=[(old_rule, new_rule)],
         )
 
-        fwconfig_import_rule.import_details.api_call.call.assert_called_once()
-        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        fwconfig_import_rule.global_state.fwo_api.call.assert_called_once()
+        query_variables = fwconfig_import_rule.global_state.fwo_api.call.call_args.kwargs["query_variables"]
         rule_changes = query_variables["rule_changes"]
 
         assert len(rule_changes) == 1
@@ -200,7 +205,7 @@ class TestFwConfigImportRule:
 
         rule_uid = "zone-changed-rule-uid"
         fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"data": {}})
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
 
         old_rule = build_normalized_rule(rule_uid, rule_src_zone="zoneA", rule_dst_zone="zoneB")
         new_rule = build_normalized_rule(rule_uid, rule_src_zone="zoneC", rule_dst_zone="zoneB")
@@ -211,7 +216,7 @@ class TestFwConfigImportRule:
             changed_rules=[(old_rule, new_rule)],
         )
 
-        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        query_variables = fwconfig_import_rule.global_state.fwo_api.call.call_args.kwargs["query_variables"]
         rule_changes = query_variables["rule_changes"]
 
         assert len(rule_changes) == 1
@@ -236,7 +241,7 @@ class TestFwConfigImportRule:
             return rule_ids[rule_uid]
 
         fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(side_effect=get_rule_id_side_effect)
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"data": {}})
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
 
         added_rule = build_normalized_rule("added-rule-uid", rule_src_zone=None, rule_dst_zone=None)
         removed_rule = build_normalized_rule("removed-rule-uid", rule_src_zone=None, rule_dst_zone=None)
@@ -249,7 +254,7 @@ class TestFwConfigImportRule:
         )
 
         # Assert
-        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        query_variables = fwconfig_import_rule.global_state.fwo_api.call.call_args.kwargs["query_variables"]
         rule_changes = {rule_change["change_action"]: rule_change for rule_change in query_variables["rule_changes"]}
 
         assert set(rule_changes) == {"I", "D"}
@@ -273,7 +278,7 @@ class TestFwConfigImportRule:
         mock_get_graphql_code(mocker, "mutation { dummy }")
 
         fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"data": {}})
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
 
         old_rule = build_normalized_rule(None, rule_src_zone="zoneA", rule_dst_zone=None)
         new_rule = build_normalized_rule(None, rule_src_zone="zoneB", rule_dst_zone=None)
@@ -286,7 +291,7 @@ class TestFwConfigImportRule:
         )
 
         # Assert
-        fwconfig_import_rule.import_details.api_call.call.assert_not_called()
+        fwconfig_import_rule.global_state.fwo_api.call.assert_not_called()
         assert num_security_relevant_changes == 0
 
     def test_collect_changed_rules_for_changelog_includes_xlate_fk_repoints_and_rulebase_moves(self) -> None:
@@ -325,7 +330,7 @@ class TestFwConfigImportRule:
         # still changes the policy and must show up in the change report.
         mock_get_graphql_code(mocker, "mutation { dummy }")
         fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"data": {}})
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
 
         old_rule = build_normalized_rule("moved-uid", rule_src_zone=None, rule_dst_zone=None)
         new_rule = build_normalized_rule("moved-uid", rule_src_zone=None, rule_dst_zone=None)
@@ -337,7 +342,7 @@ class TestFwConfigImportRule:
             moved_between_rulebases_uids={"moved-uid"},
         )
 
-        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        query_variables = fwconfig_import_rule.global_state.fwo_api.call.call_args.kwargs["query_variables"]
         assert query_variables["rule_changes"][0]["security_relevant"] is True
         assert num_security_relevant_changes == 1
 
@@ -349,7 +354,7 @@ class TestFwConfigImportRule:
         # An xlate FK repoint creates a new version of an otherwise unchanged NAT rule.
         mock_get_graphql_code(mocker, "mutation { dummy }")
         fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"data": {}})
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
 
         old_rule = build_normalized_rule("orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="x")
         new_rule = build_normalized_rule("orig-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="x")
@@ -360,7 +365,7 @@ class TestFwConfigImportRule:
             changed_rules=[(old_rule, new_rule)],
         )
 
-        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        query_variables = fwconfig_import_rule.global_state.fwo_api.call.call_args.kwargs["query_variables"]
         assert query_variables["rule_changes"][0]["change_action"] == "C"
         assert query_variables["rule_changes"][0]["security_relevant"] is False
         assert num_security_relevant_changes == 0
@@ -374,7 +379,7 @@ class TestFwConfigImportRule:
         # mapping, so the import has to fail (and be rolled back) instead of only logging.
         mock_get_graphql_code(mocker, "mutation { dummy }")
         fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"errors": ["boom"]})
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(return_value={"errors": ["boom"]})
 
         added_rule = build_normalized_rule("added-uid", rule_src_zone=None, rule_dst_zone=None)
 
@@ -388,7 +393,7 @@ class TestFwConfigImportRule:
     ) -> None:
         mock_get_graphql_code(mocker, "mutation { dummy }")
         fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(side_effect=RuntimeError("connection lost"))
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(side_effect=RuntimeError("connection lost"))
 
         added_rule = build_normalized_rule("added-uid", rule_src_zone=None, rule_dst_zone=None)
 
@@ -399,14 +404,17 @@ class TestFwConfigImportRule:
         self,
         fwconfig_import_rule: FwConfigImportRule,
         mocker: MockerFixture,
+        global_state: GlobalState,
+        import_state: ImportState,
+        management_state: ManagementState,
     ):
         # Arrange
         mock_get_graphql_code(mocker, "mutation { dummy }")
 
-        fwconfig_import_rule.import_details.state.mgm_details.mgm_id = 3
-        fwconfig_import_rule.import_details.state.mgm_details.current_mgm_id = 7
+        import_state.mgm_details.mgm_id = 3
+        management_state.mgm_id = 7
         fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"data": {}})
+        global_state.fwo_api.call = mocker.Mock(return_value={"data": {}})
 
         added_rule = mocker.Mock(rule_uid="added-rule-uid")
 
@@ -418,14 +426,14 @@ class TestFwConfigImportRule:
         )
 
         # Assert
-        fwconfig_import_rule.import_details.api_call.call.assert_called_once()
-        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        global_state.fwo_api.call.assert_called_once()
+        query_variables = global_state.fwo_api.call.call_args.kwargs["query_variables"]
         rule_changes = query_variables["rule_changes"]
 
         assert len(rule_changes) == 1
         assert rule_changes[0]["change_action"] == "I"
-        assert rule_changes[0]["mgm_id"] == fwconfig_import_rule.import_details.state.mgm_details.current_mgm_id
-        assert rule_changes[0]["mgm_id"] != fwconfig_import_rule.import_details.state.mgm_details.mgm_id
+        assert rule_changes[0]["mgm_id"] != management_state.mgm_id
+        assert rule_changes[0]["mgm_id"] == import_state.mgm_details.mgm_id
 
     def test_add_new_rules_uses_firewall_rule_result(
         self,
@@ -433,7 +441,7 @@ class TestFwConfigImportRule:
         mocker: MockerFixture,
     ):
         mocker.patch.object(fwconfig_import_rule, "prepare_rule_for_import", return_value=mocker.Mock())
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(
             return_value={
                 "data": {
                     "insert_firewall_rule": {
@@ -456,7 +464,7 @@ class TestFwConfigImportRule:
         fwconfig_import_rule: FwConfigImportRule,
         mocker: MockerFixture,
     ):
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(
             return_value={
                 "data": {
                     "insert_firewall_rulebase": {
@@ -480,7 +488,7 @@ class TestFwConfigImportRule:
         mocker: MockerFixture,
     ):
         fwconfig_import_rule.uid2id_mapper.get_rulebase_id = mocker.Mock(return_value=42)
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(
             return_value={"data": {"update_firewall_rulebase": {"affected_rows": 1}}}
         )
 
@@ -494,7 +502,7 @@ class TestFwConfigImportRule:
         mocker: MockerFixture,
     ):
         fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=101)
-        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(
+        fwconfig_import_rule.global_state.fwo_api.call = mocker.Mock(
             return_value={
                 "data": {
                     "update_firewall_rule": {

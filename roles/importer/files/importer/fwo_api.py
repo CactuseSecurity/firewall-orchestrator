@@ -8,14 +8,13 @@ import traceback
 from pprint import pformat
 from typing import TYPE_CHECKING, Any, cast
 
-import fwo_config
 import requests
-from fwo_config import read_tls_identity
 from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT, FWO_HTTP_TIMEOUT
 from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, FwoApiTimeoutError, FwoImporterError
 from fwo_log import FWOLogger
+from models import fwo_config_controller
+from models.fwo_config_controller import read_tls_identity
 from query_analyzer import QueryAnalyzer
-from services.service_provider import ServiceProvider
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -57,28 +56,42 @@ class FwoApi:
     fwo_api_url: str
     fwo_jwt: str
     fwo_refresh_token: str | None
-    user_management_api_base_url: str | None
+    user_management_api_base_url: str
     query_info: dict[str, Any]
     query_analyzer: QueryAnalyzer
 
     def __init__(
         self,
         api_uri: str,
-        jwt: str,
-        refresh_token: str | None = None,
-        user_management_api_base_url: str | None = None,
+        importer_user_name: str,
+        importer_password: str,
+        importer_mgm_uri: str,
+        fwo_user_mgmt_api_uri: str,
     ) -> None:
         self.fwo_api_url = api_uri
-        self.fwo_jwt = jwt
-        # optional: without it we can still proactively/reactively detect an expired JWT,
-        # we just can't refresh it and the caller has to fall back to a full login
-        self.fwo_refresh_token = refresh_token
-        # kept on the instance rather than resolved from the ServiceProvider on demand: a refresh
-        # can fall due while the container is empty (main_loop resets it after every management),
-        # and the caller that logged us in has the url anyway
-        self.user_management_api_base_url = user_management_api_base_url
+        self.user_management_api_base_url = fwo_user_mgmt_api_uri
+        self.fwo_jwt, self.fwo_refresh_token = self._parse_token_pair(
+            self.login(importer_user_name, importer_password, importer_mgm_uri)
+        )
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
+
+    @staticmethod
+    def _parse_token_pair(json_raw: str) -> tuple[str, str | None]:
+        """
+        Extracts the access token and the optional refresh token from a login response.
+
+        The refresh token is optional: without it we can still detect an expired JWT,
+        we just can't refresh it and have to fall back to a full login.
+        """
+        try:
+            json_data = json.loads(json_raw)
+            jwt = json_data["AccessToken"]
+        except Exception as e:
+            raise FwoApiLoginFailedError("fwo_api: JWT could not be parsed") from e
+        if not jwt:
+            raise FwoApiLoginFailedError("fwo_api: login response did not contain an AccessToken")
+        return jwt, json_data.get("RefreshToken") or None
 
     @staticmethod
     def _configure_internal_api_session(session: requests.Session) -> None:
@@ -88,11 +101,10 @@ class FwoApi:
         requests resolves verify=True to the certifi bundle, which does not contain
         the internal CA, so the CA file installed by the installer is named explicitly.
 
-        The identity is read from the config file rather than the ServiceProvider: login
-        runs before the container is populated and again after every management, where
-        main_loop has reset it.
+        The identity is read from the config file directly, as login already needs it
+        while the FwoApi instance is still being constructed.
         """
-        tls_identity = read_tls_identity(fwo_config.FWO_CONFIG_FILE)
+        tls_identity = read_tls_identity(fwo_config_controller.FWO_CONFIG_FILE)
         session.cert = (tls_identity.client_certificate, tls_identity.client_private_key)
         session.verify = tls_identity.ca_certificate
 
@@ -206,7 +218,7 @@ class FwoApi:
         headers, timeout and error-response formatting - only the payload, endpoint method
         and (for login) the username differ.
         """
-        if user_management_api_base_url is None:
+        if not user_management_api_base_url:
             raise FwoApiLoginFailedError(f"fwo_api: user_management_api_base_url is None during {action}")
 
         user_suffix = f" with user {user}" if user is not None else ""
@@ -405,12 +417,8 @@ class FwoApi:
                 FWOLogger.error(f"Middleware API request failed: {e!s}")
                 raise FwoImporterError(f"Middleware API request failed: {e!s}")
 
-    @staticmethod
-    def _build_endpoint_url(endpoint: str) -> str:
-        # Not named fwo_config: that is the module this file imports for FWO_CONFIG_FILE,
-        # and a local of the same name would shadow it inside this method.
-        config = ServiceProvider().get_fwo_config()
-        return config["user_management_api_base_url"] + endpoint.lstrip("/")
+    def _build_endpoint_url(self, endpoint: str) -> str:
+        return self.user_management_api_base_url + endpoint.lstrip("/")
 
     def _configure_endpoint_session(self, session: requests.Session) -> None:
         self._configure_internal_api_session(session)

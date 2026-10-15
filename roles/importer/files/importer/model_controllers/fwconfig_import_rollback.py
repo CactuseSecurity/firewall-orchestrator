@@ -4,7 +4,7 @@ import fwo_const
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_log import FWOLogger
-from models.import_state import ImportState
+from states.import_state import ImportState
 
 
 # this class is used for rolling back an import

@@ -9,10 +9,10 @@ from typing import Any, cast
 import pytest
 import requests
 from fwo_api import FwoApi
-from fwo_config import read_config, read_tls_identity
 from fwo_exceptions import FwoImporterError
-from services.enums import Lifetime, Services
-from services.service_provider import ServiceProvider
+from models.fwo_config import TlsIdentity
+from models.fwo_config_controller import FwoConfigController, read_tls_identity
+from test.utils.fwo_api_builder import build_fwo_api
 
 CLIENT_CERTIFICATE = "/etc/fworch/secrets/client/client.crt"
 CLIENT_PRIVATE_KEY = "/etc/fworch/secrets/client/client.key"
@@ -40,31 +40,33 @@ def use_config_file(config_file: str, monkeypatch: pytest.MonkeyPatch) -> None:
     """
     Point the config location at a fixture instead of /etc/fworch/fworch.json.
 
-    Only the location is redirected: replacing the reader would leave the reader itself
-    untested, which is how the ServiceProvider coupling went unnoticed.
+    Only the location is redirected: replacing the reader would leave the reader itself untested.
     """
     read_tls_identity.cache_clear()
-    monkeypatch.setattr("fwo_config.FWO_CONFIG_FILE", config_file)
+    monkeypatch.setattr("models.fwo_config_controller.FWO_CONFIG_FILE", config_file)
 
 
 class TestReadConfig:
-    def test_read_config_exposes_tls_identity(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_read_config_accepts_config_with_tls_identity(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         importer_password = tmp_path / "importer_pwd"
         importer_password.write_text("secret\n", encoding="utf-8")
-        monkeypatch.setattr("fwo_config.IMPORTER_PWD_FILE", str(importer_password))
+        monkeypatch.setattr("models.fwo_config_controller.IMPORTER_PWD_FILE", str(importer_password))
+        read_tls_identity.cache_clear()
+        config_file = write_config_file(tmp_path)
 
-        config = read_config(write_config_file(tmp_path))
+        config_controller = FwoConfigController(config_file)
 
-        assert config["tls_client_certificate"] == CLIENT_CERTIFICATE
-        assert config["tls_client_private_key"] == CLIENT_PRIVATE_KEY
-        assert config["tls_ca_certificate"] == CA_CERTIFICATE
+        assert config_controller.fwo_config.fwo_api_url == "https://127.0.0.1:9443/api/v1/graphql"
+        assert read_tls_identity(config_file) == TlsIdentity(CLIENT_CERTIFICATE, CLIENT_PRIVATE_KEY, CA_CERTIFICATE)
 
     def test_read_config_exits_when_ca_certificate_missing(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
         importer_password = tmp_path / "importer_pwd"
         importer_password.write_text("secret\n", encoding="utf-8")
-        monkeypatch.setattr("fwo_config.IMPORTER_PWD_FILE", str(importer_password))
+        monkeypatch.setattr("models.fwo_config_controller.IMPORTER_PWD_FILE", str(importer_password))
         config_file = tmp_path / "fworch.json"
         config_file.write_text(
             json.dumps(
@@ -82,7 +84,7 @@ class TestReadConfig:
         read_tls_identity.cache_clear()
 
         with pytest.raises(SystemExit):
-            read_config(str(config_file))
+            FwoConfigController(str(config_file))
 
         # asserting only SystemExit let a regression through where the operator was told
         # "unspecified error" instead of which key is missing
@@ -106,28 +108,6 @@ class TestConfigureInternalApiSession:
             assert session.verify == CA_CERTIFICATE
             assert session.verify is not True
             assert session.verify is not False
-
-    def test_identity_survives_service_provider_reset(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        """
-        main_loop resets the ServiceProvider after every management and then logs in
-        again on the next cycle. Resolving the identity through the container made the
-        importer fail every cycle after the first, so it must not depend on it.
-        """
-        config_file = write_config_file(tmp_path)
-        use_config_file(config_file, monkeypatch)
-        ServiceProvider().register(Services.FWO_CONFIG, lambda: read_config(config_file), Lifetime.SINGLETON)
-
-        with requests.Session() as first_cycle:
-            FwoApi._configure_internal_api_session(first_cycle)  # pyright: ignore[reportPrivateUsage]
-        assert first_cycle.verify == CA_CERTIFICATE
-
-        ServiceProvider().reset()
-
-        with requests.Session() as second_cycle:
-            FwoApi._configure_internal_api_session(second_cycle)  # pyright: ignore[reportPrivateUsage]
-
-        assert second_cycle.verify == CA_CERTIFICATE
-        assert second_cycle.cert == (CLIENT_CERTIFICATE, CLIENT_PRIVATE_KEY)
 
     def test_missing_identity_reports_the_offending_key(self, tmp_path: Path) -> None:
         read_tls_identity.cache_clear()
@@ -211,7 +191,7 @@ class TestEverySessionPresentsTheClientIdentity:
     def test_graphql_call_presents_identity(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         session = self._recording_session(tmp_path, monkeypatch, _FakeResponse(json_data={"data": {"ok": True}}))
 
-        FwoApi(API_URI, "test-jwt").call("query { management { mgm_id } }")
+        build_fwo_api(API_URI, "test-jwt").call("query { management { mgm_id } }")
 
         self._assert_identity_presented(session)
 
@@ -238,14 +218,9 @@ class TestEverySessionPresentsTheClientIdentity:
 
         self._assert_identity_presented(session)
 
-    def test_middleware_endpoint_call_presents_identity(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
-    ) -> None:
-        service_provider.register(
-            Services.FWO_CONFIG, lambda: {"user_management_api_base_url": MIDDLEWARE_URI}, Lifetime.SINGLETON
-        )
+    def test_middleware_endpoint_call_presents_identity(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         session = self._recording_session(tmp_path, monkeypatch, _FakeResponse(json_data={"ok": True}))
 
-        FwoApi(API_URI, "test-jwt").call_endpoint("GET", "User")
+        build_fwo_api(API_URI, "test-jwt", user_management_api_base_url=MIDDLEWARE_URI).call_endpoint("GET", "User")
 
         self._assert_identity_presented(session)

@@ -140,12 +140,13 @@ def test_update_git_repo_passes_depth_for_clone_when_set() -> None:
     )
 
 
-def test_update_git_repo_does_not_use_askpass_for_partial_credentials() -> None:
+def test_update_git_repo_does_not_use_askpass_for_partial_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
     logger: logging.Logger = logging.getLogger("git-helper-tests")
     repo_path_mock: Mock = Mock()
     repo_path_mock.exists.return_value = False
     parent_path_mock: Mock = Mock()
     repo_path_mock.parent = parent_path_mock
+    monkeypatch.delenv("GIT_ASKPASS", raising=False)
 
     with (
         patch("scripts.customizing.fwo_custom_lib.git_helpers.Path", return_value=repo_path_mock),

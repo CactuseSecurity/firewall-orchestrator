@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import MagicMock
 
 from fw_modules.checkpointR8x.cp_network import normalize_network_objects
 
@@ -26,7 +27,7 @@ def normalize_checkpoint_object(table_type: str, object_type: str) -> dict[str, 
     }
     normalized_config: dict[str, Any] = {}
 
-    normalize_network_objects(native_config, normalized_config, import_id=1)
+    normalize_network_objects(MagicMock(), native_config, normalized_config, import_id=1)
 
     return normalized_config["network_objects"][0]
 

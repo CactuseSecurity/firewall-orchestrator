@@ -330,7 +330,7 @@ def test_time_range_is_imported_as_time_object_and_passes_the_consistency_check(
         "access-list TIMED extended permit tcp any any eq 22 time-range WORKHOURS\n"
         "access-group TIMED in interface inside\n"
     )
-    checker = FwConfigImportCheckConsistency(MagicMock())
+    checker = FwConfigImportCheckConsistency(MagicMock(), MagicMock())
 
     checker.check_time_object_consistency(normalized, None)
 

@@ -9,12 +9,12 @@ import pytest
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwoApiFailedLockImportError, FwoImporterError
-from models.import_state import ImportState
 from test.utils.test_utils import mock_get_graphql_code
 
 if TYPE_CHECKING:
     from model_controllers.management_controller import ManagementController
     from pytest_mock import MockerFixture
+    from states.import_state import ImportState
 
 GRAPHQL_CODE = "query stub { stub }"
 MGM_ID = 3
@@ -35,11 +35,10 @@ def fwo_api_call(api: MagicMock, mocker: MockerFixture) -> FwoApiCall:
 
 
 @pytest.fixture
-def import_state(management_controller: ManagementController) -> ImportState:
-    state = ImportState()
-    state.mgm_details = management_controller
-    state.import_id = IMPORT_ID
-    return state
+def import_state(import_state: ImportState, management_controller: ManagementController) -> ImportState:
+    import_state.mgm_details = management_controller
+    import_state.import_id = IMPORT_ID
+    return import_state
 
 
 def _passed_variables(api: MagicMock, call_index: int = -1) -> dict[str, Any]:
@@ -150,7 +149,7 @@ class TestImportLock:
     def test_unlock_import_sends_statistics(
         self, fwo_api_call: FwoApiCall, api: MagicMock, import_state: ImportState
     ) -> None:
-        import_state.stats.statistics.rule_add_count = 2
+        import_state.statistics_controller.statistics.rule_add_count = 2
         api.call.return_value = {"data": {"update_import_control": {"affected_rows": 1}}}
 
         fwo_api_call.unlock_import(import_state, success=True)
@@ -395,7 +394,7 @@ class TestCompleteImport:
         mock_unlock = mocker.patch.object(fwo_api_call, "unlock_import")
         mock_alert = mocker.patch.object(fwo_api_call, "set_alert")
         mock_info = mocker.patch("fwo_api_call.FWOLogger.info")
-        mocker.patch.object(import_state.stats, "get_change_details", return_value={"rules": 1})
+        mocker.patch.object(import_state.statistics_controller, "get_change_details", return_value={"rules": 1})
         import_state.start_time = int(time.time())
 
         fwo_api_call.complete_import(import_state)

@@ -24,20 +24,16 @@ from models.fwconfigmanager import FwConfigManager
 from utils.conversion_utils import convert_list_to_dict
 
 if TYPE_CHECKING:
-    from model_controllers.fwconfigmanagerlist_controller import (
-        FwConfigManagerListController,
-    )
-    from model_controllers.import_state_controller import ImportStateController
+    from fwo_api_call import FwoApiCall
+    from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
     from model_controllers.management_controller import ManagementController
-    from models.import_state import ImportState
+    from states.global_state import GlobalState
+    from states.import_state import ImportState
 
 
 class CheckpointR8xCommon(FwCommon):
     def has_config_changed(
-        self,
-        full_config: FwConfigManagerListController,
-        import_state: ImportStateController,
-        force: bool = False,
+        self, full_config: FwConfigManagerListController, import_state: ImportState, force: bool = False
     ) -> bool:
         if full_config:  # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)
             return True
@@ -63,15 +59,13 @@ class CheckpointR8xCommon(FwCommon):
         return result > 0
 
     def get_config(
-        self,
-        config_in: FwConfigManagerListController,
-        import_state: ImportStateController,
+        self, config_in: FwConfigManagerListController, import_state: ImportState, global_state: GlobalState
     ) -> tuple[int, FwConfigManagerListController]:
-        return get_config(config_in, import_state)
+        return get_config(config_in, import_state, global_state)
 
 
 def get_config(
-    config_in: FwConfigManagerListController, import_state: ImportStateController
+    config_in: FwConfigManagerListController, import_state: ImportState, global_state: GlobalState
 ) -> tuple[int, FwConfigManagerListController]:
     FWOLogger.debug("starting checkpointR8x/get_config")
 
@@ -81,7 +75,7 @@ def get_config(
 
     if not parsing_config_only:  # get config from cp fw mgr
         starttime = int(time.time())
-        initialize_native_config(config_in, import_state.state)
+        initialize_native_config(config_in, import_state)
 
         start_time_temp = int(time.time())
         FWOLogger.debug("checkpointR8x/get_config/getting objects ...")
@@ -90,14 +84,14 @@ def get_config(
             raise FwoImporterError("native_config is None in get_config")
 
         # IMPORTANT: cp api is expected to preserve order of refs in group objects (unlike refs in rules, which are sorted later)
-        result_get_objects = get_objects(config_in.native_config, import_state.state)
+        result_get_objects = get_objects(config_in.native_config, import_state, global_state)
         if result_get_objects > 0:
             raise FwLoginFailedError("checkpointR8x/get_config/error while gettings objects")
         FWOLogger.debug("checkpointR8x/get_config/fetched objects in " + str(int(time.time()) - start_time_temp) + "s")
 
         start_time_temp = int(time.time())
         FWOLogger.debug("checkpointR8x/get_config/getting rules ...")
-        result_get_rules = get_rules(config_in.native_config, import_state.state)
+        result_get_rules = get_rules(config_in.native_config, import_state, global_state)
         if result_get_rules > 0:
             raise FwLoginFailedError("checkpointR8x/get_config/error while gettings rules")
         FWOLogger.debug("checkpointR8x/get_config/fetched rules in " + str(int(time.time()) - start_time_temp) + "s")
@@ -108,8 +102,10 @@ def get_config(
     if config_in.contains_only_native():
         sid: str = ""
         if not parsing_config_only:
-            sid = cp_getter.login(import_state.state.mgm_details)
-        normalized_config = normalize_config(import_state.state, config_in, parsing_config_only, sid)
+            sid = cp_getter.login(import_state.mgm_details)
+        normalized_config = normalize_config(
+            import_state, global_state.fwo_api_call, config_in, parsing_config_only, sid
+        )
         FWOLogger.info("completed getting config")
         return 0, normalized_config
     # we already have a native config (from file import)
@@ -142,6 +138,7 @@ def initialize_native_config(config_in: FwConfigManagerListController, import_st
 
 def normalize_config(
     import_state: ImportState,
+    fwo_api_call: FwoApiCall,
     config_in: FwConfigManagerListController,
     parsing_config_only: bool,
     sid: str,
@@ -169,6 +166,7 @@ def normalize_config(
             normalized_config_dict,
             normalized_config_global,
             import_state,
+            fwo_api_call,
             parsing_config_only,
             sid,
             is_global_loop_iteration,
@@ -242,11 +240,13 @@ def normalize_single_manager_config(
     normalized_config_dict: dict[str, Any],
     normalized_config_global: dict[str, Any],
     import_state: ImportState,
+    fwo_api_call: FwoApiCall,
     parsing_config_only: bool,
     sid: str,
     is_global_loop_iteration: bool,
 ):
     cp_network.normalize_network_objects(
+        fwo_api_call,
         native_config,
         normalized_config_dict,
         import_state.import_id,
@@ -273,12 +273,12 @@ def normalize_single_manager_config(
     FWOLogger.info("completed normalizing rulebases")
 
 
-def get_rules(native_config: dict[str, Any], import_state: ImportState) -> int:
+def get_rules(native_config: dict[str, Any], import_state: ImportState, global_state: GlobalState) -> int:
     """
     Main function to get rules. Divided into smaller sub-tasks for better readability and maintainability.
     """
     show_params_policy_structure: dict[str, Any] = {
-        "limit": import_state.fwo_config.api_fetch_size,
+        "limit": global_state.fwo_config_controller.fwo_config.api_fetch_size,
         "details-level": "full",
     }
 
@@ -290,7 +290,7 @@ def get_rules(native_config: dict[str, Any], import_state: ImportState) -> int:
     )
     manager_details_list = create_ordered_manager_list(import_state)
     for manager_index, manager_details in enumerate(manager_details_list):
-        if manager_details.import_disabled and not import_state.force_import:
+        if manager_details.import_disabled and not global_state.fwo_config_controller.fwo_config.force:
             continue
         cp_manager_api_base_url = import_state.mgm_details.build_fw_api_string()
 
@@ -326,6 +326,7 @@ def get_rules(native_config: dict[str, Any], import_state: ImportState) -> int:
             ],  # globalSid should not be None but is when the first manager is not supermanager
             native_config["domains"][0],
             import_state,
+            global_state,
             gateways_and_servers,
         )
         native_config["domains"][manager_index].update({"policies": policy_structure})
@@ -417,11 +418,12 @@ def process_devices(
     native_config_domain: dict[str, Any],
     native_config_global_domain: dict[str, Any],
     import_state: ImportState,
+    global_state: GlobalState,
     gateways_and_servers: list[dict[str, Any]],
 ) -> None:
     fetched_nat_policy_uids: set[str] = set()
     for device in manager_details.devices:
-        if device["importDisabled"] and not import_state.force_import:
+        if device["importDisabled"] and not global_state.fwo_config_controller.fwo_config.force:
             continue
 
         device_config: dict[str, Any] = initialize_device_config(device)
@@ -446,7 +448,7 @@ def process_devices(
         if import_state.mgm_details.is_super_manager:
             global_ordered_layer_count = handle_global_rulebase_links(
                 manager_details,
-                import_state,
+                global_state,
                 device_config,
                 global_assignments,
                 global_policy_structure,
@@ -466,8 +468,9 @@ def process_devices(
         )
 
         add_ordered_layers_to_native_config(
+            global_state,
             ordered_layer_uids,
-            get_rules_params(import_state),
+            get_rules_params(global_state),
             cp_manager_api_base_url,
             sid,
             native_config_domain,
@@ -477,7 +480,7 @@ def process_devices(
         )
 
         if policy["uid"] not in fetched_nat_policy_uids:
-            handle_nat_rules(native_config_domain, sid, import_state, policy)
+            handle_nat_rules(native_config_domain, sid, import_state, global_state, policy)
             fetched_nat_policy_uids.add(policy["uid"])
 
         native_config_domain["gateways"].append(device_config)
@@ -491,7 +494,7 @@ def initialize_device_config(device: dict[str, Any]) -> dict[str, Any]:
 
 def handle_global_rulebase_links(
     manager_details: ManagementController,
-    import_state: ImportState,
+    global_state: GlobalState,
     device_config: dict[str, Any],
     global_assignments: list[Any] | None,
     global_policy_structure: list[dict[str, Any]] | None,
@@ -531,8 +534,9 @@ def handle_global_rulebase_links(
 
                 global_ordered_layer_count = len(global_ordered_layer_uids)
                 global_policy_rulebases_uid_list = add_ordered_layers_to_native_config(
+                    global_state,
                     global_ordered_layer_uids,
-                    get_rules_params(import_state),
+                    get_rules_params(global_state),
                     cp_manager_api_base_url,
                     global_sid,
                     native_config_global_domain,
@@ -627,9 +631,9 @@ def define_initial_rulebase_links(
     )
 
 
-def get_rules_params(import_state: ImportState) -> dict[str, Any]:
+def get_rules_params(global_state: GlobalState) -> dict[str, Any]:
     return {
-        "limit": import_state.fwo_config.api_fetch_size,
+        "limit": global_state.fwo_config_controller.fwo_config.api_fetch_size,
         "use-object-dictionary": cp_const.use_object_dictionary,
         "details-level": "standard",
         "show-hits": cp_const.with_hits,
@@ -640,10 +644,11 @@ def handle_nat_rules(
     native_config_domain: dict[str, Any],
     sid: str,
     import_state: ImportState,
+    global_state: GlobalState,
     policy: dict[str, Any],
-):
+) -> None:
     show_params_rules: dict[str, Any] = {
-        "limit": import_state.fwo_config.api_fetch_size,
+        "limit": global_state.fwo_config_controller.fwo_config.api_fetch_size,
         "use-object-dictionary": cp_const.use_object_dictionary,
         "details-level": "standard",
         "package": policy["name"],
@@ -663,6 +668,7 @@ def handle_nat_rules(
 
 
 def add_ordered_layers_to_native_config(
+    global_state: GlobalState,
     ordered_layer_uids: list[str],
     show_params_rules: dict[str, Any],
     cp_manager_api_base_url: str,
@@ -680,6 +686,7 @@ def add_ordered_layers_to_native_config(
         show_params_rules.update({"uid": ordered_layer_uid})
 
         policy_rulebases_uid_list = cp_getter.get_rulebases(
+            global_state,
             cp_manager_api_base_url,
             sid,
             show_params_rules,
@@ -735,14 +742,14 @@ def get_ordered_layer_uids(policy: dict[str, Any], device_config: dict[str, Any]
     return list(dict.fromkeys(ordered_layer_uids))
 
 
-def get_objects(native_config_dict: dict[str, Any], import_state: ImportState) -> int:
-    show_params_objs = {"limit": import_state.fwo_config.api_fetch_size}
+def get_objects(native_config_dict: dict[str, Any], import_state: ImportState, global_state: GlobalState) -> int:
+    show_params_objs = {"limit": global_state.fwo_config_controller.fwo_config.api_fetch_size}
     manager_details_list = create_ordered_manager_list(import_state)
 
     # loop over sub-managers in case of mds
     manager_index = 0
     for manager_details in manager_details_list:
-        if manager_details.import_disabled and not import_state.force_import:
+        if manager_details.import_disabled and not global_state.fwo_config_controller.fwo_config.force:
             continue
 
         is_stand_alone_manager = len(manager_details_list) == 1
@@ -758,6 +765,7 @@ def get_objects(native_config_dict: dict[str, Any], import_state: ImportState) -
             manager_details.domain_name = ""
             manager_details.domain_uid = ""  # Check Point Data
             get_objects_per_domain(
+                global_state.fwo_api_call,
                 manager_details,
                 native_config_dict["domains"][0],
                 obj_type_array,
@@ -769,6 +777,7 @@ def get_objects(native_config_dict: dict[str, Any], import_state: ImportState) -
             manager_details.domain_name = "Global"
             manager_details.domain_uid = "Global"
             get_objects_per_domain(
+                global_state.fwo_api_call,
                 manager_details,
                 native_config_dict["domains"][0],
                 obj_type_array,
@@ -777,6 +786,7 @@ def get_objects(native_config_dict: dict[str, Any], import_state: ImportState) -
             )
         else:
             get_objects_per_domain(
+                global_state.fwo_api_call,
                 manager_details,
                 native_config_dict["domains"][manager_index],
                 obj_type_array,
@@ -789,6 +799,7 @@ def get_objects(native_config_dict: dict[str, Any], import_state: ImportState) -
 
 
 def get_objects_per_domain(
+    fwo_api_call: FwoApiCall,
     manager_details: ManagementController,
     native_domain: dict[str, Any],
     obj_type_array: list[str],
@@ -799,7 +810,7 @@ def get_objects_per_domain(
     cp_url = manager_details.build_fw_api_string()
     for obj_type in obj_type_array:
         object_table = get_objects_per_type(obj_type, show_params_objs, sid, cp_url)
-        add_special_objects_to_global_domain(object_table, obj_type, sid, cp_api_url=cp_url)
+        add_special_objects_to_global_domain(fwo_api_call, object_table, obj_type, sid, cp_api_url=cp_url)
         if not is_stand_alone_manager and not manager_details.is_super_manager:
             remove_predefined_objects_for_domains(object_table)
         native_domain["objects"].append(object_table)
@@ -857,18 +868,24 @@ def get_objects_per_type(
 
 
 def add_special_objects_to_global_domain(
-    object_table: dict[str, Any], obj_type: str, sid: str, cp_api_url: str
+    fwo_api_call: FwoApiCall, object_table: dict[str, Any], obj_type: str, sid: str, cp_api_url: str
 ) -> None:
     """
     Appends special objects Original, Any, None and Internet to global domain
     """
     # getting Original (NAT) object (both for networks and services)
-    orig_obj = cp_getter.get_object_details_from_api(cp_const.original_obj_uid, sid=sid, apiurl=cp_api_url)["chunks"][0]
-    any_obj = cp_getter.get_object_details_from_api(cp_const.any_obj_uid, sid=sid, apiurl=cp_api_url)["chunks"][0]
-    none_obj = cp_getter.get_object_details_from_api(cp_const.none_obj_uid, sid=sid, apiurl=cp_api_url)["chunks"][0]
-    internet_obj = cp_getter.get_object_details_from_api(cp_const.internet_obj_uid, sid=sid, apiurl=cp_api_url)[
+    orig_obj = cp_getter.get_object_details_from_api(
+        fwo_api_call, cp_const.original_obj_uid, sid=sid, apiurl=cp_api_url
+    )["chunks"][0]
+    any_obj = cp_getter.get_object_details_from_api(fwo_api_call, cp_const.any_obj_uid, sid=sid, apiurl=cp_api_url)[
         "chunks"
     ][0]
+    none_obj = cp_getter.get_object_details_from_api(fwo_api_call, cp_const.none_obj_uid, sid=sid, apiurl=cp_api_url)[
+        "chunks"
+    ][0]
+    internet_obj = cp_getter.get_object_details_from_api(
+        fwo_api_call, cp_const.internet_obj_uid, sid=sid, apiurl=cp_api_url
+    )["chunks"][0]
 
     if obj_type == "networks":
         object_table["chunks"].append(orig_obj)

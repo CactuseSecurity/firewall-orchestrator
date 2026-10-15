@@ -8,7 +8,6 @@ import fwo_api as fwo_api_module
 import pytest
 import requests
 from fwo_api import REDACTED_VALUE, FwoApi
-from fwo_config import TlsIdentity
 from fwo_const import API_CALL_CHUNK_SIZE
 from fwo_exceptions import (
     FwoApiLoginFailedError,
@@ -16,13 +15,13 @@ from fwo_exceptions import (
     FwoApiTimeoutError,
     FwoImporterError,
 )
-from services.enums import Lifetime, Services
+from models.fwo_config import TlsIdentity
+from test.utils.fwo_api_builder import build_fwo_api
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from pytest_mock import MockerFixture
-    from services.service_provider import ServiceProvider
 
 API_URL = "https://fworch.example/api/v1/graphql"
 MIDDLEWARE_URL = "https://fworch.example/middleware/"
@@ -95,18 +94,14 @@ def _patch_session(monkeypatch: pytest.MonkeyPatch, session: _FakeSession) -> No
     monkeypatch.setattr(fwo_api_module, "read_tls_identity", _read_test_tls_identity)
 
 
-def _register_fwo_config(service_provider: ServiceProvider) -> None:
-    service_provider.register(
-        Services.FWO_CONFIG, lambda: {"user_management_api_base_url": MIDDLEWARE_URL}, Lifetime.SINGLETON
-    )
-
-
 class TestFwoApiCall:
     def test_call_posts_query_with_importer_headers_and_client_identity(self, monkeypatch: pytest.MonkeyPatch) -> None:
         session = _FakeSession([_FakeResponse(payload={"data": {"stuff": []}})])
         _patch_session(monkeypatch, session)
 
-        result = FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY, {"id": 1})
+        result = build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call(
+            SIMPLE_QUERY, {"id": 1}
+        )
 
         assert result == {"data": {"stuff": []}}
         method, url, data = session.requests[0]
@@ -121,14 +116,14 @@ class TestFwoApiCall:
         session = _FakeSession([_FakeResponse(payload={"data": {}})])
         _patch_session(monkeypatch, session)
 
-        FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY)
+        build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call(SIMPLE_QUERY)
 
         assert json.loads(session.requests[0][2])["variables"] == {}
 
     def test_call_analyzes_small_payload_without_chunking(self, monkeypatch: pytest.MonkeyPatch) -> None:
         session = _FakeSession([_FakeResponse(payload={"data": {"insert_rule": {"affected_rows": 1}}})])
         _patch_session(monkeypatch, session)
-        api = FwoApi(API_URL, TEST_JWT)
+        api = build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL)
 
         result = api.call(CHUNKED_MUTATION, {"rules": [{"uid": "r1"}]}, analyze_payload=True)
 
@@ -142,7 +137,7 @@ class TestFwoApiCall:
         second_chunk = {"data": {"insert_rule": {"affected_rows": 1, "returning": [{"rule_id": 2}]}}}
         session = _FakeSession([_FakeResponse(payload=first_chunk), _FakeResponse(payload=second_chunk)])
         _patch_session(monkeypatch, session)
-        api = FwoApi(API_URL, TEST_JWT)
+        api = build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL)
         rules = [{"uid": f"r{index}"} for index in range(total_rules)]
 
         result = api.call(CHUNKED_MUTATION, {"rules": rules}, analyze_payload=True)
@@ -164,7 +159,7 @@ class TestFwoApiCall:
         _patch_session(monkeypatch, session)
         rule_uids = [f"u{index}" for index in range(API_CALL_CHUNK_SIZE + 1)]
 
-        result = FwoApi(API_URL, TEST_JWT).call(
+        result = build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call(
             CHUNKED_QUERY, {"mgmId": 1, "ruleUids": rule_uids}, analyze_payload=True
         )
 
@@ -186,7 +181,9 @@ class TestFwoApiCall:
             {"where": {"log_rule_id": {"_eq": index}}, "_set": {"old_rule_id": index}} for index in range(total_updates)
         ]
 
-        result = FwoApi(API_URL, TEST_JWT).call(CHUNKED_MANY_MUTATION, {"updates": updates}, analyze_payload=True)
+        result = build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call(
+            CHUNKED_MANY_MUTATION, {"updates": updates}, analyze_payload=True
+        )
 
         assert len(session.requests) == 2
         many_results: list[dict[str, int]] = result["data"]["update_changelog_rule_many"]
@@ -197,48 +194,55 @@ class TestFwoApiCall:
         _patch_session(monkeypatch, _FakeSession([_FakeResponse(status_code=HTTP_SERVICE_UNAVAILABLE)]))
 
         with pytest.raises(FwoApiServiceUnavailableError):
-            FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY)
+            build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call(SIMPLE_QUERY)
 
     def test_call_maps_http_502_to_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_session(monkeypatch, _FakeSession([_FakeResponse(status_code=HTTP_BAD_GATEWAY)]))
 
         with pytest.raises(FwoApiTimeoutError):
-            FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY)
+            build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call(SIMPLE_QUERY)
 
     def test_call_reraises_other_http_errors(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_session(monkeypatch, _FakeSession([_FakeResponse(status_code=HTTP_INTERNAL_ERROR)]))
 
         with pytest.raises(requests.exceptions.HTTPError):
-            FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY)
+            build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call(SIMPLE_QUERY)
 
     def test_call_reraises_connection_errors_without_response(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_session(monkeypatch, _FakeSession(exception=requests.exceptions.ConnectionError("refused")))
 
         with pytest.raises(requests.exceptions.ConnectionError):
-            FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY)
+            build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call(SIMPLE_QUERY)
 
     def test_call_reraises_importer_errors_unchanged(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_session(monkeypatch, _FakeSession(exception=FwoImporterError("importer broke")))
 
         with pytest.raises(FwoImporterError, match="importer broke"):
-            FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY)
+            build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call(SIMPLE_QUERY)
 
     def test_call_wraps_unexpected_errors(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_session(monkeypatch, _FakeSession(exception=KeyError("boom")))
 
         with pytest.raises(FwoImporterError, match="Unexpected error during API call"):
-            FwoApi(API_URL, TEST_JWT).call(SIMPLE_QUERY)
+            build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call(SIMPLE_QUERY)
 
 
 class TestFwoApiChunkedResponseHandling:
     def test_first_response_initializes_return_object(self) -> None:
         response = {"data": {"insert_rule": {"affected_rows": 3}}}
 
-        assert FwoApi(API_URL, TEST_JWT)._handle_chunked_calls_response({}, response) is response
+        assert (
+            build_fwo_api(
+                API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL
+            )._handle_chunked_calls_response({}, response)
+            is response
+        )
 
     def test_errors_in_later_chunk_raise(self) -> None:
         with pytest.raises(FwoImporterError, match="error while handling chunked call"):
-            FwoApi(API_URL, TEST_JWT)._handle_chunked_calls_response({"data": {}}, {"errors": [{"message": "bad"}]})
+            build_fwo_api(
+                API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL
+            )._handle_chunked_calls_response({"data": {}}, {"errors": [{"message": "bad"}]})
 
     def test_later_chunk_without_data_in_return_object_is_only_logged(self, mocker: MockerFixture) -> None:
         mock_warning = mocker.patch("fwo_api.FWOLogger.warning")
@@ -247,7 +251,9 @@ class TestFwoApiChunkedResponseHandling:
             "data": {"a": {"returning": []}, "b": {"affected_rows": 0}, "c": {"affected_rows": 2}}
         }
 
-        result = FwoApi(API_URL, TEST_JWT)._handle_chunked_calls_response(return_object, response)
+        result = build_fwo_api(
+            API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL
+        )._handle_chunked_calls_response(return_object, response)
 
         assert result is return_object
         assert mock_warning.call_count == 2
@@ -256,7 +262,7 @@ class TestFwoApiChunkedResponseHandling:
         return_object: dict[str, Any] = {"data": {"update_rule_many": [{"affected_rows": 1, "returning": [{"id": 1}]}]}}
         new_data = [{"affected_rows": 2, "returning": [{"id": 2}]}, {"affected_rows": 3, "returning": [{"id": 3}]}]
 
-        FwoApi(API_URL, TEST_JWT)._handle_chunked_calls_response(
+        build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL)._handle_chunked_calls_response(
             return_object, {"data": {"update_rule_many": new_data}}
         )
 
@@ -269,7 +275,7 @@ class TestFwoApiChunkedResponseHandling:
     def test_query_rows_of_later_chunks_are_appended(self) -> None:
         return_object: dict[str, Any] = {"data": {"firewall_rule": [{"rule_id": 1}]}}
 
-        FwoApi(API_URL, TEST_JWT)._handle_chunked_calls_response(
+        build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL)._handle_chunked_calls_response(
             return_object, {"data": {"firewall_rule": [{"rule_id": 2}, {"rule_id": 3}]}}
         )
 
@@ -278,21 +284,23 @@ class TestFwoApiChunkedResponseHandling:
     def test_query_rows_for_new_field_initialize_row_list(self) -> None:
         return_object: dict[str, Any] = {"data": {}}
 
-        FwoApi(API_URL, TEST_JWT)._handle_chunked_calls_response_with_return_data(return_object, "firewall_rule", [])
+        build_fwo_api(
+            API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL
+        )._handle_chunked_calls_response_with_return_data(return_object, "firewall_rule", [])
 
         assert return_object["data"]["firewall_rule"] == []
 
     def test_dict_response_without_returning_keeps_existing_returning(self) -> None:
         return_object: dict[str, Any] = {"data": {"update_rule": {"affected_rows": 1, "returning": [{"id": 1}]}}}
 
-        FwoApi(API_URL, TEST_JWT)._handle_chunked_calls_response_with_return_data(
-            return_object, "update_rule", {"affected_rows": 4}
-        )
+        build_fwo_api(
+            API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL
+        )._handle_chunked_calls_response_with_return_data(return_object, "update_rule", {"affected_rows": 4})
 
         assert return_object["data"]["update_rule"] == {"affected_rows": 5, "returning": [{"id": 1}]}
 
     def test_update_query_variables_by_chunk_consumes_chunkable_lists(self) -> None:
-        api = FwoApi(API_URL, TEST_JWT)
+        api = build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL)
         api.query_info = {"chunking_info": {"adjusted_chunk_size": 2}}
         query_variables: dict[str, list[Any]] = {"a": [1, 2, 3], "b": [4]}
         chunkable_variables: dict[str, list[Any]] = {"a": [1, 2, 3], "b": [4]}
@@ -304,7 +312,7 @@ class TestFwoApiChunkedResponseHandling:
         assert chunkable_variables == {"a": [3], "b": []}
 
     def test_call_chunked_without_variables_returns_empty_result(self) -> None:
-        api = FwoApi(API_URL, TEST_JWT)
+        api = build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL)
         api.query_info = {"query_name": "noop", "chunking_info": {"chunkable_variables": [], "total_elements": 0}}
 
         assert api._call_chunked(requests.Session(), SIMPLE_QUERY) == {}
@@ -313,34 +321,32 @@ class TestFwoApiChunkedResponseHandling:
 class TestFwoApiCallEndpoint:
     @pytest.mark.parametrize("method", ["GET", "post", "Put", "DELETE", "patch"])
     def test_call_endpoint_dispatches_http_method_and_returns_json(
-        self, method: str, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
+        self, method: str, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        _register_fwo_config(service_provider)
         session = _FakeSession([_FakeResponse(payload={"ok": True})])
         _patch_session(monkeypatch, session)
 
-        result = FwoApi(API_URL, TEST_JWT).call_endpoint(method, "/User", {"id": 1})
+        result = build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call_endpoint(
+            method, "/User", {"id": 1}
+        )
 
         assert result == {"ok": True}
         assert session.requests[0] == (method.upper(), MIDDLEWARE_URL + "User", {"id": 1})
         assert session.headers["Authorization"] == f"Bearer {TEST_JWT}"
 
-    def test_call_endpoint_returns_text_for_non_json_response(
-        self, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
-    ) -> None:
-        _register_fwo_config(service_provider)
+    def test_call_endpoint_returns_text_for_non_json_response(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_session(monkeypatch, _FakeSession([_FakeResponse(text="plain")]))
 
-        assert FwoApi(API_URL, TEST_JWT).call_endpoint("GET", "Status") == "plain"
+        assert (
+            build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call_endpoint("GET", "Status")
+            == "plain"
+        )
 
-    def test_call_endpoint_rejects_unsupported_method(
-        self, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
-    ) -> None:
-        _register_fwo_config(service_provider)
+    def test_call_endpoint_rejects_unsupported_method(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_session(monkeypatch, _FakeSession())
 
         with pytest.raises(FwoImporterError, match="Unsupported HTTP method: HEAD"):
-            FwoApi(API_URL, TEST_JWT).call_endpoint("HEAD", "User")
+            build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call_endpoint("HEAD", "User")
 
     @pytest.mark.parametrize(
         ("status_code", "expected_error"),
@@ -355,36 +361,33 @@ class TestFwoApiCallEndpoint:
         status_code: int,
         expected_error: type[Exception],
         monkeypatch: pytest.MonkeyPatch,
-        service_provider: ServiceProvider,
     ) -> None:
-        _register_fwo_config(service_provider)
         _patch_session(monkeypatch, _FakeSession([_FakeResponse(status_code=status_code)]))
 
         with pytest.raises(expected_error):
-            FwoApi(API_URL, TEST_JWT).call_endpoint("GET", "User")
+            build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call_endpoint("GET", "User")
 
-    def test_call_endpoint_wraps_request_exceptions(
-        self, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
-    ) -> None:
-        _register_fwo_config(service_provider)
+    def test_call_endpoint_wraps_request_exceptions(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_session(monkeypatch, _FakeSession([_FakeResponse(status_code=HTTP_INTERNAL_ERROR)]))
 
         with pytest.raises(FwoImporterError, match="Middleware API request failed"):
-            FwoApi(API_URL, TEST_JWT).call_endpoint("GET", "User")
+            build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).call_endpoint("GET", "User")
 
 
 class TestFwoApiLogHelpers:
     def test_show_api_call_info_truncates_large_payloads(self) -> None:
         payload = {"query": "q" * 2000, "variables": {"secret": "value"}}
 
-        message = FwoApi(API_URL, TEST_JWT).show_api_call_info(API_URL, payload, {}, typ="error")
+        message = build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL).show_api_call_info(
+            API_URL, payload, {}, typ="error"
+        )
 
         assert message.startswith("error while sending api_call to url ")
         assert "[snip]" in message
         assert "total query size=" in message
 
     def test_show_import_api_call_info_truncates_and_appends_query_info(self) -> None:
-        api = FwoApi(API_URL, TEST_JWT)
+        api = build_fwo_api(API_URL, TEST_JWT, user_management_api_base_url=MIDDLEWARE_URL)
         api.query_info = {"query_name": "bigQuery"}
         payload = {"query": "q" * 2000, "variables": {"secret": "value"}}
 

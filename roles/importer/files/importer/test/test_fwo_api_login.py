@@ -6,8 +6,8 @@ import fwo_api as fwo_api_module
 import pytest
 import requests
 from fwo_api import MAX_LOGIN_ERROR_RESPONSE_LEN, FwoApi
-from fwo_config import TlsIdentity
 from fwo_exceptions import FwoApiLoginFailedError
+from models.fwo_config import TlsIdentity
 
 BASE_URL = "http://localhost:8880/"
 TOKEN_ENDPOINT = BASE_URL + "api/AuthenticationToken/GetTokenPair"
@@ -56,6 +56,35 @@ def test_login_returns_response_text_on_success(monkeypatch: pytest.MonkeyPatch)
 
     assert result == '{"AccessToken": "jwt"}'
     assert session.posted_url == TOKEN_ENDPOINT
+
+
+def test_init_logs_in_and_keeps_token_pair(monkeypatch: pytest.MonkeyPatch) -> None:
+    session = _FakeSession(_FakeResponse(200, '{"AccessToken": "jwt", "RefreshToken": "refresh"}'))
+    _patch_session(monkeypatch, session)
+
+    api = FwoApi("https://api", TEST_USER, TEST_PASSWORD, BASE_URL, BASE_URL)
+
+    assert api.fwo_jwt == "jwt"
+    assert api.fwo_refresh_token == "refresh"  # noqa: S105
+    assert api.user_management_api_base_url == BASE_URL
+    assert session.posted_url == TOKEN_ENDPOINT
+
+
+def test_init_tolerates_missing_refresh_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_session(monkeypatch, _FakeSession(_FakeResponse(200, '{"AccessToken": "jwt", "RefreshToken": ""}')))
+
+    api = FwoApi("https://api", TEST_USER, TEST_PASSWORD, BASE_URL, BASE_URL)
+
+    assert api.fwo_jwt == "jwt"
+    assert api.fwo_refresh_token is None
+
+
+@pytest.mark.parametrize("response_text", ["not json", '{"RefreshToken": "x"}', '{"AccessToken": null}'])
+def test_init_fails_without_access_token(monkeypatch: pytest.MonkeyPatch, response_text: str) -> None:
+    _patch_session(monkeypatch, _FakeSession(_FakeResponse(200, response_text)))
+
+    with pytest.raises(FwoApiLoginFailedError):
+        FwoApi("https://api", TEST_USER, TEST_PASSWORD, BASE_URL, BASE_URL)
 
 
 def test_login_error_reports_status_and_response_body(monkeypatch: pytest.MonkeyPatch) -> None:

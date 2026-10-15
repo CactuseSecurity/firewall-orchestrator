@@ -16,7 +16,7 @@ import pytest
 import requests
 import urllib3
 from fwo_exceptions import ConfigFileNotFoundError, ConfigFileRejectedError
-from models.import_state import ImportState
+from states.import_state import ImportState
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -132,7 +132,7 @@ def fake_session(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def read(file_name: str) -> tuple[dict[str, Any], MagicMock]:
     api_call = MagicMock()
-    import_state = ImportState()
+    import_state = ImportState.__new__(ImportState)  # only the file name is needed here
     import_state.import_file_name = file_name
     return fwo_file_import.read_file(api_call, import_state), api_call
 
@@ -162,7 +162,7 @@ class TestDownload:
     def test_rejection_completes_import_with_reason(self) -> None:
         FakeSession.response = FakeResponse(status_code=302, headers={"Location": "https://elsewhere.example/"})
         api_call = MagicMock()
-        import_state = ImportState()
+        import_state = ImportState.__new__(ImportState)  # only the file name is needed here
         import_state.import_file_name = CONFIG_URL
 
         with pytest.raises(ConfigFileNotFoundError):

@@ -22,12 +22,12 @@ from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.gateway import Gateway
-from models.import_state import ImportState
 from models.networkobject import NetworkObject
 from models.rulebase import Rulebase
 from models.rulebase_link import RulebaseLinkUidBased
 from models.serviceobject import ServiceObject
 from models.time_object import TimeObject
+from states.import_state import ImportState
 
 
 def build_time_objects_from_rulebases(rulebases: list[Rulebase]) -> dict[str, TimeObject]:

@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from fw_modules.checkpointR8x import cp_const, cp_getter, cp_service, fwcommon
@@ -35,7 +36,7 @@ def test_collect_single_svc_object_preserves_ports_for_any_named_tcp_service():
 def test_collect_svc_objects_imports_transformed_cpmi_any_object_as_simple_service(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    def get_special_object(uid: str, **_: str) -> dict[str, Any]:
+    def get_special_object(_fwo_api_call: MagicMock, uid: str, **_: str) -> dict[str, Any]:
         special_object = {
             "uid": uid,
             "name": "Any" if uid == cp_const.any_obj_uid else "other",
@@ -52,7 +53,9 @@ def test_collect_svc_objects_imports_transformed_cpmi_any_object_as_simple_servi
     object_table: dict[str, Any] = {"type": "services-other", "chunks": []}
     service_objects: list[dict[str, Any]] = []
 
-    fwcommon.add_special_objects_to_global_domain(object_table, "services-other", "sid", "https://mgm.invalid/")
+    fwcommon.add_special_objects_to_global_domain(
+        MagicMock(), object_table, "services-other", "sid", "https://mgm.invalid/"
+    )
     cp_service.collect_svc_objects(object_table, service_objects)
 
     any_service = next(service for service in service_objects if service["svc_uid"] == cp_const.any_obj_uid)

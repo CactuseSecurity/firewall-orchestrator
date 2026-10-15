@@ -13,7 +13,7 @@ from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
 from models.rulebase import Rulebase
 
 if TYPE_CHECKING:
-    from models.import_state import ImportState
+    from states.import_state import ImportState
 
 uid_to_name_map: dict[str, str] = {}
 

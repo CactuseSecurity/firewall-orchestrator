@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING, Any
+from unittest.mock import MagicMock
 
 import fwo_file_import
 import fwo_globals
 import pytest
-from model_controllers import import_state_controller
 from model_controllers.management_controller import (
     ConnectionInfo,
     CredentialInfo,
@@ -15,7 +15,7 @@ from model_controllers.management_controller import (
     ManagementController,
     ManagerInfo,
 )
-from models.import_state import ImportState
+from states.import_state import ImportState, resolve_management_verify
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -137,13 +137,48 @@ class TestResolveRequestsVerify:
         assert fwo_globals.cli_verify_certs is True
 
 
+def fake_system_ca_bundle(_candidates: list[str] | None = None) -> str:
+    return "/etc/ssl/certs/ca-certificates.crt"
+
+
+class TestApplyCertificateSettings:
+    @staticmethod
+    def create_import_state(mgm_id: int) -> ImportState:
+        import_state = ImportState.__new__(ImportState)  # only the management details are needed here
+        import_state.mgm_details = create_management(mgm_id)
+        return import_state
+
+    def test_switched_off_sets_management_and_global_verify(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(fwo_globals, "suppress_cert_warnings", fwo_globals.suppress_cert_warnings)
+        import_state = self.create_import_state(987656)
+
+        import_state.apply_certificate_settings(check_certificates=False, suppress_cert_warnings=False)
+
+        assert import_state.verify_certs is False
+        assert fwo_globals.verify_certs is False
+        assert fwo_globals.suppress_cert_warnings is False
+
+    def test_switched_on_uses_resolved_trust_store(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(fwo_globals, "suppress_cert_warnings", fwo_globals.suppress_cert_warnings)
+        monkeypatch.setattr(fwo_globals, "find_system_ca_bundle", fake_system_ca_bundle)
+        mock_disable_warnings = MagicMock()
+        monkeypatch.setattr("states.import_state.urllib3.disable_warnings", mock_disable_warnings)
+        import_state = self.create_import_state(987657)
+
+        import_state.apply_certificate_settings(check_certificates=True, suppress_cert_warnings=True)
+
+        assert import_state.verify_certs == "/etc/ssl/certs/ca-certificates.crt"
+        assert fwo_globals.verify_certs == "/etc/ssl/certs/ca-certificates.crt"
+        mock_disable_warnings.assert_called_once()
+
+
 class TestResolveManagementVerify:
     def test_unchecked_management_is_warned_once(self, caplog: pytest.LogCaptureFixture) -> None:
         management = create_management(987654)
         caplog.set_level(logging.WARNING)
 
-        first = import_state_controller.resolve_management_verify(management, check_certificates=False)
-        second = import_state_controller.resolve_management_verify(management, check_certificates=False)
+        first = resolve_management_verify(management, check_certificates=False)
+        second = resolve_management_verify(management, check_certificates=False)
 
         warnings = [
             record for record in caplog.records if "certificate checking is switched off" in record.getMessage()
@@ -156,7 +191,7 @@ class TestResolveManagementVerify:
     def test_checked_management_is_not_warned(self, caplog: pytest.LogCaptureFixture) -> None:
         caplog.set_level(logging.WARNING)
 
-        verify = import_state_controller.resolve_management_verify(create_management(987655), check_certificates=True)
+        verify = resolve_management_verify(create_management(987655), check_certificates=True)
 
         assert verify is not False
         assert not [
@@ -168,7 +203,7 @@ class TestFileImportVerify:
     @staticmethod
     def read_remote_file(monkeypatch: pytest.MonkeyPatch) -> FakeSession:
         monkeypatch.setattr(fwo_file_import.requests, "Session", FakeSession)
-        import_state = ImportState()
+        import_state = ImportState.__new__(ImportState)  # only the file name is needed here
         import_state.import_file_name = "https://config.example/config.json"
 
         fwo_file_import.read_file(None, import_state)  # type: ignore[arg-type]

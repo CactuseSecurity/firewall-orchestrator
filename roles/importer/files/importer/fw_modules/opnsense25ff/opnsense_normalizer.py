@@ -47,8 +47,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-    from model_controllers.import_state_controller import ImportStateController
     from models.serviceobject import ServiceObject
+    from states.import_state import ImportState
 
 # ───────────────────────── helper ────────────────────────
 
@@ -639,8 +639,8 @@ def _get_rulebase_links_from_rulebases(rbs: list[Rulebase]) -> list[RulebaseLink
     return rb_links
 
 
-def _get_gateway_name(native_config: OPNsenseConfig, import_state: ImportStateController) -> str:
-    mgm_details = import_state.state.mgm_details
+def _get_gateway_name(native_config: OPNsenseConfig, import_state: ImportState) -> str:
+    mgm_details = import_state.mgm_details
     if mgm_details.devices and "name" in mgm_details.devices[0] and mgm_details.devices[0]["name"]:
         return str(mgm_details.devices[0]["name"])
     if mgm_details.name:
@@ -720,7 +720,7 @@ def _normalize_interfaces(os_config: OPNsenseConfig) -> list[dict[str, Any]]:
 
 
 def normalize_opnsense_config(
-    config_in: FwConfigManagerListController, import_state: ImportStateController
+    config_in: FwConfigManagerListController, import_state: ImportState
 ) -> FwConfigManagerListController:
 
     # Parse the native configuration into structured objects
@@ -735,7 +735,7 @@ def normalize_opnsense_config(
     FWOLogger.debug("[*] normalizing access rules...")
     rulebases = _create_rulebases_from_access_rules(
         native_config,
-        import_state.state.mgm_details.uid,
+        import_state.mgm_details.uid,
         get_synthetic_any_service_name(svc_objects),
     )
     [FWOLogger.debug(f"[*] normalized {len(rb.rules)} access rules in Rulebase {rb.name}...") for rb in rulebases]
@@ -794,7 +794,7 @@ def normalize_opnsense_config(
         gateways=[os_gateway],
     )
 
-    config_in.ManagerSet[0].manager_uid = import_state.state.mgm_details.uid
+    config_in.ManagerSet[0].manager_uid = import_state.mgm_details.uid
     config_in.ManagerSet[0].configs = [normalized_config]
 
     return config_in

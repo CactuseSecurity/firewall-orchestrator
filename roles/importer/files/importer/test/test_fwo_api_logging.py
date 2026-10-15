@@ -1,8 +1,10 @@
 from fwo_api import REDACTED_VALUE, FwoApi
+from test.utils.fwo_api_builder import build_fwo_api
 
 
 def test_show_import_api_call_info_redacts_variables_and_authorization_header() -> None:
-    api = FwoApi("https://fworch.example/api", "jwt-secret")
+    api = build_fwo_api("https://fworch.example/api", "jwt-secret")
+
     payload = {
         "query": "mutation Test($password: String!) { test(password: $password) }",
         "variables": {"password": "secret-password"},
@@ -14,7 +16,6 @@ def test_show_import_api_call_info_redacts_variables_and_authorization_header() 
     }
 
     message = api.show_import_api_call_info("https://fworch.example/api", payload, headers)
-
     assert REDACTED_VALUE in message
     assert "secret-password" not in message
     assert "Bearer jwt-secret" not in message
@@ -23,7 +24,7 @@ def test_show_import_api_call_info_redacts_variables_and_authorization_header() 
 
 
 def test_show_api_call_info_redacts_variables_and_hasura_admin_secret_header() -> None:
-    api = FwoApi("https://fworch.example/api", "jwt-secret")
+    api = build_fwo_api("https://fworch.example/api", "jwt-secret")
     payload = {
         "query": "query Test { config { config_value } }",
         "variables": {"adminSecret": "hasura-secret"},
@@ -33,7 +34,6 @@ def test_show_api_call_info_redacts_variables_and_hasura_admin_secret_header() -
     }
 
     message = api.show_api_call_info("https://fworch.example/api", payload, headers)
-
     assert REDACTED_VALUE in message
     assert "hasura-secret" not in message
     assert '"x-hasura-admin-secret": "<redacted>"' in message

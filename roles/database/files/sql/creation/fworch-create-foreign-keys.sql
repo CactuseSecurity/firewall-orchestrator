@@ -446,3 +446,5 @@ ALTER TABLE flow.nwgroup_member ADD CONSTRAINT flow_nwgroup_member_nwobject_fore
 
 ALTER TABLE flow.svcgroup_member ADD CONSTRAINT flow_svcgroup_member_svcgroup_foreign_key FOREIGN KEY (svcgrp_id) REFERENCES flow.svcgroup(svcgrp_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE flow.svcgroup_member ADD CONSTRAINT flow_svcgroup_member_svcobject_foreign_key FOREIGN KEY (svcobj_id) REFERENCES flow.svcobject(svcobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE credential ADD CONSTRAINT credential_additional_credential_id_foreign_key FOREIGN KEY (additional_credential_id) REFERENCES credential(id) ON UPDATE RESTRICT ON DELETE RESTRICT;

@@ -28,6 +28,13 @@ namespace FWO.Test
         public int UpdateAppRoleCalls { get; private set; }
         public int AddNwObjectCalls { get; private set; }
         public int RemoveNwObjectCalls { get; private set; }
+        public bool FailUpdateAppRole { get; set; }
+        public bool FailNewAppRole { get; set; }
+
+        /// <summary>
+        /// Number of the call adding an app server to an app role which fails (counting from 1), 0 if none fails.
+        /// </summary>
+        public int FailingAddNwObjectCall { get; set; }
 
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
@@ -35,155 +42,143 @@ namespace FWO.Test
             Type responseType = typeof(QueryResponseType);
             if (responseType == typeof(List<ModellingAppRole>))
             {
-                List<ModellingAppRole>? appRoles = [];
-                if (query == ModellingQueries.getNewestAppRoles)
-                {
-                    if (variables != null)
-                    {
-                        string pattern = variables?.GetType().GetProperties().First(o => o.Name == "pattern").GetValue(variables, null)?.ToString() ?? "";
-                        if (pattern == AppRoleId1 || pattern == "AR50%")
-                        {
-                            appRoles = [AppRole1];
-                        }
-                        else if (pattern == AppRoleId2 || pattern == "AR9101234%")
-                        {
-                            appRoles = [AppRole2];
-                        }
-                        else if (pattern == AppRoleId3 || pattern == "AR9901234%")
-                        {
-                            appRoles = [AppRole3];
-                        }
-                    }
-                }
-                else if (query == ModellingQueries.getDummyAppRole)
-                {
-                    appRoles = DummyAppRoles;
-                }
-                else
-                {
-                    appRoles = [AppRole1];
-                }
-
-                GraphQLResponse<dynamic> response = new() { Data = appRoles };
-                return response.Data;
+                return Respond<QueryResponseType>(GetAppRoles(query, variables));
             }
-            else if (responseType == typeof(ReturnIdWrapper) && query == ModellingQueries.newAppRole)
+            if (responseType == typeof(ReturnIdWrapper) && query == ModellingQueries.newAppRole)
             {
                 NewAppRoleCalls++;
-                GraphQLResponse<dynamic> response = new() { Data = CreateNewAppRoleWrapper() };
-                return response.Data;
+                if (FailNewAppRole)
+                {
+                    throw new InvalidOperationException("simulated insert failure");
+                }
+                return Respond<QueryResponseType>(CreateNewAppRoleWrapper());
             }
-            else if (responseType == typeof(ReturnId) && query == ModellingQueries.updateAppRole)
+            if (responseType == typeof(ReturnIdWrapper) && query == ModellingQueries.addHistoryEntry)
             {
-                UpdateAppRoleCalls++;
-                GraphQLResponse<dynamic> response = new() { Data = new ReturnId() };
-                return response.Data;
+                return Respond<QueryResponseType>(new ReturnIdWrapper());
             }
-            else if (responseType == typeof(ReturnId) && query == ModellingQueries.addNwObjectToNwGroup)
+            if (responseType == typeof(ReturnId))
             {
-                AddNwObjectCalls++;
-                GraphQLResponse<dynamic> response = new() { Data = new ReturnId() };
-                return response.Data;
+                return Respond<QueryResponseType>(ChangeAppRole(query));
             }
-            else if (responseType == typeof(ReturnId) && query == ModellingQueries.removeNwObjectFromNwGroup)
+            if (responseType == typeof(List<ModellingConnection>))
             {
-                RemoveNwObjectCalls++;
-                GraphQLResponse<dynamic> response = new() { Data = new ReturnId() };
-                return response.Data;
-            }
-            else if (responseType == typeof(List<ModellingConnection>))
-            {
-                List<ModellingConnection>? interfaces = [];
-                string intId = variables?.GetType().GetProperties().First(o => o.Name == "id").GetValue(variables, null)?.ToString() ?? "";
-                if (intId == "1")
-                {
-                    interfaces = [ new()
-                    {
-                        Name = "Interf1",
-                        InterfacePermission = InterfacePermissions.Public.ToString(),
-                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }],
-                        SourceOtherGroups = [new(){ Content = new(){ Name = "NwGroup1" } }],
-                        ServiceGroups = [new(){ Content = new(){ Name = "ServiceGrp1" } }]
-                    }];
-                }
-                else if (intId == "2")
-                {
-                    interfaces = [ new()
-                    {
-                        Name = "Interf2",
-                        InterfacePermission = InterfacePermissions.Public.ToString(),
-                        DestinationAppServers = [new(){ Content = new(){ Name = "AppServer2" } }],
-                        DestinationAppRoles = [new(){ Content = new(){ Name = "AppRole2" } }],
-                        Services = [new(){ Content = new(){ Name = "Service2" } }]
-                    }];
-                }
-                else if (intId == "3")
-                {
-                    interfaces = [ new()
-                    {
-                        Name = "Interf3",
-                        InterfacePermission = InterfacePermissions.Restricted.ToString(),
-                        PermittedOwnerWrappers = [new() { Owner = new() { Id = 1 } }],
-                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }]
-                    }];
-                }
-                else if (intId == "4")
-                {
-                    interfaces = [ new()
-                    {
-                        Name = "Interf4",
-                        InterfacePermission = InterfacePermissions.Restricted.ToString(),
-                        PermittedOwnerWrappers = [new() { Owner = new() { Id = 2 } }],
-                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }]
-                    }];
-                }
-                else if (intId == "5")
-                {
-                    interfaces = [ new()
-                    {
-                        Name = "Interf5",
-                        InterfacePermission = InterfacePermissions.Private.ToString(),
-                        AppId = 1,
-                        PermittedOwnerWrappers = [new() { Owner = new() { Id = 1 } }],
-                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }]
-                    }];
-                }
-                else if (intId == "6")
-                {
-                    interfaces = [ new()
-                    {
-                        Name = "Interf6",
-                        InterfacePermission = InterfacePermissions.Public.ToString(),
-                        PermittedOwnerWrappers = [],
-                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }]
-                    }];
-                }
-                else if (intId == "7")
-                {
-                    interfaces = [ new()
-                    {
-                        Name = "Interf7",
-                        InterfacePermission = InterfacePermissions.Private.ToString(),
-                        AppId = 2,
-                        PermittedOwnerWrappers = [new() { Owner = new() { Id = 1 } }],
-                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }]
-                    }];
-                }
-                else if (intId == "8")
-                {
-                    interfaces = [ new()
-                    {
-                        Name = "Interf8",
-                        InterfacePermission = "Unknown",
-                        AppId = 2,
-                        SourceAppRoles = [new(){ Content = new(){ Name = "AppRole1" } }]
-                    }];
-                }
-
-                GraphQLResponse<dynamic> response = new() { Data = interfaces };
-                return response.Data;
+                return Respond<QueryResponseType>(GetInterfaces(GetVariable(variables, "id")));
             }
             throw new NotImplementedException();
+        }
+
+        private static QueryResponseType Respond<QueryResponseType>(object data)
+        {
+            GraphQLResponse<dynamic> response = new() { Data = data };
+            return response.Data;
+        }
+
+        private static string GetVariable(object? variables, string name)
+        {
+            return variables?.GetType().GetProperties().First(o => o.Name == name).GetValue(variables, null)?.ToString() ?? "";
+        }
+
+        private List<ModellingAppRole> GetAppRoles(string query, object? variables)
+        {
+            if (query == ModellingQueries.getNewestAppRoles)
+            {
+                return GetNewestAppRoles(GetVariable(variables, "pattern"));
+            }
+            if (query == ModellingQueries.getDummyAppRole)
+            {
+                return DummyAppRoles;
+            }
+            return [AppRole1];
+        }
+
+        private List<ModellingAppRole> GetNewestAppRoles(string pattern)
+        {
+            if (pattern == AppRoleId1 || pattern == "AR50%")
+            {
+                return [AppRole1];
+            }
+            if (pattern == AppRoleId2 || pattern == "AR9101234%")
+            {
+                return [AppRole2];
+            }
+            if (pattern == AppRoleId3 || pattern == "AR9901234%")
+            {
+                return [AppRole3];
+            }
+            return [];
+        }
+
+        private ReturnId ChangeAppRole(string query)
+        {
+            if (query == ModellingQueries.updateAppRole)
+            {
+                UpdateAppRoleCalls++;
+                if (FailUpdateAppRole)
+                {
+                    throw new InvalidOperationException("simulated update failure");
+                }
+            }
+            else if (query == ModellingQueries.addNwObjectToNwGroup)
+            {
+                AddNwObjectCalls++;
+                if (AddNwObjectCalls == FailingAddNwObjectCall)
+                {
+                    throw new InvalidOperationException("simulated assignment failure");
+                }
+            }
+            else if (query == ModellingQueries.removeNwObjectFromNwGroup)
+            {
+                RemoveNwObjectCalls++;
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+            return new ReturnId();
+        }
+
+        private static List<ModellingConnection> GetInterfaces(string intId)
+        {
+            ModellingConnection? interf = intId switch
+            {
+                "1" => new()
+                {
+                    Name = "Interf1",
+                    InterfacePermission = InterfacePermissions.Public.ToString(),
+                    SourceAppRoles = [new() { Content = new() { Name = "AppRole1" } }],
+                    SourceOtherGroups = [new() { Content = new() { Name = "NwGroup1" } }],
+                    ServiceGroups = [new() { Content = new() { Name = "ServiceGrp1" } }]
+                },
+                "2" => new()
+                {
+                    Name = "Interf2",
+                    InterfacePermission = InterfacePermissions.Public.ToString(),
+                    DestinationAppServers = [new() { Content = new() { Name = "AppServer2" } }],
+                    DestinationAppRoles = [new() { Content = new() { Name = "AppRole2" } }],
+                    Services = [new() { Content = new() { Name = "Service2" } }]
+                },
+                "3" => CreateInterface("Interf3", InterfacePermissions.Restricted.ToString(), null, 1),
+                "4" => CreateInterface("Interf4", InterfacePermissions.Restricted.ToString(), null, 2),
+                "5" => CreateInterface("Interf5", InterfacePermissions.Private.ToString(), 1, 1),
+                "6" => CreateInterface("Interf6", InterfacePermissions.Public.ToString(), null, null),
+                "7" => CreateInterface("Interf7", InterfacePermissions.Private.ToString(), 2, 1),
+                "8" => CreateInterface("Interf8", "Unknown", 2, null),
+                _ => null
+            };
+            return interf != null ? [interf] : [];
+        }
+
+        private static ModellingConnection CreateInterface(string name, string permission, int? appId, int? permittedOwnerId)
+        {
+            return new()
+            {
+                Name = name,
+                InterfacePermission = permission,
+                AppId = appId,
+                PermittedOwnerWrappers = permittedOwnerId != null ? [new() { Owner = new() { Id = permittedOwnerId.Value } }] : [],
+                SourceAppRoles = [new() { Content = new() { Name = "AppRole1" } }]
+            };
         }
     }
 }

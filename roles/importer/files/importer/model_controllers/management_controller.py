@@ -7,12 +7,13 @@ from typing import Any
 from fwo_api import FwoApi
 from fwo_base import replace_none_with_empty
 from fwo_const import GRAPHQL_QUERY_PATH
-from fwo_encrypt import decrypt, read_main_key
+from fwo_encrypt import decrypt, decrypt_aes_ciphertext, read_main_key
 from fwo_exceptions import (
     FwLoginFailedError,
     FwoApiFailureError,
     SecretDecryptionFailedError,
 )
+from models.credential import AdditionalCredential
 from models.gateway import Gateway
 from models.management import Management
 
@@ -34,8 +35,7 @@ class ConnectionInfo:
 class CredentialInfo:
     secret: str = ""
     import_user: str = ""
-    cloud_client_id: str = ""
-    cloud_client_secret: str = ""
+    additional_credential: AdditionalCredential | None = None
 
 
 @dataclass
@@ -85,8 +85,7 @@ class ManagementController(Management):
             current_mgm_is_super_manager=manager_info.is_super_manager,
             domain_name=domain_info.domain_name,
             domain_uid=domain_info.domain_uid,
-            cloud_client_id=credential_info.cloud_client_id,
-            cloud_client_secret=credential_info.cloud_client_secret,
+            additional_credential=credential_info.additional_credential,
         )
 
     @classmethod
@@ -105,8 +104,11 @@ class ManagementController(Management):
         credential_info = CredentialInfo(
             import_user=json_dict["import_credential"]["user"],
             secret=json_dict["import_credential"]["secret"],
-            cloud_client_id=json_dict["import_credential"]["cloud_client_id"],
-            cloud_client_secret=json_dict["import_credential"]["cloud_client_secret"],
+            additional_credential=(
+                AdditionalCredential(**json_dict["import_credential"]["additional_credential"])
+                if json_dict["import_credential"].get("additional_credential") is not None
+                else None
+            ),
         )
 
         manager_info = ManagerInfo(
@@ -209,4 +211,21 @@ class ManagementController(Management):
                     except Exception:
                         raise SecretDecryptionFailedError
                     sub_mgm["import_credential"]["secret"] = decrypted_secret
-        return api_call_result["data"]["management"][0]
+        management = api_call_result["data"]["management"][0]
+        self.decrypt_additional_credentials(management)
+        return management
+
+    @staticmethod
+    def decrypt_additional_credentials(management: dict[str, Any]) -> None:
+        """Decrypt linked secrets for the management and its queried sub-managers, failing closed."""
+        for manager in [management, *management.get("subManagers", [])]:
+            credential: dict[str, Any] = manager.get("import_credential") or {}
+            additional_credential: dict[str, Any] | None = credential.get("additional_credential")
+            if additional_credential is None:
+                continue
+            try:
+                additional_credential["secret"] = decrypt_aes_ciphertext(
+                    additional_credential["secret"], read_main_key()
+                )
+            except Exception:
+                raise SecretDecryptionFailedError from None

@@ -567,6 +567,49 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, availableNwElems.Count);
         }
 
+        /// <summary>
+        /// Auditors and admins may try out the app role dialog, but a valid app role must still not be persisted.
+        /// </summary>
+        [Test]
+        public async Task Save_IsRejectedWithoutPersistingWhenUserMayOnlyTryOut()
+        {
+            ModellingHandlerTestApiConn apiConn = new();
+            SimulatedUserConfig localUserConfig = new() { ModNamingConvention = userConfig.ModNamingConvention };
+            ModellingAppRole role = new()
+            {
+                Name = "Role",
+                IdString = "AR5000002",
+                AppServers = new List<ModellingAppServerWrapper>
+                {
+                    new() { Content = new ModellingAppServer { Id = 10, Name = "Srv10" } }
+                }
+            };
+            List<ModellingAppRole> appRoles = new();
+            List<KeyValuePair<int, long>> availableNwElems = new();
+            List<string> messages = new();
+            ModellingAppRoleHandler handler = new(
+                apiConn,
+                localUserConfig,
+                new FwoOwner { Id = 1 },
+                appRoles,
+                role,
+                new List<ModellingAppServer>(),
+                availableNwElems,
+                true,
+                (_, title, text, _) => messages.Add($"{title}:{text}"),
+                isOwner: false);
+
+            bool result = await handler.Save();
+
+            ClassicAssert.IsFalse(result);
+            ClassicAssert.AreEqual(0, apiConn.NewAppRoleCalls);
+            ClassicAssert.AreEqual(0, apiConn.AddNwObjectCalls);
+            ClassicAssert.IsEmpty(appRoles);
+            ClassicAssert.IsEmpty(availableNwElems);
+            ClassicAssert.AreEqual(1, messages.Count);
+            ClassicAssert.AreEqual("change_app_role_forbidden:E9030", messages[0]);
+        }
+
         [Test]
         public async Task Save_UpdatesAppRoleAndAppliesQueuedServerChanges()
         {
@@ -607,6 +650,8 @@ namespace FWO.Test
             await handler.InitAppRole(null);
             handler.AppServerToDelete.Add(removeServer);
             handler.AppServerToAdd.Add(addServer);
+            handler.ActAppRole.Name = "Changed";
+            handler.ActAppRole.Comment = "new comment";
 
             bool result = await handler.Save();
 
@@ -616,6 +661,256 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, apiConn.AddNwObjectCalls);
             ClassicAssert.AreEqual(0, handler.AppServerToAdd.Count);
             ClassicAssert.AreEqual(0, handler.AppServerToDelete.Count);
+            // the saved changes reach the app role shown elsewhere
+            ClassicAssert.AreEqual("Changed", role.Name);
+            ClassicAssert.AreEqual("new comment", role.Comment);
+            ClassicAssert.AreEqual("AR5000009", role.IdString);
+            ClassicAssert.AreEqual(1, role.AppServers.Count);
+            ClassicAssert.AreEqual(addServer.Id, role.AppServers[0].Content.Id);
+        }
+
+        /// <summary>
+        /// The edit dialog works on a copy: changes which are cancelled must not show up in the library.
+        /// </summary>
+        [Test]
+        public async Task EditMode_CancelledChangesDoNotReachOriginalAppRole()
+        {
+            ModellingAppServer server = new() { Id = 11, Name = "Srv11" };
+            ModellingAppRole role = CreateAppRoleToEdit(server);
+            ModellingAppRoleHandler handler = CreateEditHandler(new ModellingHandlerTestApiConn(), role);
+            await handler.InitAppRole(null);
+
+            handler.ActAppRole.Name = "Changed";
+            handler.ActAppRole.Comment = "new comment";
+            handler.ActAppRole.IdString = "AR5000099";
+            handler.ActAppRole.AppServers.Clear();
+            handler.CleanUp();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActAppRole, Is.Not.SameAs(role));
+                Assert.That(role.Name, Is.EqualTo("Role"));
+                Assert.That(role.Comment, Is.EqualTo("comment"));
+                Assert.That(role.IdString, Is.EqualTo("AR5000009"));
+                Assert.That(role.AppServers.Select(a => a.Content.Id), Is.EqualTo(new List<long> { server.Id }));
+            });
+        }
+
+        /// <summary>
+        /// If the update fails, the app role shown elsewhere keeps its stored state.
+        /// </summary>
+        [Test]
+        public async Task Save_KeepsOriginalAppRoleWhenUpdateFails()
+        {
+            ModellingAppServer server = new() { Id = 11, Name = "Srv11" };
+            ModellingAppRole role = CreateAppRoleToEdit(server);
+            ModellingHandlerTestApiConn apiConn = new() { FailUpdateAppRole = true };
+            ModellingAppRoleHandler handler = CreateEditHandler(apiConn, role);
+            await handler.InitAppRole(null);
+            handler.ActAppRole.Name = "Changed";
+            handler.AppServerToDelete.Add(server);
+
+            bool result = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False);
+                Assert.That(apiConn.UpdateAppRoleCalls, Is.EqualTo(1));
+                Assert.That(apiConn.RemoveNwObjectCalls, Is.EqualTo(0));
+                Assert.That(role.Name, Is.EqualTo("Role"));
+                Assert.That(role.AppServers.Select(a => a.Content.Id), Is.EqualTo(new List<long> { server.Id }));
+            });
+        }
+
+        /// <summary>
+        /// A failed update keeps the dialog's changes queued, so that saving again writes each of them exactly once.
+        /// </summary>
+        [Test]
+        public async Task Save_AfterFailedUpdate_RetryWritesQueuedChangesOnce()
+        {
+            ModellingAppServer removeServer = new() { Id = 11, Name = "Srv11" };
+            ModellingAppServer addServer = new() { Id = 12, Name = "Srv12" };
+            ModellingAppRole role = CreateAppRoleToEdit(removeServer);
+            ModellingHandlerTestApiConn apiConn = new() { FailUpdateAppRole = true };
+            List<string> messages = [];
+            ModellingAppRoleHandler handler = CreateEditHandler(apiConn, role, (_, title, _, _) => messages.Add(title));
+            await handler.InitAppRole(null);
+            handler.ActAppRole.Name = "Changed";
+            handler.AppServerToDelete.Add(removeServer);
+            handler.AppServerToAdd.Add(addServer);
+
+            bool firstResult = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstResult, Is.False);
+                Assert.That(messages, Is.EqualTo(new List<string> { "edit_app_role" }));
+                Assert.That(handler.ActAppRole.Name, Is.EqualTo("Changed"));
+                Assert.That(handler.ActAppRole.AppServers.Select(a => a.Content.Id), Is.EqualTo(new List<long> { removeServer.Id }));
+                Assert.That(handler.AppServerToDelete, Is.EqualTo(new List<ModellingAppServer> { removeServer }));
+                Assert.That(handler.AppServerToAdd, Is.EqualTo(new List<ModellingAppServer> { addServer }));
+            });
+
+            apiConn.FailUpdateAppRole = false;
+            bool secondResult = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(secondResult, Is.True);
+                Assert.That(apiConn.UpdateAppRoleCalls, Is.EqualTo(2));
+                Assert.That(apiConn.RemoveNwObjectCalls, Is.EqualTo(1));
+                Assert.That(apiConn.AddNwObjectCalls, Is.EqualTo(1));
+                Assert.That(handler.AppServerToDelete, Is.Empty);
+                Assert.That(handler.AppServerToAdd, Is.Empty);
+                Assert.That(role.Name, Is.EqualTo("Changed"));
+                Assert.That(role.AppServers.Select(a => a.Content.Id), Is.EqualTo(new List<long> { addServer.Id }));
+            });
+        }
+
+        /// <summary>
+        /// If only some app server assignments are written, the app role shown elsewhere reflects what has been written,
+        /// and saving again only writes the missing assignments.
+        /// </summary>
+        [Test]
+        public async Task Save_AfterPartlyFailedUpdate_ShowsWrittenStateAndRetriesMissingAssignments()
+        {
+            ModellingAppServer keptServer = new() { Id = 11, Name = "Srv11" };
+            ModellingAppServer firstAddServer = new() { Id = 12, Name = "Srv12" };
+            ModellingAppServer secondAddServer = new() { Id = 13, Name = "Srv13" };
+            ModellingAppRole role = CreateAppRoleToEdit(keptServer);
+            ModellingHandlerTestApiConn apiConn = new() { FailingAddNwObjectCall = 2 };
+            ModellingAppRoleHandler handler = CreateEditHandler(apiConn, role);
+            await handler.InitAppRole(null);
+            handler.ActAppRole.Name = "Changed";
+            handler.ActAppRole.IdString = "AR5000010";
+            handler.AppServerToAdd.Add(firstAddServer);
+            handler.AppServerToAdd.Add(secondAddServer);
+
+            bool firstResult = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstResult, Is.False);
+                Assert.That(handler.AppServerToAdd, Is.EqualTo(new List<ModellingAppServer> { secondAddServer }));
+                Assert.That(role.Name, Is.EqualTo("Changed"));
+                Assert.That(role.IdString, Is.EqualTo("AR5000010"));
+                Assert.That(role.AppServers.Select(a => a.Content.Id), Is.EqualTo(new List<long> { keptServer.Id, firstAddServer.Id }));
+            });
+
+            bool secondResult = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(secondResult, Is.True);
+                Assert.That(apiConn.AddNwObjectCalls, Is.EqualTo(3));
+                Assert.That(handler.AppServerToAdd, Is.Empty);
+                Assert.That(role.AppServers.Select(a => a.Content.Id), Is.EqualTo(new List<long> { keptServer.Id, firstAddServer.Id, secondAddServer.Id }));
+            });
+        }
+
+        /// <summary>
+        /// If the new app role cannot be created, nothing is registered and saving can be retried with the same input.
+        /// </summary>
+        [Test]
+        public async Task Save_AfterFailedInsert_RegistersNothingAndRetryCreatesAppRoleOnce()
+        {
+            ModellingAppServer selectedServer = new() { Id = 10, Name = "Srv10" };
+            ModellingAppServer addServer = new() { Id = 12, Name = "Srv12" };
+            ModellingHandlerTestApiConn apiConn = new() { FailNewAppRole = true };
+            List<ModellingAppRole> appRoles = [];
+            List<KeyValuePair<int, long>> availableNwElems = [];
+            ModellingAppRoleHandler handler = CreateAddHandler(apiConn, appRoles, availableNwElems, selectedServer, DisplayMessageInUi);
+            handler.AppServerToAdd.Add(addServer);
+
+            bool firstResult = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstResult, Is.False);
+                Assert.That(apiConn.AddNwObjectCalls, Is.EqualTo(0));
+                Assert.That(appRoles, Is.Empty);
+                Assert.That(availableNwElems, Is.Empty);
+                Assert.That(handler.ActAppRole.AppServers.Select(a => a.Content.Id), Is.EqualTo(new List<long> { selectedServer.Id }));
+                Assert.That(handler.AppServerToAdd, Is.EqualTo(new List<ModellingAppServer> { addServer }));
+            });
+
+            apiConn.FailNewAppRole = false;
+            bool secondResult = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(secondResult, Is.True);
+                Assert.That(apiConn.NewAppRoleCalls, Is.EqualTo(2));
+                Assert.That(apiConn.AddNwObjectCalls, Is.EqualTo(2));
+                Assert.That(appRoles, Has.Count.EqualTo(1));
+                Assert.That(appRoles[0].AppServers.Select(a => a.Content.Id), Is.EqualTo(new List<long> { selectedServer.Id, addServer.Id }));
+            });
+        }
+
+        /// <summary>
+        /// Once the new app role has been created, saving again would create it twice: it is registered with the
+        /// app servers actually assigned, and the failure is reported.
+        /// </summary>
+        [Test]
+        public async Task Save_AfterCreatedAppRoleWithFailedAssignment_RegistersAssignedAppServersOnly()
+        {
+            ModellingAppServer selectedServer = new() { Id = 10, Name = "Srv10" };
+            ModellingAppServer failingServer = new() { Id = 12, Name = "Srv12" };
+            ModellingHandlerTestApiConn apiConn = new() { FailingAddNwObjectCall = 2 };
+            List<ModellingAppRole> appRoles = [];
+            List<KeyValuePair<int, long>> availableNwElems = [];
+            List<string> messages = [];
+            ModellingAppRoleHandler handler = CreateAddHandler(apiConn, appRoles, availableNwElems, selectedServer, (_, title, _, _) => messages.Add(title));
+            handler.AppServerToAdd.Add(failingServer);
+
+            bool result = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(messages, Is.EqualTo(new List<string> { "add_app_role" }));
+                Assert.That(apiConn.NewAppRoleCalls, Is.EqualTo(1));
+                Assert.That(appRoles, Has.Count.EqualTo(1));
+                Assert.That(availableNwElems, Has.Count.EqualTo(1));
+                Assert.That(appRoles[0].AppServers.Select(a => a.Content.Id), Is.EqualTo(new List<long> { selectedServer.Id }));
+                Assert.That(handler.AppServerToAdd, Is.Empty);
+            });
+        }
+
+        private static ModellingAppRoleHandler CreateAddHandler(ModellingHandlerTestApiConn apiConn, List<ModellingAppRole> appRoles,
+            List<KeyValuePair<int, long>> availableNwElems, ModellingAppServer selectedServer, Action<Exception?, string, string, bool> displayMessageInUi)
+        {
+            SimulatedUserConfig localUserConfig = new() { ModNamingConvention = userConfig.ModNamingConvention };
+            ModellingAppRole role = new()
+            {
+                Name = "Role",
+                IdString = "AR5000002",
+                AppServers = new List<ModellingAppServerWrapper> { new() { Content = selectedServer } }
+            };
+            ModellingAppRoleHandler handler = new(apiConn, localUserConfig, new FwoOwner { Id = 1 }, appRoles, role,
+                new List<ModellingAppServer>(), availableNwElems, true, displayMessageInUi, IsOwner);
+            handler.ActAppRole.IdString = "AR5000002";
+            return handler;
+        }
+
+        private static ModellingAppRole CreateAppRoleToEdit(ModellingAppServer server)
+        {
+            return new ModellingAppRole
+            {
+                Id = 9,
+                Name = "Role",
+                Comment = "comment",
+                IdString = "AR5000009",
+                AppServers = new List<ModellingAppServerWrapper> { new() { Content = server } }
+            };
+        }
+
+        private static ModellingAppRoleHandler CreateEditHandler(ModellingHandlerTestApiConn apiConn, ModellingAppRole role,
+            Action<Exception?, string, string, bool>? displayMessageInUi = null)
+        {
+            SimulatedUserConfig localUserConfig = new() { ModNamingConvention = userConfig.ModNamingConvention };
+            return new ModellingAppRoleHandler(apiConn, localUserConfig, new FwoOwner { Id = 1 }, new List<ModellingAppRole> { role }, role,
+                new List<ModellingAppServer>(), new List<KeyValuePair<int, long>>(), false, displayMessageInUi ?? DisplayMessageInUi, IsOwner);
         }
 
         [Test]

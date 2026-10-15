@@ -1,4 +1,5 @@
 using Bunit;
+using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Request;
@@ -151,6 +152,71 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DisplayTicket_ReadsCombinedTicketFieldVisibilityConfig()
+        {
+            var userConfig = CreateUserConfig();
+            userConfig.ReqTicketFieldVisibility = new TicketFieldVisibilityConfig
+            {
+                ShowRequester = false,
+                ShowPriority = true,
+                ShowDeadline = false,
+                ShowReason = true
+            }.ToConfigValue();
+            WfHandler handler = new()
+            {
+                ActTicket = new WfTicket { Id = 10, Title = "Ticket" }
+            };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.request, userConfig: userConfig);
+
+            TicketFieldVisibilityConfig visibility = GetMember<TicketFieldVisibilityConfig>(component, "TicketFieldVisibility");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(visibility.ShowRequester, Is.False);
+                Assert.That(visibility.ShowPriority, Is.True);
+                Assert.That(visibility.ShowDeadline, Is.False);
+                Assert.That(visibility.ShowReason, Is.True);
+                Assert.That(visibility.ShowComments, Is.False);
+            });
+        }
+
+        [Test]
+        public void DisplayTicket_UsesExternalRequestorNameAndId()
+        {
+            WfHandler handler = new()
+            {
+                ActTicket = new WfTicket
+                {
+                    Id = 10,
+                    Requester = new UiUser { Name = "Authenticated User" },
+                    AdditionalInfo = "{\"requestorName\":\"Alice Example\",\"requestorId\":\"alice\"}"
+                }
+            };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.request);
+
+            string requesterDisplay = (string)GetPrivateMethod(typeof(DisplayTicket), "BuildTicketRequesterDisplay")
+                .Invoke(component, null)!;
+
+            Assert.That(requesterDisplay, Is.EqualTo("Alice Example (alice)"));
+        }
+
+        [Test]
+        public async Task DisplayTicket_ConfAddComment_RerendersUpdatedComments()
+        {
+            await using BunitContext context = new();
+            WfHandler handler = new()
+            {
+                DisplayTicketMode = true,
+                ActTicket = new WfTicket { Id = 10, Title = "Ticket" }
+            };
+            IRenderedComponent<DisplayTicket> component = RenderDisplayTicket(context, handler, WorkflowPhases.approval, new WfStateDict());
+
+            await InvokePrivateTask(component.Instance, "ConfAddComment", "new ticket comment");
+
+            Assert.That(GetMember<string>(component.Instance, "allComments"), Does.Contain("new ticket comment"));
+        }
+
+        [Test]
         public void DisplayTicket_CheckPromoteTicketUsesAllowedMasterTransitions()
         {
             WfHandler handler = new()
@@ -209,6 +275,96 @@ namespace FWO.Test
             {
                 Assert.That(canPromote, Is.True);
                 Assert.That(canPromoteWhenDerivedStateMatches, Is.False);
+            });
+        }
+
+        [Test]
+        public void DisplayTicket_InitPromoteTicket_OpensPromotePopup()
+        {
+            WfHandler handler = new();
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.request);
+
+            GetPrivateMethod(typeof(DisplayTicket), "InitPromoteTicket").Invoke(component, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayPromoteTicketMode, Is.True);
+                Assert.That(handler.DisplaySaveTicketMode, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task DisplayTicket_PromoteTicketForPhase_RequestPhasePromotesTicketAndTasks()
+        {
+            WfHandler handler = new()
+            {
+                ActTicket = new WfTicket { Id = 10, StateId = 1 }
+            };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.request);
+
+            await InvokePrivateTask(component, "PromoteTicketForPhase", new WfStatefulObject { StateId = 4 });
+
+            Assert.That(handler.ActTicket.StateId, Is.EqualTo(4));
+        }
+
+        [Test]
+        public async Task DisplayTicket_PromoteTicketForPhase_LaterPhasePromotesTasksAndTicket()
+        {
+            WfHandler handler = new()
+            {
+                ActTicket = new WfTicket { Id = 10, StateId = 1 }
+            };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.approval);
+
+            await InvokePrivateTask(component, "PromoteTicketForPhase", new WfStatefulObject { StateId = 4 });
+
+            Assert.That(handler.ActTicket.StateId, Is.EqualTo(4));
+        }
+
+        [Test]
+        public async Task DisplayTicket_PerformAction_ResetsParentAndClearsBusyState()
+        {
+            int resetCalls = 0;
+            WfHandler handler = new()
+            {
+                ActTicket = new WfTicket { Id = 10 }
+            };
+            using BunitContext context = new();
+            IRenderedComponent<DisplayTicket> renderedComponent = RenderDisplayTicket(
+                context, handler, WorkflowPhases.request, new WfStateDict());
+            SetMember(renderedComponent.Instance, nameof(DisplayTicket.ResetParent), () =>
+            {
+                resetCalls++;
+                return Task.CompletedTask;
+            });
+
+            await InvokePrivateTask(renderedComponent.Instance, "PerformAction", new WfStateAction());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(resetCalls, Is.EqualTo(1));
+                Assert.That(GetMember<bool>(renderedComponent.Instance, "WorkInProgress"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task DisplayTicket_PerformAction_WhenBusyDoesNothing()
+        {
+            int resetCalls = 0;
+            WfHandler handler = new() { ActTicket = new WfTicket { Id = 10 } };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.request, resetParent: () =>
+            {
+                resetCalls++;
+                return Task.CompletedTask;
+            });
+            SetMember(component, "WorkInProgress", true);
+
+            await InvokePrivateTask(component, "PerformAction", new WfStateAction());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(resetCalls, Is.EqualTo(0));
+                Assert.That(GetMember<bool>(component, "WorkInProgress"), Is.True);
             });
         }
 

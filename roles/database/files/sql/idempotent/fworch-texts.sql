@@ -29,6 +29,8 @@ DELETE FROM txt;
 -- import
 INSERT INTO txt VALUES ('initial_import',		'German',	'Dieses Element ist Teil der initial importierten Konfiguration.');
 INSERT INTO txt VALUES ('initial_import', 		'English',	'This entity is part of the initially imported configuration.');
+INSERT INTO txt VALUES ('element_origin',		'German',	'Elementherkunft');
+INSERT INTO txt VALUES ('element_origin',		'English',	'Element origin');
 
 -- languages
 INSERT INTO txt VALUES ('English', 				'German',	'Englisch');
@@ -573,6 +575,12 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
+    <li>Cloud-Zugangsdaten werden als zus&auml;tzliche Zugangsdaten mit verschl&uuml;sseltem Passwort verwaltet. Das Upgrade &uuml;bertr&auml;gt vorhandene Cloud Client IDs und Secrets automatisch. Cisco ASA verwendet das zus&auml;tzliche Passwort f&uuml;r den Enable-Modus.</li>
+    <li>Wenn eine Aufgabe die Genehmigungsphase &uuml;berspringt, werden implizite Genehmigungen als systemerzeugt markiert und mit einem konfigurierbaren Kommentar versehen.</li>
+    <li>Geb&uuml;ndelte Zugriff-Auftr&auml;ge k&ouml;nnen in der Aufgabenansicht als ein Auftrag angezeigt werden, wenn sie denselben Status haben. Unterschiedliche Status bleiben getrennt; die enthaltenen Elemente werden zusammengef&uuml;hrt und dedupliziert.</li>
+    <li>Die Sichtbarkeit von Ticket-Antragsteller, Priorit&auml;t, Deadline, Grund und Kommentaren kann in den Workflow-Anpassungen unabh&auml;ngig eingestellt werden; Kommentare sind standardm&auml;&szlig;ig ausgeblendet.</li>
+    <li>Die Sichtbarkeit der Felder von Zugriff-Auftr&auml;gen kann ebenfalls konfiguriert werden. Netzwerk- und Service-Elemente zeigen in schreibgesch&uuml;tzten Ansichten Details aus der Flow DB oder aus parallelen Aufgaben desselben Tickets; ein Tooltip kennzeichnet ihre Herkunft.</li>
+    <li>Per REST erstellte Tickets speichern Antragsteller- und Kontakt-Metadaten einmal auf Ticket-Ebene; der externe Antragsteller wird in der UI als <code>Name (Id)</code> angezeigt, wenn beide Angaben vorhanden sind.</li>
     <li>Der Installer zeigt am Ende eine kurze &Uuml;bersicht der Laufzeiten je Rolle, sortiert nach Dauer. Mehrfache Ausf&uuml;hrungen derselben Rolle werden zusammengefasst.</li>
     <li>Die Middleware-REST-API begrenzt Aufrufe standardm&auml;&szlig;ig auf 600 pro Minute und zwei gleichzeitig laufende aufwendige Aufrufe je Benutzer. Die Flow-Kataloglisten liefern Seiten mit h&ouml;chstens 1000 Objekten bzw. 250 Gruppen, <code>getIpDataForOwners</code> h&ouml;chstens 10000 Anwendungen. API-Clients m&uuml;ssen mit <code>limit</code> und <code>offset</code> weiterbl&auml;ttern, bis <code>X-Has-More</code> den Wert <code>false</code> hat. <code>getFlowComplianceState</code> akzeptiert h&ouml;chstens 100 Eintr&auml;ge je Liste; bei mehreren passenden portlosen Diensten liefert <code>getServiceObjectId</code> HTTP 409 mit den Kandidaten.</li>
     <li><code>createTicket</code> liefert neben der Ticket-Id den Aktionsstatus <code>actionsStatus</code>: <code>completed</code> oder <code>failed</code>. Fehlschl&auml;ge initialer Workflow-Aktionen werden als Alarm und in der &Auml;nderungshistorie gemeldet. Ein bereits gespeichertes Ticket beh&auml;lt auch bei fehlgeschlagener Statusermittlung seine Id; der Status enth&auml;lt dann die numerische Zustands-Id. Den Request nicht erneut senden, da dies ein zweites Ticket erzeugt.</li>
@@ -594,6 +602,12 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 ');
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
+    <li>Cloud credentials are managed as additional credentials with encrypted passwords. The upgrade automatically transfers existing cloud client IDs and secrets. Cisco ASA uses the additional password for enable mode.</li>
+    <li>When a task bypasses the approval phase, implicit approvals are marked as system-generated and receive a configurable comment.</li>
+    <li>Bundled access tasks can be displayed as one task in task views when they have the same state. Different states remain separate; their elements are merged and deduplicated.</li>
+    <li>The visibility of the ticket requester, priority, deadline, reason, and comments can be configured independently in Workflow Customizing; comments are hidden by default.</li>
+    <li>Access-task field visibility can also be configured. In read-only views, network and service elements show details from the Flow DB or from parallel tasks of the same ticket; a tooltip identifies their origin.</li>
+    <li>Tickets created through the REST API store requester and contact metadata once at ticket level; the UI displays the external requester as <code>Name (ID)</code> when both values are available.</li>
     <li>The installer ends with a short overview of elapsed time per role, sorted by duration. Repeated executions of the same role are combined.</li>
     <li>The middleware REST API defaults to 600 calls per minute and two concurrent expensive calls per user. Flow catalog lists return pages of at most 1000 objects or 250 groups; <code>getIpDataForOwners</code> returns at most 10000 applications. API clients must page with <code>limit</code> and <code>offset</code> until <code>X-Has-More</code> is <code>false</code>. <code>getFlowComplianceState</code> accepts at most 100 entries per list; when several portless services match, <code>getServiceObjectId</code> returns HTTP 409 with the candidates.</li>
     <li><code>createTicket</code> returns <code>actionsStatus</code> alongside the ticket ID: <code>completed</code> or <code>failed</code>. Initial workflow action failures are reported in an alert and the change history. A saved ticket keeps its ID even if status enrichment fails; its status then contains the numeric state ID. Do not resend the request, as this creates a second ticket.</li>
@@ -2519,10 +2533,6 @@ INSERT INTO txt VALUES ('port',                 'German', 	'Port');
 INSERT INTO txt VALUES ('port',                 'English', 	'Port');
 INSERT INTO txt VALUES ('config_path',          'German', 	'Domain');
 INSERT INTO txt VALUES ('config_path',          'English', 	'Domain');
-INSERT INTO txt VALUES ('cloud_client_id',      'German', 	'Cloud Client ID');
-INSERT INTO txt VALUES ('cloud_client_id',      'English', 	'Cloud Client ID');
-INSERT INTO txt VALUES ('cloud_client_secret',  'German', 	'Cloud Client Secret');
-INSERT INTO txt VALUES ('cloud_client_secret',  'English', 	'Cloud Client Secret');
 INSERT INTO txt VALUES ('cloud_sub_id',         'German', 	'Cloud Subscription ID');
 INSERT INTO txt VALUES ('cloud_sub_id',         'English', 	'Cloud Subscription ID');
 INSERT INTO txt VALUES ('cloud_tenant_id',      'German', 	'Cloud Tenant ID');
@@ -2869,6 +2879,10 @@ INSERT INTO txt VALUES ('undefined',		    'German', 	'nicht definiert');
 INSERT INTO txt VALUES ('undefined',		    'English', 	'undefined');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','German', 	'Verf&uuml;gbare Auftragstypen');
 INSERT INTO txt VALUES ('reqAvailableTaskTypes','English', 	'Available Task Types');
+INSERT INTO txt VALUES ('reqTicketFieldVisibility','German', 	'Sichtbarkeit der Ticketfelder');
+INSERT INTO txt VALUES ('reqTicketFieldVisibility','English', 	'Ticket Field Visibility');
+INSERT INTO txt VALUES ('reqAccessTaskFieldVisibility','German', 	'Sichtbarkeit der Zugriff-Aufgabenfelder');
+INSERT INTO txt VALUES ('reqAccessTaskFieldVisibility','English', 	'Access Task Field Visibility');
 INSERT INTO txt VALUES ('reqOwnerBased',        'German', 	'Eigent&uuml;merbasiert');
 INSERT INTO txt VALUES ('reqOwnerBased',        'English', 	'Owner based');
 INSERT INTO txt VALUES ('reqVisibilityBased',   'German', 	'Sichtbarkeit ber&uuml;cksichtigen');
@@ -2903,12 +2917,16 @@ INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','English', 'Auto-create implementation tasks');
 INSERT INTO txt VALUES ('reqConsiderBundling',  'German', 	'B&uuml;ndelung ber&uuml;cksichtigen');
 INSERT INTO txt VALUES ('reqConsiderBundling',  'English',  'Consider bundling');
+INSERT INTO txt VALUES ('reqDisplayBundledTasksAsOne', 'German',  'Geb&uuml;ndelte Aufgaben als eine Aufgabe anzeigen');
+INSERT INTO txt VALUES ('reqDisplayBundledTasksAsOne', 'English', 'Display bundled tasks as one task');
 INSERT INTO txt VALUES ('reqActivatePathAnalysis','German', 'Pfadanalyse aktivieren');
 INSERT INTO txt VALUES ('reqActivatePathAnalysis','English','Activate Path Analysis');
 INSERT INTO txt VALUES ('reqShowCompliance',    'German',   'Compliance-Modul anzeigen');
 INSERT INTO txt VALUES ('reqShowCompliance',    'English',  'Show Compliance Module');
 INSERT INTO txt VALUES ('reqAllowedChangesByApprover','German', 'Erlaubte &Auml;nderungen durch Genehmiger');
 INSERT INTO txt VALUES ('reqAllowedChangesByApprover','English','Allowed changes by approver');
+INSERT INTO txt VALUES ('reqImplicitApprovalComment','German', 'Kommentar f&uuml;r implizite Genehmigung');
+INSERT INTO txt VALUES ('reqImplicitApprovalComment','English','Implicit approval comment');
 INSERT INTO txt VALUES ('ticket_fields',        'German',   'Ticket-Felder');
 INSERT INTO txt VALUES ('ticket_fields',        'English',  'Ticket fields');
 INSERT INTO txt VALUES ('task_fields',          'German',   'Auftragsfelder');
@@ -3027,6 +3045,8 @@ INSERT INTO txt VALUES ('save_management',      'German', 	'Management speichern
 INSERT INTO txt VALUES ('save_management',      'English', 	'Save Management');
 INSERT INTO txt VALUES ('fetch_gateways',       'German', 	'Gateways abholen');
 INSERT INTO txt VALUES ('fetch_gateways',       'English', 	'Fetch Gateways');
+INSERT INTO txt VALUES ('additional_credential', 'German', 'Zus&auml;tzliche Zugangsdaten');
+INSERT INTO txt VALUES ('additional_credential', 'English', 'Additional credential');
 INSERT INTO txt VALUES ('fetch_credentials',    'German', 	'Login-Daten abholen');
 INSERT INTO txt VALUES ('fetch_credentials',    'English', 	'Fetch credentials');
 INSERT INTO txt VALUES ('save_gateway',         'German', 	'Gateway speichern');
@@ -3579,6 +3599,12 @@ INSERT INTO txt VALUES ('confirm_modelling_update', 'German',   'Aktualisierung 
 INSERT INTO txt VALUES ('confirm_modelling_update', 'English',  'Confirm modelling update via UI message');
 INSERT INTO txt VALUES ('confirm_flow_creation',    'German',   'Flow-Erzeugung per UI-Meldung best&auml;tigen');
 INSERT INTO txt VALUES ('confirm_flow_creation',    'English',  'Confirm flow creation via UI message');
+INSERT INTO txt VALUES ('confirm_action_message',   'German',   'Aktion per UI-Meldung best&auml;tigen');
+INSERT INTO txt VALUES ('confirm_action_message',   'English',  'Confirm action via UI message');
+INSERT INTO txt VALUES ('auto_promoted_to',         'German',   'Automatisch in Status ');
+INSERT INTO txt VALUES ('auto_promoted_to',         'English',  'Automatically promoted to state ');
+INSERT INTO txt VALUES ('tasks_bundled_into',       'German',   ' Auftr&auml;ge in B&uuml;ndel gruppiert: ');
+INSERT INTO txt VALUES ('tasks_bundled_into',       'English',  ' request tasks bundled into ');
 INSERT INTO txt VALUES ('flow_creation_succeeded',  'German',   'Flow-DB-Eintr&auml;ge wurden erzeugt.');
 INSERT INTO txt VALUES ('flow_creation_succeeded',  'English',  'Flow DB entries were created.');
 INSERT INTO txt VALUES ('flow_creation_failed',     'German',   'Flow-DB-Eintr&auml;ge konnten nicht erzeugt werden. Pr&uuml;fen Sie das Workflow-Log auf nicht aufl&ouml;sbare Objekte oder Dienste.');
@@ -4752,6 +4778,8 @@ INSERT INTO txt VALUES ('E5126', 'German',  'Bitte das zu &auml;ndernde Objekt a
 INSERT INTO txt VALUES ('E5126', 'English', 'Please select the object to be modified.');
 INSERT INTO txt VALUES ('E5127', 'German',  'Bitte ein Management ausw&auml;hlen, zu dem das Objekt geh&ouml;rt.');
 INSERT INTO txt VALUES ('E5127', 'English', 'Please select the management the object belongs to.');
+INSERT INTO txt VALUES ('E5128', 'German', 'Zugangsdaten werden von anderen Zugangsdaten verwendet');
+INSERT INTO txt VALUES ('E5128', 'English', 'Credential is used by other credentials');
 INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten Managements verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by the managements named. Change the credentials of these managements before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
@@ -6492,14 +6520,8 @@ INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sic
 ');
 INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
 ');
-INSERT INTO txt VALUES ('H5136', 'German',  'Cloud Client ID: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
-');
-INSERT INTO txt VALUES ('H5136', 'English', 'Cloud Client ID: If you have a cloud installation (e.g. Azure) - enter your Azure client ID here. For all other installations, leave this field empty.
-');
-INSERT INTO txt VALUES ('H5137', 'German',  'Cloud Client Secret: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
-');
-INSERT INTO txt VALUES ('H5137', 'English', 'Cloud Client Secret: If you have a cloud installation (e.g. Azure) - enter your Azure client secret here. For all other installations, leave this field empty.
-');
+INSERT INTO txt VALUES ('H5136', 'German', 'Zus&auml;tzliche Zugangsdaten: W&auml;hlen Sie separat angelegte Zugangsdaten, z.B. mit Cloud Client ID als Nutzer und Cloud Client Secret als Passwort oder mit dem Cisco ASA Enable-Passwort (Nutzer frei w&auml;hlbar, z.B. enable). Das Passwort wird verschl&uuml;sselt gespeichert. Entfernen Sie Verweise vor dem L&ouml;schen.');
+INSERT INTO txt VALUES ('H5136', 'English', 'Additional credential: Select separately created credentials, e.g. with the cloud client ID as username and client secret as password, or with the Cisco ASA enable password (any username, e.g. enable). The password is stored encrypted. Remove references before deleting a credential.');
 
 INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways einrichten und verwalten.<br>
     Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren eines neuen Gateways, indem Daten von einem existierenden kopiert werden.
@@ -7369,6 +7391,14 @@ INSERT INTO txt VALUES ('H5578', 'German',  'B&uuml;ndelung ber&uuml;cksichtigen
 INSERT INTO txt VALUES ('H5578', 'English', 'Consider bundling: When enabled, automatically created implementation tasks for request tasks with the same flow bundle id are created from one merged task. Tasks without a bundle id are still handled individually.');
 INSERT INTO txt VALUES ('H5579', 'German',  'Sichtbarkeit ber&uuml;cksichtigen: Aktiviert die Sichtbarkeitseinschr&auml;nkungen f&uuml;r den Workflow. Tickets, Auftr&auml;ge und Genehmigungen werden dann zus&auml;tzlich zu Rolle und Eigentum nach den zugeordneten Sichtbarkeitsgruppen gefiltert. Genehmigungen, die direkt an den eigenen Benutzer oder dessen Gruppe zugewiesen sind, bleiben ebenfalls sichtbar.');
 INSERT INTO txt VALUES ('H5579', 'English', 'Consider visibility: Activates workflow visibility restrictions. Tickets, tasks, and approvals are then filtered by their assigned visibility groups in addition to role and ownership checks. Approvals assigned directly to the current user or the user''s group stay visible as well.');
+INSERT INTO txt VALUES ('H5579a', 'German',  'Sichtbarkeit der Ticketfelder: Legt fest, welche Felder im Ticketdialog angezeigt werden. Antragsteller, Priorit&auml;t, Deadline und Grund sind standardm&auml;&szlig;ig sichtbar; Kommentare sind standardm&auml;&szlig;ig ausgeblendet.');
+INSERT INTO txt VALUES ('H5579a', 'English', 'Ticket field visibility: Defines which fields are displayed in the ticket dialog. Requester, priority, deadline, and reason are visible by default; comments are hidden by default.');
+INSERT INTO txt VALUES ('H5579b', 'German',  'Sichtbarkeit der Zugriff-Aufgabenfelder: Legt fest, welche beschreibenden Felder von Zugriff-Aufgaben angezeigt werden. Management, Eigent&uuml;mer, G&uuml;ltigkeitsdaten, Grund und Kommentare sind standardm&auml;&szlig;ig sichtbar; Freitext ist standardm&auml;&szlig;ig ausgeblendet.');
+INSERT INTO txt VALUES ('H5579b', 'English', 'Access task field visibility: Defines which descriptive access-task fields are displayed. Management, owner, validity dates, reason, and comments are visible by default; free text is hidden by default.');
+INSERT INTO txt VALUES ('H5579c', 'German',  'Geb&uuml;ndelte Auftr&auml;ge als einen Auftrag anzeigen: Wenn in den Workflow-Anpassungen aktiviert, werden geb&uuml;ndelte Zugriff-Auftr&auml;ge mit gleicher Flow-B&uuml;ndel-ID und gleichem Status in der Aufgabenansicht als ein Auftrag dargestellt. Bei unterschiedlichen Status bleiben sie getrennt; die enthaltenen Quellen, Ziele und Dienste werden zusammengef&uuml;hrt und doppelte Elemente entfernt.');
+INSERT INTO txt VALUES ('H5579c', 'English', 'Display bundled tasks as one task: When enabled in Workflow Customizing, bundled access tasks with the same flow bundle ID and state are shown as one task in task views. Different states remain separate; their sources, destinations, and services are merged and duplicates are removed.');
+INSERT INTO txt VALUES ('H5579d', 'German',  'Flow-Details und Herkunft: In schreibgesch&uuml;tzten Aufgaben k&ouml;nnen die Details von Netzwerk- und Service-Objekten &uuml;ber die Flow DB angezeigt werden. Falls ein Objekt dort nicht vorhanden ist, werden die Daten aus parallelen Gruppen- oder Objekt-Auftr&auml;gen desselben Tickets verwendet. Die Herkunft eines Elements wird als Tooltip angezeigt.');
+INSERT INTO txt VALUES ('H5579d', 'English', 'Flow details and origin: In read-only tasks, details of network and service objects can be viewed from the Flow DB. If an object is not available there, data from parallel group or object tasks of the same ticket is used. The origin of an element is shown as a tooltip.');
 INSERT INTO txt VALUES ('H5580', 'German',  'Pfadanalyse-Algorithmus: Legt fest, mit welchem Algorithmus die Pfadanalyse die betroffenen Gateways ermittelt. Ist &quot;Nach Pfadanalyse&quot; gew&auml;hlt, sollte hier nicht &quot;None&quot; stehen; ein Hinweis weist darauf hin, das Speichern bleibt m&ouml;glich. Der Algorithmus &quot;Network Zone Tree&quot; ben&ouml;tigt eine festgelegte Zonen-Matrix. Die Auswahl wird wirksam, sobald der Workflow die Gateways &uuml;ber diesen Algorithmus ermittelt; bis dahin verwendet er die routing-basierte Pfadanalyse.');
 INSERT INTO txt VALUES ('H5580', 'English', 'Path analysis algorithm: Defines the algorithm the path analysis uses to determine the affected gateways. If &quot;After path analysis&quot; is selected, this should not be &quot;None&quot;; a hint points this out, saving remains possible. The algorithm &quot;Network Zone Tree&quot; needs a designated zone matrix. The selection takes effect once the workflow determines the gateways with this algorithm; until then it uses the routing based path analysis.');
 INSERT INTO txt VALUES ('H5581', 'German',  'In diesem Abschnitt k&ouml;nnen die vorhandenen Eigent&uuml;mer eingesehen und administriert (falls in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert) werden.
@@ -7389,6 +7419,8 @@ INSERT INTO txt VALUES ('H5581e', 'German',  'Benutzer ohne Schreibberechtigung 
 INSERT INTO txt VALUES ('H5581e', 'English', 'Users without write permission still keep read access to owners, modelling views and recertification reports.');
 INSERT INTO txt VALUES ('H5582', 'German',  'Name: Name der Eigent&uuml;mers');
 INSERT INTO txt VALUES ('H5582', 'English', 'Name: Owner name');
+INSERT INTO txt VALUES ('H5582a', 'German',  'Text, der bei einer impliziten Genehmigung als Kommentar am Genehmigungsobjekt gespeichert wird.');
+INSERT INTO txt VALUES ('H5582a', 'English', 'Text stored as a comment on the approval object when approval is implicit.');
 INSERT INTO txt VALUES ('H5583', 'German',  'Hauptverantwortlicher (DN): Name und Ldap-Pfad des zugeordneten Nutzers.
     Mindestens eines der Felder "Hauptverantwortlicher (DN)" oder "Gruppe" muss gef&uuml;llt sein.
 ');
@@ -8584,7 +8616,7 @@ INSERT INTO txt VALUES ('H7271', 'German', 'Zuordnungen, die dieser Lauf angeleg
 INSERT INTO txt VALUES ('H7271', 'English', 'Mappings this run created because they did not exist before. The running update should have created them.');
 INSERT INTO txt VALUES ('H7272', 'German', 'Zuordnungen, die dieser Lauf entfernt hat, weil sie nicht mehr zutreffen. Die laufende Aktualisierung h&auml;tte sie abr&auml;umen m&uuml;ssen.');
 INSERT INTO txt VALUES ('H7272', 'English', 'Mappings this run removed because they no longer apply. The running update should have cleared them.');
-INSERT INTO txt VALUES ('H7273', 'German', 'Importe, die zu Beginn des Laufs noch nicht verarbeitet waren. Sind hier Nummern eingetragen, erkl&auml;rt der Rückstand den Unterschied und der Lauf sagt nichts &uuml;ber die Qualit&auml;t der laufenden Aktualisierung.');
+INSERT INTO txt VALUES ('H7273', 'German', 'Importe, die zu Beginn des Laufs noch nicht verarbeitet waren. Sind hier Nummern eingetragen, erkl&auml;rt der R&uuml;ckstand den Unterschied und der Lauf sagt nichts &uuml;ber die Qualit&auml;t der laufenden Aktualisierung.');
 INSERT INTO txt VALUES ('H7273', 'English', 'Imports that had not been processed when the run started. If numbers are listed here, the backlog explains the difference and the run says nothing about the quality of the running update.');
 INSERT INTO txt VALUES ('H7274', 'German', 'Was vor diesem Lauf ge&auml;ndert wurde. Deshalb weicht das Ergebnis bewusst vom vorherigen Stand ab, und der Unterschied wird nicht als Problem gemeldet.');
 INSERT INTO txt VALUES ('H7274', 'English', 'What was changed before this run. That is why the result deliberately differs from the previous state, and the difference is not reported as a problem.');

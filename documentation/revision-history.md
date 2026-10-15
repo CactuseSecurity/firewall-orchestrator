@@ -1,6 +1,18 @@
 # Firewall Orchestrator Revision History
 
 ## 9.7.3 - 14.10.2026
+- replace cloud client fields with selectable additional credentials; migrate existing values into encrypted credential secrets (#3766)
+- the Cisco ASA importer decrypts the selected additional credential for enable mode
+- modelling: auditors and admins can open the add and edit dialog of app roles again to try it out (closes #4968)
+  - saving stays restricted to owning modellers: the save button is disabled and saving is rejected as well
+  - deleting app roles stays restricted to owning modellers
+- modelling: cancelled changes in the edit dialog of an app role no longer show up in the library until the page is reloaded
+- modelling: if saving an app role fails, the dialog stays open with the changes not yet written, so saving can be retried;
+  the library shows what has already been written
+- request workflow: implicit approvals created when a task bypasses the approval phase are marked as system-generated and receive a configurable approval comment; the comment can be changed under Workflow Customizing
+- request workflow: optionally display request tasks sharing a flow bundle ID as one task when their states match; differing states remain separate
+- request workflow: ticket requester, priority, deadline, reason, and comments can be shown or hidden independently under Workflow Customizing; comments are hidden by default
+- REST-created workflow tickets store requestor and request-contact metadata once at ticket level instead of duplicating it in every request task; the UI displays the external requestor as `name (id)` when available
 - pin System.Security.Cryptography.Pkcs to 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
 
 ## 9.7.2 - 12.10.2026

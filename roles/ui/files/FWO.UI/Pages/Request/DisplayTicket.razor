@@ -36,14 +36,19 @@
                             </div>
                         </div>
                     </div>
+                    @if (TicketFieldVisibility.ShowRequester)
+                    {
                     <div class="col-sm-3">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("requester")):</label>
                             <div class="col-sm-8">
-                                <label class="col-sm-12 border bg-secondary">@WfHandler.ActTicket.Requester?.Name</label>
+                                <label class="col-sm-12 border bg-secondary">@TicketRequesterDisplay</label>
                             </div>
                         </div>
                     </div>
+                    }
+                    @if (TicketFieldVisibility.ShowPriority)
+                    {
                     <div class="col-sm-3">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("priority")):</label>
@@ -63,6 +68,9 @@
                             </div>
                         </div>
                     </div>
+                    }
+                    @if (TicketFieldVisibility.ShowDeadline)
+                    {
                     <div class="col-sm-3">
                         <div class="form-group row">
                             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("deadline")):</label>
@@ -78,13 +86,17 @@
                             </div>
                         </div>
                     </div>
+                    }
                 </div>
+                @if (TicketFieldVisibility.ShowReason)
+                {
                 <div class="form-group row mt-2">
                     <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("reason")):</label>
                     <div class="col-sm-11">
                         <textarea rows="3" type="text" class="form-control form-control-sm" readonly="@(!CanEditTicketField(WorkflowEditableFieldKeys.Reason))" @bind="WfHandler.ActTicket.Reason"/>   
                     </div>
                 </div>
+                }
                 <div class="col-sm-12 mt-2">
                     <div class="btn-group">
                         @foreach(var action in offeredActions)
@@ -111,6 +123,22 @@
 
                     <DisplayImplTaskTable Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" 
                         AllImplTasks="WfHandler.AllTicketImplTasks" StartImplPhase="StartImplementationPhase"/>
+                }
+                @if (TicketFieldVisibility.ShowComments)
+                {
+                    <div class="form-group row mt-2">
+                        <div class="col-sm-1">
+                            <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
+                            @if (Phase == WorkflowPhases.planning || Phase == WorkflowPhases.approval)
+                            {
+                                <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
+                                    @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
+                            }
+                        </div>
+                        <div class="col-sm-11">
+                            <textarea rows="3" type="text" class="form-control form-control-sm" readonly="true">@allComments</textarea>
+                        </div>
+                    </div>
                 }
             </form>
         }
@@ -177,8 +205,9 @@
     </Footer>
 </PopUp>
 
-<PromoteObject @bind-Promote="WfHandler.DisplaySaveTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="WfHandler.SaveTicket" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
-<PromoteObject @bind-Promote="WfHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="PromoteTicketForPhase" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States"/>
+<PromoteObject @bind-Promote="WfHandler.DisplaySaveTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="WfHandler.SaveTicket" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States" WithComment="@(Phase == WorkflowPhases.approval)"/>
+<PromoteObject @bind-Promote="WfHandler.DisplayPromoteTicketMode" CloseParent="Close" CancelParent="Cancel" ObjectName="@WfHandler.ActTicket.Title" Save="PromoteTicketForPhase" StatefulObject="WfHandler.ActTicket" StateMatrix="WfHandler.MasterStateMatrix" States="States" WithComment="@(Phase == WorkflowPhases.approval)"/>
+<CommentObject @bind-Display="WfHandler.DisplayTicketCommentMode" ResetParent="InitComments" ObjectName="@WfHandler.ActTicket.Title" Save="ConfAddComment"/>
 <InProgress Display="WorkInProgress"/>
 
 
@@ -208,10 +237,46 @@
 
     private List<int> possibleStates = new ();
     private List<WfStateAction> offeredActions = new ();
+    private TicketFieldVisibilityConfig TicketFieldVisibility => TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility);
+    private string allComments = "";
     private bool ConfirmCancelMode = false;
     private bool WorkInProgress = false;
     private WfPriority? selectedPriority;
     private bool firstParamSet = true;
+
+    private string TicketRequesterDisplay => BuildTicketRequesterDisplay();
+
+    private string BuildTicketRequesterDisplay()
+    {
+        string requestorName = GetTicketContactValue(AdditionalInfoKeys.RequestorName);
+        string requestorId = GetTicketContactValue(AdditionalInfoKeys.RequestorId);
+        if (!string.IsNullOrWhiteSpace(requestorName) && !string.IsNullOrWhiteSpace(requestorId))
+        {
+            return $"{requestorName} ({requestorId})";
+        }
+        if (!string.IsNullOrWhiteSpace(requestorName))
+        {
+            return requestorName;
+        }
+        if (!string.IsNullOrWhiteSpace(requestorId))
+        {
+            return requestorId;
+        }
+        return WfHandler.ActTicket.Requester?.Name ?? "";
+    }
+
+    private string GetTicketContactValue(string key)
+    {
+        string value = WfHandler.ActTicket.GetAdditionalInfoValue(key);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        return WfHandler.ActTicket.Tasks
+            .Select(task => task.GetAddInfoValue(key))
+            .FirstOrDefault(taskValue => !string.IsNullOrWhiteSpace(taskValue)) ?? "";
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -243,6 +308,7 @@
             {
                 offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActTicket, WfObjectScopes.Ticket, WfHandler.Phase);
             }
+            await InitComments();
             selectedPriority = WfHandler.PrioList.FirstOrDefault(p => p.NumPrio == WfHandler.ActTicket.Priority);
             await InvokeAsync(StateHasChanged);
         }
@@ -250,6 +316,25 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
         }
+    }
+
+    private async Task InitComments()
+    {
+        allComments = WfStatefulObject.DisplayAllComments(WfHandler.ActTicket.Comments);
+        WfHandler.DisplayTicketCommentMode = false;
+        await DefaultInit.DoNothing();
+    }
+
+    private void InitAddComment()
+    {
+        WfHandler.DisplayTicketCommentMode = true;
+    }
+
+    private async Task ConfAddComment(string commentText)
+    {
+        await WfHandler.ConfAddCommentToTicket(commentText);
+        await InitComments();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task CancelEdit()
@@ -378,7 +463,7 @@
         }
         else
         {
-            await WfHandler.PromoteTicket(ticket);
+            await WfHandler.PromoteTasksAndTicket(ticket);
         }
     }
 

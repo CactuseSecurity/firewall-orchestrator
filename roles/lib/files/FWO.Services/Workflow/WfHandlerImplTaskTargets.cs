@@ -38,7 +38,7 @@ namespace FWO.Services.Workflow
             SetTicketEnv(ticket);
             int previousCount = CountImplTasks(ActTicket);
             List<WfReqTask> openTasks = [.. ActTicket.Tasks.Where(RequestTaskIsOpen)];
-            foreach (WfReqTask task in await RequestTasksForInitialImplCreation(openTasks))
+            foreach (WfReqTask task in await RequestTasksForInitialImplCreation(openTasks, includeExistingImplementationTasks: true))
             {
                 await AutoCreateImplTasks(task);
                 SyncActTicketFromReqTask(task);

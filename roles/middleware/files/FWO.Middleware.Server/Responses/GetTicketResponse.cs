@@ -52,13 +52,17 @@ public sealed class GetTicketResponse
     [JsonPropertyName("requesterName")]
     public string RequesterName { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the stored requester identifier (LDAP DN or the requestorId given to createTicket).</summary>
+    /// <summary>Gets or sets the stored requester identifier, normally an LDAP DN.</summary>
     [JsonPropertyName("requesterDn")]
     public string RequesterDn { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the requester group (LDAP DN); empty when none is set.</summary>
     [JsonPropertyName("requesterGroup")]
     public string RequesterGroup { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the ticket-level JSON metadata.</summary>
+    [JsonPropertyName("additionalInfo")]
+    public string AdditionalInfo { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the tenant id of the ticket; null when none is set.</summary>
     [JsonPropertyName("tenantId")]

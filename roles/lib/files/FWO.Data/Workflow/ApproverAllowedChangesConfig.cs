@@ -208,6 +208,7 @@ namespace FWO.Data.Workflow
             [WfTaskType.access] =
             [
                 new(WorkflowEditableFieldKeys.Title),
+                new(WorkflowEditableFieldKeys.Owner),
                 new(WorkflowEditableFieldKeys.Management),
                 new(WorkflowEditableFieldKeys.Gateways),
                 new(WorkflowEditableFieldKeys.RuleAction),

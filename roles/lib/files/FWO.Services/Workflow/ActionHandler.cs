@@ -277,6 +277,10 @@ namespace FWO.Services.Workflow
                     if (toState == null || states.FirstOrDefault(x => x.Id == toState) != null)
                     {
                         await wfHandler.AutoPromote(statefulObject, scope, toState);
+                        if (WfStateAction.HasConfirmUiMessage(action.ExternalParams))
+                        {
+                            wfHandler.DisplayMessage(null, action.Name, BuildAutoPromoteMessage(statefulObject), false);
+                        }
                     }
                     break;
                 case nameof(StateActionTypes.AddApproval):
@@ -676,6 +680,25 @@ namespace FWO.Services.Workflow
                 }
             }
             Log.WriteInfo("Bundle Tasks", $"Bundled {bundleAssignments.Count} request tasks for flow creation.");
+            if (bundleParams.ConfirmUiMessage)
+            {
+                int bundleCount = bundleAssignments.Values.Distinct().Count();
+                wfHandler.DisplayMessage(null, action.Name, BuildBundleTasksMessage(bundleAssignments.Count, bundleCount), false);
+            }
+        }
+
+        private string BuildAutoPromoteMessage(WfStatefulObject statefulObject)
+        {
+            string? configuredStateName = states.FirstOrDefault(state => state.Id == statefulObject.StateId)?.Name;
+            string stateName = string.IsNullOrWhiteSpace(configuredStateName)
+                ? statefulObject.StateId.ToString()
+                : configuredStateName;
+            return $"{wfHandler.userConfig.GetText("auto_promoted_to")}{stateName}";
+        }
+
+        private string BuildBundleTasksMessage(int taskCount, int bundleCount)
+        {
+            return $"{taskCount}{wfHandler.userConfig.GetText("tasks_bundled_into")}{bundleCount}";
         }
 
         /// <summary>

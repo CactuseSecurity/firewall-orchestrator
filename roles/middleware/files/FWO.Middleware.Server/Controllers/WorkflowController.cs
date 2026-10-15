@@ -679,17 +679,20 @@ namespace FWO.Middleware.Server.Controllers
         /// middleware server, and keeps the row resolvable to the caller's user record.
         /// </summary>
         /// <param name="user">Authenticated caller of the action request.</param>
-        /// <param name="userConfig">Workflow config built for this request, supplying the changer name.</param>
+        /// <param name="userConfig">Workflow config built for this request, supplying the caller identity.</param>
         /// <param name="wfHandler">Workflow handler of this request, supplying the changer id.</param>
         /// <remarks>
         /// The endpoint is role gated, so a JWT is always present. A caller without a resolvable identity
-        /// keeps the empty name and no id, which the history writer records as an automated change. Only the
-        /// change history is fed here: the caller's authorization is evaluated on the claims themselves.
+        /// keeps the empty name and zero user id, which workflow persistence records as an automated change.
+        /// The caller's authorization is evaluated separately on the claims themselves.
         /// </remarks>
         internal static void ApplyCallerIdentity(ClaimsPrincipal user, UserConfig userConfig, WfHandler wfHandler)
         {
             userConfig.User.Name = user.FindFirstValue("unique_name") ?? "";
-            wfHandler.ChangerId = GetClaimInt(user, "x-hasura-user-id");
+            userConfig.User.Dn = user.FindFirstValue("x-hasura-uuid") ?? "";
+            int? callerId = GetClaimInt(user, "x-hasura-user-id");
+            userConfig.User.DbId = callerId ?? 0;
+            wfHandler.ChangerId = callerId;
         }
 
         private static int? GetClaimInt(ClaimsPrincipal user, string claimName)

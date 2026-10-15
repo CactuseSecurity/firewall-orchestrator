@@ -11591,6 +11591,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "primary_credentials",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "additional_credential_id",
+                      "table": {
+                        "name": "credential",
+                        "schema": "public"
+                      }
+                    }
+                  }
                 }
               ],
               "select_permissions": [
@@ -11598,12 +11610,12 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "cloud_client_id",
                       "credential_name",
                       "id",
                       "is_key_pair",
                       "public_key",
-                      "username"
+                      "username",
+                      "additional_credential_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11614,13 +11626,12 @@
                   "permission": {
                     "columns": [
                       "is_key_pair",
-                      "cloud_client_id",
-                      "cloud_client_secret",
                       "credential_name",
                       "username",
                       "id",
                       "public_key",
-                      "secret"
+                      "secret",
+                      "additional_credential_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -11631,16 +11642,23 @@
                   "permission": {
                     "columns": [
                       "is_key_pair",
-                      "cloud_client_id",
-                      "cloud_client_secret",
                       "credential_name",
                       "username",
                       "id",
                       "public_key",
-                      "secret"
+                      "secret",
+                      "additional_credential_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                }
+              ],
+              "object_relationships": [
+                {
+                  "name": "additional_credential",
+                  "using": {
+                    "foreign_key_constraint_on": "additional_credential_id"
                   }
                 }
               ]
@@ -31671,6 +31689,17 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -37176,6 +37205,7 @@
                     "columns": [
                       "id",
                       "locked",
+                      "additional_info",
                       "assigned_group",
                       "external_ticket_id",
                       "pre_workflow_ticket_reference",
@@ -37220,7 +37250,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ]
                   },
                   "comment": ""
@@ -37248,7 +37279,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ]
                   }
                 }
@@ -37276,7 +37308,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   }
@@ -37303,7 +37336,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   }
@@ -37330,7 +37364,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   }
@@ -37357,7 +37392,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   },
@@ -37385,7 +37421,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   },
@@ -37413,7 +37450,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   }
@@ -37440,7 +37478,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   },
@@ -37468,7 +37507,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   },
@@ -37496,7 +37536,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   }
@@ -37523,7 +37564,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   }

@@ -92,6 +92,9 @@ namespace FWO.Test
         [TestCase("::ffff:c000:20a")]
         [TestCase("::c000:20a")]
         [TestCase("2001:db8::192.0.2.10")]
+        [TestCase("64:ff9b::192.0.2.1")]
+        [TestCase("::2")]
+        [TestCase("::-::ffff")]
         [TestCase("192.0.2.0/+24")]
         [TestCase("192.0.2.0/ 24")]
         [TestCase("192.0.2.0/24 ")]
@@ -104,8 +107,10 @@ namespace FWO.Test
 
         [TestCase("192.0.2.10", "192.0.2.10", "192.0.2.10")]
         [TestCase("192.0.2.10-192.0.2.20", "192.0.2.10", "192.0.2.20")]
+        [TestCase("192.0.2.10 - 192.0.2.20", "192.0.2.10", "192.0.2.20")]
         [TestCase("192.0.2.10/24", "192.0.2.0", "192.0.2.255")]
         [TestCase("2001:db8::10", "2001:db8::10", "2001:db8::10")]
+        [TestCase("2001:db8::10 - 2001:db8::20", "2001:db8::10", "2001:db8::20")]
         [TestCase("2001:db8::10/126", "2001:db8::10", "2001:db8::13")]
         public void TryParseIPStringToRange_StandardAddress_StrictTrue_Succeeds(
             string input,

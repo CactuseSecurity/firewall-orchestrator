@@ -599,7 +599,12 @@ namespace FWO.Basics
         private static bool HasStrictIpParseFormat(string ipString)
         {
             string[] rangeParts = ipString.Split('-');
-            return rangeParts.Length is 1 or 2 && rangeParts.All(HasStrictAddressFormat);
+            return rangeParts.Length switch
+            {
+                1 => HasStrictAddressFormat(rangeParts[0]),
+                2 => rangeParts.All(part => HasStrictAddressFormat(part.Trim())),
+                _ => false
+            };
         }
 
         /// <summary>

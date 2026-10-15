@@ -1,6 +1,73 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.3 - 14.10.2026
+- replace cloud client fields with selectable additional credentials; migrate existing values into encrypted credential secrets (#3766)
+- the Cisco ASA importer decrypts the selected additional credential for enable mode
+- modelling: auditors and admins can open the add and edit dialog of app roles again to try it out (closes #4968)
+  - saving stays restricted to owning modellers: the save button is disabled and saving is rejected as well
+  - deleting app roles stays restricted to owning modellers
+- modelling: cancelled changes in the edit dialog of an app role no longer show up in the library until the page is reloaded
+- modelling: if saving an app role fails, the dialog stays open with the changes not yet written, so saving can be retried;
+  the library shows what has already been written
+- request workflow: implicit approvals created when a task bypasses the approval phase are marked as system-generated and receive a configurable approval comment; the comment can be changed under Workflow Customizing
+- request workflow: optionally display request tasks sharing a flow bundle ID as one task when their states match; differing states remain separate
+- request workflow: ticket requester, priority, deadline, reason, and comments can be shown or hidden independently under Workflow Customizing; comments are hidden by default
+- REST-created workflow tickets store requestor and request-contact metadata once at ticket level instead of duplicating it in every request task; the UI displays the external requestor as `name (id)` when available
+- pin System.Security.Cryptography.Pkcs to 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
+- middleware REST API: unify address inputs for `getAddressObjectId`, `getFlowComplianceState`,
+  `resolveZonesForObjects` and `createTicket.addressObjects`. Each address now uses exactly one of
+  `ipHost`, `ipNetwork` or the two-entry `ipRange`; values follow the shared FWO IP parser and CIDRs
+  are normalized to inclusive bounds. Breaking change: the legacy request fields `ipStart` and
+  `ipEnd` were removed, so clients must migrate start/end pairs to one of the new representations.
+  Response payloads and persisted workflow start/end bounds are unchanged
+
+## 9.7.2 - 12.10.2026
+- security (GHSA-695m-f6mv-9g72): a dn no longer identifies a subject across LDAP connections
+  - every dn belongs to exactly one active LDAP connection, the one whose search or write paths contain it (the most
+    specific path wins). Roles, groups, owner responsibles, workflow visibility groups and workflow assignments
+    naming a dn therefore only apply to the user of that connection. User entries and groups that a directory reports
+    outside its own paths are ignored
+  - active LDAP connections must not share a search or write path (nested paths are allowed, the more specific
+    one wins); saving such a connection is refused. The upgrade and the middleware start log a warning for existing
+    connections sharing a path, whose users below that path can no longer log in until the paths are distinct
+  - an LDAP connection lists up to 10 servers of its directory (ldap_server becomes an array, the REST parameter
+    Address becomes the list Addresses), tried in order with failover. Replicas that were configured as separate
+    connections have to be combined into one connection
+  - the workflow compares requester and handler by local user id and resolves the groups of a caller in the
+    directory of its local user
+  - user administration acts on the directory of the local user only: change, password change and reset, and delete
+    reject the id of another LDAP connection instead of acting on every directory holding the dn; adding a user
+    requires the target connection when several are writable, and a group search covers one connection
+  - local users are bound to the immutable object id of their directory entry (objectGUID, entryUUID, nsUniqueId,
+    ipaUniqueID or GUID) at their next login with password, and follow a renamed entry (also a case-only change of
+    its dn). If the dn of a bound local user later names another entry, login and token refresh are refused (A0008)
+    and its sessions are ended until an admin deletes the local user. The upgrade ends the sessions of local users that are not bound yet, so every user
+    has to log in with password once after the upgrade
+- update NuGet packages: Quartz 4.4.0, PuppeteerSharp 25.13.1, Scalar.AspNetCore 2.17.14, AngleSharp 1.8.4,
+  NUnit3TestAdapter 6.3.1; regenerate SBOM
+- implementation tasks of object tasks are created per target management
+  (group create/modify/delete, object create/modify). The target management follows the provisioning settings
+  address/service object creation (super- or sub-management); request.impltask gets the new column mgm_id
+- new workflow action "create implementation tasks" creates the missing implementation tasks of a ticket, also
+  with an active planning phase; existing implementation tasks are kept
+- the path analysis algorithm moved to the workflow customizing settings; "after path analysis" without an algorithm
+  shows a hint, saving stays possible
+- fix: implementation tasks of rule_delete tasks take the gateway of the rule element instead of the first element,
+  so rule deletions from the modelling no longer get an implementation task without gateway
+- the target managements of object tasks are resolved in the middleware (new endpoint
+  POST /api/workflow/getImplTaskTargets for admin, the workflow roles and the modeller, limited to the managements
+  visible to the caller), so the ui finds every sub-management without read access to the provisioning settings;
+  the targets are resolved once per creation run; targets not visible to the caller are returned without name, so
+  their implementation tasks get no management suffix in the title
+- the implementation task table and the details of group and object implementation tasks show the target management
+  ("not visible" for managements hidden from the user)
+- getImplTaskTargets carries the expensive rate-limit policy and a request body size limit, pages its result with
+  options.limit (default and maximum 1000) / options.offset and the X-Has-More header, orders the targets by name
+  and id with the targets without name last, and limits the name filter to 256 characters; the ui reads every page
+
 ## 9.7.1 - 09.10.2026
+- installer: show a summary of elapsed task time per role at the end of the playbook, longest first;
+  repeated executions of the same role are combined, including handlers
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
   configurable with one switch per connection type, validated against the host trust store:
   - firewall connections (importCheckCertificates): now also covers autodiscovery and Check Point change
@@ -152,13 +219,71 @@
   - rule uids of entries that were already parsed correctly do not change. Entries whose meaning changed (icmp
     with a type, lt / gt ports, any6 and IPv6 addresses, subnets given by a name alias, entries with a
     time-range) get new uids, so they show up as removed and added on the first import after the upgrade
+- security (GHSA-4qpx-88jv-297x): the per-ticket locks of the middleware workflow action endpoint no longer pile up
+  - a lock exists only while a request holds or waits for its ticket and is removed afterwards, so requests with
+    many different ticket ids no longer grow the middleware memory; waiting stops when the client aborts
+  - at most 1000 tickets, 32 requests per ticket and 8 tickets per user are locked or waited for at the same
+    time; further requests get a retry message and are not processed. Ticket ids of 0 or less are rejected
+- security (GHSA-m87v-j229-2g65): bound the work single middleware REST requests can cause
+  - every user may send 600 requests per minute (with bursts of up to one minute's budget); getFlowComplianceState,
+    getIpDataForOwners and the Flow catalog lists additionally run at most 2 requests per user at the same time
+    and accept request bodies up to 1 MiB. Rejected requests get 429 with Retry-After. Service accounts,
+    anonymous tokens and unauthenticated requests are not limited here; the limits can be set in fworch.json
+    (rate_limit_* keys, see documentation/auth/README.md)
+  - breaking change for API clients that do not page: getIpDataForOwners returns at most 10000 applications per
+    request, getAddressObjects, getServiceObjects and getTimeObjects at most 1000 objects and getAddressGroups
+    and getServiceGroups at most 250 groups (new root keys limit and offset for the Flow catalog lists). The
+    response header X-Has-More tells whether further entries follow
+  - getFlowComplianceState loads all requested policies with one query and accepts at most 100 entries each in
+    source, destination, service and policies
+- security (GHSA-frxw-mwhq-xgjq): failed initial workflow actions of a new ticket are no longer reported as success
+  - the ticket stays saved, but the failure is recorded in its change history and raised as an alert
+  - the createTicket api returns the new field actionsStatus (completed or failed)
+  - a ticket that was saved but could not be read back is reported as saved with failed initial actions (which are
+    not executed then) instead of as not saved, so that api clients do not create it a second time
+- security (GHSA-2xpm-58hq-qwvm): getServiceObjectId no longer picks one of several matching portless services
+  - if more than one service object matches (e.g. several icmp services), the lookup answers with 409 and the
+    candidates instead of an id; services with ports and the canonical ANY service are unique
+- security (GHSA-8hf3-3hp5-gj32): verify installer downloads against pinned values
+  - the Hasura container image is pinned by digest and the installer checks that the running server has the
+    configured version; the Hasura cli, dotnet-install.sh (pinned to a commit of dotnet/install-scripts) and the
+    Microsoft repository .deb are checked against a checksum, the Microsoft repository .rpm and the EPEL release
+    package against signing keys with pinned fingerprints, before they are executed or installed; Chrome for Testing
+    is still fetched without a pinned value
+  - remote servers are connected with StrictHostKeyChecking=accept-new instead of no: a changed host key aborts
+    the installation (see documentation/installer/install-advanced.md)
+  - all actions of the GitHub workflows are pinned to commit SHAs; policy tests reject unpinned actions, container
+    images without digest, downloaded scripts and .deb packages without checksum, downloaded .rpm packages without
+    signature check and disabled host key checking in the inventory or ansible.cfg
+  - Chrome for Testing keeps following the current stable release (accepted risk, documented)
+- security (GHSA-9j26-vffp-8f83): fix the release build of the UI, which the installer uses
+  - an unexpected error while checking the report filter is now logged in every build configuration; the
+    filter input is shown without error marker, details appear in the UI in debug builds only
+  - a new job of the test install workflow builds all projects in Release configuration
+- security (GHSA-jhj7-f9vj-r9v8): auditors could read the Authorization header string of external ticket systems
+  in the ticket system configuration and in every external request created with it (external request monitoring)
+  - external ticket systems now reference a credential (username and encrypted password, no key pair) instead of
+    keeping the header string; the middleware builds the basic authentication header right before each call to
+    the ticket system (also for the requester lookup) from the credential the ticket system currently references,
+    so a changed password or a newly selected credential applies to open requests as well; the credential stored
+    with a request is used if its ticket system was removed or no longer has the URL and type the request is sent to
+    (e.g. reused id, moved to another server), so a configured credential does not go to another endpoint. A header
+    that cannot be built when sending counts as a failed attempt of the request
+  - the table import_credential (and its sequence) is renamed to credential, as credentials are no longer used for
+    imports only; the GraphQL root fields change accordingly (credential, insert_credential, ...), the management
+    relationships and columns keep their names. The UI calls them credentials, the C# class ImportCredential is
+    renamed to Credential
+  - credentials still used by an external ticket system cannot be deleted, neither in the settings nor by removing
+    the sample data
+  - upgrades move a basic authentication header string of the form "Basic base64(username:password)" into a new
+    credential named "<ticket system> (external ticket system <id>)", and existing requests of such a ticket system
+    reference it instead of their header string if they are sent to the URL and type the ticket system has now;
+    other header strings (e.g. tokens) are removed from the ticket systems, select a credential for them; the header
+    strings of all other existing requests are kept, encrypted with the main key. The external request monitoring
+    shows such a header as "****".
+    Rotate the passwords of the ticket system accounts, as they may already have been read
+- api: upgrade hasura graphql API to 2.50.3
 - importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
-- middleware REST API: unify address inputs for `getAddressObjectId`, `getFlowComplianceState`,
-  `resolveZonesForObjects` and `createTicket.addressObjects`. Each address now uses exactly one of
-  `ipHost`, `ipNetwork` or the two-entry `ipRange`; values follow the shared FWO IP parser and CIDRs
-  are normalized to inclusive bounds. Breaking change: the legacy request fields `ipStart` and
-  `ipEnd` were removed, so clients must migrate start/end pairs to one of the new representations.
-  Response payloads and persisted workflow start/end bounds are unchanged
 
 ## 9.7.0 - 07.10.2026
 - resolve reverse DNS asynchronously with shutdown cancellation; reuse stored names and empty

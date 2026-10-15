@@ -5,8 +5,25 @@ namespace FWO.Middleware.Server.Requests;
 /// <summary>
 /// Represents the CreateTicketRequest type.
 /// </summary>
+/// <remarks>
+/// Collections contain at most <see cref="kMaxCollectionCount"/> items. Short persisted strings contain at most
+/// <see cref="kMaxIdentifierLength"/> characters and persisted descriptive text contains at most
+/// <see cref="kMaxTextLength"/> characters.
+/// </remarks>
 public sealed class CreateTicketRequest
 {
+    /// <summary>Maximum number of items in any create-ticket collection.</summary>
+    public const int kMaxCollectionCount = 1000;
+
+    /// <summary>Maximum length of identifiers, names and other short persisted strings.</summary>
+    public const int kMaxIdentifierLength = 256;
+
+    /// <summary>Maximum length of persisted descriptive text.</summary>
+    public const int kMaxTextLength = 4096;
+
+    /// <summary>Maximum length of date-time strings accepted by the API.</summary>
+    public const int kMaxDateTimeLength = 64;
+
     private CreateTicketOptions options = new();
 
     /// <summary>
@@ -44,6 +61,12 @@ public sealed class CreateTicketRequest
     /// </summary>
     [JsonPropertyName("title")]
     public string Title { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets the optional notes stored as the ticket reason.
+    /// </summary>
+    [JsonPropertyName("notes")]
+    public string? Notes { get; set; }
 
     /// <summary>
     /// Gets the optional create-ticket behavior settings. Defaults to an empty object.
@@ -126,6 +149,18 @@ public sealed class CreateTicketRequest
         /// </summary>
         [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets the optional task description stored as request-task free text.
+        /// </summary>
+        [JsonPropertyName("description")]
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// Gets the optional request-task reason.
+        /// </summary>
+        [JsonPropertyName("reason")]
+        public string? Reason { get; set; }
 
         /// <summary>
         /// Gets the SourceObjects value. Negative ids reference address objects declared in this request;
@@ -345,13 +380,13 @@ public sealed class CreateTicketRequest
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the start time. Values without a timezone offset are interpreted in the middleware host's local time zone.
+        /// Gets the start time. A date-only value starts at midnight. Values without a timezone offset are interpreted in the middleware host's local time zone.
         /// </summary>
         [JsonPropertyName("startTime")]
         public string StartTime { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the end time. Values without a timezone offset are interpreted in the middleware host's local time zone.
+        /// Gets the end time. A date-only value is interpreted as the end of that calendar day. Values without a timezone offset are interpreted in the middleware host's local time zone.
         /// </summary>
         [JsonPropertyName("endTime")]
         public string EndTime { get; set; } = string.Empty;

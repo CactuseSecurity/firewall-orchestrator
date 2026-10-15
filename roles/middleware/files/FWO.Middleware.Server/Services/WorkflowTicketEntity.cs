@@ -72,8 +72,8 @@ internal sealed record WorkflowTicketEntity(
 
     public static WorkflowTicketEntity FromTimeObject(long id, CreateTicketRequest.CreateTimeObjectRequest request)
     {
-        DateTime? startTime = ParseDateTime(request.StartTime, "startTime");
-        DateTime? endTime = ParseDateTime(request.EndTime, "endTime");
+        DateTime? startTime = ParseDateTime(request.StartTime, "startTime", false);
+        DateTime? endTime = ParseDateTime(request.EndTime, "endTime", true);
         return new WorkflowTicketEntity(id, WorkflowTicketEntityKind.TimeObject, request.Name, TimeStart: startTime, TimeEnd: endTime);
     }
 
@@ -83,8 +83,18 @@ internal sealed record WorkflowTicketEntity(
             TimeStart: flowObject.StartTime, TimeEnd: flowObject.EndTime);
     }
 
-    private static DateTime? ParseDateTime(string value, string fieldName)
+    private static DateTime? ParseDateTime(string value, string fieldName, bool dateOnlyMeansEndOfDay)
     {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (DateTime.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dateOnly))
+        {
+            return dateOnlyMeansEndOfDay ? dateOnly.Date.AddDays(1).AddTicks(-1) : dateOnly.Date;
+        }
+
         try
         {
             DateTime parsedDateTime = DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);

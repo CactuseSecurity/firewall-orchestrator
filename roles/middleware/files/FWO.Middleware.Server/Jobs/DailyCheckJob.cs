@@ -176,7 +176,7 @@ namespace FWO.Middleware.Server.Jobs
             if (demoDataFlags.AnyFlagSet())
             {
                 string description = globalConfig.GetText("sample_data_found_in") + (demoDataFlags.SampleManagementExisting ? globalConfig.GetText("managements") + " " : "") +
-                                                        (demoDataFlags.SampleCredentialExisting ? globalConfig.GetText("import_credential") + " " : "") +
+                                                        (demoDataFlags.SampleCredentialExisting ? globalConfig.GetText("credentials") + " " : "") +
                                                         (demoDataFlags.SampleUserExisting ? globalConfig.GetText("users") + " " : "") +
                                                         (demoDataFlags.SampleTenantExisting ? globalConfig.GetText("tenants") + " " : "") +
                                                         (demoDataFlags.SampleGroupExisting ? globalConfig.GetText("groups") + " " : "") +
@@ -193,7 +193,7 @@ namespace FWO.Middleware.Server.Jobs
         private async Task<DemoDataFlags> CheckDemoDataExisting()
         {
             List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
-            List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentialsWithoutSecrets);
+            List<Credential> credentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentialsWithoutSecrets);
             List<UiUser> users = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
             List<Tenant> tenants = await apiConnection.SendQueryAsync<List<Tenant>>(AuthQueries.getTenants);
             bool sampleGroupExisting = false;

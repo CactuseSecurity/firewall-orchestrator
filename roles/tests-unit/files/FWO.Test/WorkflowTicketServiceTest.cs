@@ -10,6 +10,7 @@ using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
+using FWO.Services.Workflow;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
@@ -237,6 +238,7 @@ internal class WorkflowTicketServiceTest
             RuleContactId = "bob",
             PreWorkflowTicketReference = "Ticket-12345",
             Title = "Allow HTTPS to app server",
+            Notes = "Ticket-level notes",
             AddressObjects =
             [
                 new CreateTicketRequest.CreateAddressObjectRequest
@@ -273,6 +275,8 @@ internal class WorkflowTicketServiceTest
                 {
                     Action = "accept",
                     Name = "Allow app traffic",
+                    Description = "Task description",
+                    Reason = "Task reason",
                     SourceObjects = [-1],
                     DestinationObjects = [-1],
                     ServiceObjects = [-2],
@@ -286,6 +290,7 @@ internal class WorkflowTicketServiceTest
         {
             Assert.That(response.Status, Is.EqualTo("draft"));
             Assert.That(response.TicketId, Is.EqualTo(100));
+            Assert.That(response.ActionsStatus, Is.EqualTo(WfTicketCreationResult.kActionsCompleted));
             Assert.That(apiConnection.SentQueries, Does.Contain(RequestQueries.getStates));
             Assert.That(apiConnection.SentQueries, Does.Contain(StmQueries.getRuleActions));
             Assert.That(apiConnection.SentQueries, Does.Contain(StmQueries.getIpProtocols));
@@ -306,9 +311,135 @@ internal class WorkflowTicketServiceTest
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate, Is.Not.Null);
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate!.Value.Kind, Is.EqualTo(expectedDateTimeKind));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate!.Value.Kind, Is.EqualTo(expectedDateTimeKind));
+            Assert.That(apiConnection.CreatedTicket!.Reason, Is.EqualTo("Ticket-level notes"));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].FreeText, Is.EqualTo("Task description"));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Reason, Is.EqualTo("Business approved.\nTask reason"));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("-3"));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeStart"), Is.EqualTo(""));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeEnd"), Is.EqualTo(""));
+        });
+    }
+
+    /// <summary>
+    /// SEC-26: a ticket whose initial workflow actions fail is still saved, but the response must say so explicitly
+    /// instead of looking like a plain success, and the failure must be alerted.
+    /// </summary>
+    [Test]
+    public async Task CreateTicket_ReportsFailedInitialActions()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            // created directly in state 17: a ticket created in state 0 has no state change and runs no initial actions
+            States = [new WfState { Id = 17, Name = "requested", Actions = [BrokenOnSetTicketAction()] }, new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations = [CreateWorkflowConfiguration("request-active", CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))]
+        };
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Allow HTTPS to app server",
+            AddressObjects =
+            [
+                new CreateTicketRequest.CreateAddressObjectRequest { Id = -1, Name = "app-server-1", IpHost = "192.0.2.10" }
+            ],
+            ServiceObjects =
+            [
+                new CreateTicketRequest.CreateServiceObjectRequest { Id = -2, Name = "https", Protocol = "tcp", PortStart = 443, PortEnd = 443 }
+            ],
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, kTrustedCallerId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.TicketId, Is.EqualTo(100));
+            Assert.That(response.ActionsStatus, Is.EqualTo(WfTicketCreationResult.kActionsFailed));
+            Assert.That(apiConnection.AlertVariables, Has.Count.EqualTo(1));
+        });
+    }
+
+    private static WfStateActionDataHelper BrokenOnSetTicketAction()
+    {
+        return new WfStateActionDataHelper
+        {
+            SortOrder = 1,
+            Action = new WfStateAction
+            {
+                Name = "broken add approval",
+                ActionType = StateActionTypes.AddApproval.ToString(),
+                Scope = WfObjectScopes.Ticket.ToString(),
+                Event = StateActionEvents.OnSet.ToString(),
+                ExternalParams = "{invalid"
+            }
+        };
+    }
+
+    [Test]
+    public async Task CreateTicket_DateOnlyTimeObjectUsesStartOfDayAndEndOfDay()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
+
+        await service.CreateTicketAsync(new CreateTicketRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Date-only validity",
+            AddressObjects =
+            [
+                new CreateTicketRequest.CreateAddressObjectRequest
+                {
+                    Id = -1,
+                    Name = "server",
+                    IpHost = "192.0.2.10"
+                }
+            ],
+            TimeObjects =
+            [
+                new CreateTicketRequest.CreateTimeObjectRequest
+                {
+                    Id = -2,
+                    Name = "Until date",
+                    EndTime = "2026-12-31"
+                }
+            ],
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    TimeObjectId = -2
+                }
+            ]
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
+            Assert.That(apiConnection.LastTicketWriter!.Tasks[0].TargetBeginDate, Is.Null);
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate,
+                Is.EqualTo(new DateTime(2026, 12, 31, 23, 59, 59, 999, DateTimeKind.Unspecified).AddTicks(9999)));
         });
     }
 
@@ -1412,7 +1543,7 @@ internal class WorkflowTicketServiceTest
     }
 
     [Test]
-    public async Task CreateTicket_ReturnsOkResponseAndUsesPayloadRequester()
+    public async Task CreateTicket_UsesAuthenticatedRequesterAndStoresPayloadRequesterMetadata()
     {
         WorkflowTicketServiceApiConn apiConnection = new()
         {
@@ -1502,6 +1633,12 @@ internal class WorkflowTicketServiceTest
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
             Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(3));
             Assert.That(apiConnection.CreatedTicket!.Requester?.DbId, Is.EqualTo(77));
+            Assert.That(apiConnection.CreatedTicket.AdditionalInfo, Does.Contain("\"requestorName\":\"Payload Requester\""));
+            Assert.That(apiConnection.CreatedTicket.AdditionalInfo, Does.Contain("\"requestorId\":\"payload-requester\""));
+            Assert.That(apiConnection.CreatedTicket.AdditionalInfo, Does.Contain("\"requestContactName\":\"Bob Approver\""));
+            Assert.That(apiConnection.CreatedTicket.AdditionalInfo, Does.Contain("\"requestContactId\":\"bob\""));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.RequestorName), Is.Empty);
+            Assert.That(apiConnection.LastTicketWriter.Tasks[2].GetAddInfoValue(AdditionalInfoKeys.RequestContactName), Is.Empty);
             Assert.That(apiConnection.CreatedTicket.Tasks[2].Owners, Has.Count.EqualTo(1));
             Assert.That(apiConnection.CreatedTicket.Tasks[2].Owners[0].Owner.Id, Is.EqualTo(42));
             Assert.That(apiConnection.LastTicketWriter!.Tasks[2].Owners.WfOwnerList, Has.Count.EqualTo(1));
@@ -2145,6 +2282,54 @@ internal class WorkflowTicketServiceTest
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
             Assert.That(apiConnection.SentQueries, Does.Contain(RequestQueries.getExtStates));
         });
+    }
+
+    /// <summary>
+    /// F22: failed status enrichment after persistence must return the saved identity and action outcome.
+    /// </summary>
+    [TestCase(false, false)]
+    [TestCase(false, true)]
+    [TestCase(true, false)]
+    [TestCase(true, true)]
+    public async Task CreateTicket_PreservesSavedResultWhenStatusEnrichmentThrows(bool initialActionsFail, bool stateNamesFail)
+    {
+        List<WfStateActionDataHelper> actions = initialActionsFail ? [BrokenOnSetTicketAction()] : [];
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 17, Name = "requested", Actions = actions }, new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations = [CreateWorkflowConfiguration("request-active", CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))],
+            ThrowOnStateLookupAfterCreation = stateNamesFail,
+            ThrowOnExternalStateLookup = !stateNamesFail
+        };
+        using WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+
+        CreateTicketResponse response = await service.CreateTicketAsync(CreateBaseRequest("Status enrichment failure"), kTrustedCallerId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.TicketId, Is.EqualTo(apiConnection.CreatedTicket?.Id).And.GreaterThan(0));
+            Assert.That(response.Status, Is.EqualTo("17"));
+            Assert.That(response.ActionsStatus, Is.EqualTo(initialActionsFail
+                ? WfTicketCreationResult.kActionsFailed : WfTicketCreationResult.kActionsCompleted));
+            Assert.That(apiConnection.SentQueries.Count(query => query == RequestQueries.newTicket), Is.EqualTo(1));
+        });
+    }
+
+    /// <summary>
+    /// Status reads must still report unavailable state data instead of treating the read as successful creation.
+    /// </summary>
+    [Test]
+    public void GetTicketStatusAsync_ThrowsWhenStateNamesCannotBeLoaded()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            Ticket = new WfTicket { Id = 42, StateId = 17 },
+            ThrowOnStateLookup = true
+        };
+        using WorkflowTicketService service = new(apiConnection, new GlobalConfig());
+
+        Assert.ThrowsAsync<InvalidOperationException>(() => service.GetTicketStatusAsync(42));
     }
 
     [TestCase("999")]
@@ -2963,8 +3148,12 @@ internal class WorkflowTicketServiceTest
             }
         ];
         public string[]? ExtStateErrors { get; set; }
+        public bool ThrowOnStateLookup { get; set; }
+        public bool ThrowOnStateLookupAfterCreation { get; set; }
+        public bool ThrowOnExternalStateLookup { get; set; }
         public WfTicketWriter? LastTicketWriter { get; private set; }
         public int AddHistoryEntryCallCount { get; private set; }
+        public List<object?> AlertVariables { get; } = [];
         public object? LastHistoryVariables { get; private set; }
         public string? LastHistoryQuery { get; private set; }
         public object? NewTicketVariables { get; private set; }
@@ -2996,6 +3185,17 @@ internal class WorkflowTicketServiceTest
                 return Task.FromResult((QueryResponseType)(object)new List<UiText>());
             }
 
+            if (query == MonitorQueries.getOpenAlerts)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<Alert>());
+            }
+
+            if (query == MonitorQueries.addAlert)
+            {
+                AlertVariables.Add(variables);
+                return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId { NewIdLong = 1 }] });
+            }
+
             if (query == ModellingQueries.addHistoryEntry || query == ModellingQueries.addHistoryEntryAsService)
             {
                 AddHistoryEntryCallCount++;
@@ -3014,6 +3214,10 @@ internal class WorkflowTicketServiceTest
 
             if (responseType == typeof(List<WfState>))
             {
+                if (ThrowOnStateLookup || (ThrowOnStateLookupAfterCreation && CreatedTicket != null))
+                {
+                    throw new InvalidOperationException("Simulated state name query failure");
+                }
                 return Task.FromResult((QueryResponseType)(object)States);
             }
 
@@ -3091,6 +3295,10 @@ internal class WorkflowTicketServiceTest
 
             if (typeof(QueryResponseType) == typeof(List<WfExtState>))
             {
+                if (ThrowOnExternalStateLookup)
+                {
+                    throw new InvalidOperationException("Simulated external state query failure");
+                }
                 if (ExtStateErrors != null)
                 {
                     return Task.FromResult((ApiResponse<QueryResponseType>)(object)new ApiResponse<List<WfExtState>>(ExtStateErrors));
@@ -3201,6 +3409,7 @@ internal class WorkflowTicketServiceTest
             {
                 Id = ticketId,
                 Title = Convert.ToString(GetVariable(variables, "title")) ?? "",
+                AdditionalInfo = Convert.ToString(GetVariable(variables, "additionalInfo")),
                 StateId = Convert.ToInt32(GetVariable(variables, "state") ?? 0),
                 Reason = Convert.ToString(GetVariable(variables, "reason")) ?? "",
                 PreWorkflowTicketReference = Convert.ToString(GetVariable(variables, "preWorkflowTicketReference")),

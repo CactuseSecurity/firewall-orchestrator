@@ -197,7 +197,7 @@ namespace FWO.Test
                 Name = "cp-mgmt",
                 Hostname = "checkpoint-test.xxx.de",
                 Port = 443,
-                ExportCredential = new ImportCredential("tester", "secret")
+                ExportCredential = new Credential("tester", "secret")
             };
 
             SimulatedCheckPointClient checkPointClient = new(retryCheckPointSystem, management);
@@ -715,7 +715,7 @@ namespace FWO.Test
                 Name = "cp-mgmt",
                 Hostname = "checkpoint-test.xxx.de",
                 Port = 443,
-                ExportCredential = new ImportCredential("tester", "secret")
+                ExportCredential = new Credential("tester", "secret")
             };
         }
 

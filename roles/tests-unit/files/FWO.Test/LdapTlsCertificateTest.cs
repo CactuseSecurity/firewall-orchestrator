@@ -179,7 +179,7 @@ namespace FWO.Test
         {
             Ldap ldap = new()
             {
-                Address = "127.0.0.1",
+                Addresses = ["127.0.0.1"],
                 Port = 1,
                 Tls = true
             };
@@ -197,10 +197,10 @@ namespace FWO.Test
         {
             Ldap ldap = new()
             {
-                Address = "ldap.example.test",
+                Addresses = ["ldap.example.test"],
                 Port = 636
             };
-            List<object?> parameters = new() { certificate, chain, errors };
+            List<object?> parameters = new() { "ldap.example.test", certificate, chain, errors };
             return TestHelper.InvokeMethod<Ldap, bool>(
                 "ValidateLdapServerCertificate",
                 parameters.ToArray(),

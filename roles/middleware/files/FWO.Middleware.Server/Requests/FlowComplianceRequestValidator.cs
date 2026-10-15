@@ -12,6 +12,12 @@ public static class FlowComplianceRequestValidator
     private const string GetPolicyIdsEndpointName = "getPolicyIds";
     private const string GetFlowComplianceStateEndpointName = "getFlowComplianceState";
 
+    /// <summary>Maximum number of entries in each of 'source', 'destination' and 'service'.</summary>
+    public const int kMaxRangeEntries = 100;
+
+    /// <summary>Maximum number of entries in 'policies'.</summary>
+    public const int kMaxPolicies = 100;
+
     private static readonly RequestRootValidationSchema PolicyIdsRootSchema = new(
         GetPolicyIdsEndpointName,
         []);
@@ -19,10 +25,10 @@ public static class FlowComplianceRequestValidator
     private static readonly RequestRootValidationSchema FlowComplianceRootSchema = new(
         GetFlowComplianceStateEndpointName,
         [
-            new RequestKeyDefinition("source", "Source IP ranges to evaluate."),
-            new RequestKeyDefinition("destination", "Destination IP ranges to evaluate."),
-            new RequestKeyDefinition("service", "Service ports and protocols to evaluate."),
-            new RequestKeyDefinition("policies", "Policy ids to evaluate.")
+            new RequestKeyDefinition("source", $"Source IP ranges to evaluate, at most {kMaxRangeEntries} entries."),
+            new RequestKeyDefinition("destination", $"Destination IP ranges to evaluate, at most {kMaxRangeEntries} entries."),
+            new RequestKeyDefinition("service", $"Service ports and protocols to evaluate, at most {kMaxRangeEntries} entries."),
+            new RequestKeyDefinition("policies", $"Policy ids to evaluate, at most {kMaxPolicies} entries.")
         ]);
 
     private static readonly RequestKeyDefinition[] AddressKeys =
@@ -53,6 +59,11 @@ public static class FlowComplianceRequestValidator
     public static bool TryValidateFlowComplianceState(GetFlowComplianceStateRequest request, out ActionResult? errorResult)
     {
         if (!RequestRootValidator.TryValidate(request, FlowComplianceRootSchema, out errorResult))
+        {
+            return false;
+        }
+
+        if (!TryValidateEntryCounts(request, out errorResult))
         {
             return false;
         }
@@ -194,6 +205,28 @@ public static class FlowComplianceRequestValidator
         }
 
         return (true, null);
+    }
+
+    /// <summary>
+    /// Rejects oversized lists before any item is validated or evaluated; every exceeded list is reported together.
+    /// </summary>
+    private static bool TryValidateEntryCounts(GetFlowComplianceStateRequest request, out ActionResult? errorResult)
+    {
+        List<string> errors = [];
+        AddEntryCountError(errors, "source", request.Source.Count, kMaxRangeEntries);
+        AddEntryCountError(errors, "destination", request.Destination.Count, kMaxRangeEntries);
+        AddEntryCountError(errors, "service", request.Service.Count, kMaxRangeEntries);
+        AddEntryCountError(errors, "policies", request.Policies.Count, kMaxPolicies);
+        errorResult = errors.Count == 0 ? null : new BadRequestObjectResult(string.Join(" ", errors));
+        return errors.Count == 0;
+    }
+
+    private static void AddEntryCountError(List<string> errors, string collectionName, int count, int maxEntries)
+    {
+        if (count > maxEntries)
+        {
+            errors.Add($"'{collectionName}' must not contain more than {maxEntries} entries.");
+        }
     }
 
     private static bool TryValidatePolicies(IEnumerable<int> policies, out ActionResult? errorResult)

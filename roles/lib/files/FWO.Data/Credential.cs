@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Data
 {
-    public class ImportCredential
+    public class Credential
     {
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -24,16 +24,13 @@ namespace FWO.Data
         [JsonProperty("sshPublicKey"), JsonPropertyName("sshPublicKey")]
         public string? PublicKey { get; set; }
 
-        [JsonProperty("cloud_client_id"), JsonPropertyName("cloud_client_id")]
-        public string? CloudClientId { get; set; }
+        [JsonProperty("additional_credential_id"), JsonPropertyName("additional_credential_id")]
+        public int? AdditionalCredentialId { get; set; }
 
-        [JsonProperty("cloud_client_secret"), JsonPropertyName("cloud_client_secret")]
-        public string? CloudClientSecret { get; set; }
-
-        public ImportCredential()
+        public Credential()
         { }
 
-        public ImportCredential(ImportCredential cred)
+        public Credential(Credential cred)
         {
             Id = cred.Id;
             Name = cred.Name;
@@ -41,10 +38,9 @@ namespace FWO.Data
             ImportUser = cred.ImportUser;
             Secret = cred.Secret;
             PublicKey = cred.PublicKey;
-            CloudClientId = cred.CloudClientId;
-            CloudClientSecret = cred.CloudClientSecret;
+            AdditionalCredentialId = cred.AdditionalCredentialId;
         }
-        public ImportCredential(string username, string password)
+        public Credential(string username, string password)
         {
             ImportUser = username;
             Secret = password;
@@ -56,8 +52,7 @@ namespace FWO.Data
             ImportUser = ImportUser.SanitizeOpt(ref shortened);
             PublicKey = PublicKey.SanitizeKeyOpt(ref shortened);
             Secret = Secret.SanitizeKeyMand(ref shortened);
-            CloudClientId = CloudClientId.SanitizeOpt(ref shortened);
-            CloudClientSecret = CloudClientSecret.SanitizeKeyOpt(ref shortened);
+
             return shortened;
         }
     }

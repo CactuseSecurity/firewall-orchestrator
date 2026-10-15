@@ -21,6 +21,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string disablePolicy;
         public static readonly string getPolicies;
         public static readonly string getPolicyById;
+        public static readonly string getPoliciesByIds;
 
         public static readonly string addCriterion;
         public static readonly string removeCriterion;
@@ -52,6 +53,7 @@ namespace FWO.Api.Client.Queries
                 disablePolicy = GetQueryText("compliance/disablePolicy.graphql");
                 getPolicies = GetQueryText("compliance/getPolicies.graphql");
                 getPolicyById = GetQueryText("compliance/getPolicyById.graphql");
+                getPoliciesByIds = GetQueryText("compliance/getPoliciesByIds.graphql");
 
                 addCriterion = GetQueryText("compliance/addCriterion.graphql");
                 removeCriterion = GetQueryText("compliance/removeCriterion.graphql");

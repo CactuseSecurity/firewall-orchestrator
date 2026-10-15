@@ -1231,7 +1231,7 @@ namespace FWO.Test
         private sealed class DailyCheckApiConnection : SimulatedApiConnection
         {
             public List<Management> Managements { get; set; } = [];
-            public List<ImportCredential> Credentials { get; set; } = [];
+            public List<Credential> Credentials { get; set; } = [];
             public List<UiUser> Users { get; set; } = [];
             public List<Tenant> Tenants { get; set; } = [];
             public List<FWO.Middleware.Server.Ldap> LdapConnections { get; set; } = [];
@@ -1247,7 +1247,7 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)Managements);
                 }
 
-                if (query == DeviceQueries.getCredentialsWithoutSecrets && typeof(QueryResponseType) == typeof(List<ImportCredential>))
+                if (query == DeviceQueries.getCredentialsWithoutSecrets && typeof(QueryResponseType) == typeof(List<Credential>))
                 {
                     return Task.FromResult((QueryResponseType)(object)Credentials);
                 }

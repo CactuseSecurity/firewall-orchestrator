@@ -119,6 +119,11 @@
                     </Column>
                 }
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("number"))" Field="@(x => x.TaskNumber)" Sortable="true" Filterable="true" />
+                <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("management"))" Field="@(x => x.ManagementId)" Sortable="false">
+                    <Template>
+                        @(GetManagementName(implTask))
+                    </Template>
+                </Column>
                 @if(userConfig.ReqOwnerBased)
                 {
                     <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("owner"))" Field="@(x => x.ReqTaskId)" Sortable="true">
@@ -208,6 +213,13 @@
     [Parameter]
     public WfHandler WfHandler { get; set; } = new ();
 
+    /// <summary>
+    /// Merged request task used as the source when manually creating an implementation task
+    /// for a bundled request-task display.
+    /// </summary>
+    [Parameter]
+    public WfReqTask? RequestTaskForCreation { get; set; }
+
     [Parameter]
     public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
 
@@ -276,6 +288,13 @@
         return "";
     }
 
+    private string GetManagementName(WfImplTask implTask)
+    {
+        int? reqTaskManagementId = implTask.ReqTaskId != 0 && reqTasksById.TryGetValue(implTask.ReqTaskId, out WfReqTask? reqTask)
+            ? reqTask.ManagementId : null;
+        return WfHandler.GetImplTaskManagementName(implTask, reqTaskManagementId);
+    }
+
     private string GetDeviceName(WfImplTask implTask)
     {
         if (implTask.DeviceId == null || implTask.DeviceId == 0)
@@ -303,7 +322,8 @@
 
     private void AddImplTask()
     {
-        WfImplTask newTask = new (WfHandler.ActReqTask, false)
+        WfReqTask requestTask = RequestTaskForCreation ?? WfHandler.ActReqTask;
+        WfImplTask newTask = new (requestTask, false)
         {
             TaskNumber = WfHandler.ActReqTask.HighestImplTaskNumber() + 1,
             DeviceId = (WfHandler.Devices.Count > 0 ? WfHandler.Devices[0].Id : 0)

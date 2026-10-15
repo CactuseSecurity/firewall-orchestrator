@@ -1,5 +1,6 @@
 @using FWO.Ui.Display
 @using FWO.Data.Flow
+@using FWO.Data.Workflow
 
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
@@ -86,13 +87,19 @@
                     @foreach(var source in Sources.Where(HasNetworkObjectReference))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label>@DisplayNetworkObject(source)</label>
+                            <div class="d-flex align-items-center">
+                                <span class="flex-grow-1">@DisplayNetworkObject(source) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(source))</small></span>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(source)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
+                            </div>
                         </div>
                     }
                     @foreach(var source in Sources.Where(x => !HasNetworkObjectReference(x)))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label>@DisplayNetworkElement(source)</label>
+                            <div class="d-flex align-items-center">
+                                <span class="flex-grow-1">@DisplayNetworkElement(source) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(source))</small></span>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(source)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
+                            </div>
                         </div>
                     }
                 </div>
@@ -120,13 +127,19 @@
                     @foreach(var destination in Destinations.Where(HasNetworkObjectReference))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label>@DisplayNetworkObject(destination)</label>
+                            <div class="d-flex align-items-center">
+                                <span class="flex-grow-1">@DisplayNetworkObject(destination) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(destination))</small></span>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(destination)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
+                            </div>
                         </div>
                     }
                     @foreach(var destination in Destinations.Where(x => !HasNetworkObjectReference(x)))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label>@DisplayNetworkElement(destination)</label>
+                            <div class="d-flex align-items-center">
+                                <span class="flex-grow-1">@DisplayNetworkElement(destination) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(destination))</small></span>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(destination)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
+                            </div>
                         </div>
                     }
                 </div>
@@ -151,12 +164,18 @@
                 <div class="list-group">
                     @foreach(var service in Services.Where(HasServiceObjectReference))
                     {
-                        <label class="list-group-item border bg-secondary">@DisplayNetworkService(service)</label>
+                        <div class="list-group-item border bg-secondary d-flex align-items-center">
+                            <span class="flex-grow-1">@DisplayNetworkService(service) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(service))</small></span>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowServiceDetails(service)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
+                        </div>
                     }
                     @foreach(var service in Services.Where(x => !HasServiceObjectReference(x)))
                     {
                         <div class="list-group-item border bg-secondary">
-                            <label>@DisplayServiceElement(service)</label>
+                            <div class="d-flex align-items-center">
+                                <span class="flex-grow-1">@DisplayServiceElement(service) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(service))</small></span>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowServiceDetails(service)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
+                            </div>
                         </div>
                     }
                 </div>
@@ -168,6 +187,11 @@ else
 {
     <Loading/>
 }
+
+        <DisplayFlowElementDetails Display="displayDetails" DisplayChanged="SetDisplayDetails"
+            Title="@detailsTitle" NetworkObject="selectedNetworkObject" NetworkGroup="selectedNetworkGroup"
+            NetworkObjects="flowNwObjects" NetworkFallback="networkFallback" ServiceObject="selectedServiceObject" ServiceGroup="selectedServiceGroup" ServiceObjects="flowSvcObjects"
+            ServiceFallback="serviceFallback" IpProtocols="IpProtos" NetworkGroupMode="networkGroupMode" ServiceGroupMode="serviceGroupMode" />
 
 @code
 {
@@ -229,6 +253,9 @@ else
     public long TaskId { get; set; } = 0;
 
     [Parameter]
+    public List<WfReqTask> TicketTasks { get; set; } = [];
+
+    [Parameter]
     public bool EditMode { get; set; } = false;
 
     [Parameter]
@@ -255,6 +282,20 @@ else
     private bool ShowAnyFlowCatalog => ShowSourceFlowCatalog || ShowDestinationFlowCatalog || ShowServiceFlowCatalog;
     private List<NetworkObject> nwObjects = [];
     private List<NetworkService> nwServices = [];
+    private List<FlowNwObject> flowNwObjects = [];
+    private List<FlowSvcObject> flowSvcObjects = [];
+    private List<FlowNwGroup> flowNwGroups = [];
+    private List<FlowSvcGroup> flowSvcGroups = [];
+    private bool displayDetails = false;
+    private string detailsTitle = "";
+    private FlowNwObject? selectedNetworkObject;
+    private FlowNwGroup? selectedNetworkGroup;
+    private FlowSvcObject? selectedServiceObject;
+    private FlowSvcGroup? selectedServiceGroup;
+    private List<NwObjectElement> networkFallback = [];
+    private List<NwServiceElement> serviceFallback = [];
+    private bool networkGroupMode = false;
+    private bool serviceGroupMode = false;
     
 
     private NetworkObject? newSourceNetworkInt = null;
@@ -390,22 +431,51 @@ else
         {
             if (NeedsFlowCatalog())
             {
-                if (NeedsNetworkFlowCatalog())
-                {
-                    List<FlowNwObject> flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowRequestNwObjectCatalog) ?? [];
-                    nwObjects = [.. flowNwObjects.Where(IsSelectable).Select(ToNetworkObject)];
-                }
-                if (NeedsServiceFlowCatalog())
-                {
-                    List<FlowSvcObject> flowSvcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowRequestSvcObjectCatalog) ?? [];
-                    nwServices = [.. flowSvcObjects.Where(IsSelectable).Select(ToNetworkService)];
-                }
+                await LoadFlowCatalogData();
             }
             InitComplete = true;
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private async Task LoadFlowCatalogData()
+    {
+        if (NeedsNetworkFlowCatalog() || NeedsNetworkDetails())
+        {
+            await LoadNetworkCatalogData();
+        }
+        if (NeedsServiceFlowCatalog() || NeedsServiceDetails())
+        {
+            await LoadServiceCatalogData();
+        }
+        if (NeedsNetworkDetails())
+        {
+            flowNwGroups = await apiConnection.SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowAddressGroups) ?? [];
+        }
+        if (NeedsServiceDetails())
+        {
+            flowSvcGroups = await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowServiceGroups) ?? [];
+        }
+    }
+
+    private async Task LoadNetworkCatalogData()
+    {
+        flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowRequestNwObjectCatalog) ?? [];
+        if (NeedsNetworkFlowCatalog())
+        {
+            nwObjects = [.. flowNwObjects.Where(IsSelectable).Select(ToNetworkObject)];
+        }
+    }
+
+    private async Task LoadServiceCatalogData()
+    {
+        flowSvcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowRequestSvcObjectCatalog) ?? [];
+        if (NeedsServiceFlowCatalog())
+        {
+            nwServices = [.. flowSvcObjects.Where(IsSelectable).Select(ToNetworkService)];
         }
     }
 
@@ -491,6 +561,252 @@ else
     private static bool HasServiceFlowReference(NwServiceElement element)
     {
         return HasId(element.FlowServiceObjectId) || HasId(element.FlowServiceGroupId);
+    }
+
+    private string ElementOrigin(NwObjectElement element)
+    {
+        if (HasNetworkFlowReference(element))
+        {
+            return userConfig.GetText("FromFlowDb");
+        }
+        return IsFromAnotherTicketTask(element.TaskId) || IsNetworkElementFromTicket(element)
+            || IsGroupFromTicket(element.GroupName ?? element.Name)
+            ? userConfig.GetText("from_ticket")
+            : userConfig.GetText("Manually");
+    }
+
+    private string ElementOrigin(NwServiceElement element)
+    {
+        if (HasServiceFlowReference(element))
+        {
+            return userConfig.GetText("FromFlowDb");
+        }
+        return IsFromAnotherTicketTask(element.TaskId) || IsServiceElementFromTicket(element)
+            || IsGroupFromTicket(element.GroupName ?? element.Name)
+            ? userConfig.GetText("from_ticket")
+            : userConfig.GetText("Manually");
+    }
+
+    private bool IsFromAnotherTicketTask(long elementTaskId)
+    {
+        return elementTaskId != 0
+            && TicketTasks.Any(task => task.Id == elementTaskId && task.Id != TaskId);
+    }
+
+    private bool IsGroupFromTicket(string? groupName)
+    {
+        return !string.IsNullOrWhiteSpace(groupName)
+            && TicketTasks.Any(task => IsNetworkGroupTask(task) && IsGroupTaskForName(task, groupName));
+    }
+
+    private bool IsNetworkElementFromTicket(NwObjectElement element)
+    {
+        return TicketTasks
+            .Where(task => task.Id != TaskId)
+            .SelectMany(task => task.GetNwObjectElements(ElemFieldType.source)
+                .Concat(task.GetNwObjectElements(ElemFieldType.destination)))
+            .Any(taskElement => MatchesNetworkElement(taskElement, element)
+                || string.Equals(taskElement.Name?.Trim(), element.Name?.Trim(), StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(taskElement.IpString, element.IpString, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(taskElement.IpEndString, element.IpEndString, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool IsServiceElementFromTicket(NwServiceElement element)
+    {
+        return TicketTasks
+            .Where(task => task.Id != TaskId)
+            .SelectMany(task => task.GetServiceElements())
+            .Any(taskElement => MatchesServiceElement(taskElement, element)
+                || string.Equals(taskElement.Name?.Trim(), element.Name?.Trim(), StringComparison.OrdinalIgnoreCase)
+                    && taskElement.Port == element.Port
+                    && taskElement.PortEnd == element.PortEnd
+                    && taskElement.ProtoId == element.ProtoId);
+    }
+
+    private bool NeedsNetworkDetails()
+    {
+        return !EditMode && userConfig.ReqUseFlowDb
+            && (Sources.Any(NeedsNetworkDetails) || Destinations.Any(NeedsNetworkDetails));
+    }
+
+    private bool NeedsNetworkDetails(NwObjectElement element)
+    {
+        return HasNetworkFlowReference(element) || IsNetworkGroupElement(element);
+    }
+
+    private bool NeedsServiceDetails()
+    {
+        return !EditMode && userConfig.ReqUseFlowDb && Services.Any(NeedsServiceDetails);
+    }
+
+    private bool NeedsServiceDetails(NwServiceElement element)
+    {
+        return HasServiceFlowReference(element) || IsServiceGroupElement(element);
+    }
+
+    private void ShowNetworkDetails(NwObjectElement element)
+    {
+        networkGroupMode = IsNetworkGroupElement(element);
+        selectedNetworkObject = HasId(element.FlowNetworkObjectId)
+            ? flowNwObjects.FirstOrDefault(flowObject => flowObject.Id == element.FlowNetworkObjectId)
+            : null;
+        string groupName = element.GroupName ?? element.Name ?? "";
+        selectedNetworkGroup = HasId(element.FlowNetworkGroupId)
+            ? flowNwGroups.FirstOrDefault(group => group.Id == element.FlowNetworkGroupId)
+            : flowNwGroups.FirstOrDefault(group => string.Equals(group.Name, groupName, StringComparison.OrdinalIgnoreCase));
+        networkFallback = MatchingNetworkElements(element);
+        string? localGroupName = selectedNetworkGroup?.Name ?? element.GroupName ?? element.Name;
+        networkFallback.AddRange(GetLocalGroupElements(localGroupName));
+        selectedServiceObject = null;
+        selectedServiceGroup = null;
+        serviceFallback = [];
+        serviceGroupMode = false;
+        detailsTitle = DisplayNetworkElement(element);
+        displayDetails = true;
+    }
+
+    private void ShowServiceDetails(NwServiceElement element)
+    {
+        selectedServiceObject = HasId(element.FlowServiceObjectId)
+            ? flowSvcObjects.FirstOrDefault(flowObject => flowObject.Id == element.FlowServiceObjectId)
+            : null;
+        string groupName = element.GroupName ?? element.Name ?? "";
+        selectedServiceGroup = HasId(element.FlowServiceGroupId)
+            ? flowSvcGroups.FirstOrDefault(group => group.Id == element.FlowServiceGroupId)
+            : flowSvcGroups.FirstOrDefault(group => string.Equals(group.Name, groupName, StringComparison.OrdinalIgnoreCase));
+        serviceFallback = MatchingServiceElements(element);
+        string? localGroupName = selectedServiceGroup?.Name ?? element.GroupName ?? element.Name;
+        serviceFallback.AddRange(GetLocalServiceGroupElements(localGroupName));
+        serviceGroupMode = IsServiceGroupElement(element);
+        selectedNetworkObject = null;
+        selectedNetworkGroup = null;
+        networkFallback = [];
+        networkGroupMode = false;
+        detailsTitle = DisplayServiceElement(element);
+        displayDetails = true;
+    }
+
+    private List<NwObjectElement> MatchingNetworkElements(NwObjectElement element)
+    {
+        List<NwObjectElement> matches = [element];
+        if (!HasNetworkFlowReference(element) && !HasId(element.NetworkId) && string.IsNullOrWhiteSpace(element.GroupName))
+        {
+            return matches;
+        }
+        matches.AddRange(TicketTasks.SelectMany(task => task.GetNwObjectElements(ElemFieldType.source)
+                .Concat(task.GetNwObjectElements(ElemFieldType.destination)))
+            .Where(taskElement => MatchesNetworkElement(taskElement, element)));
+        return matches;
+    }
+
+    private List<NwObjectElement> GetLocalGroupElements(string? groupName)
+    {
+        if (string.IsNullOrWhiteSpace(groupName))
+        {
+            return [];
+        }
+
+        List<WfReqTask> groupTasks = [.. TicketTasks
+            .Where(IsNetworkGroupTask)
+            .Where(task => IsGroupTaskForName(task, groupName))];
+        if (groupTasks.Count == 0)
+        {
+            groupTasks = [.. TicketTasks.Where(IsNetworkGroupTask)];
+        }
+
+        return [.. groupTasks
+            .SelectMany(task => task.GetNwObjectElements(ElemFieldType.source)
+                .Concat(task.GetNwObjectElements(ElemFieldType.destination)))];
+    }
+
+    private static bool IsNetworkGroupTask(WfReqTask task)
+    {
+        return task.TaskType is nameof(WfTaskType.group_create) or nameof(WfTaskType.group_modify);
+    }
+
+    private static bool IsGroupTaskForName(WfReqTask task, string groupName)
+    {
+        if (!IsNetworkGroupTask(task))
+        {
+            return false;
+        }
+
+        string normalizedGroupName = groupName.Trim();
+        return string.Equals(task.GetAddInfoValue(AdditionalInfoKeys.GrpName).Trim(), normalizedGroupName, StringComparison.OrdinalIgnoreCase)
+            || task.Elements.Any(element => string.Equals(element.GroupName?.Trim(), normalizedGroupName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(element.Name?.Trim(), normalizedGroupName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private List<NwServiceElement> MatchingServiceElements(NwServiceElement element)
+    {
+        List<NwServiceElement> matches = [element];
+        if (!HasServiceFlowReference(element) && !HasId(element.ServiceId) && string.IsNullOrWhiteSpace(element.GroupName))
+        {
+            return matches;
+        }
+        matches.AddRange(TicketTasks
+            .SelectMany(task => task.GetServiceElements())
+            .Where(taskElement => MatchesServiceElement(taskElement, element)));
+        return matches;
+    }
+
+    private List<NwServiceElement> GetLocalServiceGroupElements(string? groupName)
+    {
+        if (string.IsNullOrWhiteSpace(groupName))
+        {
+            return [];
+        }
+
+        List<WfReqTask> groupTasks = [.. TicketTasks
+            .Where(IsNetworkGroupTask)
+            .Where(task => IsGroupTaskForName(task, groupName))];
+        if (groupTasks.Count == 0)
+        {
+            groupTasks = [.. TicketTasks.Where(IsNetworkGroupTask)];
+        }
+
+        return [.. groupTasks
+            .SelectMany(task => task.GetServiceElements())];
+    }
+
+    private static bool MatchesNetworkElement(NwObjectElement taskElement, NwObjectElement element)
+    {
+        return HasId(element.FlowNetworkObjectId) && taskElement.FlowNetworkObjectId == element.FlowNetworkObjectId
+            || HasId(element.FlowNetworkGroupId) && taskElement.FlowNetworkGroupId == element.FlowNetworkGroupId
+            || HasId(element.NetworkId) && taskElement.NetworkId == element.NetworkId
+            || !string.IsNullOrWhiteSpace(element.GroupName)
+                && string.Equals(taskElement.GroupName?.Trim(), element.GroupName?.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsNetworkGroupElement(NwObjectElement element)
+    {
+        return HasId(element.FlowNetworkGroupId)
+            || !string.IsNullOrWhiteSpace(element.GroupName)
+            || TicketTasks.Any(task => (task.TaskType is nameof(WfTaskType.group_create) or nameof(WfTaskType.group_modify))
+                && string.Equals(task.GetAddInfoValue(AdditionalInfoKeys.GrpName).Trim(), element.Name?.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool MatchesServiceElement(NwServiceElement taskElement, NwServiceElement element)
+    {
+        return HasId(element.FlowServiceObjectId) && taskElement.FlowServiceObjectId == element.FlowServiceObjectId
+            || HasId(element.FlowServiceGroupId) && taskElement.FlowServiceGroupId == element.FlowServiceGroupId
+            || HasId(element.ServiceId) && taskElement.ServiceId == element.ServiceId
+            || !string.IsNullOrWhiteSpace(element.GroupName)
+                && string.Equals(taskElement.GroupName?.Trim(), element.GroupName?.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsServiceGroupElement(NwServiceElement element)
+    {
+        return HasId(element.FlowServiceGroupId)
+            || !string.IsNullOrWhiteSpace(element.GroupName)
+            || TicketTasks.Any(task => IsNetworkGroupTask(task)
+                && string.Equals(task.GetAddInfoValue(AdditionalInfoKeys.GrpName).Trim(), element.Name?.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private Task SetDisplayDetails(bool display)
+    {
+        displayDetails = display;
+        return Task.CompletedTask;
     }
 
     private static bool HasId(long? id)

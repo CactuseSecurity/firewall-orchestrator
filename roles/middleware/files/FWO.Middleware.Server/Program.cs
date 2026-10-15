@@ -60,7 +60,8 @@ catch (ApiUnavailableAtStartupException exception)
 GraphQlApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscriptionUpdate = (List<Ldap> ldapsChanges) => { lock (changesLock) { connectedLdaps = ldapsChanges; } };
 
 GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(GraphqlExceptionHandler.Handle, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
-Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
+Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => ldap.Host())));
+AuthDirectoryBinding.WarnAboutOverlappingNamespaces(connectedLdaps);
 
 // GlobalConfig for Quartz DI
 GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
@@ -107,6 +108,9 @@ LoginThrottleSettings loginThrottleSettings = LoginThrottleSettings.FromConfigFi
 LdapAuthenticationGate.Configure(loginThrottleSettings);
 builder.Services.AddSingleton(new LoginThrottle(loginThrottleSettings));
 
+// Per-user request budget for all REST endpoints and concurrency limits for expensive ones (GHSA-m87v-j229-2g65)
+builder.Services.AddApiRateLimiting(ApiRateLimitSettings.FromConfigFile());
+
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
 builder.Services.AddSingleton<FlowCatalogService>();
@@ -115,6 +119,7 @@ builder.Services.AddSingleton<ComplianceZoneService>();
 builder.Services.AddSingleton<FlowComplianceService>();
 builder.Services.AddSingleton<WorkflowTicketService>();
 builder.Services.AddSingleton<WorkflowChangeHistoryService>();
+builder.Services.AddSingleton<ImplTaskTargetService>();
 builder.Services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
 builder.Services.AddSingleton<IRequestedRulePolicyCheckerFactory, ComplianceRequestedRulePolicyCheckerFactory>();
 
@@ -222,6 +227,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

@@ -74,7 +74,7 @@ Create table "management" -- contains an entry for each firewall management syst
 );
 
 
-create table import_credential
+create table credential
 (
     id SERIAL PRIMARY KEY,
     credential_name varchar NOT NULL,
@@ -82,8 +82,7 @@ create table import_credential
     username varchar NOT NULL,
     secret text NOT NULL,
 	public_key Text,
-	cloud_client_id VARCHAR,
-	cloud_client_secret VARCHAR
+	additional_credential_id integer
 );
 
 
@@ -106,6 +105,7 @@ Create table "uiuser"
 	"uiuser_last_password_change" Timestamp with time zone,
 	"uiuser_pwd_history" Text,
 	"ldap_connection_id" BIGINT,
+	"directory_object_id" Varchar,
  primary key ("uiuser_id")
 );
 
@@ -365,7 +365,7 @@ create index if not exists notification_log_timestamp_id_idx
 Create table "ldap_connection"
 (
 	"ldap_connection_id" BIGSERIAL,
-	"ldap_server" Varchar NOT NULL,
+	"ldap_server" Varchar[] NOT NULL,
 	"ldap_port" Integer NOT NULL Default 636,
 	"ldap_tls" Boolean NOT NULL Default TRUE,
 	"ldap_searchpath_for_users" Varchar NOT NULL,

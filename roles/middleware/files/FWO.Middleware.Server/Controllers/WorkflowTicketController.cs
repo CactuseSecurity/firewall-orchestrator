@@ -6,6 +6,7 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers;
@@ -35,10 +36,17 @@ public class WorkflowTicketController : ControllerBase
     /// representation: ipHost, ipNetwork, or a two-entry ipRange. Address text follows the shared
     /// FWO parser, and CIDRs are normalized to inclusive bounds.
     /// </summary>
+    /// <remarks>
+    /// The request is limited to the expensive-endpoint body limit. The endpoint returns <c>400</c> for oversized
+    /// strings or collections and <c>413</c> when the serialized request body exceeds the body limit.
+    /// </remarks>
     [Authorize(Roles = $"{Roles.Admin}")]
     [HttpPost("createTicket")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     [ProducesResponseType(typeof(CreateTicketResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CreateTicketResponse>> CreateTicket([FromBody] CreateTicketRequest request)
     {

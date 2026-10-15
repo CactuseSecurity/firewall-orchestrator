@@ -277,6 +277,10 @@ namespace FWO.Services.Workflow
                     if (toState == null || states.FirstOrDefault(x => x.Id == toState) != null)
                     {
                         await wfHandler.AutoPromote(statefulObject, scope, toState);
+                        if (WfStateAction.HasConfirmUiMessage(action.ExternalParams))
+                        {
+                            wfHandler.DisplayMessage(null, action.Name, BuildAutoPromoteMessage(statefulObject), false);
+                        }
                     }
                     break;
                 case nameof(StateActionTypes.AddApproval):
@@ -301,6 +305,9 @@ namespace FWO.Services.Workflow
                     break;
                 case nameof(StateActionTypes.BundleTasks):
                     await BundleTasks(action, statefulObject, scope, owner, ticketId);
+                    break;
+                case nameof(StateActionTypes.CreateImplTasks):
+                    await CreateImplTasks(action, statefulObject, scope);
                     break;
                 case nameof(StateActionTypes.UpdateConnectionOwner):
                     await UpdateConnectionOwner(owner, ticketId);
@@ -623,6 +630,25 @@ namespace FWO.Services.Workflow
             }
         }
 
+        /// <summary>
+        /// Creates the implementation tasks still missing for the ticket of the stateful object, using the same
+        /// logic as the automatic creation. Bundles from a preceding bundle tasks action are taken into account.
+        /// </summary>
+        /// <param name="action">The executed action.</param>
+        /// <param name="statefulObject">Ticket or request task the action is attached to.</param>
+        /// <param name="scope">Scope of the stateful object.</param>
+        public async Task CreateImplTasks(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            WfTicket? ticket = GetTicketForBundling(statefulObject, scope);
+            if (ticket == null)
+            {
+                Log.WriteWarning("Create Implementation Tasks", $"Action '{action.Name}' found no ticket request tasks.");
+                return;
+            }
+            int createdCount = await wfHandler.CreateMissingImplTasksForTicket(ticket);
+            Log.WriteDebug("Create Implementation Tasks", $"Action '{action.Name}' created {createdCount} implementation tasks for ticket {ticket.Id}.");
+        }
+
         public async Task BundleTasks(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, long? ticketId)
         {
             WfTicket? ticket = GetTicketForBundling(statefulObject, scope);
@@ -654,6 +680,25 @@ namespace FWO.Services.Workflow
                 }
             }
             Log.WriteInfo("Bundle Tasks", $"Bundled {bundleAssignments.Count} request tasks for flow creation.");
+            if (bundleParams.ConfirmUiMessage)
+            {
+                int bundleCount = bundleAssignments.Values.Distinct().Count();
+                wfHandler.DisplayMessage(null, action.Name, BuildBundleTasksMessage(bundleAssignments.Count, bundleCount), false);
+            }
+        }
+
+        private string BuildAutoPromoteMessage(WfStatefulObject statefulObject)
+        {
+            string? configuredStateName = states.FirstOrDefault(state => state.Id == statefulObject.StateId)?.Name;
+            string stateName = string.IsNullOrWhiteSpace(configuredStateName)
+                ? statefulObject.StateId.ToString()
+                : configuredStateName;
+            return $"{wfHandler.userConfig.GetText("auto_promoted_to")}{stateName}";
+        }
+
+        private string BuildBundleTasksMessage(int taskCount, int bundleCount)
+        {
+            return $"{taskCount}{wfHandler.userConfig.GetText("tasks_bundled_into")}{bundleCount}";
         }
 
         /// <summary>

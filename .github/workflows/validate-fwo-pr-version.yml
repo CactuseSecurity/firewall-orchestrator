@@ -1,0 +1,42 @@
+name: Validate FWO PR version
+
+on:
+  pull_request_target:
+    branches: [develop]
+    types: [opened, reopened, synchronize, labeled, unlabeled, ready_for_review, edited]
+  workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: Number of the pull request whose current head is validated
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: write
+
+concurrency:
+  group: fwo-pr-version-${{ github.event.pull_request.number || inputs.pull_request_number }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Run trusted version validation
+    runs-on: ubuntu-latest
+    steps:
+      # Only upstream tooling executes. PR files are read through the API as
+      # inert data, including for forks; no contributor checkout receives a token.
+      # No explicit ref: pull_request_target defaults to the base branch commit and
+      # the requeue dispatch targets develop, so a PR head is never checked out.
+      - name: Check out trusted validation tooling
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate current PR head and publish its check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number || inputs.pull_request_number }}
+        run: python3 scripts/fwo_version_reservations.py validate --pull-request "$PULL_REQUEST_NUMBER"

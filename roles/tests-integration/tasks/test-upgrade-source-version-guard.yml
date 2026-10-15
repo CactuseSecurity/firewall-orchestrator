@@ -76,6 +76,46 @@
       {{ upgrade_source_version_unsupported }}:
       {{ upgrade_source_version_reject_message | default('it did not fail at all') }}
 
+# Drive the production downgrade guard itself. The version-allocation workflow
+# deliberately uses 999.0.0 for an unallocated development migration, and a
+# test machine carrying that sentinel must be able to return to a release.
+- name: Set the upgrade target version guard test inputs
+  set_fact:
+    upgrade_target_version_guard: "{{ role_path }}/../common/tasks/validate-upgrade-target-version.yml"
+    development_version: "{{ development_product_version }}"
+    normal_upgrade_target_version: "{{ product_version }}"
+    normal_downgrade_source_version: "999.0.1"
+
+- name: Verify that a development-version installation can return to a release
+  include_tasks: "{{ upgrade_target_version_guard }}"
+  vars:
+    installed_version: "{{ development_version }}"
+    upgrade_target_version: "{{ normal_upgrade_target_version }}"
+
+- name: Verify that a real downgrade is rejected
+  block:
+    - include_tasks: "{{ upgrade_target_version_guard }}"
+      vars:
+        installed_version: "{{ normal_downgrade_source_version }}"
+        upgrade_target_version: "{{ normal_upgrade_target_version }}"
+    - set_fact:
+        upgrade_target_version_guard_rejected: false
+  rescue:
+    - set_fact:
+        upgrade_target_version_guard_rejected: true
+        upgrade_target_version_guard_reject_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert that the downgrade guard still rejects released versions
+  assert:
+    that:
+      - upgrade_target_version_guard_rejected | bool
+      - normal_downgrade_source_version in upgrade_target_version_guard_reject_message
+      - normal_upgrade_target_version in upgrade_target_version_guard_reject_message
+    fail_msg: >-
+      The upgrade target version guard did not reject a downgrade from
+      {{ normal_downgrade_source_version }} to {{ normal_upgrade_target_version }}:
+      {{ upgrade_target_version_guard_reject_message | default('it did not fail at all') }}
+
 # The floor is only as good as its agreement with the files on disk: removing further
 # upgrade files without raising it would restore exactly the silent skipping the guard was
 # added against, and nothing else in the repository relates the two.

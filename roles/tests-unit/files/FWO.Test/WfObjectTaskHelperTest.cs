@@ -416,6 +416,55 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void TryParseDateTimeInput_CombinesDateAndTime()
+        {
+            bool complete = WfObjectTaskHelper.TryParseDateTimeInput("2026-11-01", "08:00", WfObjectTaskHelper.kDefaultStartTimeInput, out DateTime? pointInTime);
+            bool withSeconds = WfObjectTaskHelper.TryParseDateTimeInput("2026-11-30", "18:00:00", WfObjectTaskHelper.kDefaultEndTimeInput, out DateTime? withSecondsTime);
+            bool dateOnly = WfObjectTaskHelper.TryParseDateTimeInput("2026-11-30", " ", WfObjectTaskHelper.kDefaultEndTimeInput, out DateTime? dateOnlyTime);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(complete, Is.True);
+                Assert.That(pointInTime, Is.EqualTo(kTimeStart));
+                Assert.That(withSeconds, Is.True);
+                Assert.That(withSecondsTime, Is.EqualTo(kTimeEnd));
+                Assert.That(dateOnly, Is.True);
+                Assert.That(dateOnlyTime, Is.EqualTo(new DateTime(2026, 11, 30, 23, 59, 0)));
+            });
+        }
+
+        [TestCase("", "", true)]
+        [TestCase("", "08:00", false)]
+        [TestCase("01.11.2026", "08:00", false)]
+        [TestCase("2026-11-01", "8 Uhr", false)]
+        public void TryParseDateTimeInput_HandlesEmptyIncompleteAndInvalidInput(string dateInput, string timeInput, bool expectedValid)
+        {
+            bool valid = WfObjectTaskHelper.TryParseDateTimeInput(dateInput, timeInput, WfObjectTaskHelper.kDefaultStartTimeInput, out DateTime? pointInTime);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.EqualTo(expectedValid));
+                Assert.That(pointInTime, Is.Null);
+            });
+        }
+
+        [Test]
+        public void FormatDateAndTimeInput_SplitAPointInTimeInLocalTime()
+        {
+            DateTime utcStart = new(2026, 11, 1, 7, 0, 0, DateTimeKind.Utc);
+            DateTime localStart = utcStart.ToLocalTime();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfObjectTaskHelper.FormatDateInput(kTimeStart), Is.EqualTo("2026-11-01"));
+                Assert.That(WfObjectTaskHelper.FormatTimeInput(kTimeStart), Is.EqualTo("08:00"));
+                Assert.That(WfObjectTaskHelper.FormatDateInput(null), Is.Empty);
+                Assert.That(WfObjectTaskHelper.FormatTimeInput(null), Is.Empty);
+                Assert.That(WfObjectTaskHelper.FormatTimeInput(utcStart), Is.EqualTo(localStart.ToString(WfObjectTaskHelper.kTimeInputFormat, System.Globalization.CultureInfo.InvariantCulture)));
+            });
+        }
+
         private static WfReqElement CreateTimeElement(string? name, DateTime? startTime, DateTime? endTime)
         {
             return new() { Field = ElemFieldType.time.ToString(), Name = name, StartTime = startTime, EndTime = endTime };

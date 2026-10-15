@@ -7,17 +7,20 @@
 @if (EditMode)
 {
     <div class="form-group row mt-2">
-        <div class="col-sm-2">
-            <input class="form-check-input" type="radio" checked="@(kind == ObjectTaskKind.Network)" name="objectKind" id="objKindNetwork" @onchange="() => SetKind(ObjectTaskKind.Network)">
-            <label class="col-form-label col-form-label-sm" for="objKindNetwork">@(userConfig.GetText("network_object"))</label>
-        </div>
-        <div class="col-sm-2">
-            <input class="form-check-input" type="radio" checked="@(kind == ObjectTaskKind.Service)" name="objectKind" id="objKindService" @onchange="() => SetKind(ObjectTaskKind.Service)">
-            <label class="col-form-label col-form-label-sm" for="objKindService">@(userConfig.GetText("service"))</label>
-        </div>
-        <div class="col-sm-2">
-            <input class="form-check-input" type="radio" checked="@(kind == ObjectTaskKind.Time)" name="objectKind" id="objKindTime" @onchange="() => SetKind(ObjectTaskKind.Time)">
-            <label class="col-form-label col-form-label-sm" for="objKindTime">@(userConfig.GetText("time_object"))</label>
+        <div class="col-sm-6">
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="objectKind" id="objKindNetwork" autocomplete="off"
+                       checked="@(kind == ObjectTaskKind.Network)" @onchange="() => SetKind(ObjectTaskKind.Network)">
+                <label class="btn btn-outline-primary" for="objKindNetwork">@(userConfig.GetText("network_object"))</label>
+
+                <input type="radio" class="btn-check" name="objectKind" id="objKindService" autocomplete="off"
+                       checked="@(kind == ObjectTaskKind.Service)" @onchange="() => SetKind(ObjectTaskKind.Service)">
+                <label class="btn btn-outline-primary" for="objKindService">@(userConfig.GetText("service"))</label>
+
+                <input type="radio" class="btn-check" name="objectKind" id="objKindTime" autocomplete="off"
+                       checked="@(kind == ObjectTaskKind.Time)" @onchange="() => SetKind(ObjectTaskKind.Time)">
+                <label class="btn btn-outline-primary" for="objKindTime">@(userConfig.GetText("time_object"))</label>
+            </div>
         </div>
     </div>
     @if (IsModify)
@@ -53,13 +56,15 @@
         }
         else if (kind == ObjectTaskKind.Time)
         {
-            <label class="col-sm-1 col-form-label col-form-label-sm" for="objStartTime">@(userConfig.GetText("start_time")):</label>
-            <div class="col-sm-2">
-                <input id="objStartTime" type="datetime-local" class="form-control form-control-sm" @bind="startTime" @bind:format="yyyy-MM-ddTHH:mm" />
+            <label class="col-sm-1 col-form-label col-form-label-sm" for="objStartDate">@(userConfig.GetText("start_time")):</label>
+            <div class="col-sm-3 d-flex gap-1">
+                <input id="objStartDate" type="date" class="form-control form-control-sm @(ValidationClass(startInputValid))" value="@startDateInput" @oninput="SetStartDate" />
+                <input id="objStartTime" type="time" class="form-control form-control-sm @(ValidationClass(startInputValid))" value="@startTimeInput" @oninput="SetStartTime" />
             </div>
-            <label class="col-sm-1 col-form-label col-form-label-sm" for="objEndTime">@(userConfig.GetText("end_time")):</label>
-            <div class="col-sm-2">
-                <input id="objEndTime" type="datetime-local" class="form-control form-control-sm @(ValidationClass(TimeBoundsValid))" @bind="endTime" @bind:format="yyyy-MM-ddTHH:mm" />
+            <label class="col-sm-1 col-form-label col-form-label-sm" for="objEndDate">@(userConfig.GetText("end_time")):</label>
+            <div class="col-sm-3 d-flex gap-1">
+                <input id="objEndDate" type="date" class="form-control form-control-sm @(ValidationClass(EndInputValid))" value="@endDateInput" @oninput="SetEndDate" />
+                <input id="objEndTime" type="time" class="form-control form-control-sm @(ValidationClass(EndInputValid))" value="@endTimeInput" @oninput="SetEndTime" />
             </div>
         }
         else
@@ -140,6 +145,13 @@ else
     private TimeObject? selectedTimeObject;
     private DateTime? startTime;
     private DateTime? endTime;
+    // the inputs are kept as typed: a date or time entered alone must not be cleared by the next rendering
+    private string startDateInput = "";
+    private string startTimeInput = "";
+    private string endDateInput = "";
+    private string endTimeInput = "";
+    private bool? startInputValid;
+    private bool? endInputValid;
     private string? objectName;
     private string networkInput = "";
     private bool? networkInputValid;
@@ -171,6 +183,11 @@ else
     /// False when both bounds are entered and the start lies after the end, otherwise null (no marking).
     /// </summary>
     private bool? TimeBoundsValid => startTime.HasValue && endTime.HasValue && startTime > endTime ? false : null;
+
+    /// <summary>
+    /// Marks the end input as invalid when it cannot be read or lies before the start.
+    /// </summary>
+    private bool? EndInputValid => endInputValid ?? TimeBoundsValid;
 
     private int ProtoId
     {
@@ -211,8 +228,7 @@ else
         protoId = requested?.ProtoId ?? SelectableIpProtos.FirstOrDefault()?.Id ?? 0;
         networkInput = requested != null && kind == ObjectTaskKind.Network ? WfObjectTaskHelper.FormatNetworkInput(ToNwObjectElement(requested)) : "";
         portInput = requested != null && kind == ObjectTaskKind.Service ? WfObjectTaskHelper.FormatPortInput(requested.Port, requested.PortEnd) : "";
-        startTime = kind == ObjectTaskKind.Time ? requested?.StartTime : null;
-        endTime = kind == ObjectTaskKind.Time ? requested?.EndTime : null;
+        SetTimeBounds(kind == ObjectTaskKind.Time ? requested?.StartTime : null, kind == ObjectTaskKind.Time ? requested?.EndTime : null);
         networkInputValid = null;
         portInputValid = null;
         if (original != null)
@@ -266,8 +282,7 @@ else
         }
         NetworkInput = "";
         PortInput = "";
-        startTime = null;
-        endTime = null;
+        SetTimeBounds(null, null);
     }
 
     private void SelectNetworkObject(NetworkObject? networkObject)
@@ -298,8 +313,63 @@ else
         original = timeObject == null ? null
             : WfObjectTaskHelper.ToTimeElement(timeObject, RequestAction.unchanged.ToString(), ReqTask.Id);
         objectName = timeObject?.Name;
-        startTime = timeObject?.StartTime;
-        endTime = timeObject?.EndTime;
+        SetTimeBounds(timeObject?.StartTime, timeObject?.EndTime);
+    }
+
+    private void SetTimeBounds(DateTime? start, DateTime? end)
+    {
+        startTime = start;
+        endTime = end;
+        startDateInput = WfObjectTaskHelper.FormatDateInput(start);
+        startTimeInput = WfObjectTaskHelper.FormatTimeInput(start);
+        endDateInput = WfObjectTaskHelper.FormatDateInput(end);
+        endTimeInput = WfObjectTaskHelper.FormatTimeInput(end);
+        startInputValid = null;
+        endInputValid = null;
+    }
+
+    private void SetStartDate(ChangeEventArgs args)
+    {
+        startDateInput = args.Value?.ToString() ?? "";
+        if (!string.IsNullOrWhiteSpace(startDateInput) && string.IsNullOrWhiteSpace(startTimeInput))
+        {
+            startTimeInput = WfObjectTaskHelper.kDefaultStartTimeInput;
+        }
+        UpdateStartTime();
+    }
+
+    private void SetStartTime(ChangeEventArgs args)
+    {
+        startTimeInput = args.Value?.ToString() ?? "";
+        UpdateStartTime();
+    }
+
+    private void SetEndDate(ChangeEventArgs args)
+    {
+        endDateInput = args.Value?.ToString() ?? "";
+        if (!string.IsNullOrWhiteSpace(endDateInput) && string.IsNullOrWhiteSpace(endTimeInput))
+        {
+            endTimeInput = WfObjectTaskHelper.kDefaultEndTimeInput;
+        }
+        UpdateEndTime();
+    }
+
+    private void SetEndTime(ChangeEventArgs args)
+    {
+        endTimeInput = args.Value?.ToString() ?? "";
+        UpdateEndTime();
+    }
+
+    private void UpdateStartTime()
+    {
+        bool valid = WfObjectTaskHelper.TryParseDateTimeInput(startDateInput, startTimeInput, WfObjectTaskHelper.kDefaultStartTimeInput, out startTime);
+        startInputValid = valid ? null : false;
+    }
+
+    private void UpdateEndTime()
+    {
+        bool valid = WfObjectTaskHelper.TryParseDateTimeInput(endDateInput, endTimeInput, WfObjectTaskHelper.kDefaultEndTimeInput, out endTime);
+        endInputValid = valid ? null : false;
     }
 
     /// <summary>
@@ -375,6 +445,10 @@ else
 
     private WfReqElement? BuildTimeElement(string requestAction)
     {
+        if (startInputValid == false || endInputValid == false)
+        {
+            return null;
+        }
         WfReqElement element = new()
         {
             TaskId = ReqTask.Id,

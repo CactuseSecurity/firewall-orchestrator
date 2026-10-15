@@ -50,6 +50,31 @@ namespace FWO.Data.Workflow
         public const string kTimeFormat = "yyyy-MM-dd HH:mm";
 
         /// <summary>
+        /// Value format of a date input field.
+        /// </summary>
+        public const string kDateInputFormat = "yyyy-MM-dd";
+
+        /// <summary>
+        /// Value format of a time input field.
+        /// </summary>
+        public const string kTimeInputFormat = "HH:mm";
+
+        /// <summary>
+        /// Time of day taken for a start date entered without time.
+        /// </summary>
+        public const string kDefaultStartTimeInput = "00:00";
+
+        /// <summary>
+        /// Time of day taken for an end date entered without time.
+        /// </summary>
+        public const string kDefaultEndTimeInput = "23:59";
+
+        /// <summary>
+        /// Accepted time input values; DateTime.TryParseExact takes the formats as array.
+        /// </summary>
+        private static readonly string[] TimeInputFormats = [kTimeInputFormat, "HH:mm:ss"];
+
+        /// <summary>
         /// Determines whether the task type orders a single object.
         /// </summary>
         public static bool IsObjectTask(string? taskType)
@@ -155,6 +180,44 @@ namespace FWO.Data.Workflow
                 return $">= {FormatPointInTime(startTime.Value)}";
             }
             return endTime.HasValue ? $"<= {FormatPointInTime(endTime.Value)}" : "";
+        }
+
+        /// <summary>
+        /// Combines the values of a date and a time input field into a point in local time. Both empty means no
+        /// bound; a date without time takes the given default time; a time without date is incomplete.
+        /// </summary>
+        /// <returns>False when the input is incomplete or cannot be read.</returns>
+        public static bool TryParseDateTimeInput(string dateInput, string timeInput, string defaultTimeInput, out DateTime? pointInTime)
+        {
+            pointInTime = null;
+            if (string.IsNullOrWhiteSpace(dateInput))
+            {
+                return string.IsNullOrWhiteSpace(timeInput);
+            }
+            string effectiveTimeInput = string.IsNullOrWhiteSpace(timeInput) ? defaultTimeInput : timeInput;
+            if (!DateTime.TryParseExact(dateInput, kDateInputFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date)
+                || !DateTime.TryParseExact(effectiveTimeInput, TimeInputFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime time))
+            {
+                return false;
+            }
+            pointInTime = date.Date.Add(time.TimeOfDay);
+            return true;
+        }
+
+        /// <summary>
+        /// Formats the date part of a point in time as value of a date input field, in local time.
+        /// </summary>
+        public static string FormatDateInput(DateTime? pointInTime)
+        {
+            return pointInTime.HasValue ? ToLocal(pointInTime.Value).ToString(kDateInputFormat, CultureInfo.InvariantCulture) : "";
+        }
+
+        /// <summary>
+        /// Formats the time part of a point in time as value of a time input field, in local time.
+        /// </summary>
+        public static string FormatTimeInput(DateTime? pointInTime)
+        {
+            return pointInTime.HasValue ? ToLocal(pointInTime.Value).ToString(kTimeInputFormat, CultureInfo.InvariantCulture) : "";
         }
 
         /// <summary>
@@ -397,13 +460,20 @@ namespace FWO.Data.Workflow
         }
 
         /// <summary>
-        /// Formats a point in time in local time. An unspecified kind stems from an input and already is local
-        /// time, while ToLocalTime would take it for utc.
+        /// Formats a point in time in local time.
         /// </summary>
         private static string FormatPointInTime(DateTime pointInTime)
         {
-            DateTime localTime = pointInTime.Kind == DateTimeKind.Utc ? pointInTime.ToLocalTime() : pointInTime;
-            return localTime.ToString(kTimeFormat, CultureInfo.InvariantCulture);
+            return ToLocal(pointInTime).ToString(kTimeFormat, CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Converts a point in time to local time. An unspecified kind stems from an input and already is local
+        /// time, while ToLocalTime would take it for utc.
+        /// </summary>
+        private static DateTime ToLocal(DateTime pointInTime)
+        {
+            return pointInTime.Kind == DateTimeKind.Utc ? pointInTime.ToLocalTime() : pointInTime;
         }
 
         private static (IPAddress? Start, IPAddress? End) GetAddressRange(string ip, string ipEnd)

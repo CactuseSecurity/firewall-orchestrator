@@ -435,10 +435,12 @@ namespace FWO.Test
             await using BunitContext context = CreateContext();
             WfReqTask task = new() { TaskType = WfTaskType.object_create.ToString() };
             IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, false, kManagementId);
-            await InvokePrivate(component, "SetKind", ObjectTaskKind.Time);
+            component.Find("#objKindTime").Change(true);
             SetMember(component.Instance, "objectName", " maintenance ");
-            SetMember(component.Instance, "startTime", kTimeStart);
-            SetMember(component.Instance, "endTime", kTimeEnd);
+            component.Find("#objStartDate").Input("2026-11-01");
+            component.Find("#objStartTime").Input("08:00");
+            component.Find("#objEndDate").Input("2026-11-30");
+            component.Find("#objEndTime").Input("18:00");
 
             string? error = component.Instance.ApplyToTask();
 
@@ -462,18 +464,82 @@ namespace FWO.Test
             await using BunitContext context = CreateContext();
             WfReqTask task = new() { TaskType = WfTaskType.object_create.ToString() };
             IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, false, kManagementId);
-            await InvokePrivate(component, "SetKind", ObjectTaskKind.Time);
+            component.Find("#objKindTime").Change(true);
             SetMember(component.Instance, "objectName", "maintenance");
-            SetMember(component.Instance, "startTime", kTimeEnd);
-            SetMember(component.Instance, "endTime", kTimeStart);
-            component.Render();
+            component.Find("#objStartDate").Input("2026-11-30");
+            component.Find("#objEndDate").Input("2026-11-01");
 
             Assert.Multiple(() =>
             {
                 Assert.That(component.Instance.ApplyToTask(), Is.EqualTo("E5124"));
                 Assert.That(task.Elements, Is.Empty);
+                Assert.That(component.Find("#objEndDate").ClassList, Does.Contain("is-invalid"));
                 Assert.That(component.Find("#objEndTime").ClassList, Does.Contain("is-invalid"));
-                Assert.That(component.Find("#objStartTime").GetAttribute("type"), Is.EqualTo("datetime-local"));
+                Assert.That(component.Find("#objStartDate").ClassList, Does.Not.Contain("is-invalid"));
+            });
+        }
+
+        [Test]
+        public async Task KindButtons_SwitchToTheTimeInputs()
+        {
+            await using BunitContext context = CreateContext();
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, new WfReqTask(), false, kManagementId);
+
+            component.Find("#objKindTime").Change(true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("input.btn-check[name='objectKind']"), Has.Count.EqualTo(3));
+                Assert.That(component.Find("#objKindTime").HasAttribute("checked"), Is.True);
+                Assert.That(component.Find("#objKindNetwork").HasAttribute("checked"), Is.False);
+                Assert.That(component.FindAll("#objStartDate"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("input[placeholder='ip_addresses']"), Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task TimeInputs_KeepATypedDateAndTakeTheDefaultTime()
+        {
+            await using BunitContext context = CreateContext();
+            WfReqTask task = new() { TaskType = WfTaskType.object_create.ToString() };
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, false, kManagementId);
+            component.Find("#objKindTime").Change(true);
+            SetMember(component.Instance, "objectName", "maintenance");
+
+            component.Find("#objStartDate").Input("2026-11-01");
+            component.Find("#objEndDate").Input("2026-11-30");
+            component.Find("#objEndTime").Input("18:00");
+            string? error = component.Instance.ApplyToTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Find("#objStartDate").GetAttribute("value"), Is.EqualTo("2026-11-01"));
+                Assert.That(component.Find("#objStartTime").GetAttribute("value"), Is.EqualTo(WfObjectTaskHelper.kDefaultStartTimeInput));
+                Assert.That(component.Find("#objEndTime").GetAttribute("value"), Is.EqualTo("18:00"));
+                Assert.That(error, Is.Null);
+                Assert.That(task.Elements[0].StartTime, Is.EqualTo(kTimeStart.Date));
+                Assert.That(task.Elements[0].EndTime, Is.EqualTo(kTimeEnd));
+            });
+        }
+
+        [Test]
+        public async Task TimeInputs_RejectATimeWithoutDate()
+        {
+            await using BunitContext context = CreateContext();
+            WfReqTask task = new() { TaskType = WfTaskType.object_create.ToString() };
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, false, kManagementId);
+            component.Find("#objKindTime").Change(true);
+            SetMember(component.Instance, "objectName", "maintenance");
+            component.Find("#objEndDate").Input("2026-11-30");
+
+            component.Find("#objStartTime").Input("08:00");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Find("#objStartTime").GetAttribute("value"), Is.EqualTo("08:00"));
+                Assert.That(component.Find("#objStartDate").ClassList, Does.Contain("is-invalid"));
+                Assert.That(component.Instance.ApplyToTask(), Is.EqualTo("E5124"));
+                Assert.That(task.Elements, Is.Empty);
             });
         }
 
@@ -483,16 +549,18 @@ namespace FWO.Test
             await using BunitContext context = CreateContext();
             WfReqTask task = new() { Id = 5, TaskType = WfTaskType.object_modify.ToString() };
             IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, true, kManagementId);
-            await InvokePrivate(component, "SetKind", ObjectTaskKind.Time);
+            component.Find("#objKindTime").Change(true);
             TimeObject imported = new() { Id = 77, Name = "maintenance", StartTime = kTimeStart, EndTime = kTimeEnd };
             await InvokePrivate(component, "SelectTimeObject", imported);
 
             string? unchangedError = component.Instance.ApplyToTask();
-            SetMember(component.Instance, "endTime", kTimeEnd.AddDays(1));
+            component.Find("#objEndDate").Input("2026-12-01");
             string? error = component.Instance.ApplyToTask();
 
             Assert.Multiple(() =>
             {
+                Assert.That(component.Find("#objStartDate").GetAttribute("value"), Is.EqualTo("2026-11-01"));
+                Assert.That(component.Find("#objStartTime").GetAttribute("value"), Is.EqualTo("08:00"));
                 Assert.That(unchangedError, Is.EqualTo("E5125"));
                 Assert.That(error, Is.Null);
                 Assert.That(WfObjectTaskHelper.HasValidElementStructure(task), Is.True);

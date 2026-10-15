@@ -83,6 +83,20 @@ namespace FWO.Data
         [JsonProperty("rule_dst_zone"), JsonPropertyName("rule_dst_zone")]
         public string? RuleDstZone { get; set; }
 
+        /// <summary>
+        /// Labels of the rule source as {"label-key": "label-value" | ["label-value", ...]}, null without labels.
+        /// </summary>
+        [JsonProperty("rule_src_labels"), JsonPropertyName("rule_src_labels")]
+        [Newtonsoft.Json.JsonConverter(typeof(RuleLabelsJsonConverter))]
+        public Dictionary<string, List<string>>? RuleSrcLabels { get; set; }
+
+        /// <summary>
+        /// Labels of the rule destination as {"label-key": "label-value" | ["label-value", ...]}, null without labels.
+        /// </summary>
+        [JsonProperty("rule_dst_labels"), JsonPropertyName("rule_dst_labels")]
+        [Newtonsoft.Json.JsonConverter(typeof(RuleLabelsJsonConverter))]
+        public Dictionary<string, List<string>>? RuleDstLabels { get; set; }
+
         [JsonProperty("rule_head_text"), JsonPropertyName("rule_head_text")]
         public string? RuleHeadText { get; set; }
 
@@ -132,6 +146,8 @@ namespace FWO.Data
                 RuleComment = rule.Comment,
                 RuleSrcZone = rule.SourceZone,
                 RuleDstZone = rule.DestinationZone,
+                RuleSrcLabels = rule.SourceLabels,
+                RuleDstLabels = rule.DestinationLabels,
                 RuleHeadText = rule.SectionHeader,
                 XlateRule = rule.TranslatedRule?.Uid,
                 NatRule = rule.NatRule,

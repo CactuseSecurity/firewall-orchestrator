@@ -54,6 +54,22 @@ namespace FWO.Data
         [JsonProperty("rule_src_zone"), JsonPropertyName("rule_src_zone")]
         public string SourceZone { get; set; } = "";
 
+        /// <summary>
+        /// Labels of the rule source as label key to label values, null if the source has no labels.
+        /// </summary>
+        [JsonProperty("rule_src_labels", NullValueHandling = NullValueHandling.Ignore), JsonPropertyName("rule_src_labels")]
+        [SystemTextJsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [Newtonsoft.Json.JsonConverter(typeof(RuleLabelsJsonConverter))]
+        public Dictionary<string, List<string>>? SourceLabels { get; set; }
+
+        /// <summary>
+        /// Labels of the rule destination as label key to label values, null if the destination has no labels.
+        /// </summary>
+        [JsonProperty("rule_dst_labels", NullValueHandling = NullValueHandling.Ignore), JsonPropertyName("rule_dst_labels")]
+        [SystemTextJsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [Newtonsoft.Json.JsonConverter(typeof(RuleLabelsJsonConverter))]
+        public Dictionary<string, List<string>>? DestinationLabels { get; set; }
+
         [JsonProperty("rule_from_zones"), JsonPropertyName("rule_from_zones")]
         public ZoneWrapper[] RuleFromZones { get; set; } = [];
 

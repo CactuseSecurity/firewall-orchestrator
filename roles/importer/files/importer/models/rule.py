@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from typing import TypeAlias
+
 from models.caseinsensitiveenum import CaseInsensitiveEnum
 from models.time_object import validate_iso_timestamp_value
 from pydantic import BaseModel, field_validator
+
+RuleLabels: TypeAlias = dict[str, str | list[str]]
 
 
 class RuleType(CaseInsensitiveEnum):
@@ -65,6 +69,9 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
     rule_comment: str | None = None
     rule_src_zone: str | None = None
     rule_dst_zone: str | None = None
+    # labels of a rule side as {"label-key": "label-value"}, several values of one key as list; None without labels
+    rule_src_labels: RuleLabels | None = None
+    rule_dst_labels: RuleLabels | None = None
     rule_head_text: str | None = None
     xlate_rule_uid: str | None = None
     nat_rule: bool = False
@@ -161,6 +168,8 @@ class Rule(BaseModel):
     rule_svc_refs: str
     rule_time: str | None = None
     rule_dst_zone: str | None = None
+    rule_src_labels: RuleLabels | None = None
+    rule_dst_labels: RuleLabels | None = None
     track_id: int
     xlate_rule: int | None = None
     rule_track: str

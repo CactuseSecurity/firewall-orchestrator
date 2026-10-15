@@ -46,6 +46,7 @@ There may be multiple configs per manager in the future but at the moment the on
 | `service_objects` | object | yes    | Map of service objects keyed by UID. |
 | `users`         | object  | yes      | User directory entries keyed by UID (empty in samples). |
 | `zone_objects`  | object  | yes      | Map of zone definitions. |
+| `labels`        | array   | no       | Imported key/value labels (e.g. Guardicore labels), see below. |
 | `rulebases`     | array   | yes      | Rulebase segments assigned to the manager. |
 | `gateways`      | array   | yes      | Gateways/firewalls with rulebase links. |
 
@@ -80,6 +81,17 @@ There may be multiple configs per manager in the future but at the moment the on
 | `svc_timeout`     | integer|null | Optional timeout. |
 | `rpc_nr`          | integer|null | RPC metadata. |
 
+### `labels` entry
+
+| Field      | Type   | Description |
+|------------|--------|-------------|
+| `key_name` | string | Label key, e.g. `AppRole`. |
+| `value`    | string | Label value, e.g. `AR1234`. |
+
+Labels are global and not bound to a manager: on every import, keys and values that are not yet known are added
+to `labelling.label_key` and `labelling.label_value` (marked as imported). Labels that are no longer delivered are
+kept. Labels are not part of the change detection of the config.
+
 ### Rulebase Segment
 
 | Field           | Type    | Description |
@@ -92,7 +104,11 @@ There may be multiple configs per manager in the future but at the moment the on
 
 Each rule entry contains metadata such as `rule_src`, `rule_dst`, `rule_svc`,
 action, hit counters, zones, and audit fields (`last_change_admin`, etc.),
-mirroring the properties shown in the samples.
+mirroring the properties shown in the samples. The optional `rule_src_labels` and
+`rule_dst_labels` hold the labels of the rule source and destination as
+`{"label-key": "label-value", ...}`; a key with several values holds an array of
+them (e.g. `{"AppRole": ["AR1", "AR2"], "Stage": "Prod"}`), and both are `null`
+when the side has no labels.
 
 ### Gateways
 

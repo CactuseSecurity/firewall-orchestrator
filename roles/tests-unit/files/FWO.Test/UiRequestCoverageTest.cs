@@ -398,6 +398,149 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayApprovals_CloseInvokesCallbacksAndClearsDisplay()
+        {
+            await using BunitContext context = new();
+            int resetCalls = 0;
+            bool? changedDisplay = null;
+            WfHandler handler = new();
+            List<WfApproval> approvals = new() { new WfApproval { Id = 6, Comments = [] } };
+            IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
+                context, handler, approvals, displayChanged: value => changedDisplay = value,
+                resetParent: () =>
+                {
+                    resetCalls++;
+                    return Task.CompletedTask;
+                });
+
+            await InvokePrivateTask(component.Instance, "Close");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Instance.Display, Is.False);
+                Assert.That(changedDisplay, Is.False);
+                Assert.That(resetCalls, Is.EqualTo(1));
+                Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task DisplayApprovals_HiddenStateDoesNotRenderApprovalTable()
+        {
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
+                context, new WfHandler(), [new WfApproval { Id = 10, Comments = [] }], display: false);
+
+            Assert.That(component.FindAll("table"), Is.Empty);
+        }
+
+        [Test]
+        public async Task DisplayApprovals_ReadOnlyBlocksApprovalActions()
+        {
+            await using BunitContext context = new();
+            WfHandler handler = new();
+            WfApproval approval = new() { Id = 7, Comments = [] };
+            IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
+                context, handler, [approval], readOnlyMode: true);
+
+            await InvokePrivateTask(component.Instance, "InitAddComment", approval);
+            await InvokePrivateTask(component.Instance, "AssignApproval", approval);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayApprovalCommentMode, Is.False);
+                Assert.That(handler.DisplayAssignApprovalMode, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task DisplayApprovals_ResetClearsApprovalActions()
+        {
+            await using BunitContext context = new();
+            WfHandler handler = new();
+            IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
+                context, handler, [new WfApproval { Id = 8, Comments = [] }]);
+            handler.DisplayApprovalCommentMode = true;
+            handler.DisplayAssignApprovalMode = true;
+
+            await InvokePrivateTask(component.Instance, "Reset");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayApprovalCommentMode, Is.False);
+                Assert.That(handler.DisplayAssignApprovalMode, Is.False);
+            });
+        }
+
+        [Test]
+        public void DisplayApprovals_DisplayApproverHandlesEmptyDistinguishedNamesAndSystem()
+        {
+            MethodInfo method = typeof(DisplayApprovals).GetMethod(
+                "DisplayApprover", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingMethodException(nameof(DisplayApprovals), "DisplayApprover");
+            string[] emptyArguments = [null!];
+            string[] distinguishedNameArguments = ["uid=alice,ou=users,dc=example"];
+            string[] systemArguments = [GlobalConst.kSystemUser];
+
+            string empty = (string)method.Invoke(null, emptyArguments)!;
+            string userName = (string)method.Invoke(null, distinguishedNameArguments)!;
+            string system = (string)method.Invoke(null, systemArguments)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(empty, Is.Empty);
+                Assert.That(userName, Is.EqualTo("alice"));
+                Assert.That(system, Is.EqualTo(GlobalConst.kSystemUser));
+            });
+        }
+
+        [Test]
+        public async Task DisplayApprovals_AssignedApprovalDisplaysApproverWithoutAssignmentActions()
+        {
+            await using BunitContext context = new();
+            WfApproval approval = new()
+            {
+                Id = 9,
+                ApproverDn = "uid=alice,ou=users,dc=example",
+                Comments = []
+            };
+            IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(context, new WfHandler(), [approval]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("alice"));
+                Assert.That(component.Markup, Does.Not.Contain("add_comment"));
+                Assert.That(component.Markup, Does.Not.Contain("assign1"));
+            });
+        }
+
+        private static IRenderedComponent<DisplayApprovals> RenderDisplayApprovals(
+            BunitContext context,
+            WfHandler handler,
+            List<WfApproval> approvals,
+            bool display = true,
+            bool? readOnlyMode = null,
+            Action<bool>? displayChanged = null,
+            Func<Task>? resetParent = null)
+        {
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(new RequestCoverageUserConfig());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Approver));
+
+            return context.Render<DisplayApprovals>(parameters => parameters
+                .Add(p => p.Display, display)
+                .Add(p => p.WfHandler, handler)
+                .Add(p => p.ResetParent, resetParent ?? DefaultInit.DoNothing)
+                .Add(p => p.DisplayChanged, value => displayChanged?.Invoke(value))
+                .Add(p => p.Approvals, approvals)
+                .Add(p => p.States, new WfStateDict())
+                .Add(p => p.ReadOnlyMode, readOnlyMode));
+        }
+
+        [Test]
         public void ImplOptSelection_InitializesOwnerOptionsWithoutTicketsForNonAdminReducedView()
         {
             ImplOptSelection component = new();

@@ -1,5 +1,6 @@
 using Bunit;
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
@@ -138,6 +139,34 @@ namespace FWO.Test
                 Assert.That(handler.DisplayTicketMode, Is.False);
                 Assert.That(handler.EditTicketMode, Is.False);
                 Assert.That(handler.AddTicketMode, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task DisplayTicketTable_HidesTicketColumnsDisabledInTicketVisibility()
+        {
+            await using BunitContext context = new();
+            WfHandler handler = CreateWorkflowHandler(WorkflowPhases.request, WfTaskType.access.ToString(), new WfTicket { Id = 1 });
+            UserConfig config = new RequestWorkflowUserConfig
+            {
+                ReqTicketFieldVisibility = new TicketFieldVisibilityConfig
+                {
+                    ShowRequester = false,
+                    ShowPriority = false,
+                    ShowDeadline = false
+                }.ToConfigValue()
+            };
+            IRenderedComponent<DisplayTicketTable> component = RenderDisplayTicketTableWithUserConfig(
+                context, handler, WorkflowPhases.request, new WfStateDict(), config);
+
+            List<string> headerTexts = component.FindAll("thead th")
+                .Select(header => header.TextContent.Trim())
+                .ToList();
+            Assert.Multiple(() =>
+            {
+                Assert.That(headerTexts, Does.Not.Contain("requester"));
+                Assert.That(headerTexts, Does.Not.Contain("priority"));
+                Assert.That(headerTexts, Does.Not.Contain("deadline"));
             });
         }
 

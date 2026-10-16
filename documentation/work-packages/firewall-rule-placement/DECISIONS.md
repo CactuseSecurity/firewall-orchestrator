@@ -181,3 +181,11 @@ The planner performs repository discovery, settles decisions, and makes the pair
 `FWO_Regel_Platzierung_Regelwerk.md` remains unopened through WP-04. It is analyzed only in the WP-05 planning session, which converts the customer behavior into normative recipes, enum mappings, failure cases, and acceptance tests for the final implementation session.
 
 Rationale: separating discovery from execution gives each work package a recoverable planning gate, keeps implementers focused on settled requirements, and delays customer-specific policy until all reusable production infrastructure is ready.
+
+## 2026-10-16 - D-029 - Anchor production graph reads to one completed rule import
+
+The production snapshot reader selects one management-scoped type-1 rule import with `successful_import = true` and non-null `stop_time`, ordered by completion time and then control ID. It captures that control ID once and loads gateway links, endpoint rulebases, and structural rules using `created <= import_id` and `removed IS NULL OR removed > import_id` (with `rule_create` for rules).
+
+The reader validates gateway-management ownership, historical intervals, exact endpoint completeness, and source-rule ownership before constructing the existing `RulebaseGraphSnapshot`. It returns a typed success or safe typed failure, while caller cancellation remains exceptional. The existing GraphQL schema and middleware-server permissions are sufficient; no schema or Hasura metadata change is required.
+
+Rationale: a fixed import ID reconstructs the completed post-import state even if a newer failed or in-progress import is changing current rows, and explicit validation prevents partial historical data from becoming a calculation input.

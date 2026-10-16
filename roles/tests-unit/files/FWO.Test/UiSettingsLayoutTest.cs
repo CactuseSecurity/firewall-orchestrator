@@ -90,6 +90,16 @@ namespace FWO.Test
             "settings/personal"
         };
 
+        private static readonly List<string> FlowNavigation = new()
+        {
+            "settings/flows/general",
+            "settings/flows/networkobjects",
+            "settings/flows/networkgroups",
+            "settings/flows/serviceobjects",
+            "settings/flows/servicegroups",
+            "settings/flows/timeobjects"
+        };
+
         private static readonly List<string> WorkflowOnlyRoles = new()
         {
             Roles.WorkflowRolesList
@@ -250,7 +260,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SettingsLayout_HidesFlowSection_ForAuditor()
+        public async Task SettingsLayout_ShowsFlowSection_ForAuditor()
         {
             await using BunitContext context = CreateContext(SingleRole(Roles.Auditor), CreateInternalDn());
             IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.Auditor);
@@ -258,7 +268,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(hrefs.Where(href => href.StartsWith("settings/flows/")), Is.Empty);
+                Assert.That(hrefs.Where(href => href.StartsWith("settings/flows/")), Is.EqualTo(FlowNavigation));
                 Assert.That(hrefs, Contains.Item("settings/users"));
                 Assert.That(hrefs, Contains.Item("settings/customtexts"));
             });

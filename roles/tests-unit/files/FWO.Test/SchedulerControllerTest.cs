@@ -3,6 +3,7 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
 using NUnit.Framework;
@@ -105,6 +106,28 @@ namespace FWO.Test
 
             Assert.That(result.Value, Is.True);
             await scheduler.Received(1).TriggerJob(new JobKey("trigger-job"), null, CancellationToken.None);
+        }
+
+        [Test]
+        public void GetJobs_IsReadableByAdminAndAuditor()
+        {
+            Assert.That(GetAuthorizedRoles(nameof(SchedulerController.GetJobs)), Is.EquivalentTo(kReadRoles));
+        }
+
+        [Test]
+        public void Run_IsAdminOnly()
+        {
+            Assert.That(GetAuthorizedRoles(nameof(SchedulerController.Run)), Is.EquivalentTo(kRunRoles));
+        }
+
+        private static readonly List<string> kReadRoles = [Roles.Admin, Roles.Auditor];
+        private static readonly List<string> kRunRoles = [Roles.Admin];
+
+        private static List<string> GetAuthorizedRoles(string actionName)
+        {
+            AuthorizeAttribute attribute = typeof(SchedulerController).GetMethod(actionName)!
+                .GetCustomAttributes(typeof(AuthorizeAttribute), false).Cast<AuthorizeAttribute>().Single();
+            return [.. (attribute.Roles ?? "").Split(',').Select(role => role.Trim())];
         }
 
         private static SchedulerController CreateController(IScheduler scheduler, JobExecutionTracker tracker)

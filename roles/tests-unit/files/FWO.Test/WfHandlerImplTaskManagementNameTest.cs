@@ -22,7 +22,7 @@ namespace FWO.Test
 
         private static WfHandler CreateHandler()
         {
-            WfHandler handler = new(new SimulatedUserConfig(), new InMemoryProvisioningApiConnection(), WorkflowPhases.planning, null);
+            WfHandler handler = new(new SimulatedUserConfig(), new InMemoryDeviceSpecificSettingsApiConnection(), WorkflowPhases.planning, null);
             handler.Managements =
             [
                 new Management { Id = kVisibleManagementId, Name = kVisibleManagementName },

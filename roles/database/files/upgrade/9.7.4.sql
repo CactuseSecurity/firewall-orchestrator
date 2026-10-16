@@ -1,0 +1,253 @@
+-- The provisioning settings are now device specific settings, as they also serve other purposes such as
+-- importing. Rename their tables and the constraints, indexes and sequence named after them. Every rename is
+-- skipped once it has been done, and the migration below already uses the new names.
+DO $$
+DECLARE
+    r_table RECORD;
+    r_object RECORD;
+BEGIN
+    FOR r_table IN
+        SELECT old_name, new_name FROM (VALUES
+            ('provisioning_config_node', 'device_specific_config_node'),
+            ('provisioning_config_value', 'device_specific_config_value'),
+            ('provisioning_config_backup', 'device_specific_config_backup')) AS renamed (old_name, new_name)
+    LOOP
+        IF to_regclass(r_table.old_name) IS NOT NULL AND to_regclass(r_table.new_name) IS NULL THEN
+            EXECUTE format('ALTER TABLE %I RENAME TO %I', r_table.old_name, r_table.new_name);
+        END IF;
+    END LOOP;
+
+    -- renaming a primary key or unique constraint also renames its index
+    FOR r_object IN
+        SELECT conrelid::regclass AS table_name, conname FROM pg_constraint
+        WHERE conname LIKE 'provisioning\_config\_%' AND conrelid IN (
+            to_regclass('device_specific_config_node'), to_regclass('device_specific_config_value'),
+            to_regclass('device_specific_config_backup'))
+    LOOP
+        EXECUTE format('ALTER TABLE %s RENAME CONSTRAINT %I TO %I', r_object.table_name, r_object.conname,
+            replace(r_object.conname, 'provisioning_config_', 'device_specific_config_'));
+    END LOOP;
+
+    FOR r_object IN
+        SELECT c.relname, c.relkind FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = current_schema() AND c.relkind IN ('i', 'S')
+            AND (c.relname LIKE 'provisioning\_config\_%' OR c.relname LIKE 'idx\_provisioning\_config\_%')
+    LOOP
+        EXECUTE format('ALTER %s %I RENAME TO %I', CASE r_object.relkind WHEN 'S' THEN 'SEQUENCE' ELSE 'INDEX' END,
+            r_object.relname, replace(r_object.relname, 'provisioning_config_', 'device_specific_config_'));
+    END LOOP;
+END $$;
+
+-- Retain the pre-migration values once, including overrides no longer permitted
+-- at their old levels and any nonstandard install-on targets. Review this JSON
+-- backup when selecting the replacement overrides in device specific settings.
+-- This archive is intentionally not tracked in Hasura. Global config is readable
+-- anonymously and must not contain these restricted device specific setting values.
+CREATE TABLE IF NOT EXISTS device_specific_config_backup
+(
+    version varchar PRIMARY KEY,
+    config_values jsonb NOT NULL
+);
+INSERT INTO device_specific_config_backup (version, config_values)
+SELECT '9.7.4',
+       COALESCE(jsonb_agg(jsonb_build_object(
+           'node_id', v.node_id, 'node_type', n.node_type,
+           'object_key', n.object_key, 'config_key', v.config_key,
+           'config_value', v.config_value)), '[]'::jsonb)
+FROM device_specific_config_value v
+JOIN device_specific_config_node n ON n.id = v.node_id
+ON CONFLICT DO NOTHING;
+
+-- Prefer an already stored canonical override if both old and new keys exist.
+INSERT INTO device_specific_config_value (node_id, config_key, config_value)
+SELECT node_id,
+       CASE config_key
+           WHEN 'logging' THEN 'ruleLoggingOverride'
+           WHEN 'zoneFrom' THEN 'ruleZoneFromOverride'
+           WHEN 'zoneTo' THEN 'ruleZoneToOverride'
+       END, config_value
+FROM device_specific_config_value
+WHERE config_key IN ('logging', 'zoneFrom', 'zoneTo')
+ON CONFLICT (node_id, config_key) DO NOTHING;
+DELETE FROM device_specific_config_value WHERE config_key IN ('logging', 'zoneFrom', 'zoneTo');
+
+-- The old None implementation mode becomes manual with planning disabled.
+INSERT INTO device_specific_config_value (node_id, config_key, config_value)
+SELECT node_id, 'planImplementation', 'false'::jsonb
+FROM device_specific_config_value
+WHERE config_key = 'implementationMode' AND config_value = '"None"'::jsonb
+ON CONFLICT (node_id, config_key) DO NOTHING;
+
+-- The other old modes always planned the implementation. A level overriding one of them below a None level
+-- would otherwise inherit the disabled planning, so it keeps planning explicitly. Only planning disabled by a level
+-- that still has the old None mode counts: no planning values existed before 9.7.4, and once None is converted
+-- below, a repeated upgrade leaves planning that an administrator disabled after the upgrade untouched.
+WITH RECURSIVE ancestors (node_id, ancestor_id, depth) AS (
+    SELECT id, parent_id, 1 FROM device_specific_config_node WHERE parent_id IS NOT NULL
+    UNION ALL
+    SELECT a.node_id, n.parent_id, a.depth + 1
+    FROM ancestors a JOIN device_specific_config_node n ON n.id = a.ancestor_id
+    WHERE n.parent_id IS NOT NULL AND a.depth < 100 -- recursion limit, the hierarchy has four levels
+), inherited_planning AS (
+    SELECT DISTINCT ON (a.node_id) a.node_id, p.config_value, m.config_value AS ancestor_mode
+    FROM ancestors a
+    JOIN device_specific_config_value p ON p.node_id = a.ancestor_id AND p.config_key = 'planImplementation'
+    LEFT JOIN device_specific_config_value m ON m.node_id = a.ancestor_id AND m.config_key = 'implementationMode'
+    ORDER BY a.node_id, a.depth
+)
+INSERT INTO device_specific_config_value (node_id, config_key, config_value)
+SELECT v.node_id, 'planImplementation', 'true'::jsonb
+FROM device_specific_config_value v
+JOIN inherited_planning i ON i.node_id = v.node_id
+WHERE v.config_key = 'implementationMode' AND v.config_value #>> '{}' IN ('FwoAuto', 'Manual', 'TufinSc')
+    AND i.config_value = 'false'::jsonb AND i.ancestor_mode = '"None"'::jsonb
+ON CONFLICT (node_id, config_key) DO NOTHING;
+
+-- TufinSc becomes the reroute mode. If exactly one Tufin SecureChange system (type 2) is configured, the
+-- reroute targets it; otherwise the administrator selects the ticket system after the upgrade.
+DO $$
+DECLARE
+    t_ticket_systems text;
+    i_tufin_id integer;
+BEGIN
+    SELECT config_value INTO t_ticket_systems FROM config WHERE config_key = 'extTicketSystems' AND config_user = 0;
+    BEGIN
+        -- missing TypeId: the default the middleware assumes when reading the ticket system (generic, 1)
+        SELECT CASE WHEN count(DISTINCT s ->> 'Id') = 1 THEN min((s ->> 'Id')::integer) END INTO i_tufin_id
+        FROM jsonb_array_elements(CASE WHEN jsonb_typeof(t_ticket_systems::jsonb) = 'array'
+            THEN t_ticket_systems::jsonb ELSE '[]'::jsonb END) s
+        WHERE jsonb_typeof(s) = 'object' AND COALESCE(s ->> 'TypeId', '1') = '2'
+            AND s ->> 'Id' ~ '^[1-9][0-9]{0,8}$';
+    EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING 'upgrade 9.7.4: external ticket systems are no valid JSON, TufinSc levels need a ticket system';
+        i_tufin_id := NULL;
+    END;
+
+    IF i_tufin_id IS NOT NULL THEN
+        INSERT INTO device_specific_config_value (node_id, config_key, config_value)
+        SELECT node_id, 'rerouteToExternalTicketSystem', to_jsonb(i_tufin_id)
+        FROM device_specific_config_value
+        WHERE config_key = 'implementationMode' AND config_value = '"TufinSc"'::jsonb
+        ON CONFLICT (node_id, config_key) DO NOTHING;
+    END IF;
+END $$;
+
+UPDATE device_specific_config_value
+SET config_value = to_jsonb(CASE config_value #>> '{}'
+    WHEN 'FwoAuto' THEN 'Automatic'
+    WHEN 'TufinSc' THEN 'reroute_to_external_ticket_system'
+    WHEN 'None' THEN 'Manual' END)
+WHERE config_key = 'implementationMode' AND config_value #>> '{}' IN ('FwoAuto', 'TufinSc', 'None');
+
+-- The old rule category becomes the common-service separation switch.
+INSERT INTO device_specific_config_value (node_id, config_key, config_value)
+SELECT node_id, 'commonServiceSeparation', to_jsonb(config_value #>> '{}' IN ('CommonService', 'common_service'))
+FROM device_specific_config_value
+WHERE config_key = 'ruleCategory'
+ON CONFLICT (node_id, config_key) DO NOTHING;
+DELETE FROM device_specific_config_value WHERE config_key = 'ruleCategory';
+
+UPDATE device_specific_config_value v
+SET config_value = to_jsonb(mapping.new_value)
+FROM (VALUES
+    ('ruleLoggingOverride', 'Log', 'log'),
+    ('ruleLoggingOverride', 'LogTrack', 'log_track'),
+    ('ruleLoggingOverride', 'None', 'none'),
+    ('ruleType', 'AlwaysAccess', 'access'),
+    ('ruleType', 'HandleAccessAndNat', 'accessAndNat'),
+    ('ruleType', 'HandleAccessAndIps', 'accessAndIPS'),
+    ('ruleType', 'HandleAccessNatIps', 'accessNatIPS'),
+    ('positioningAlgorithm', 'CheckPointInlineLayerPerZonePair', 'cpInlineLayerPerZonePair'),
+    ('positioningAlgorithm', 'FortinetEndOfZone', 'endOfZone'),
+    ('positioningAlgorithm', 'CheckPointEndOfAppSection', 'endOfAppSection'),
+    ('positioningAlgorithm', 'CheckPointEndOfAppSectionDistinguishCommonServices', 'endOfAppSectionDistinguishCommonServices')
+) AS mapping(config_key, old_value, new_value)
+WHERE v.config_key = mapping.config_key AND v.config_value #>> '{}' = mapping.old_value;
+
+-- Only the two documented install-on choices remain active; other old targets
+-- are preserved in the backup above for an administrator to reassess.
+DELETE FROM device_specific_config_value
+WHERE config_key = 'installOn' AND config_value NOT IN ('"ANY"'::jsonb, '"gatewaysInPath"'::jsonb);
+
+-- Templates are now device-type settings only, and security profiles were never
+-- global. Removed overrides are backed up above.
+DELETE FROM device_specific_config_value v USING device_specific_config_node n
+WHERE v.node_id = n.id AND (
+    (n.node_type <> 'device_type' AND v.config_key = 'templates')
+    OR (n.node_type = 'global' AND v.config_key = 'securityProfiles')
+);
+
+-- The importer host moves from management.importer_hostname to the device specific setting importerHostName.
+-- The most common host becomes the global value, and managements with another host override it on their own level.
+-- Managements without a host inherit it; an empty setting would make every importer responsible.
+-- The old column values are backed up once, and the migration is skipped once the column is gone.
+DO $$
+DECLARE
+    i_global_node bigint;
+    i_device_type_node bigint;
+    i_management_node bigint;
+    t_global_host text;
+    r_management RECORD;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('management')
+        AND attname = 'importer_hostname' AND NOT attisdropped) THEN
+        RETURN;
+    END IF;
+
+    INSERT INTO device_specific_config_backup (version, config_values)
+    SELECT '9.7.4 management.importer_hostname', COALESCE(jsonb_agg(jsonb_build_object(
+        'mgm_id', mgm_id, 'mgm_name', mgm_name, 'importer_hostname', importer_hostname) ORDER BY mgm_id), '[]'::jsonb)
+    FROM management
+    ON CONFLICT DO NOTHING;
+
+    INSERT INTO device_specific_config_node (node_type, object_key, display_name, sort_order)
+    VALUES ('global', 'global', 'Global', 0)
+    ON CONFLICT (node_type, object_key) DO NOTHING;
+    SELECT id INTO i_global_node FROM device_specific_config_node WHERE node_type = 'global';
+
+    SELECT btrim(importer_hostname) INTO t_global_host FROM management
+    WHERE btrim(COALESCE(importer_hostname, '')) <> ''
+    GROUP BY btrim(importer_hostname)
+    ORDER BY count(*) DESC, btrim(importer_hostname)
+    LIMIT 1;
+
+    IF t_global_host IS NOT NULL THEN
+        INSERT INTO device_specific_config_value (node_id, config_key, config_value)
+        VALUES (i_global_node, 'importerHostName', to_jsonb(t_global_host))
+        ON CONFLICT (node_id, config_key) DO NOTHING;
+    END IF;
+
+    FOR r_management IN
+        SELECT m.mgm_id, m.mgm_name, m.dev_typ_id, btrim(m.importer_hostname) AS host,
+            concat_ws(' ', t.dev_typ_name, t.dev_typ_version) AS device_type_name
+        FROM management m
+        JOIN stm_dev_typ t ON t.dev_typ_id = m.dev_typ_id
+        WHERE btrim(COALESCE(m.importer_hostname, '')) <> ''
+            AND btrim(m.importer_hostname) IS DISTINCT FROM COALESCE(
+                (SELECT v.config_value #>> '{}' FROM device_specific_config_node n
+                    JOIN device_specific_config_value v ON v.node_id = n.id AND v.config_key = 'importerHostName'
+                    WHERE n.node_type = 'device_type' AND n.object_key = m.dev_typ_id::text),
+                (SELECT v.config_value #>> '{}' FROM device_specific_config_value v
+                    WHERE v.node_id = i_global_node AND v.config_key = 'importerHostName'),
+                '')
+        ORDER BY m.mgm_id
+    LOOP
+        INSERT INTO device_specific_config_node (node_type, object_key, parent_id, display_name)
+        VALUES ('device_type', r_management.dev_typ_id::text, i_global_node, r_management.device_type_name)
+        ON CONFLICT (node_type, object_key) DO NOTHING;
+        SELECT id INTO i_device_type_node FROM device_specific_config_node
+        WHERE node_type = 'device_type' AND object_key = r_management.dev_typ_id::text;
+
+        INSERT INTO device_specific_config_node (node_type, object_key, parent_id, display_name)
+        VALUES ('management', r_management.mgm_id::text, i_device_type_node, r_management.mgm_name)
+        ON CONFLICT (node_type, object_key) DO NOTHING;
+        SELECT id INTO i_management_node FROM device_specific_config_node
+        WHERE node_type = 'management' AND object_key = r_management.mgm_id::text;
+
+        INSERT INTO device_specific_config_value (node_id, config_key, config_value)
+        VALUES (i_management_node, 'importerHostName', to_jsonb(r_management.host))
+        ON CONFLICT (node_id, config_key) DO NOTHING;
+    END LOOP;
+END $$;
+
+ALTER TABLE IF EXISTS management DROP COLUMN IF EXISTS importer_hostname;

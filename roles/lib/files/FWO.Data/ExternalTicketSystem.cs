@@ -133,7 +133,7 @@ namespace FWO.Data
         /// </summary>
         /// <param name="extTicketSystems">The external ticket systems as stored in the config (JSON list).</param>
         /// <returns>The ticket systems, empty if none are configured.</returns>
-        private static List<ExternalTicketSystem> ParseConfigured(string? extTicketSystems)
+        public static List<ExternalTicketSystem> ParseConfigured(string? extTicketSystems)
         {
             return string.IsNullOrWhiteSpace(extTicketSystems) ? []
                 : System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(extTicketSystems) ?? [];

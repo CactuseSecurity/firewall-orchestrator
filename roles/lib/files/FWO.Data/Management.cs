@@ -51,9 +51,6 @@ namespace FWO.Data
         [JsonProperty("is_super_manager"), JsonPropertyName("is_super_manager")]
         public bool IsSupermanager { get; set; } = false;
 
-        [JsonProperty("importerHostname"), JsonPropertyName("importerHostname")]
-        public string? ImporterHostname { get; set; } = "";
-
         [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; }
 
@@ -138,7 +135,6 @@ namespace FWO.Data
             CloudSubscriptionId = management.CloudSubscriptionId;
             CloudTenantId = management.CloudTenantId;
             SuperManagerId = management.SuperManagerId;
-            ImporterHostname = management.ImporterHostname;
             Port = management.Port;
             ImportDisabled = management.ImportDisabled;
             ForceInitialImport = management.ForceInitialImport;
@@ -188,14 +184,6 @@ namespace FWO.Data
             Hostname = Hostname.SanitizeMand(ref shortened);
             ConfigPath = ConfigPath.SanitizeOpt(ref shortened);
             DomainUid = DomainUid.SanitizeOpt(ref shortened);
-            if (ImporterHostname != null)
-            {
-                ImporterHostname = ImporterHostname.SanitizeMand(ref shortened);
-            }
-            else
-            {
-                ImporterHostname = "";
-            }
             Comment = Comment.SanitizeCommentOpt(ref shortened);
             CloudSubscriptionId = CloudSubscriptionId.SanitizeOpt(ref shortened);
             CloudTenantId = CloudTenantId.SanitizeOpt(ref shortened);

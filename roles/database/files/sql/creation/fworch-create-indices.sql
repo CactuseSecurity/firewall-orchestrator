@@ -22,9 +22,9 @@ Create index IF NOT EXISTS idx_rule01 on rule (rule_uid,mgm_id,dev_id,active,nat
 Create index IF NOT EXISTS idx_rule02 on rule (mgm_id,rule_id,rule_uid,dev_id);
 Create index IF NOT EXISTS idx_rule03 on rule (dev_id);
 Create index IF NOT EXISTS idx_rule04 on rule (action_id);
-CREATE INDEX IF NOT EXISTS idx_provisioning_config_node_parent ON provisioning_config_node (parent_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_provisioning_config_node_single_global ON provisioning_config_node (node_type) WHERE node_type = 'global';
-CREATE INDEX IF NOT EXISTS idx_provisioning_config_value_key ON provisioning_config_value (config_key);
+CREATE INDEX IF NOT EXISTS idx_device_specific_config_node_parent ON device_specific_config_node (parent_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_device_specific_config_node_single_global ON device_specific_config_node (node_type) WHERE node_type = 'global';
+CREATE INDEX IF NOT EXISTS idx_device_specific_config_value_key ON device_specific_config_value (config_key);
 Create index IF NOT EXISTS idx_rule_standard_report_page on rule (mgm_id,rulebase_id,rule_num_numeric,rule_id) WHERE access_rule = TRUE;
 Create index IF NOT EXISTS idx_rulebase_link_to_rulebase_id on rulebase_link (to_rulebase_id);
 -- rule_fully_visible_to_tenant looks up the gateways of a rule for every rule, rule_from and rule_to row a tenant reads

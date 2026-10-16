@@ -2,7 +2,8 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Workflow;
 
 namespace FWO.Services.Workflow
 {
@@ -10,11 +11,13 @@ namespace FWO.Services.Workflow
     /// Determines the managements an object task (group or single object) is implemented on.
     /// </summary>
     /// <remarks>
-    /// The level objects are written to is taken from the provisioning settings addressObjectCreation and
-    /// serviceObjectCreation, read for every sub-management of the super-management with its inheritance from
-    /// device type and global level. A sub-management set to Submanager gets its own task, one set to
-    /// Supermanager shares the single task on the super-management. A management without sub-managements
-    /// is its own target. Needs read access to all managements and the provisioning settings, so it runs with the
+    /// The level objects are written to is taken from the device specific settings addressObjectCreation,
+    /// serviceObjectCreation or timeObjectCreation, read for every sub-management of the super-management with its
+    /// inheritance from device type and global level. A sub-management set to Submanager gets its own task, one set
+    /// to Supermanager shares the single task on the super-management, one set to ignore gets none. A management
+    /// without sub-managements is its own target unless it is set to ignore itself. So the result is empty when
+    /// every candidate is set to ignore, which the device specific settings allow for time objects only: no
+    /// implementation task is to be created, and the request dialog rejects such a task beforehand. Needs read access to all managements and the device specific settings, so it runs with the
     /// middleware-server role only; the ui resolves the targets through the middleware endpoint getImplTaskTargets.
     /// </remarks>
     public class ImplTaskManagementResolver(ApiConnection apiConnection)
@@ -23,9 +26,10 @@ namespace FWO.Services.Workflow
         /// Resolves the target managements of an object task.
         /// </summary>
         /// <param name="managementId">Management the request task belongs to.</param>
-        /// <param name="isServiceObject">True for services, false for network objects.</param>
-        /// <returns>The target managements (id and name) without duplicates; the request management itself if it is unknown.</returns>
-        public async Task<List<Management>> ResolveObjectTargets(int managementId, bool isServiceObject)
+        /// <param name="kind">Kind of the created objects, which selects the device specific setting.</param>
+        /// <returns>The target managements (id and name) without duplicates; empty when every candidate is set to
+        /// ignore; the request management itself if it is unknown.</returns>
+        public async Task<List<Management>> ResolveObjectTargets(int managementId, ObjectTaskKind kind)
         {
             List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementHierarchy);
             Management? requestManagement = managements.FirstOrDefault(management => management.Id == managementId);
@@ -38,20 +42,23 @@ namespace FWO.Services.Workflow
             List<Management> subManagements = [.. managements
                 .Where(management => management.SuperManagerId == superManagement.Id && !management.HideInUi)
                 .OrderBy(management => management.Name, StringComparer.OrdinalIgnoreCase)];
+            DeviceSpecificSettingsManager settingsManager = new(apiConnection);
+            DeviceSpecificSettingKey<ProvisioningObjectCreationMode> key = GetCreationSettingKey(kind);
             if (subManagements.Count == 0)
             {
-                return [ToTarget(superManagement)];
+                ResolvedDeviceSpecificValue<ProvisioningObjectCreationMode> ownMode =
+                    await settingsManager.LoadEffectiveValueAsync(DeviceSpecificScopePath.ForManagement(superManagement), key);
+                return ownMode.Value == ProvisioningObjectCreationMode.Ignore ? [] : [ToTarget(superManagement)];
             }
-
-            ProvisioningSettingsManager settingsManager = new(apiConnection);
-            ProvisioningSettingKey<ProvisioningObjectCreationMode> key = isServiceObject
-                ? ProvisioningSettingKeys.ServiceObjectCreation
-                : ProvisioningSettingKeys.AddressObjectCreation;
             List<Management> targets = [];
             foreach (Management subManagement in subManagements)
             {
-                ResolvedProvisioningValue<ProvisioningObjectCreationMode> mode =
-                    await settingsManager.LoadEffectiveValueAsync(ProvisioningScopePath.ForManagement(subManagement), key);
+                ResolvedDeviceSpecificValue<ProvisioningObjectCreationMode> mode =
+                    await settingsManager.LoadEffectiveValueAsync(DeviceSpecificScopePath.ForManagement(subManagement), key);
+                if (mode.Value == ProvisioningObjectCreationMode.Ignore)
+                {
+                    continue;
+                }
                 Management target = mode.Value == ProvisioningObjectCreationMode.Submanager ? subManagement : superManagement;
                 if (targets.All(existing => existing.Id != target.Id))
                 {
@@ -59,6 +66,19 @@ namespace FWO.Services.Workflow
                 }
             }
             return targets;
+        }
+
+        /// <summary>
+        /// Returns the device specific setting that holds the creation level of the given kind of objects.
+        /// </summary>
+        public static DeviceSpecificSettingKey<ProvisioningObjectCreationMode> GetCreationSettingKey(ObjectTaskKind kind)
+        {
+            return kind switch
+            {
+                ObjectTaskKind.Service => DeviceSpecificSettingKeys.ServiceObjectCreation,
+                ObjectTaskKind.Time => DeviceSpecificSettingKeys.TimeObjectCreation,
+                _ => DeviceSpecificSettingKeys.AddressObjectCreation
+            };
         }
 
         private static Management FindSuperManagement(Management management, List<Management> managements)

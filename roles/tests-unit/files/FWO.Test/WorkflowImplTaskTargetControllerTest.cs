@@ -4,7 +4,7 @@ using System.Text.Json;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Middleware;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -37,6 +37,7 @@ internal class WorkflowImplTaskTargetControllerTest
     private static readonly List<int> kBothSubManagements = [kFirstSubManagementId, kSecondSubManagementId];
     private static readonly List<int> kSecondSubManagementOnly = [kSecondSubManagementId];
     private static readonly List<int> kFirstSubManagementOnly = [kFirstSubManagementId];
+    private static readonly List<string> kTimeObjectPathOnly = [GetImplTaskTargetsValidationSchema.kIsTimeObjectPath];
     private static readonly List<string> kAllPagingAndLengthErrorPaths =
     [
         GetImplTaskTargetsValidationSchema.kLimitPath,
@@ -142,6 +143,29 @@ internal class WorkflowImplTaskTargetControllerTest
     }
 
     [Test]
+    public async Task GetImplTaskTargetsUsesTheTimeSettingForTimeObjects()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Supermanager);
+        WorkflowImplTaskTargetController controller = CreateController(api, Planner(kSuperManagementId));
+
+        ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(
+            new GetImplTaskTargetsRequest { ManagementId = kSuperManagementId, IsTimeObject = true });
+
+        Assert.That(OkResponse(result).Targets.Single().Id, Is.EqualTo(kSuperManagementId));
+    }
+
+    [Test]
+    public void ValidationRejectsServiceAndTimeObjectTogether()
+    {
+        GetImplTaskTargetsRequest request = new() { ManagementId = kSuperManagementId, IsServiceObject = true, IsTimeObject = true };
+
+        List<string> paths = [.. GetImplTaskTargetsRequestValidator.Validate(request).Errors.Select(error => error.Path)];
+
+        Assert.That(paths, Is.EqualTo(kTimeObjectPathOnly));
+    }
+
+    [Test]
     public async Task GetImplTaskTargetsAppliesTheFilterToIdAndNameCaseInsensitively()
     {
         WorkflowImplTaskTargetController controller = CreateController(CreateApi(), Principal(kPlannerRole, kWholeHierarchyVisible));
@@ -199,7 +223,7 @@ internal class WorkflowImplTaskTargetControllerTest
     [Test]
     public async Task GetImplTaskTargetsOrdersTargetsWithoutNameLastSoTheOrderDoesNotRevealHiddenNames()
     {
-        InMemoryProvisioningApiConnection api = CreateApi();
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
         api.Managements.Single(management => management.Id == kFirstSubManagementId).Name = "aa-hidden";
         WorkflowImplTaskTargetController controller = CreateController(api, Planner(kSecondSubManagementId));
 
@@ -217,7 +241,7 @@ internal class WorkflowImplTaskTargetControllerTest
     [Test]
     public async Task GetImplTaskTargetsAnswers500WhenTheResolutionFails()
     {
-        InMemoryProvisioningApiConnection api = CreateApi();
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
         api.FailingQuery = FWO.Api.Client.Queries.DeviceQueries.getManagementHierarchy;
         WorkflowImplTaskTargetController controller = CreateController(api, Planner(kSuperManagementId));
 
@@ -234,6 +258,7 @@ internal class WorkflowImplTaskTargetControllerTest
         Assert.Multiple(() =>
         {
             Assert.That(request.IsServiceObject, Is.False);
+            Assert.That(request.IsTimeObject, Is.False);
             Assert.That(request.Options, Is.Not.Null);
             Assert.That(request.Options.Filter, Is.Null);
             Assert.That(request.Options.Limit, Is.EqualTo(GetImplTaskTargetsOptions.kMaxLimit));
@@ -319,6 +344,7 @@ internal class WorkflowImplTaskTargetControllerTest
         {
             ManagementId = kSuperManagementId,
             IsServiceObject = true,
+            IsTimeObject = false,
             Options = new ImplTaskTargetPaging { Offset = 1 }
         });
         string responseJson = JsonSerializer.Serialize(new GetImplTaskTargetsResponse
@@ -332,6 +358,7 @@ internal class WorkflowImplTaskTargetControllerTest
         {
             Assert.That(serverRequest.ManagementId, Is.EqualTo(kSuperManagementId));
             Assert.That(serverRequest.IsServiceObject, Is.True);
+            Assert.That(serverRequest.IsTimeObject, Is.False);
             Assert.That(serverRequest.AdditionalData, Is.Null);
             Assert.That(serverRequest.Options.Offset, Is.EqualTo(1));
             Assert.That(serverRequest.Options.Limit, Is.EqualTo(GetImplTaskTargetsOptions.kMaxLimit));
@@ -342,20 +369,20 @@ internal class WorkflowImplTaskTargetControllerTest
         });
     }
 
-    private static InMemoryProvisioningApiConnection CreateApi()
+    private static InMemoryDeviceSpecificSettingsApiConnection CreateApi()
     {
         DeviceType mdsType = new() { Id = 13, Name = "Check Point MDS", Version = "R8x" };
         DeviceType domainType = new() { Id = 9, Name = "Check Point", Version = "R8x" };
-        InMemoryProvisioningApiConnection api = new();
+        InMemoryDeviceSpecificSettingsApiConnection api = new();
         api.Managements.Add(new Management { Id = kSuperManagementId, Name = "mds", DeviceType = mdsType, IsSupermanager = true });
         api.Managements.Add(new Management { Id = kSecondSubManagementId, Name = kSecondSubName, DeviceType = domainType, SuperManagerId = kSuperManagementId });
         api.Managements.Add(new Management { Id = kFirstSubManagementId, Name = kFirstSubName, DeviceType = domainType, SuperManagerId = kSuperManagementId });
-        api.AddNode(kGlobalNodeId, ProvisioningScopeType.Global, ProvisioningScopePath.GlobalObjectKey, displayName: "Global");
-        api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
+        api.AddNode(kGlobalNodeId, DeviceSpecificScopeType.Global, DeviceSpecificScopePath.GlobalObjectKey, displayName: "Global");
+        api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
         return api;
     }
 
-    private static WorkflowImplTaskTargetController CreateController(InMemoryProvisioningApiConnection api, ClaimsPrincipal user)
+    private static WorkflowImplTaskTargetController CreateController(InMemoryDeviceSpecificSettingsApiConnection api, ClaimsPrincipal user)
     {
         return new WorkflowImplTaskTargetController(new ImplTaskTargetService(api))
         {

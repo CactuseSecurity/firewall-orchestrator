@@ -62,7 +62,6 @@ Create table "management" -- contains an entry for each firewall management syst
 	"config_path" Varchar,
 	"domain_uid" Varchar,
 	"hide_in_gui" Boolean NOT NULL Default false,
-	"importer_hostname" Varchar,
 	"debug_level" Integer,
 	"multi_device_manager_id" integer,		-- if this manager belongs to another multi_device_manager, then this id points to it
 	"is_super_manager" BOOLEAN DEFAULT FALSE,
@@ -394,7 +393,15 @@ Create table "config"
 	primary key ("config_key","config_user")
 );
 
-Create table "provisioning_config_node"
+-- Upgrade snapshots contain restricted device specific settings data. Keep this archive
+-- outside Hasura metadata; administrators can inspect it through PostgreSQL.
+Create table "device_specific_config_backup"
+(
+    "version" Varchar PRIMARY KEY,
+    "config_values" Jsonb NOT NULL
+);
+
+Create table "device_specific_config_node"
 (
 	"id" BIGSERIAL,
 	"node_type" Varchar NOT NULL,
@@ -403,12 +410,12 @@ Create table "provisioning_config_node"
 	"display_name" Varchar NOT NULL Default '',
 	"sort_order" Integer,
 	primary key ("id"),
-	CONSTRAINT provisioning_config_node_node_type_object_key_key UNIQUE ("node_type", "object_key"),
-	CONSTRAINT provisioning_config_node_node_type_check CHECK ("node_type" IN ('global', 'device_type', 'management', 'gateway')),
-	CONSTRAINT provisioning_config_node_parent_check CHECK (("node_type" = 'global') = ("parent_id" IS NULL))
+	CONSTRAINT device_specific_config_node_node_type_object_key_key UNIQUE ("node_type", "object_key"),
+	CONSTRAINT device_specific_config_node_node_type_check CHECK ("node_type" IN ('global', 'device_type', 'management', 'gateway')),
+	CONSTRAINT device_specific_config_node_parent_check CHECK (("node_type" = 'global') = ("parent_id" IS NULL))
 );
 
-Create table "provisioning_config_value"
+Create table "device_specific_config_value"
 (
 	"node_id" BIGINT NOT NULL,
 	"config_key" Varchar NOT NULL,

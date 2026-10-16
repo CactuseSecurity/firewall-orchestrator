@@ -498,7 +498,6 @@ namespace FWO.Test
                 Port = 443,
                 DeviceType = GetMember<List<DeviceType>>(component, "deviceTypes")[0],
                 ImportCredential = GetMember<List<Credential>>(component, "credentials")[0],
-                ImporterHostname = "importer.example.org",
                 DebugLevel = 3
             });
 

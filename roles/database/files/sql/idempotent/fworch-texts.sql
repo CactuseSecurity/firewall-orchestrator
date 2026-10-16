@@ -575,6 +575,9 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
+    <li>Die hierarchischen Provisionierungs-Einstellungen hei&szlig;en nun ger&auml;tespezifische Einstellungen, da sie z.B. auch f&uuml;r den Import genutzt werden. Sie enthalten nun Guardicore-Objektanlage, Modellierungslabels und Verbindungs-IDs, Importer-Host, externes Ticketsystem sowie &Uuml;berschreibungen f&uuml;r Regelumsetzung und Planung.</li>
+    <li>Der Importer-Hostname wird nicht mehr pro Management, sondern in den ger&auml;tespezifischen Einstellungen (Global, Ger&auml;tetyp oder Manager) festgelegt. Ist er leer, importiert jeder Importer. Das Upgrade &uuml;bernimmt den h&auml;ufigsten Hostnamen als globalen Wert und abweichende als Manager-Werte.</li>
+    <li>Cloud-Zugangsdaten werden als zus&auml;tzliche Zugangsdaten mit verschl&uuml;sseltem Passwort verwaltet. Das Upgrade &uuml;bertr&auml;gt vorhandene Cloud Client IDs und Secrets automatisch. Cisco ASA verwendet das zus&auml;tzliche Passwort f&uuml;r den Enable-Modus.</li>
     <li>Wenn eine Aufgabe die Genehmigungsphase &uuml;berspringt, werden implizite Genehmigungen als systemerzeugt markiert und mit einem konfigurierbaren Kommentar versehen.</li>
     <li>Geb&uuml;ndelte Zugriff-Auftr&auml;ge k&ouml;nnen in der Aufgabenansicht als ein Auftrag angezeigt werden, wenn sie denselben Status haben. Unterschiedliche Status bleiben getrennt; die enthaltenen Elemente werden zusammengef&uuml;hrt und dedupliziert.</li>
     <li>Die Sichtbarkeit von Ticket-Antragsteller, Priorit&auml;t, Deadline, Grund und Kommentaren kann in den Workflow-Anpassungen unabh&auml;ngig eingestellt werden; Kommentare sind standardm&auml;&szlig;ig ausgeblendet.</li>
@@ -594,13 +597,17 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Die Logdaten-Tabelle zeigt den Aggregationszeitraum und Importzeitpunkt der angezeigten Daten. Bei unterschiedlichen oder unbekannten Zeitr&auml;umen erscheinen diese Angaben pro Zeile. Der Standardzeitraum ist unter Einstellungen - Logging einstellbar (7 Tage) und kann von JSON-Importdateien &uuml;berschrieben werden. Die Spalte Zeitpunkt ist standardm&auml;&szlig;ig ausgeblendet. Die &Uuml;berschrift nennt das Ende des Zeitraums und zeigt standardm&auml;&szlig;ig nur das Importdatum; die Uhrzeit des Imports kann unter Einstellungen - Logging aktiviert werden.</li>
     <li>Die Area-IP-Daten-Konvertierung hei&szlig;t nun convert_area_ip_data_from_git.py. generate_area_ip_data.py erzeugt Area-IP-Testdaten.</li>
     <li>Aktualisierte .NET-Bibliotheken, u.a. Quartz.NET 4.4 und PuppeteerSharp 25.13 (PDF-Erzeugung).</li>
-    <li>Implementierungs-Auftr&auml;ge entstehen f&uuml;r Objekt-Auftr&auml;ge pro Ziel-Management laut den Provisioning-Einstellungen (Super- oder Submanager). Die neue Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; erzeugt sie auch bei aktiver Planungsphase. Der Pfadanalyse-Algorithmus wird nun in den Workflow-Anpassungen gew&auml;hlt.</li>
+    <li>Implementierungs-Auftr&auml;ge entstehen f&uuml;r Objekt-Auftr&auml;ge pro Ziel-Management laut den ger&auml;tespezifischen Einstellungen (Super- oder Submanager). Die neue Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; erzeugt sie auch bei aktiver Planungsphase. Der Pfadanalyse-Algorithmus wird nun in den Workflow-Anpassungen gew&auml;hlt.</li>
+    <li>Das Email-Protokoll kann nach Benachrichtigungs-ID, Benachrichtigungstyp, Status und Fehlertext gefiltert werden.</li>
     <li>LDAP: Eine Verbindung kann bis zu 10 Server (Replikate) eines Verzeichnisses enthalten, die der Reihe nach versucht werden. Aktive Verbindungen d&uuml;rfen keine gleichen Such- oder Schreibpfade haben; bisher als getrennte Verbindungen eingerichtete Replikate m&uuml;ssen zu einer Verbindung zusammengefasst werden. Lokale Nutzer werden an die unver&auml;nderliche Objekt-Id ihres Verzeichniseintrags gebunden, daher muss sich nach dem Upgrade jeder Nutzer einmal mit Passwort anmelden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
+    <li>The hierarchical provisioning settings are renamed to device specific settings, as they are also used e.g. for importing. They now include Guardicore object creation, modelling labels and connection IDs, importer host and external ticket system, plus rule implementation and planning overrides.</li>
+    <li>The importer host name is no longer set per management but in the device specific settings (Global, device type or manager). If it is empty, every importer imports. The upgrade takes the most common host name as global value and differing ones as manager values.</li>
+    <li>Cloud credentials are managed as additional credentials with encrypted passwords. The upgrade automatically transfers existing cloud client IDs and secrets. Cisco ASA uses the additional password for enable mode.</li>
     <li>When a task bypasses the approval phase, implicit approvals are marked as system-generated and receive a configurable comment.</li>
     <li>Bundled access tasks can be displayed as one task in task views when they have the same state. Different states remain separate; their elements are merged and deduplicated.</li>
     <li>The visibility of the ticket requester, priority, deadline, reason, and comments can be configured independently in Workflow Customizing; comments are hidden by default.</li>
@@ -620,7 +627,8 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>The log data table shows the aggregation period and import time of the displayed data. When periods differ or are unknown, these values appear per row. The default period is configurable under Settings - Logging (7 days) and can be overridden by JSON import files. The log time column is hidden by default. The heading names the end of the period and shows only the import date by default; the time of the import can be enabled under Settings - Logging.</li>
     <li>The area IP data converter is now named convert_area_ip_data_from_git.py. generate_area_ip_data.py generates area IP test data.</li>
     <li>Updated .NET libraries, among others Quartz.NET 4.4 and PuppeteerSharp 25.13 (PDF generation).</li>
-    <li>Implementation tasks are created per target management of the provisioning settings (super- or sub-management) for object tasks. The new action &quot;Create implementation tasks&quot; also creates them with an active planning phase. The path analysis algorithm is now selected in the workflow customizing settings.</li>
+    <li>Implementation tasks are created per target management of the device specific settings (super- or sub-management) for object tasks. The new action &quot;Create implementation tasks&quot; also creates them with an active planning phase. The path analysis algorithm is now selected in the workflow customizing settings.</li>
+    <li>The email log can be filtered by notification ID, notification type, status and error text.</li>
     <li>LDAP: a connection can list up to 10 servers (replicas) of one directory, which are tried in order. Active connections must not share a search or write path; replicas configured as separate connections so far have to be combined into one connection. Local users are bound to the immutable object id of their directory entry, so every user has to log in with password once after the upgrade.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
@@ -2531,10 +2539,6 @@ INSERT INTO txt VALUES ('port',                 'German', 	'Port');
 INSERT INTO txt VALUES ('port',                 'English', 	'Port');
 INSERT INTO txt VALUES ('config_path',          'German', 	'Domain');
 INSERT INTO txt VALUES ('config_path',          'English', 	'Domain');
-INSERT INTO txt VALUES ('cloud_client_id',      'German', 	'Cloud Client ID');
-INSERT INTO txt VALUES ('cloud_client_id',      'English', 	'Cloud Client ID');
-INSERT INTO txt VALUES ('cloud_client_secret',  'German', 	'Cloud Client Secret');
-INSERT INTO txt VALUES ('cloud_client_secret',  'English', 	'Cloud Client Secret');
 INSERT INTO txt VALUES ('cloud_sub_id',         'German', 	'Cloud Subscription ID');
 INSERT INTO txt VALUES ('cloud_sub_id',         'English', 	'Cloud Subscription ID');
 INSERT INTO txt VALUES ('cloud_tenant_id',      'German', 	'Cloud Tenant ID');
@@ -2545,8 +2549,6 @@ INSERT INTO txt VALUES ('domain_uid',           'German', 	'Domain UID');
 INSERT INTO txt VALUES ('domain_uid',           'English', 	'Domain UID');
 INSERT INTO txt VALUES ('super_manager',        'German', 	'Multi Domain Manager');
 INSERT INTO txt VALUES ('super_manager',        'English', 	'Multi Domain Manager');
-INSERT INTO txt VALUES ('importer_host',        'German', 	'Importer Host');
-INSERT INTO txt VALUES ('importer_host',        'English', 	'Importer Host');
 INSERT INTO txt VALUES ('import_disabled',      'German', 	'Import Deaktiviert');
 INSERT INTO txt VALUES ('import_disabled',      'English', 	'Import Disabled');
 INSERT INTO txt VALUES ('import_enabled',       'German', 	'Import Aktiviert');
@@ -3047,6 +3049,8 @@ INSERT INTO txt VALUES ('save_management',      'German', 	'Management speichern
 INSERT INTO txt VALUES ('save_management',      'English', 	'Save Management');
 INSERT INTO txt VALUES ('fetch_gateways',       'German', 	'Gateways abholen');
 INSERT INTO txt VALUES ('fetch_gateways',       'English', 	'Fetch Gateways');
+INSERT INTO txt VALUES ('additional_credential', 'German', 'Zus&auml;tzliche Zugangsdaten');
+INSERT INTO txt VALUES ('additional_credential', 'English', 'Additional credential');
 INSERT INTO txt VALUES ('fetch_credentials',    'German', 	'Login-Daten abholen');
 INSERT INTO txt VALUES ('fetch_credentials',    'English', 	'Fetch credentials');
 INSERT INTO txt VALUES ('save_gateway',         'German', 	'Gateway speichern');
@@ -3437,128 +3441,138 @@ INSERT INTO txt VALUES ('fwconfigchange',       'German', 	'FW Konfigurations&au
 INSERT INTO txt VALUES ('fwconfigchange',       'English', 	'FW Config Change');
 INSERT INTO txt VALUES ('fwconfigchangegeneral','German', 	'Allgemein');
 INSERT INTO txt VALUES ('fwconfigchangegeneral','English', 	'General');
-INSERT INTO txt VALUES ('prov_settings',        'German', 	'Provisionierungs-Einstellungen');
-INSERT INTO txt VALUES ('prov_settings',        'English', 	'Provisioning settings');
-INSERT INTO txt VALUES ('prov_settings_intro',  'German', 	'Einstellungen werden von Global &uuml;ber Ger&auml;tetyp und Manager bis zum Gateway vererbt. W&auml;hlen Sie links eine Ebene aus und &uuml;berschreiben Sie bei Bedarf einzelne Werte.');
-INSERT INTO txt VALUES ('prov_settings_intro',  'English', 	'Settings are inherited from Global down through Device Type and Manager to Gateway. Select a level on the left and override individual values where needed.');
-INSERT INTO txt VALUES ('prov_hierarchy_hint',  'German', 	'Global &gt; Ger&auml;tetyp &gt; Manager &gt; Gateway');
-INSERT INTO txt VALUES ('prov_hierarchy_hint',  'English', 	'Global > Device Type > Manager > Gateway');
-INSERT INTO txt VALUES ('prov_global',          'German', 	'Global');
-INSERT INTO txt VALUES ('prov_global',          'English', 	'Global');
-INSERT INTO txt VALUES ('prov_device_type',     'German', 	'Ger&auml;tetyp');
-INSERT INTO txt VALUES ('prov_device_type',     'English', 	'Device Type');
-INSERT INTO txt VALUES ('prov_manager',         'German', 	'Manager');
-INSERT INTO txt VALUES ('prov_manager',         'English', 	'Manager');
-INSERT INTO txt VALUES ('prov_gateway',         'German', 	'Gateway');
-INSERT INTO txt VALUES ('prov_gateway',         'English', 	'Gateway');
-INSERT INTO txt VALUES ('prov_set_here',        'German', 	'Hier festgelegt');
-INSERT INTO txt VALUES ('prov_set_here',        'English', 	'Set here');
-INSERT INTO txt VALUES ('prov_inherited',       'German', 	'Geerbt');
-INSERT INTO txt VALUES ('prov_inherited',       'English', 	'Inherited');
-INSERT INTO txt VALUES ('prov_inherited_from',  'German', 	'Geerbt von');
-INSERT INTO txt VALUES ('prov_inherited_from',  'English', 	'Inherited from');
-INSERT INTO txt VALUES ('prov_override_here',   'German', 	'Hier &uuml;berschreiben');
-INSERT INTO txt VALUES ('prov_override_here',   'English', 	'Override here');
-INSERT INTO txt VALUES ('prov_compiled_default', 'German', 	'Standardwert (auf keiner Ebene gesetzt)');
-INSERT INTO txt VALUES ('prov_compiled_default', 'English', 	'Default value (not set on any level)');
-INSERT INTO txt VALUES ('prov_unsaved_hint',    'German', 	'Diese Ebene hat ungespeicherte &Auml;nderungen. Speichern oder verwerfen Sie sie, bevor Sie eine andere Ebene ausw&auml;hlen.');
-INSERT INTO txt VALUES ('prov_unsaved_hint',    'English', 	'This level has unsaved changes. Save or discard them before selecting another level.');
-INSERT INTO txt VALUES ('prov_dormant_override', 'German', 	'Inaktive &Uuml;berschreibung');
-INSERT INTO txt VALUES ('prov_dormant_override', 'English', 	'Dormant override');
-INSERT INTO txt VALUES ('prov_dormant_override_hint', 'German', 	'Diese gespeicherte Fortinet-Einstellung ist f&uuml;r den aktuellen Ger&auml;tetyp inaktiv. Sie bleibt f&uuml;r den Fall erhalten, dass die Ebene zur&uuml;ckverschoben wird, und kann hier entfernt werden.');
-INSERT INTO txt VALUES ('prov_dormant_override_hint', 'English', 	'This stored Fortinet setting is inactive for the current device type. It is retained in case the level is moved back and can be cleared here.');
-INSERT INTO txt VALUES ('prov_clear_override',  'German', 	'Gespeicherte &Uuml;berschreibung entfernen');
-INSERT INTO txt VALUES ('prov_clear_override',  'English', 	'Clear stored override');
-INSERT INTO txt VALUES ('prov_templates_placeholder', 'German', 	'z.B. Vorlage mit Platzhaltern wie {{rule_name}}');
-INSERT INTO txt VALUES ('prov_templates_placeholder', 'English', 	'e.g. template with placeholders like {{rule_name}}');
-INSERT INTO txt VALUES ('prov_implementation_mode', 'German', 	'Umsetzungsmodus');
-INSERT INTO txt VALUES ('prov_implementation_mode', 'English', 	'Implementation mode');
-INSERT INTO txt VALUES ('prov_implementation_mode_help', 'German', 	'Legt fest, wie Umsetzungsaufgaben f&uuml;r diese Ebene erzeugt werden.');
-INSERT INTO txt VALUES ('prov_implementation_mode_help', 'English', 	'Controls how implementation tasks are created for this level.');
-INSERT INTO txt VALUES ('prov_install_on',      'German', 	'Installieren auf');
-INSERT INTO txt VALUES ('prov_install_on',      'English', 	'Install on');
-INSERT INTO txt VALUES ('prov_install_on_help', 'German', 	'Zielinstallationsobjekt(e), z.B. ANY.');
-INSERT INTO txt VALUES ('prov_install_on_help', 'English', 	'Target install-on object(s), e.g. ANY.');
-INSERT INTO txt VALUES ('prov_logging',         'German', 	'Logging');
-INSERT INTO txt VALUES ('prov_logging',         'English', 	'Logging');
-INSERT INTO txt VALUES ('prov_logging_help',    'German', 	'Logging-Verhalten f&uuml;r erzeugte Regeln.');
-INSERT INTO txt VALUES ('prov_logging_help',    'English', 	'Logging behaviour for generated rules.');
-INSERT INTO txt VALUES ('prov_service_object_creation', 'German', 	'Anlage Service-Objekte');
-INSERT INTO txt VALUES ('prov_service_object_creation', 'English', 	'Service object creation');
-INSERT INTO txt VALUES ('prov_service_object_creation_help', 'German', 	'Ob Service-Objekte im Super- oder Submanager angelegt werden (nur relevant, wenn ein Supermanager existiert).');
-INSERT INTO txt VALUES ('prov_service_object_creation_help', 'English', 	'Whether service objects are created in the supermanager or submanager (only relevant if a supermanager exists).');
-INSERT INTO txt VALUES ('prov_address_object_creation', 'German', 	'Anlage Adress-Objekte');
-INSERT INTO txt VALUES ('prov_address_object_creation', 'English', 	'Address object creation');
-INSERT INTO txt VALUES ('prov_address_object_creation_help', 'German', 	'Ob Adress-Objekte im Super- oder Submanager angelegt werden (nur relevant, wenn ein Supermanager existiert).');
-INSERT INTO txt VALUES ('prov_address_object_creation_help', 'English', 	'Whether address objects are created in the supermanager or submanager (only relevant if a supermanager exists).');
-INSERT INTO txt VALUES ('prov_rule_type',       'German', 	'Regeltyp');
-INSERT INTO txt VALUES ('prov_rule_type',       'English', 	'Rule type');
-INSERT INTO txt VALUES ('prov_rule_type_help',  'German', 	'Welche Regelarten (Access/NAT/IPS) f&uuml;r diese Ebene behandelt werden.');
-INSERT INTO txt VALUES ('prov_rule_type_help',  'English', 	'Which rule kinds (Access/NAT/IPS) are handled for this level.');
-INSERT INTO txt VALUES ('prov_templates',       'German', 	'Vorlagen');
-INSERT INTO txt VALUES ('prov_templates',       'English', 	'Templates');
-INSERT INTO txt VALUES ('prov_templates_help',  'German', 	'Freitext-Vorlage(n) mit Platzhaltern f&uuml;r diese Ebene.');
-INSERT INTO txt VALUES ('prov_templates_help',  'English', 	'Free-text template(s) with placeholders for this level.');
-INSERT INTO txt VALUES ('prov_positioning_algorithm', 'German', 	'Positionierungs-Algorithmus');
-INSERT INTO txt VALUES ('prov_positioning_algorithm', 'English', 	'Positioning algorithm');
-INSERT INTO txt VALUES ('prov_positioning_algorithm_help', 'German', 	'Wo neue Regeln im Regelwerk platziert werden. Nicht auf Global-Ebene verf&uuml;gbar.');
-INSERT INTO txt VALUES ('prov_positioning_algorithm_help', 'English', 	'Where new rules are placed in the rulebase. Not available at the Global level.');
-INSERT INTO txt VALUES ('prov_rule_category',   'German', 	'Regelkategorie');
-INSERT INTO txt VALUES ('prov_rule_category',   'English', 	'Rule category');
-INSERT INTO txt VALUES ('prov_rule_category_help', 'German', 	'Ob die Regel als Anwendungs- oder als gemeinsame Service-Regel behandelt wird. Nicht auf Global-Ebene verf&uuml;gbar.');
-INSERT INTO txt VALUES ('prov_rule_category_help', 'English', 	'Whether the rule is treated as an application rule or a common-service rule. Not available at the Global level.');
-INSERT INTO txt VALUES ('prov_security_profiles', 'German', 	'Sicherheitsprofile');
-INSERT INTO txt VALUES ('prov_security_profiles', 'English', 	'Security profiles');
-INSERT INTO txt VALUES ('prov_security_profiles_help', 'German', 	'Namen der anzuwendenden Sicherheitsprofile (nur Fortinet).');
-INSERT INTO txt VALUES ('prov_security_profiles_help', 'English', 	'Names of the security profiles to apply (Fortinet only).');
-INSERT INTO txt VALUES ('prov_zone_from',       'German', 	'Zone von');
-INSERT INTO txt VALUES ('prov_zone_from',       'English', 	'Zone from');
-INSERT INTO txt VALUES ('prov_zone_from_help',  'German', 	'Quellzone (nur Fortinet).');
-INSERT INTO txt VALUES ('prov_zone_from_help',  'English', 	'Source zone (Fortinet only).');
-INSERT INTO txt VALUES ('prov_zone_to',         'German', 	'Zone nach');
-INSERT INTO txt VALUES ('prov_zone_to',         'English', 	'Zone to');
-INSERT INTO txt VALUES ('prov_zone_to_help',    'German', 	'Zielzone (nur Fortinet).');
-INSERT INTO txt VALUES ('prov_zone_to_help',    'English', 	'Destination zone (Fortinet only).');
-INSERT INTO txt VALUES ('prov_opt_fwo_auto',                         'German', 	'FWO automatisch');
-INSERT INTO txt VALUES ('prov_opt_fwo_auto',                         'English', 	'FWO automatic');
-INSERT INTO txt VALUES ('prov_opt_manual',                           'German', 	'Manuell');
-INSERT INTO txt VALUES ('prov_opt_manual',                           'English', 	'Manual');
-INSERT INTO txt VALUES ('prov_opt_tufin_sc',                         'German', 	'Tufin SecureChange');
-INSERT INTO txt VALUES ('prov_opt_tufin_sc',                         'English', 	'Tufin SecureChange');
-INSERT INTO txt VALUES ('prov_opt_no_implementation',                'German', 	'Keine (keine Implementierungsaufgabe)');
-INSERT INTO txt VALUES ('prov_opt_no_implementation',                'English', 	'None (no implementation task)');
-INSERT INTO txt VALUES ('prov_opt_log',                              'German', 	'Loggen');
-INSERT INTO txt VALUES ('prov_opt_log',                              'English', 	'Log');
-INSERT INTO txt VALUES ('prov_opt_log_track',                        'German', 	'Loggen und verfolgen');
-INSERT INTO txt VALUES ('prov_opt_log_track',                        'English', 	'Log and track');
-INSERT INTO txt VALUES ('prov_opt_none',                             'German', 	'Keine');
-INSERT INTO txt VALUES ('prov_opt_none',                             'English', 	'None');
-INSERT INTO txt VALUES ('prov_opt_always_access',                    'German', 	'Immer Access (Standard)');
-INSERT INTO txt VALUES ('prov_opt_always_access',                    'English', 	'Always access (standard)');
-INSERT INTO txt VALUES ('prov_opt_access_nat',                       'German', 	'Access und NAT behandeln');
-INSERT INTO txt VALUES ('prov_opt_access_nat',                       'English', 	'Handle access and NAT');
-INSERT INTO txt VALUES ('prov_opt_access_ips',                       'German', 	'Access und IPS behandeln');
-INSERT INTO txt VALUES ('prov_opt_access_ips',                       'English', 	'Handle access and IPS');
-INSERT INTO txt VALUES ('prov_opt_access_nat_ips',                   'German', 	'Access, NAT und IPS behandeln');
-INSERT INTO txt VALUES ('prov_opt_access_nat_ips',                   'English', 	'Handle access, NAT and IPS');
-INSERT INTO txt VALUES ('prov_opt_cp_inline_layer_zone_pair',        'German', 	'Check Point: Inline-Layer pro Zonenpaar');
-INSERT INTO txt VALUES ('prov_opt_cp_inline_layer_zone_pair',        'English', 	'Check Point: inline layer per zone pair');
-INSERT INTO txt VALUES ('prov_opt_fortinet_end_of_zone',             'German', 	'Fortinet: Ende der Zone');
-INSERT INTO txt VALUES ('prov_opt_fortinet_end_of_zone',             'English', 	'Fortinet: end of zone');
-INSERT INTO txt VALUES ('prov_opt_cp_end_of_app_section',            'German', 	'Check Point: Ende der App-Sektion');
-INSERT INTO txt VALUES ('prov_opt_cp_end_of_app_section',            'English', 	'Check Point: end of app section');
-INSERT INTO txt VALUES ('prov_opt_cp_end_of_app_section_common_svc', 'German', 	'Check Point: Ende der App-Sektion, Common Services unterscheiden');
-INSERT INTO txt VALUES ('prov_opt_cp_end_of_app_section_common_svc', 'English', 	'Check Point: end of app section, distinguish common services');
-INSERT INTO txt VALUES ('prov_opt_default_end_of_rulebase',          'German', 	'Standard: Ende des Regelwerks');
-INSERT INTO txt VALUES ('prov_opt_default_end_of_rulebase',          'English', 	'Default: end of rulebase');
-INSERT INTO txt VALUES ('prov_opt_app',                              'German', 	'Applikation');
-INSERT INTO txt VALUES ('prov_opt_app',                              'English', 	'Application');
-INSERT INTO txt VALUES ('prov_opt_common_service',                   'German', 	'Common Service');
-INSERT INTO txt VALUES ('prov_opt_common_service',                   'English', 	'Common service');
-INSERT INTO txt VALUES ('prov_opt_supermanager',                     'German', 	'Supermanager');
-INSERT INTO txt VALUES ('prov_opt_supermanager',                     'English', 	'Supermanager');
-INSERT INTO txt VALUES ('prov_opt_submanager',                       'German', 	'Submanager');
-INSERT INTO txt VALUES ('prov_opt_submanager',                       'English', 	'Submanager');
+INSERT INTO txt VALUES ('dss_settings',        'German', 	'Ger&auml;tespezifische Einstellungen');
+INSERT INTO txt VALUES ('dss_settings',        'English', 	'Device specific settings');
+INSERT INTO txt VALUES ('dss_settings_intro',  'German', 	'Einstellungen werden von Global &uuml;ber Ger&auml;tetyp und Manager bis zum Gateway vererbt. W&auml;hlen Sie links eine Ebene aus und &uuml;berschreiben Sie bei Bedarf einzelne Werte.');
+INSERT INTO txt VALUES ('dss_settings_intro',  'English', 	'Settings are inherited from Global down through Device Type and Manager to Gateway. Select a level on the left and override individual values where needed.');
+INSERT INTO txt VALUES ('dss_hierarchy_hint',  'German', 	'Global &gt; Ger&auml;tetyp &gt; Manager &gt; Gateway');
+INSERT INTO txt VALUES ('dss_hierarchy_hint',  'English', 	'Global > Device Type > Manager > Gateway');
+INSERT INTO txt VALUES ('dss_global',          'German', 	'Global');
+INSERT INTO txt VALUES ('dss_global',          'English', 	'Global');
+INSERT INTO txt VALUES ('dss_device_type',     'German', 	'Ger&auml;tetyp');
+INSERT INTO txt VALUES ('dss_device_type',     'English', 	'Device Type');
+INSERT INTO txt VALUES ('dss_manager',         'German', 	'Manager');
+INSERT INTO txt VALUES ('dss_manager',         'English', 	'Manager');
+INSERT INTO txt VALUES ('dss_gateway',         'German', 	'Gateway');
+INSERT INTO txt VALUES ('dss_gateway',         'English', 	'Gateway');
+INSERT INTO txt VALUES ('dss_set_here',        'German', 	'Hier festgelegt');
+INSERT INTO txt VALUES ('dss_set_here',        'English', 	'Set here');
+INSERT INTO txt VALUES ('dss_inherited',       'German', 	'Geerbt');
+INSERT INTO txt VALUES ('dss_inherited',       'English', 	'Inherited');
+INSERT INTO txt VALUES ('dss_inherited_from',  'German', 	'Geerbt von');
+INSERT INTO txt VALUES ('dss_inherited_from',  'English', 	'Inherited from');
+INSERT INTO txt VALUES ('dss_override_here',   'German', 	'Hier &uuml;berschreiben');
+INSERT INTO txt VALUES ('dss_override_here',   'English', 	'Override here');
+INSERT INTO txt VALUES ('dss_compiled_default', 'German', 	'Standardwert (auf keiner Ebene gesetzt)');
+INSERT INTO txt VALUES ('dss_compiled_default', 'English', 	'Default value (not set on any level)');
+INSERT INTO txt VALUES ('dss_unsaved_hint',    'German', 	'Diese Ebene hat ungespeicherte &Auml;nderungen. Speichern oder verwerfen Sie sie, bevor Sie eine andere Ebene ausw&auml;hlen.');
+INSERT INTO txt VALUES ('dss_unsaved_hint',    'English', 	'This level has unsaved changes. Save or discard them before selecting another level.');
+INSERT INTO txt VALUES ('dss_dormant_override', 'German', 	'Inaktive &Uuml;berschreibung');
+INSERT INTO txt VALUES ('dss_dormant_override', 'English', 	'Dormant override');
+INSERT INTO txt VALUES ('dss_dormant_override_hint', 'German', 	'Diese &Uuml;berschreibung ist hier gespeichert, die Einstellung wird auf dieser Ebene oder f&uuml;r den aktuellen Ger&auml;tetyp aber nicht angeboten. Sie bleibt erhalten und kann hier entfernt werden.');
+INSERT INTO txt VALUES ('dss_dormant_override_hint', 'English', 	'This override is stored here, but the setting is not offered on this level or for the current device type. It is retained and can be cleared here.');
+INSERT INTO txt VALUES ('dss_clear_override',  'German', 	'Gespeicherte &Uuml;berschreibung entfernen');
+INSERT INTO txt VALUES ('dss_clear_override',  'English', 	'Clear stored override');
+INSERT INTO txt VALUES ('dss_templates_placeholder', 'German', 	'z.B. Vorlage mit Platzhaltern wie {{rule_name}}');
+INSERT INTO txt VALUES ('dss_templates_placeholder', 'English', 	'e.g. template with placeholders like {{rule_name}}');
+INSERT INTO txt VALUES ('dss_time_object_creation', 'German', 'Anlage Zeitobjekte');
+INSERT INTO txt VALUES ('dss_time_object_creation', 'English', 'Time object creation');
+INSERT INTO txt VALUES ('dss_label_creation', 'German', 'Anlage Labels');
+INSERT INTO txt VALUES ('dss_label_creation', 'English', 'Label creation');
+INSERT INTO txt VALUES ('dss_implementation_mode_override_for_rules', 'German', 'Umsetzungsmodus f&uuml;r Regeln');
+INSERT INTO txt VALUES ('dss_implementation_mode_override_for_rules', 'English', 'Implementation mode override for rules');
+INSERT INTO txt VALUES ('dss_owner_id_custom_field_name', 'German', 'Benutzerdefiniertes Feld f&uuml;r Eigent&uuml;mer-ID');
+INSERT INTO txt VALUES ('dss_owner_id_custom_field_name', 'English', 'Owner ID custom field');
+INSERT INTO txt VALUES ('dss_change_id_custom_field_name', 'German', 'Benutzerdefiniertes Feld f&uuml;r &Auml;nderungs-ID');
+INSERT INTO txt VALUES ('dss_change_id_custom_field_name', 'English', 'Change ID custom field');
+INSERT INTO txt VALUES ('dss_plan_implementation', 'German', 'Umsetzung planen');
+INSERT INTO txt VALUES ('dss_plan_implementation', 'English', 'Plan implementation');
+INSERT INTO txt VALUES ('dss_plan_implementation_override_for_rules', 'German', 'Umsetzungsplanung f&uuml;r Regeln');
+INSERT INTO txt VALUES ('dss_plan_implementation_override_for_rules', 'English', 'Plan implementation override for rules');
+INSERT INTO txt VALUES ('dss_importer_host_name', 'German', 'Importer-Hostname');
+INSERT INTO txt VALUES ('dss_importer_host_name', 'English', 'Importer host name');
+INSERT INTO txt VALUES ('dss_modelling_create_app_zones', 'German', 'Modellierte App-Zonen anlegen');
+INSERT INTO txt VALUES ('dss_modelling_create_app_zones', 'English', 'Create modelling app zones');
+INSERT INTO txt VALUES ('dss_modelling_implement_network_area_objects', 'German', 'Modellierte Netzwerk-Areas umsetzen');
+INSERT INTO txt VALUES ('dss_modelling_implement_network_area_objects', 'English', 'Implement modelling network areas');
+INSERT INTO txt VALUES ('dss_modelling_dyn_ip_labels_visible_as_groups', 'German', 'Dynamische IP-Labels als Gruppen sichtbar');
+INSERT INTO txt VALUES ('dss_modelling_dyn_ip_labels_visible_as_groups', 'English', 'Dynamic IP labels visible as groups');
+INSERT INTO txt VALUES ('dss_modelling_connection_id_field', 'German', 'Feld f&uuml;r Verbindungs-ID');
+INSERT INTO txt VALUES ('dss_modelling_connection_id_field', 'English', 'Connection ID field');
+INSERT INTO txt VALUES ('dss_modelling_connection_id_template', 'German', 'Vorlage f&uuml;r Verbindungs-ID');
+INSERT INTO txt VALUES ('dss_modelling_connection_id_template', 'English', 'Connection ID template');
+INSERT INTO txt VALUES ('dss_reroute_to_external_ticket_system', 'German', 'Externes Ticketsystem f&uuml;r Umleitung');
+INSERT INTO txt VALUES ('dss_reroute_to_external_ticket_system', 'English', 'Reroute to external ticket system');
+INSERT INTO txt VALUES ('dss_opt_custom_field', 'German', 'Benutzerdefiniertes Feld');
+INSERT INTO txt VALUES ('dss_opt_custom_field', 'English', 'Custom field');
+INSERT INTO txt VALUES ('dss_opt_reroute', 'German', 'Externes Ticketsystem');
+INSERT INTO txt VALUES ('dss_opt_reroute', 'English', 'External ticket system');
+INSERT INTO txt VALUES ('dss_opt_any', 'German', 'ANY');
+INSERT INTO txt VALUES ('dss_opt_any', 'English', 'ANY');
+INSERT INTO txt VALUES ('dss_opt_gateways_in_path', 'German', 'Gateways im Pfad');
+INSERT INTO txt VALUES ('dss_opt_gateways_in_path', 'English', 'Gateways in path');
+INSERT INTO txt VALUES ('dss_opt_ignore', 'German', 'Ignorieren');
+INSERT INTO txt VALUES ('dss_opt_ignore', 'English', 'Ignore');
+INSERT INTO txt VALUES ('dss_opt_app_security', 'German', 'Applikationssicherheit');
+INSERT INTO txt VALUES ('dss_opt_app_security', 'English', 'Application security');
+INSERT INTO txt VALUES ('dss_opt_allow_category', 'German', 'Allow-Kategorie: Ende des App-Abschnitts, gemeinsame Services unterscheiden');
+INSERT INTO txt VALUES ('dss_opt_allow_category', 'English', 'Allow category: end of app section, distinguish common services');
+INSERT INTO txt VALUES ('dss_opt_automatic', 'German', 'Automatisch');
+INSERT INTO txt VALUES ('dss_opt_automatic', 'English', 'Automatic');
+INSERT INTO txt VALUES ('dss_implementation_mode', 'German', 	'Umsetzungsmodus');
+INSERT INTO txt VALUES ('dss_implementation_mode', 'English', 	'Implementation mode');
+INSERT INTO txt VALUES ('dss_install_on',      'German', 	'Installieren auf');
+INSERT INTO txt VALUES ('dss_install_on',      'English', 	'Install on');
+INSERT INTO txt VALUES ('dss_logging',         'German', 	'Logging');
+INSERT INTO txt VALUES ('dss_logging',         'English', 	'Logging');
+INSERT INTO txt VALUES ('dss_service_object_creation', 'German', 	'Anlage Service-Objekte');
+INSERT INTO txt VALUES ('dss_service_object_creation', 'English', 	'Service object creation');
+INSERT INTO txt VALUES ('dss_address_object_creation', 'German', 	'Anlage Adress-Objekte');
+INSERT INTO txt VALUES ('dss_address_object_creation', 'English', 	'Address object creation');
+INSERT INTO txt VALUES ('dss_rule_type',       'German', 	'Regeltyp');
+INSERT INTO txt VALUES ('dss_rule_type',       'English', 	'Rule type');
+INSERT INTO txt VALUES ('dss_templates',       'German', 	'Vorlagen');
+INSERT INTO txt VALUES ('dss_templates',       'English', 	'Templates');
+INSERT INTO txt VALUES ('dss_positioning_algorithm', 'German', 	'Positionierungs-Algorithmus');
+INSERT INTO txt VALUES ('dss_positioning_algorithm', 'English', 	'Positioning algorithm');
+INSERT INTO txt VALUES ('dss_common_service_separation', 'German', 	'Common Services trennen');
+INSERT INTO txt VALUES ('dss_common_service_separation', 'English', 	'Common service separation');
+INSERT INTO txt VALUES ('dss_security_profiles', 'German', 	'Sicherheitsprofile');
+INSERT INTO txt VALUES ('dss_security_profiles', 'English', 	'Security profiles');
+INSERT INTO txt VALUES ('dss_zone_from',       'German', 	'Zone von');
+INSERT INTO txt VALUES ('dss_zone_from',       'English', 	'Zone from');
+INSERT INTO txt VALUES ('dss_zone_to',         'German', 	'Zone nach');
+INSERT INTO txt VALUES ('dss_zone_to',         'English', 	'Zone to');
+INSERT INTO txt VALUES ('dss_opt_manual',                           'German', 	'Manuell');
+INSERT INTO txt VALUES ('dss_opt_manual',                           'English', 	'Manual');
+INSERT INTO txt VALUES ('dss_opt_log',                              'German', 	'Loggen');
+INSERT INTO txt VALUES ('dss_opt_log',                              'English', 	'Log');
+INSERT INTO txt VALUES ('dss_opt_log_track',                        'German', 	'Loggen und verfolgen');
+INSERT INTO txt VALUES ('dss_opt_log_track',                        'English', 	'Log and track');
+INSERT INTO txt VALUES ('dss_opt_none',                             'German', 	'Keine');
+INSERT INTO txt VALUES ('dss_opt_none',                             'English', 	'None');
+INSERT INTO txt VALUES ('dss_opt_always_access',                    'German', 	'Immer Access (Standard)');
+INSERT INTO txt VALUES ('dss_opt_always_access',                    'English', 	'Always access (standard)');
+INSERT INTO txt VALUES ('dss_opt_access_nat',                       'German', 	'Access und NAT behandeln');
+INSERT INTO txt VALUES ('dss_opt_access_nat',                       'English', 	'Handle access and NAT');
+INSERT INTO txt VALUES ('dss_opt_access_ips',                       'German', 	'Access und IPS behandeln');
+INSERT INTO txt VALUES ('dss_opt_access_ips',                       'English', 	'Handle access and IPS');
+INSERT INTO txt VALUES ('dss_opt_access_nat_ips',                   'German', 	'Access, NAT und IPS behandeln');
+INSERT INTO txt VALUES ('dss_opt_access_nat_ips',                   'English', 	'Handle access, NAT and IPS');
+INSERT INTO txt VALUES ('dss_opt_cp_inline_layer_zone_pair',        'German', 	'Check Point: Inline-Layer pro Zonenpaar');
+INSERT INTO txt VALUES ('dss_opt_cp_inline_layer_zone_pair',        'English', 	'Check Point: inline layer per zone pair');
+INSERT INTO txt VALUES ('dss_opt_fortinet_end_of_zone',             'German', 	'Fortinet: Ende der Zone');
+INSERT INTO txt VALUES ('dss_opt_fortinet_end_of_zone',             'English', 	'Fortinet: end of zone');
+INSERT INTO txt VALUES ('dss_opt_cp_end_of_app_section',            'German', 	'Check Point: Ende der App-Sektion');
+INSERT INTO txt VALUES ('dss_opt_cp_end_of_app_section',            'English', 	'Check Point: end of app section');
+INSERT INTO txt VALUES ('dss_opt_cp_end_of_app_section_common_svc', 'German', 	'Check Point: Ende der App-Sektion, Common Services unterscheiden');
+INSERT INTO txt VALUES ('dss_opt_cp_end_of_app_section_common_svc', 'English', 	'Check Point: end of app section, distinguish common services');
+INSERT INTO txt VALUES ('dss_opt_default_end_of_rulebase',          'German', 	'Standard: Ende des Regelwerks');
+INSERT INTO txt VALUES ('dss_opt_default_end_of_rulebase',          'English', 	'Default: end of rulebase');
+INSERT INTO txt VALUES ('dss_opt_supermanager',                     'German', 	'Supermanager');
+INSERT INTO txt VALUES ('dss_opt_supermanager',                     'English', 	'Supermanager');
+INSERT INTO txt VALUES ('dss_opt_submanager',                       'German', 	'Submanager');
+INSERT INTO txt VALUES ('dss_opt_submanager',                       'English', 	'Submanager');
 INSERT INTO txt VALUES ('ext_ticket_templates', 'German', 	'Externe Ticket-Vorlagen');
 INSERT INTO txt VALUES ('ext_ticket_templates', 'English', 	'External ticket templates');
 INSERT INTO txt VALUES ('add_ext_ticket_system', 'German',  'Externes Ticket-System anlegen');
@@ -3716,6 +3730,10 @@ INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Modu
 INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
 INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
 INSERT INTO txt VALUES ('notification',   		'English', 	'Notification');
+INSERT INTO txt VALUES ('notification_id',       'German',   'Benachrichtigungs-ID');
+INSERT INTO txt VALUES ('notification_id',       'English',  'Notification Id');
+INSERT INTO txt VALUES ('notification_type',     'German',   'Benachrichtigungstyp');
+INSERT INTO txt VALUES ('notification_type',     'English',  'Notification type');
 INSERT INTO txt VALUES ('notifications',   		'German', 	'Benachrichtigungen');
 INSERT INTO txt VALUES ('notifications',   		'English', 	'Notifications');
 INSERT INTO txt VALUES ('reminder',             'German', 	'Erinnerung');
@@ -4778,6 +4796,8 @@ INSERT INTO txt VALUES ('E5126', 'German',  'Bitte das zu &auml;ndernde Objekt a
 INSERT INTO txt VALUES ('E5126', 'English', 'Please select the object to be modified.');
 INSERT INTO txt VALUES ('E5127', 'German',  'Bitte ein Management ausw&auml;hlen, zu dem das Objekt geh&ouml;rt.');
 INSERT INTO txt VALUES ('E5127', 'English', 'Please select the management the object belongs to.');
+INSERT INTO txt VALUES ('E5128', 'German', 'Zugangsdaten werden von anderen Zugangsdaten verwendet');
+INSERT INTO txt VALUES ('E5128', 'English', 'Credential is used by other credentials');
 INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten Managements verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by the managements named. Change the credentials of these managements before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
@@ -6437,12 +6457,8 @@ INSERT INTO txt VALUES ('H5119', 'German',  'Domain: Firewall Domain Name <br>
 INSERT INTO txt VALUES ('H5119', 'English', 'Domain: Firewall Domain Name<br>
     Empty except for Check Point R8x MDS / Fortimanager installations.
 ');
-INSERT INTO txt VALUES ('H5120', 'German',  'Importer Hostname: Der Name des Servers, auf dem der Importprozess laufen soll.
-    Muss individuell konfiguriert werden, wenn mehrere verteilte Importmodule laufen sollen, so dass nicht jeder Importer alle Managements importiert.
-');
-INSERT INTO txt VALUES ('H5120', 'English', 'Importer Hostname: This must be the name of the server, the import process should run on.
-    Needs to be individually configured if you want to have multiple distributed import modules, so that not every importer imports all managements.
-');
+INSERT INTO txt VALUES ('H5120', 'German',  'Importer Hostname: wird in den ger&auml;tespezifischen Einstellungen auf den Ebenen Global, Ger&auml;tetyp oder Manager festgelegt.');
+INSERT INTO txt VALUES ('H5120', 'English', 'Importer host name: is set in the device specific settings on the levels Global, device type or manager.');
 INSERT INTO txt VALUES ('H5121', 'German',  'Debug Stufe (0-9): Erlaubt individuelle Debug-Granularit&auml;t pro Management.');
 INSERT INTO txt VALUES ('H5121', 'English', 'Debug Level (0-9): For allowing for individual debug granularity per management.');
 INSERT INTO txt VALUES ('H5122', 'German',  'Import Deaktiviert: Schalter um den Datenimport zu deaktivieren.');
@@ -6518,14 +6534,8 @@ INSERT INTO txt VALUES ('H5135', 'German',  'Schl&uuml;sselpaar*: Handelt es sic
 ');
 INSERT INTO txt VALUES ('H5135', 'English', 'Key Pair*: Do these credentials consist of a private/public SSH key pair or do they contain a standard password.
 ');
-INSERT INTO txt VALUES ('H5136', 'German',  'Cloud Client ID: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
-');
-INSERT INTO txt VALUES ('H5136', 'English', 'Cloud Client ID: If you have a cloud installation (e.g. Azure) - enter your Azure client ID here. For all other installations, leave this field empty.
-');
-INSERT INTO txt VALUES ('H5137', 'German',  'Cloud Client Secret: Nur f&uuml;r Cloud Instanzen (Azure) ben&ouml;tigt - f&uuml;r alle anderen Plattformen kann dieses Feld leer gelassen werden.
-');
-INSERT INTO txt VALUES ('H5137', 'English', 'Cloud Client Secret: If you have a cloud installation (e.g. Azure) - enter your Azure client secret here. For all other installations, leave this field empty.
-');
+INSERT INTO txt VALUES ('H5136', 'German', 'Zus&auml;tzliche Zugangsdaten: W&auml;hlen Sie separat angelegte Zugangsdaten, z.B. mit Cloud Client ID als Nutzer und Cloud Client Secret als Passwort oder mit dem Cisco ASA Enable-Passwort (Nutzer frei w&auml;hlbar, z.B. enable). Das Passwort wird verschl&uuml;sselt gespeichert. Entfernen Sie Verweise vor dem L&ouml;schen.');
+INSERT INTO txt VALUES ('H5136', 'English', 'Additional credential: Select separately created credentials, e.g. with the cloud client ID as username and client secret as password, or with the Cisco ASA enable password (any username, e.g. enable). The password is stored encrypted. Remove references before deleting a credential.');
 
 INSERT INTO txt VALUES ('H5141', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Gateways einrichten und verwalten.<br>
     Die "Klonen"-Schaltfl&auml;che unterst&uuml;tzt beim Definieren eines neuen Gateways, indem Daten von einem existierenden kopiert werden.
@@ -6575,6 +6585,26 @@ INSERT INTO txt VALUES ('H5158', 'German',  'Import Deaktiviert: Schalter um den
 INSERT INTO txt VALUES ('H5158', 'English', 'Import Disabled: Flag if the data import is disabled.');
 INSERT INTO txt VALUES ('H5159', 'German',  'Nicht sichtbar: Wenn gesetzt ist dieses Gateway nicht mit Standard-Reporter-Rolle sichtbar.');
 INSERT INTO txt VALUES ('H5159', 'English', 'Hide in UI: If set, this gateway is not visible to the standard reporter role.');
+INSERT INTO txt VALUES ('H5160', 'German',  'Die ger&auml;tespezifischen Einstellungen legen fest, wie Firewall Orchestrator mit den Firewalls umgeht, z.B. wie Regel&auml;nderungen umgesetzt werden oder welcher Importer-Host verwendet wird. Sie sind hierarchisch aufgebaut: Global &gt; Ger&auml;tetyp &gt; Manager &gt; Gateway. Der Baum links zeigt die tats&auml;chlich vorhandenen Ger&auml;tetypen, Manager und Gateways; ausgeblendete Manager und reine Routing-Ger&auml;te fehlen.');
+INSERT INTO txt VALUES ('H5160', 'English', 'The device specific settings define how Firewall Orchestrator handles the firewalls, e.g. how rule changes are implemented or which importer host is used. They are organised as a hierarchy: Global &gt; Device type &gt; Manager &gt; Gateway. The tree on the left shows the device types, managers and gateways that actually exist; hidden managers and pure routing devices are left out.');
+INSERT INTO txt VALUES ('H5161', 'German',  'Jede Ebene speichert nur die Werte, die sie selbst &uuml;berschreibt. Alle anderen Werte erbt sie von der n&auml;chsth&ouml;heren Ebene, auf der der Wert gesetzt ist. Ist er auf keiner Ebene gesetzt, gilt der Standardwert.');
+INSERT INTO txt VALUES ('H5161', 'English', 'Each level stores only the values it overrides itself. It inherits all other values from the nearest level above on which the value is set. If it is not set on any level, the default value applies.');
+INSERT INTO txt VALUES ('H5162', 'German',  'Hier &uuml;berschreiben: Ist der Schalter aktiv, wird der Wert auf der gew&auml;hlten Ebene gespeichert und gilt f&uuml;r diese Ebene und alle Ebenen darunter, die ihn nicht selbst &uuml;berschreiben. Beim Einschalten wird das Feld mit dem aktuell geltenden Wert vorbelegt; auch ein unver&auml;nderter Wert wird dann gespeichert und &auml;ndert sich nicht mehr mit der Ebene dar&uuml;ber. Wird der Schalter ausgeschaltet, wird der gespeicherte Wert beim Speichern entfernt und die Ebene erbt wieder.');
+INSERT INTO txt VALUES ('H5162', 'English', 'Override here: while the switch is on, the value is stored on the selected level and applies to this level and to all levels below that do not override it themselves. Switching it on fills the field with the value currently in effect; even an unchanged value is then stored and no longer follows the level above. Switching it off removes the stored value when saving, and the level inherits again.');
+INSERT INTO txt VALUES ('H5163', 'German',  'Bei geerbten Werten wird die Ebene angezeigt, von der der Wert stammt. Ein Klick darauf wechselt zu dieser Ebene und hebt das Feld hervor, sodass der Wert dort ge&auml;ndert werden kann.');
+INSERT INTO txt VALUES ('H5163', 'English', 'For inherited values the level the value comes from is shown. Clicking it switches to that level and highlights the field, so that the value can be changed there.');
+INSERT INTO txt VALUES ('H5164', 'German',  'Solange eine Ebene ungespeicherte &Auml;nderungen hat, kann keine andere Ebene ausgew&auml;hlt werden. Die &Auml;nderungen m&uuml;ssen zuerst gespeichert oder verworfen werden. Gespeichert werden nur die Felder, die tats&auml;chlich ge&auml;ndert wurden.');
+INSERT INTO txt VALUES ('H5164', 'English', 'While a level has unsaved changes, no other level can be selected. The changes have to be saved or discarded first. Only the fields that were actually changed are saved.');
+INSERT INTO txt VALUES ('H5165', 'German', 'Administratoren k&ouml;nnen die Einstellungen &auml;ndern, Auditoren k&ouml;nnen sie nur einsehen.');
+INSERT INTO txt VALUES ('H5165', 'English', 'Administrators can change the settings, auditors can only view them.');
+INSERT INTO txt VALUES ('H5166', 'German',  'Die Hierarchie folgt den Ger&auml;ten: Wird der Ger&auml;tetyp eines Managers ge&auml;ndert oder ein Gateway einem anderen Manager zugeordnet, nimmt er seine eigenen Werte mit und erbt ab dann von seinen neuen &uuml;bergeordneten Ebenen.');
+INSERT INTO txt VALUES ('H5166', 'English', 'The hierarchy follows the devices: if the device type of a manager is changed or a gateway is assigned to another manager, it keeps its own values and from then on inherits from its new parent levels.');
+INSERT INTO txt VALUES ('H5167', 'German', 'Nicht jede Einstellung wird auf jeder Ebene angeboten. Objektanlage, Regeltyp, Common Services, Fortinet-Zonen, benutzerdefinierte Felder, Importer-Host und die Modellierungseinstellungen werden bis zur Ebene Manager angeboten. Sicherheitsprofile gibt es auf den Ebenen Ger&auml;tetyp und Manager, Vorlagen nur auf Ebene Ger&auml;tetyp. Die Fortinet-Zonen werden auf globaler Ebene und unterhalb eines Fortinet-Ger&auml;tetyps angeboten. &Uuml;berschreibungen, die auf einer Ebene gespeichert sind, dort aber nicht angeboten werden (z.B. Fortinet-Werte nach dem Verschieben weg von Fortinet oder &uuml;ber die API auf Gateway-Ebene gespeicherte Werte), bleiben als inaktive &Uuml;berschreibungen sichtbar und k&ouml;nnen dort entfernt werden.');
+INSERT INTO txt VALUES ('H5167', 'English', 'Not every setting is offered on every level. Object creation, rule type, common service separation, Fortinet zones, custom field names, importer host and the modelling settings are offered down to the manager level. Security profiles are offered on device type and manager level, templates on device type level only. The Fortinet zones are offered on global level and below a Fortinet device type. Overrides stored on a level that does not offer the setting (e.g. Fortinet values after the level was moved away from Fortinet, or values stored on gateway level via the API) remain visible as dormant overrides and can be cleared there.');
+INSERT INTO txt VALUES ('H5168', 'German', 'Umsetzungsmodus: automatisch (Standard), manuell oder externes Ticketsystem. Regelumsetzung und Planung haben eigene &Uuml;berschreibungen.');
+INSERT INTO txt VALUES ('H5168', 'English', 'Implementation mode: automatic (default), manual or external ticket system. Rule implementation and planning have separate overrides.');
+INSERT INTO txt VALUES ('H5169', 'German', 'Installieren auf: ANY (Standard) oder Gateways im geplanten Pfad.');
+INSERT INTO txt VALUES ('H5169', 'English', 'Install on: ANY (default) or gateways in the planned path.');
 INSERT INTO txt VALUES ('H5171', 'German',  'Hier wird ein &Uuml;berblick &uuml;ber den Status der Importjobs der verschiedenen Managements gegeben.
     Dabei werden Managements, die Auff&auml;lligkeiten aufweisen (wie sie auch vom <a href="/help/monitoring/daily_checks">T&auml;glichen Check</a> beanstandet w&uuml;rden), rot unterlegt und zuerst aufgelistet,
     danach folgen gelb unterlegt die laufenden Imports, dann erst die &uuml;brigen Managements.
@@ -6607,46 +6637,52 @@ INSERT INTO txt VALUES ('H5186', 'German',  'Erfolg: Zeigt an, ob der letzte Imp
 INSERT INTO txt VALUES ('H5186', 'English', 'Success: Flag showing the success of the last import.');
 INSERT INTO txt VALUES ('H5187', 'German',  'Fehler: Zeigt die Fehlermeldung, falls der letzte Import nicht erfolgreich war.');
 INSERT INTO txt VALUES ('H5187', 'English', 'Errors: Is only filled with an error message, if the success flag is false.');
-INSERT INTO txt VALUES ('H5160', 'German',  'Die Provisionierungs-Einstellungen legen fest, wie Regel&auml;nderungen auf den Firewalls umgesetzt werden. Sie sind hierarchisch aufgebaut: Global &gt; Ger&auml;tetyp &gt; Manager &gt; Gateway. Der Baum links zeigt die tats&auml;chlich vorhandenen Ger&auml;tetypen, Manager und Gateways; ausgeblendete Manager und reine Routing-Ger&auml;te fehlen.');
-INSERT INTO txt VALUES ('H5160', 'English', 'The provisioning settings define how rule changes are implemented on the firewalls. They are organised as a hierarchy: Global &gt; Device type &gt; Manager &gt; Gateway. The tree on the left shows the device types, managers and gateways that actually exist; hidden managers and pure routing devices are left out.');
-INSERT INTO txt VALUES ('H5161', 'German',  'Jede Ebene speichert nur die Werte, die sie selbst &uuml;berschreibt. Alle anderen Werte erbt sie von der n&auml;chsth&ouml;heren Ebene, auf der der Wert gesetzt ist. Ist er auf keiner Ebene gesetzt, gilt der Standardwert.');
-INSERT INTO txt VALUES ('H5161', 'English', 'Each level stores only the values it overrides itself. It inherits all other values from the nearest level above on which the value is set. If it is not set on any level, the default value applies.');
-INSERT INTO txt VALUES ('H5162', 'German',  'Hier &uuml;berschreiben: Ist der Schalter aktiv, wird der Wert auf der gew&auml;hlten Ebene gespeichert und gilt f&uuml;r diese Ebene und alle Ebenen darunter, die ihn nicht selbst &uuml;berschreiben. Beim Einschalten wird das Feld mit dem aktuell geltenden Wert vorbelegt; auch ein unver&auml;nderter Wert wird dann gespeichert und &auml;ndert sich nicht mehr mit der Ebene dar&uuml;ber. Wird der Schalter ausgeschaltet, wird der gespeicherte Wert beim Speichern entfernt und die Ebene erbt wieder.');
-INSERT INTO txt VALUES ('H5162', 'English', 'Override here: while the switch is on, the value is stored on the selected level and applies to this level and to all levels below that do not override it themselves. Switching it on fills the field with the value currently in effect; even an unchanged value is then stored and no longer follows the level above. Switching it off removes the stored value when saving, and the level inherits again.');
-INSERT INTO txt VALUES ('H5163', 'German',  'Bei geerbten Werten wird die Ebene angezeigt, von der der Wert stammt. Ein Klick darauf wechselt zu dieser Ebene und hebt das Feld hervor, sodass der Wert dort ge&auml;ndert werden kann.');
-INSERT INTO txt VALUES ('H5163', 'English', 'For inherited values the level the value comes from is shown. Clicking it switches to that level and highlights the field, so that the value can be changed there.');
-INSERT INTO txt VALUES ('H5164', 'German',  'Solange eine Ebene ungespeicherte &Auml;nderungen hat, kann keine andere Ebene ausgew&auml;hlt werden. Die &Auml;nderungen m&uuml;ssen zuerst gespeichert oder verworfen werden. Gespeichert werden nur die Felder, die tats&auml;chlich ge&auml;ndert wurden.');
-INSERT INTO txt VALUES ('H5164', 'English', 'While a level has unsaved changes, no other level can be selected. The changes have to be saved or discarded first. Only the fields that were actually changed are saved.');
-INSERT INTO txt VALUES ('H5165', 'German',  'Administratoren k&ouml;nnen die Einstellungen &auml;ndern, Auditoren k&ouml;nnen sie nur einsehen.');
-INSERT INTO txt VALUES ('H5165', 'English', 'Administrators can change the settings, auditors can only view them.');
-INSERT INTO txt VALUES ('H5166', 'German',  'Die Hierarchie folgt den Ger&auml;ten: Wird der Ger&auml;tetyp eines Managers ge&auml;ndert oder ein Gateway einem anderen Manager zugeordnet, nimmt er seine eigenen Werte mit und erbt ab dann von seinen neuen &uuml;bergeordneten Ebenen.');
-INSERT INTO txt VALUES ('H5166', 'English', 'The hierarchy follows the devices: if the device type of a manager is changed or a gateway is assigned to another manager, it keeps its own values and from then on inherits from its new parent levels.');
-INSERT INTO txt VALUES ('H5167', 'German',  'Nicht jede Einstellung wird auf jeder Ebene angeboten. Ger&auml;tespezifische Einstellungen gibt es erst ab der Ebene Ger&auml;tetyp, die Anlage von Objekten nur bis zur Ebene Manager, und die Fortinet-spezifischen Einstellungen nur unterhalb eines Fortinet-Ger&auml;tetyps. Wird eine Ebene von Fortinet weg verschoben, bleiben ihre eigenen Fortinet-Werte als inaktive &Uuml;berschreibungen sichtbar und k&ouml;nnen dort entfernt werden.');
-INSERT INTO txt VALUES ('H5167', 'English', 'Not every setting is offered on every level. Device-specific settings are only available from the device type level downwards, object creation only down to the manager level, and the Fortinet-specific settings only below a Fortinet device type. If a level is moved away from Fortinet, its own Fortinet values remain visible as dormant overrides and can be cleared there.');
-INSERT INTO txt VALUES ('H5168', 'German',  'Umsetzungsmodus: Wie Umsetzungsaufgaben f&uuml;r Regel&auml;nderungen erzeugt werden: FWO automatisch, Manuell, Tufin SecureChange oder Keine (keine Implementierungsaufgabe).');
-INSERT INTO txt VALUES ('H5168', 'English', 'Implementation mode: how implementation tasks are created for rule changes: FWO automatic, Manual, Tufin SecureChange, or None (no implementation task).');
-INSERT INTO txt VALUES ('H5169', 'German',  'Installieren auf: Das Installationsziel der erzeugten Regeln, z.B. ANY.');
-INSERT INTO txt VALUES ('H5169', 'English', 'Install on: the install-on target of the generated rules, e.g. ANY.');
 INSERT INTO txt VALUES ('H5190', 'German',  'Logging: Logging-Verhalten der erzeugten Regeln: Loggen, Loggen und verfolgen oder Keine.');
 INSERT INTO txt VALUES ('H5190', 'English', 'Logging: logging behaviour of the generated rules: Log, Log and track, or None.');
 INSERT INTO txt VALUES ('H5191', 'German',  'Anlage Service-Objekte: Ob Service-Objekte im Supermanager oder im Submanager angelegt werden. Nur relevant, wenn ein Supermanager existiert.');
 INSERT INTO txt VALUES ('H5191', 'English', 'Service object creation: whether service objects are created in the supermanager or in the submanager. Only relevant if a supermanager exists.');
 INSERT INTO txt VALUES ('H5192', 'German',  'Anlage Adress-Objekte: Ob Adress-Objekte im Supermanager oder im Submanager angelegt werden. Nur relevant, wenn ein Supermanager existiert.');
 INSERT INTO txt VALUES ('H5192', 'English', 'Address object creation: whether address objects are created in the supermanager or in the submanager. Only relevant if a supermanager exists.');
-INSERT INTO txt VALUES ('H5193', 'German',  'Regeltyp: Welche Regelarten behandelt werden: Immer Access (Standard), Access und NAT, Access und IPS oder Access, NAT und IPS.');
-INSERT INTO txt VALUES ('H5193', 'English', 'Rule type: which rule kinds are handled: Always access (standard), access and NAT, access and IPS, or access, NAT and IPS.');
-INSERT INTO txt VALUES ('H5194', 'German',  'Vorlagen: Freitext-Vorlage(n) mit Platzhaltern wie {{rule_name}}.');
-INSERT INTO txt VALUES ('H5194', 'English', 'Templates: free-text template(s) with placeholders such as {{rule_name}}.');
-INSERT INTO txt VALUES ('H5195', 'German',  'Positionierungs-Algorithmus: Wo neue Regeln im Regelwerk platziert werden: Check Point Inline-Layer pro Zonenpaar, Fortinet Ende der Zone, Check Point Ende der App-Sektion (optional mit Unterscheidung der Common Services) oder Standard: Ende des Regelwerks.');
-INSERT INTO txt VALUES ('H5195', 'English', 'Positioning algorithm: where new rules are placed in the rulebase: Check Point inline layer per zone pair, Fortinet end of zone, Check Point end of app section (optionally distinguishing common services), or Default: end of rulebase.');
-INSERT INTO txt VALUES ('H5196', 'German',  'Regelkategorie: Ob eine Regel als Applikations- oder als Common-Service-Regel behandelt wird.');
-INSERT INTO txt VALUES ('H5196', 'English', 'Rule category: whether a rule is treated as an application rule or as a common-service rule.');
-INSERT INTO txt VALUES ('H5197', 'German',  'Sicherheitsprofile (nur Fortinet): Namen der anzuwendenden Sicherheitsprofile, ein Eintrag pro Zeile.');
-INSERT INTO txt VALUES ('H5197', 'English', 'Security profiles (Fortinet only): names of the security profiles to apply, one entry per row.');
+INSERT INTO txt VALUES ('H5193', 'German', 'Regeltyp: Access (Standard), Access und NAT, Access und IPS, Access/NAT/IPS oder Applikationssicherheit.');
+INSERT INTO txt VALUES ('H5193', 'English', 'Rule type: access (default), access and NAT, access and IPS, access/NAT/IPS, or application security.');
+INSERT INTO txt VALUES ('H5194', 'German',  'Vorlagen: Freitext-Vorlage(n) mit Platzhaltern wie {{rule_name}}. Nur Ger&auml;tetyp. Standard: {}.');
+INSERT INTO txt VALUES ('H5194', 'English', 'Templates: free-text template(s) with placeholders such as {{rule_name}}. Device type only. Default: {}.');
+INSERT INTO txt VALUES ('H5195', 'German', 'Positionierungsalgorithmus: auf allen Ebenen verf&uuml;gbar, einschlie&szlig;lich Ende des App-Abschnitts in der Allow-Kategorie mit Unterscheidung gemeinsamer Services. Standard: Ende der Rulebase.');
+INSERT INTO txt VALUES ('H5195', 'English', 'Positioning algorithm: available at all levels; includes placement at the end of the allow category app section with common services distinguished. Default: end of rulebase.');
+INSERT INTO txt VALUES ('H5196', 'German', 'Common Services trennen: ob Common-Service-Regeln getrennt von Applikationsregeln behandelt werden. Standard: Nein. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5196', 'English', 'Common service separation: whether common-service rules are handled separately from application rules. Default: No. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5197', 'German', 'Sicherheitsprofile: Namen der anzuwendenden Profile, ein Eintrag pro Zeile. Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5197', 'English', 'Security profiles: names of profiles to apply, one entry per row. Device type and manager.');
 INSERT INTO txt VALUES ('H5198', 'German',  'Zone von (nur Fortinet): Quellzone der erzeugten Regeln.');
 INSERT INTO txt VALUES ('H5198', 'English', 'Zone from (Fortinet only): source zone of the generated rules.');
 INSERT INTO txt VALUES ('H5199', 'German',  'Zone nach (nur Fortinet): Zielzone der erzeugten Regeln.');
 INSERT INTO txt VALUES ('H5199', 'English', 'Zone to (Fortinet only): destination zone of the generated rules.');
+INSERT INTO txt VALUES ('H5199a', 'German', 'Wo Zeitobjekte angelegt werden; ignore deaktiviert die Anlage. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199a', 'English', 'Where time objects are created; ignore disables creation. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199b', 'German', 'Wo Labels angelegt werden; ignore deaktiviert die Anlage. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199b', 'English', 'Where labels are created; ignore disables creation. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199c', 'German', '&Uuml;berschreibt den Umsetzungsmodus f&uuml;r Regeln: automatisch, manuell oder externes Ticketsystem.');
+INSERT INTO txt VALUES ('H5199c', 'English', 'Overrides the implementation mode for rules: automatic, manual or external ticket system.');
+INSERT INTO txt VALUES ('H5199d', 'German', 'Name des Manager-Feldes f&uuml;r die Eigent&uuml;mer-ID. Standard: OwnerId. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199d', 'English', 'Name of the manager custom field for the owner ID. Default: OwnerId. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199e', 'German', 'Name des Manager-Feldes f&uuml;r die &Auml;nderungs-ID. Standard: ChangeId. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199e', 'English', 'Name of the manager custom field for the change ID. Default: ChangeId. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199f', 'German', 'Externes Ticketsystem f&uuml;r Umleitung: eines der konfigurierten externen Ticketsysteme, an das die Umsetzung umgeleitet wird. Standard: nicht definiert.');
+INSERT INTO txt VALUES ('H5199f', 'English', 'Reroute to external ticket system: one of the configured external ticket systems implementation is rerouted to. Default: undefined.');
+INSERT INTO txt VALUES ('H5199g', 'German', 'Ob die Umsetzung geplant wird. Standard: Ja.');
+INSERT INTO txt VALUES ('H5199g', 'English', 'Whether implementation is planned. Default: Yes.');
+INSERT INTO txt VALUES ('H5199h', 'German', '&Uuml;berschreibt die Umsetzungsplanung f&uuml;r Regeln. Standard: Ja.');
+INSERT INTO txt VALUES ('H5199h', 'English', 'Overrides implementation planning for rules. Default: Yes.');
+INSERT INTO txt VALUES ('H5199i', 'German', 'Ob App-Zonen in den Manager geschrieben werden. Standard: Ja. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199i', 'English', 'Whether app-zone objects are written to the manager. Default: Yes. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199j', 'German', 'Ob Netzwerk-Area-Objekte in den Manager geschrieben werden. Standard: Nein. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199j', 'English', 'Whether network-area objects are written to the manager. Default: No. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199k', 'German', 'Ob modellierte Verbindungen als dynamische IP-Labels sichtbar als Gruppen dargestellt werden. Standard: Ja. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199k', 'English', 'Whether modelling connections are represented by dynamic IP labels visible as groups. Default: Yes. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199l', 'German', 'Hostname des Servers, dessen Importer die Managements dieser Ebene importiert. Standard: leer, dann importiert jeder Importer sie, was zu Installationen mit nur einem Importer passt. Muss gesetzt werden, wenn mehrere verteilte Importer laufen, damit nicht jeder Importer alle Managements importiert. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199l', 'English', 'Host name of the server whose importer imports the managements of this level. Default: empty, then every importer imports them, which suits installations with a single importer. Set it if several distributed importers run, so that not every importer imports all managements. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199m', 'German',  'Verbindungs-ID: Feld des umgesetzten Objekts (Name, Kommentar oder benutzerdefiniertes Feld), das die ID der Modellierungsverbindung tr&auml;gt, und Vorlage f&uuml;r diesen Wert. Standard: Name und FWOC{ID}. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199m', 'English', 'Connection ID: field of the implemented object (name, comment or custom field) that carries the ID of the modelling connection, and the template for this value. Default: name and FWOC{ID}. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Ldap-Verbindungen einrichten und verwalten. Sie k&ouml;nnen alle zur Nutzerauthentifizierung genutzt werden.<br>
     Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
     Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.
@@ -7337,8 +7373,8 @@ INSERT INTO txt VALUES ('H5553', 'German',  '"Niedrigster Ausgangsstatus": Ab di
 INSERT INTO txt VALUES ('H5553', 'English', '"Lowest exit state": From this state the handler of the current phase can not do any changes anymore. A ticket in this state is not visible anymore.');
 INSERT INTO txt VALUES ('H5554', 'German',  'Nur in der Ticket-Matrix: Beliebige Aufgabe macht das Ticket sichtbar, sobald mindestens eine Aufgabe die Eingangsphase erreicht. Ticketstatus macht das Ticket anhand seines eigenen Status sichtbar.');
 INSERT INTO txt VALUES ('H5554', 'English', 'Ticket matrix only: Any task makes the ticket visible when at least one task reaches the input phase. Ticket state makes the ticket visible according to its own state.');
-INSERT INTO txt VALUES ('H5560', 'German',  'Implementierungs-Auftr&auml;ge pro Management: Objekt-Auftr&auml;ge (Gruppe anlegen, &auml;ndern, l&ouml;schen, Objekt anlegen, &auml;ndern) erhalten je Ziel-Management einen eigenen Implementierungs-Auftrag. Das Ziel ergibt sich aus den Provisioning-Einstellungen &quot;Anlage Adress-Objekte&quot; bzw. &quot;Anlage Service-Objekte&quot; der Submanager: Bei &quot;Supermanager&quot; entsteht ein Auftrag auf dem Supermanager, bei &quot;Submanager&quot; je ein Auftrag auf jedem Submanager. Ein Management ohne Submanager ist selbst das Ziel.');
-INSERT INTO txt VALUES ('H5560', 'English', 'Implementation tasks per management: Object tasks (create, modify, delete group, create, modify object) get one implementation task per target management. The target follows the provisioning settings &quot;Address object creation&quot; resp. &quot;Service object creation&quot; of the sub-managements: &quot;Supermanager&quot; creates one task on the super-management, &quot;Submanager&quot; one task on each sub-management. A management without sub-managements is its own target.');
+INSERT INTO txt VALUES ('H5560', 'German',  'Implementierungs-Auftr&auml;ge pro Management: Objekt-Auftr&auml;ge (Gruppe anlegen, &auml;ndern, l&ouml;schen, Objekt anlegen, &auml;ndern) erhalten je Ziel-Management einen eigenen Implementierungs-Auftrag. Das Ziel ergibt sich aus den ger&auml;tespezifischen Einstellungen &quot;Anlage Adress-Objekte&quot; bzw. &quot;Anlage Service-Objekte&quot; der Submanager: Bei &quot;Supermanager&quot; entsteht ein Auftrag auf dem Supermanager, bei &quot;Submanager&quot; je ein Auftrag auf jedem Submanager. Ein Management ohne Submanager ist selbst das Ziel.');
+INSERT INTO txt VALUES ('H5560', 'English', 'Implementation tasks per management: Object tasks (create, modify, delete group, create, modify object) get one implementation task per target management. The target follows the device specific settings &quot;Address object creation&quot; resp. &quot;Service object creation&quot; of the sub-managements: &quot;Supermanager&quot; creates one task on the super-management, &quot;Submanager&quot; one task on each sub-management. A management without sub-managements is its own target.');
 INSERT INTO txt VALUES ('H5561', 'German',  'In diesem Abschnitt k&ouml;nnen allgemeine Einstellungen zur Konfiguration der Workflows vorgenommen werden.');
 INSERT INTO txt VALUES ('H5561', 'English', 'In this chapter general settings for workflow configuration can be done.');
 INSERT INTO txt VALUES ('H5562', 'German',  'Verf&uuml;gbare Auftragstypen: Es kann ausgew&auml;hlt werden, welche der technisch vorhandenen Auftragstypen zur Verwendung in den Workflows angeboten werden sollen.');
@@ -8687,9 +8723,9 @@ INSERT INTO txt VALUES ('H7413', 'German', 'Die Tabellen sind in Abschnitte gegl
 INSERT INTO txt VALUES ('H7413', 'English', 'The tables are grouped in sections. Use the action column to remove orphaned entries from the connection.
 ');
 
-INSERT INTO txt VALUES ('H7414', 'German', 'Email-Protokoll: Zeigt alle protokollierten Benachrichtigungs-Emails mit Zeitstempel, Benachrichtigungstyp, Empf&auml;ngern und Betreff.
+INSERT INTO txt VALUES ('H7414', 'German', 'Email-Protokoll: Zeigt alle protokollierten Benachrichtigungs-Emails mit Zeitstempel, Benachrichtigungstyp, Empf&auml;ngern und Betreff. Die Eintr&auml;ge k&ouml;nnen nach Benachrichtigungs-ID, Benachrichtigungstyp, Status und Fehler gefiltert werden.
 ');
-INSERT INTO txt VALUES ('H7414', 'English', 'Email log: Shows all logged notification emails with timestamp, notification type, recipients and subject.
+INSERT INTO txt VALUES ('H7414', 'English', 'Email log: Shows all logged notification emails with timestamp, notification type, recipients and subject. Entries can be filtered by notification ID, notification type, status and error.
 ');
 
 INSERT INTO txt VALUES ('H7421', 'German', 'Diese Seite zeigt alle angeforderten Schnittstellen mit beantragender und angefragter Applikation, Ticket, Status und Erstellungsdatum.
@@ -8837,9 +8873,9 @@ INSERT INTO txt VALUES ('H8158', 'German',  'Start: Hier wird automatisch ein Ze
 INSERT INTO txt VALUES ('H8158', 'English', 'Start: Here the timestamp of the first change after planning is set automatically.');
 INSERT INTO txt VALUES ('H8159', 'German',  'Stop: Wird bei Bearbeitung in der Implementierungsphase ein Status im Ausgangsbereich erreicht, wird hier der aktuelle Zeitstempel gesetzt. ');
 INSERT INTO txt VALUES ('H8159', 'English', 'Stop: When reaching a state in the exit range, the actual timestamp is set.');
-INSERT INTO txt VALUES ('H8160', 'German',  'Management: Management, auf dem der Implementierungs-Auftrag umgesetzt wird. Bei Regel-Auftr&auml;gen ist es das Management des Gateways, bei Gruppen- und Objekt-Auftr&auml;gen das Ziel-Management aus den Provisionierungs-Einstellungen.
+INSERT INTO txt VALUES ('H8160', 'German',  'Management: Management, auf dem der Implementierungs-Auftrag umgesetzt wird. Bei Regel-Auftr&auml;gen ist es das Management des Gateways, bei Gruppen- und Objekt-Auftr&auml;gen das Ziel-Management aus den ger&auml;tespezifischen Einstellungen.
     Ist das Management f&uuml;r den Nutzer nicht sichtbar, wird "Nicht sichtbar" angezeigt.');
-INSERT INTO txt VALUES ('H8160', 'English', 'Management: Management the implementation task is implemented on. For rule tasks it is the management of the gateway, for group and object tasks the target management from the provisioning settings.
+INSERT INTO txt VALUES ('H8160', 'English', 'Management: Management the implementation task is implemented on. For rule tasks it is the management of the gateway, for group and object tasks the target management from the device specific settings.
     If the management is not visible to the user, "Not Visible" is displayed.');
 INSERT INTO txt VALUES ('H8171', 'German',  'Genehmigungen werden als eigenst&auml;ndige Objekte dem fachlichen Auftrag zugeordnet. Ein Auftrag gilt dann als genehmigt, wenn alle zugeordneten Einzelgenehmigungen den entsprechenden Status aufweisen.
     Eine Genehmigung enth&auml;lt folgende Felder:

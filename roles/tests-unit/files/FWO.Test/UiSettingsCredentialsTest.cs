@@ -32,6 +32,7 @@ namespace FWO.Test
     internal class UiSettingsCredentialsTest
     {
         private static readonly List<int> kRemainingCredentialIds = [1, 3];
+        private static readonly List<string> kAdditionalCredentialChoices = ["", "3"];
         private static readonly FieldInfo JwtPublicKeyField = typeof(ConfigFile).GetField("jwtPublicKey", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
 
@@ -270,6 +271,84 @@ namespace FWO.Test
                     message.Message == GetMember<UserConfig>(component, "userConfig").GetText("E5102") &&
                     message.IsError), Is.True);
                 Assert.That(apiConnection.Queries.Any(query => query == DeviceQueries.newCredential || query == DeviceQueries.updateCredential), Is.False);
+            });
+        }
+
+        /// <summary>
+        /// Additional credentials may be cleared and cannot reference the edited credential or an SSH key pair.
+        /// </summary>
+        [Test]
+        public async Task Edit_ShowsAdditionalCredentialChoices()
+        {
+            await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin);
+
+            setup.Rendered.FindAll("button").First(button => button.TextContent.Trim() == "Edit").Click();
+
+            Assert.That(setup.Rendered.FindAll("#additionalCredential option").Select(option => option.GetAttribute("value")),
+                Is.EquivalentTo(kAdditionalCredentialChoices));
+        }
+
+        /// <summary>
+        /// Saving persists only the additional credential reference and encrypts the normal secret.
+        /// </summary>
+        [TestCase(true, 3)]
+        [TestCase(false, 3)]
+        [TestCase(false, null)]
+        public async Task Save_PersistsAdditionalCredentialReference(bool addMode, int? additionalCredentialId)
+        {
+            string keyFile = Path.GetTempFileName();
+            string? originalKeyFile = Environment.GetEnvironmentVariable("FWO_MAIN_KEY_FILE");
+            const string kMainKey = "0123456789abcdef0123456789abcdef";
+            try
+            {
+                File.WriteAllText(keyFile, kMainKey);
+                Environment.SetEnvironmentVariable("FWO_MAIN_KEY_FILE", keyFile);
+                await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin);
+                SetMember(setup.Component, "AddMode", addMode);
+                SetMember(setup.Component, "actCredential", new Credential
+                {
+                    Id = 1,
+                    Name = "parent",
+                    ImportUser = "user",
+                    Secret = "password",
+                    AdditionalCredentialId = additionalCredentialId
+                });
+
+                await setup.Rendered.InvokeAsync(setup.Component.Save);
+
+                Dictionary<string, object?> variables = addMode ? setup.ApiConnection.LastNewCredentialVariables : setup.ApiConnection.LastUpdateCredentialVariables;
+                Assert.Multiple(() =>
+                {
+                    Assert.That(variables["additionalCredentialId"], Is.EqualTo(additionalCredentialId));
+                    Assert.That(variables.ContainsKey("cloudClientSecret"), Is.False);
+                    Assert.That(FWO.Encryption.AesEnc.Decrypt((string)variables["secret"]!, kMainKey), Is.EqualTo("password"));
+                });
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("FWO_MAIN_KEY_FILE", originalKeyFile);
+                File.Delete(keyFile);
+            }
+        }
+
+        /// <summary>
+        /// The deletion guard names credentials that still reference the selected credential.
+        /// </summary>
+        [Test]
+        public async Task RequestDelete_ShowsAdditionalCredentialUsage()
+        {
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+            RecordingCredentialsApiConnection apiConnection = CreateApiConnection();
+            apiConnection.Credentials[2].AdditionalCredentialId = 1;
+            await using RenderSetup setup = await CreateRenderedSetup(apiConnection, Roles.Admin, messages);
+            Credential credential = GetMember<List<Credential>>(setup.Component, "credentials")[0];
+
+            await setup.Rendered.InvokeAsync(() => InvokePrivateTask(setup.Component, "RequestDelete", credential));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages.Single().Message, Does.Contain("Credential is used by other credentials").And.Contain("cred-three"));
+                Assert.That(GetMember<bool>(setup.Component, "DeleteMode"), Is.False);
             });
         }
 

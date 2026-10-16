@@ -26,6 +26,16 @@
         mode: "0644"
       become: true
 
+    # the lib role creates it as well, but the tests also run on their own (tag test)
+    - name: create the runtime directory for dotnet commands run as {{ fworch_user }}
+      file:
+        path: "{{ dotnet_xdg_runtime_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0700"
+      become: true
+
     - name: run csharp tests
       command: dotnet test
       args:
@@ -34,7 +44,7 @@
       become_user: "{{ fworch_user }}"
       register: csharp_tests
       ignore_errors: false
-      environment: "{{ proxy_env | default({}) | combine({'FW_SKIP_PDF_TEST': 'true'}) }}"
+      environment: "{{ dotnet_env | combine({'FW_SKIP_PDF_TEST': 'true'}) }}"
 
     - name: show csharp test results in case of errors
       debug:

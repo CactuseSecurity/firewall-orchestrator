@@ -70,7 +70,6 @@ namespace FWO.DeviceAutoDiscovery
             {
                 Name = superManagement.Name + "__" + domainName,
                 Uid = superManagement.Uid,
-                ImporterHostname = superManagement.ImporterHostname,
                 Hostname = superManagement.Hostname,
                 ImportCredential = superManagement.ImportCredential,
                 Port = superManagement.Port,

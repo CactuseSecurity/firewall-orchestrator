@@ -192,6 +192,6 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('pathAnalysis
 INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRollback', 'false', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZoneMatrix', '0', 0);
 
-INSERT INTO provisioning_config_node (node_type, object_key, display_name, sort_order)
+INSERT INTO device_specific_config_node (node_type, object_key, display_name, sort_order)
 VALUES ('global', 'global', 'Global', 0)
 ON CONFLICT (node_type, object_key) DO NOTHING;

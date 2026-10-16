@@ -8,7 +8,7 @@ using RestSharp;
 namespace FWO.Services.Workflow
 {
     /// <summary>
-    /// Creates object tasks (groups and single objects) per target management of the provisioning settings and
+    /// Creates object tasks (groups and single objects) per target management of the device specific settings and
     /// hosts the action creating the missing implementation tasks of a ticket.
     /// </summary>
     public partial class WfHandler
@@ -121,7 +121,7 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Starts a new implementation task creation run: target managements resolved in an earlier run are
-        /// dropped, so changed provisioning settings or managements take effect.
+        /// dropped, so changed device specific settings or managements take effect.
         /// </summary>
         /// <remarks>
         /// Cleared at the start of a run rather than at its end, so a run aborted by an exception leaves no stale
@@ -163,7 +163,7 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Resolves the target managements with the rights of the middleware server: in the ui through the
-        /// middleware, which sees every sub-management and the provisioning settings, in the middleware directly.
+        /// middleware, which sees every sub-management and the device specific settings, in the middleware directly.
         /// </summary>
         /// <returns>The target managements, or null when they cannot be resolved here.</returns>
         private async Task<List<Management>?> ResolveObjectTargetManagements(int managementId, bool isServiceObject)

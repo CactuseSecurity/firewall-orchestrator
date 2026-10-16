@@ -104,7 +104,7 @@ namespace FWO.Data.Workflow
 
         /// <summary>
         /// Determines whether an object task orders services (service group or single service) rather than
-        /// network objects, which decides the provisioning setting for the object creation level.
+        /// network objects, which decides the device specific setting for the object creation level.
         /// </summary>
         public static bool OrdersServiceObject(WfReqTask task)
         {

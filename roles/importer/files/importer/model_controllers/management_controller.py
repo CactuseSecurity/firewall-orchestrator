@@ -17,6 +17,8 @@ from models.credential import AdditionalCredential
 from models.gateway import Gateway
 from models.management import Management
 
+IMPORTER_HOST_NAME_SETTING_LEVELS: list[str] = ["management", "device_type", "global"]
+
 
 @dataclass
 class DeviceInfo:
@@ -124,7 +126,7 @@ class ManagementController(Management):
             devices=json_dict["devices"],
             device_info=device_info,
             connection_info=connection_info,
-            importer_hostname=json_dict["importerHostname"],
+            importer_hostname=json_dict.get("importerHostname", ""),
             credential_info=credential_info,
             manager_info=manager_info,
             domain_info=domain_info,
@@ -213,7 +215,32 @@ class ManagementController(Management):
                     sub_mgm["import_credential"]["secret"] = decrypted_secret
         management = api_call_result["data"]["management"][0]
         self.decrypt_additional_credentials(management)
+        management["importerHostname"] = self.get_importer_host_name(api_conn, mgm_id, management["deviceType"]["id"])
         return management
+
+    @staticmethod
+    def get_importer_host_name(api_conn: FwoApi, mgm_id: int, device_type_id: int) -> str:
+        """
+        Resolve the device specific setting importerHostName of a management.
+
+        The setting is inherited along Global > device type > management; the most specific level that sets it wins.
+        An empty result means that every importer is responsible for the management.
+        """
+        query = FwoApi.get_graphql_code([GRAPHQL_QUERY_PATH + "deviceSpecificSettings/getImporterHostName.graphql"])
+        query_variables: dict[str, Any] = {"deviceTypeKey": str(device_type_id), "managementKey": str(mgm_id)}
+        api_call_result = api_conn.call(query, query_variables=query_variables)
+        nodes: list[dict[str, Any]] | None = api_call_result.get("data", {}).get("device_specific_config_node")
+        if nodes is None:
+            raise FwoApiFailureError("did not succeed in getting the importer host name from FWO API")
+
+        host_names_by_level: dict[str, Any] = {
+            node["node_type"]: node["values"][0]["config_value"] for node in nodes if node.get("values")
+        }
+        for level in IMPORTER_HOST_NAME_SETTING_LEVELS:
+            host_name = host_names_by_level.get(level)
+            if isinstance(host_name, str):
+                return host_name.strip()
+        return ""
 
     @staticmethod
     def decrypt_additional_credentials(management: dict[str, Any]) -> None:

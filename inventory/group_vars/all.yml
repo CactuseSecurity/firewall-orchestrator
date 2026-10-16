@@ -59,7 +59,6 @@ fworch_inventory_hosts: >-
 # which cannot read Ansible variables - keep the two in step, and see the script for the
 # FWORCH_LOCAL_SETTINGS override that a relocated fworch_home needs.
 fwo_install_settings_file: "{{ fworch_conf_dir }}/fwo-install-settings.yml"
-importer_hostname: "{{ groups['importers'].0 }}"
 ui_hostname: "{{ fwo_endpoint_hostname or groups['frontends'].0 }}"
 syslog_host: "{{ groups['logserver'].0 }}"
 # Not derived from fwo_endpoint_hostname: this is the inventory host the database tasks

@@ -72,9 +72,10 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Updates a request task and synchronizes its request elements and owners.
         /// </summary>
-        public async Task UpdateReqTaskInDb(WfReqTask reqtask)
+        /// <param name="allowLockedApprovalUpdate">Allows the explicitly permitted approval-phase field update on a locked task.</param>
+        public async Task UpdateReqTaskInDb(WfReqTask reqtask, bool allowLockedApprovalUpdate = false)
         {
-            if (reqtask.Locked)
+            if (reqtask.Locked && !allowLockedApprovalUpdate)
             {
                 return;
             }

@@ -507,6 +507,22 @@ namespace FWO.Test
             Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(oldTask));
         }
 
+        /// <summary>
+        /// Verifies that an explicitly permitted approval edit can replace a locked task.
+        /// </summary>
+        [Test]
+        public async Task ChangeReqTask_AllowsExplicitApprovalUpdateForLockedTask()
+        {
+            WfHandler handler = new();
+            WfReqTask oldTask = new() { Id = 11, TaskNumber = 2, Title = "Old" };
+            handler.ActTicket = new WfTicket { Tasks = { oldTask } };
+            handler.ActReqTask = new WfReqTask { Id = 11, TaskNumber = 2, Title = "New", Locked = true };
+
+            await handler.ChangeReqTask(allowLockedApprovalUpdate: true);
+
+            Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(handler.ActReqTask));
+        }
+
         [Test]
         public async Task ChangeOwner_ReplacesTaskByTaskNumber()
         {

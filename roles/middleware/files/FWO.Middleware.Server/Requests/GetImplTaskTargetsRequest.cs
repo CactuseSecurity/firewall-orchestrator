@@ -36,6 +36,14 @@ public sealed class GetImplTaskTargetsRequest : IRequestWithRootAdditionalData
     public bool IsServiceObject { get; set; } = false;
 
     /// <summary>
+    /// Gets or sets whether the object task orders time objects. Selects the device specific setting
+    /// timeObjectCreation instead of addressObjectCreation. Must not be true together with isServiceObject.
+    /// Defaults to false.
+    /// </summary>
+    [JsonPropertyName("isTimeObject")]
+    public bool IsTimeObject { get; set; } = false;
+
+    /// <summary>
     /// Gets or sets the optional output options. Defaults to an empty object, which applies no restriction. An
     /// explicit <c>null</c> is treated like the default.
     /// </summary>

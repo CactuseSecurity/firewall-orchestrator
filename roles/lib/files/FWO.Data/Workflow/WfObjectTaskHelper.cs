@@ -221,6 +221,20 @@ namespace FWO.Data.Workflow
         }
 
         /// <summary>
+        /// Determines which kind of object an object task (group or single object) creates, which selects the
+        /// device specific setting for the creation level: time object, service (service group or single service)
+        /// or else network object.
+        /// </summary>
+        public static ObjectTaskKind GetCreationKind(WfReqTask task)
+        {
+            if (task.Elements.Any(element => element.Field == ElemFieldType.time.ToString()))
+            {
+                return ObjectTaskKind.Time;
+            }
+            return OrdersServiceObject(task) ? ObjectTaskKind.Service : ObjectTaskKind.Network;
+        }
+
+        /// <summary>
         /// Converts an imported network object into a request element referencing it.
         /// </summary>
         public static NwObjectElement ToNwObjectElement(NetworkObject networkObject, string requestAction, long taskId)

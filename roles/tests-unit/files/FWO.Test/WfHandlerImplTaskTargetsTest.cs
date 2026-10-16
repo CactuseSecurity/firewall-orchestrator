@@ -76,6 +76,15 @@ namespace FWO.Test
             ];
         }
 
+        private static ObjectTaskKind ToKind(ImplTaskTargetParameters parameters)
+        {
+            if (parameters.IsTimeObject)
+            {
+                return ObjectTaskKind.Time;
+            }
+            return parameters.IsServiceObject ? ObjectTaskKind.Service : ObjectTaskKind.Network;
+        }
+
         private static WfReqTask CreateGroupTask(int? managementId)
         {
             return new WfReqTask { Id = 7, TaskType = WfTaskType.group_create.ToString(), StateId = kOpenStateId, Title = "New group", ManagementId = managementId };
@@ -240,6 +249,26 @@ namespace FWO.Test
             {
                 Assert.That(ManagementIds(reqTask), Is.EqualTo(kSuperManagementOnly));
                 Assert.That(middlewareClient.Calls.Single().IsServiceObject, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ObjectTask_TimeObjectsUseTimeSetting()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Submanager);
+            ImplTaskTargetMiddlewareClient middlewareClient = new(api);
+            WfHandler handler = CreateUiHandler(middlewareClient);
+            WfReqTask reqTask = new() { Id = 9, TaskType = WfTaskType.object_create.ToString(), StateId = kOpenStateId, Title = "New time", ManagementId = kSuperManagementId };
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.time.ToString(), Name = "maintenance" });
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ManagementIds(reqTask), Is.EqualTo(kBothSubManagements));
+                Assert.That(middlewareClient.Calls.Single().IsTimeObject, Is.True);
+                Assert.That(middlewareClient.Calls.Single().IsServiceObject, Is.False);
             });
         }
 
@@ -436,7 +465,7 @@ namespace FWO.Test
                     };
                 }
                 List<Management> targets = await new ImplTaskManagementResolver(middlewareApi)
-                    .ResolveObjectTargets(parameters.ManagementId, parameters.IsServiceObject);
+                    .ResolveObjectTargets(parameters.ManagementId, ToKind(parameters));
                 List<Management> page = [.. targets.Skip(parameters.Options.Offset).Take(PageSize)];
                 bool hasMore = AlwaysHasMore || parameters.Options.Offset + page.Count < targets.Count;
                 List<HeaderParameter> headers = [new HeaderParameter(ImplTaskTargetPaging.kHasMoreHeader, hasMore ? "true" : "false")];

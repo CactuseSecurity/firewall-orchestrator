@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Data;
+using FWO.Data.Workflow;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Services.Workflow;
@@ -36,15 +37,15 @@ public sealed class ImplTaskTargetService
     /// visible targets come first, targets without name follow by id.
     /// </remarks>
     /// <param name="managementId">Management the request task belongs to.</param>
-    /// <param name="isServiceObject">True for services, false for network objects.</param>
+    /// <param name="kind">Kind of the created objects, which selects the device specific setting.</param>
     /// <param name="options">Filter and paging options of the request.</param>
     /// <param name="visibleManagementIds">Managements visible to the caller, or null when the caller sees every
     /// management. Targets outside this set are returned without name, before the filter is applied.</param>
     /// <returns>The matching target managements of the requested page.</returns>
-    public async Task<ListPage<ImplTaskTargetResponse>> GetImplTaskTargetsAsync(int managementId, bool isServiceObject,
+    public async Task<ListPage<ImplTaskTargetResponse>> GetImplTaskTargetsAsync(int managementId, ObjectTaskKind kind,
         GetImplTaskTargetsOptions options, IReadOnlySet<int>? visibleManagementIds = null)
     {
-        List<Management> targets = await new ImplTaskManagementResolver(apiConnection).ResolveObjectTargets(managementId, isServiceObject);
+        List<Management> targets = await new ImplTaskManagementResolver(apiConnection).ResolveObjectTargets(managementId, kind);
         int pageSize = options.Limit ?? GetImplTaskTargetsOptions.kMaxLimit;
         List<ImplTaskTargetResponse> pageWithLookahead = [.. targets
             .Select(target => new ImplTaskTargetResponse

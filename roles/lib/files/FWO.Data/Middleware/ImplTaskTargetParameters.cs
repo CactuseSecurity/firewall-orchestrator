@@ -20,6 +20,12 @@ namespace FWO.Data.Middleware
         public bool IsServiceObject { get; set; }
 
         /// <summary>
+        /// True for time objects; selects timeObjectCreation. Not to be combined with IsServiceObject.
+        /// </summary>
+        [JsonPropertyName("isTimeObject")]
+        public bool IsTimeObject { get; set; }
+
+        /// <summary>
         /// Paging options; the page size is left to the middleware default, which is its maximum.
         /// </summary>
         [JsonPropertyName("options")]

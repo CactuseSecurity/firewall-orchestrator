@@ -323,6 +323,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetCreationKind_PrefersTimeThenServiceThenNetwork()
+        {
+            WfReqTask timeTask = new();
+            timeTask.Elements.Add(new WfReqElement { Field = ElemFieldType.time.ToString() });
+            WfReqTask serviceGroupTask = new();
+            serviceGroupTask.SetAddInfo(AdditionalInfoKeys.SvcGrpId, "12");
+            WfReqTask networkTask = new();
+            networkTask.Elements.Add(new WfReqElement { Field = ElemFieldType.source.ToString() });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfObjectTaskHelper.GetCreationKind(timeTask), Is.EqualTo(ObjectTaskKind.Time));
+                Assert.That(WfObjectTaskHelper.GetCreationKind(serviceGroupTask), Is.EqualTo(ObjectTaskKind.Service));
+                Assert.That(WfObjectTaskHelper.GetCreationKind(networkTask), Is.EqualTo(ObjectTaskKind.Network));
+                Assert.That(WfObjectTaskHelper.GetCreationKind(new WfReqTask()), Is.EqualTo(ObjectTaskKind.Network));
+            });
+        }
+
+        [Test]
         public void GetKind_DistinguishesNetworkServiceAndTimeElements()
         {
             Assert.Multiple(() =>

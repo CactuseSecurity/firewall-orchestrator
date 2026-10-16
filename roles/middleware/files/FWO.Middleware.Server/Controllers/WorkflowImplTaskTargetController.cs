@@ -38,8 +38,9 @@ public class WorkflowImplTaskTargetController : ControllerBase
     /// <remarks>
     /// The targets follow the device specific settings addressObjectCreation, serviceObjectCreation resp.
     /// timeObjectCreation of the sub-managements of the super-management: Submanager targets the sub-management,
-    /// Supermanager the super-management, ignore none of them. If every sub-management is set to ignore, the
-    /// requested management is the target. A management without sub-managements is its own target. The targets are resolved with
+    /// Supermanager the super-management, ignore none of them. A management without sub-managements is its own
+    /// target unless it is set to ignore itself. The list is empty when every candidate is set to ignore, which the
+    /// settings allow for time objects only. The targets are resolved with
     /// the rights of the middleware server, so the result does not depend on the managements the caller sees.
     /// <para>
     /// Callers other than admin may only ask for a management visible to them (JWT claim

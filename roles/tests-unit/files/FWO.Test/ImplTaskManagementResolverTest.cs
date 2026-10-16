@@ -27,6 +27,7 @@ namespace FWO.Test
         private static readonly List<int> kStandaloneOnly = [kStandaloneManagementId];
         private static readonly List<int> kUnknownOnly = [kUnknownManagementId];
         private static readonly List<int> kFirstSubOnly = [kFirstSubManagementId];
+        private static readonly List<int> kNoTarget = [];
 
         private static InMemoryDeviceSpecificSettingsApiConnection CreateApi()
         {
@@ -129,7 +130,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ResolveObjectTargets_IgnoreEverywhereFallsBackToTheRequestManagement()
+        public async Task ResolveObjectTargets_IgnoreEverywhereLeavesNoTarget()
         {
             InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
             api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Ignore);
@@ -139,8 +140,24 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(fromSuper, Is.EqualTo(kSuperOnly));
-                Assert.That(fromSub, Is.EqualTo(kFirstSubOnly));
+                Assert.That(fromSuper, Is.EqualTo(kNoTarget));
+                Assert.That(fromSub, Is.EqualTo(kNoTarget));
+            });
+        }
+
+        [Test]
+        public async Task ResolveObjectTargets_StandaloneManagementSetToIgnoreHasNoTarget()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Ignore);
+
+            List<int> timeTargets = await Resolve(api, kStandaloneManagementId, ObjectTaskKind.Time);
+            List<int> addressTargets = await Resolve(api, kStandaloneManagementId, ObjectTaskKind.Network);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(timeTargets, Is.EqualTo(kNoTarget));
+                Assert.That(addressTargets, Is.EqualTo(kStandaloneOnly));
             });
         }
 

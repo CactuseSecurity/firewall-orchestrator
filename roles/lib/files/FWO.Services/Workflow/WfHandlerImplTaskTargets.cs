@@ -87,6 +87,12 @@ namespace FWO.Services.Workflow
             }
 
             List<Management> targets = await GetObjectTargetManagements(reqTask, managementId);
+            if (targets.Count == 0)
+            {
+                Log.WriteWarning(kImplTaskTargetsLogTitle, $"No implementation task created for request task {reqTask.Id}: " +
+                    $"every target management of management {managementId} is set to ignore objects of this kind.");
+                return;
+            }
             List<Management> missingTargets = [.. targets.Where(target =>
                 reqTask.ImplementationTasks.All(implTask => (implTask.ManagementId ?? reqTask.ManagementId) != target.Id))];
             bool adaptTitle = targets.Count > 1 || targets.Any(target => target.Id != managementId);
@@ -159,6 +165,32 @@ namespace FWO.Services.Workflow
                     $"using management {managementId}.", exception);
             }
             return [new() { Id = managementId }];
+        }
+
+        /// <summary>
+        /// Checks before saving whether an object task with a management gets at least one implementation task, i.e.
+        /// whether the device specific settings allow creating its kind of objects there. Only time objects can be set
+        /// to ignore, so other tasks and tasks without management are not checked.
+        /// </summary>
+        /// <returns>True or false; null when the targets cannot be resolved, so that the caller does not block the
+        /// request on an unavailable middleware.</returns>
+        public async Task<bool?> HasObjectTargets(WfReqTask reqTask)
+        {
+            if (reqTask.ManagementId is not int managementId || managementId <= 0
+                || WfObjectTaskHelper.GetCreationKind(reqTask) != ObjectTaskKind.Time)
+            {
+                return true;
+            }
+            try
+            {
+                List<Management>? targets = await ResolveObjectTargetManagements(managementId, ObjectTaskKind.Time);
+                return targets == null ? null : targets.Count > 0;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(kImplTaskTargetsLogTitle, $"Could not check the target managements of management {managementId}.", exception);
+                return null;
+            }
         }
 
         /// <summary>

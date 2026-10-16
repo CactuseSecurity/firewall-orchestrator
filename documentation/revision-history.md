@@ -5,6 +5,7 @@
   - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)
   - modify object searches the imported time objects of the management by name; the requester role may read them
   - a created time object is stored in the Flow DB like other single objects
+  - implementation tasks of time objects follow the device specific setting timeObjectCreation; a time object task for a management set to ignore is rejected when it is saved
 - request workflow: new setting "create objects separately (planned)" under Workflow Customizing, currently without effect
 
 ## 9.7.4 - 14.10.2026

@@ -90,6 +90,13 @@ namespace FWO.Test
             return new WfReqTask { Id = 7, TaskType = WfTaskType.group_create.ToString(), StateId = kOpenStateId, Title = "New group", ManagementId = managementId };
         }
 
+        private static WfReqTask CreateTimeObjectTask(int? managementId)
+        {
+            WfReqTask reqTask = new() { Id = 9, TaskType = WfTaskType.object_create.ToString(), StateId = kOpenStateId, Title = "New time", ManagementId = managementId };
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.time.ToString(), Name = "maintenance" });
+            return reqTask;
+        }
+
         private static WfReqTask CreateAccessTask(int? managementId)
         {
             return new WfReqTask { Id = 8, TaskType = WfTaskType.access.ToString(), StateId = kOpenStateId, Title = "Access", ManagementId = managementId };
@@ -269,6 +276,64 @@ namespace FWO.Test
                 Assert.That(ManagementIds(reqTask), Is.EqualTo(kBothSubManagements));
                 Assert.That(middlewareClient.Calls.Single().IsTimeObject, Is.True);
                 Assert.That(middlewareClient.Calls.Single().IsServiceObject, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task ObjectTask_IgnoredTimeObjectsGetNoImplTask()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Submanager);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Ignore);
+            WfHandler handler = CreateUiHandler(new ImplTaskTargetMiddlewareClient(api));
+            WfReqTask reqTask = CreateTimeObjectTask(kSuperManagementId);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks, Is.Empty);
+        }
+
+        [Test]
+        public async Task HasObjectTargets_IsFalseOnlyForIgnoredTimeObjects()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Submanager);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Ignore);
+            WfHandler handler = CreateUiHandler(new ImplTaskTargetMiddlewareClient(api));
+
+            bool? timeObject = await handler.HasObjectTargets(CreateTimeObjectTask(kSuperManagementId));
+            bool? group = await handler.HasObjectTargets(CreateGroupTask(kSuperManagementId));
+            bool? allManagements = await handler.HasObjectTargets(CreateTimeObjectTask(null));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(timeObject, Is.False);
+                Assert.That(group, Is.True);
+                Assert.That(allManagements, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task HasObjectTargets_IsTrueWhenTimeObjectsAreCreated()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
+            WfHandler handler = CreateUiHandler(new ImplTaskTargetMiddlewareClient(api));
+
+            Assert.That(await handler.HasObjectTargets(CreateTimeObjectTask(kSuperManagementId)), Is.True);
+        }
+
+        [Test]
+        public async Task HasObjectTargets_IsUnknownWhenTheTargetsCannotBeResolved()
+        {
+            ImplTaskTargetMiddlewareClient failingClient = new(CreateApi(ProvisioningObjectCreationMode.Submanager)) { Fail = true };
+            WfHandler uiHandler = CreateUiHandler(failingClient);
+            WfHandler handlerWithoutBackend = new();
+
+            bool? failed = await uiHandler.HasObjectTargets(CreateTimeObjectTask(kSuperManagementId));
+            bool? withoutBackend = await handlerWithoutBackend.HasObjectTargets(CreateTimeObjectTask(kSuperManagementId));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(failed, Is.Null);
+                Assert.That(withoutBackend, Is.Null);
             });
         }
 

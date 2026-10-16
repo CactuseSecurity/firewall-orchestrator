@@ -14,9 +14,10 @@ namespace FWO.Services.Workflow
     /// The level objects are written to is taken from the device specific settings addressObjectCreation,
     /// serviceObjectCreation or timeObjectCreation, read for every sub-management of the super-management with its
     /// inheritance from device type and global level. A sub-management set to Submanager gets its own task, one set
-    /// to Supermanager shares the single task on the super-management, one set to ignore gets none. If every
-    /// sub-management is set to ignore, the request management is the target, so that the task is not left without
-    /// implementation task. A management without sub-managements is its own target. Needs read access to all managements and the device specific settings, so it runs with the
+    /// to Supermanager shares the single task on the super-management, one set to ignore gets none. A management
+    /// without sub-managements is its own target unless it is set to ignore itself. So the result is empty when
+    /// every candidate is set to ignore, which the device specific settings allow for time objects only: no
+    /// implementation task is to be created, and the request dialog rejects such a task beforehand. Needs read access to all managements and the device specific settings, so it runs with the
     /// middleware-server role only; the ui resolves the targets through the middleware endpoint getImplTaskTargets.
     /// </remarks>
     public class ImplTaskManagementResolver(ApiConnection apiConnection)
@@ -26,7 +27,8 @@ namespace FWO.Services.Workflow
         /// </summary>
         /// <param name="managementId">Management the request task belongs to.</param>
         /// <param name="kind">Kind of the created objects, which selects the device specific setting.</param>
-        /// <returns>The target managements (id and name) without duplicates; the request management itself if it is unknown.</returns>
+        /// <returns>The target managements (id and name) without duplicates; empty when every candidate is set to
+        /// ignore; the request management itself if it is unknown.</returns>
         public async Task<List<Management>> ResolveObjectTargets(int managementId, ObjectTaskKind kind)
         {
             List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementHierarchy);
@@ -40,13 +42,14 @@ namespace FWO.Services.Workflow
             List<Management> subManagements = [.. managements
                 .Where(management => management.SuperManagerId == superManagement.Id && !management.HideInUi)
                 .OrderBy(management => management.Name, StringComparer.OrdinalIgnoreCase)];
-            if (subManagements.Count == 0)
-            {
-                return [ToTarget(superManagement)];
-            }
-
             DeviceSpecificSettingsManager settingsManager = new(apiConnection);
             DeviceSpecificSettingKey<ProvisioningObjectCreationMode> key = GetCreationSettingKey(kind);
+            if (subManagements.Count == 0)
+            {
+                ResolvedDeviceSpecificValue<ProvisioningObjectCreationMode> ownMode =
+                    await settingsManager.LoadEffectiveValueAsync(DeviceSpecificScopePath.ForManagement(superManagement), key);
+                return ownMode.Value == ProvisioningObjectCreationMode.Ignore ? [] : [ToTarget(superManagement)];
+            }
             List<Management> targets = [];
             foreach (Management subManagement in subManagements)
             {
@@ -62,7 +65,7 @@ namespace FWO.Services.Workflow
                     targets.Add(ToTarget(target));
                 }
             }
-            return targets.Count > 0 ? targets : [ToTarget(requestManagement)];
+            return targets;
         }
 
         /// <summary>

@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.7.4 - 15.10.2026
+## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time
   - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)
   - modify object searches the imported time objects of the management by name; the requester role may read them

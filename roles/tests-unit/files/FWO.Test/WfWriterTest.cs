@@ -118,5 +118,33 @@ namespace FWO.Test
             Assert.That(reqWriter.Port, Is.Null);
             Assert.That(reqWriter.PortEnd, Is.Null);
         }
+
+        [Test]
+        public void ElementWriter_WritesTimeBoundsAsUtc()
+        {
+            DateTime localStart = new(2026, 11, 1, 8, 0, 0, DateTimeKind.Unspecified);
+            WfTicket ticket = new();
+            WfReqTask reqTask = new() { TaskType = WfTaskType.object_create.ToString() };
+            reqTask.Elements.Add(new WfReqElement
+            {
+                Field = ElemFieldType.time.ToString(),
+                Name = "maintenance",
+                StartTime = localStart,
+                EndTime = null
+            });
+            ticket.Tasks.Add(reqTask);
+
+            WfReqElementWriter elemWriter = new WfTicketWriter(ticket).Tasks[0].Elements.WfElementList[0];
+            DateTime expectedStart = localStart.ToUniversalTime();
+            string json = JsonConvert.SerializeObject(elemWriter);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(elemWriter.StartTime, Is.EqualTo(expectedStart));
+                Assert.That(elemWriter.StartTime?.Kind, Is.EqualTo(DateTimeKind.Utc));
+                Assert.That(elemWriter.EndTime, Is.Null);
+                Assert.That(json, Does.Contain($"\"start_time\":\"{expectedStart:yyyy-MM-ddTHH:mm:ss}Z\""));
+            });
+        }
     }
 }

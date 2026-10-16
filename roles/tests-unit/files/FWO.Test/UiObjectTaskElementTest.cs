@@ -396,6 +396,8 @@ namespace FWO.Test
             await component.InvokeAsync(() => (Task)search.Invoke(component.Instance, arguments.ToArray())!);
 
             component.Find("tbody button").Click();
+            // the click reaches the callback asynchronously, which can take longer on a slow machine
+            component.WaitForAssertion(() => Assert.That(selected?.Id, Is.EqualTo(4711)));
 
             Assert.Multiple(() =>
             {
@@ -609,6 +611,8 @@ namespace FWO.Test
             await component.InvokeAsync(() => (Task)search.Invoke(component.Instance, arguments.ToArray())!);
 
             component.Find("tbody button").Click();
+            // the click reaches the callback asynchronously, which can take longer on a slow machine
+            component.WaitForAssertion(() => Assert.That(selected?.Id, Is.EqualTo(77)));
 
             Assert.Multiple(() =>
             {

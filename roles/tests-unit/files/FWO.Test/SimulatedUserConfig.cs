@@ -834,7 +834,6 @@ namespace FWO.Test
             {"readonly_credential_mgm","Readonly credential"},
             {"config_path","Config path"},
             {"super_manager","Super manager"},
-            {"importer_host","Importer host"},
             {"debug_level","Debug level"},
             {"edit_management","Edit management"},
             {"fetch_managements","Fetch managements"},

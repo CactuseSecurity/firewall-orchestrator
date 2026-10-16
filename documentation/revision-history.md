@@ -1,5 +1,12 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.4 - 14.10.2026
+- rename the hierarchical provisioning settings to device specific settings, as they are also used e.g. for importing: UI page (now settings/devicespecificsettings), help page, code and the tables provisioning_config_* (now device_specific_config_*)
+- extend the device specific settings for Guardicore: object creation, common service separation, external ticket system, importer host, app-zone and network-area switches, dynamic IP labels, connection IDs, rule implementation and planning overrides
+- migrate setting key names and option values; privately back up old overrides before enforcing the revised scope restrictions (see developer documentation on device specific settings)
+- the migration keeps implementation planning on levels below a former "None" level and reroutes former Tufin SecureChange levels to the configured SecureChange system
+- replace management.importer_hostname with the device specific setting importerHostName (Global, device type, manager; empty means every importer imports); the upgrade moves the most common host to Global and differing hosts to manager overrides, backs up and drops the column; the importer role may read only this setting
+
 ## 9.7.3 - 14.10.2026
 - replace cloud client fields with selectable additional credentials; migrate existing values into encrypted credential secrets (#3766)
 - the Cisco ASA importer decrypts the selected additional credential for enable mode

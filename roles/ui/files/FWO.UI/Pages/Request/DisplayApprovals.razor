@@ -15,12 +15,23 @@
                     <Column TableItem="WfApproval" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
-                                @if((context.ApproverDn == null || context.ApproverDn == "") && !WfHandler.AddTicketMode && !IsReadOnly)
+                                @if((context.ApproverDn == null || context.ApproverDn == "") && !WfHandler.AddTicketMode)
                                 {
-                                    <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">
-                                        @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add, "comment"))</button>
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">
-                                        @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                    @if (!IsReadOnly)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">
+                                            @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add, "comment"))</button>
+                                        <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">
+                                            @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                    }
+                                    else if (WfHandler.ReadOnlyMode)
+                                    {
+                                        @* read-only users see what could be done here, but cannot do it *@
+                                        <button type="button" class="btn btn-sm btn-success" disabled>
+                                            @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add, "comment"))</button>
+                                        <button type="button" class="btn btn-sm btn-warning" disabled>
+                                            @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                    }
                                 }
                             </div>
                         </Template>

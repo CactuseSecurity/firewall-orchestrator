@@ -68,6 +68,32 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayTicket_InitSaveTicketInReadOnlyModeDoesNothing()
+        {
+            WfHandler handler = new()
+            {
+                ReadOnlyMode = true,
+                ActTicket = new WfTicket
+                {
+                    Id = 10,
+                    Title = "Ticket",
+                    Priority = 1,
+                    Tasks = [new WfReqTask { Id = 1, Title = "Task" }]
+                }
+            };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.request);
+            SetMember(component, "selectedPriority", new WfPriority { NumPrio = 2, Name = "High" });
+
+            await InvokePrivateTask(component, "InitSaveTicket");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActTicket.Priority, Is.EqualTo(1));
+                Assert.That(handler.DisplaySaveTicketMode, Is.False);
+            });
+        }
+
+        [Test]
         public async Task DisplayTicket_CancelEditForNewTicketWithTasksShowsConfirmPopup()
         {
             int resetCalls = 0;

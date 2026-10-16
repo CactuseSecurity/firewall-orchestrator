@@ -195,6 +195,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ReadOnlyPhaseView_OffersOnlyReadOnlyActionsAndBlocksWrites()
+        {
+            DisplayImplementationTask component = new();
+            WfImplTask implTask = new() { Title = "Unchanged" };
+            WfHandler handler = new() { ActImplTask = implTask, ReadOnlyMode = true, ImplementImplTaskMode = true };
+            SetMember(component, nameof(DisplayImplementationTask.WfHandler), handler);
+            SetMember(component, "userConfig", CreateUserConfig());
+
+            GetPrivateMethod(typeof(DisplayImplementationTask), "InitAddComment").Invoke(component, []);
+            GetPrivateMethod(typeof(DisplayImplementationTask), "InitPromoteImplTask").Invoke(component, []);
+            await (Task)GetPrivateMethod(typeof(DisplayImplementationTask), "SaveImplTask").Invoke(component, [])!;
+            bool readOnlyAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DisplayConnection.ToString() });
+            bool changingAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayImplTaskCommentMode, Is.False);
+                Assert.That(handler.DisplayPromoteImplTaskMode, Is.False);
+                Assert.That(implTask.Title, Is.EqualTo("Unchanged"));
+                Assert.That(readOnlyAction, Is.True);
+                Assert.That(changingAction, Is.False);
+            });
+
+            handler.ReadOnlyMode = false;
+            Assert.That(InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() }), Is.True);
+        }
+
+        [Test]
         public void UpdateElements_ReconcilesListsAndRules()
         {
             DisplayImplementationTask component = new();

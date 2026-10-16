@@ -149,7 +149,8 @@
             {
                 <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
                     <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
+                        @* read-only users can open the dialog, but never save from it *@
+                        <button type="button" class="btn btn-sm btn-primary" disabled="@WfHandler.ReadOnlyMode" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
@@ -469,6 +470,10 @@
 
     private async Task InitSaveTicket()
     {
+        if (WfHandler.ReadOnlyMode)
+        {
+            return;
+        }
         if (CheckTicketValues())
         {
             WfHandler.ActTicket.Priority = selectedPriority?.NumPrio ?? null;

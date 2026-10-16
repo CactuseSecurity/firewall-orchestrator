@@ -35,7 +35,7 @@ public class WorkflowImplTaskTargetController : ControllerBase
     /// Returns the managements an object task (group or single object) gets one implementation task each on.
     /// </summary>
     /// <remarks>
-    /// The targets follow the provisioning settings addressObjectCreation resp. serviceObjectCreation of the
+    /// The targets follow the device specific settings addressObjectCreation resp. serviceObjectCreation of the
     /// sub-managements of the super-management: Submanager targets the sub-management, Supermanager the
     /// super-management. A management without sub-managements is its own target. The targets are resolved with
     /// the rights of the middleware server, so the result does not depend on the managements the caller sees.

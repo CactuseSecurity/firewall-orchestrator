@@ -11,7 +11,7 @@
     }
     else
     {
-        <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
+        <h5 class="text-start">@(userConfig.GetText("owner"))</h5>
         @if(ownerList.Count == 1)
         {
             <label class="col-form-label mb-3 text-white">@((MarkupString)(ModellingFilter.SelectedOwner.Display(userConfig.GetText("common_service")) ?? string.Empty))</label>
@@ -29,19 +29,19 @@
     @if(ReportType == ReportType.AppRules)
     {
         <br>
-        <h5 class="text-left">@(userConfig.GetText("rule_filters"))</h5>
+        <h5 class="text-start">@(userConfig.GetText("rule_filters"))</h5>
         <ReportAppRuleParamSelection @bind-ModellingFilter="ModellingFilter" />
     }
     else if(ReportType == ReportType.VarianceAnalysis)
     {
         <br>
-        <h5 class="text-left">@(userConfig.GetText("variance_filters"))</h5>
+        <h5 class="text-start">@(userConfig.GetText("variance_filters"))</h5>
         <ReportVarianceParamSelection @bind-ModellingFilter="ModellingFilter" />
     }
     else if(ReportType == ReportType.RecertEventReport)
     {
         <br>
-        <h5 class="text-left">@(userConfig.GetText("recertification"))</h5>
+        <h5 class="text-start">@(userConfig.GetText("recertification"))</h5>
         @if(ownerRecerts.Count == 0)
         {
             <input class="form-control form-control-sm" disabled type="text" placeholder="@(userConfig.GetText("no_recerts"))" />

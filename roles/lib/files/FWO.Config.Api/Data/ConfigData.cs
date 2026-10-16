@@ -310,6 +310,13 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqDisplayBundledTasksAsOne"), JsonPropertyName("reqDisplayBundledTasksAsOne")]
         public bool ReqDisplayBundledTasksAsOne { get; set; } = false;
 
+        /// <summary>
+        /// Planned: network objects, services and time objects are created by their own object_create tasks only,
+        /// groups just assign them. Currently without effect.
+        /// </summary>
+        [JsonProperty("reqCreateObjectsSeparately"), JsonPropertyName("reqCreateObjectsSeparately")]
+        public bool ReqCreateObjectsSeparately { get; set; } = false;
+
         [JsonProperty("reqActivatePathAnalysis"), JsonPropertyName("reqActivatePathAnalysis")]
         public bool ReqActivatePathAnalysis { get; set; } = true;
 

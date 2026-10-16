@@ -48,6 +48,9 @@ fragment implTaskDetails on request_impltask {
     rule_uid
     group_name
     name
+    start_time
+    end_time
+    time_obj_id
   }
   comments: impltask_comments {
     comment: comment {

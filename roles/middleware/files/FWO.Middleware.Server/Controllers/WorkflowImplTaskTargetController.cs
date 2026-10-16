@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -35,9 +36,11 @@ public class WorkflowImplTaskTargetController : ControllerBase
     /// Returns the managements an object task (group or single object) gets one implementation task each on.
     /// </summary>
     /// <remarks>
-    /// The targets follow the device specific settings addressObjectCreation resp. serviceObjectCreation of the
-    /// sub-managements of the super-management: Submanager targets the sub-management, Supermanager the
-    /// super-management. A management without sub-managements is its own target. The targets are resolved with
+    /// The targets follow the device specific settings addressObjectCreation, serviceObjectCreation resp.
+    /// timeObjectCreation of the sub-managements of the super-management: Submanager targets the sub-management,
+    /// Supermanager the super-management, ignore none of them. A management without sub-managements is its own
+    /// target unless it is set to ignore itself. The list is empty when every candidate is set to ignore, which the
+    /// settings allow for time objects only. The targets are resolved with
     /// the rights of the middleware server, so the result does not depend on the managements the caller sees.
     /// <para>
     /// Callers other than admin may only ask for a management visible to them (JWT claim
@@ -78,7 +81,7 @@ public class WorkflowImplTaskTargetController : ControllerBase
         }
         try
         {
-            ListPage<ImplTaskTargetResponse> page = await implTaskTargetService.GetImplTaskTargetsAsync(managementId, request.IsServiceObject,
+            ListPage<ImplTaskTargetResponse> page = await implTaskTargetService.GetImplTaskTargetsAsync(managementId, GetObjectKind(request),
                 request.Options, visibleManagementIds);
             ListPaging.SetHasMoreHeader(HttpContext, page.HasMore);
             return Ok(new GetImplTaskTargetsResponse { Targets = page.Items });
@@ -96,5 +99,17 @@ public class WorkflowImplTaskTargetController : ControllerBase
     private HashSet<int>? GetVisibleManagementIds()
     {
         return User.IsInRole(Roles.Admin) ? null : WorkflowController.GetClaimIds(User, kVisibleManagementsClaim);
+    }
+
+    /// <summary>
+    /// Returns the kind of objects the request asks the targets for; validation excludes both flags being set.
+    /// </summary>
+    private static ObjectTaskKind GetObjectKind(GetImplTaskTargetsRequest request)
+    {
+        if (request.IsTimeObject)
+        {
+            return ObjectTaskKind.Time;
+        }
+        return request.IsServiceObject ? ObjectTaskKind.Service : ObjectTaskKind.Network;
     }
 }

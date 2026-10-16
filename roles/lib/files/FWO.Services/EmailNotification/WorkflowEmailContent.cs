@@ -310,9 +310,12 @@ namespace FWO.Services
         /// </summary>
         private static string BuildObjectStateText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
         {
-            string value = element.Field == ElemFieldType.service.ToString()
-                ? BuildServiceValueText(element, protocolNamesById)
-                : BuildIpRange(element);
+            string value = WfObjectTaskHelper.GetKind(element) switch
+            {
+                ObjectTaskKind.Service => BuildServiceValueText(element, protocolNamesById),
+                ObjectTaskKind.Time => WfObjectTaskHelper.FormatTimeRange(element.StartTime, element.EndTime),
+                _ => BuildIpRange(element)
+            };
             if (string.IsNullOrWhiteSpace(element.Name))
             {
                 return value;

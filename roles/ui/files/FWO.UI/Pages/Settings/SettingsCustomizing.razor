@@ -226,6 +226,12 @@
                 <input id="cbx_display_bundled_tasks_as_one" type="checkbox" @bind="configData!.ReqDisplayBundledTasksAsOne">
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5578a"))">
+            <label for="cbx_create_objects_separately" class="col-form-label col-sm-3">@(userConfig.GetText("reqCreateObjectsSeparately")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_create_objects_separately" type="checkbox" @bind="configData!.ReqCreateObjectsSeparately">
+            </div>
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5580"))">
             <label for="pathAnalysisAlgorithm" class="col-form-label col-sm-3">@(userConfig.GetText("path_analysis_algorithm")):</label>
             <div class="col-sm-3">

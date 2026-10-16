@@ -102,7 +102,7 @@ internal class NetworkZoneTreePathAnalyzerTest
     public void AnalyzeAsync_WithoutAnyMatrix_ThrowsConfigExceptionWithoutQuery()
     {
         PathAnalysisMatrixApiConnection apiConnection = PathAnalysisTestData.CreateApiConnection();
-        IPathAnalyzer analyzer = CreateAnalyzer(apiConnection, kNoDesignatedMatrix);
+        NetworkZoneTreePathAnalyzer analyzer = CreateAnalyzer(apiConnection, kNoDesignatedMatrix);
 
         Assert.Multiple(() =>
         {
@@ -115,7 +115,7 @@ internal class NetworkZoneTreePathAnalyzerTest
     [Test]
     public void AnalyzeAsync_WithMatrixWithoutZones_ThrowsZoneMatrixUnavailable()
     {
-        IPathAnalyzer analyzer = CreateAnalyzer(PathAnalysisTestData.CreateEmptyApiConnection(), kDesignatedMatrixId);
+        NetworkZoneTreePathAnalyzer analyzer = CreateAnalyzer(PathAnalysisTestData.CreateEmptyApiConnection(), kDesignatedMatrixId);
 
         ZoneMatrixUnavailableException? exception = Assert.ThrowsAsync<ZoneMatrixUnavailableException>(
             async () => await analyzer.AnalyzeAsync(CreateRequest(kRequestedMatrixId)));
@@ -130,7 +130,7 @@ internal class NetworkZoneTreePathAnalyzerTest
     [Test]
     public void AnalyzeAsync_WithOnlyAutoCalculatedZones_ThrowsZoneMatrixUnavailable()
     {
-        IPathAnalyzer analyzer = CreateAnalyzer(PathAnalysisTestData.CreateAutoCalculatedOnlyApiConnection(), kDesignatedMatrixId);
+        NetworkZoneTreePathAnalyzer analyzer = CreateAnalyzer(PathAnalysisTestData.CreateAutoCalculatedOnlyApiConnection(), kDesignatedMatrixId);
 
         ZoneMatrixUnavailableException? exception = Assert.ThrowsAsync<ZoneMatrixUnavailableException>(
             async () => await analyzer.AnalyzeAsync(CreateRequest(null)));

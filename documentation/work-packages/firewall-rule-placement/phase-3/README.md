@@ -2,7 +2,7 @@
 
 ## Status
 
-Planning is structured; implementation has not started.
+WP-01 planning is complete and its production snapshot reader brief is ready for implementation. WP-02 through WP-05 remain unplanned, and no Phase 3 production code has been implemented.
 
 Phase 3 is split into five work packages. Each work package has two deliberately separate sessions:
 
@@ -13,13 +13,13 @@ The implementation session does not need to read the planning brief. A work pack
 
 ## Work packages and order
 
-| Work package | Planning brief | Implementation brief | Outcome |
-| --- | --- | --- | --- |
-| WP-01 | [Plan the production snapshot reader](WP-01-production-snapshot-reader-planning.md) | [Implement the production snapshot reader](WP-01-production-snapshot-reader-implementation.md) | Load one immutable gateway graph from the latest successfully completed import. |
-| WP-02 | [Plan creation-rule zone resolution](WP-02-zone-pair-resolution-planning.md) | [Implement creation-rule zone resolution](WP-02-zone-pair-resolution-implementation.md) | Resolve the new rule's source and destination workflow elements into a safe positioning input. |
-| WP-03 | [Plan the Check Point strategy](WP-03-check-point-strategy-planning.md) | [Implement the Check Point strategy](WP-03-check-point-strategy-implementation.md) | Orchestrate snapshot loading, zone resolution, recipe selection, and recipe execution without customer mappings or registration. |
-| WP-04 | [Plan semantic-position rendering](WP-04-semantic-position-rendering-planning.md) | [Implement semantic-position rendering](WP-04-semantic-position-rendering-implementation.md) | Render semantic Check Point anchors into the existing Check Point request representation without activating a workflow. |
-| WP-05 | [Plan customer recipes and activation](WP-05-customer-recipes-and-activation-planning.md) | [Implement customer recipes and activation](WP-05-customer-recipes-and-activation-implementation.md) | Analyze the customer document, add the required recipes and mappings, register the strategy, and connect the approved caller. |
+| Work package | Status | Planning brief | Implementation brief | Outcome |
+| --- | --- | --- | --- | --- |
+| WP-01 | Planned; ready for implementation | [Plan the production snapshot reader](WP-01-production-snapshot-reader-planning.md) | [Implement the production snapshot reader](WP-01-production-snapshot-reader-implementation.md) | Load one immutable gateway graph from the latest successfully completed import. |
+| WP-02 | Planning pending | [Plan creation-rule zone resolution](WP-02-zone-pair-resolution-planning.md) | [Implement creation-rule zone resolution](WP-02-zone-pair-resolution-implementation.md) | Resolve the new rule's source and destination workflow elements into a safe positioning input. |
+| WP-03 | Blocked on WP-01 and WP-02 implementation | [Plan the Check Point strategy](WP-03-check-point-strategy-planning.md) | [Implement the Check Point strategy](WP-03-check-point-strategy-implementation.md) | Orchestrate snapshot loading, zone resolution, recipe selection, and recipe execution without customer mappings or registration. |
+| WP-04 | Blocked on WP-03 | [Plan semantic-position rendering](WP-04-semantic-position-rendering-planning.md) | [Implement semantic-position rendering](WP-04-semantic-position-rendering-implementation.md) | Render semantic Check Point anchors into the existing Check Point request representation without activating a workflow. |
+| WP-05 | Blocked on WP-01 through WP-04 | [Plan customer recipes and activation](WP-05-customer-recipes-and-activation-planning.md) | [Implement customer recipes and activation](WP-05-customer-recipes-and-activation-implementation.md) | Analyze the customer document, add the required recipes and mappings, register the strategy, and connect the approved caller. |
 
 Complete the packages in order. WP-01 and WP-02 describe independent inputs, but their approved contracts are both prerequisites for WP-03. WP-04 may be planned and implemented after WP-03. WP-05 is the final package and depends on all four earlier packages.
 

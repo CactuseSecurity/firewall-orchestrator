@@ -25,7 +25,7 @@ namespace FWO.Services.Workflow
         /// Target managements resolved in the current creation run, by request management and kind of ordered
         /// objects (true for services).
         /// </summary>
-        private readonly Dictionary<(int ManagementId, bool IsServiceObject), List<Management>> objectTargetCache = [];
+        private readonly Dictionary<(int ManagementId, ObjectTaskKind Kind), List<Management>> objectTargetCache = [];
 
         /// <summary>
         /// Creates the implementation tasks still missing for every open request task of a ticket. Existing
@@ -87,6 +87,12 @@ namespace FWO.Services.Workflow
             }
 
             List<Management> targets = await GetObjectTargetManagements(reqTask, managementId);
+            if (targets.Count == 0)
+            {
+                Log.WriteWarning(kImplTaskTargetsLogTitle, $"No implementation task created for request task {reqTask.Id}: " +
+                    $"every target management of management {managementId} is set to ignore objects of this kind.");
+                return;
+            }
             List<Management> missingTargets = [.. targets.Where(target =>
                 reqTask.ImplementationTasks.All(implTask => (implTask.ManagementId ?? reqTask.ManagementId) != target.Id))];
             bool adaptTitle = targets.Count > 1 || targets.Any(target => target.Id != managementId);
@@ -139,17 +145,17 @@ namespace FWO.Services.Workflow
         /// </summary>
         private async Task<List<Management>> GetObjectTargetManagements(WfReqTask reqTask, int managementId)
         {
-            bool isServiceObject = WfObjectTaskHelper.OrdersServiceObject(reqTask);
-            if (objectTargetCache.TryGetValue((managementId, isServiceObject), out List<Management>? cachedTargets))
+            ObjectTaskKind kind = WfObjectTaskHelper.GetCreationKind(reqTask);
+            if (objectTargetCache.TryGetValue((managementId, kind), out List<Management>? cachedTargets))
             {
                 return cachedTargets;
             }
             try
             {
-                List<Management>? targets = await ResolveObjectTargetManagements(managementId, isServiceObject);
+                List<Management>? targets = await ResolveObjectTargetManagements(managementId, kind);
                 if (targets != null)
                 {
-                    objectTargetCache[(managementId, isServiceObject)] = targets;
+                    objectTargetCache[(managementId, kind)] = targets;
                     return targets;
                 }
             }
@@ -162,19 +168,45 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
+        /// Checks before saving whether an object task with a management gets at least one implementation task, i.e.
+        /// whether the device specific settings allow creating its kind of objects there. Only time objects can be set
+        /// to ignore, so other tasks and tasks without management are not checked.
+        /// </summary>
+        /// <returns>True or false; null when the targets cannot be resolved, so that the caller does not block the
+        /// request on an unavailable middleware.</returns>
+        public async Task<bool?> HasObjectTargets(WfReqTask reqTask)
+        {
+            if (reqTask.ManagementId is not int managementId || managementId <= 0
+                || WfObjectTaskHelper.GetCreationKind(reqTask) != ObjectTaskKind.Time)
+            {
+                return true;
+            }
+            try
+            {
+                List<Management>? targets = await ResolveObjectTargetManagements(managementId, ObjectTaskKind.Time);
+                return targets == null ? null : targets.Count > 0;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(kImplTaskTargetsLogTitle, $"Could not check the target managements of management {managementId}.", exception);
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Resolves the target managements with the rights of the middleware server: in the ui through the
         /// middleware, which sees every sub-management and the device specific settings, in the middleware directly.
         /// </summary>
         /// <returns>The target managements, or null when they cannot be resolved here.</returns>
-        private async Task<List<Management>?> ResolveObjectTargetManagements(int managementId, bool isServiceObject)
+        private async Task<List<Management>?> ResolveObjectTargetManagements(int managementId, ObjectTaskKind kind)
         {
             if (MiddlewareClient != null)
             {
-                return await GetObjectTargetsFromMiddleware(managementId, isServiceObject);
+                return await GetObjectTargetsFromMiddleware(managementId, kind);
             }
             if (apiConnection != null)
             {
-                return await new ImplTaskManagementResolver(apiConnection).ResolveObjectTargets(managementId, isServiceObject);
+                return await new ImplTaskManagementResolver(apiConnection).ResolveObjectTargets(managementId, kind);
             }
             return null;
         }
@@ -184,7 +216,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         /// <exception cref="InvalidOperationException">The middleware fails or announces more than
         /// <see cref="kMaxImplTaskTargetPages"/> pages.</exception>
-        private async Task<List<Management>> GetObjectTargetsFromMiddleware(int managementId, bool isServiceObject)
+        private async Task<List<Management>> GetObjectTargetsFromMiddleware(int managementId, ObjectTaskKind kind)
         {
             List<Management> targets = [];
             for (int page = 0; page < kMaxImplTaskTargetPages; page++)
@@ -192,7 +224,8 @@ namespace FWO.Services.Workflow
                 RestResponse<ImplTaskTargetResult> response = await MiddlewareClient!.GetImplTaskTargets(new ImplTaskTargetParameters
                 {
                     ManagementId = managementId,
-                    IsServiceObject = isServiceObject,
+                    IsServiceObject = kind == ObjectTaskKind.Service,
+                    IsTimeObject = kind == ObjectTaskKind.Time,
                     Options = new ImplTaskTargetPaging { Offset = targets.Count }
                 });
                 if (!response.IsSuccessful || response.Data == null)

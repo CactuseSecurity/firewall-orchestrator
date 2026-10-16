@@ -27,6 +27,7 @@ namespace FWO.Services.Workflow
             Sources = [.. payload.Sources];
             Destinations = [.. payload.Destinations];
             Services = [.. payload.Services];
+            TimeObjects = [.. payload.TimeObjects];
         }
 
         public long? TicketId { get; set; }
@@ -44,6 +45,7 @@ namespace FWO.Services.Workflow
         public List<FlowObjectSnapshot> Sources { get; set; } = [];
         public List<FlowObjectSnapshot> Destinations { get; set; } = [];
         public List<FlowServiceSnapshot> Services { get; set; } = [];
+        public List<FlowTimeSnapshot> TimeObjects { get; set; } = [];
     }
 
     /// <summary>
@@ -82,6 +84,19 @@ namespace FWO.Services.Workflow
         public int? PortEnd { get; set; }
         public string? Name { get; set; }
         public string? GroupName { get; set; }
+        public string RequestAction { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Time object element of an object task.
+    /// </summary>
+    public class FlowTimeSnapshot
+    {
+        public long WorkflowElementId { get; set; }
+        public long? FlowTimeObjectId { get; set; }
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public string? Name { get; set; }
         public string RequestAction { get; set; } = "";
     }
 }

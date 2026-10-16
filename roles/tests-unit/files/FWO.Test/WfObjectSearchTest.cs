@@ -175,6 +175,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SearchTimeObjects_SearchesByNameWithTheRequesterRoleAndSkipsShortTexts()
+        {
+            List<TimeObject> expected = [new() { Id = 77, Name = "maintenance" }];
+            RecordingApiConnection apiConnection = new() { Result = expected };
+            WfObjectSearch search = new(apiConnection, new ClaimsPrincipal());
+
+            List<TimeObject> shortHits = await search.SearchTimeObjects(kManagementId, " ma ");
+            int queriesAfterShortText = apiConnection.QueryCount;
+            List<TimeObject> hits = await search.SearchTimeObjects(kManagementId, "maint");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(shortHits, Is.Empty);
+                Assert.That(queriesAfterShortText, Is.EqualTo(0));
+                Assert.That(hits, Is.SameAs(expected));
+                Assert.That(apiConnection.LastQuery, Is.EqualTo(ObjectQueries.searchTimeObjectsForRequestByName));
+                Assert.That(apiConnection.LastRoles?.FirstOrDefault(), Is.EqualTo(Roles.Requester));
+                Assert.That(apiConnection.LastVariables.GetProperty("mgmId").GetInt32(), Is.EqualTo(kManagementId));
+                Assert.That(apiConnection.LastVariables.GetProperty("pattern").GetString(), Is.EqualTo("%maint%"));
+                Assert.That(apiConnection.LastVariables.GetProperty("limit").GetInt32(), Is.EqualTo(WfObjectTaskHelper.kSearchLimit));
+            });
+        }
+
+        [Test]
         public async Task SearchServices_SearchesAnOutOfRangeNumberAsName()
         {
             RecordingApiConnection apiConnection = new() { Result = new List<NetworkService>() };

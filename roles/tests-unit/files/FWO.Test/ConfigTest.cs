@@ -18,6 +18,10 @@ namespace FWO.Test
     [Parallelizable]
     internal partial class ConfigTest
     {
+        private static readonly ConfigItem[] kCreateObjectsSeparatelyItems =
+        [
+            new() { Key = "reqCreateObjectsSeparately", Value = "True", User = 0 }
+        ];
         private static readonly ConfigItem[] ModIconifyFalseConfigItem =
         [
             new() { Key = "modIconify", Value = "false", User = 50 }
@@ -564,6 +568,24 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.ReqConsiderBundling, Is.False);
+        }
+
+        [Test]
+        public void ConfigData_DefaultsReqCreateObjectsSeparatelyToFalse()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ReqCreateObjectsSeparately, Is.False);
+        }
+
+        [Test]
+        public void Update_ParsesReqCreateObjectsSeparately()
+        {
+            SimulatedUserConfig userConfig = new();
+
+            InvokeUpdate(userConfig, kCreateObjectsSeparatelyItems);
+
+            Assert.That(userConfig.ReqCreateObjectsSeparately, Is.True);
         }
 
         [Test]

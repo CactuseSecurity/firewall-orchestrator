@@ -39,22 +39,31 @@
                 }
             </Template>
         </Column>
-        <Column TableItem="WfTicket" Title="@(userConfig.GetText("requester"))" Field="@(x => x.Requester)" Sortable="true" Filterable="true" >
-            <Template>
-                @(context.Requester?.Name)
-            </Template>
-        </Column>
+        @if (TicketFieldVisibility.ShowRequester)
+        {
+            <Column TableItem="WfTicket" Title="@(userConfig.GetText("requester"))" Field="@(x => x.Requester)" Sortable="true" Filterable="true" >
+                <Template>
+                    @(context.Requester?.Name)
+                </Template>
+            </Column>
+        }
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
             <Template>
                 @(States.GetName(context.StateId))
             </Template>
         </Column>
-        <Column TableItem="WfTicket" Title="@(userConfig.GetText("priority"))" Field="@(x => x.Priority)" Sortable="true" Filterable="false" >
-            <Template>
-                @(WfHandler.PrioList.FirstOrDefault(x => x.NumPrio == context.Priority)?.Name)
-            </Template>
-        </Column>
-        <Column TableItem="WfTicket" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
+        @if (TicketFieldVisibility.ShowPriority)
+        {
+            <Column TableItem="WfTicket" Title="@(userConfig.GetText("priority"))" Field="@(x => x.Priority)" Sortable="true" Filterable="false" >
+                <Template>
+                    @(WfHandler.PrioList.FirstOrDefault(x => x.NumPrio == context.Priority)?.Name)
+                </Template>
+            </Column>
+        }
+        @if (TicketFieldVisibility.ShowDeadline)
+        {
+            <Column TableItem="WfTicket" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
+        }
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("created"))" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("closed"))" Field="@(x => x.CompletionDate)" Sortable="true" Filterable="true" />
     </Table>
@@ -109,6 +118,8 @@
     {
         await WfHandler.SelectTicket(ticket, ObjAction.edit, true);
     }
+
+    private TicketFieldVisibilityConfig TicketFieldVisibility => TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility);
 
     private bool CanEditTicketInPhase(WfTicket ticket)
     {

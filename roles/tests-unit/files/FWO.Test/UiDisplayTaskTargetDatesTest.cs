@@ -17,6 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
 using static FWO.Test.UiRequestWorkflowTest;
 
@@ -264,6 +265,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayTaskTargetDates_DatePrecisionShowsInclusiveDateForExclusiveMidnightEnd()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig
+            {
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    SelectObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    SelectServices = FlowIntegrationObjectSelectionOptions.Both,
+                    SelectTimeObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Date
+                }.ToConfigValue()
+            });
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.TargetEndDate, new DateTime(2026, 9, 1, 0, 0, 0)));
+
+            Assert.That(component.Markup, Does.Contain("2026-08-31"));
+            Assert.That(component.Markup, Does.Not.Contain("2026-09-01"));
+        }
+
+        [Test]
         public async Task DisplayTaskTargetDates_FlowTimeObjectDropdownDisplaysNameWithoutRange()
         {
             await using BunitContext context = new();
@@ -309,6 +333,90 @@ namespace FWO.Test
                 Assert.That(displayText, Does.Not.Contain("2026-08-01"));
                 Assert.That(displayText, Does.Not.Contain("08:00"));
                 Assert.That(displayText, Does.Not.Contain("17:00"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayTaskTargetDates_SelectFlowTimeObjectUpdatesBothDates()
+        {
+            DateTime? targetBeginDate = null;
+            DateTime? targetEndDate = null;
+            FlowTimeObject timeObject = new()
+            {
+                Id = 302,
+                Name = "Nightly window",
+                StartTime = new DateTime(2026, 8, 31, 22, 0, 0),
+                EndTime = new DateTime(2026, 9, 1, 2, 0, 0),
+                ShowInRequestModule = true
+            };
+
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.TargetBeginDateChanged, EventCallback.Factory.Create<DateTime?>(this, value => targetBeginDate = value))
+                .Add(p => p.TargetEndDateChanged, EventCallback.Factory.Create<DateTime?>(this, value => targetEndDate = value)));
+
+            await UiRequestWorkflowTest.InvokePrivateTask(component.Instance, "SelectFlowTimeObject", timeObject);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(targetBeginDate, Is.EqualTo(timeObject.StartTime));
+                Assert.That(targetEndDate, Is.EqualTo(timeObject.EndTime));
+            });
+        }
+
+        [Test]
+        public void DisplayTaskTargetDates_SafeFormattersReturnStableFallbackValues()
+        {
+            Type componentType = typeof(DisplayTaskTargetDates);
+            MethodInfo safeDateInput = componentType.GetMethod("SafeDateInput", BindingFlags.NonPublic | BindingFlags.Static)!;
+            MethodInfo safeTimeInput = componentType.GetMethod("SafeTimeInput", BindingFlags.NonPublic | BindingFlags.Static)!;
+            MethodInfo safeHourInput = componentType.GetMethod("SafeHourInput", BindingFlags.NonPublic | BindingFlags.Static)!;
+            MethodInfo safeDateTimeDisplay = componentType.GetMethod("SafeDateTimeDisplay", BindingFlags.NonPublic | BindingFlags.Static)!;
+            DateTime value = new(2026, 8, 31, 7, 5, 9);
+            object[] valueArguments = [value];
+            object[] dateValueArguments = [value, false];
+            object[] nullArguments = [null!];
+            object[] nullDateArguments = [null!, false];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(safeDateInput.Invoke(null, dateValueArguments), Is.EqualTo("2026-08-31"));
+                Assert.That(safeTimeInput.Invoke(null, valueArguments), Is.EqualTo("07:05:09"));
+                Assert.That(safeHourInput.Invoke(null, valueArguments), Is.EqualTo("7"));
+                Assert.That(safeDateTimeDisplay.Invoke(null, valueArguments), Is.EqualTo("2026-08-31 07:05:09"));
+                Assert.That(safeDateInput.Invoke(null, nullDateArguments), Is.EqualTo(""));
+                Assert.That(safeTimeInput.Invoke(null, nullArguments), Is.EqualTo(""));
+                Assert.That(safeHourInput.Invoke(null, nullArguments), Is.EqualTo(""));
+                Assert.That(safeDateTimeDisplay.Invoke(null, nullArguments), Is.EqualTo(""));
+            });
+        }
+
+        [Test]
+        public async Task DisplayTaskTargetDates_OnParametersSetUsesSafeFallbackAfterFormattingError()
+        {
+            Exception? displayedException = null;
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig
+            {
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Date
+                }.ToConfigValue()
+            });
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.TargetEndDate, DateTime.MinValue));
+            SetMember(component.Instance, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, _, _, _) => displayedException = exception));
+            SetMember(component.Instance, "targetEndDateInitialized", false);
+            UiRequestWorkflowTest.GetPrivateMethod(typeof(DisplayTaskTargetDates), "OnParametersSet").Invoke(component.Instance, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(displayedException, Is.TypeOf<ArgumentOutOfRangeException>());
+                Assert.That(component.Instance, Is.Not.Null);
             });
         }
 

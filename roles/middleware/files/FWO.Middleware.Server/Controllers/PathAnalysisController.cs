@@ -8,6 +8,7 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FWO.Middleware.Server.Controllers;
 
@@ -49,8 +50,10 @@ public class PathAnalysisController : ControllerBase
     /// answers 500; naming 'options.matrixId' explicitly avoids it.
     /// </para>
     /// </remarks>
-    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Planner}")]
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("resolvePathDevices")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     [ProducesResponseType(typeof(ResolvePathDevicesResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

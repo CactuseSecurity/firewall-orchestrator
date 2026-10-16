@@ -48,7 +48,7 @@ internal class PathAnalysisControllerTest
             Assert.That(routes, Is.EqualTo(new List<string> { "api/pathAnalysis" }));
             Assert.That(endpoint.GetCustomAttribute<HttpPostAttribute>()?.Template, Is.EqualTo("resolvePathDevices"));
             Assert.That(endpoint.GetCustomAttribute<AuthorizeAttribute>()?.Roles,
-                Is.EqualTo($"{Roles.Admin}, {Roles.Auditor}, {Roles.Planner}"));
+                Is.EqualTo($"{Roles.Admin}, {Roles.Auditor}"));
         });
     }
 

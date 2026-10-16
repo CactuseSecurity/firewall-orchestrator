@@ -3,7 +3,8 @@ using System.Text.Json.Serialization;
 namespace FWO.Middleware.Server.Responses;
 
 /// <summary>
-/// Represents the ResolvePathDevicesResponse type.
+/// Represents the result of the path device resolution: the devices found and the algorithm and zone matrix
+/// the analysis actually used.
 /// </summary>
 public sealed class ResolvePathDevicesResponse
 {

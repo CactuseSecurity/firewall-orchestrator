@@ -156,7 +156,7 @@ public static class ResolvePathDevicesRequestValidator
         {
             result.Errors.Add(AggregatedRequestKeyValidation.BuildError(path, $"'{path}' must not be empty."));
         }
-        if  (ipBlocks.Count > ResolvePathDevicesRequestValidationSchema.kMaximumIpBlocksPerList)
+        if (ipBlocks.Count > ResolvePathDevicesRequestValidationSchema.kMaximumIpBlocksPerList)
         {
             result.Errors.Add(AggregatedRequestKeyValidation.BuildError(
                 path, $"'{path}' must not exceed {ResolvePathDevicesRequestValidationSchema.kMaximumIpBlocksPerList} entries."));

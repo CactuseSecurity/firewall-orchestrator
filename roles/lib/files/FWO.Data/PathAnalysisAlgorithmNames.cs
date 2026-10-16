@@ -8,7 +8,13 @@ namespace FWO.Data
     /// </summary>
     public static class PathAnalysisAlgorithmNames
     {
+        /// <summary>
+        /// API name of the algorithm that performs no path analysis. Accepted nowhere as a request value.
+        /// </summary>
         public const string kNone = "none";
+        /// <summary>
+        /// API name of the network zone tree algorithm.
+        /// </summary>
         public const string kNetworkZoneTree = "networkZoneTree";
 
         private static readonly Dictionary<string, long> kIdsByName = new(StringComparer.OrdinalIgnoreCase)

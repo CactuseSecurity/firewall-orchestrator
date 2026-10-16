@@ -30,7 +30,6 @@ public static class IpRangeOrNetworkParser
     /// <param name="range">The inclusive address range of the block; null when parsing failed.</param>
     /// <param name="error">Why the block is invalid, without a subject; null when parsing succeeded.</param>
     /// <returns>True when the block is a valid range or network.</returns>
-
     public static bool TryParse(IpRangeOrNetworkRequest ipBlock, out IPAddressRange? range, out string? error)
     {
         bool hasStart = !string.IsNullOrWhiteSpace(ipBlock.IpStart);

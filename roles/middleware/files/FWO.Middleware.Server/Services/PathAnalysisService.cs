@@ -35,7 +35,7 @@ public sealed class PathAnalysisService
     /// </returns>
     /// <exception cref="ZoneMatrixUnavailableException">The requested or designated zone matrix does not exist or holds no configured zones.</exception>
     /// <exception cref="ConfigException">No zone matrix was requested and none is designated; the validator normally rejects this beforehand.</exception>
-    public async Task<ResolvePathDevicesResponse?> ResolvePathDevicesAsync(ResolvePathDevicesRequest request)
+    public async Task<ResolvePathDevicesResponse> ResolvePathDevicesAsync(ResolvePathDevicesRequest request)
     {
         PathAnalysisRequest pathAnalysisRequest = new()
         {

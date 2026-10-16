@@ -24,11 +24,11 @@ namespace FWO.Services.PathAnalysis
             int matrixId = request.MatrixId ?? globalConfig.DesignatedZoneMatrixId;
             if (matrixId <= 0)
             {
-                throw new InvalidOperationException(
+                throw new ConfigException(
                     "No zone matrix was given and no designated zone matrix is configured.");
             }
             MatrixData networkData = await LoadNetworkDataAsync(matrixId);
-            if (networkData.Zones.Count == 0)
+            if (!networkData.Zones.Any(zone => !zone.IsAutoCalculatedInternetZone && !zone.IsAutoCalculatedUndefinedInternalZone))
             {
                 throw new ZoneMatrixUnavailableException(matrixId);
             }

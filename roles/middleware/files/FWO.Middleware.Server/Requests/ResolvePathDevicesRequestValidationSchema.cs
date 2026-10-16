@@ -1,3 +1,5 @@
+using FWO.Data;
+
 namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
@@ -64,22 +66,22 @@ public static class ResolvePathDevicesRequestValidationSchema
 
     private static readonly List<RequestKeyDefinition> kRootKeys =
     [
-        new RequestKeyDefinition("sources", "List of Address blocks the paths start at. Required and not empty"),
-        new RequestKeyDefinition("destinations", "List of Address blocks the paths ends at. Required and not empty"),
-        new RequestKeyDefinition("options", "Optional output options. Defaults to {}.")
+        new RequestKeyDefinition(kSourcesPath, $"Address blocks the paths start at. Required, 1 to {kMaximumIpBlocksPerList} entries. Every source is combined with every destination."),
+        new RequestKeyDefinition(kDestinationsPath, $"Address blocks the paths end at. Required, 1 to {kMaximumIpBlocksPerList} entries. Every destination is combined with every source."),
+        new RequestKeyDefinition(kOptionsPath, "Optional analysis and output options. Defaults to {}.")
     ];
 
     private static readonly List<RequestKeyDefinition> kOptionsKeys =
     [
-        new RequestKeyDefinition("algorithm", "Optional algorithm name. Defaults to the algorithm choosen in the settings."),
-        new RequestKeyDefinition("matrixId", "Optional matrix database id, only used for the network zone tree algorithm. Defaults to the matrix choosen in the settings"),
+        new RequestKeyDefinition("algorithm", $"Optional algorithm name, one of: {string.Join(", ", PathAnalysisAlgorithmNames.Requestable)}. Compared case-insensitively. Null uses the configured default."),
+        new RequestKeyDefinition("matrixId", $"Optional zone matrix id, greater than 0. Only valid together with algorithm '{PathAnalysisAlgorithmNames.kNetworkZoneTree}'. Null uses the designated zone matrix."),
         new RequestKeyDefinition("filter", "Optional response filter. Omitted or null applies no restriction.")
     ];
 
     private static readonly List<RequestKeyDefinition> kFilterKeys =
     [
-        new RequestKeyDefinition("id", "Optional exact device ID filter. Null applies no restriction."),
-        new RequestKeyDefinition("name", "Optional exact device name filter. Null applies no restriction."),
+        new RequestKeyDefinition("id", "Optional exact device id filter, greater than 0. Null applies no restriction."),
+        new RequestKeyDefinition("name", "Optional exact device name filter, compared case-insensitively, not empty. Null applies no restriction.")
     ];
 
     /// <summary>
@@ -114,6 +116,6 @@ public static class ResolvePathDevicesRequestValidationSchema
     /// <returns>Message naming the id and stating that it cannot be used.</returns>
     public static string DescribeUnknownMatrix(int matrixId)
     {
-        return $"Zone matrix with '{kMatrixIdPath}' {matrixId} does not exist or holds no zones.";
+        return $"Zone matrix with '{kMatrixIdPath}' {matrixId} does not exist or holds no configured zones.";
     }
 }

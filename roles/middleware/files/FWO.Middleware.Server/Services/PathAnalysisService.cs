@@ -4,6 +4,7 @@ using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Services.PathAnalysis;
 using NetTools;
+using FWO.Basics.Exceptions;
 
 namespace FWO.Middleware.Server.Services;
 
@@ -32,8 +33,8 @@ public sealed class PathAnalysisService
     /// The devices found, each listed once and in no particular order, together with the algorithm and zone
     /// matrix the analysis actually used, whether requested or taken from the configuration.
     /// </returns>
-    /// <exception cref="ZoneMatrixUnavailableException">The requested zone matrix does not exist or holds no zones.</exception>
-    /// <exception cref="ConfigException">The configured default cannot be used, for example no designated zone matrix.</exception>
+    /// <exception cref="ZoneMatrixUnavailableException">The requested or designated zone matrix does not exist or holds no configured zones.</exception>
+    /// <exception cref="ConfigException">No zone matrix was requested and none is designated; the validator normally rejects this beforehand.</exception>
     public async Task<ResolvePathDevicesResponse?> ResolvePathDevicesAsync(ResolvePathDevicesRequest request)
     {
         PathAnalysisRequest pathAnalysisRequest = new()

@@ -12,22 +12,23 @@ using Microsoft.AspNetCore.Mvc;
 namespace FWO.Middleware.Server.Controllers;
 
 /// <summary>
-/// Provides workflow change history endpoints.
+/// Provides path analysis endpoints.
 /// </summary>
 [Authorize]
 [ApiController]
-[Route("api/path_analysis")]
 [AggregatedValidationErrors]
+[Tags("PathAnalysis")]
+[Route("api/pathAnalysis")]
 public class PathAnalysisController : ControllerBase
 {
     private readonly PathAnalysisService pathAnalysisService;
     private readonly GlobalConfig globalConfig;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="WorkflowChangeHistoryController"/> class.
+    /// Initializes a new instance of the <see cref="PathAnalysisController"/> class.
     /// </summary>
-    /// <param name="pathAnalysisService">The workflow change history service.</param>
-    /// /// <param name="globalConfig">The workflow change history service.</param>
+    /// <param name="pathAnalysisService">Runs the path analyses.</param>
+    /// <param name="globalConfig">Supplies the configured default algorithm and zone matrix for validation.</param>
     public PathAnalysisController(PathAnalysisService pathAnalysisService, GlobalConfig globalConfig)
     {
         this.pathAnalysisService = pathAnalysisService;
@@ -35,22 +36,25 @@ public class PathAnalysisController : ControllerBase
     }
 
     /// <summary>
-    /// Returns the audit proof critical changes of a workflow ticket, newest first.
+    /// Returns the firewall devices on the paths between every source and every destination.
     /// </summary>
     /// <remarks>
-    /// An audit proof critical change is a change history entry of the ticket that the workflow module marked
-    /// as audit-proof critical: a content change made in a user session by someone other than the
-    /// ticket requester. Changes written by background jobs are never reported.
+    /// Every source is combined with every destination. The result lists each device once and in no particular
+    /// order, together with the algorithm and zone matrix actually used. Omitted options fall back to the
+    /// configured defaults.
     /// <para>
-    /// A ticket that exists but carries no such change answers with an empty <c>changes</c> list. A
-    /// ticketId that names no ticket answers 404 with the error contract of this endpoint, so an
-    /// empty result cannot be mistaken for a mistyped or already deleted ticket id.
+    /// 400 reports every invalid key at once, including a missing option whose configured default is known to
+    /// be unusable. 404 reports a requested zone matrix that does not exist or holds no zones. A configured
+    /// designated zone matrix that turns out to be unusable when the analysis runs is a server failure and
+    /// answers 500; naming 'options.matrixId' explicitly avoids it.
     /// </para>
     /// </remarks>
-    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Planner}")]
     [HttpPost("resolvePathDevices")]
     [ProducesResponseType(typeof(ResolvePathDevicesResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ResolvePathDevicesResponse>> ResolvePathDevices([FromBody] ResolvePathDevicesRequest request)
@@ -68,8 +72,6 @@ public class PathAnalysisController : ControllerBase
         }
         catch (ZoneMatrixUnavailableException exception) when (request.Options.MatrixId != null)
         {
-            // Only a matrix id the caller supplied is the caller's fault. One taken from the configured
-            // designated zone matrix falls through to the general handler below and is logged as a server failure.
             return NotFound(ResolvePathDevicesRequestValidator.BuildUnknownMatrixError(exception.MatrixId));
         }
         catch (Exception exception)

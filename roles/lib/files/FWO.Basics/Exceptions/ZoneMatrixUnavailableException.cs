@@ -26,7 +26,7 @@ namespace FWO.Basics.Exceptions
         /// </summary>
         /// <param name="matrixId">Id of the zone matrix, either supplied by the caller or taken from the configuration.</param>
         public ZoneMatrixUnavailableException(int matrixId)
-            : base($"Zone matrix {matrixId} does not exist or holds no zones.")
+            : base($"Zone matrix {matrixId} does not exist or holds no configured zones.")
         {
             MatrixId = matrixId;
         }

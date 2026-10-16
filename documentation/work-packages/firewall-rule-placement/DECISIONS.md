@@ -171,3 +171,13 @@ Rationale: feature branches must not modify sealed upgrade scripts, and the sche
 The upstream `request.impltask.mgm_id` field is preserved alongside `rule_position`. Positioning derives the target as `implTask.ManagementId ?? requestTask.ManagementId`. That effective ID must agree with the supplied management and the gateway's management; any loaded request-management object must independently agree with the request task's own management ID.
 
 Rationale: implementation tasks may legitimately target a management different from their parent request, while contradictory caller-supplied context must still fail before strategy selection.
+
+## 2026-10-16 - D-028 - Use paired planning and implementation briefs for Phase 3
+
+Phase 3 is divided into five ordered work packages: production snapshot reading, creation-rule zone resolution, inactive Check Point strategy orchestration, semantic Check Point position rendering, and final customer recipes plus activation. Each package has a planning brief and a separate implementation brief.
+
+The planner performs repository discovery, settles decisions, and makes the paired implementation brief self-contained without changing production code. The implementer reads the settled implementation brief and does not need the planning brief. An implementation brief may not be executed while it is marked draft or contains blocking placeholders.
+
+`FWO_Regel_Platzierung_Regelwerk.md` remains unopened through WP-04. It is analyzed only in the WP-05 planning session, which converts the customer behavior into normative recipes, enum mappings, failure cases, and acceptance tests for the final implementation session.
+
+Rationale: separating discovery from execution gives each work package a recoverable planning gate, keeps implementers focused on settled requirements, and delays customer-specific policy until all reusable production infrastructure is ready.

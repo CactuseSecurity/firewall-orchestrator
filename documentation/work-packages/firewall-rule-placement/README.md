@@ -4,13 +4,13 @@
 
 This directory is the repository source of truth for firewall rule positioning work. Active planning documents override chat history and any material under `archive/`.
 
-Phase 1 is implemented and locally validated on the current `Cactus/develop` baseline. It remains open until the mandatory disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade checks pass. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Customer-specific analysis and wiring remain deferred to Phase 3.
+Phase 1 is implemented and locally validated on the current `Cactus/develop` baseline. It remains open until the mandatory disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade checks pass. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 planning is now structured into five paired planning/implementation work packages; implementation has not started.
 
 | Phase | Status | Purpose |
 | --- | --- | --- |
 | Phase 1 | Implemented; VM validation pending | Build a calculation-only, cross-vendor positioning foundation and independent position persistence. |
 | Phase 2 | Implemented and locally validated | Build generic composition contracts, a reusable immutable structural graph, semantic positions, and structural blocks. |
-| Phase 3 | Deferred | Analyze the customer document, add customer-specific blocks and recipes, map enum values to recipes, and wire a production strategy. |
+| Phase 3 | Planning structured; implementation not started | Add production inputs and rendering first, then analyze the customer document in the final work package and activate complete recipes. |
 | Previous proposal | Archived | Historical context only; it is not an alternative active plan. |
 
 ## Reading order
@@ -28,12 +28,13 @@ New sessions must read these files in order:
 9. `documentation/work-packages/firewall-rule-placement/phase-2/README.md`
 10. the four Phase 2 work packages in the order listed there
 11. `documentation/work-packages/firewall-rule-placement/phase-3/README.md`
+12. the active Phase 3 planning or implementation brief selected there
 
-Do not use the archived proposal to make current decisions. Do not inspect or analyze `FWO_Regel_Platzierung_Regelwerk.md` until Phase 3 is explicitly started.
+Do not use the archived proposal to make current decisions. Do not inspect or analyze `FWO_Regel_Platzierung_Regelwerk.md` until the Phase 3 WP-05 planning session.
 
 Use this bootstrap prompt for a new planning session:
 
-> Read `.agents/AGENTS.md`, then `documentation/work-packages/firewall-rule-placement/SESSION-HANDOFF.md`, `README.md`, `DECISIONS.md`, and the active phase work packages in the order listed there. Treat those files as the source of truth. The archived proposal is historical only. Do not analyze `FWO_Regel_Platzierung_Regelwerk.md` until Phase 3. Continue from the “Next action” in `SESSION-HANDOFF.md`.
+> Read `.agents/AGENTS.md`, then `documentation/work-packages/firewall-rule-placement/SESSION-HANDOFF.md`, `README.md`, `DECISIONS.md`, and the active phase work packages in the order listed there. Treat those files as the source of truth. The archived proposal is historical only. Do not analyze `FWO_Regel_Platzierung_Regelwerk.md` until the Phase 3 WP-05 planning session. Continue from the “Next action” in `SESSION-HANDOFF.md`.
 
 ## Roadmap boundary
 
@@ -81,6 +82,11 @@ Phase 2 does not add a strategy, policy loader, dependency-injection registratio
 | [Phase 2 WP-02](phase-2/WP-02-check-point-snapshot-and-position.md) | Immutable Check Point snapshot and persisted semantic position. |
 | [Phase 2 WP-03](phase-2/WP-03-structural-blocks.md) | Structural scopes, boundary blocks, and composed acceptance scenarios. |
 | [Phase 2 WP-04](phase-2/WP-04-rulebase-graph-snapshot.md) | Replace the Check Point-specific snapshot with an immutable normalized rulebase graph before Phase 3. |
+| [Phase 3 WP-01](phase-3/WP-01-production-snapshot-reader-planning.md) | Plan and implement loading the latest successful imported graph. |
+| [Phase 3 WP-02](phase-3/WP-02-zone-pair-resolution-planning.md) | Plan and implement creation-rule zone resolution without customer mapping. |
+| [Phase 3 WP-03](phase-3/WP-03-check-point-strategy-planning.md) | Plan and implement inactive Check Point strategy orchestration. |
+| [Phase 3 WP-04](phase-3/WP-04-semantic-position-rendering-planning.md) | Plan and implement semantic anchor rendering without workflow activation. |
+| [Phase 3 WP-05](phase-3/WP-05-customer-recipes-and-activation-planning.md) | Analyze the customer document, finalize recipes and mappings, and activate the production path. |
 
 ## Dependency graph
 
@@ -102,7 +108,10 @@ Phase 2 WP-02 + WP-03
   `---> Phase 2 WP-04 rulebase graph snapshot
 
 Phase 2 including WP-04
-  `---> Phase 3 customer analysis, recipes, mapping, and production wiring
+  |---> Phase 3 WP-01 production snapshot reader --.
+  `---> Phase 3 WP-02 zone resolution ------------+--> WP-03 strategy
+                                                       `--> WP-04 renderer
+                                                              `--> WP-05 customer recipes and activation
 ```
 
 WP-02 and WP-03 may proceed in parallel after WP-01 stabilizes. Phase 1 is not complete until all three packages and their combined acceptance checks pass.
@@ -121,7 +130,7 @@ WP-02 and WP-03 may proceed in parallel after WP-01 stabilizes. Phase 1 is not c
 - Existing-rule semantics remain excluded until a concrete block needs them; structural rule identity and order remain available for anchors.
 - Phase 3 production loading accepts the latest successfully completed import regardless of age, without a freshness threshold or fingerprint requirement.
 - Existing empty scopes are valid; missing, ambiguous, and malformed scopes fail explicitly.
-- The existing positioning enum remains unchanged and no value maps to a recipe until Phase 3.
+- The existing positioning enum remains unchanged and no value maps to a recipe before the Phase 3 WP-05 implementation.
 
 ## Session protocol
 

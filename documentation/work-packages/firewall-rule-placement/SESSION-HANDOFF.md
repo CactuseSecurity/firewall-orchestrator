@@ -1,78 +1,56 @@
 # Session handoff
 
-Last updated: 2026-10-15
+Last updated: 2026-10-16
 
 ## Current status
 
-Phase 1 and Phase 2 are implemented and rebased onto `Cactus/develop` at `eeb38dac0`. All seven branch commits were replayed without merging or pushing.
+Phase 1 and Phase 2 remain implemented on the rebased `Cactus/develop` baseline. Phase 1 local validation passes, but the mandatory disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade gates remain pending. Phase 2 is implemented and locally validated.
 
-The schema change now targets the open `9.7.3` release: `request.impltask.rule_position` is nullable in the creation schema, the guarded migration is appended to `roles/database/files/upgrade/9.7.3.sql`, `product_version` remains `9.7.3`, and revision history is recorded under `9.7.3`. The obsolete feature additions to sealed upgrade scripts were removed.
+Phase 3 planning has started, but no Phase 3 production code has been implemented. Phase 3 is now divided into five ordered work packages, each with a separate planning brief and implementation brief:
 
-Upstream's nullable `request.impltask.mgm_id` is preserved alongside `rule_position`. Positioning validates the effective target management as `implTask.ManagementId ?? requestTask.ManagementId`, including agreement with the supplied management and gateway context.
+1. production snapshot reader;
+2. creation-rule zone resolution;
+3. inactive Check Point strategy orchestration;
+4. semantic Check Point position rendering; and
+5. customer recipes, enum mappings, registration, and workflow activation.
 
-Phase 1 is not yet complete. All available local gates pass, but the required disposable-VM fresh-install and upgrade scenarios were not executed because the FWO VM tools were not available in the session. That pending status is unchanged.
+The customer document `FWO_Regel_Platzierung_Regelwerk.md` was not inspected. It must remain unopened during WP-01 through WP-04 and is first analyzed in the WP-05 planning session.
 
-Phase 2 is implemented and locally validated. It provides composable in-memory positioning blocks, an immutable vendor-neutral `RulebaseGraphSnapshot` projected from already-loaded normalized `Rulebase` and `RulebaseLink` entities, a semantic Check Point position, and structural layer/section boundary blocks. WP-04 removed the earlier public Check Point-specific snapshot types without a compatibility shim.
+## Phase 3 session protocol
 
-Phase 2 still does not register or invoke a production strategy. Customer-document analysis and all production wiring are deferred to Phase 3; `FWO_Regel_Platzierung_Regelwerk.md` was not inspected.
+For each work package:
 
-## Implemented contracts
+1. Run the planning session from its `*-planning.md` brief.
+2. Perform read-only repository discovery and resolve the decisions listed there.
+3. Update the paired `*-implementation.md` brief until it is self-contained, contains no blocking placeholders, and is marked `Ready for implementation`.
+4. Update `DECISIONS.md`, the Phase 3 README status, and this handoff.
+5. In a separate session, give the implementer the settled implementation brief. The implementer does not need the planning brief and must implement only that package.
+6. Record validation evidence before advancing to the next package.
 
-- `RulePosition`, `UnknownRulePosition`, `RulePositioningContext`, and typed successes/failures are present.
-- Both supported JSON serializers preserve known positions and round-trip unknown payloads.
-- `IRulePositioningStrategy` and `RulePositioningManager.CalculateAsync` use exact strategy selection, safe validation failures, and cancellation propagation.
-- No production positioning strategy is registered.
-- `WfImplTask.RulePosition` is nullable and deep-copied.
-- Hasura permissions, GraphQL reads/inserts/updates, and the narrow store/replace/clear operation carry `rule_position` without workflow side effects.
-- `IPositioningBlock<TContext,TOutput>`, immutable `PositioningRecipe`, typed block results, and the stateless generic executor support nested and multi-child recipes.
-- `RulebaseGraphSnapshot` defensively copies rulebase, link, and structural rule primitives; validates management/gateway ownership, unique identities, native order, and graph endpoints; and exposes no existing-rule semantics.
-- Check Point graph interpretation resolves policy containers, ordered/domain layer chains, section chains, inline layers, and direct-rule/section interleaving while rejecting ambiguous topology.
-- `CheckPointRulePosition` persists semantic top/bottom/above/below anchors through both JSON serializers and the existing polymorphic position contract.
-- Initial/name/UID layer selection, name/UID section selection, `BeginningOf`, and `EndOf` are implemented as side-effect-free structural blocks.
-- No enum-to-recipe mapping, policy loader, production strategy, dependency-injection registration, workflow caller, setting, UI, or Check Point request renderer was added.
+All changes remain unstaged and uncommitted unless the user explicitly requests otherwise.
 
-## Completed Phase 2 WP-04
+## Implemented foundation available to Phase 3
 
-- The immutable single-calculation boundary now matches the normalized rulebase/link graph rather than a Check Point-only policy model.
-- Construction accepts already-loaded `Rulebase` and `RulebaseLink` collections and performs no GraphQL, database, importer, or vendor API access.
-- Existing-rule source, destination, service, action, zone, NAT, and other semantics remain outside the graph.
-- Existing Check Point scope selection, beginning/end behavior, failure categories, and `CheckPointRulePosition` remain unchanged.
-- `RuleTreeBuilder` remains unchanged and is not used as the positioning model; focused parity tests cover initial, policy, ordered/domain, section, and inline relationships.
-- Phase 3 will resolve the new rule's zone pair, map it to customer recipes, and load the graph from the latest successfully completed import regardless of age. No maximum-age policy, automatic re-import, or fingerprint is required.
-
-## Validation evidence
-
-- Combined Phase 1/2 focused tests: 150 passed, 0 failed.
-- Complete unit suite: 7,722 passed, 29 skipped, 0 failed.
-- Debug solution build: succeeded with 0 warnings and 0 errors.
-- Dedicated positioning production-file line coverage: 92.83% (1,126/1,213 executable lines).
-- Changed C# files: targeted `dotnet format` completed successfully.
-- Phase 2 tests cover recipe validation/execution, cancellation and concurrency, safe diagnostics, graph copying/invariants, Check Point link interpretation and ambiguity rejection, exact scope selection, empty/populated boundaries, both serializers, polymorphic deep copy, and composed acceptance examples.
-- Phase 1 and Phase 2 local acceptance passed after the rebase; the disposable-VM acceptance gates are still pending.
-- VM installation validation was not executed because this session exposes none of the required FWO MCP VM tools (`FwoListVirtualMachineTemplates`, clone/lifecycle tools, or `FwoTestInstallation`).
-- No changes were staged, committed, or pushed.
-
-## Remaining acceptance gates
-
-Use the FWO VM integration only; do not run installation manually.
-
-1. Fresh-install the rebased branch on a disposable supported VM.
-2. Upgrade a disposable `9.7.2` installation to `9.7.3`.
-3. Rerun `9.7.3.sql` to prove migration idempotency.
-4. Verify existing implementation tasks load with `rule_position = NULL`.
-5. Exercise known and unknown position load/store, replacement, and clearing through Hasura.
-6. Delete every disposable clone.
-
-If all VM checks pass, mark Phase 1 complete in this handoff, the roadmap, and `phase-1/README.md`. If any check fails, keep Phase 1 open and record the failing stage and evidence.
+- Phase 1 provides polymorphic positions, typed calculation results, exact strategy selection, and independent nullable position persistence.
+- Phase 2 provides immutable recipes, a cancellation-aware executor, stable block failures, `RulebaseGraphSnapshot`, Check Point graph interpretation, semantic `CheckPointRulePosition`, and structural layer/section boundary blocks.
+- No production strategy, graph reader, zone-pair resolver, enum-to-recipe mapping, dependency-injection registration, workflow caller, or Check Point position renderer exists yet.
+- Production loading must use the latest successfully completed import regardless of age, without automatic import, freshness rejection, or a fingerprint.
+- Existing-rule semantic fields remain excluded unless the final customer analysis proves a concrete need.
 
 ## Next action
 
-Phase 2 is complete. Do not start Phase 3 or inspect `FWO_Regel_Platzierung_Regelwerk.md` until the user explicitly starts Phase 3. At that point, read the active roadmap and Phase 3 plan before analyzing the customer document or adding production loading, recipes, mapping, strategy registration, or workflow wiring.
+Run the planning session described by:
 
-Separately, run the remaining Phase 1 VM acceptance gates when the FWO VM tools are available.
+`documentation/work-packages/firewall-rule-placement/phase-3/WP-01-production-snapshot-reader-planning.md`
 
-Suggested bootstrap prompt:
+That session must not implement production code or inspect the customer document. Its deliverable is a settled, self-contained WP-01 implementation brief marked ready for a separate implementation session.
 
-> Read `.agents/AGENTS.md`, then `documentation/work-packages/firewall-rule-placement/SESSION-HANDOFF.md`, `README.md`, `DECISIONS.md`, and the active work packages in roadmap order. Treat them as authoritative. Phase 2 including WP-04 is implemented and locally validated. Do not begin Phase 3 or inspect the customer document unless Phase 3 is explicitly requested.
+Separately, execute the remaining Phase 1 VM acceptance gates when the required FWO VM integration is available. Do not run the installation manually.
 
-The rebase rewrote the seven existing branch commits as authorized. Recovery edits remain unstaged and uncommitted, and nothing was pushed.
+## Validation baseline retained from Phase 1 and Phase 2
+
+- 150 focused positioning tests passed.
+- The complete unit suite passed with 7,722 passed, 29 skipped, and 0 failed.
+- The Debug solution build succeeded with no warnings or errors.
+- Dedicated positioning production files reached 92.83% line coverage.
+- No changes were staged, committed, or pushed.

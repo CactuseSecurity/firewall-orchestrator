@@ -88,6 +88,17 @@
                             </div>
                         </div>
                     }
+                    else if(WfObjectTaskHelper.IsManagementObjectTask(WfHandler.ActImplTask.TaskType))
+                    {
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("management")):</label>
+                                <div class="col-sm-8">
+                                    <label class="col-sm-12 h-100 border bg-secondary">@(WfHandler.GetImplTaskManagementName(WfHandler.ActImplTask, WfHandler.ActReqTask.ManagementId))</label>
+                                </div>
+                            </div>
+                        </div>
+                    }
                     else if(WfHandler.ActImplTask.TaskType == WfTaskType.new_interface.ToString())
                     {
                         <div class="col-sm-8">
@@ -201,7 +212,7 @@
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
                         Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                        IpProtos="displayIpProtos" SelectableIpProtos="selectableIpProtos" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
+                        IpProtos="displayIpProtos" SelectableIpProtos="selectableIpProtos" TaskId="WfHandler.ActImplTask.Id" TicketTasks="WfHandler.ActTicket.Tasks" EditMode="WfHandler.EditImplTaskMode" />
                 }
                 else if(WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())
                 {

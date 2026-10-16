@@ -117,6 +117,10 @@
 - name: internal service listener testing
   import_tasks: test-internal-service-listeners.yml
 
+- name: log permission testing
+  import_tasks: test-log-permissions.yml
+  when: "install_syslog | bool"
+
 - name: Apache TLS key preflight testing
   import_tasks: test-apache-tls-key-preflight.yml
   when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
@@ -156,6 +160,10 @@
 - name: Upgrade source version guard testing
   import_tasks: test-upgrade-source-version-guard.yml
   when: "'databaseserver' in group_names"
+
+- name: OS platform guard testing
+  import_tasks: test-os-platform-guard.yml
+  run_once: true
 
 - name: finalize handler for deleting test data
   set_fact:

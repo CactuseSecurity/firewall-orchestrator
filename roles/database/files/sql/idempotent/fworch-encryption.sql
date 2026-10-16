@@ -85,12 +85,12 @@ DECLARE
     r_cred RECORD;
     t_encrypted TEXT;
 BEGIN
-    -- encrypt pwds in import_credential table
+    -- encrypt pwds in credential table
     FOR r_cred IN 
-        SELECT id, secret FROM import_credential
+        SELECT id, secret FROM credential
     LOOP
         SELECT INTO t_encrypted * FROM encryptText(r_cred.secret, key);
-        UPDATE import_credential SET secret=t_encrypted WHERE id=r_cred.id;
+        UPDATE credential SET secret=t_encrypted WHERE id=r_cred.id;
     END LOOP;
 
     --encrypt pwds in ldap_connection table
@@ -149,7 +149,7 @@ DECLARE
     t_encryptedReadPwd TEXT;
     t_encryptedWritePwd TEXT;
 BEGIN
-    IF NOT EXISTS (SELECT * FROM ldap_connection WHERE ldap_server = serverName)
+    IF NOT EXISTS (SELECT * FROM ldap_connection WHERE serverName = ANY(ldap_server))
     THEN
         SELECT INTO t_key * FROM getMainKey();
         SELECT INTO t_encryptedReadPwd * FROM encryptText(searchUserPwd, t_key);
@@ -157,7 +157,7 @@ BEGIN
         INSERT INTO ldap_connection
             (ldap_server, ldap_port, ldap_searchpath_for_users, ldap_searchpath_for_roles, ldap_searchpath_for_groups, ldap_writepath_for_groups,
             ldap_tenant_level, ldap_search_user, ldap_search_user_pwd, ldap_write_user, ldap_write_user_pwd, ldap_type)
-            VALUES (serverName, port, userSearchPath, roleSearchPath, groupSearchPath, groupWritePath, tenantLevel, searchUser, t_encryptedReadPwd, writeUser, t_encryptedWritePwd, ldapType);
+            VALUES (ARRAY[serverName], port, userSearchPath, roleSearchPath, groupSearchPath, groupWritePath, tenantLevel, searchUser, t_encryptedReadPwd, writeUser, t_encryptedWritePwd, ldapType);
     END IF;
 END;
 $$ LANGUAGE plpgsql;

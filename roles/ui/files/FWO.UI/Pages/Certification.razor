@@ -41,10 +41,10 @@
         <br>
     </div>
     <div class="p-3">
-        <h5 class="text-left">@(userConfig.GetText("due_within")):</h5>
+        <h5 class="text-start">@(userConfig.GetText("due_within")):</h5>
         <input type="text" class="form-control form-control-sm" @bind="recertLookAheadDays" />
         <br>
-        <h5 class="text-left">@(userConfig.GetText("owner")):</h5>
+        <h5 class="text-start">@(userConfig.GetText("owner")):</h5>
         <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
             <Authorized>
                 <div class="p-3">

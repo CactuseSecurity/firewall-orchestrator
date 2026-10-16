@@ -7,6 +7,30 @@ namespace FWO.Test
     internal class OwnerFirewallLogEntryTest
     {
         [Test]
+        public void MetadataDisplay_JoinsListsAndLeavesMissingValuesEmpty()
+        {
+            OwnerFirewallLogEntry entry = new()
+            {
+                SourceMetadata = new IpMetadata
+                {
+                    AppIds = new List<string> { "APP-1", "APP-2" },
+                    AreaIds = new List<string> { "AREA-1" },
+                    Dns = "source.example.test"
+                }
+            };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(entry.SourceAppIdsDisplay, Is.EqualTo("APP-1, APP-2"));
+                Assert.That(entry.SourceAreaIdsDisplay, Is.EqualTo("AREA-1"));
+                Assert.That(entry.SourceDnsDisplay, Is.EqualTo("source.example.test"));
+                Assert.That(entry.DestinationAppIdsDisplay, Is.Empty);
+                Assert.That(entry.DestinationAreaIdsDisplay, Is.Empty);
+                Assert.That(entry.DestinationDnsDisplay, Is.Empty);
+            });
+        }
+
+        [Test]
         public void SourceAndDestinationDisplay_RemoveSingleHostMask()
         {
             OwnerFirewallLogEntry entry = new() { Source = "192.0.2.10/32", Destination = "2001:db8::1/128" };

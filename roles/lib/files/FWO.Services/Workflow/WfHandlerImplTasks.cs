@@ -309,13 +309,17 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Returns the request tasks that should receive initially generated implementation tasks.
         /// </summary>
-        private async Task<List<WfReqTask>> RequestTasksForInitialImplCreation(List<WfReqTask> requestTasks)
+        private async Task<List<WfReqTask>> RequestTasksForInitialImplCreation(
+            List<WfReqTask> requestTasks, bool includeExistingImplementationTasks = false)
         {
+            // every implementation task creation run starts here
+            ResetObjectTargetCache();
             List<WfReqTask> requestTasksWithDetails = [];
             foreach (WfReqTask reqTask in requestTasks)
             {
                 WfReqTask detailedReqTask = await LoadReqTaskDetailsForImplCreation(reqTask);
-                if (TaskHasRequiredContentForImplCreation(detailedReqTask))
+                if ((includeExistingImplementationTasks || detailedReqTask.ImplementationTasks.Count == 0)
+                    && TaskHasRequiredContentForImplCreation(detailedReqTask))
                 {
                     requestTasksWithDetails.Add(detailedReqTask);
                 }
@@ -346,22 +350,23 @@ namespace FWO.Services.Workflow
 
         private async Task<WfReqTask> LoadReqTaskDetailsForImplCreation(WfReqTask reqTask)
         {
-            // Only access tasks need their elements reloaded. Generic tasks, including new-interface tasks,
-            // intentionally have no request elements and must keep the active ticket instance unchanged.
-            if (reqTask.TaskType != WfTaskType.access.ToString()
-                || reqTask.Elements.Count > 0 || reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null)
+            if (reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null)
             {
                 return reqTask;
             }
 
+            WfTicket activeTicket = ActTicket;
             WfReqTask detailedReqTask = await LoadReqTaskDetails(reqTask, true);
+            // Loading details refreshes the handler environment as a side effect. Keep the
+            // ticket state that was already derived from the current request-task states;
+            // otherwise the persisted pre-change ticket state can overwrite that derivation.
+            ActTicket = activeTicket;
             detailedReqTask.StateId = reqTask.StateId;
             detailedReqTask.Start = reqTask.Start;
             detailedReqTask.Stop = reqTask.Stop;
             detailedReqTask.CurrentHandler = reqTask.CurrentHandler;
             detailedReqTask.RecentHandler = reqTask.RecentHandler;
             detailedReqTask.AssignedGroup = reqTask.AssignedGroup;
-            detailedReqTask.ImplementationTasks = reqTask.ImplementationTasks;
             SyncActTicketFromReqTask(detailedReqTask);
             return detailedReqTask;
         }
@@ -496,11 +501,19 @@ namespace FWO.Services.Workflow
         {
             if (reqTask.TaskType == WfTaskType.access.ToString())
             {
+                await EnsureDevicesLoaded();
                 await AutoCreateAccessImplTasks(reqTask);
                 return;
             }
-
-            await CreateGenericImplTask(reqTask);
+            if (WfObjectTaskHelper.IsManagementObjectTask(reqTask.TaskType))
+            {
+                await AutoCreateObjectImplTasks(reqTask);
+                return;
+            }
+            if (reqTask.ImplementationTasks.Count == 0)
+            {
+                await CreateGenericImplTask(reqTask);
+            }
         }
 
         private async Task AutoCreateAccessImplTasks(WfReqTask reqTask)
@@ -569,6 +582,10 @@ namespace FWO.Services.Workflow
 
         private async Task CreateAccessImplTask(WfReqTask reqTask, int? deviceId, bool adaptTitle = true, WfTicket? previousTicket = null)
         {
+            if (reqTask.ImplementationTasks.Any(implTask => implTask.DeviceId == deviceId))
+            {
+                return;
+            }
             WfImplTask newImplTask;
             newImplTask = new WfImplTask(reqTask)
             { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = deviceId, StateId = reqTask.StateId };

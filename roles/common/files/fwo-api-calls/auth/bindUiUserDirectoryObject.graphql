@@ -1,0 +1,16 @@
+# binds a local user to the immutable object id of its directory entry and records its current dn
+mutation bindUiUserDirectoryObject(
+  $id: Int!
+  $directoryObjectId: String!
+  $uuid: String!
+) {
+  update_uiuser_by_pk(
+    pk_columns: { uiuser_id: $id }
+    _set: {
+      directory_object_id: $directoryObjectId
+      uuid: $uuid
+    }
+  ) {
+    updatedId: uiuser_id
+  }
+}

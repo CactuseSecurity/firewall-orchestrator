@@ -59,5 +59,26 @@ namespace FWO.Ui.Data.Extensions
                 };
             }
         }
+
+        extension(LogTimeRangeUnit unit)
+        {
+            /// <summary>
+            /// Returns the localized label for a log time range unit.
+            /// </summary>
+            public string ToString(UserConfig userConfig)
+            {
+                ArgumentNullException.ThrowIfNull(userConfig);
+
+                return unit switch
+                {
+                    LogTimeRangeUnit.Seconds => userConfig.GetText("Seconds"),
+                    LogTimeRangeUnit.Minutes => userConfig.GetText("Minutes2"),
+                    LogTimeRangeUnit.Hours => userConfig.GetText("Hours"),
+                    LogTimeRangeUnit.Days => userConfig.GetText("Days"),
+                    LogTimeRangeUnit.Weeks => userConfig.GetText("Weeks"),
+                    _ => unit.ToString(),
+                };
+            }
+        }
     }
 }

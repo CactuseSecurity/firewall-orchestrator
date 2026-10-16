@@ -35,6 +35,43 @@ namespace FWO.Basics
                 return Array.Empty<string>();
             }
 
+            return ExtractPtrNames(response);
+        }
+
+        /// <summary>
+        /// Resolves all PTR records for an IP address and tells a definitive answer from a failed lookup,
+        /// so that a caller storing the result can retry the failed ones later.
+        /// </summary>
+        /// <returns>The PTR names, an empty list if the DNS server answered that the address has no name,
+        /// or null if no definitive answer was received (e.g. server failure or refused query).</returns>
+        /// <exception cref="DnsResponseException">If none of the name servers could be reached.</exception>
+        public static async Task<IReadOnlyList<string>?> TryDnsReverseLookUpAllAsync(
+            IPAddress address,
+            CancellationToken cancellationToken = default)
+        {
+            IDnsQueryResponse response = await ReverseLookupClient.QueryReverseAsync(address, cancellationToken)
+                .ConfigureAwait(false);
+            return SelectReverseLookupNames(response.Header.ResponseCode, ExtractPtrNames(response));
+        }
+
+        /// <summary>
+        /// Decides whether a reverse lookup response is definitive. Only a response without error and a
+        /// non-existent domain answer whether the address has a name; every other response code may change
+        /// with the next query.
+        /// </summary>
+        /// <returns>The PTR names, an empty list for a non-existent domain, or null for any other response code.</returns>
+        public static IReadOnlyList<string>? SelectReverseLookupNames(DnsHeaderResponseCode responseCode, IReadOnlyList<string> ptrNames)
+        {
+            return responseCode switch
+            {
+                DnsHeaderResponseCode.NoError => ptrNames,
+                DnsHeaderResponseCode.NotExistentDomain => Array.Empty<string>(),
+                _ => null
+            };
+        }
+
+        private static string[] ExtractPtrNames(IDnsQueryResponse response)
+        {
             return response.Answers
                 .PtrRecords()
                 .Select(ptr => ptr.PtrDomainName.Value.TrimEnd('.')) // Drop the trailing DNS root dot.

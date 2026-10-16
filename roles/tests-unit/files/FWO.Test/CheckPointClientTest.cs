@@ -38,7 +38,7 @@ namespace FWO.Test
         private sealed class TestableCheckPointClient : CheckPointClient
         {
             public TestableCheckPointClient(ExternalTicketSystem ticketSystem, Management management)
-                : base(ticketSystem, management)
+                : base(ticketSystem, management, new ExternalCertificateChecks(FirewallConnections: true, TicketSystems: true))
             { }
 
             public void UseHandler(HttpMessageHandler handler)
@@ -154,7 +154,7 @@ namespace FWO.Test
             {
                 Hostname = hostname,
                 Port = port,
-                ExportCredential = new ImportCredential("api-user", "unencrypted-secret")
+                ExportCredential = new Credential("api-user", "unencrypted-secret")
             };
         }
 

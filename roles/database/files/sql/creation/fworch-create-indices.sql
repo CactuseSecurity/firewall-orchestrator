@@ -22,11 +22,13 @@ Create index IF NOT EXISTS idx_rule01 on rule (rule_uid,mgm_id,dev_id,active,nat
 Create index IF NOT EXISTS idx_rule02 on rule (mgm_id,rule_id,rule_uid,dev_id);
 Create index IF NOT EXISTS idx_rule03 on rule (dev_id);
 Create index IF NOT EXISTS idx_rule04 on rule (action_id);
-CREATE INDEX IF NOT EXISTS idx_provisioning_config_node_parent ON provisioning_config_node (parent_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_provisioning_config_node_single_global ON provisioning_config_node (node_type) WHERE node_type = 'global';
-CREATE INDEX IF NOT EXISTS idx_provisioning_config_value_key ON provisioning_config_value (config_key);
+CREATE INDEX IF NOT EXISTS idx_device_specific_config_node_parent ON device_specific_config_node (parent_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_device_specific_config_node_single_global ON device_specific_config_node (node_type) WHERE node_type = 'global';
+CREATE INDEX IF NOT EXISTS idx_device_specific_config_value_key ON device_specific_config_value (config_key);
 Create index IF NOT EXISTS idx_rule_standard_report_page on rule (mgm_id,rulebase_id,rule_num_numeric,rule_id) WHERE access_rule = TRUE;
 Create index IF NOT EXISTS idx_rulebase_link_to_rulebase_id on rulebase_link (to_rulebase_id);
+-- rule_fully_visible_to_tenant looks up the gateways of a rule for every rule, rule_from and rule_to row a tenant reads
+Create index IF NOT EXISTS idx_rule_enforced_on_gateway_rule_id on rule_enforced_on_gateway (rule_id);
 Create index IF NOT EXISTS idx_rule_from01 on rule_from (rule_id);
 Create index IF NOT EXISTS idx_rule_service01 on rule_service (rule_id);
 Create index IF NOT EXISTS idx_rule_service02 on rule_service (svc_id);
@@ -49,6 +51,9 @@ CREATE UNIQUE index if not exists owner_responsible_owner_dn_type_unique on owne
 CREATE index if not exists owner_responsible_dn_idx on owner_responsible(dn);
 CREATE UNIQUE index if not exists owner_responsible_type_name_unique on owner_responsible_type(name);
 CREATE UNIQUE INDEX IF NOT EXISTS request_workflow_configuration_single_active ON request.workflow_configuration (is_active) WHERE is_active;
+-- at most one active (not yet finished) external request per ticket, so concurrent calls cannot start the request chain
+-- of a ticket twice; the middleware sets finish_date when closing a request, before it creates the next one
+CREATE UNIQUE INDEX IF NOT EXISTS uidx_ext_request_one_active_per_ticket ON ext_request (ticket_id) WHERE finish_date IS NULL;
 
 Create index "IX_Relationship68" on "changelog_object" ("control_id");
 Create index "IX_Relationship76" on "changelog_service" ("control_id");
@@ -155,3 +160,10 @@ CREATE INDEX IF NOT EXISTS idx_change_history_module_time ON change_history (mod
 CREATE INDEX IF NOT EXISTS idx_change_history_app_time ON change_history (app_id, change_time DESC) WHERE app_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_change_history_ticket_time ON change_history (ticket_id, change_time DESC) WHERE ticket_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_change_history_audit_proof ON change_history (change_time DESC) WHERE audit_proof_critical;
+
+--- logging ---
+-- support the orphan check of logging.ip_metadata, which asks for every metadata row whether any
+-- log entry still uses that address as source or destination. The unique constraint of log_entry
+-- leads with owner_id and cannot answer it.
+CREATE INDEX IF NOT EXISTS idx_log_entry_source ON logging.log_entry (source);
+CREATE INDEX IF NOT EXISTS idx_log_entry_destination ON logging.log_entry (destination);

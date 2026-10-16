@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.6.2"
+product_version: "9.7.4"
 # The oldest product version an upgrade may start from, enforced by
 # roles/common/tasks/validate-upgrade-source-version.yml before anything touches the
 # database. It exists because 9.5.0 removed the migration files below 8.0:
@@ -16,7 +16,9 @@ ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
 importer_python_interpreter: "{{ '/usr/bin/python3.11' if ansible_facts['os_family'] == 'RedHat' else ansible_python_interpreter }}"
-ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+# Trust on first use: the key of an unknown host is recorded on the first connection, a changed key aborts the run.
+# For strict checking, provision known_hosts and override this with '-o StrictHostKeyChecking=yes'.
+ansible_ssh_common_args: '-o StrictHostKeyChecking=accept-new'
 product_name: fworch
 installer_controller_tmp_dir: "{{ lookup('env', 'HOME') }}/.fworch/tmp"
 installer_tmp_dir: "{{ ansible_user_dir }}/.fworch/tmp"
@@ -57,7 +59,6 @@ fworch_inventory_hosts: >-
 # which cannot read Ansible variables - keep the two in step, and see the script for the
 # FWORCH_LOCAL_SETTINGS override that a relocated fworch_home needs.
 fwo_install_settings_file: "{{ fworch_conf_dir }}/fwo-install-settings.yml"
-importer_hostname: "{{ groups['importers'].0 }}"
 ui_hostname: "{{ fwo_endpoint_hostname or groups['frontends'].0 }}"
 syslog_host: "{{ groups['logserver'].0 }}"
 # Not derived from fwo_endpoint_hostname: this is the inventory host the database tasks
@@ -82,11 +83,26 @@ installation_mode: new
 # Set this to true only when FWO components are installed on separate hosts.
 distributed_install: false
 install_syslog: true
-add_demo_data: true
+# Fixed test keys and passwords (e.g. the static jwt generation key) if set to yes - only for testing, never for
+# production. Defined here for all hosts, as add_demo_data below is derived from it on every host: a value set for
+# a single group would make hosts disagree about creating the demo data.
+testkeys: no
+# Demo data (sample devices, owners and LDAP users with publicly known passwords) is only meant for
+# development, test and demo installations. It is created automatically with testkeys=yes and can be
+# requested explicitly with -e add_demo_data=yes.
+add_demo_data: "{{ testkeys | default(false) | bool }}"
 api_docu: false
 force_install: false
 allowRepoChangesForRedhat: false
 docker_network: ""
+
+### SBOM generation
+generate_sbom: false
+sbom_reference_platform: "debian-testing"
+sbom_output_dir: "{{ fworch_home }}/sbom"
+sbom_fetch_to_controller: false
+sbom_controller_output_dir: "{{ playbook_dir }}/documentation/SBOM/generated/installed"
+sbom_controller_source_dir: "{{ installer_controller_tmp_dir }}/sbom-source"
 
 ### operating system settings
 user_id: 60320
@@ -345,6 +361,19 @@ http_proxy_import_parameter: ""
 # http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
 
 # OS 
+# The oldest supported major release per distribution (as in ansible_facts['distribution']),
+# enforced by roles/common/tasks/validate-os-platform.yml before the installer changes the
+# host. Distributions not listed here are refused, Ubuntu is accepted on LTS releases only,
+# and Debian testing/unstable (no release number) are accepted as newer than any stable
+# release. Keep documentation/installer/basic-installation.md in sync.
+supported_os_minimum_major_versions:
+  Debian: 12
+  Ubuntu: 22
+  RedHat: 9
+  Rocky: 9
+# Install on an unsupported operating system release anyway, with a warning instead of the
+# failure - for development and for testing new releases only.
+allow_unsupported_os: false
 debian_testing_version: "12"
   # should actually be 13 but microsoft does not yet provide https://packages.microsoft.com/config/debian/13
 debian_testing_release_name: trixie
@@ -352,6 +381,11 @@ arch: x86_64
 linux_architecture: amd64
 redhat_major_version: "{{ ansible_facts['distribution_major_version'] | default('8') }}"
 redhat_arch: "{{ redhat_major_version }}-{{ arch }}"
+# fingerprints of the EPEL signing keys per Red Hat major version; the EPEL release package is only installed when its
+# signature verifies against the key imported with this fingerprint
+epel_signing_key_fingerprints:
+  "9": "FF8AD1344597106ECE813B918A3872BF3228467C"
+  "10": "7D8D15CBFC4E62688591FB2633D98517E37ED158"
 
 ###############################################################
 ### database
@@ -530,6 +564,12 @@ middleware_internal_port: 8880
 # the proxy target cannot end up on different loopback families.
 middleware_native_listener_address: "{{ ipv4_loopback_address }}"
 middleware_native_uri: "http://{{ middleware_native_listener_address }}:{{ middleware_internal_port }}/"
+# Hosts whose logins reach the middleware on behalf of many users: every UI login arrives
+# from the UI server's address, so a per-client login limit keyed on it would be one
+# shared limit for all UI users. These hosts (and the middleware host itself) are exempt
+# from the per-client limit; the per-user failure limit still applies to them. Written to
+# fworch.json as login_trusted_client_hosts and resolved by the middleware at startup.
+login_trusted_client_hosts: "{{ (groups['frontends'] | default([])) + (groups['frontends'] | default([]) | map('extract', hostvars) | selectattr('ansible_host', 'defined') | map(attribute='ansible_host') | list) | unique }}"
 
 ###############################################################
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
@@ -542,8 +582,33 @@ importer_testonly_password: "not4production"
 dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_rpm_name: "packages-microsoft-prod.rpm"
 dotnet_version: "10.0"
+# dotnet-install.sh (used on Debian >= 13/testing and as Ubuntu fallback) is pinned to a commit of
+# github.com/dotnet/install-scripts and verified by checksum before it is executed
+dotnet_install_script_commit: "5147e32300a8e908f5d737c8cff63a76b4b63531"
+dotnet_install_script_url: "https://raw.githubusercontent.com/dotnet/install-scripts/{{ dotnet_install_script_commit }}/src/dotnet-install.sh"
+dotnet_install_script_sha256: "082f7685e156738a1b2e2ed8381a621870d4ce8e8c59278034556f05c186eb2e"
+# The Microsoft repository configuration package (packages-microsoft-prod) runs maintainer scripts as root, so it is
+# verified before it is installed: the unsigned .deb against its sha256 per "<distribution>/<release>", the signed
+# .rpm against the Microsoft signing key of its Red Hat major version, imported only with this fingerprint
+dotnet_ms_signing_keys:
+  "9":
+    url: "https://packages.microsoft.com/keys/microsoft.asc"
+    fingerprint: "BC528686B50D79E339D3721CEB3E94ADBE1229CF"
+  "10":
+    url: "https://packages.microsoft.com/keys/microsoft-2025.asc"
+    fingerprint: "AA86F75E427A19DD33346403EE4D7792F748182B"
+dotnet_ms_repo_package_sha256:
+  debian/12: "8434dcb8c346dc95fbd63dbece056c343704590b58b6a5c323d39acf52bf0b48"
+  ubuntu/22.04: "0d335c06ceb3227e330a36a7135997207843c726e42ec341e34a3825f151213b"
+  ubuntu/24.04: "c13f01ac7c3001b51a9281d40dde666db5e037e05512840c319832f7852bfec4"
+  ubuntu/26.04: "b2e7c6b9328e0c6a68bfe5d0045be90ceb192b32e0ca906c6c529b9012726f39"
 dotnet_mode: "Release"
 # dotnet_mode: "Debug"
+# dotnet keeps its named mutexes under $XDG_RUNTIME_DIR. sudo can pass the invoking user's
+# /run/user/<uid> on to the dotnet commands run as {{ fworch_user }}, which cannot open it, so they
+# get a runtime directory of their own (owner only, as the XDG base directory spec requires)
+dotnet_xdg_runtime_dir: "{{ fworch_home }}/.xdg-runtime"
+dotnet_env: "{{ proxy_env | combine({'XDG_RUNTIME_DIR': dotnet_xdg_runtime_dir}) }}"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 lib_tmp_dir: "{{ fworch_home }}/lib/tmp"
@@ -559,6 +624,16 @@ ui_syslog_id: "{{ product_name }}-ui"
 ldap_syslog_id: slapd
 api_log_level: info
 fworch_log_dir: "/var/log/{{ product_name }}"
+# log files are readable by the fworch group only; the owner is the user rsyslog writes as -
+# root, except on Ubuntu where rsyslog drops its privileges to the syslog user
+fworch_log_owner: "{{ 'syslog' if ansible_facts['distribution'] == 'Ubuntu' else 'root' }}"
+fworch_log_group: "{{ fworch_group }}"
+fworch_log_file_mode: "0640"
+# the files rsyslog writes to the log dir and their logrotate copies (numbered and dateext naming)
+fworch_log_file_patterns:
+  - "*.log"
+  - "*.log.*"
+  - "*.log-*"
 fworch_log_lock_dir: "/var/{{ product_name }}/lock"
 fworch_mw_lockfile: "{{ fworch_log_lock_dir }}/FWO.Middleware.Server_log.lock"
 fworch_ui_lockfile: "{{ fworch_log_lock_dir }}/FWO.Ui_log.lock"

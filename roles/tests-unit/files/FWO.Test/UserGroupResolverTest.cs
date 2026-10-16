@@ -14,6 +14,16 @@ namespace FWO.Test
         private const string kInternalGroupPath = "ou=groups,ou=operator,dc=fworch,dc=internal";
         private const string kExternalGroupPath = "ou=groups,dc=example,dc=com";
         private const string kSearchUser = "cn=search,dc=example,dc=com";
+        private const string kOtherInternalUserPath = "ou=users,ou=other,dc=fworch,dc=internal";
+        private const string kOtherInternalGroupPath = "ou=groups,ou=other,dc=fworch,dc=internal";
+        private const string kNestedUserPath = "ou=users,ou=nested,dc=example,dc=org";
+        private const string kNestedGroupPath = "ou=nested,ou=groups,dc=example,dc=com";
+        private const int kInternalLdapId = 1;
+        private const int kExternalLdapId = 2;
+        private const int kNestedLdapId = 3;
+        private const string kOwnGroupDn = "cn=own,ou=groups,dc=example,dc=com";
+        private const string kForeignGroupDn = "cn=foreign,ou=nested,ou=groups,dc=example,dc=com";
+        private static readonly string[] kOwnAndForeignGroupDns = [kOwnGroupDn, kForeignGroupDn];
 
         private static readonly string kSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
         private static readonly List<Ldap> kNoLdaps = [];
@@ -24,64 +34,34 @@ namespace FWO.Test
         ];
 
         [Test]
-        public async Task GetGroupsForUserDn_ReturnsEmptyForMissingDn()
+        public async Task GetGroupsForUser_ReturnsEmptyForMissingDn()
         {
             UserGroupResolver resolver = new(kNoLdaps);
 
-            List<string> groups = await resolver.GetGroupsForUserDn("");
+            List<string> groups = await resolver.GetGroupsForUser("", kInternalLdapId);
 
             Assert.That(groups, Is.Empty);
         }
 
         [Test]
-        public async Task GetGroupsForUserDn_ReturnsEmptyForWhitespaceDn()
+        public async Task GetGroupsForUser_ReturnsEmptyForWhitespaceDn()
         {
             UserGroupResolver resolver = new(kNoLdaps);
 
-            List<string> groups = await resolver.GetGroupsForUserDn("   ");
+            List<string> groups = await resolver.GetGroupsForUser("   ", kInternalLdapId);
 
             Assert.That(groups, Is.Empty);
         }
 
         [Test]
-        public async Task GetGroupsForUserDn_ReturnsEmptyWhenNoLdapKnowsTheUser()
+        public async Task GetGroupsForUser_ReturnsEmptyWhenTheLdapDoesNotKnowTheUser()
         {
-            // ReadAsync returns null, so the user cannot be located in any configured ldap
-            Ldap ldap = CreateLdap(new RecordingLdapClient(), kInternalUserPath, kInternalGroupPath);
-            UserGroupResolver resolver = new([ldap]);
-
-            List<string> groups = await resolver.GetGroupsForUserDn(kUserDn);
-
-            Assert.That(groups, Is.Empty);
-        }
-
-        [Test]
-        public async Task GetGroupsForUserDn_ResolvesMemberOfGroupsWithinTheConfiguredGroupPath()
-        {
-            RecordingLdapClient connection = new()
-            {
-                ReadResult = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("memberOf", kMemberOfValues))
-            };
+            // ReadAsync returns null, so the user cannot be located in its ldap
+            RecordingLdapClient connection = new();
             Ldap ldap = CreateLdap(connection, kInternalUserPath, kInternalGroupPath);
             UserGroupResolver resolver = new([ldap]);
 
-            List<string> groups = await resolver.GetGroupsForUserDn(kUserDn);
-
-            // only the group inside the configured group path is kept, the unrelated one is dropped
-            Assert.That(groups, Is.EqualTo(new List<string> { "cn=direct-group,ou=groups,ou=operator,dc=fworch,dc=internal" }));
-        }
-
-        [Test]
-        public async Task GetGroupsForUserDn_ReturnsEmptyWhenTheUserHasNoMemberships()
-        {
-            RecordingLdapClient connection = new()
-            {
-                ReadResult = LdapTestSupport.CreateEntry(kUserDn)
-            };
-            Ldap ldap = CreateLdap(connection, kInternalUserPath, kInternalGroupPath);
-            UserGroupResolver resolver = new([ldap]);
-
-            List<string> groups = await resolver.GetGroupsForUserDn(kUserDn);
+            List<string> groups = await resolver.GetGroupsForUser(kUserDn, kInternalLdapId);
 
             Assert.Multiple(() =>
             {
@@ -91,23 +71,90 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task GetGroupsForUserDn_SkipsLdapsThatDoNotKnowTheUser()
+        public async Task GetGroupsForUser_ResolvesMemberOfGroupsWithinTheConfiguredGroupPath()
         {
-            Ldap unknowing = CreateLdap(new RecordingLdapClient(), kInternalUserPath, kInternalGroupPath);
-            RecordingLdapClient knowingConnection = new()
+            RecordingLdapClient connection = new()
             {
                 ReadResult = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("memberOf", kMemberOfValues))
             };
-            Ldap knowing = CreateLdap(knowingConnection, kInternalUserPath, kInternalGroupPath);
-            UserGroupResolver resolver = new([unknowing, knowing]);
+            Ldap ldap = CreateLdap(connection, kInternalUserPath, kInternalGroupPath);
+            UserGroupResolver resolver = new([ldap]);
 
-            List<string> groups = await resolver.GetGroupsForUserDn(kUserDn);
+            List<string> groups = await resolver.GetGroupsForUser(kUserDn, kInternalLdapId);
 
-            Assert.That(groups, Has.Count.EqualTo(1));
+            // only the group inside the configured group path is kept, the unrelated one is dropped
+            Assert.That(groups, Is.EqualTo(new List<string> { "cn=direct-group,ou=groups,ou=operator,dc=fworch,dc=internal" }));
         }
 
         [Test]
-        public async Task GetGroupsForUserDn_IgnoresInactiveLdapBeforeActiveLdap()
+        public async Task GetGroupsForUser_ReturnsEmptyWhenTheUserHasNoMemberships()
+        {
+            RecordingLdapClient connection = new()
+            {
+                ReadResult = LdapTestSupport.CreateEntry(kUserDn)
+            };
+            Ldap ldap = CreateLdap(connection, kInternalUserPath, kInternalGroupPath);
+            UserGroupResolver resolver = new([ldap]);
+
+            List<string> groups = await resolver.GetGroupsForUser(kUserDn, kInternalLdapId);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(groups, Is.Empty);
+                Assert.That(connection.ReadCalls, Does.Contain(kUserDn));
+            });
+        }
+
+        [Test]
+        public async Task GetGroupsForUser_ResolvesOnlyInTheDirectoryOfTheUser()
+        {
+            RecordingLdapClient internalConnection = new()
+            {
+                ReadResult = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("memberOf", kMemberOfValues))
+            };
+            Ldap internalLdap = CreateLdap(internalConnection, kInternalUserPath, kInternalGroupPath);
+            RecordingLdapClient externalConnection = new()
+            {
+                ReadResult = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("memberOf", kMemberOfValues))
+            };
+            Ldap externalLdap = CreateLdap(externalConnection, kExternalUserPath, kExternalGroupPath, kExternalLdapId);
+            List<Ldap> configuredLdaps = [externalLdap, internalLdap];
+            UserGroupResolver resolver = new(configuredLdaps);
+
+            // the dn belongs to the internal ldap, so a local user of the external ldap with that dn gets no groups
+            List<string> groups = await resolver.GetGroupsForUser(kUserDn, kExternalLdapId);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(groups, Is.Empty);
+                Assert.That(externalConnection.ReadCalls, Is.Empty);
+                Assert.That(internalConnection.ReadCalls, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task GetGroupsForUser_ReturnsEmptyForAnAmbiguousDn()
+        {
+            RecordingLdapClient connection = new()
+            {
+                ReadResult = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("memberOf", kMemberOfValues))
+            };
+            Ldap ldap = CreateLdap(connection, kInternalUserPath, kInternalGroupPath);
+            Ldap overlappingLdap = CreateLdap(new RecordingLdapClient(), kInternalUserPath, kInternalGroupPath, kExternalLdapId);
+            List<Ldap> configuredLdaps = [ldap, overlappingLdap];
+            UserGroupResolver resolver = new(configuredLdaps);
+
+            List<string> groups = await resolver.GetGroupsForUser(kUserDn, kInternalLdapId);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(groups, Is.Empty);
+                Assert.That(connection.ReadCalls, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task GetGroupsForUser_IgnoresInactiveLdap()
         {
             RecordingLdapClient inactiveConnection = new()
             {
@@ -115,21 +162,15 @@ namespace FWO.Test
             };
             Ldap inactive = CreateLdap(inactiveConnection, kInternalUserPath, kInternalGroupPath);
             inactive.Active = false;
-            RecordingLdapClient activeConnection = new()
-            {
-                ReadResult = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("memberOf", $"cn=active,{kInternalGroupPath}"))
-            };
-            Ldap active = CreateLdap(activeConnection, kInternalUserPath, kInternalGroupPath);
-            List<Ldap> configuredLdaps = new() { inactive, active };
+            List<Ldap> configuredLdaps = [inactive];
             UserGroupResolver resolver = new(configuredLdaps);
 
-            List<string> groups = await resolver.GetGroupsForUserDn(kUserDn);
+            List<string> groups = await resolver.GetGroupsForUser(kUserDn, kInternalLdapId);
 
             Assert.Multiple(() =>
             {
-                Assert.That(groups, Is.EqualTo(new List<string> { $"cn=active,{kInternalGroupPath}" }));
+                Assert.That(groups, Is.Empty);
                 Assert.That(inactiveConnection.ReadCalls, Is.Empty);
-                Assert.That(activeConnection.ReadCalls, Does.Contain(kUserDn));
             });
         }
 
@@ -138,7 +179,7 @@ namespace FWO.Test
         {
             Ldap hosting = CreateLdap(new RecordingLdapClient(), kInternalUserPath, kInternalGroupPath);
             RecordingLdapClient otherInternalConnection = new();
-            Ldap otherInternal = CreateLdap(otherInternalConnection, kInternalUserPath, kInternalGroupPath);
+            Ldap otherInternal = CreateLdap(otherInternalConnection, kOtherInternalUserPath, kOtherInternalGroupPath, kExternalLdapId);
             UserGroupResolver resolver = new([hosting, otherInternal]);
             LdapEntry userEntry = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("memberOf", kMemberOfValues));
 
@@ -153,11 +194,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetGroups_StopsBeforeConnecting_WhenCancelled()
+        {
+            TestableLdap hosting = CreateLdap(new RecordingLdapClient(), kExternalUserPath, kExternalGroupPath, kExternalLdapId);
+            TestableLdap internalLdap = CreateLdap(new RecordingLdapClient(), kInternalUserPath, kInternalGroupPath);
+            UserGroupResolver resolver = new(new List<Ldap> { hosting, internalLdap });
+            LdapEntry userEntry = LdapTestSupport.CreateEntry("cn=testuser,ou=users,dc=example,dc=com");
+            using CancellationTokenSource cancellation = new();
+            cancellation.Cancel();
+
+            Assert.CatchAsync<OperationCanceledException>(async () => await resolver.GetGroups(userEntry, hosting, cancellation.Token));
+            Assert.Multiple(() =>
+            {
+                Assert.That(hosting.ConnectCount, Is.Zero);
+                Assert.That(internalLdap.ConnectCount, Is.Zero);
+            });
+        }
+
+        [Test]
         public async Task GetGroups_FansOutToInternalLdapsForAnExternalUser()
         {
             string externalUserDn = "cn=testuser,ou=users,dc=example,dc=com";
             string externalGroupDn = $"cn=external-group,{kExternalGroupPath}";
-            Ldap hosting = CreateLdap(new RecordingLdapClient(), kExternalUserPath, kExternalGroupPath);
+            Ldap hosting = CreateLdap(new RecordingLdapClient(), kExternalUserPath, kExternalGroupPath, kExternalLdapId);
             Ldap internalLdap = CreateLdap(new RecordingLdapClient(), kInternalUserPath, kInternalGroupPath);
             UserGroupResolver resolver = new([hosting, internalLdap]);
             LdapEntry userEntry = LdapTestSupport.CreateEntry(externalUserDn, new LdapAttribute("memberOf", externalGroupDn));
@@ -173,7 +232,7 @@ namespace FWO.Test
         {
             string externalUserDn = "cn=testuser,ou=users,dc=example,dc=com";
             string externalGroupDn = $"cn=external-group,{kExternalGroupPath}";
-            Ldap hosting = CreateLdap(new RecordingLdapClient(), kExternalUserPath, kExternalGroupPath);
+            Ldap hosting = CreateLdap(new RecordingLdapClient(), kExternalUserPath, kExternalGroupPath, kExternalLdapId);
             RecordingLdapClient inactiveConnection = new();
             Ldap inactiveInternal = CreateLdap(inactiveConnection, kInternalUserPath, kInternalGroupPath);
             inactiveInternal.Active = false;
@@ -244,10 +303,27 @@ namespace FWO.Test
             Assert.That(groups, Is.Empty);
         }
 
-        private static TestableLdap CreateLdap(RecordingLdapClient connection, string userSearchPath, string groupSearchPath)
+        [Test]
+        public async Task GetGroups_DropsGroupsOwnedByAnotherDirectory()
+        {
+            string externalUserDn = "cn=testuser,ou=users,dc=example,dc=com";
+            Ldap hosting = CreateLdap(new RecordingLdapClient(), kExternalUserPath, kExternalGroupPath, kExternalLdapId);
+            Ldap nested = CreateLdap(new RecordingLdapClient(), kNestedUserPath, kNestedGroupPath, kNestedLdapId);
+            List<Ldap> configuredLdaps = [hosting, nested];
+            UserGroupResolver resolver = new(configuredLdaps);
+            LdapEntry userEntry = LdapTestSupport.CreateEntry(externalUserDn, new LdapAttribute("memberOf", kOwnAndForeignGroupDns));
+
+            List<string> groups = await resolver.GetGroups(userEntry, hosting);
+
+            // the more specific group path of the nested connection owns the second group, so the hosting ldap cannot grant it
+            Assert.That(groups, Is.EqualTo(new List<string> { kOwnGroupDn }));
+        }
+
+        private static TestableLdap CreateLdap(RecordingLdapClient connection, string userSearchPath, string groupSearchPath, int ldapId = kInternalLdapId)
         {
             return new TestableLdap(connection)
             {
+                Id = ldapId,
                 SearchUser = kSearchUser,
                 SearchUserPwd = kSearchPassword,
                 UserSearchPath = userSearchPath,

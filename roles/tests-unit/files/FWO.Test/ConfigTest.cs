@@ -471,6 +471,7 @@ namespace FWO.Test
             Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("importLogDataMaxEntries"));
             Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("allowLogDataPortWithoutProtocol"));
             Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("replaceExistingLogData"));
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("resolveLogDataDns"));
             Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("logDataRetentionDays"));
         }
 
@@ -570,6 +571,79 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.ReqVisibilityBased, Is.False);
+        }
+
+        [Test]
+        public void TicketFieldVisibilityConfig_DefaultsAllFieldsToVisible()
+        {
+            TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse(null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(config.ShowRequester, Is.True);
+                Assert.That(config.ShowPriority, Is.True);
+                Assert.That(config.ShowDeadline, Is.True);
+                Assert.That(config.ShowReason, Is.True);
+                Assert.That(config.ShowComments, Is.False);
+                Assert.That(config.AccessTask.ShowManagement, Is.True);
+                Assert.That(config.AccessTask.ShowOwner, Is.True);
+                Assert.That(config.AccessTask.ShowValidFrom, Is.True);
+                Assert.That(config.AccessTask.ShowValidTo, Is.True);
+                Assert.That(config.AccessTask.ShowReason, Is.True);
+                Assert.That(config.AccessTask.ShowFreeText, Is.False);
+                Assert.That(config.AccessTask.ShowComments, Is.True);
+            });
+        }
+
+        [Test]
+        public void TicketFieldVisibilityConfig_ParsesConfiguredFields()
+        {
+            TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse(
+                "{\"requester\":false,\"priority\":false,\"deadline\":true,\"reason\":false,\"comments\":true}");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(config.ShowRequester, Is.False);
+                Assert.That(config.ShowPriority, Is.False);
+                Assert.That(config.ShowDeadline, Is.True);
+                Assert.That(config.ShowReason, Is.False);
+                Assert.That(config.ShowComments, Is.True);
+                Assert.That(TicketFieldVisibilityConfig.Parse(config.ToConfigValue()).ShowComments, Is.True);
+            });
+        }
+
+        [Test]
+        public void TicketFieldVisibilityConfig_ParsesAccessTaskFields()
+        {
+            TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse(
+                "{\"accessTask\":{\"management\":false,\"owner\":false,\"validFrom\":false,\"validTo\":true,\"reason\":false,\"freeText\":true,\"comments\":false}}");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(config.AccessTask.ShowReason, Is.False);
+                Assert.That(config.AccessTask.ShowManagement, Is.False);
+                Assert.That(config.AccessTask.ShowOwner, Is.False);
+                Assert.That(config.AccessTask.ShowValidFrom, Is.False);
+                Assert.That(config.AccessTask.ShowValidTo, Is.True);
+                Assert.That(config.AccessTask.ShowFreeText, Is.True);
+                Assert.That(config.AccessTask.ShowComments, Is.False);
+                Assert.That(TicketFieldVisibilityConfig.Parse(config.ToConfigValue()).AccessTask.ShowFreeText, Is.True);
+            });
+        }
+
+        [Test]
+        public void TicketFieldVisibilityConfig_InvalidJsonUsesDefaults()
+        {
+            TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse("not-json");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(config.ShowRequester, Is.True);
+                Assert.That(config.ShowPriority, Is.True);
+                Assert.That(config.ShowDeadline, Is.True);
+                Assert.That(config.ShowReason, Is.True);
+                Assert.That(config.ShowComments, Is.False);
+            });
         }
 
         [Test]

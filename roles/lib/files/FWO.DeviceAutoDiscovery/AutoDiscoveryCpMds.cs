@@ -15,7 +15,7 @@ namespace FWO.DeviceAutoDiscovery
         private readonly string CheckpointHost = "checkpoint-host";
         private readonly string CheckpointClusterMember = "cluster-member";
 
-        public AutoDiscoveryCpMds(Management mgm, ApiConnection apiConn) : base(mgm, apiConn) { }
+        public AutoDiscoveryCpMds(Management mgm, ApiConnection apiConn, bool checkCertificates) : base(mgm, apiConn, checkCertificates) { }
 
 
         override public async Task<List<Management>> Run(CancellationToken cancellationToken = default)
@@ -70,7 +70,6 @@ namespace FWO.DeviceAutoDiscovery
             {
                 Name = superManagement.Name + "__" + domainName,
                 Uid = superManagement.Uid,
-                ImporterHostname = superManagement.ImporterHostname,
                 Hostname = superManagement.Hostname,
                 ImportCredential = superManagement.ImportCredential,
                 Port = superManagement.Port,
@@ -103,6 +102,10 @@ namespace FWO.DeviceAutoDiscovery
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 Log.WriteDebug(Autodiscovery, $"found domain '{domain.Name}'");
+                if (!IsAcceptableDomainName(domain.Name))
+                {
+                    continue;
+                }
                 Management currentManagement = CreateManagement(SuperManagement, domain.Name, domain.Uid);
                 currentManagement.IsSupermanager = false;
                 // session id pins this session to a specific domain (if domain is given during login)
@@ -136,7 +139,7 @@ namespace FWO.DeviceAutoDiscovery
 
         private async Task<(string, CheckPointClient)> LoginCp(Management mgm)
         {
-            CheckPointClient restClientCP = new(mgm);
+            CheckPointClient restClientCP = new(mgm, CheckCertificates);
             return (await LoginCp(mgm, restClientCP), restClientCP);
         }
         private async Task<string> LoginCp(Management mgm, CheckPointClient restClientCP)

@@ -1,17 +1,17 @@
 #!/usr/bin/python3
 """Convert log CSV files from a Git repository into FWO log-import JSON."""
 
+from __future__ import annotations
+
 import argparse
 import csv
 import json
-import logging
 import sys
 import urllib.parse
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TextIO, cast
+from typing import TYPE_CHECKING, TextIO, cast
 
 from scripts.customizing.fwo_custom_lib.basic_helpers import (
     get_logger,
@@ -23,6 +23,10 @@ from scripts.customizing.fwo_custom_lib.git_helpers import (
     parse_git_depth_arg,
     update_git_repo,
 )
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Mapping
 
 DEFAULT_CONFIG_FILE: str = "/usr/local/fworch/etc/secrets/customizingConfig.json"
 DEFAULT_REPOSITORY_DIRECTORY: str = "/usr/local/fworch/etc/logDataRepo"

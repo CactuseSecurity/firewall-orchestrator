@@ -96,9 +96,8 @@
             possibleStates = StateMatrix.getAllowedTransitions(StatefulObject.StateId);
             if(possibleStates.Count == 1 && !userConfig.CanUseAnyRole(Roles.Auditor))
             {
-                int oldState = StatefulObject.StateId;
                 StatefulObject.StateId = possibleStates[0];
-                if(WithComment && oldState >= StateMatrix.LowestStartedState)
+                if(WithComment)
                 {
                     Display = true;
                 }

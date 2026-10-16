@@ -16,7 +16,7 @@ namespace FWO.Test
         /// <summary>
         /// constructor
         /// </summary>
-        public SimulatedSCClient(ExternalTicketSystem tufinSystem) : base(tufinSystem)
+        public SimulatedSCClient(ExternalTicketSystem tufinSystem) : base(tufinSystem, checkCertificates: true)
         { }
 
         public void EnqueueResponse(string restEndPoint, RestResponse<int> response)

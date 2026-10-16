@@ -177,7 +177,13 @@ namespace FWO.Services.Workflow
                 {
                     approvalStates.Add(approval.StateId);
                 }
-                ActReqTask.StateId = ActStateMatrix.getDerivedStateFromSubStates(approvalStates);
+                int derivedState = ActStateMatrix.getDerivedStateFromSubStates(approvalStates);
+                // An approval action must not downgrade a request task that
+                // has already entered a later workflow phase.
+                if (derivedState > ActReqTask.StateId)
+                {
+                    ActReqTask.StateId = derivedState;
+                }
             }
             await UpdateActReqTaskState(triggerActions);
 

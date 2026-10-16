@@ -5,7 +5,7 @@
 @if (tenantList.Count > 1)
 {
         <div class="p-3">
-        <h5 class="text-left">@(userConfig.GetText("tenant_view"))</h5>
+        <h5 class="text-start">@(userConfig.GetText("tenant_view"))</h5>
         <Dropdown ElementType="Tenant" SelectedElement="SelectedTenant" SelectedElementChanged="SelectedTenantChanged"
                 ElementToString="@(t => t.Name ?? string.Empty)" Nullable="true" Elements="tenantList">
             <ElementTemplate Context="tenant">
@@ -17,7 +17,7 @@
 else
 {
     <div class="p-3">
-        <h5 class="text-left">@(userConfig.GetText("tenant")) @userConfig.User.Tenant?.Name</h5>
+        <h5 class="text-start">@(userConfig.GetText("tenant")) @userConfig.User.Tenant?.Name</h5>
     </div>
 }
 

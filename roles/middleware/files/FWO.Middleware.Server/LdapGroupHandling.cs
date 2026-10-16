@@ -16,20 +16,24 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Get the roles for the given DN list
         /// </summary>
+        /// <param name="dnList">User and group DNs to look up.</param>
+        /// <param name="cancellationToken">Cancels the lookup when the login request ends or runs out of time.</param>
         /// <returns>list of roles for the given DN list</returns>
-        public async Task<List<string>> GetRoles(List<string> dnList)
+        public async Task<List<string>> GetRoles(List<string> dnList, CancellationToken cancellationToken = default)
         {
-            return await GetMemberships(dnList, RoleSearchPath);
+            return await GetMemberships(dnList, RoleSearchPath, cancellationToken);
         }
 
         /// <summary>
         /// Get the groups for the given DN list
         /// </summary>
+        /// <param name="dnList">User DNs to look up.</param>
+        /// <param name="cancellationToken">Cancels the lookup when the login request ends or runs out of time.</param>
         /// <returns>list of groups for the given DN list</returns>
-        public async Task<List<string>> GetGroups(List<string> dnList)
+        public async Task<List<string>> GetGroups(List<string> dnList, CancellationToken cancellationToken = default)
         {
             string? groupPath = !string.IsNullOrWhiteSpace(GroupSearchPath) ? GroupSearchPath : GroupWritePath;
-            return await GetMemberships(dnList, groupPath);
+            return await GetMemberships(dnList, groupPath, cancellationToken);
         }
 
         [GeneratedRegex(@"(\bcn|\bou|\bdc|\bo|\bc|\bst|\bl)=(.*?)(?=,[A-Za-z]+=|$)", RegexOptions.IgnoreCase, "en-US")]
@@ -80,47 +84,54 @@ namespace FWO.Middleware.Server
             return dns.ToList();
         }
 
-        private async Task<List<string>> GetMemberships(List<string> dnList, string? searchPath)
+        private async Task<List<string>> GetMemberships(List<string> dnList, string? searchPath, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             List<string> userMemberships = [];
 
             if (!string.IsNullOrEmpty(searchPath))
             {
                 try
                 {
-                    using ILdapClient connection = await Connect();
-                    if (await TryBindSearchUser(connection))
+                    using ILdapClient connection = await Connect(cancellationToken);
+                    if (await TryBindSearchUser(connection, cancellationToken))
                     {
-                        await SearchAndCollectMemberships(connection, searchPath, dnList, userMemberships);
+                        await SearchAndCollectMemberships(connection, searchPath, dnList, userMemberships, cancellationToken);
                     }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get memberships", exception);
+                    Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to get memberships", exception);
                 }
             }
+            // a cancelled login closes the connection, which ends the lookup early: incomplete memberships must not be used
+            cancellationToken.ThrowIfCancellationRequested();
 
-            Log.WriteDebug($"Found the following roles / groups for user {dnList.FirstOrDefault()} in {Address}:{Port}:", string.Join("\n", userMemberships));
+            Log.WriteDebug($"Found the following roles / groups for user {dnList.FirstOrDefault()} in {Host()}:", string.Join("\n", userMemberships));
             return userMemberships;
         }
 
-        private async Task<bool> TryBindSearchUser(ILdapClient connection)
+        private async Task<bool> TryBindSearchUser(ILdapClient connection, CancellationToken cancellationToken)
         {
             string mainKey = AesEnc.GetMainKey();
             if (!AesEnc.TryDecrypt(SearchUserPwd, mainKey, out string decryptedSearchUserPwd))
             {
-                Log.WriteError($"LDAP decrypt {Address}:{Port}", "Failed to decrypt LDAP search user password.");
+                Log.WriteError($"LDAP decrypt {Host()}", "Failed to decrypt LDAP search user password.");
                 return false;
             }
 
-            return await TryBind(connection, SearchUser, decryptedSearchUserPwd);
+            return await TryBind(connection, SearchUser, decryptedSearchUserPwd, cancellationToken: cancellationToken);
         }
 
-        private async Task SearchAndCollectMemberships(ILdapClient connection, string searchPath, List<string> dnList, List<string> userMemberships)
+        private async Task SearchAndCollectMemberships(ILdapClient connection, string searchPath, List<string> dnList, List<string> userMemberships, CancellationToken cancellationToken)
         {
             int searchScope = Novell.Directory.Ldap.LdapConnection.ScopeSub; // TODO: Correct search scope?
             string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
-            ILdapSearchResults? allExistingGroupsAndRoles = await connection.SearchAsync(searchPath, searchScope, searchFilter, null, false);
+            ILdapSearchResults? allExistingGroupsAndRoles = await connection.SearchAsync(searchPath, searchScope, searchFilter, null, false, cancellationToken);
 
             HashSet<string> searchableDns = new(DistName.DnComparer);
             searchableDns.UnionWith(dnList.Where(dn => !string.IsNullOrWhiteSpace(dn)));
@@ -132,9 +143,9 @@ namespace FWO.Middleware.Server
                 return;
             }
 
-            while (await allExistingGroupsAndRoles.HasMoreAsync())
+            while (await allExistingGroupsAndRoles.HasMoreAsync(cancellationToken))
             {
-                LdapEntry? entry = await allExistingGroupsAndRoles.NextAsync();
+                LdapEntry? entry = await allExistingGroupsAndRoles.NextAsync(cancellationToken);
                 CollectMatchingMemberships(entry, searchableDns, userMemberships, UniqueMember);
             }
         }
@@ -194,7 +205,7 @@ namespace FWO.Middleware.Server
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all roles", exception);
+                    Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to get all roles", exception);
                 }
             }
             return roleUsers;
@@ -227,7 +238,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all groups", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to get all groups", exception);
             }
             return allGroups;
         }
@@ -268,7 +279,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all internal groups", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to get all internal groups", exception);
             }
             return allGroups;
         }
@@ -313,7 +324,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all internal groups", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to get all internal groups", exception);
             }
             return allGroups;
         }
@@ -372,7 +383,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception ex)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", $"Unexpected error while reading members of group {groupDn}", ex);
+                Log.WriteError($"Non-LDAP exception {Host()}", $"Unexpected error while reading members of group {groupDn}", ex);
             }
 
             return allMembers;
@@ -543,16 +554,16 @@ namespace FWO.Middleware.Server
                     //Add the entry to the directory
                     await connection.AddAsync(newEntry);
                     groupAdded = true;
-                    Log.WriteDebug("Add group", $"Group {groupName} added in {Address}:{Port}");
+                    Log.WriteDebug("Add group", $"Group {groupName} added in {Host()}");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteInfo("Add Group", $"couldn't add group to LDAP {Address}:{Port}: {exception}");
+                    Log.WriteInfo("Add Group", $"couldn't add group to LDAP {Host()}: {exception}");
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to add group", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to add group", exception);
             }
             return groupAdded ? groupDn : "";
         }
@@ -577,16 +588,16 @@ namespace FWO.Middleware.Server
                     //Add the entry to the directory
                     await connection.RenameAsync(oldGroupDn, newGroupRdn, true);
                     groupUpdated = true;
-                    Log.WriteDebug("Update group", $"Group {oldName} renamed to {newName} in {Address}:{Port}");
+                    Log.WriteDebug("Update group", $"Group {oldName} renamed to {newName} in {Host()}");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteInfo("Update Group", $"couldn't update group in LDAP {Address}:{Port}: {exception}");
+                    Log.WriteInfo("Update Group", $"couldn't update group in LDAP {Host()}: {exception}");
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to update group", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to update group", exception);
             }
             return groupUpdated ? $"{newGroupRdn},{GroupWritePath}" : "";
         }
@@ -609,16 +620,16 @@ namespace FWO.Middleware.Server
                     string groupDn = $"cn={groupName},{GroupWritePath}";
                     await connection.DeleteAsync(groupDn);
                     groupDeleted = true;
-                    Log.WriteDebug("Delete group", $"Group {groupName} deleted in {Address}:{Port}");
+                    Log.WriteDebug("Delete group", $"Group {groupName} deleted in {Host()}");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteInfo("Delete Group", $"couldn't delete group in LDAP {Address}:{Port}: {exception}");
+                    Log.WriteInfo("Delete Group", $"couldn't delete group in LDAP {Host()}: {exception}");
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to delete group", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to delete group", exception);
             }
             return groupDeleted;
         }

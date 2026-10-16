@@ -30,6 +30,14 @@ namespace FWO.Test
 
     internal class SimulatedUserConfig : UserConfig
     {
+        public SimulatedUserConfig() : base()
+        {
+            // Report-type tests generally exercise the per-role/category visibility rules, not the
+            // global on/off switch - default to every report type being globally available so those
+            // rules are the only thing narrowing CanUseReportType, unless a test overrides this itself.
+            AvailableReportTypes = System.Text.Json.JsonSerializer.Serialize(FWO.Basics.ReportTypeGroups.AllReportTypes());
+        }
+
         public static Dictionary<string, string> DummyTranslate = new()
         {
             {"Rules","Rules Report"},
@@ -82,6 +90,7 @@ namespace FWO.Test
             {"H5537","Clean zones: When enabled, tasks are bundled only if their source and destination objects can be mapped to the same network zones using the selected policy matrix."},
             {"source_zone","Source Zone"},
             {"source","Source"},
+            {"element_origin","Element origin"},
             {"destination_zone","Destination Zone"},
             {"destination","Destination"},
             {"services","Services"},
@@ -231,6 +240,7 @@ namespace FWO.Test
             {"rule_uid","rule_uid"},
             {"no_gws_found","no_gws_found"},
             {"flow_bundle_id","Bundle ID"},
+            {"reqDisplayBundledTasksAsOne","Display bundled tasks as one task"},
             {"is_in_use","Is in use"},
             {"devices","Devices"},
             {"rulebases","Rulebases"},
@@ -287,6 +297,7 @@ namespace FWO.Test
             {"connections_not_implemented", "Connections not implemented"},
             {"connections_with_diffs", "Connections with Diffs"},
             {"management", "Management"},
+            {"not_visible", "Not Visible"},
             {"gateway", "Gateway"},
             {"U1003", "In this report..."},
             {"fully_modelled", "fullymodelled"},
@@ -304,7 +315,7 @@ namespace FWO.Test
             {"sample_data_found_in", "Sample data found in "},
             {"no_sample_data_found", "No sample data found"},
             {"import", "Import"},
-            {"import_credential", "Import credentials"},
+            {"credentials", "Credentials"},
             {"tenants", "Tenants"},
             {"groups", "Groups"},
             {"import_issues_found", " import issues found"},
@@ -349,6 +360,8 @@ namespace FWO.Test
             {"replace","Replace" },
             {"E9017","ErrorText" },
             {"from_ticket","From Ticket" },
+            {"FromFlowDb","from Flow DB" },
+            {"Manually","manually" },
             {"InterfaceRejected","Interface rejected" },
             {"interface_requested","Interface requested" },
             {"requested_interfaces","Requested Interfaces" },
@@ -449,6 +462,8 @@ namespace FWO.Test
             {"bundle_request_tasks_by_type","Bundle request tasks by task type"},
             {"confirm_modelling_update","Confirm modelling update via UI message"},
             {"modelling_objects_updated"," modelling objects updated"},
+            {"auto_promoted_to","Automatically promoted to state "},
+            {"tasks_bundled_into"," request tasks bundled into "},
             {"H5530","Confirm sent email via UI message: After successful sending, the action shows a UI message with the number of sent emails."},
             {"H5539","Bundle request tasks by task type: If enabled, the email contains all matching request tasks of the same task type. Automatic single delivery per task type is only applied in the Internal Work OnSet flow."},
             {"H5534","Confirm modelling update via UI message: After a successful update, the action shows a UI message with the number of updated modelling objects."},
@@ -740,12 +755,13 @@ namespace FWO.Test
             {"private_key","Private key"},
             {"public_key","Public key"},
             {"login_secret","Login secret"},
-            {"cloud_client_id","Cloud client id"},
-            {"cloud_client_secret","Cloud client secret"},
+            {"additional_credential","Additional credential"},
+            {"E5128","Credential is used by other credentials"},
             {"fetch_credentials","Fetch credentials"},
             {"save_credential","Save credential"},
             {"delete_credential","Delete credential"},
             {"E5117","Credential is used by managements"},
+            {"E5113","Credential is used by external ticket systems"},
             {"U5117","Delete credential "},
             {"U5108","Remove sample credentials"},
             {"U5214","Group settings"},
@@ -818,7 +834,6 @@ namespace FWO.Test
             {"readonly_credential_mgm","Readonly credential"},
             {"config_path","Config path"},
             {"super_manager","Super manager"},
-            {"importer_host","Importer host"},
             {"debug_level","Debug level"},
             {"edit_management","Edit management"},
             {"fetch_managements","Fetch managements"},

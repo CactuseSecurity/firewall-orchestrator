@@ -4,6 +4,7 @@ using FWO.Data.Modelling;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Logging;
 using System.Collections.Generic;
 
 namespace FWO.Services.Workflow
@@ -449,7 +450,10 @@ namespace FWO.Services.Workflow
                     deadline = ticket.Deadline,
                     priority = ticket.Priority
                 };
+                Log.WriteDebug("Workflow State",
+                    $"Persisting ticket {ticket.Id} with state {ticket.StateId}; stored state is {storedTicket?.StateId.ToString() ?? "unknown"}.");
                 long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicketState, Variables)).UpdatedIdLong;
+                Log.WriteDebug("Workflow State", $"Ticket {ticket.Id} state mutation returned id {udId}.");
                 if (udId != ticket.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);

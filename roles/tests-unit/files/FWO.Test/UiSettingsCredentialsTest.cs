@@ -32,6 +32,7 @@ namespace FWO.Test
     internal class UiSettingsCredentialsTest
     {
         private static readonly List<int> kRemainingCredentialIds = [1, 3];
+        private static readonly List<string> kAdditionalCredentialChoices = ["", "3"];
         private static readonly FieldInfo JwtPublicKeyField = typeof(ConfigFile).GetField("jwtPublicKey", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
 
@@ -60,8 +61,8 @@ namespace FWO.Test
             {
                 Assert.That(apiConnection.Queries, Has.Count.EqualTo(1));
                 Assert.That(apiConnection.Queries[0], Is.EqualTo(DeviceQueries.getCredentials));
-                Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(3));
-                Assert.That(GetMember<List<ImportCredential>>(component, "sampleCredentials"), Has.Count.EqualTo(2));
+                Assert.That(GetMember<List<Credential>>(component, "credentials"), Has.Count.EqualTo(3));
+                Assert.That(GetMember<List<Credential>>(component, "sampleCredentials"), Has.Count.EqualTo(2));
                 Assert.That(GetMember<bool>(component, "showCleanupButton"), Is.True);
             });
         }
@@ -77,7 +78,7 @@ namespace FWO.Test
             {
                 Assert.That(apiConnection.Queries, Has.Count.EqualTo(1));
                 Assert.That(apiConnection.Queries[0], Is.EqualTo(DeviceQueries.getCredentialsWithoutSecrets));
-                Assert.That(GetMember<List<ImportCredential>>(component, "credentials")[0].Secret, Is.Empty);
+                Assert.That(GetMember<List<Credential>>(component, "credentials")[0].Secret, Is.Empty);
             });
         }
 
@@ -103,7 +104,7 @@ namespace FWO.Test
             await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin, messages);
             RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
             SettingsCredentials component = setup.Component;
-            ImportCredential credential = GetMember<List<ImportCredential>>(component, "credentials")[0];
+            Credential credential = GetMember<List<Credential>>(component, "credentials")[0];
             apiConnection.ManagementsUsingCred[credential.Id] = [new Management { Id = 5, Name = "mgmt-a" }, new Management { Id = 6, Name = "mgmt-b" }];
 
             await setup.Rendered.InvokeAsync(() => InvokePrivateTask(component, "RequestDelete", credential));
@@ -119,12 +120,57 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RequestDelete_ShowsGuardWhenCredentialIsUsedByTicketSystem()
+        {
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+            await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin, messages);
+            RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
+            SettingsCredentials component = setup.Component;
+            Credential credential = GetMember<List<Credential>>(component, "credentials")[0];
+            apiConnection.ManagementsUsingCred[credential.Id] = [new Management { Id = 5, Name = "mgmt-a" }];
+            SetTicketSystemsUsingCredential(component, credential.Id);
+
+            await setup.Rendered.InvokeAsync(() => InvokePrivateTask(component, "RequestDelete", credential));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Message, Is.EqualTo($"Credential is used by managements ({credential.Name}: mgmt-a) " +
+                    $"Credential is used by external ticket systems ({credential.Name}: tufin)"));
+                Assert.That(GetMember<bool>(component, "DeleteMode"), Is.False);
+                Assert.That(apiConnection.Queries, Does.Not.Contain(DeviceQueries.deleteCredential));
+            });
+        }
+
+        [Test]
+        public async Task RemoveSampleData_KeepsDemoCredentialsStillUsedByTicketSystems()
+        {
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+            await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin, messages);
+            RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
+            SettingsCredentials component = setup.Component;
+            SetTicketSystemsUsingCredential(component, 1);
+
+            InvokePrivateVoid(component, "RequestRemoveSampleData");
+            await setup.Rendered.InvokeAsync(() => InvokePrivateTask(component, "RemoveSampleData"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.deleteCredential), Is.EqualTo(1));
+                Assert.That(GetMember<List<Credential>>(component, "credentials").Select(credential => credential.Id),
+                    Is.EquivalentTo(kRemainingCredentialIds));
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Message, Is.EqualTo("Credential is used by external ticket systems (cred-one_demo: tufin)"));
+            });
+        }
+
+        [Test]
         public async Task RequestDelete_AllowsDeleteWhenCredentialIsUnused()
         {
             await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin);
             RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
             SettingsCredentials component = setup.Component;
-            ImportCredential credential = GetMember<List<ImportCredential>>(component, "credentials")[0];
+            Credential credential = GetMember<List<Credential>>(component, "credentials")[0];
 
             await setup.Rendered.InvokeAsync(() => InvokePrivateTask(component, "RequestDelete", credential));
 
@@ -142,7 +188,7 @@ namespace FWO.Test
             RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
             apiConnection.DeleteCredentialResult = new ReturnId { DeletedId = 1 };
             SettingsCredentials component = setup.Component;
-            ImportCredential credential = GetMember<List<ImportCredential>>(component, "credentials")[0];
+            Credential credential = GetMember<List<Credential>>(component, "credentials")[0];
             SetMember(component, "actCredential", credential);
             SetMember(component, "DeleteMode", true);
 
@@ -151,7 +197,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.deleteCredential), Is.EqualTo(1));
-                Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(2));
+                Assert.That(GetMember<List<Credential>>(component, "credentials"), Has.Count.EqualTo(2));
                 Assert.That(GetMember<bool>(component, "DeleteMode"), Is.False);
                 Assert.That(GetMember<bool>(component, "workInProgress"), Is.False);
             });
@@ -170,7 +216,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.deleteCredential), Is.EqualTo(2));
-                Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(1));
+                Assert.That(GetMember<List<Credential>>(component, "credentials"), Has.Count.EqualTo(1));
                 Assert.That(GetMember<bool>(component, "CleanupMode"), Is.False);
                 Assert.That(GetMember<bool>(component, "showCleanupButton"), Is.False);
             });
@@ -191,7 +237,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.deleteCredential), Is.EqualTo(1));
-                Assert.That(GetMember<List<ImportCredential>>(component, "credentials").Select(credential => credential.Id),
+                Assert.That(GetMember<List<Credential>>(component, "credentials").Select(credential => credential.Id),
                     Is.EquivalentTo(kRemainingCredentialIds));
                 Assert.That(messages, Has.Count.EqualTo(1));
                 Assert.That(messages[0].Title, Is.EqualTo("Remove sample data"));
@@ -208,7 +254,7 @@ namespace FWO.Test
             RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
             SettingsCredentials component = setup.Component;
             InvokePrivateVoid(component, "Add");
-            SetMember(component, "actCredential", new ImportCredential
+            SetMember(component, "actCredential", new Credential
             {
                 Name = "",
                 ImportUser = "import-user",
@@ -228,13 +274,91 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// Additional credentials may be cleared and cannot reference the edited credential or an SSH key pair.
+        /// </summary>
+        [Test]
+        public async Task Edit_ShowsAdditionalCredentialChoices()
+        {
+            await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin);
+
+            setup.Rendered.FindAll("button").First(button => button.TextContent.Trim() == "Edit").Click();
+
+            Assert.That(setup.Rendered.FindAll("#additionalCredential option").Select(option => option.GetAttribute("value")),
+                Is.EquivalentTo(kAdditionalCredentialChoices));
+        }
+
+        /// <summary>
+        /// Saving persists only the additional credential reference and encrypts the normal secret.
+        /// </summary>
+        [TestCase(true, 3)]
+        [TestCase(false, 3)]
+        [TestCase(false, null)]
+        public async Task Save_PersistsAdditionalCredentialReference(bool addMode, int? additionalCredentialId)
+        {
+            string keyFile = Path.GetTempFileName();
+            string? originalKeyFile = Environment.GetEnvironmentVariable("FWO_MAIN_KEY_FILE");
+            const string kMainKey = "0123456789abcdef0123456789abcdef";
+            try
+            {
+                File.WriteAllText(keyFile, kMainKey);
+                Environment.SetEnvironmentVariable("FWO_MAIN_KEY_FILE", keyFile);
+                await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin);
+                SetMember(setup.Component, "AddMode", addMode);
+                SetMember(setup.Component, "actCredential", new Credential
+                {
+                    Id = 1,
+                    Name = "parent",
+                    ImportUser = "user",
+                    Secret = "password",
+                    AdditionalCredentialId = additionalCredentialId
+                });
+
+                await setup.Rendered.InvokeAsync(setup.Component.Save);
+
+                Dictionary<string, object?> variables = addMode ? setup.ApiConnection.LastNewCredentialVariables : setup.ApiConnection.LastUpdateCredentialVariables;
+                Assert.Multiple(() =>
+                {
+                    Assert.That(variables["additionalCredentialId"], Is.EqualTo(additionalCredentialId));
+                    Assert.That(variables.ContainsKey("cloudClientSecret"), Is.False);
+                    Assert.That(FWO.Encryption.AesEnc.Decrypt((string)variables["secret"]!, kMainKey), Is.EqualTo("password"));
+                });
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("FWO_MAIN_KEY_FILE", originalKeyFile);
+                File.Delete(keyFile);
+            }
+        }
+
+        /// <summary>
+        /// The deletion guard names credentials that still reference the selected credential.
+        /// </summary>
+        [Test]
+        public async Task RequestDelete_ShowsAdditionalCredentialUsage()
+        {
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+            RecordingCredentialsApiConnection apiConnection = CreateApiConnection();
+            apiConnection.Credentials[2].AdditionalCredentialId = 1;
+            await using RenderSetup setup = await CreateRenderedSetup(apiConnection, Roles.Admin, messages);
+            Credential credential = GetMember<List<Credential>>(setup.Component, "credentials")[0];
+
+            await setup.Rendered.InvokeAsync(() => InvokePrivateTask(setup.Component, "RequestDelete", credential));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages.Single().Message, Does.Contain("Credential is used by other credentials").And.Contain("cred-three"));
+                Assert.That(GetMember<bool>(setup.Component, "DeleteMode"), Is.False);
+            });
+        }
+
         private static RecordingCredentialsApiConnection CreateApiConnection()
         {
             return new RecordingCredentialsApiConnection
             {
                 Credentials =
                 [
-                    new ImportCredential
+                    new Credential
                     {
                         Id = 1,
                         Name = "cred-one_demo",
@@ -242,7 +366,7 @@ namespace FWO.Test
                         Secret = "secret-one",
                         IsKeyPair = false
                     },
-                    new ImportCredential
+                    new Credential
                     {
                         Id = 2,
                         Name = "cred-two_demo",
@@ -251,7 +375,7 @@ namespace FWO.Test
                         IsKeyPair = true,
                         PublicKey = "public-two"
                     },
-                    new ImportCredential
+                    new Credential
                     {
                         Id = 3,
                         Name = "cred-three",
@@ -303,7 +427,7 @@ namespace FWO.Test
                     rendered.WaitForAssertion(() =>
                     {
                         SettingsCredentials component = rendered.FindComponent<SettingsCredentials>().Instance;
-                        Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(apiConnection.Credentials.Count));
+                        Assert.That(GetMember<List<Credential>>(component, "credentials"), Has.Count.EqualTo(apiConnection.Credentials.Count));
                     });
                 }
 
@@ -314,6 +438,15 @@ namespace FWO.Test
                 await context.DisposeAsync();
                 throw;
             }
+        }
+
+        private static void SetTicketSystemsUsingCredential(SettingsCredentials component, int credentialId)
+        {
+            GetMember<UserConfig>(component, "userConfig").ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem>
+            {
+                new() { Id = 1, Name = "tufin", CredentialId = credentialId },
+                new() { Id = 2, Name = "other", CredentialId = credentialId + 100 }
+            });
         }
 
         private static SimulatedUserConfig CreateUserConfig(string role)
@@ -404,7 +537,7 @@ namespace FWO.Test
         private sealed class RecordingCredentialsApiConnection : SimulatedApiConnection
         {
             public List<string> Queries { get; } = [];
-            public List<ImportCredential> Credentials { get; set; } = [];
+            public List<Credential> Credentials { get; set; } = [];
             public Dictionary<int, List<Management>> ManagementsUsingCred { get; } = [];
             public ReturnIdWrapper NewCredentialResult { get; set; } = new() { ReturnIds = [new ReturnId { NewId = 10 }] };
             public ReturnId UpdateCredentialResult { get; set; } = new() { UpdatedId = 1 };
@@ -416,14 +549,14 @@ namespace FWO.Test
             {
                 Queries.Add(query);
 
-                if (query == DeviceQueries.getCredentials && typeof(QueryResponseType) == typeof(List<ImportCredential>))
+                if (query == DeviceQueries.getCredentials && typeof(QueryResponseType) == typeof(List<Credential>))
                 {
-                    return Task.FromResult((QueryResponseType)(object)Credentials.Select(item => new ImportCredential(item)).ToList());
+                    return Task.FromResult((QueryResponseType)(object)Credentials.Select(item => new Credential(item)).ToList());
                 }
 
-                if (query == DeviceQueries.getCredentialsWithoutSecrets && typeof(QueryResponseType) == typeof(List<ImportCredential>))
+                if (query == DeviceQueries.getCredentialsWithoutSecrets && typeof(QueryResponseType) == typeof(List<Credential>))
                 {
-                    List<ImportCredential> sanitized = Credentials.Select(item => new ImportCredential(item) { Secret = "" }).ToList();
+                    List<Credential> sanitized = Credentials.Select(item => new Credential(item) { Secret = "" }).ToList();
                     return Task.FromResult((QueryResponseType)(object)sanitized);
                 }
 

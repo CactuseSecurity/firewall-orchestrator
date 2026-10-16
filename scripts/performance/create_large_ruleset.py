@@ -178,7 +178,7 @@ def create_management_and_device(client: GraphqlClient, args: argparse.Namespace
     credential_data = client.call(
         """
         mutation createPerfCredential($name: String!) {
-          insert_import_credential(objects: {
+          insert_credential(objects: {
             credential_name: $name
             username: "perf"
             secret: "perf"
@@ -190,7 +190,7 @@ def create_management_and_device(client: GraphqlClient, args: argparse.Namespace
         """,
         {"name": credential_name},
     )
-    credential_id = int(credential_data["insert_import_credential"]["returning"][0]["id"])
+    credential_id = int(credential_data["insert_credential"]["returning"][0]["id"])
 
     management_data = client.call(
         """

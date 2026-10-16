@@ -1,18 +1,21 @@
-from collections.abc import Callable
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 import fwo_const
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
-from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from models.fwconfig_normalized import FwConfigNormalized
-from models.import_state import ImportState
 from models.networkobject import NETWORK_OBJECT_TYPES_WITHOUT_STATIC_IP
-from models.rulebase import Rulebase
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+    from models.fwconfig_normalized import FwConfigNormalized
+    from models.import_state import ImportState
     from models.networkobject import NetworkObject
     from models.rule import RuleNormalized
+    from models.rulebase import Rulebase
     from models.rulebase_link import RulebaseLinkUidBased
 
 

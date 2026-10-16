@@ -43,8 +43,8 @@ Alter table "changelog_user" add  foreign key ("old_user_id") references firewal
 Alter table "config" add  foreign key ("config_user") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table "device" add  foreign key ("dev_typ_id") references "stm_dev_typ" ("dev_typ_id") on update restrict on delete cascade;
 Alter table "device" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
-ALTER TABLE "provisioning_config_node" ADD CONSTRAINT provisioning_config_node_parent_id_fkey FOREIGN KEY ("parent_id") REFERENCES "provisioning_config_node" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE "provisioning_config_value" ADD CONSTRAINT provisioning_config_value_node_id_fkey FOREIGN KEY ("node_id") REFERENCES "provisioning_config_node" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE "device_specific_config_node" ADD CONSTRAINT device_specific_config_node_parent_id_fkey FOREIGN KEY ("parent_id") REFERENCES "device_specific_config_node" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE "device_specific_config_value" ADD CONSTRAINT device_specific_config_value_node_id_fkey FOREIGN KEY ("node_id") REFERENCES "device_specific_config_node" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE gw_route ADD CONSTRAINT gw_route_routing_device_foreign_key FOREIGN KEY (routing_device) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE gw_route ADD CONSTRAINT gw_route_interface_foreign_key FOREIGN KEY (interface_id) REFERENCES gw_interface(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE gw_interface ADD CONSTRAINT gw_interface_routing_device_foreign_key FOREIGN KEY (routing_device) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -58,8 +58,8 @@ Alter table "import_full_config" add constraint "import_full_config_mgm_id_f_key
 Alter table "ldap_connection" add foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
 Alter table "management" add  foreign key ("dev_typ_id") references "stm_dev_typ" ("dev_typ_id") on update restrict on delete cascade;
 ALTER TABLE "management" ADD CONSTRAINT management_multi_device_manager_id_fkey FOREIGN KEY ("multi_device_manager_id") REFERENCES "management" ("mgm_id") ON UPDATE RESTRICT;
-ALTER TABLE "management" ADD CONSTRAINT management_import_credential_id_foreign_key FOREIGN KEY (import_credential_id) REFERENCES import_credential(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
-ALTER TABLE "management" ADD CONSTRAINT management_export_credential_id_foreign_key FOREIGN KEY ("export_credential_id") REFERENCES import_credential(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+ALTER TABLE "management" ADD CONSTRAINT management_import_credential_id_foreign_key FOREIGN KEY (import_credential_id) REFERENCES credential(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+ALTER TABLE "management" ADD CONSTRAINT management_export_credential_id_foreign_key FOREIGN KEY ("export_credential_id") REFERENCES credential(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 Alter table firewall."nw_object"
 add foreign key ("last_change_admin") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table firewall."nw_object"
@@ -337,6 +337,7 @@ ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_usr_foreign_k
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_request_reqtask_foreign_key FOREIGN KEY (reqtask_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_device_foreign_key FOREIGN KEY (device_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_management_foreign_key FOREIGN KEY (mgm_id) REFERENCES management(mgm_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_stm_action_foreign_key FOREIGN KEY (rule_action) REFERENCES stm_action(action_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_stm_tracking_foreign_key FOREIGN KEY (rule_tracking) REFERENCES stm_track(track_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_service_foreign_key FOREIGN KEY (svc_grp_id) REFERENCES firewall.nw_service(svc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -445,3 +446,5 @@ ALTER TABLE flow.nwgroup_member ADD CONSTRAINT flow_nwgroup_member_nwobject_fore
 
 ALTER TABLE flow.svcgroup_member ADD CONSTRAINT flow_svcgroup_member_svcgroup_foreign_key FOREIGN KEY (svcgrp_id) REFERENCES flow.svcgroup(svcgrp_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE flow.svcgroup_member ADD CONSTRAINT flow_svcgroup_member_svcobject_foreign_key FOREIGN KEY (svcobj_id) REFERENCES flow.svcobject(svcobj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+ALTER TABLE credential ADD CONSTRAINT credential_additional_credential_id_foreign_key FOREIGN KEY (additional_credential_id) REFERENCES credential(id) ON UPDATE RESTRICT ON DELETE RESTRICT;

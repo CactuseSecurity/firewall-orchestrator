@@ -281,7 +281,10 @@ namespace FWO.Services.Workflow
                 ["originalNatId"] = element.OriginalNatId,
                 ["ruleUid"] = element.RuleUid,
                 ["groupName"] = element.GroupName,
-                ["name"] = element.Name
+                ["name"] = element.Name,
+                ["startTime"] = element.StartTime?.ToUniversalTime(),
+                ["endTime"] = element.EndTime?.ToUniversalTime(),
+                ["timeObjId"] = element.TimeObjId
             };
         }
 

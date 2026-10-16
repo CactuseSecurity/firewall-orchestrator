@@ -21,6 +21,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string searchNetworkObjectsForRequestByIp;
         public static readonly string searchNetworkServicesForRequestByName;
         public static readonly string searchNetworkServicesForRequestByPort;
+        public static readonly string searchTimeObjectsForRequestByName;
 
         static ObjectQueries()
         {
@@ -88,6 +89,8 @@ namespace FWO.Api.Client.Queries
                     GetQueryText("networkService/searchNetworkServicesForRequestByName.graphql");
                 searchNetworkServicesForRequestByPort =
                     GetQueryText("networkService/searchNetworkServicesForRequestByPort.graphql");
+                searchTimeObjectsForRequestByName =
+                    GetQueryText("time/searchTimeObjectsForRequestByName.graphql");
             }
             catch (Exception exception)
             {

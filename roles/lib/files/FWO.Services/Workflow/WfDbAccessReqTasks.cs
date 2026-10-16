@@ -327,6 +327,7 @@ namespace FWO.Services.Workflow
             variables["flowNwGrpId"] = element.FlowNetworkGroupId;
             variables["flowSvcObjId"] = element.FlowServiceObjectId;
             variables["flowSvcGrpId"] = element.FlowServiceGroupId;
+            variables["flowTimeObjId"] = element.FlowTimeObjectId;
             return variables;
         }
     }

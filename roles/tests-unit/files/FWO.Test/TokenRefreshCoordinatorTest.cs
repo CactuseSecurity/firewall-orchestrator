@@ -305,6 +305,137 @@ namespace FWO.Test
             await coordinator.StopAsync();
         }
 
+        [Test]
+        public async Task VerifySessionAsync_WhenTheSessionEnded_DropsTheTokensAndLeavesTheSession()
+        {
+            SessionCheckFixture fixture = await SessionCheckFixture.CreateAsync(DateTime.UtcNow.AddMinutes(10));
+            fixture.MiddlewareClient.SessionCheckResponse = MockMiddlewareClient.CreateSessionCheckResponse(System.Net.HttpStatusCode.OK, "false");
+
+            await fixture.Coordinator.VerifySessionAsync();
+
+            Assert.Multiple(async () =>
+            {
+                Assert.That(fixture.MiddlewareClient.CheckSessionCallCount, Is.EqualTo(1));
+                Assert.That(fixture.MiddlewareClient.LastSessionCheckRequest?.RefreshToken, Is.EqualTo(SessionCheckFixture.kRefreshToken));
+                Assert.That(await fixture.TokenService.GetTokenPair(), Is.Null);
+                Assert.That(fixture.MiddlewareClient.RevokeRefreshTokenCallCount, Is.Zero, "the ended session must not be revoked again");
+                Assert.That(fixture.NavigationManager.ForcedNavigationCount, Is.EqualTo(1));
+            });
+        }
+
+        [TestCase(System.Net.HttpStatusCode.OK, "true")]
+        [TestCase(System.Net.HttpStatusCode.ServiceUnavailable, "")]
+        public async Task VerifySessionAsync_WhenTheSessionIsLiveOrCannotBeChecked_KeepsTheSession(System.Net.HttpStatusCode statusCode, string content)
+        {
+            SessionCheckFixture fixture = await SessionCheckFixture.CreateAsync(DateTime.UtcNow.AddMinutes(10));
+            fixture.MiddlewareClient.SessionCheckResponse = MockMiddlewareClient.CreateSessionCheckResponse(statusCode, content);
+
+            await fixture.Coordinator.VerifySessionAsync();
+
+            Assert.Multiple(async () =>
+            {
+                Assert.That(fixture.MiddlewareClient.CheckSessionCallCount, Is.EqualTo(1));
+                Assert.That(await fixture.TokenService.GetTokenPair(), Is.Not.Null);
+                Assert.That(fixture.NavigationManager.ForcedNavigationCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task VerifySessionAsync_WhenTheAccessTokenIsAboutToExpire_LeavesTheCheckToTheRefresh()
+        {
+            SessionCheckFixture fixture = await SessionCheckFixture.CreateAsync(DateTime.UtcNow.AddSeconds(30));
+
+            await fixture.Coordinator.VerifySessionAsync();
+
+            Assert.That(fixture.MiddlewareClient.CheckSessionCallCount, Is.Zero);
+        }
+
+        [Test]
+        public async Task SessionCheckSignal_MakesAStartedCoordinatorCheckItsSessionAtOnce()
+        {
+            SessionCheckFixture fixture = await SessionCheckFixture.CreateAsync(DateTime.UtcNow.AddMinutes(10));
+            fixture.MiddlewareClient.SessionCheckResponse = MockMiddlewareClient.CreateSessionCheckResponse(System.Net.HttpStatusCode.OK, "false");
+            await fixture.Coordinator.StartAsync();
+
+            fixture.Signal.RequestSessionCheck();
+
+            DateTime deadline = DateTime.UtcNow.Add(kTestTimeout);
+            while (fixture.NavigationManager.ForcedNavigationCount == 0 && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(10);
+            }
+            await fixture.Coordinator.StopAsync();
+
+            Assert.That(fixture.NavigationManager.ForcedNavigationCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task PeriodicCheck_EndsARevokedSession()
+        {
+            SessionCheckFixture fixture = await SessionCheckFixture.CreateAsync(DateTime.UtcNow.AddMinutes(10));
+            fixture.MiddlewareClient.SessionCheckResponse = MockMiddlewareClient.CreateSessionCheckResponse(System.Net.HttpStatusCode.OK, "false");
+            await fixture.Coordinator.StartAsync();
+
+            await fixture.RunnerFactory.Callback!();
+            await fixture.Coordinator.StopAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(fixture.MiddlewareClient.RefreshTokenCallCount, Is.Zero, "a fresh access token is not refreshed");
+                Assert.That(fixture.NavigationManager.ForcedNavigationCount, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task SessionCheckSignal_IsIgnoredByAStoppedCoordinator()
+        {
+            SessionCheckFixture fixture = await SessionCheckFixture.CreateAsync(DateTime.UtcNow.AddMinutes(10));
+            await fixture.Coordinator.StartAsync();
+            await fixture.Coordinator.StopAsync();
+
+            fixture.Signal.RequestSessionCheck();
+            await Task.Delay(50);
+
+            Assert.That(fixture.MiddlewareClient.CheckSessionCallCount, Is.Zero);
+        }
+
+        /// <summary>
+        /// A coordinator of a logged in session whose access token expires at the given time.
+        /// </summary>
+        private sealed class SessionCheckFixture
+        {
+            internal const string kRefreshToken = "refresh-token";
+
+            public MockMiddlewareClient MiddlewareClient { get; } = new();
+            public TestNavigationManager NavigationManager { get; } = new();
+            public UiSessionCheckSignal Signal { get; } = new();
+            public TrackingPeriodicTaskRunnerFactory RunnerFactory { get; } = new();
+            public TokenService TokenService { get; }
+            public TokenRefreshCoordinator Coordinator { get; }
+
+            private SessionCheckFixture()
+            {
+                TokenService = new(MiddlewareClient, new MockProtectedSessionStorage());
+                AuthStateProvider authStateProvider = new(TokenService, new EventMediator(), NavigationManager);
+                Coordinator = new(TokenService, authStateProvider, new RecordingApiConnection(), MiddlewareClient, new UserConfig(),
+                    RunnerFactory, NavigationManager, Signal);
+            }
+
+            public static async Task<SessionCheckFixture> CreateAsync(DateTime accessTokenExpiresUtc)
+            {
+                SessionCheckFixture fixture = new();
+                using RSA rsa = RSA.Create(2048);
+                await fixture.TokenService.SetTokenPair(new TokenPair
+                {
+                    AccessToken = GenerateJwtToken(new RsaSecurityKey(rsa.ExportParameters(true)), Roles.Reporter, accessTokenExpiresUtc),
+                    RefreshToken = kRefreshToken,
+                    AccessTokenExpires = accessTokenExpiresUtc,
+                    RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+                });
+                return fixture;
+            }
+        }
+
         private static TokenRefreshCoordinator CreateCoordinator(MockProtectedSessionStorage sessionStorage, IPeriodicTaskRunnerFactory runnerFactory)
         {
             MockMiddlewareClient middlewareClient = new();
@@ -352,9 +483,11 @@ namespace FWO.Test
 
             public int DisposeCallCount => SyncDisposeCallCount + AsyncDisposeCallCount;
 
+            public Func<Task>? Callback { get; private set; }
+
             public IPeriodicTaskRunner Create(Func<Task> callback, TimeSpan interval, string taskName = "")
             {
-                _ = callback;
+                Callback = callback;
                 _ = interval;
                 _ = taskName;
                 CreateCallCount++;
@@ -496,8 +629,14 @@ namespace FWO.Test
                 Initialize("http://localhost/", "http://localhost/");
             }
 
+            public int ForcedNavigationCount { get; private set; }
+
             protected override void NavigateToCore(string uri, bool forceLoad)
             {
+                if (forceLoad)
+                {
+                    ForcedNavigationCount++;
+                }
             }
         }
     }

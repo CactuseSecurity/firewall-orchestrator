@@ -1,3 +1,4 @@
+using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Middleware;
@@ -20,13 +21,15 @@ namespace FWO.Middleware.Server.Controllers
     public class GroupController : ControllerBase
     {
         private readonly List<Ldap> ldaps;
+        private readonly UserSessionRevocation sessionRevocation;
 
         /// <summary>
-        /// Constructor needing ldap list
+        /// Constructor needing ldap list and connection
         /// </summary>
-        public GroupController(List<Ldap> ldaps)
+        public GroupController(List<Ldap> ldaps, ApiConnection apiConnection)
         {
             this.ldaps = ldaps;
+            sessionRevocation = new UserSessionRevocation(apiConnection, ldaps);
         }
 
         /// <summary>
@@ -121,6 +124,8 @@ namespace FWO.Middleware.Server.Controllers
         {
             bool groupDeleted = false;
             List<Task> workers = [];
+            // the members lose what the group granted them, and cannot be resolved once the group is gone
+            List<int> affectedUserIds = await sessionRevocation.ResolveLocalUserIds(GetWritableGroupDns(parameters.GroupName));
 
             foreach (Ldap currentLdap in ldaps)
             {
@@ -139,8 +144,23 @@ namespace FWO.Middleware.Server.Controllers
             }
             await Task.WhenAll(workers);
 
+            if (groupDeleted)
+            {
+                await sessionRevocation.RevokeSessions(affectedUserIds, $"Deleted group {parameters.GroupName}");
+            }
+
             // Return status and result
             return groupDeleted;
+        }
+
+        /// <summary>
+        /// Returns the dns the group of the given name has in the directories in which groups can be deleted.
+        /// </summary>
+        private List<string> GetWritableGroupDns(string groupName)
+        {
+            return [.. ldaps
+                .Where(currentLdap => currentLdap.IsInternal() && currentLdap.IsWritable() && currentLdap.HasGroupHandling())
+                .Select(currentLdap => $"cn={groupName},{currentLdap.GroupWritePath}")];
         }
 
         // POST: GroupController/Edit/5
@@ -484,6 +504,9 @@ namespace FWO.Middleware.Server.Controllers
         {
             bool userRemoved = false;
             List<Task> workers = [];
+            // the dn may name a nested group, whose members leave the group as well
+            List<string> removedDns = new() { parameters.UserDn };
+            List<int> affectedUserIds = await sessionRevocation.ResolveLocalUserIds(removedDns);
 
             foreach (Ldap currentLdap in ldaps)
             {
@@ -501,6 +524,11 @@ namespace FWO.Middleware.Server.Controllers
                 }
             }
             await Task.WhenAll(workers);
+
+            if (userRemoved)
+            {
+                await sessionRevocation.RevokeSessions(affectedUserIds, $"Removed {parameters.UserDn} from group {parameters.GroupDn}");
+            }
 
             // Return status and result
             return userRemoved;

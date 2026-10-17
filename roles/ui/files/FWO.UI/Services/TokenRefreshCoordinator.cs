@@ -25,6 +25,7 @@ namespace FWO.Ui.Services
         private readonly UserConfig userConfig;
         private readonly IPeriodicTaskRunnerFactory periodicTaskRunnerFactory;
         private readonly NavigationManager navigationManager;
+        private readonly UiSessionCheckSignal? sessionCheckSignal;
         private readonly SemaphoreSlim startStopLock = new(1, 1);
 
         private IPeriodicTaskRunner? runner;
@@ -40,7 +41,8 @@ namespace FWO.Ui.Services
             MiddlewareClient middlewareClient,
             UserConfig userConfig,
             IPeriodicTaskRunnerFactory periodicTaskRunnerFactory,
-            NavigationManager navigationManager)
+            NavigationManager navigationManager,
+            UiSessionCheckSignal? sessionCheckSignal = null)
         {
             this.tokenService = tokenService;
             this.authenticationProvider = authenticationProvider;
@@ -49,6 +51,7 @@ namespace FWO.Ui.Services
             this.userConfig = userConfig;
             this.periodicTaskRunnerFactory = periodicTaskRunnerFactory;
             this.navigationManager = navigationManager;
+            this.sessionCheckSignal = sessionCheckSignal;
         }
 
         /// <inheritdoc />
@@ -64,7 +67,11 @@ namespace FWO.Ui.Services
 
                 started = true;
                 navigationManager.LocationChanged += OnLocationChanged;
-                runner = periodicTaskRunnerFactory.Create(CheckAndRefreshTokenAsync, TokenRefreshCheckInterval, nameof(TokenRefreshCoordinator));
+                if (sessionCheckSignal != null)
+                {
+                    sessionCheckSignal.SessionCheckRequested += OnSessionCheckRequested;
+                }
+                runner = periodicTaskRunnerFactory.Create(CheckTokenAndSessionAsync, TokenRefreshCheckInterval, nameof(TokenRefreshCoordinator));
                 runner.Start();
             }
             finally
@@ -147,6 +154,10 @@ namespace FWO.Ui.Services
 
             started = false;
             navigationManager.LocationChanged -= OnLocationChanged;
+            if (sessionCheckSignal != null)
+            {
+                sessionCheckSignal.SessionCheckRequested -= OnSessionCheckRequested;
+            }
             IPeriodicTaskRunner? runnerToStop = runner;
             runner = null;
             return runnerToStop;
@@ -155,6 +166,47 @@ namespace FWO.Ui.Services
         private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
         {
             await CheckAndRefreshTokenAsync();
+        }
+
+        private void OnSessionCheckRequested()
+        {
+            // raised on the circuit of the user who made the change, which must not wait for the other sessions
+            _ = Task.Run(VerifySessionAsync);
+        }
+
+        /// <summary>
+        /// Periodic work: refreshes the access token when it is about to expire, then checks that the session has
+        /// not been revoked in the meantime.
+        /// </summary>
+        private async Task CheckTokenAndSessionAsync()
+        {
+            await CheckAndRefreshTokenAsync();
+            await VerifySessionAsync();
+        }
+
+        /// <summary>
+        /// Ends the session if the middleware reports it ended, e.g. because the permissions of its user were
+        /// reduced or the user was deleted (#5503). A session whose access token is about to expire is left to the
+        /// refresh, which ends it in that case as well.
+        /// </summary>
+        internal async Task VerifySessionAsync()
+        {
+            try
+            {
+                if (!await tokenService.HasRefreshToken() || await tokenService.IsAccessTokenExpired())
+                {
+                    return;
+                }
+
+                if (await tokenService.CheckSession() == SessionCheckOutcome.Ended && authenticationProvider is AuthStateProvider authStateProvider)
+                {
+                    await authStateProvider.EndRevokedSession();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(LogCategory, "Error during session check", ex);
+            }
         }
 
         private async Task CheckAndRefreshTokenAsync()

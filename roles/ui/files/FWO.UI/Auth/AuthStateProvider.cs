@@ -149,6 +149,36 @@ namespace FWO.Ui.Auth
                 Log.WriteWarning("Deauthenticate", $"Token cleanup failed during logout: {ex.Message}");
             }
 
+            await ResetAuthenticationState(navigationUri, forceNavigation);
+        }
+
+        /// <summary>
+        /// Ends a session the middleware has already ended, e.g. because the permissions of its user were reduced
+        /// or the user was deleted: the tokens are dropped without revoking them again, and the browser is sent to
+        /// the login page, which also closes this circuit together with the JWT it holds.
+        /// </summary>
+        public async Task EndRevokedSession()
+        {
+            string userDn = user.FindFirstValue("x-hasura-uuid") ?? "";
+            Log.WriteAudit("Session Revocation", $"Ended the revoked session of user with DN: \"{userDn}\".");
+
+            try
+            {
+                await tokenService.ClearTokens();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Session Revocation", $"Token cleanup failed while ending a revoked session: {ex.Message}");
+            }
+
+            await ResetAuthenticationState("", forceNavigation: true);
+        }
+
+        /// <summary>
+        /// Clears the execution mode and the authenticated user and optionally reloads the application.
+        /// </summary>
+        private async Task ResetAuthenticationState(string navigationUri, bool forceNavigation)
+        {
             try
             {
                 if (executionModeStorage != null)

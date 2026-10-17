@@ -31,6 +31,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     private IpProtocolCache? ipProtocolCache;
     private IReadOnlyList<FlowZoneGroupPattern> zonePatterns = [];
     private string? parsedZonePatternConfig;
+    private bool disposed;
 
     private sealed class IpProtocolCache(Dictionary<int, string> names, Dictionary<string, int> idsByName)
     {
@@ -92,8 +93,15 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        if (disposed)
+        {
+            return;
+        }
+
+        disposed = true;
         configSubscription?.Dispose();
         ipProtocolCacheLock.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -104,6 +112,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <param name="offset">Number of objects skipped before the page; null skips none.</param>
     public async Task<ListPage<AddressObjectResponse>> GetAddressObjectsAsync(bool? visibleInRequest, int limit, int? offset)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         ListPage<FlowNwObject> page = await LoadPageAsync<FlowNwObject>(FlowQueries.getFlowAddressObjects, visibleInRequest, limit, offset);
         return new ListPage<AddressObjectResponse>(page.Items.Select(ToAddressObjectResponse).ToList(), page.HasMore);
     }
@@ -116,6 +125,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <param name="offset">Number of groups skipped before the page; null skips none.</param>
     public async Task<ListPage<AddressGroupResponse>> GetAddressGroupsAsync(bool? visibleInRequest, int limit, int? offset)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         ListPage<FlowNwGroup> page = await LoadPageAsync<FlowNwGroup>(FlowQueries.getFlowAddressGroups, visibleInRequest, limit, offset);
         return new ListPage<AddressGroupResponse>(page.Items.Select(ToAddressGroupResponse).ToList(), page.HasMore);
     }
@@ -130,6 +140,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <returns>The address groups of the page separated into standard groups and zone groups, and whether further groups follow.</returns>
     public async Task<(SeparatedAddressGroupsResponse Groups, bool HasMore)> GetSeparatedAddressGroupsAsync(bool? visibleInRequest, int limit, int? offset)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         ListPage<FlowNwGroup> page = await LoadPageAsync<FlowNwGroup>(FlowQueries.getFlowAddressGroups, visibleInRequest, limit, offset);
         IReadOnlyList<FlowZoneGroupPattern> configuredZonePatterns = GetZonePatterns();
         SeparatedAddressGroupsResponse separatedGroups = new();
@@ -158,6 +169,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <param name="offset">Number of objects skipped before the page; null skips none.</param>
     public async Task<ListPage<ServiceObjectResponse>> GetServiceObjectsAsync(bool? visibleInRequest, int limit, int? offset)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         ListPage<FlowSvcObject> page = await LoadPageAsync<FlowSvcObject>(FlowQueries.getFlowServiceObjects, visibleInRequest, limit, offset);
         IpProtocolCache protocolCache = await GetIpProtocolCacheAsync();
         return new ListPage<ServiceObjectResponse>(
@@ -172,6 +184,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <param name="offset">Number of groups skipped before the page; null skips none.</param>
     public async Task<ListPage<ServiceGroupResponse>> GetServiceGroupsAsync(bool? visibleInRequest, int limit, int? offset)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         ListPage<FlowSvcGroup> page = await LoadPageAsync<FlowSvcGroup>(FlowQueries.getFlowServiceGroups, visibleInRequest, limit, offset);
         return new ListPage<ServiceGroupResponse>(page.Items.Select(ToServiceGroupResponse).ToList(), page.HasMore);
     }
@@ -181,6 +194,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// </summary>
     public async Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(FlowGroupResolutionParameters parameters)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         parameters.NetworkGroupIds ??= [];
         parameters.NetworkGroupNames ??= [];
         parameters.ServiceGroupIds ??= [];
@@ -214,6 +228,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <param name="offset">Number of objects skipped before the page; null skips none.</param>
     public async Task<ListPage<TimeObjectResponse>> GetTimeObjectsAsync(bool? visibleInRequest, int limit, int? offset)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         ListPage<FlowTimeObject> page = await LoadPageAsync<FlowTimeObject>(FlowQueries.getFlowTimeObjects, visibleInRequest, limit, offset);
         return new ListPage<TimeObjectResponse>(page.Items.Select(ToTimeObjectResponse).ToList(), page.HasMore);
     }
@@ -223,6 +238,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// </summary>
     public async Task<AddressObjectIdResponse> GetAddressObjectIdAsync(string ipStart, string ipEnd, bool? visibleInRequest)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         List<FlowNwObject> result = await apiConnection.SendQueryAsync<List<FlowNwObject>>(
             FlowQueries.getFlowAddressObjectId,
             BuildLookupQueryVariables(visibleInRequest, ("ip_start", ipStart), ("ip_end", ipEnd))) ?? [];
@@ -245,6 +261,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <returns>At most <see cref="kMaxServiceObjectIdCandidates"/> matches; empty for an unknown protocol.</returns>
     public async Task<List<ServiceObjectIdResponse>> FindServiceObjectIdsAsync(string protocol, int? portStart, int? portEnd, bool? visibleInRequest)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         int? protocolId = await ResolveProtocolIdAsync(protocol);
         if (!protocolId.HasValue)
         {
@@ -266,6 +283,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// </summary>
     public async Task<TimeObjectIdResponse> GetTimeObjectIdAsync(DateTimeOffset? startTime, DateTimeOffset? endTime, bool? visibleInRequest)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         List<FlowTimeObject> result = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(
             FlowQueries.getFlowTimeObjectId,
             BuildLookupQueryVariables(visibleInRequest, ("start_time", startTime), ("end_time", endTime))) ?? [];

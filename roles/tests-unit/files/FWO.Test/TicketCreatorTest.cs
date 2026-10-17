@@ -231,6 +231,23 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void Dispose_DisposesTheOwnedWorkflowHandlerAndIgnoresRepeatedCalls()
+        {
+            TicketCreator ticketCreator = new(new SimulatedApiConnection(), new SimulatedUserConfig(), new ClaimsPrincipal(),
+                new MiddlewareClient("http://localhost/"), WorkflowPhases.request);
+            WfHandler wfHandler = GetPrivateField<WfHandler>(ticketCreator, "wfHandler");
+
+            ticketCreator.Dispose();
+
+            Assert.DoesNotThrow(ticketCreator.Dispose);
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<bool>(ticketCreator, "disposed"), Is.True);
+                Assert.That(GetPrivateField<bool>(wfHandler, "disposed"), Is.True);
+            });
+        }
+
         /// <summary>
         /// Review finding F11: when a saved ticket cannot be read back, the comments of its request tasks must not be
         /// attached to the in-memory copy, whose request tasks have no ids.

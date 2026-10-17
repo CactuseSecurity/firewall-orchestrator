@@ -16,8 +16,9 @@ using System.Text.Json;
 
 namespace FWO.Report
 {
-    public class ReportCompliance : ReportBase
+    public class ReportCompliance : ReportBase, IDisposable
     {
+        private bool _disposed;
 
         #region Properties
 
@@ -34,6 +35,7 @@ namespace FWO.Report
         public List<int> ManagementScope { get; set; } = [];
         protected DebugConfig DebugConfig;
         protected readonly GlobalConfig GlobalConfig;
+        private readonly bool _ownsGlobalConfig;
 
         #endregion
 
@@ -61,10 +63,12 @@ namespace FWO.Report
             if (userConfig.GlobalConfig != null)
             {
                 GlobalConfig = userConfig.GlobalConfig;
+                _ownsGlobalConfig = false;
             }
             else
             {
                 GlobalConfig = new();
+                _ownsGlobalConfig = true;
             }
 
             _maxDegreeOfParallelism = GlobalConfig.ComplianceCheckAvailableProcessors > Environment.ProcessorCount ? Environment.ProcessorCount : GlobalConfig.ComplianceCheckAvailableProcessors;
@@ -683,6 +687,38 @@ namespace FWO.Report
         public override string ExportToHtml()
         {
             throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Disposes the semaphore and the global config if this report created it.
+        /// </summary>
+        /// <param name="disposing">True when called from <see cref="Dispose()"/>, false when called from a finalizer.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                _semaphore.Dispose();
+                if (_ownsGlobalConfig)
+                {
+                    GlobalConfig.Dispose();
+                }
+            }
+
+            _disposed = true;
+        }
+
+        /// <summary>
+        /// Releases the resources owned by this report.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         #endregion

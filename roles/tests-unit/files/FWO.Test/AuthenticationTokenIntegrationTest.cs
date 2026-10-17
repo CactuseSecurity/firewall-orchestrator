@@ -18,7 +18,7 @@ namespace FWO.Test
     [TestFixture]
     [NonParallelizable]
     [RequiresIntegrationEnvironment]
-    internal class AuthenticationTokenIntegrationTest
+    internal sealed class AuthenticationTokenIntegrationTest : IDisposable
     {
         // High enough that the requests genuinely overlap on the single-use token.
         private const int kConcurrentRefreshRequests = 18;
@@ -75,7 +75,14 @@ namespace FWO.Test
         public void GlobalCleanup()
         {
             Log.WriteInfo("Test Cleanup", "Disposing JWT integration test resources");
+            Dispose();
+        }
+
+        public void Dispose()
+        {
             client?.Dispose();
+            client = null;
+            GC.SuppressFinalize(this);
         }
 
         #endregion

@@ -31,8 +31,11 @@ namespace FWO.Services.Workflow
         displayPathAnalysis
     }
 
-    public partial class WfHandler
+    public partial class WfHandler : IDisposable
     {
+        private bool disposed;
+        private readonly bool ownsUserConfig;
+
         public List<WfTicket> TicketList { get; set; } = [];
         public WfTicket ActTicket { get; set; } = new();
         public WfReqTask ActReqTask { get; set; } = new();
@@ -96,6 +99,7 @@ namespace FWO.Services.Workflow
         public WfHandler()
         {
             userConfig = new();
+            ownsUserConfig = true;
         }
 
         /// <summary>
@@ -112,6 +116,7 @@ namespace FWO.Services.Workflow
             MiddlewareClient = middlewareClient;
             RequestedRulePolicyChecker = requestedRulePolicyChecker;
             AuthUser = authUser;
+            ownsUserConfig = false;
         }
 
         /// <summary>
@@ -129,6 +134,7 @@ namespace FWO.Services.Workflow
             RequestedRulePolicyChecker = requestedRulePolicyChecker;
             WorkflowRecipientResolver = workflowRecipientResolver;
             usedInMwServer = true;
+            ownsUserConfig = false;
         }
 
         public async Task<bool> Init(bool fetchData = false, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false)
@@ -349,6 +355,34 @@ namespace FWO.Services.Workflow
         public void DisplayMessage(Exception? exception = null, string title = "", string message = "", bool errorFlag = false)
         {
             DisplayMessageInUi(exception, title, message, errorFlag);
+        }
+
+        /// <summary>
+        /// Disposes the user config if this handler created it. An injected user config belongs to the caller.
+        /// </summary>
+        /// <param name="disposing">True when called from <see cref="Dispose()"/>, false when called from a finalizer.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            if (disposing && ownsUserConfig)
+            {
+                userConfig.Dispose();
+            }
+
+            disposed = true;
+        }
+
+        /// <summary>
+        /// Releases the resources owned by this handler.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }

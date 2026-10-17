@@ -24,6 +24,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GraphQlApiSubscriptionDisposeIgnoresRepeatedCalls()
+        {
+            TestApiConnection apiConnection = new();
+            TestGraphQlApiSubscription<string> subscription = CreateSubscription<string>(apiConnection);
+
+            subscription.Dispose();
+
+            Assert.DoesNotThrow(subscription.Dispose);
+            Assert.That(subscription.IsDisposed, Is.True);
+        }
+
+        [Test]
+        public void GraphQlApiSubscriptionDisposeFromFinalizerKeepsSubscriptionActive()
+        {
+            TestApiConnection apiConnection = new();
+            using TestGraphQlApiSubscription<string> subscription = CreateSubscription<string>(apiConnection);
+
+            subscription.DisposeFromFinalizer();
+
+            Assert.That(subscription.IsDisposed, Is.False);
+        }
+
+        [Test]
         public void GraphQlApiSubscriptionCreatesSubscriptionOnConstruction()
         {
             TestApiConnection apiConnection = new();
@@ -200,7 +223,12 @@ namespace FWO.Test
 
             protected override void Dispose(bool disposing)
             {
-                DisposeCount++;
+                if (!IsDisposed)
+                {
+                    DisposeCount++;
+                }
+
+                base.Dispose(disposing);
             }
 
             public int RebindCount { get; private set; }
@@ -232,6 +260,11 @@ namespace FWO.Test
             internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
                 RebindCount++;
+            }
+
+            public void DisposeFromFinalizer()
+            {
+                Dispose(false);
             }
 
             protected override void Dispose(bool disposing)
@@ -371,7 +404,9 @@ namespace FWO.Test
             { }
 
             protected override void Dispose(bool disposing)
-            { }
+            {
+                base.Dispose(disposing);
+            }
 
             public override void DisposeSubscriptions<T>()
             { }

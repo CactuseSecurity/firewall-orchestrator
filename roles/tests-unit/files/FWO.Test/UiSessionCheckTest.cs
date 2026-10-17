@@ -18,11 +18,15 @@ namespace FWO.Test
         [TestCase(HttpStatusCode.OK, "true", SessionCheckOutcome.Live)]
         [TestCase(HttpStatusCode.OK, " false ", SessionCheckOutcome.Ended)]
         [TestCase(HttpStatusCode.OK, "not a bool", SessionCheckOutcome.Unknown)]
+        [TestCase(HttpStatusCode.OK, "", SessionCheckOutcome.Unknown)]
+        [TestCase(HttpStatusCode.OK, null, SessionCheckOutcome.Unknown)]
+        [TestCase(HttpStatusCode.OK, "{}", SessionCheckOutcome.Unknown)]
+        [TestCase(HttpStatusCode.OK, " TRUE ", SessionCheckOutcome.Live)]
         [TestCase(HttpStatusCode.Unauthorized, "", SessionCheckOutcome.Ended)]
         [TestCase(HttpStatusCode.Forbidden, "", SessionCheckOutcome.Ended)]
         [TestCase(HttpStatusCode.ServiceUnavailable, "", SessionCheckOutcome.Unknown)]
         [TestCase(HttpStatusCode.TooManyRequests, "", SessionCheckOutcome.Unknown)]
-        public async Task CheckSession_InterpretsTheAnswer(HttpStatusCode statusCode, string content, SessionCheckOutcome expected)
+        public async Task CheckSession_InterpretsTheAnswer(HttpStatusCode statusCode, string? content, SessionCheckOutcome expected)
         {
             MockMiddlewareClient middlewareClient = new()
             {

@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Config.File;
 using FWO.Data;
 using FWO.Data.Middleware;
@@ -9,6 +10,9 @@ using FWO.Services.EventMediator;
 using FWO.Test.Mocks;
 using FWO.Ui.Auth;
 using FWO.Ui.Services;
+using GraphQL;
+using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.SystemTextJson;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Routing;
@@ -188,12 +192,13 @@ namespace FWO.Test
             AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
             RecordingApiConnection apiConnection = new();
             UserConfig userConfig = new();
+            int authenticationStateChanges = 0;
+            authStateProvider.AuthenticationStateChanged += _ => authenticationStateChanges++;
+            UiSessionRestorer sessionRestorer = new(authStateProvider, apiConnection, middlewareClient, userConfig);
             TokenRefreshCoordinator coordinator = new(
                 tokenService,
                 authStateProvider,
-                apiConnection,
-                middlewareClient,
-                userConfig,
+                sessionRestorer,
                 new TrackingPeriodicTaskRunnerFactory(),
                 navigationManager);
 
@@ -223,6 +228,7 @@ namespace FWO.Test
                 Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.True);
                 Assert.That(userConfig.User.Dn, Is.EqualTo(RecordingApiConnection.TestUserDn));
                 Assert.That(apiConnection.ReconnectSubscriptionsCallCount, Is.EqualTo(1));
+                Assert.That(authenticationStateChanges, Is.EqualTo(1), "restoration must complete and notify the UI");
             });
 
             await coordinator.StopAsync();
@@ -237,12 +243,11 @@ namespace FWO.Test
             EventMediator eventMediator = new();
             TestNavigationManager navigationManager = new();
             AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+            UiSessionRestorer sessionRestorer = new(authStateProvider, new RecordingApiConnection(), middlewareClient, new UserConfig());
             TokenRefreshCoordinator coordinator = new(
                 tokenService,
                 authStateProvider,
-                new RecordingApiConnection(),
-                middlewareClient,
-                new UserConfig(),
+                sessionRestorer,
                 new TrackingPeriodicTaskRunnerFactory(),
                 navigationManager);
 
@@ -279,12 +284,11 @@ namespace FWO.Test
             EventMediator eventMediator = new();
             TestNavigationManager navigationManager = new();
             AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+            UiSessionRestorer sessionRestorer = new(authStateProvider, new RecordingApiConnection(), middlewareClient, new UserConfig());
             TokenRefreshCoordinator coordinator = new(
                 tokenService,
                 authStateProvider,
-                new RecordingApiConnection(),
-                middlewareClient,
-                new UserConfig(),
+                sessionRestorer,
                 new TrackingPeriodicTaskRunnerFactory(),
                 navigationManager);
 
@@ -303,6 +307,29 @@ namespace FWO.Test
             Assert.That(sessionStorage.ContainsKey("token_pair"), Is.False);
 
             await coordinator.StopAsync();
+        }
+
+        /// <summary>
+        /// A temporary middleware outage leaves the stored session available for the next refresh attempt.
+        /// </summary>
+        [Test]
+        public async Task StartAsync_WhenSessionRestoreIsRetryable_KeepsStoredTokens()
+        {
+            SessionCheckFixture fixture = await SessionCheckFixture.CreateAsync(DateTime.UtcNow.AddMinutes(-5));
+            fixture.MiddlewareClient.ShouldRefreshSucceed = false;
+            fixture.MiddlewareClient.RefreshFailureStatusCode = System.Net.HttpStatusCode.ServiceUnavailable;
+
+            await fixture.Coordinator.StartAsync();
+            await fixture.Coordinator.StopAsync();
+
+            TokenPair? storedTokens = await fixture.TokenService.GetTokenPair();
+            Assert.Multiple(() =>
+            {
+                Assert.That(fixture.MiddlewareClient.RefreshTokenCallCount, Is.EqualTo(1));
+                Assert.That(storedTokens?.RefreshToken, Is.EqualTo(SessionCheckFixture.kRefreshToken));
+                Assert.That(fixture.MiddlewareClient.RevokeRefreshTokenCallCount, Is.Zero);
+                Assert.That(fixture.NavigationManager.ForcedNavigationCount, Is.Zero);
+            });
         }
 
         [Test]
@@ -417,7 +444,8 @@ namespace FWO.Test
             {
                 TokenService = new(MiddlewareClient, new MockProtectedSessionStorage());
                 AuthStateProvider authStateProvider = new(TokenService, new EventMediator(), NavigationManager);
-                Coordinator = new(TokenService, authStateProvider, new RecordingApiConnection(), MiddlewareClient, new UserConfig(),
+                UiSessionRestorer sessionRestorer = new(authStateProvider, new RecordingApiConnection(), MiddlewareClient, new UserConfig());
+                Coordinator = new(TokenService, authStateProvider, sessionRestorer,
                     RunnerFactory, NavigationManager, Signal);
             }
 
@@ -440,13 +468,13 @@ namespace FWO.Test
         {
             MockMiddlewareClient middlewareClient = new();
             TokenService tokenService = new(middlewareClient, sessionStorage);
+            TestAuthenticationStateProvider authenticationProvider = new();
+            UiSessionRestorer sessionRestorer = new(authenticationProvider, new MockApiConnection(), middlewareClient, new UserConfig());
 
             return new TokenRefreshCoordinator(
                 tokenService,
-                new TestAuthenticationStateProvider(),
-                new MockApiConnection(),
-                middlewareClient,
-                new UserConfig(),
+                authenticationProvider,
+                sessionRestorer,
                 runnerFactory,
                 new TestNavigationManager());
         }
@@ -582,10 +610,32 @@ namespace FWO.Test
 
         private sealed class RecordingApiConnection : SimulatedApiConnection
         {
+            private static readonly ConfigItem[] kEmptyConfigItems = [];
             internal const string TestUserDn = "cn=test-user,dc=example,dc=com";
             internal const int TestTenantId = 7;
 
             public int ReconnectSubscriptionsCallCount { get; private set; }
+
+            /// <summary>
+            /// Initializes the user configuration subscription required to finish restoring authentication.
+            /// </summary>
+            public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(
+                Action<Exception> exceptionHandler,
+                GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler,
+                string subscription, object? variables = null, string? operationName = null)
+            {
+                if (typeof(SubscriptionResponseType) == typeof(ConfigItem[]))
+                {
+                    subscriptionUpdateHandler((SubscriptionResponseType)(object)kEmptyConfigItems);
+                }
+
+                return new SimulatedApiSubscription<SubscriptionResponseType>(
+                    this,
+                    new GraphQLHttpClient(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient()),
+                    new GraphQLRequest(subscription, variables, operationName),
+                    exceptionHandler,
+                    subscriptionUpdateHandler);
+            }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {

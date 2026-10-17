@@ -326,12 +326,19 @@ namespace FWO.Ui.Services
                 return SessionCheckOutcome.Unknown;
             }
 
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                // Read the content, not Data: Data is false for an unreadable answer, too.
+                if (!bool.TryParse(response.Content?.Trim(), out bool live))
+                {
+                    return SessionCheckOutcome.Unknown;
+                }
+
+                return live ? SessionCheckOutcome.Live : SessionCheckOutcome.Ended;
+            }
+
             return response.StatusCode switch
             {
-                // read the content, not Data: Data is false for an unreadable answer, too
-                System.Net.HttpStatusCode.OK => bool.TryParse(response.Content?.Trim(), out bool live)
-                    ? (live ? SessionCheckOutcome.Live : SessionCheckOutcome.Ended)
-                    : SessionCheckOutcome.Unknown,
                 System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden => SessionCheckOutcome.Ended,
                 _ => SessionCheckOutcome.Unknown
             };

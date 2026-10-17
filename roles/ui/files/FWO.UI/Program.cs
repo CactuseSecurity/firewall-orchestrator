@@ -63,6 +63,7 @@ builder.Services.AddScoped<ApiConnection>(_ => new GraphQlApiConnection(ApiUri))
 builder.Services.AddScoped<MiddlewareClient>(_ => new MiddlewareClient(MiddlewareUri));
 builder.Services.AddScoped<ISessionStorage, SessionStorage>();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<UiSessionRestorer>();
 builder.Services.AddScoped<ITokenRefreshCoordinator, TokenRefreshCoordinator>();
 builder.Services.AddSingleton<IPeriodicTaskRunnerFactory, PeriodicTaskRunnerFactory>();
 builder.Services.AddScoped<ExecutionModeStorage>();

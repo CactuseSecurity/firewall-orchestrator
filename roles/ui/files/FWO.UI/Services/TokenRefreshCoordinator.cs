@@ -1,8 +1,5 @@
-using FWO.Api.Client;
-using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
-using FWO.Middleware.Client;
 using FWO.Ui.Auth;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components;
@@ -20,9 +17,7 @@ namespace FWO.Ui.Services
 
         private readonly TokenService tokenService;
         private readonly AuthenticationStateProvider authenticationProvider;
-        private readonly ApiConnection apiConnection;
-        private readonly MiddlewareClient middlewareClient;
-        private readonly UserConfig userConfig;
+        private readonly UiSessionRestorer sessionRestorer;
         private readonly IPeriodicTaskRunnerFactory periodicTaskRunnerFactory;
         private readonly NavigationManager navigationManager;
         private readonly UiSessionCheckSignal? sessionCheckSignal;
@@ -37,18 +32,14 @@ namespace FWO.Ui.Services
         public TokenRefreshCoordinator(
             TokenService tokenService,
             AuthenticationStateProvider authenticationProvider,
-            ApiConnection apiConnection,
-            MiddlewareClient middlewareClient,
-            UserConfig userConfig,
+            UiSessionRestorer sessionRestorer,
             IPeriodicTaskRunnerFactory periodicTaskRunnerFactory,
             NavigationManager navigationManager,
             UiSessionCheckSignal? sessionCheckSignal = null)
         {
             this.tokenService = tokenService;
             this.authenticationProvider = authenticationProvider;
-            this.apiConnection = apiConnection;
-            this.middlewareClient = middlewareClient;
-            this.userConfig = userConfig;
+            this.sessionRestorer = sessionRestorer;
             this.periodicTaskRunnerFactory = periodicTaskRunnerFactory;
             this.navigationManager = navigationManager;
             this.sessionCheckSignal = sessionCheckSignal;
@@ -222,16 +213,7 @@ namespace FWO.Ui.Services
                 {
                     Log.WriteDebug(LogCategory, "Access token expired, attempting refresh...");
 
-                    bool refreshSuccess = await ((AuthStateProvider)authenticationProvider).RestoreAuthenticationState(apiConnection, middlewareClient, userConfig);
-
-                    if (refreshSuccess)
-                    {
-                        Log.WriteAudit(LogCategory, $"Successfully restored session for User \"{userConfig.User.Name}\" with DN: \"{userConfig.User.Dn}\".");
-                    }
-                    else
-                    {
-                        Log.WriteAudit(LogCategory, $"Failed to restore session for User \"{userConfig.User.Name}\" with DN: \"{userConfig.User.Dn}\".");
-                    }
+                    await sessionRestorer.RestoreAsync();
                 }
             }
             catch (Exception ex)

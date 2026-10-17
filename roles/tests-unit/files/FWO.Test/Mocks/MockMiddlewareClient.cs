@@ -51,7 +51,7 @@ namespace FWO.Test.Mocks
         /// <summary>
         /// Builds an answer of the session check that arrived with the given status and content.
         /// </summary>
-        public static RestResponse<bool> CreateSessionCheckResponse(HttpStatusCode statusCode, string content)
+        public static RestResponse<bool> CreateSessionCheckResponse(HttpStatusCode statusCode, string? content)
         {
             return new RestResponse<bool>(new RestRequest())
             {

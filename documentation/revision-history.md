@@ -29,6 +29,12 @@
 - request workflow: ticket requester, priority, deadline, reason, and comments can be shown or hidden independently under Workflow Customizing; comments are hidden by default
 - REST-created workflow tickets store requestor and request-contact metadata once at ticket level instead of duplicating it in every request task; the UI displays the external requestor as `name (id)` when available
 - pin System.Security.Cryptography.Pkcs to 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
+- middleware REST API: unify address inputs for `getAddressObjectId`, `getFlowComplianceState`,
+  `resolveZonesForObjects` and `createTicket.addressObjects`. Each address now uses exactly one of
+  `ipHost`, `ipNetwork` or the two-entry `ipRange`; values follow the shared FWO IP parser and CIDRs
+  are normalized to inclusive bounds. Breaking change: the legacy request fields `ipStart` and
+  `ipEnd` were removed, so clients must migrate start/end pairs to one of the new representations.
+  Response payloads and persisted workflow start/end bounds are unchanged
 
 ## 9.7.2 - 12.10.2026
 - security (GHSA-695m-f6mv-9g72): a dn no longer identifies a subject across LDAP connections

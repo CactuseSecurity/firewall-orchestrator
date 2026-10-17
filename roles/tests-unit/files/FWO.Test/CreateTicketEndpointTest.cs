@@ -2,6 +2,7 @@ using System.Text.Json;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
 
@@ -57,6 +58,31 @@ internal class CreateTicketEndpointTest
     }
 
     [Test]
+    public void ValidationNormalizesEveryAddressRepresentationForWorkflowConstruction()
+    {
+        CreateTicketRequest request = CreateValidRequest();
+        request.AddressObjects =
+        [
+            new() { Id = -1, Name = "host", IpHost = "192.0.2.10" },
+            new() { Id = -2, Name = "network", IpNetwork = "198.51.100.0/25" },
+            new() { Id = -3, Name = "range", IpRange = ["2001:db8::1", "2001:db8::10"] }
+        ];
+
+        RequestValidationErrorResponse result = CreateTicketRequestValidator.Validate(request);
+        List<WorkflowTicketEntity> entities = request.AddressObjects
+            .Select(address => WorkflowTicketEntity.FromAddressObject(address.Id, address))
+            .ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Errors, Is.Empty);
+            Assert.That((entities[0].IpStart, entities[0].IpEnd), Is.EqualTo(("192.0.2.10", "192.0.2.10")));
+            Assert.That((entities[1].IpStart, entities[1].IpEnd), Is.EqualTo(("198.51.100.0", "198.51.100.127")));
+            Assert.That((entities[2].IpStart, entities[2].IpEnd), Is.EqualTo(("2001:db8::1", "2001:db8::10")));
+        });
+    }
+
+    [Test]
     public async Task ValidationRejectsOversizedPersistedStringsAndCollections()
     {
         CreateTicketRequest request = new()
@@ -97,6 +123,62 @@ internal class CreateTicketEndpointTest
     }
 
     [Test]
+    public void ValidationReportsAddressInputErrorsAtTheAddressObjectPath()
+    {
+        CreateTicketRequest request = CreateValidRequest();
+        request.AddressObjects =
+        [
+            new()
+            {
+                Id = -1,
+                Name = "ambiguous",
+                IpHost = "192.0.2.10",
+                IpNetwork = "192.0.2.0/24"
+            }
+        ];
+
+        RequestValidationErrorResponse result = CreateTicketRequestValidator.Validate(request);
+
+        Assert.That(result.Errors.Single(error => error.Path == "addressObjects[0]").Message, Does.Contain("exactly one"));
+    }
+
+    [TestCase("ipStart")]
+    [TestCase("ipEnd")]
+    public void ValidationRejectsAddressObjectsWithOnlyRemovedLegacyFields(string legacyField)
+    {
+        string json = $$"""
+        {
+          "requestorName": "Alice",
+          "requestorId": "alice",
+          "ruleContactName": "Bob",
+          "ruleContactId": "bob",
+          "title": "Legacy address input",
+          "addressObjects": [{"id":-1,"name":"legacy","{{legacyField}}":"192.0.2.10"}],
+          "rules": [{"action":"accept"}]
+        }
+        """;
+        CreateTicketRequest request = JsonSerializer.Deserialize<CreateTicketRequest>(json)!;
+
+        RequestValidationErrorResponse result = CreateTicketRequestValidator.Validate(request);
+
+        Assert.That(result.Errors.Single(error => error.Path == "addressObjects[0]").Message,
+            Does.Contain("exactly one"));
+    }
+
+    private static CreateTicketRequest CreateValidRequest()
+    {
+        return new CreateTicketRequest
+        {
+            RequestorName = "Alice",
+            RequestorId = "alice",
+            RuleContactName = "Bob",
+            RuleContactId = "bob",
+            Title = "Address input test",
+            Rules = [new CreateTicketRequest.CreateTicketRuleRequest { Action = "accept" }]
+        };
+    }
+
+    [Test]
     public void ValidationCoversAllNestedCreateTicketCollections()
     {
         CreateTicketRequest request = new()
@@ -132,8 +214,7 @@ internal class CreateTicketEndpointTest
                 {
                     Predicate = "create",
                     Name = "Address",
-                    IpStart = "192.0.2.1",
-                    IpEnd = "192.0.2.2"
+                    IpRange = ["192.0.2.1", "192.0.2.2"]
                 }
             ],
             AddressGroups =

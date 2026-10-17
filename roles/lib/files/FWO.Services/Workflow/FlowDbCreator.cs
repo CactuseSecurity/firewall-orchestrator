@@ -82,6 +82,7 @@ namespace FWO.Services.Workflow
                 Sources = BuildFlowObjects(task.Elements, ElemFieldType.source),
                 Destinations = BuildFlowObjects(task.Elements, ElemFieldType.destination),
                 Services = BuildFlowServices(task.Elements),
+                TimeObjects = BuildFlowTimeObjects(task.Elements),
                 OriginRequestTaskIds = task.Id > 0 ? [task.Id] : []
             };
         }
@@ -125,6 +126,24 @@ namespace FWO.Services.Workflow
                         PortEnd = element.PortEnd,
                         Name = element.Name,
                         GroupName = element.GroupName,
+                        RequestAction = element.RequestAction
+                    })
+            ];
+        }
+
+        private static List<FlowTimeSnapshot> BuildFlowTimeObjects(IEnumerable<WfReqElement> elements)
+        {
+            return
+            [
+                .. elements
+                    .Where(element => element.Field == ElemFieldType.time.ToString())
+                    .Select(element => new FlowTimeSnapshot
+                    {
+                        WorkflowElementId = element.Id,
+                        FlowTimeObjectId = element.FlowTimeObjectId,
+                        StartTime = element.StartTime,
+                        EndTime = element.EndTime,
+                        Name = element.Name,
                         RequestAction = element.RequestAction
                     })
             ];
@@ -235,10 +254,12 @@ namespace FWO.Services.Workflow
 
             List<FlowObjectSnapshot> objectSnapshots = [.. payload.Sources.Concat(payload.Destinations).Where(IsRequestedObject)];
             List<FlowServiceSnapshot> serviceSnapshots = [.. payload.Services.Where(IsRequestedObject)];
-            bool persisted = (objectSnapshots.Count, serviceSnapshots.Count) switch
+            List<FlowTimeSnapshot> timeSnapshots = [.. payload.TimeObjects.Where(IsRequestedObject)];
+            bool persisted = (objectSnapshots.Count, serviceSnapshots.Count, timeSnapshots.Count) switch
             {
-                (1, 0) => await PersistSingleNetworkObject(objectSnapshots, context, groupMaps),
-                (0, 1) => await PersistSingleServiceObject(serviceSnapshots, context, groupMaps),
+                (1, 0, 0) => await PersistSingleNetworkObject(objectSnapshots, context, groupMaps),
+                (0, 1, 0) => await PersistSingleServiceObject(serviceSnapshots, context, groupMaps),
+                (0, 0, 1) => await PersistSingleTimeObject(timeSnapshots[0], context),
                 _ => false
             };
             if (!persisted)
@@ -270,6 +291,33 @@ namespace FWO.Services.Workflow
             }
             await UpdateServiceElementFlowIds(snapshots, references);
             return true;
+        }
+
+        /// <summary>
+        /// Binds the time object of an object_create task to the Flow time object with the same bounds, or stores
+        /// it as new Flow time object in state requested, and links the request element to it.
+        /// </summary>
+        private async Task<bool> PersistSingleTimeObject(FlowTimeSnapshot snapshot, FlowSyncFlowData context)
+        {
+            FlowTimeObject? timeObject = await ResolveOrCreateTimeObject(snapshot.StartTime, snapshot.EndTime, snapshot.Name ?? "", context);
+            if (timeObject == null)
+            {
+                return false;
+            }
+            if (snapshot.WorkflowElementId > 0)
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestElementFlowTimeObjId, new
+                {
+                    id = snapshot.WorkflowElementId,
+                    flowTimeObjId = timeObject.Id
+                });
+            }
+            return true;
+        }
+
+        private static bool IsRequestedObject(FlowTimeSnapshot snapshot)
+        {
+            return snapshot.RequestAction == RequestAction.create.ToString();
         }
 
         private static bool IsRequestedObject(FlowObjectSnapshot snapshot)
@@ -469,13 +517,21 @@ namespace FWO.Services.Workflow
         /// </summary>
         private async Task<FlowTimeObject?> ResolveOrCreateTimeObject(FlowCreationPayload payload, FlowSyncFlowData context)
         {
-            if (!payload.TimeStart.HasValue && !payload.TimeEnd.HasValue)
+            return await ResolveOrCreateTimeObject(payload.TimeStart, payload.TimeEnd, payload.TimeName, context);
+        }
+
+        /// <summary>
+        /// Resolves the Flow time object with the given bounds, or creates it with the given name.
+        /// </summary>
+        private async Task<FlowTimeObject?> ResolveOrCreateTimeObject(DateTime? timeStart, DateTime? timeEnd, string timeName, FlowSyncFlowData context)
+        {
+            if (!timeStart.HasValue && !timeEnd.HasValue)
             {
                 return null;
             }
 
-            DateTime? utcStartTime = payload.TimeStart?.ToUniversalTime();
-            DateTime? utcEndTime = payload.TimeEnd?.ToUniversalTime();
+            DateTime? utcStartTime = timeStart?.ToUniversalTime();
+            DateTime? utcEndTime = timeEnd?.ToUniversalTime();
             string hash = FlowHashGenerator.GenerateTimeObjectHash(utcStartTime, utcEndTime);
             if (context.TimeObjects.TryGetValue(hash, out FlowTimeObject? existingTimeObject))
             {
@@ -484,7 +540,7 @@ namespace FWO.Services.Workflow
 
             FlowTimeObjectInsert insert = new()
             {
-                Name = payload.TimeName,
+                Name = timeName,
                 StartTime = utcStartTime,
                 EndTime = utcEndTime,
                 TimeObjHash = hash,
@@ -494,7 +550,7 @@ namespace FWO.Services.Workflow
             };
 
             FlowTimeObject inserted = (await apiConnection.SendQueryAsync<FlowTimeObjectInsertResult>(FlowQueries.insertFlowTimeObjects, new { objects = new[] { insert } })).Returning.First();
-            inserted.Name = payload.TimeName;
+            inserted.Name = timeName;
             inserted.StartTime = utcStartTime;
             inserted.EndTime = utcEndTime;
             inserted.Hash = hash;

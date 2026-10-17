@@ -8,7 +8,7 @@
 
 @* FlowObjectTable is a generic search field with result table: it only reports the search text, which suits
    the server side search here, although its name stems from the flow settings pages using it first. *@
-@if (IsService)
+@if (Kind == ObjectTaskKind.Service)
 {
     <FlowObjectTable TItem="NetworkService"
                      FilteredItems="foundServices"
@@ -30,6 +30,36 @@
                 <Template>
                     <button type="button" class="btn btn-sm @(SelectedService?.Id == service.Id ? "btn-success" : "btn-outline-primary")"
                             @onclick:stopPropagation="true" @onclick="() => SelectService(service)">
+                        @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                    </button>
+                </Template>
+            </Column>
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </ChildContent>
+    </FlowObjectTable>
+}
+else if (Kind == ObjectTaskKind.Time)
+{
+    <FlowObjectTable TItem="TimeObject"
+                     FilteredItems="foundTimeObjects"
+                     FilteredCount="foundTimeObjects.Count"
+                     TotalCount="foundTimeObjects.Count"
+                     PageSize="kPageSize"
+                     SearchLabel="@SearchLabel"
+                     ClearSearchLabel="@(userConfig.GetText("clear_input"))"
+                     SearchText="@searchText"
+                     SearchTextChanged="Search">
+        <ChildContent>
+            <Column TableItem="TimeObject" Title="@(userConfig.GetText("name"))" Field="@(timeObject => timeObject.Name)" Sortable="true" />
+            <Column TableItem="TimeObject" Title="@(userConfig.GetText("time_object"))" Field="@(timeObject => timeObject.StartTime)" Sortable="true" Context="timeObject">
+                <Template>
+                    @WfObjectTaskHelper.FormatTimeRange(timeObject.StartTime, timeObject.EndTime)
+                </Template>
+            </Column>
+            <Column TableItem="TimeObject" Title="@(userConfig.GetText("actions"))" Field="@(timeObject => timeObject.Id)" Sortable="false" Context="timeObject">
+                <Template>
+                    <button type="button" class="btn btn-sm @(SelectedTimeObject?.Id == timeObject.Id ? "btn-success" : "btn-outline-primary")"
+                            @onclick:stopPropagation="true" @onclick="() => SelectTimeObject(timeObject)">
                         @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
                     </button>
                 </Template>
@@ -88,10 +118,10 @@ else
     public int ManagementId { get; set; }
 
     /// <summary>
-    /// Searches services instead of network objects.
+    /// Kind of the searched object.
     /// </summary>
     [Parameter]
-    public bool IsService { get; set; }
+    public ObjectTaskKind Kind { get; set; }
 
     [Parameter]
     public List<IpProtocol> IpProtos { get; set; } = [];
@@ -108,6 +138,12 @@ else
     [Parameter]
     public EventCallback<NetworkService?> SelectedServiceChanged { get; set; }
 
+    [Parameter]
+    public TimeObject? SelectedTimeObject { get; set; }
+
+    [Parameter]
+    public EventCallback<TimeObject?> SelectedTimeObjectChanged { get; set; }
+
     /// <summary>
     /// Pause after the last keystroke before the search is sent, so that typing does not query every character.
     /// </summary>
@@ -115,9 +151,15 @@ else
     private const int kPageSize = 5;
 
     private string searchText = "";
-    private string SearchLabel => userConfig.GetText(IsService ? "search_service_object" : "search_network_object");
+    private string SearchLabel => userConfig.GetText(Kind switch
+    {
+        ObjectTaskKind.Service => "search_service_object",
+        ObjectTaskKind.Time => "search_time_object",
+        _ => "search_network_object"
+    });
     private List<NetworkObject> foundNetworkObjects = [];
     private List<NetworkService> foundServices = [];
+    private List<TimeObject> foundTimeObjects = [];
     private bool limitReached;
     private CancellationTokenSource? searchCancellation;
 
@@ -139,26 +181,10 @@ else
                 return;
             }
             WfObjectSearch search = new(apiConnection, (await authenticationStateTask).User);
-            int hitCount;
-            if (IsService)
+            int? hitCount = await SearchKind(search, newSearchText, token);
+            if (hitCount == null)
             {
-                List<NetworkService> hits = await search.SearchServices(ManagementId, newSearchText);
-                if (token.IsCancellationRequested)
-                {
-                    return;
-                }
-                foundServices = hits;
-                hitCount = hits.Count;
-            }
-            else
-            {
-                List<NetworkObject> hits = await search.SearchNetworkObjects(ManagementId, newSearchText);
-                if (token.IsCancellationRequested)
-                {
-                    return;
-                }
-                foundNetworkObjects = hits;
-                hitCount = hits.Count;
+                return;
             }
             limitReached = hitCount >= WfObjectTaskHelper.kSearchLimit;
             await InvokeAsync(StateHasChanged);
@@ -173,6 +199,34 @@ else
         }
     }
 
+    /// <summary>
+    /// Runs the search for the selected kind and keeps its hits. Returns the number of hits, or null when a
+    /// newer keystroke superseded the search.
+    /// </summary>
+    private async Task<int?> SearchKind(WfObjectSearch search, string text, CancellationToken token)
+    {
+        return Kind switch
+        {
+            ObjectTaskKind.Service => await KeepHits(search.SearchServices(ManagementId, text), hits => foundServices = hits, token),
+            ObjectTaskKind.Time => await KeepHits(search.SearchTimeObjects(ManagementId, text), hits => foundTimeObjects = hits, token),
+            _ => await KeepHits(search.SearchNetworkObjects(ManagementId, text), hits => foundNetworkObjects = hits, token)
+        };
+    }
+
+    /// <summary>
+    /// Waits for the search and keeps its hits unless a newer keystroke superseded it.
+    /// </summary>
+    private static async Task<int?> KeepHits<T>(Task<List<T>> pendingSearch, Action<List<T>> keep, CancellationToken token)
+    {
+        List<T> hits = await pendingSearch;
+        if (token.IsCancellationRequested)
+        {
+            return null;
+        }
+        keep(hits);
+        return hits.Count;
+    }
+
     private async Task SelectNetworkObject(NetworkObject networkObject)
     {
         SelectedNetworkObject = networkObject;
@@ -183,6 +237,12 @@ else
     {
         SelectedService = service;
         await SelectedServiceChanged.InvokeAsync(service);
+    }
+
+    private async Task SelectTimeObject(TimeObject timeObject)
+    {
+        SelectedTimeObject = timeObject;
+        await SelectedTimeObjectChanged.InvokeAsync(timeObject);
     }
 
     private string DisplayServicePorts(NetworkService service)

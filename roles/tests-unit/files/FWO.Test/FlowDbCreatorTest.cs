@@ -13,6 +13,9 @@ namespace FWO.Test
     [TestFixture]
     internal class FlowDbCreatorTest
     {
+        private static readonly DateTime kObjectTimeStart = new(2026, 11, 1, 8, 0, 0, DateTimeKind.Local);
+        private static readonly DateTime kObjectTimeEnd = new(2026, 11, 30, 18, 0, 0, DateTimeKind.Local);
+
         private sealed class FlowDbCreatorTestApiConn : SimulatedApiConnection
         {
             private long nextNetworkObjectId = 100;
@@ -38,6 +41,7 @@ namespace FWO.Test
             public List<int> QueriedManagementIds { get; } = [];
             public List<long> UpdatedRequestTaskIds { get; } = [];
             public List<RequestElementFlowUpdate> UpdatedRequestElements { get; } = [];
+            public Dictionary<long, long?> UpdatedRequestElementTimeObjectIds { get; } = [];
             public FlowAccessInsert? InsertedAccess { get; private set; }
             public List<FlowAccessInsert> InsertedAccesses { get; } = [];
             public int InsertedAccessCount { get; private set; }
@@ -224,6 +228,12 @@ namespace FWO.Test
                         FlowServiceObjectId = GetValue<long?>(variables, "flowSvcObjId"),
                         FlowServiceGroupId = GetValue<long?>(variables, "flowSvcGrpId")
                     });
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = GetValue<long>(variables, "id") });
+                }
+
+                if (query == RequestQueries.updateRequestElementFlowTimeObjId)
+                {
+                    UpdatedRequestElementTimeObjectIds[GetValue<long>(variables, "id")] = GetValue<long?>(variables, "flowTimeObjId");
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = GetValue<long>(variables, "id") });
                 }
 
@@ -1858,6 +1868,104 @@ namespace FWO.Test
                 Assert.That(apiConn.InsertedServiceObjects, Is.Empty);
                 Assert.That(apiConn.UpdatedRequestElements, Is.Empty);
             });
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_PersistsObjectCreateTimeObjectAsRequested()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask objectTask = CreateObjectTask(37, WfTaskType.object_create, CreateTimeElement(371, 37, "maintenance"));
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, objectTask, WfObjectScopes.RequestTask, null, objectTask.TicketId);
+
+            FlowTimeObject inserted = apiConn.InsertedTimeObjects.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(inserted.Name, Is.EqualTo("maintenance"));
+                Assert.That(inserted.State, Is.EqualTo(FlowState.Requested));
+                Assert.That(inserted.StartTime, Is.EqualTo(kObjectTimeStart.ToUniversalTime()));
+                Assert.That(inserted.EndTime, Is.EqualTo(kObjectTimeEnd.ToUniversalTime()));
+                Assert.That(inserted.Hash, Is.EqualTo(FlowHashGenerator.GenerateTimeObjectHash(kObjectTimeStart.ToUniversalTime(), kObjectTimeEnd.ToUniversalTime())));
+                Assert.That(apiConn.UpdatedRequestElementTimeObjectIds[371], Is.EqualTo(inserted.Id));
+                Assert.That(apiConn.UpdatedRequestElements, Is.Empty);
+                Assert.That(apiConn.InsertedAccess, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_BindsObjectCreateTimeObjectToExistingFlowTimeObjectOfTheSameBounds()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            apiConn.ExistingTimeObjects.Add(new FlowTimeObject
+            {
+                Id = 20,
+                Hash = FlowHashGenerator.GenerateTimeObjectHash(kObjectTimeStart.ToUniversalTime(), kObjectTimeEnd.ToUniversalTime()),
+                State = FlowState.Implemented,
+                ShowInRequestModule = true
+            });
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask objectTask = CreateObjectTask(38, WfTaskType.object_create, CreateTimeElement(381, 38, "other_name"));
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, objectTask, WfObjectScopes.RequestTask, null, objectTask.TicketId);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(apiConn.InsertedTimeObjects, Is.Empty);
+                Assert.That(apiConn.UpdatedRequestElementTimeObjectIds[381], Is.EqualTo(20));
+            });
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_RejectsObjectCreateWithTimeObjectAndNetworkObject()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask objectTask = CreateObjectTask(39, WfTaskType.object_create,
+                CreateTimeElement(391, 39, "maintenance"), CreateNetworkElement(392, 39, ElemFieldType.source, "10.0.0.1"));
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, objectTask, WfObjectScopes.RequestTask, null, objectTask.TicketId);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False);
+                Assert.That(apiConn.InsertedTimeObjects, Is.Empty);
+                Assert.That(apiConn.UpdatedRequestElementTimeObjectIds, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void BuildFlowCreationPayloads_TakesTheTimeElementOfAnObjectTask()
+        {
+            WfReqTask objectTask = CreateObjectTask(40, WfTaskType.object_create, CreateTimeElement(401, 40, "maintenance"));
+
+            FlowCreationPayload payload = FlowDbCreator.BuildFlowCreationPayloads(objectTask, WfObjectScopes.RequestTask, null, objectTask.TicketId).Single();
+            FlowCreationPayload copy = new(payload);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(payload.TimeObjects.Single().WorkflowElementId, Is.EqualTo(401));
+                Assert.That(payload.TimeObjects.Single().Name, Is.EqualTo("maintenance"));
+                Assert.That(payload.TimeObjects.Single().StartTime, Is.EqualTo(kObjectTimeStart));
+                Assert.That(payload.Sources, Is.Empty);
+                Assert.That(copy.TimeObjects, Has.Count.EqualTo(1));
+            });
+        }
+
+        private static WfReqElement CreateTimeElement(long elementId, long taskId, string name)
+        {
+            return new()
+            {
+                Id = elementId,
+                TaskId = taskId,
+                Field = ElemFieldType.time.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                Name = name,
+                StartTime = kObjectTimeStart,
+                EndTime = kObjectTimeEnd
+            };
         }
 
         private static WfReqTask CreateObjectTask(long taskId, WfTaskType taskType, params WfReqElement[] elements)

@@ -1,5 +1,13 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.5 - 16.10.2026
+- request workflow: the task types create object and modify object support time objects with name, start and end time
+  - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)
+  - modify object searches the imported time objects of the management by name; the requester role may read them
+  - a created time object is stored in the Flow DB like other single objects
+  - implementation tasks of time objects follow the device specific setting timeObjectCreation; a time object task for a management set to ignore is rejected when it is saved
+- request workflow: new setting "create objects separately (planned)" under Workflow Customizing, currently without effect
+
 ## 9.7.4 - 14.10.2026
 - rename the hierarchical provisioning settings to device specific settings, as they are also used e.g. for importing: UI page (now settings/devicespecificsettings), help page, code and the tables provisioning_config_* (now device_specific_config_*)
 - extend the device specific settings for Guardicore: object creation, common service separation, external ticket system, importer host, app-zone and network-area switches, dynamic IP labels, connection IDs, rule implementation and planning overrides

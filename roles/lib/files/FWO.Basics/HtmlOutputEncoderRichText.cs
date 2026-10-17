@@ -31,29 +31,29 @@ namespace FWO.Basics
 
         private static readonly string[] LineBreaks = ["\r\n", "\r", "\n"];
 
+        // The patterns are built at runtime rather than with [GeneratedRegex], because the source generator
+        // does not support RegexOptions.NonBacktracking (SYSLIB1044). NonBacktracking keeps the matching time
+        // linear in the length of the user supplied text.
+
         /// <summary>
         /// Matches a complete start or end tag including its attributes. Text that looks like a tag but does
         /// not match stays text and is encoded.
         /// </summary>
-        [GeneratedRegex(@"<(?<close>/)?(?<name>[A-Za-z][A-Za-z0-9]*)(?<attributes>(?:\s+[^\s""'<>/=]+(?:\s*=\s*(?:""[^""]*""|'[^']*'|[^\s""'<>=`]+))?)*)\s*/?>",
-            RegexOptions.NonBacktracking | RegexOptions.CultureInvariant)]
-        private static partial Regex RichTextTagPattern();
+        private static readonly Regex RichTextTagPattern = new(@"<(?<close>/)?(?<name>[A-Za-z][A-Za-z0-9]*)(?<attributes>(?:\s+[^\s""'<>/=]+(?:\s*=\s*(?:""[^""]*""|'[^']*'|[^\s""'<>=`]+))?)*)\s*/?>",
+            RegexOptions.NonBacktracking | RegexOptions.CultureInvariant);
 
-        [GeneratedRegex(@"(?<name>[^\s""'<>/=]+)(?:\s*=\s*(?:""(?<dq>[^""]*)""|'(?<sq>[^']*)'|(?<uq>[^\s""'<>=`]+)))?",
-            RegexOptions.NonBacktracking | RegexOptions.CultureInvariant)]
-        private static partial Regex RichTextAttributePattern();
+        private static readonly Regex RichTextAttributePattern = new(@"(?<name>[^\s""'<>/=]+)(?:\s*=\s*(?:""(?<dq>[^""]*)""|'(?<sq>[^']*)'|(?<uq>[^\s""'<>=`]+)))?",
+            RegexOptions.NonBacktracking | RegexOptions.CultureInvariant);
 
         /// <summary>
         /// A css color: hex notation, a color keyword, or rgb()/rgba() with plain numbers. Nothing that could
         /// load a resource or escape the declaration.
         /// </summary>
-        [GeneratedRegex(@"^(?:#[0-9A-Fa-f]{3,8}|[A-Za-z]{1,30}|rgba?\(\s*\d{1,3}%?\s*(?:,\s*\d{1,3}%?\s*){2}(?:,\s*(?:0|1|0?\.\d{1,3})\s*)?\))$",
-            RegexOptions.NonBacktracking | RegexOptions.CultureInvariant)]
-        private static partial Regex RichTextColorPattern();
+        private static readonly Regex RichTextColorPattern = new(@"^(?:#[0-9A-Fa-f]{3,8}|[A-Za-z]{1,30}|rgba?\(\s*\d{1,3}%?\s*(?:,\s*\d{1,3}%?\s*){2}(?:,\s*(?:0|1|0?\.\d{1,3})\s*)?\))$",
+            RegexOptions.NonBacktracking | RegexOptions.CultureInvariant);
 
-        [GeneratedRegex(@"^(?:text|bg)-(?:primary|secondary|success|danger|warning|info|light|dark|muted|white|black|body)$",
-            RegexOptions.NonBacktracking | RegexOptions.CultureInvariant)]
-        private static partial Regex RichTextClassPattern();
+        private static readonly Regex RichTextClassPattern = new(@"^(?:text|bg)-(?:primary|secondary|success|danger|warning|info|light|dark|muted|white|black|body)$",
+            RegexOptions.NonBacktracking | RegexOptions.CultureInvariant);
 
         /// <summary>
         /// Renders free text that may carry simple formatting (bold, italic, underline, lists, line breaks,
@@ -73,7 +73,7 @@ namespace FWO.Basics
             StringBuilder output = new(value.Length);
             List<string> openTags = [];
             int position = 0;
-            foreach (Match tag in RichTextTagPattern().Matches(value))
+            foreach (Match tag in RichTextTagPattern.Matches(value))
             {
                 AppendRichTextPlainText(output, value[position..tag.Index]);
                 AppendRichTextTag(output, openTags, tag);
@@ -154,7 +154,7 @@ namespace FWO.Basics
         private static string BuildRichTextAttributes(string tagName, string attributes)
         {
             StringBuilder keptAttributes = new();
-            foreach (Match attribute in RichTextAttributePattern().Matches(attributes))
+            foreach (Match attribute in RichTextAttributePattern.Matches(attributes))
             {
                 string attributeName = attribute.Groups["name"].Value.ToLowerInvariant();
                 string attributeValue = WebUtility.HtmlDecode(ReadRichTextAttributeValue(attribute));
@@ -214,14 +214,14 @@ namespace FWO.Basics
         {
             IEnumerable<string> keptClasses = classes
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Where(className => RichTextClassPattern().IsMatch(className));
+                .Where(className => RichTextClassPattern.IsMatch(className));
             return string.Join(" ", keptClasses);
         }
 
         private static string FilterRichTextColor(string color)
         {
             string trimmedColor = color.Trim();
-            return RichTextColorPattern().IsMatch(trimmedColor) ? trimmedColor : "";
+            return RichTextColorPattern.IsMatch(trimmedColor) ? trimmedColor : "";
         }
     }
 }

@@ -97,6 +97,18 @@ namespace FWO.Test
             Assert.That(HtmlOutputEncoder.SanitizeRichText(value), Is.EqualTo(expected));
         }
 
+        /// <summary>
+        /// The login page renders the welcome message with this method. Tags the old filter removed
+        /// (headings, links, images) are now shown as text, as the help text H5466 describes.
+        /// </summary>
+        [Test]
+        public void SanitizeRichText_RendersWelcomeMessage()
+        {
+            string welcomeMessage = "<h4>Notice</h4>\r\n<b onclick=alert(1)>Maintenance</b> <a href=\"https://example.com\">info</a>\n<img src=x onerror=alert(1)>";
+            string expected = "&lt;h4&gt;Notice&lt;/h4&gt;<br><b>Maintenance</b> &lt;a href=&quot;https://example.com&quot;&gt;info&lt;/a&gt;<br>&lt;img src=x onerror=alert(1)&gt;";
+            Assert.That(HtmlOutputEncoder.SanitizeRichText(welcomeMessage), Is.EqualTo(expected));
+        }
+
         [Test]
         public void SanitizeRichText_TreatsNullAsEmpty()
         {

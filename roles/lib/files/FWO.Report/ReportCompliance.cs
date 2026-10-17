@@ -51,6 +51,15 @@ namespace FWO.Report
         private readonly int _maxPrintedViolations;
         private readonly List<int> _relevanteManagementIDs = new();
 
+        /// <summary>
+        /// Columns that hold rendered html, whose encoded text is decoded for the csv export.
+        /// All other columns hold plain values and are exported as they are.
+        /// </summary>
+        private static readonly HashSet<string> CsvHtmlColumns = new(StringComparer.Ordinal)
+        {
+            "Source", "SourceShort", "Destination", "DestinationShort", "Services", "ServicesShort", "ViolationDetails"
+        };
+
         #endregion
 
         #region Constructors
@@ -643,7 +652,8 @@ namespace FWO.Report
                 return "";
             });
 
-            return string.Join(_separator, values.Select(value => $"\"{value}\""));
+            // Quotes inside a value are doubled, so that a value cannot end its cell and start a new one.
+            return string.Join(_separator, values.Select(value => $"\"{value.Replace("\"", "\"\"")}\""));
         }
 
         private string TransformHtmlToCsv(string propertyName, string htmlInput)
@@ -660,10 +670,15 @@ namespace FWO.Report
                 }
             }
 
-            htmlInput = WebUtility.HtmlDecode(htmlInput
+            htmlInput = htmlInput
                     .Replace("\r\n", " | ")
                     .Replace("\n", " | ")
-                    .Replace("<br>", " | "));
+                    .Replace("<br>", " | ");
+
+            if (CsvHtmlColumns.Contains(propertyName))
+            {
+                htmlInput = WebUtility.HtmlDecode(htmlInput);
+            }
 
             if (htmlInput.Length > _maxCellSize)
             {

@@ -28,7 +28,7 @@ namespace FWO.Report
                 report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{HtmlOutputEncoder.EncodeText(ownerReport.Name)}</h3>");
                 if (ownerReport.ImplementationState != "")
                 {
-                    report.AppendLine($"{ownerReport.ImplementationState}<br>");
+                    report.AppendLine($"{HtmlOutputEncoder.EncodeText(ownerReport.ImplementationState)}<br>");
                 }
                 AppendStats(ref report, ownerReport);
                 report.AppendLine("<hr>");

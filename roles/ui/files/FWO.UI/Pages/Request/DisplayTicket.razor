@@ -131,7 +131,8 @@
                             <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
                             @if (Phase == WorkflowPhases.planning || Phase == WorkflowPhases.approval)
                             {
-                                <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
+                                @* read-only users follow the phase, but cannot comment *@
+                                <button type="button" class="btn btn-sm btn-success" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="InitAddComment">
                                     @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                             }
                         </div>
@@ -328,6 +329,10 @@
 
     private void InitAddComment()
     {
+        if (WfHandler.ReadOnlyMode)
+        {
+            return;
+        }
         WfHandler.DisplayTicketCommentMode = true;
     }
 

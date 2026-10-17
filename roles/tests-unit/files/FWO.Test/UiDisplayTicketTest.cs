@@ -1,8 +1,10 @@
 using Bunit;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Request;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Reflection;
 using static FWO.Test.UiRequestWorkflowTest;
@@ -90,6 +92,35 @@ namespace FWO.Test
             {
                 Assert.That(handler.ActTicket.Priority, Is.EqualTo(1));
                 Assert.That(handler.DisplaySaveTicketMode, Is.False);
+            });
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task DisplayTicket_AddCommentIsDisabledForReadOnlyUsers(bool readOnly)
+        {
+            await using BunitContext context = new();
+            WfHandler handler = new()
+            {
+                ReadOnlyMode = readOnly,
+                DisplayTicketMode = true,
+                ActTicket = new WfTicket { Id = 10, Title = "Ticket" }
+            };
+            RequestWorkflowUserConfig userConfig = new()
+            {
+                ReqTicketFieldVisibility = new TicketFieldVisibilityConfig { ShowComments = true }.ToConfigValue()
+            };
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            IRenderedComponent<DisplayTicket> component = RenderDisplayTicket(context, handler, WorkflowPhases.planning, new WfStateDict());
+            string addCommentText = userConfig.GetText("add_comment");
+
+            AngleSharp.Dom.IElement addCommentButton = component.FindAll("button").Single(button => button.InnerHtml.Contains(addCommentText));
+            await component.InvokeAsync(() => GetPrivateMethod(typeof(DisplayTicket), "InitAddComment").Invoke(component.Instance, null));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(addCommentButton.HasAttribute("disabled"), Is.EqualTo(readOnly));
+                Assert.That(handler.DisplayTicketCommentMode, Is.EqualTo(!readOnly));
             });
         }
 

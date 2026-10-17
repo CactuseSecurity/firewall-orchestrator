@@ -15,6 +15,8 @@ namespace FWO.Test
     [TestFixture]
     internal class UiDisplayImplementationTaskTest
     {
+        private static readonly object?[] kNoArgs = [];
+
         [Test]
         public void DisplayObjectAndServiceElements_UseFlowIdsWhenNoNamesAreAvailable()
         {
@@ -203,9 +205,9 @@ namespace FWO.Test
             SetMember(component, nameof(DisplayImplementationTask.WfHandler), handler);
             SetMember(component, "userConfig", CreateUserConfig());
 
-            GetPrivateMethod(typeof(DisplayImplementationTask), "InitAddComment").Invoke(component, []);
-            GetPrivateMethod(typeof(DisplayImplementationTask), "InitPromoteImplTask").Invoke(component, []);
-            await (Task)GetPrivateMethod(typeof(DisplayImplementationTask), "SaveImplTask").Invoke(component, [])!;
+            GetPrivateMethod(typeof(DisplayImplementationTask), "InitAddComment").Invoke(component, kNoArgs);
+            GetPrivateMethod(typeof(DisplayImplementationTask), "InitPromoteImplTask").Invoke(component, kNoArgs);
+            await (Task)GetPrivateMethod(typeof(DisplayImplementationTask), "SaveImplTask").Invoke(component, kNoArgs)!;
             bool readOnlyAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DisplayConnection.ToString() });
             bool changingAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() });
 

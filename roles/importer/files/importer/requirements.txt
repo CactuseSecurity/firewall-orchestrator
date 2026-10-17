@@ -25,7 +25,7 @@ PyYAML==6.0.3
 
 # Linting
 ruff==0.16.7
-pre-commit==4.6.2
+pre-commit==4.7.0
 pyright==1.1.414
 
 # OPNsense import

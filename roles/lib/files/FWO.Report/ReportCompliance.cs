@@ -10,6 +10,7 @@ using FWO.Report.Data.ViewData;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
 using System.Collections.Generic;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -542,7 +543,7 @@ namespace FWO.Report
                         violationDetails = formatter(violation);
                     }
 
-                    rule.ViolationDetails += violationDetails;
+                    rule.ViolationDetails += HtmlOutputEncoder.EncodeText(violationDetails);
                     addedViolationDetails++;
                 }
             }
@@ -659,10 +660,10 @@ namespace FWO.Report
                 }
             }
 
-            htmlInput = htmlInput
+            htmlInput = WebUtility.HtmlDecode(htmlInput
                     .Replace("\r\n", " | ")
                     .Replace("\n", " | ")
-                    .Replace("<br>", " | ");
+                    .Replace("<br>", " | "));
 
             if (htmlInput.Length > _maxCellSize)
             {

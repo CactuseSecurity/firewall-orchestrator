@@ -99,7 +99,7 @@ namespace FWO.Test
 
         /// <summary>
         /// The login page renders the welcome message with this method. Tags the old filter removed
-        /// (headings, links, images) are now shown as text, as the help text H5466 describes.
+        /// (headings, links, images) are now shown as text, as the help text H5466a describes.
         /// </summary>
         [Test]
         public void SanitizeRichText_RendersWelcomeMessage()

@@ -847,7 +847,6 @@ namespace FWO.Ui.Services
                 if (delId == user.DbId)
                 {
                     UiUsers.Remove(user);
-                    sessionCheckSignal.RequestSessionCheck();
                 }
             }
             catch (Exception exception)

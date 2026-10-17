@@ -285,6 +285,74 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
+        /// Asks the middleware whether the session of the current token pair is still live. Runs under the refresh
+        /// lock, so that a concurrent rotation cannot make the check look at a refresh token it just consumed.
+        /// </summary>
+        /// <returns>Whether the session is live, has ended, or could not be checked this time.</returns>
+        public async Task<SessionCheckOutcome> CheckSession()
+        {
+            await EnsureInitializedAsync();
+
+            await refreshSemaphore.WaitAsync();
+            try
+            {
+                if (currentTokenPair is null || string.IsNullOrWhiteSpace(currentTokenPair.RefreshToken))
+                {
+                    return SessionCheckOutcome.Unknown;
+                }
+
+                RestResponse<bool> response = await middlewareClient.CheckSession(new SessionCheckParameters { RefreshToken = currentTokenPair.RefreshToken });
+                return ToSessionCheckOutcome(response);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("Session Check", $"Could not check the session this time: {exception.Message}");
+                return SessionCheckOutcome.Unknown;
+            }
+            finally
+            {
+                refreshSemaphore.Release();
+            }
+        }
+
+        /// <summary>
+        /// Interprets the answer of a session check. Only an explicit verdict ends the session; an incomplete
+        /// attempt or a server error says nothing about it.
+        /// </summary>
+        private static SessionCheckOutcome ToSessionCheckOutcome(RestResponse<bool> response)
+        {
+            if (response.ResponseStatus != ResponseStatus.Completed)
+            {
+                return SessionCheckOutcome.Unknown;
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                // Read the content, not Data: Data is false for an unreadable answer, too.
+                if (!bool.TryParse(response.Content?.Trim(), out bool live))
+                {
+                    return SessionCheckOutcome.Unknown;
+                }
+
+                return live ? SessionCheckOutcome.Live : SessionCheckOutcome.Ended;
+            }
+
+            return response.StatusCode switch
+            {
+                System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden => SessionCheckOutcome.Ended,
+                _ => SessionCheckOutcome.Unknown
+            };
+        }
+
+        /// <summary>
+        /// Clears the stored token pair without revoking it, for a session the middleware has already ended.
+        /// </summary>
+        public async Task ClearTokens()
+        {
+            await ClearStoredTokenPair();
+        }
+
+        /// <summary>
         /// Whether a failed refresh says nothing about the refresh token itself.
         /// </summary>
         /// <param name="response">Response the middleware returned.</param>

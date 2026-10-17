@@ -26863,6 +26863,34 @@
                     "filter": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "time_obj_id",
+                      "mgm_id",
+                      "time_obj_name",
+                      "start_time",
+                      "end_time",
+                      "removed"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "removed": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
+                    "limit": 50
+                  }
                 }
               ],
               "update_permissions": [
@@ -31126,7 +31154,10 @@
                       "port_end",
                       "rule_uid",
                       "service_id",
-                      "user_id"
+                      "user_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ]
                   }
                 },
@@ -31150,7 +31181,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ]
                   },
                   "comment": ""
@@ -31175,7 +31209,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ]
                   },
                   "comment": ""
@@ -31200,7 +31237,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ]
                   }
                 },
@@ -31224,7 +31264,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ]
                   }
                 }
@@ -31249,7 +31292,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   }
@@ -31273,7 +31319,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   }
@@ -31297,7 +31346,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   }
@@ -31321,7 +31373,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   },
@@ -31346,7 +31401,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   },
@@ -31371,7 +31429,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   }
@@ -31395,7 +31456,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   },
@@ -31420,7 +31484,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   },
@@ -31445,7 +31512,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   }
@@ -31469,7 +31539,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   }
@@ -31495,7 +31568,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {},
                     "check": null
@@ -32424,6 +32500,12 @@
                   }
                 },
                 {
+                  "name": "flow_timeobject",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_timeobj_id"
+                  }
+                },
+                {
                   "name": "object",
                   "using": {
                     "foreign_key_constraint_on": "network_object_id"
@@ -32630,6 +32712,39 @@
                               }
                             }
                           ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_timeobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_timeobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
                         }
                       ]
                     },
@@ -32654,7 +32769,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ]
                   },
                   "comment": ""
@@ -32684,7 +32803,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ]
                   },
                   "comment": ""
@@ -32844,6 +32967,39 @@
                               }
                             }
                           ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_timeobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_timeobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
                         }
                       ]
                     },
@@ -32868,7 +33024,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ]
                   },
                   "comment": ""
@@ -33028,6 +33188,39 @@
                               }
                             }
                           ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_timeobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_timeobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
                         }
                       ]
                     },
@@ -33052,7 +33245,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ]
                   }
                 }
@@ -33082,7 +33279,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   }
@@ -33111,7 +33312,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   }
@@ -33140,7 +33345,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   }
@@ -33169,7 +33378,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   },
@@ -33199,7 +33412,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   },
@@ -33229,7 +33446,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   }
@@ -33258,7 +33479,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   },
@@ -33288,7 +33513,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   },
@@ -33318,7 +33547,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   }
@@ -33347,7 +33580,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   }
@@ -33378,7 +33615,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {},
                     "check": {
@@ -33526,7 +33767,8 @@
                       "flow_nwgrp_id",
                       "flow_nwobj_id",
                       "flow_svcgrp_id",
-                      "flow_svcobj_id"
+                      "flow_svcobj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {},
                     "check": {}
@@ -33557,7 +33799,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {},
                     "check": {

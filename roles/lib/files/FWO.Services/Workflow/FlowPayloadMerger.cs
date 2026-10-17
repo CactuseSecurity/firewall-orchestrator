@@ -46,6 +46,7 @@ namespace FWO.Services.Workflow
             merged.Sources = MergeObjects(first.Sources, second.Sources);
             merged.Destinations = MergeObjects(first.Destinations, second.Destinations);
             merged.Services = MergeServices(first.Services, second.Services);
+            merged.TimeObjects = [.. first.TimeObjects.Concat(second.TimeObjects)];
             return merged;
         }
 

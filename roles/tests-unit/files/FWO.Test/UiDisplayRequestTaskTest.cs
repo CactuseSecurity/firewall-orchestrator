@@ -1237,7 +1237,7 @@ namespace FWO.Test
             context.Services.AddSingleton<ApiConnection>(apiConnection);
 
             IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, states, Roles.Requester);
-            bool valid = await component.InvokeAsync(() => UiRequestCoverageTest.InvokePrivateBool(component.Instance, "RejectInvalidObjectTask"));
+            bool valid = await component.InvokeAsync(() => UiRequestCoverageTest.InvokePrivateTaskResult<bool>(component.Instance, "RejectInvalidObjectTask"));
 
             Assert.Multiple(() =>
             {

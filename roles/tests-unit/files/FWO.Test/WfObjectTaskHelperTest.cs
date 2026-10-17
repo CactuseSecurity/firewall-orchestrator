@@ -16,6 +16,8 @@ namespace FWO.Test
         private static readonly List<long> kRemovedElementIds = [103];
         private static readonly List<int> kNetworkObjectTypeIds = [1, 3, 4, 12];
         private static readonly List<int> kServiceTypeIds = [1];
+        private static readonly DateTime kTimeStart = new(2026, 11, 1, 8, 0, 0);
+        private static readonly DateTime kTimeEnd = new(2026, 11, 30, 18, 0, 0);
 
         [Test]
         public void IsObjectTask_RecognizesOnlyTheObjectTaskTypes()
@@ -318,6 +320,187 @@ namespace FWO.Test
                 Assert.That(WfObjectTaskHelper.NetworkObjectTypeIds, Is.EquivalentTo(kNetworkObjectTypeIds));
                 Assert.That(WfObjectTaskHelper.ServiceTypeIds, Is.EquivalentTo(kServiceTypeIds));
             });
+        }
+
+        [Test]
+        public void GetCreationKind_PrefersTimeThenServiceThenNetwork()
+        {
+            WfReqTask timeTask = new();
+            timeTask.Elements.Add(new WfReqElement { Field = ElemFieldType.time.ToString() });
+            WfReqTask serviceGroupTask = new();
+            serviceGroupTask.SetAddInfo(AdditionalInfoKeys.SvcGrpId, "12");
+            WfReqTask networkTask = new();
+            networkTask.Elements.Add(new WfReqElement { Field = ElemFieldType.source.ToString() });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfObjectTaskHelper.GetCreationKind(timeTask), Is.EqualTo(ObjectTaskKind.Time));
+                Assert.That(WfObjectTaskHelper.GetCreationKind(serviceGroupTask), Is.EqualTo(ObjectTaskKind.Service));
+                Assert.That(WfObjectTaskHelper.GetCreationKind(networkTask), Is.EqualTo(ObjectTaskKind.Network));
+                Assert.That(WfObjectTaskHelper.GetCreationKind(new WfReqTask()), Is.EqualTo(ObjectTaskKind.Network));
+            });
+        }
+
+        [Test]
+        public void GetKind_DistinguishesNetworkServiceAndTimeElements()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfObjectTaskHelper.GetKind(new WfReqElement { Field = ElemFieldType.source.ToString() }), Is.EqualTo(ObjectTaskKind.Network));
+                Assert.That(WfObjectTaskHelper.GetKind(new WfReqElement { Field = ElemFieldType.service.ToString() }), Is.EqualTo(ObjectTaskKind.Service));
+                Assert.That(WfObjectTaskHelper.GetKind(new WfReqElement { Field = ElemFieldType.time.ToString() }), Is.EqualTo(ObjectTaskKind.Time));
+                Assert.That(WfObjectTaskHelper.GetKind(null), Is.EqualTo(ObjectTaskKind.Network));
+            });
+        }
+
+        [Test]
+        public void ToTimeElement_ReferencesTheImportedTimeObject()
+        {
+            TimeObject timeObject = new() { Id = 77, Name = "maintenance", StartTime = kTimeStart, EndTime = kTimeEnd };
+
+            WfReqElement element = WfObjectTaskHelper.ToTimeElement(timeObject, RequestAction.unchanged.ToString(), 12);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(element.Field, Is.EqualTo(ElemFieldType.time.ToString()));
+                Assert.That(element.TimeObjId, Is.EqualTo(77));
+                Assert.That(element.Name, Is.EqualTo("maintenance"));
+                Assert.That(element.StartTime, Is.EqualTo(kTimeStart));
+                Assert.That(element.EndTime, Is.EqualTo(kTimeEnd));
+                Assert.That(element.TaskId, Is.EqualTo(12));
+                Assert.That(element.RequestAction, Is.EqualTo(RequestAction.unchanged.ToString()));
+            });
+        }
+
+        [Test]
+        public void HasTimeMinimum_RequiresNameAndABoundInTheRightOrder()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfObjectTaskHelper.HasTimeMinimum(CreateTimeElement("tw", kTimeStart, kTimeEnd)), Is.True);
+                Assert.That(WfObjectTaskHelper.HasTimeMinimum(CreateTimeElement("tw", kTimeStart, null)), Is.True);
+                Assert.That(WfObjectTaskHelper.HasTimeMinimum(CreateTimeElement("tw", null, kTimeEnd)), Is.True);
+                Assert.That(WfObjectTaskHelper.HasTimeMinimum(CreateTimeElement("tw", kTimeStart, kTimeStart)), Is.True);
+                Assert.That(WfObjectTaskHelper.HasTimeMinimum(CreateTimeElement("tw", kTimeEnd, kTimeStart)), Is.False);
+                Assert.That(WfObjectTaskHelper.HasTimeMinimum(CreateTimeElement("tw", null, null)), Is.False);
+                Assert.That(WfObjectTaskHelper.HasTimeMinimum(CreateTimeElement(" ", kTimeStart, kTimeEnd)), Is.False);
+                Assert.That(WfObjectTaskHelper.HasTimeMinimum(CreateTimeElement(null, kTimeStart, kTimeEnd)), Is.False);
+            });
+        }
+
+        [Test]
+        public void IsUnchangedTimeObject_ComparesNameAndPointsInTime()
+        {
+            WfReqElement original = CreateTimeElement("tw", kTimeStart.ToUniversalTime(), kTimeEnd);
+            DateTime localStart = DateTime.SpecifyKind(kTimeStart, DateTimeKind.Local);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfObjectTaskHelper.IsUnchangedTimeObject(original, CreateTimeElement("tw", localStart, kTimeEnd)), Is.True);
+                Assert.That(WfObjectTaskHelper.IsUnchangedTimeObject(original, CreateTimeElement("tw2", kTimeStart, kTimeEnd)), Is.False);
+                Assert.That(WfObjectTaskHelper.IsUnchangedTimeObject(original, CreateTimeElement("tw", kTimeStart, kTimeEnd.AddMinutes(1))), Is.False);
+                Assert.That(WfObjectTaskHelper.IsUnchangedTimeObject(original, CreateTimeElement("tw", kTimeStart, null)), Is.False);
+                Assert.That(WfObjectTaskHelper.IsUnchangedTimeObject(CreateTimeElement("tw", null, null), CreateTimeElement("tw", null, null)), Is.True);
+            });
+        }
+
+        [Test]
+        public void HasValidElementStructure_ComparesTheTimeObjectReferenceForTimeObjects()
+        {
+            WfReqTask task = CreateTimeModifyTask(5, 5);
+            WfReqTask otherObject = CreateTimeModifyTask(5, 6);
+            WfReqTask noReference = CreateTimeModifyTask(null, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfObjectTaskHelper.HasValidElementStructure(task), Is.True);
+                Assert.That(WfObjectTaskHelper.HasValidElementStructure(otherObject), Is.False);
+                Assert.That(WfObjectTaskHelper.HasValidElementStructure(noReference), Is.False);
+            });
+        }
+
+        [Test]
+        public void FormatTimeRange_ShowsBothOrOpenBounds()
+        {
+            DateTime utcStart = new(2026, 11, 1, 7, 0, 0, DateTimeKind.Utc);
+            string expectedUtcStart = utcStart.ToLocalTime().ToString(WfObjectTaskHelper.kTimeFormat, System.Globalization.CultureInfo.InvariantCulture);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfObjectTaskHelper.FormatTimeRange(kTimeStart, kTimeEnd), Is.EqualTo("2026-11-01 08:00 - 2026-11-30 18:00"));
+                Assert.That(WfObjectTaskHelper.FormatTimeRange(kTimeStart, null), Is.EqualTo(">= 2026-11-01 08:00"));
+                Assert.That(WfObjectTaskHelper.FormatTimeRange(null, kTimeEnd), Is.EqualTo("<= 2026-11-30 18:00"));
+                Assert.That(WfObjectTaskHelper.FormatTimeRange(null, null), Is.Empty);
+                Assert.That(WfObjectTaskHelper.FormatTimeRange(utcStart, null), Is.EqualTo(">= " + expectedUtcStart));
+            });
+        }
+
+        [Test]
+        public void TryParseDateTimeInput_CombinesDateAndTime()
+        {
+            bool complete = WfObjectTaskHelper.TryParseDateTimeInput("2026-11-01", "08:00", WfObjectTaskHelper.kDefaultStartTimeInput, out DateTime? pointInTime);
+            bool withSeconds = WfObjectTaskHelper.TryParseDateTimeInput("2026-11-30", "18:00:00", WfObjectTaskHelper.kDefaultEndTimeInput, out DateTime? withSecondsTime);
+            bool dateOnly = WfObjectTaskHelper.TryParseDateTimeInput("2026-11-30", " ", WfObjectTaskHelper.kDefaultEndTimeInput, out DateTime? dateOnlyTime);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(complete, Is.True);
+                Assert.That(pointInTime, Is.EqualTo(kTimeStart));
+                Assert.That(withSeconds, Is.True);
+                Assert.That(withSecondsTime, Is.EqualTo(kTimeEnd));
+                Assert.That(dateOnly, Is.True);
+                Assert.That(dateOnlyTime, Is.EqualTo(new DateTime(2026, 11, 30, 23, 59, 0)));
+            });
+        }
+
+        [TestCase("", "", true)]
+        [TestCase("", "08:00", false)]
+        [TestCase("01.11.2026", "08:00", false)]
+        [TestCase("2026-11-01", "8 Uhr", false)]
+        public void TryParseDateTimeInput_HandlesEmptyIncompleteAndInvalidInput(string dateInput, string timeInput, bool expectedValid)
+        {
+            bool valid = WfObjectTaskHelper.TryParseDateTimeInput(dateInput, timeInput, WfObjectTaskHelper.kDefaultStartTimeInput, out DateTime? pointInTime);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.EqualTo(expectedValid));
+                Assert.That(pointInTime, Is.Null);
+            });
+        }
+
+        [Test]
+        public void FormatDateAndTimeInput_SplitAPointInTimeInLocalTime()
+        {
+            DateTime utcStart = new(2026, 11, 1, 7, 0, 0, DateTimeKind.Utc);
+            DateTime localStart = utcStart.ToLocalTime();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfObjectTaskHelper.FormatDateInput(kTimeStart), Is.EqualTo("2026-11-01"));
+                Assert.That(WfObjectTaskHelper.FormatTimeInput(kTimeStart), Is.EqualTo("08:00"));
+                Assert.That(WfObjectTaskHelper.FormatDateInput(null), Is.Empty);
+                Assert.That(WfObjectTaskHelper.FormatTimeInput(null), Is.Empty);
+                Assert.That(WfObjectTaskHelper.FormatTimeInput(utcStart), Is.EqualTo(localStart.ToString(WfObjectTaskHelper.kTimeInputFormat, System.Globalization.CultureInfo.InvariantCulture)));
+            });
+        }
+
+        private static WfReqElement CreateTimeElement(string? name, DateTime? startTime, DateTime? endTime)
+        {
+            return new() { Field = ElemFieldType.time.ToString(), Name = name, StartTime = startTime, EndTime = endTime };
+        }
+
+        private static WfReqTask CreateTimeModifyTask(long? originalId, long? requestedId)
+        {
+            WfReqTask task = new() { TaskType = WfTaskType.object_modify.ToString() };
+            WfReqElement original = CreateTimeElement("tw", kTimeStart, kTimeEnd);
+            original.TimeObjId = originalId;
+            original.RequestAction = RequestAction.unchanged.ToString();
+            WfReqElement requested = CreateTimeElement("tw", kTimeStart, kTimeEnd.AddDays(1));
+            requested.TimeObjId = requestedId;
+            requested.RequestAction = RequestAction.modify.ToString();
+            task.Elements.Add(original);
+            task.Elements.Add(requested);
+            return task;
         }
 
         private static WfReqTask CreateModifyTask(long? originalId, long? requestedId)

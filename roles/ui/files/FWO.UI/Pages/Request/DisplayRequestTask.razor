@@ -890,7 +890,7 @@
         return true;
     }
     
-    private bool RejectInvalidObjectTask()
+    private async Task<bool> RejectInvalidObjectTask()
     {
         string? error;
         if (!WfHandler.EditReqTaskMode)
@@ -906,7 +906,12 @@
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText(error), true);
             return false;
         }
-
+        // null: the targets could not be checked, which must not block the request
+        if (await WfHandler.HasObjectTargets(WfHandler.ActReqTask) == false)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5129"), true);
+            return false;
+        }
         return true;
     }
 
@@ -921,7 +926,7 @@
             case WfTaskType.access when !RejectInvalidAccessTask():
             case WfTaskType.rule_delete when !(await RejectInvalidRuleDeleteTask()):
             case WfTaskType.group_create when !RejectInvalidGroupCreateTask():
-            case WfTaskType.object_create or WfTaskType.object_modify when !RejectInvalidObjectTask():
+            case WfTaskType.object_create or WfTaskType.object_modify when !(await RejectInvalidObjectTask()):
                 return false;
             default:
                 return true;

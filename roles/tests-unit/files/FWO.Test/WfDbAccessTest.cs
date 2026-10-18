@@ -1420,6 +1420,7 @@ namespace FWO.Test
                 Id = 100,
                 TicketId = 77,
                 StateId = 1,
+                Locked = true,
                 Elements = new List<WfReqElement>
                 {
                     new() { Id = 0, Field = ElemFieldType.service.ToString(), RequestAction = RequestAction.create.ToString(), FlowServiceObjectId = 7 },
@@ -1432,7 +1433,7 @@ namespace FWO.Test
                 Owners = new List<FwoOwnerDataHelper>()
             };
 
-            await dbAccess.UpdateReqTaskInDb(reqTask);
+            await dbAccess.UpdateReqTaskInDb(reqTask, allowLockedApprovalUpdate: true);
 
             Assert.That(apiConn.UpdateReqTaskCallCount, Is.EqualTo(1));
             Assert.That(apiConn.NewReqElementCallCount, Is.EqualTo(1));

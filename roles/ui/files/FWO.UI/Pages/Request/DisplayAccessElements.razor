@@ -89,7 +89,7 @@
                         <div class="list-group-item border bg-secondary">
                             <div class="d-flex align-items-center">
                                 <span class="flex-grow-1">@DisplayNetworkObject(source) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(source))</small></span>
-                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(source)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(source, ElemFieldType.source)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             </div>
                         </div>
                     }
@@ -98,7 +98,7 @@
                         <div class="list-group-item border bg-secondary">
                             <div class="d-flex align-items-center">
                                 <span class="flex-grow-1">@DisplayNetworkElement(source) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(source))</small></span>
-                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(source)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(source, ElemFieldType.source)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             </div>
                         </div>
                     }
@@ -129,7 +129,7 @@
                         <div class="list-group-item border bg-secondary">
                             <div class="d-flex align-items-center">
                                 <span class="flex-grow-1">@DisplayNetworkObject(destination) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(destination))</small></span>
-                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(destination)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(destination, ElemFieldType.destination)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             </div>
                         </div>
                     }
@@ -138,7 +138,7 @@
                         <div class="list-group-item border bg-secondary">
                             <div class="d-flex align-items-center">
                                 <span class="flex-grow-1">@DisplayNetworkElement(destination) <small class="text-muted" title="@(userConfig.GetText("element_origin"))">(@ElementOrigin(destination))</small></span>
-                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(destination)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ShowNetworkDetails(destination, ElemFieldType.destination)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             </div>
                         </div>
                     }
@@ -626,12 +626,13 @@ else
     private bool NeedsNetworkDetails()
     {
         return !EditMode && userConfig.ReqUseFlowDb
-            && (Sources.Any(NeedsNetworkDetails) || Destinations.Any(NeedsNetworkDetails));
+            && (Sources.Any(element => NeedsNetworkDetails(element, ElemFieldType.source))
+                || Destinations.Any(element => NeedsNetworkDetails(element, ElemFieldType.destination)));
     }
 
-    private bool NeedsNetworkDetails(NwObjectElement element)
+    private bool NeedsNetworkDetails(NwObjectElement element, ElemFieldType field)
     {
-        return HasNetworkFlowReference(element) || IsNetworkGroupElement(element);
+        return HasNetworkFlowReference(element) || IsNetworkGroupElement(element, field);
     }
 
     private bool NeedsServiceDetails()
@@ -644,9 +645,9 @@ else
         return HasServiceFlowReference(element) || IsServiceGroupElement(element);
     }
 
-    private void ShowNetworkDetails(NwObjectElement element)
+    private void ShowNetworkDetails(NwObjectElement element, ElemFieldType field)
     {
-        networkGroupMode = IsNetworkGroupElement(element);
+        networkGroupMode = IsNetworkGroupElement(element, field);
         selectedNetworkObject = HasId(element.FlowNetworkObjectId)
             ? flowNwObjects.FirstOrDefault(flowObject => flowObject.Id == element.FlowNetworkObjectId)
             : null;
@@ -654,7 +655,7 @@ else
         selectedNetworkGroup = HasId(element.FlowNetworkGroupId)
             ? flowNwGroups.FirstOrDefault(group => group.Id == element.FlowNetworkGroupId)
             : flowNwGroups.FirstOrDefault(group => string.Equals(group.Name, groupName, StringComparison.OrdinalIgnoreCase));
-        networkFallback = MatchingNetworkElements(element);
+        networkFallback = MatchingNetworkElements(element, field);
         string? localGroupName = selectedNetworkGroup?.Name ?? element.GroupName ?? element.Name;
         networkFallback.AddRange(GetLocalGroupElements(localGroupName));
         selectedServiceObject = null;
@@ -686,15 +687,14 @@ else
         displayDetails = true;
     }
 
-    private List<NwObjectElement> MatchingNetworkElements(NwObjectElement element)
+    private List<NwObjectElement> MatchingNetworkElements(NwObjectElement element, ElemFieldType field)
     {
         List<NwObjectElement> matches = [element];
         if (!HasNetworkFlowReference(element) && !HasId(element.NetworkId) && string.IsNullOrWhiteSpace(element.GroupName))
         {
             return matches;
         }
-        matches.AddRange(TicketTasks.SelectMany(task => task.GetNwObjectElements(ElemFieldType.source)
-                .Concat(task.GetNwObjectElements(ElemFieldType.destination)))
+        matches.AddRange(TicketTasks.SelectMany(task => task.GetNwObjectElements(field))
             .Where(taskElement => MatchesNetworkElement(taskElement, element)));
         return matches;
     }
@@ -709,14 +709,10 @@ else
         List<WfReqTask> groupTasks = [.. TicketTasks
             .Where(IsNetworkGroupTask)
             .Where(task => IsGroupTaskForName(task, groupName))];
-        if (groupTasks.Count == 0)
-        {
-            groupTasks = [.. TicketTasks.Where(IsNetworkGroupTask)];
-        }
-
         return [.. groupTasks
-            .SelectMany(task => task.GetNwObjectElements(ElemFieldType.source)
-                .Concat(task.GetNwObjectElements(ElemFieldType.destination)))];
+            // Group-definition tasks store address members in the canonical source field,
+            // regardless of whether the group is used as source or destination in an access task.
+            .SelectMany(task => task.GetNwObjectElements(ElemFieldType.source))];
     }
 
     private static bool IsNetworkGroupTask(WfReqTask task)
@@ -724,7 +720,7 @@ else
         return task.TaskType is nameof(WfTaskType.group_create) or nameof(WfTaskType.group_modify);
     }
 
-    private static bool IsGroupTaskForName(WfReqTask task, string groupName)
+    private static bool IsGroupTaskForName(WfReqTask task, string groupName, ElemFieldType? field = null)
     {
         if (!IsNetworkGroupTask(task))
         {
@@ -733,8 +729,9 @@ else
 
         string normalizedGroupName = groupName.Trim();
         return string.Equals(task.GetAddInfoValue(AdditionalInfoKeys.GrpName).Trim(), normalizedGroupName, StringComparison.OrdinalIgnoreCase)
-            || task.Elements.Any(element => string.Equals(element.GroupName?.Trim(), normalizedGroupName, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(element.Name?.Trim(), normalizedGroupName, StringComparison.OrdinalIgnoreCase));
+            || task.Elements.Any(element => (!field.HasValue || element.Field == field.Value.ToString())
+                && (string.Equals(element.GroupName?.Trim(), normalizedGroupName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(element.Name?.Trim(), normalizedGroupName, StringComparison.OrdinalIgnoreCase)));
     }
 
     private List<NwServiceElement> MatchingServiceElements(NwServiceElement element)
@@ -759,12 +756,7 @@ else
 
         List<WfReqTask> groupTasks = [.. TicketTasks
             .Where(IsNetworkGroupTask)
-            .Where(task => IsGroupTaskForName(task, groupName))];
-        if (groupTasks.Count == 0)
-        {
-            groupTasks = [.. TicketTasks.Where(IsNetworkGroupTask)];
-        }
-
+            .Where(task => IsGroupTaskForName(task, groupName, ElemFieldType.service))];
         return [.. groupTasks
             .SelectMany(task => task.GetServiceElements())];
     }
@@ -778,12 +770,12 @@ else
                 && string.Equals(taskElement.GroupName?.Trim(), element.GroupName?.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 
-    private bool IsNetworkGroupElement(NwObjectElement element)
+    private bool IsNetworkGroupElement(NwObjectElement element, ElemFieldType field)
     {
         return HasId(element.FlowNetworkGroupId)
             || !string.IsNullOrWhiteSpace(element.GroupName)
             || TicketTasks.Any(task => (task.TaskType is nameof(WfTaskType.group_create) or nameof(WfTaskType.group_modify))
-                && string.Equals(task.GetAddInfoValue(AdditionalInfoKeys.GrpName).Trim(), element.Name?.Trim(), StringComparison.OrdinalIgnoreCase));
+                && IsGroupTaskForName(task, element.Name ?? "", field));
     }
 
     private static bool MatchesServiceElement(NwServiceElement taskElement, NwServiceElement element)

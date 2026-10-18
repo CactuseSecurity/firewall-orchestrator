@@ -1,4 +1,5 @@
-﻿@inject UserConfig userConfig
+@using FWO.Basics
+@inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
 <div class="form-group row">
@@ -154,7 +155,7 @@
     {
         Management? mgt = Managements.FirstOrDefault(m => m.Id == rule.MgmtId);
         Rulebase? rulebase = mgt?.Rulebases.FirstOrDefault(rb => rb.Id == rule.RulebaseId);
-        return $"<div class=\"row\"><div class=\"col-sm-2 text-truncate\">{mgt?.Name}</div><div class=\"col-sm-2 text-truncate\">{rulebase?.Name}</div><div class=\"col-sm-8\">{DisplayRuleDetails(rule)}</div></div>";
+        return $"<div class=\"row\"><div class=\"col-sm-2 text-truncate\">{HtmlOutputEncoder.EncodeText(mgt?.Name)}</div><div class=\"col-sm-2 text-truncate\">{HtmlOutputEncoder.EncodeText(rulebase?.Name)}</div><div class=\"col-sm-8\">{HtmlOutputEncoder.EncodeText(DisplayRuleDetails(rule))}</div></div>";
     }
 
     private string DisplayRuleDetails(Rule rule)

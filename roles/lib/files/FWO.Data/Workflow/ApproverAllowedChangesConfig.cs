@@ -216,6 +216,7 @@ namespace FWO.Data.Workflow
                 new(WorkflowEditableFieldKeys.ValidFrom),
                 new(WorkflowEditableFieldKeys.ValidTo),
                 new(WorkflowEditableFieldKeys.Reason),
+                new(WorkflowEditableFieldKeys.FreeText),
                 new(WorkflowEditableFieldKeys.Source),
                 new(WorkflowEditableFieldKeys.Destination),
                 new(WorkflowEditableFieldKeys.Services)

@@ -273,6 +273,38 @@ namespace FWO.Test
             return wrapper.FindComponent<DisplayTicketTable>();
         }
 
+        internal static IRenderedComponent<DisplayTicketTable> RenderDisplayTicketTableWithUserConfig(
+            BunitContext context,
+            WfHandler handler,
+            WorkflowPhases phase,
+            WfStateDict states,
+            UserConfig configuredUserConfig,
+            params string[] roles)
+        {
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new RequestWorkflowAuthStateProvider(roles.Length > 0 ? roles : [Roles.Requester]));
+            context.Services.TryAddSingleton<ApiConnection>(new RequestWorkflowApiConn());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.RemoveAll<UserConfig>();
+            context.Services.AddSingleton(configuredUserConfig);
+            context.Services.TryAddSingleton<DomEventService>();
+            context.Services.TryAddSingleton<IEventMediator>(new EventMediator());
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<DisplayTicketTable>(child => child
+                    .Add(p => p.Phase, phase)
+                    .Add(p => p.States, states)
+                    .Add(p => p.WfHandler, handler)
+                    .Add(p => p.ResetParent, DefaultInit.DoNothing)
+                    .Add(p => p.StartPhase, (Func<WfReqTask, Task>)DefaultInit.DoNothing)
+                    .Add(p => p.StartImplPhase, (Func<WfImplTask, Task>)DefaultInit.DoNothing)));
+
+            return wrapper.FindComponent<DisplayTicketTable>();
+        }
+
         internal static WfReqTask CreateAccessTask(long id, string sourceIp, string destinationIp, int servicePort)
         {
             return new()

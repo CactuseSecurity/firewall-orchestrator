@@ -188,14 +188,14 @@ namespace FWO.Data.Report
             }
             else
             {
-                return string.Join(", ", appServers.ConvertAll(a => DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(a))));
+                return string.Join(", ", appServers.ConvertAll(a => HtmlOutputEncoder.EncodeText(DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(a)))));
             }
         }
 
         private static string DisplayAppServerWithDiff(ModellingAppServer appServer, bool forExport, bool surplus = false)
         {
             string styleOrClass = $"{(forExport ? "style" : "class")}=\"{StyleOrCssClass(appServer, forExport, surplus)}\"";
-            return $"<span {styleOrClass}>{DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(appServer))}</span>";
+            return $"<span {styleOrClass}>{HtmlOutputEncoder.EncodeText(DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(appServer)))}</span>";
         }
 
         private static string StyleOrCssClass(ModellingAppServer appServer, bool forExport, bool surplus)

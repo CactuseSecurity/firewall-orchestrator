@@ -26,6 +26,8 @@ namespace FWO.Test
     [TestFixture]
     internal class UiNetworkModellingPageTest
     {
+        private static readonly List<string> kAuditorRoles = [Roles.Auditor];
+
         [Test]
         public async Task Render_SelectsRouteAppAndLoadsConnections()
         {
@@ -91,7 +93,7 @@ namespace FWO.Test
                 IElement requestButton = FindButton(page, "Request firewall changes");
                 Assert.That(addConnectionButton.HasAttribute("disabled"), Is.False);
                 Assert.That(editButton.HasAttribute("disabled"), Is.False);
-                Assert.That(requestButton.HasAttribute("disabled"), Is.True);
+                Assert.That(requestButton.HasAttribute("disabled"), Is.False);
                 Assert.That(apiConn.UnexpectedQueries, Is.Empty);
             });
 
@@ -111,6 +113,45 @@ namespace FWO.Test
             await using BunitContext context = CreateContext([Roles.Admin, Roles.Recertifier], out NetworkModellingPageTestApiConn apiConn, out SimulatedUserConfig userConfig);
             userConfig.User.RecertOwnerships = [10];
             userConfig.SetExecutionMode(Roles.Admin);
+
+            IRenderedComponent<NetworkModelling> page = RenderPage(context, appId: "APP-A");
+
+            page.WaitForAssertion(() =>
+            {
+                Assert.That(page.Markup, Does.Contain("Alpha App"));
+                IElement recertButton = FindButton(page, "recertify");
+                Assert.That(recertButton.HasAttribute("disabled"), Is.False);
+                Assert.That(page.FindComponent<RequestRecertPopup>().Instance.CanRecertify, Is.False);
+                Assert.That(apiConn.UnexpectedQueries, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task Render_AuditorCanOpenRequestFwChangePopupButCannotSubmit()
+        {
+            await using BunitContext context = CreateContext(kAuditorRoles, out _, out _);
+
+            IRenderedComponent<NetworkModelling> page = RenderPage(context, appId: "APP-A");
+
+            page.WaitForAssertion(() => Assert.That(page.Markup, Does.Contain("Alpha App")));
+            FindButton(page, "Request firewall changes").Click();
+
+            page.WaitForAssertion(() =>
+            {
+                IRenderedComponent<RequestFwChangePopup> popup = page.FindComponent<RequestFwChangePopup>();
+                Assert.That(popup.Instance.Display, Is.True);
+                List<IElement> submitButtons = [.. popup.FindAll("button")
+                    .Where(button => button.TextContent.Trim() == "Request firewall changes")];
+                Assert.That(submitButtons, Is.Not.Empty);
+                Assert.That(submitButtons.All(button => button.HasAttribute("disabled")), Is.True);
+                Assert.That(page.Markup, Does.Not.Contain("E9104"));
+            });
+        }
+
+        [Test]
+        public async Task Render_AuditorCanOpenRecertPopupButCannotSubmit()
+        {
+            await using BunitContext context = CreateContext(kAuditorRoles, out NetworkModellingPageTestApiConn apiConn, out _);
 
             IRenderedComponent<NetworkModelling> page = RenderPage(context, appId: "APP-A");
 

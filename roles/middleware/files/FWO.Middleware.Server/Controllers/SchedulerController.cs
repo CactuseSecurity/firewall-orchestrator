@@ -33,8 +33,9 @@ namespace FWO.Middleware.Server.Controllers
         /// Retrieves information about all scheduled jobs.
         /// </summary>
         /// <returns>A collection of scheduler job information.</returns>
+        /// <remarks>Readable by admins and auditors. The set of jobs is fixed by the middleware, so the result needs no paging.</remarks>
         [HttpGet]
-        [Authorize(Roles = $"{Roles.Admin}")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public async Task<IEnumerable<SchedulerJobInfo>> GetJobs()
         {
             IScheduler scheduler = await schedulerFactory.GetScheduler();

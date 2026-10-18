@@ -76,20 +76,36 @@ namespace FWO.Services.Workflow
         {
             if (ReloadTasks && reload && dbAcc != null)
             {
-                WfTicket? refreshedTicket = await dbAcc.FetchTicket(ticket.Id, GetOwnerIdsForFiltering(), GetVisibilityTicketFilter());
+                WfTicket? refreshedTicket = await ReloadTicket(ticket);
                 if (refreshedTicket == null)
                 {
                     return;
                 }
                 ticket = refreshedTicket;
-                int ticketIndex = TicketList.FindIndex(x => x.Id == ticket.Id);
-                if (ticketIndex >= 0)
-                {
-                    TicketList[ticketIndex] = ticket;
-                }
             }
             SetTicketEnv(ticket);
             SetTicketOpt(action);
+        }
+
+        private async Task<WfTicket?> ReloadTicket(WfTicket ticket)
+        {
+            if (dbAcc == null)
+            {
+                return null;
+            }
+
+            WfTicket? refreshedTicket = await dbAcc.FetchTicket(ticket.Id, GetOwnerIdsForFiltering(), GetVisibilityTicketFilter());
+            if (refreshedTicket == null)
+            {
+                return null;
+            }
+
+            int ticketIndex = TicketList.FindIndex(existingTicket => existingTicket.Id == refreshedTicket.Id);
+            if (ticketIndex >= 0)
+            {
+                TicketList[ticketIndex] = refreshedTicket;
+            }
+            return refreshedTicket;
         }
 
         public void SetTicketEnv(WfTicket ticket)
@@ -97,6 +113,34 @@ namespace FWO.Services.Workflow
             ActTicket = ticket;
             ResetImplTaskList();
             ActStateMatrix = MasterStateMatrix;
+        }
+
+        /// <summary>
+        /// Reloads the active ticket after an action changed its tasks or metadata.
+        /// </summary>
+        /// <returns><see langword="true"/> when the ticket was refreshed successfully.</returns>
+        public async Task<bool> ReloadActTicket()
+        {
+            try
+            {
+                if (ActTicket.Id <= 0 || dbAcc == null)
+                {
+                    return false;
+                }
+
+                WfTicket? refreshedTicket = await ReloadTicket(ActTicket);
+                if (refreshedTicket == null)
+                {
+                    return false;
+                }
+                SetTicketEnv(refreshedTicket);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
+                return false;
+            }
         }
 
         public void SetTicketOpt(ObjAction action)

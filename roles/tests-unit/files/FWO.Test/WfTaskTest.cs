@@ -466,13 +466,13 @@ namespace FWO.Test
                 new WfCommentDataHelper(new WfComment
                 {
                     CreationDate = firstDate,
-                    Creator = new UiUser { Name = "Alice" },
+                    Creator = new UiUser { DbId = 1, Name = "Alice" },
                     CommentText = "Hello"
                 }),
                 new WfCommentDataHelper(new WfComment
                 {
                     CreationDate = secondDate,
-                    Creator = new UiUser { Name = "Bob" },
+                    Creator = new UiUser { DbId = 2, Name = "Bob" },
                     CommentText = "World"
                 })
             ];
@@ -487,6 +487,24 @@ namespace FWO.Test
 
             string markup = WfStatefulObject.DisplayAllComments(comments, true);
             Assert.That(markup, Does.Contain("<br>"));
+        }
+
+        [Test]
+        public void WfStatefulObject_DisplayAllComments_UsesSystemForSystemUser()
+        {
+            List<WfCommentDataHelper> comments =
+            [
+                new WfCommentDataHelper(new WfComment
+                {
+                    Creator = new UiUser { DbId = 0, Name = "default" },
+                    CommentText = "Automatically approved"
+                })
+            ];
+
+            string rendered = WfStatefulObject.DisplayAllComments(comments);
+
+            Assert.That(rendered, Does.Contain("system: Automatically approved"));
+            Assert.That(rendered, Does.Not.Contain("default: Automatically approved"));
         }
     }
 }

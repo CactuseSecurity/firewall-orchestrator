@@ -993,6 +993,41 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ReloadActTicket_RefreshesActiveTicketAndTicketList()
+        {
+            WfTicket refreshedTicket = new()
+            {
+                Id = 7,
+                Title = "Refreshed ticket",
+                Tasks =
+                {
+                    new WfReqTask
+                    {
+                        Id = 11,
+                        ImplementationTasks = { new WfImplTask { Id = 21 } }
+                    }
+                }
+            };
+            TicketTestApiConn apiConn = new() { Ticket = refreshedTicket };
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, new UserConfig());
+            WfTicket oldTicket = new() { Id = 7, Title = "Old ticket" };
+            handler.ActTicket = oldTicket;
+            handler.TicketList.Add(oldTicket);
+            long[] expectedImplTaskIds = [21L];
+
+            bool reloaded = await handler.ReloadActTicket();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(reloaded, Is.True);
+                Assert.That(handler.ActTicket, Is.SameAs(refreshedTicket));
+                Assert.That(handler.ActTicket.Title, Is.EqualTo("Refreshed ticket"));
+                Assert.That(handler.TicketList.Single(), Is.SameAs(refreshedTicket));
+                Assert.That(handler.AllTicketImplTasks.Select(task => task.Id), Is.EqualTo(expectedImplTaskIds));
+            });
+        }
+
+        [Test]
         public async Task SelectTicket_SetsEnvironmentAndMode()
         {
             WfHandler handler = new()

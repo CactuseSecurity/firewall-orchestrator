@@ -115,7 +115,10 @@ namespace FWO.Data.Workflow
             string allComments = "";
             foreach (var comment in Comments)
             {
-                string creatorName = asMarkup ? WebUtility.HtmlEncode(comment.Comment.Creator.Name) : comment.Comment.Creator.Name;
+                string creatorDisplayName = comment.Comment.Creator.DbId == 0
+                    ? GlobalConst.kSystemUser
+                    : comment.Comment.Creator.Name;
+                string creatorName = asMarkup ? WebUtility.HtmlEncode(creatorDisplayName) : creatorDisplayName;
                 string commentText = asMarkup ? WebUtility.HtmlEncode(comment.Comment.CommentText) : comment.Comment.CommentText;
                 allComments += comment.Comment.CreationDate.ToShortDateString() + " "
                             + creatorName + ": "

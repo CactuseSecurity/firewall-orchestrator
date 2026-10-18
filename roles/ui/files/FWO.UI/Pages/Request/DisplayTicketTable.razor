@@ -4,7 +4,8 @@
 
 @inject UserConfig userConfig
 
-@if(Phase == WorkflowPhases.request && !WfHandler.ReadOnlyMode)
+@* read-only users can open the request dialog, only requesters and admins can save it *@
+@if(Phase == WorkflowPhases.request && CanOpenChangeDialogs())
 {
     <button type="button" class="btn btn-success m-2" @onclick="AddTicket">@(DisplayService.DisplayButton(userConfig, "add_new_request", Icons.Add))</button>
 }
@@ -96,6 +97,12 @@
     [Parameter]
     public Func<WfImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
+    /// <summary>
+    /// A ticket overview only displays tickets, also to users who could change them elsewhere.
+    /// </summary>
+    [Parameter]
+    public bool Overview { get; set; } = false;
+
 
     private async Task Reset()
     {
@@ -121,9 +128,22 @@
 
     private TicketFieldVisibilityConfig TicketFieldVisibility => TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility);
 
+    /// <summary>
+    /// Checks whether the dialogs for changing tickets are offered: on a phase page also to read-only users,
+    /// who only lack the right to save, but never on an overview.
+    /// </summary>
+    private bool CanOpenChangeDialogs()
+    {
+        return !Overview || !WfHandler.ReadOnlyMode;
+    }
+
+    /// <summary>
+    /// Checks whether the ticket is open for changes in this phase. Read-only users open it in the same dialog,
+    /// where saving stays reserved to the phase roles.
+    /// </summary>
     private bool CanEditTicketInPhase(WfTicket ticket)
     {
-        return !WfHandler.ReadOnlyMode
+        return CanOpenChangeDialogs()
             && ticket.StateId >= WfHandler.MasterStateMatrix.LowestInputState
             && ticket.StateId < WfHandler.MasterStateMatrix.LowestEndState;
     }

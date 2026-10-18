@@ -224,6 +224,12 @@ namespace FWO.Services.Workflow
 
         public async Task StartWorkOnReqTask(WfReqTask reqTask, ObjAction action)
         {
+            if (ReadOnlyMode)
+            {
+                // read-only users follow the phase without starting work, so no state is written
+                await SelectReqTask(reqTask, action, true);
+                return;
+            }
             SetReqTaskEnv(await LoadReqTaskDetails(reqTask, true));
             ActReqTask.CurrentHandler = userConfig.User;
             List<int> actPossibleStates = ActStateMatrix.getAllowedTransitions(ActReqTask.StateId);
@@ -248,12 +254,22 @@ namespace FWO.Services.Workflow
 
         public async Task ContinuePhase(WfReqTask reqTask)
         {
-            await SelectReqTask(reqTask, contOption, true);
-            if (ActReqTask.CurrentHandler != userConfig.User)
+            await ViewReqTaskInPhase(reqTask);
+            if (!ReadOnlyMode && ActReqTask.CurrentHandler != userConfig.User)
             {
                 ActReqTask.CurrentHandler = userConfig.User;
                 await UpdateActReqTaskState();
             }
+        }
+
+        /// <summary>
+        /// Opens a request task in the view of the current phase without starting work on it or taking it over,
+        /// so that read-only users can see the phase dialog. No state is written.
+        /// </summary>
+        /// <param name="reqTask">The request task to open.</param>
+        public async Task ViewReqTaskInPhase(WfReqTask reqTask)
+        {
+            await SelectReqTask(reqTask, contOption, true);
         }
 
         public async Task AssignReqTaskGroup(WfStatefulObject statefulObject)

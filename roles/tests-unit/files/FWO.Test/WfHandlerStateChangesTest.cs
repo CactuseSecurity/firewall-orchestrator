@@ -516,6 +516,56 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task StartWorkOnImplTask_InReadOnlyMode_OpensPhaseViewWithoutWriting()
+        {
+            const string taskType = "access";
+            StateMatrix matrix = new()
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 5,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            };
+            matrix.Matrix[0] = [2];
+            WfHandler handler = new() { Phase = WorkflowPhases.implementation, ReadOnlyMode = true };
+            SetMatrix(handler, taskType, matrix);
+            WfImplTask implTask = new() { Id = 3, TicketId = 1, ReqTaskId = 7, TaskType = taskType, StateId = 0 };
+            WfReqTask reqTask = CreateBundledReqTask(7, implTask);
+            reqTask.TaskType = taskType;
+            handler.TicketList.Add(new WfTicket { Id = 1, Tasks = { reqTask } });
+
+            await handler.StartWorkOnImplTask(implTask, ObjAction.implement);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActImplTask.StateId, Is.EqualTo(0));
+                Assert.That(handler.ActImplTask.CurrentHandler, Is.Null);
+                Assert.That(reqTask.StateId, Is.EqualTo(0));
+                Assert.That(handler.ImplementImplTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ContinueImplPhase_InReadOnlyMode_KeepsCurrentHandler()
+        {
+            const string taskType = "access";
+            WfHandler handler = new() { Phase = WorkflowPhases.review, ReadOnlyMode = true };
+            SetMatrix(handler, taskType, new StateMatrix { LowestInputState = 0, LowestStartedState = 2, LowestEndState = 5 });
+            UiUser previousHandler = new() { Dn = "cn=old", DbId = 9 };
+            WfImplTask implTask = new() { Id = 3, TicketId = 1, ReqTaskId = 7, TaskType = taskType, StateId = 2, CurrentHandler = previousHandler };
+            handler.TicketList.Add(new WfTicket { Id = 1 });
+            handler.SetContinueEnv(ObjAction.review);
+
+            await handler.ContinueImplPhase(implTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActImplTask.CurrentHandler, Is.SameAs(previousHandler));
+                Assert.That(handler.ReviewImplTaskMode, Is.True);
+            });
+        }
+
+        [Test]
         public async Task AutoPromote_TicketScope_UsesProvidedState()
         {
             WfHandler handler = new();

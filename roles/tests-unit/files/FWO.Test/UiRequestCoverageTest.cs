@@ -364,6 +364,41 @@ namespace FWO.Test
             Assert.That(resetCalls, Is.EqualTo(2));
         }
 
+        [TestCase(true, null, 2)]
+        [TestCase(false, true, 0)]
+        public async Task DisplayApprovals_ShowsDisabledActionsOnlyToReadOnlyUsers(bool userReadOnly, bool? popupReadOnly, int expectedDisabledButtons)
+        {
+            await using BunitContext context = new();
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(new RequestCoverageUserConfig());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Auditor));
+            WfHandler handler = new() { ReadOnlyMode = userReadOnly };
+            List<WfApproval> openApprovals = [new WfApproval { Id = 5, StateId = 3, Comments = [] }];
+
+            IRenderedComponent<DisplayApprovals> component = context.Render<DisplayApprovals>(parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.WfHandler, handler)
+                .Add(p => p.ResetParent, DefaultInit.DoNothing)
+                .Add(p => p.Approvals, openApprovals)
+                .Add(p => p.States, new WfStateDict())
+                .Add(p => p.ReadOnlyMode, popupReadOnly));
+
+            List<AngleSharp.Dom.IElement> actionButtons = [.. component.FindAll("td button")];
+            await InvokePrivateTask(component.Instance, "InitAddComment", component.Instance.Approvals[0]);
+            await InvokePrivateTask(component.Instance, "AssignApproval", component.Instance.Approvals[0]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(actionButtons, Has.Count.EqualTo(expectedDisabledButtons));
+                Assert.That(actionButtons.All(button => button.HasAttribute("disabled")), Is.True);
+                Assert.That(handler.DisplayApprovalCommentMode, Is.False);
+                Assert.That(handler.DisplayAssignApprovalMode, Is.False);
+            });
+        }
+
         [Test]
         public async Task DisplayApprovals_TogglesPopupModesAndAddsComments()
         {

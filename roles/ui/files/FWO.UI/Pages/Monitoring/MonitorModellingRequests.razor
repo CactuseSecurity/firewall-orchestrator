@@ -27,7 +27,7 @@ else if (InitComplete && accessAllowed)
         <Table PageSize="PageSize" class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="OwnerRequestStatus" Items="Rows" ColumnReorder="true">
             <Column TableItem="OwnerRequestStatus" Title="@(userConfig.GetText("actions"))" Field="@(x => x.TicketId)" Sortable="false" Filterable="false">
                 <Template Context="row">
-                    @if (row.TicketId > 0 && userConfig.CanUseAnyRole(Roles.Admin))
+                    @if (row.TicketId > 0)
                     {
                         <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-warning" disabled="@(ConfiguredImplementationStatuses.Count == 0)" @onclick="() => RequestImplementationStatusChange(row)">

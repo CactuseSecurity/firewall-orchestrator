@@ -417,6 +417,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayRequestTask_ReadOnlyPhaseView_OffersOnlyReadOnlyActionsAndBlocksWrites()
+        {
+            DisplayRequestTask component = new();
+            WfReqTask task = new() { Title = "Unchanged" };
+            WfHandler handler = new() { ActReqTask = task, ReadOnlyMode = true, PlanReqTaskMode = true, EditReqTaskMode = true };
+            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), handler);
+
+            WfStateAction normalAction = new() { ActionType = StateActionTypes.DoNothing.ToString() };
+            WfStateAction readOnlyAction = new() { ActionType = StateActionTypes.DisplayConnection.ToString() };
+            InvokePrivate(component, "InitAddComment");
+            await InvokePrivateTask(component, "SaveReqTask");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(component, "CanShowConfiguredActionButton", normalAction), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "CanShowConfiguredActionButton", readOnlyAction), Is.True);
+                Assert.That(handler.DisplayReqTaskCommentMode, Is.False);
+                Assert.That(task.Title, Is.EqualTo("Unchanged"));
+                Assert.That(GetPrivateField<bool>(component, "WorkInProgress"), Is.False);
+            });
+        }
+
+        [Test]
         public void DisplayRequestTask_ObjectReferencesAndServicePortsAreValidated()
         {
             Assert.Multiple(() =>

@@ -240,8 +240,9 @@ namespace FWO.Test
             Assert.That(canEdit, Is.False);
         }
 
-        [Test]
-        public void DisplayTicketTable_ReadOnlyMode_UsesDetailsInPhaseRange()
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        public void DisplayTicketTable_ReadOnlyMode_OpensEditOnPhasePagesButNotOnOverview(bool overview, bool expectedEdit)
         {
             WfHandler handler = new()
             {
@@ -253,12 +254,13 @@ namespace FWO.Test
                 }
             };
             DisplayTicketTable component = CreateTicketTable(handler, WorkflowPhases.approval);
+            typeof(DisplayTicketTable).GetProperty(nameof(DisplayTicketTable.Overview))!.SetValue(component, overview);
             MethodInfo? method = typeof(DisplayTicketTable).GetMethod("CanEditTicketInPhase", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(method, Is.Not.Null);
 
             bool canEdit = (bool)method!.Invoke(component, [new WfTicket { StateId = 60 }])!;
 
-            Assert.That(canEdit, Is.False);
+            Assert.That(canEdit, Is.EqualTo(expectedEdit));
         }
     }
 }

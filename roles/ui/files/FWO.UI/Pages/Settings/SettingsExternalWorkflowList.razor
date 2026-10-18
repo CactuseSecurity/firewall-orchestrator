@@ -48,38 +48,33 @@
                     <input id="cbx_ext_ticket_check_certificates" type="checkbox" @bind="configData!.ExtTicketSystemsCheckCertificates" />
                 </div>
             </div>
-            <AuthorizeView Roles="@Roles.Admin">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="SaveServiceData">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <hr />
             <div class="row mb-2">
                 <div class="col-sm-12">
-                    <AuthorizeView Roles="@Roles.Admin">
-                        <Authorized>
-                            <button type="button" class="btn btn-sm btn-success" @onclick="AddExternalTicketSystem">@(DisplayService.DisplayButton(userConfig, "add_ext_ticket_system", Icons.Add))</button>
-                        </Authorized>
-                    </AuthorizeView>
+                    <button type="button" class="btn btn-sm btn-success" @onclick="AddExternalTicketSystem">@(DisplayService.DisplayButton(userConfig, "add_ext_ticket_system", Icons.Add))</button>
                 </div>
             </div>
             <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalTicketSystem" Items="extTicketSystems" PageSize="0" ColumnReorder="true">
                 <Column TableItem="ExternalTicketSystem" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template Context="item">
                         <div class="btn-group">
-                            <AuthorizeView Roles="@Roles.Admin">
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditExternalTicketSystem(item)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                                 <Authorized>
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditExternalTicketSystem(item)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteExternalTicketSystem(item)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                 </Authorized>
                                 <NotAuthorized>
-                                    <button type="button" disabled class="btn btn-sm btn-warning">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                                     <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                 </NotAuthorized>
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                         </div>
                     </Template>
                 </Column>
@@ -185,14 +180,14 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@Roles.Admin">
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     </NotAuthorized>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEdit">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             </div>
         </Footer>

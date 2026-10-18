@@ -1,9 +1,12 @@
 using Bunit;
 using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data.Modelling;
 using FWO.Ui.Pages.Settings;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Text.Json;
@@ -14,7 +17,7 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     internal class UiVarianceOptionsSelectionTest
     {
-        private static BunitContext CreateContext(out SimulatedGlobalConfig globalConfig, out RecordingSettingsApiConn apiConn)
+        private static BunitContext CreateContext(out SimulatedGlobalConfig globalConfig, out RecordingSettingsApiConn apiConn, string role = Roles.Admin)
         {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -25,7 +28,12 @@ namespace FWO.Test
             apiConn = new RecordingSettingsApiConn();
             context.Services.AddSingleton<ApiConnection>(apiConn);
             context.Services.AddSingleton<GlobalConfig>(globalConfig);
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [role];
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(role));
             return context;
         }
 
@@ -36,11 +44,13 @@ namespace FWO.Test
             Action<RuleRecognitionOption>? configChanged = null,
             bool display = true)
         {
-            return context.Render<VarianceOptionsSelection>(parameters => parameters
-                .Add(p => p.Display, display)
-                .Add(p => p.DisplayChanged, value => displayChanged?.Invoke(value))
-                .Add(p => p.ConfigValue, configValue)
-                .Add(p => p.ConfigValueChanged, value => configChanged?.Invoke(value)));
+            return context.Render<CascadingAuthenticationState>(wrapper => wrapper
+                .AddChildContent<VarianceOptionsSelection>(parameters => parameters
+                    .Add(p => p.Display, display)
+                    .Add(p => p.DisplayChanged, value => displayChanged?.Invoke(value))
+                    .Add(p => p.ConfigValue, configValue)
+                    .Add(p => p.ConfigValueChanged, value => configChanged?.Invoke(value))))
+                .FindComponent<VarianceOptionsSelection>();
         }
 
         [Test]
@@ -118,6 +128,22 @@ namespace FWO.Test
                 Assert.That(savedValue.SvcSplitPortRanges, Is.True);
                 Assert.That(displayChanged, Is.False);
                 Assert.That(globalConfig.RuleRecognitionOption, Does.Contain("\"nwRegardName\":true"));
+            });
+        }
+
+        [Test]
+        public void VarianceOptionsSelection_AuditorCanViewButNotSave()
+        {
+            using BunitContext context = CreateContext(out _, out RecordingSettingsApiConn apiConn, Roles.Auditor);
+            IRenderedComponent<VarianceOptionsSelection> component = RenderComponent(context, new RuleRecognitionOption());
+
+            AngleSharp.Dom.IElement saveButton = component.FindAll("button").Single(button => button.InnerHtml.Contains("Save"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("input[type=checkbox]"), Has.Count.EqualTo(10));
+                Assert.That(saveButton.HasAttribute("disabled"), Is.True);
+                Assert.That(apiConn.LastUpsertConfigItems, Is.Empty);
             });
         }
 

@@ -1287,6 +1287,8 @@ INSERT INTO txt VALUES ('start_review',         'German', 	'Review beginnen');
 INSERT INTO txt VALUES ('start_review',         'English', 	'Start review');
 INSERT INTO txt VALUES ('continue_review',      'German',   'Review fortsetzen');
 INSERT INTO txt VALUES ('continue_review',      'English',  'Continue review');
+INSERT INTO txt VALUES ('open_in_phase_view',   'German',   'In Phasenansicht &ouml;ffnen');
+INSERT INTO txt VALUES ('open_in_phase_view',   'English',  'Open in phase view');
 INSERT INTO txt VALUES ('implement', 		    'German',	'Implementieren');
 INSERT INTO txt VALUES ('implement', 		    'English',	'Implement');
 INSERT INTO txt VALUES ('implementer', 		    'German',	'Implementierer');
@@ -8985,6 +8987,12 @@ INSERT INTO txt VALUES ('H8301', 'German',  'Jeder Verarbeitungsschritt kann nur
 INSERT INTO txt VALUES ('H8301', 'English', 'Each processing step can only be done by users with adequate <a href="/help/settings/roles">Roles</a>.
     Although, single users can be in possession of several roles. Roles can be assigned individually or via <a href="/help/settings/groups">group membership</a>.
     Additionally there is the role of the admin, who has always full access. Depending on the roles of the user, only the relevant parts of the following chapters are visible.
+');
+INSERT INTO txt VALUES ('H8302', 'German',  'Der Auditor sieht alle Bearbeitungsstufen und kann jeden Dialog &ouml;ffnen, auch &uuml;ber "In Phasenansicht &ouml;ffnen" anstelle von Beginnen und Fortsetzen.
+    Er kann jedoch nichts &auml;ndern: Speichern, Statuswechsel, Kommentare, Zuweisungen und L&ouml;schen bleiben deaktiviert, und das &Ouml;ffnen ver&auml;ndert weder Status noch Bearbeiter.
+');
+INSERT INTO txt VALUES ('H8302', 'English', 'The auditor sees all processing stages and can open every dialog, also via "Open in phase view" instead of start and continue.
+    The auditor cannot change anything though: saving, state changes, comments, assignments and deletion stay disabled, and opening changes neither state nor handler.
 ');
 INSERT INTO txt VALUES ('H8311', 'German',  'Ticket-Liste (Rolle: requester, admin, auditor):
     Dem Antragsteller steht eine &Uuml;bersicht &uuml;ber alle von ihm selbst angelegten Tickets aller Bearbeitungsstufen zur Verf&uuml;gung. Admin und Auditor k&ouml;nnen hier alle Tickets sehen.

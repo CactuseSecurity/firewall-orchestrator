@@ -160,7 +160,8 @@
                             <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
                             @if(WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode)
                             {
-                                <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
+                                @* read-only users follow the phase, but cannot comment *@
+                                <button type="button" class="btn btn-sm btn-success" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="InitAddComment">
                                     @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                             }
                         </div>
@@ -209,11 +210,11 @@
                             <Authorized>
                                 @if(WfHandler.AddReqTaskMode)
                                 {
-                                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                                    <button type="button" class="btn btn-sm btn-primary" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                                 }
                                 else
                                 {
-                                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                                    <button type="button" class="btn btn-sm btn-primary" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                                 }
                             </Authorized>
                             <NotAuthorized>
@@ -364,7 +365,7 @@
                     {
                         DisplayMessageInUi(null, userConfig.GetText("display_task"), userConfig.GetText("E8014"), true);
                     }
-                    if(WfHandler.ActReqTask.TaskType == WfTaskType.new_interface.ToString() && WfHandler.ActReqTask.Owners.Count > 0)
+                    if(WfHandler.ActReqTask.Owners.Count > 0)
                     {
                         oldOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
                     }
@@ -516,9 +517,13 @@
         return WfHandler.StateMatrix(WfHandler.ActReqTask.TaskType).PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalPhaseActive) && approvalPhaseActive;
     }
 
+    /// <summary>
+    /// Checks whether a configured action is offered: read-only users only get actions that do not change anything.
+    /// </summary>
     private bool CanShowConfiguredActionButton(WfStateAction action)
     {
-        return WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode || WfStateAction.IsReadonlyType(action.ActionType);
+        bool inChangingMode = WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode;
+        return (inChangingMode && !WfHandler.ReadOnlyMode) || WfStateAction.IsReadonlyType(action.ActionType);
     }
 
     private bool IsRequestTaskReadOnly()
@@ -631,7 +636,7 @@
                 {
                     return;
                 }
-                await WfHandler.ChangeReqTask();
+                await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
             }
             await WfHandler.ApproveTask(approval);
         }
@@ -643,6 +648,10 @@
 
     private void InitAddComment()
     {
+        if (WfHandler.ReadOnlyMode)
+        {
+            return;
+        }
         WfHandler.SetReqTaskPopUpOpt(ObjAction.displayComment);
     }
 
@@ -655,6 +664,10 @@
 
     private async Task SaveReqTask()
     {
+        if (WfHandler.ReadOnlyMode)
+        {
+            return;
+        }
         if (WorkInProgress)
         {
             return;

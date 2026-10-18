@@ -278,6 +278,118 @@ namespace FWO.Test
             Assert.That(handler.ActImplTask.CurrentHandler?.DbId, Is.EqualTo(userConfig.User.DbId));
         }
 
+        [Test]
+        public async Task DisplayImplTaskTable_ReadOnlyImplementation_OffersPhaseViewInsteadOfStartOrContinue()
+        {
+            await using BunitContext context = CreateReadOnlyContext(out RequestCoverageUserConfig userConfig);
+            WfHandler handler = CreateReadOnlyHandler(userConfig, WorkflowPhases.implementation, out List<WfImplTask> implTasks);
+            handler.SetContinueEnv(ObjAction.implement);
+
+            IRenderedComponent<DisplayImplTaskTable> rendered = RenderImplTaskTable(context, handler, WorkflowPhases.implementation, implTasks);
+
+            List<AngleSharp.Dom.IElement> viewButtons = FindButtons(rendered, userConfig.GetText("open_in_phase_view"));
+            List<AngleSharp.Dom.IElement> assignButtons = FindButtons(rendered, userConfig.GetText("assign1"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(viewButtons, Has.Count.EqualTo(2));
+                Assert.That(assignButtons, Has.Count.EqualTo(1));
+                Assert.That(assignButtons[0].HasAttribute("disabled"), Is.True);
+                Assert.That(rendered.Markup, Does.Not.Contain(userConfig.GetText("start_implementation")));
+                Assert.That(rendered.Markup, Does.Not.Contain(userConfig.GetText("continue_implementation")));
+            });
+
+            await rendered.InvokeAsync(() => viewButtons[1].Click());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ImplementImplTaskMode, Is.True);
+                Assert.That(handler.ActImplTask.Id, Is.EqualTo(2));
+                Assert.That(handler.ActImplTask.StateId, Is.EqualTo(2));
+                Assert.That(handler.ActImplTask.CurrentHandler, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task DisplayImplTaskTable_ReadOnlyPlanning_OpensDialogsButDisablesDirectWrites()
+        {
+            await using BunitContext context = CreateReadOnlyContext(out RequestCoverageUserConfig userConfig);
+            userConfig.ReqActivatePathAnalysis = true;
+            WfHandler handler = CreateReadOnlyHandler(userConfig, WorkflowPhases.planning, out List<WfImplTask> implTasks);
+            handler.SetReqTaskMode(ObjAction.plan);
+
+            IRenderedComponent<DisplayImplTaskTable> rendered = RenderImplTaskTable(context, handler, WorkflowPhases.planning, implTasks);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(FindButtons(rendered, userConfig.GetText("create_implementation")).Single().HasAttribute("disabled"), Is.False);
+                Assert.That(FindButtons(rendered, userConfig.GetText("check_impltasks")).Single().HasAttribute("disabled"), Is.False);
+                Assert.That(FindButtons(rendered, userConfig.GetText("auto_create_impltasks")).Single().HasAttribute("disabled"), Is.True);
+                Assert.That(FindButtons(rendered, userConfig.GetText("cleanup_impltasks")).Single().HasAttribute("disabled"), Is.True);
+                Assert.That(FindButtons(rendered, userConfig.GetText("edit")).All(button => !button.HasAttribute("disabled")), Is.True);
+                Assert.That(FindButtons(rendered, userConfig.GetText("edit")), Has.Count.EqualTo(2));
+                Assert.That(FindButtons(rendered, userConfig.GetText("delete")).All(button => button.HasAttribute("disabled")), Is.True);
+                Assert.That(FindButtons(rendered, userConfig.GetText("delete")), Has.Count.EqualTo(2));
+            });
+
+            await InvokePrivateTask(rendered.Instance, "AutocreateImplTasks");
+            InvokePrivate(rendered.Instance, "CleanupImplTasks");
+
+            Assert.That(handler.DisplayCleanupMode, Is.False);
+        }
+
+        private static BunitContext CreateReadOnlyContext(out RequestCoverageUserConfig userConfig)
+        {
+            BunitContext context = new();
+            userConfig = CreateUserConfig(Roles.Auditor);
+            userConfig.ModIconify = false;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(new ThrowingApiConnection());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(Roles.Auditor));
+            return context;
+        }
+
+        private static WfHandler CreateReadOnlyHandler(RequestCoverageUserConfig userConfig, WorkflowPhases phase, out List<WfImplTask> implTasks)
+        {
+            WfHandler handler = CreateHandler(new ThrowingApiConnection(), userConfig, phase);
+            handler.InitDone = true;
+            handler.ReadOnlyMode = true;
+            handler.MasterStateMatrix.LowestInputState = 1;
+            handler.MasterStateMatrix.LowestEndState = 10;
+            StateMatrix matrix = CreateMatrix();
+            matrix.PhaseActive[WorkflowPhases.planning] = false;
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+            implTasks =
+            [
+                new() { Id = 1, TaskType = WfTaskType.access.ToString(), StateId = 1, TicketId = 10, ReqTaskId = 20 },
+                new() { Id = 2, TaskType = WfTaskType.access.ToString(), StateId = 2, TicketId = 10, ReqTaskId = 20 }
+            ];
+            WfReqTask reqTask = new() { Id = 20, Title = "Read-only task", TaskType = WfTaskType.access.ToString(), ImplementationTasks = [.. implTasks] };
+            WfTicket ticket = new() { Id = 10, Title = "Read-only ticket", StateId = 2, Tasks = [reqTask] };
+            handler.ActReqTask = reqTask;
+            handler.ActTicket = ticket;
+            handler.TicketList = [ticket];
+            return handler;
+        }
+
+        private static IRenderedComponent<DisplayImplTaskTable> RenderImplTaskTable(BunitContext context, WfHandler handler, WorkflowPhases phase, List<WfImplTask> implTasks)
+        {
+            return context.Render<DisplayImplTaskTable>(parameters => parameters
+                .Add(parameter => parameter.Phase, phase)
+                .Add(parameter => parameter.States, new WfStateDict())
+                .Add(parameter => parameter.WfHandler, handler)
+                .Add(parameter => parameter.AllImplTasks, implTasks)
+                .Add(parameter => parameter.ImplTaskView, true));
+        }
+
+        private static List<AngleSharp.Dom.IElement> FindButtons(IRenderedComponent<DisplayImplTaskTable> rendered, string text)
+        {
+            return [.. rendered.FindAll("button").Where(button => button.TextContent.Trim() == text)];
+        }
+
         private static DisplayImplTaskTable CreateComponent()
         {
             DisplayImplTaskTable component = new();

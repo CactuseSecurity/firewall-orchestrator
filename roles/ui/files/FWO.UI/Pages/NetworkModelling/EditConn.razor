@@ -1,3 +1,4 @@
+@using FWO.Basics
 @using FWO.Compliance
 @using FWO.Ui.Display
 @using FWO.Middleware.Client
@@ -50,7 +51,7 @@
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(ConnHandler.ActConn.IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))*:</label>
                     @if(ConnHandler.ReadOnly)
                     {
-                        <label class="col-sm-9">@((MarkupString)(ConnHandler!.ActConn.Reason ?? ""))</label>
+                        <label class="col-sm-9">@((MarkupString)HtmlOutputEncoder.SanitizeRichText(ConnHandler!.ActConn.Reason))</label>
                     }
                     else
                     {

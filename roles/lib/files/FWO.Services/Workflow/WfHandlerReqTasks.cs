@@ -224,6 +224,12 @@ namespace FWO.Services.Workflow
 
         public async Task StartWorkOnReqTask(WfReqTask reqTask, ObjAction action)
         {
+            if (ReadOnlyMode)
+            {
+                // read-only users follow the phase without starting work, so no state is written
+                await SelectReqTask(reqTask, action, true);
+                return;
+            }
             SetReqTaskEnv(await LoadReqTaskDetails(reqTask, true));
             ActReqTask.CurrentHandler = userConfig.User;
             List<int> actPossibleStates = ActStateMatrix.getAllowedTransitions(ActReqTask.StateId);
@@ -248,12 +254,22 @@ namespace FWO.Services.Workflow
 
         public async Task ContinuePhase(WfReqTask reqTask)
         {
-            await SelectReqTask(reqTask, contOption, true);
-            if (ActReqTask.CurrentHandler != userConfig.User)
+            await ViewReqTaskInPhase(reqTask);
+            if (!ReadOnlyMode && ActReqTask.CurrentHandler != userConfig.User)
             {
                 ActReqTask.CurrentHandler = userConfig.User;
                 await UpdateActReqTaskState();
             }
+        }
+
+        /// <summary>
+        /// Opens a request task in the view of the current phase without starting work on it or taking it over,
+        /// so that read-only users can see the phase dialog. No state is written.
+        /// </summary>
+        /// <param name="reqTask">The request task to open.</param>
+        public async Task ViewReqTaskInPhase(WfReqTask reqTask)
+        {
+            await SelectReqTask(reqTask, contOption, true);
         }
 
         public async Task AssignReqTaskGroup(WfStatefulObject statefulObject)
@@ -298,16 +314,20 @@ namespace FWO.Services.Workflow
             ActTicket.Tasks.Add(ActReqTask);
         }
 
-        public async Task ChangeReqTask()
+        /// <summary>
+        /// Persists the active request task and replaces it in the active ticket.
+        /// </summary>
+        /// <param name="allowLockedApprovalUpdate">Allows the explicitly permitted approval-phase field update on a locked task.</param>
+        public async Task ChangeReqTask(bool allowLockedApprovalUpdate = false)
         {
-            if (ActReqTask.Locked)
+            if (ActReqTask.Locked && !allowLockedApprovalUpdate)
             {
                 return;
             }
 
             if (ActReqTask.Id > 0 && dbAcc != null)
             {
-                await dbAcc.UpdateReqTaskInDb(ActReqTask);
+                await dbAcc.UpdateReqTaskInDb(ActReqTask, allowLockedApprovalUpdate);
             }
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.TaskNumber == ActReqTask.TaskNumber)] = ActReqTask;
         }

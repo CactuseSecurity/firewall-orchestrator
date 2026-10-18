@@ -75,18 +75,23 @@ def test_url_management_still_decrypts_additional_secret(
     mocker.patch("model_controllers.management_controller.read_main_key", return_value=k_main_key)
     mocker.patch("fwo_api.FwoApi.get_graphql_code", return_value="query")
     api = MagicMock()
-    api.call.return_value = {
-        "data": {
-            "management": [
-                {
-                    "hostname": "https://example.invalid/config",
-                    "import_credential": {"additional_credential": {"secret": encrypt_secret(k_url_value)}},
-                }
-            ]
-        }
-    }
+    api.call.side_effect = [
+        {
+            "data": {
+                "management": [
+                    {
+                        "hostname": "https://example.invalid/config",
+                        "deviceType": {"id": 9},
+                        "import_credential": {"additional_credential": {"secret": encrypt_secret(k_url_value)}},
+                    }
+                ]
+            }
+        },
+        {"data": {"device_specific_config_node": []}},
+    ]
     result = management_controller.get_mgm_details(api, 1)
     assert result["import_credential"]["additional_credential"]["secret"] == k_url_value
+    assert result["importerHostname"] == ""
 
 
 def test_cisco_enable_uses_additional_secret(

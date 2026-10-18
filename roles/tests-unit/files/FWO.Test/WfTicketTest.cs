@@ -148,6 +148,16 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetAdditionalInfoValue_ReturnsEmptyForMalformedJson()
+        {
+            WfTicketBase ticket = new() { AdditionalInfo = "{malformed" };
+
+            string value = ticket.GetAdditionalInfoValue(AdditionalInfoKeys.RequestorName);
+
+            Assert.That(value, Is.Empty);
+        }
+
+        [Test]
         public void Sanitize_RemovesInvalidCharacters_AndReturnsTrue()
         {
             WfTicketBase ticket = new()

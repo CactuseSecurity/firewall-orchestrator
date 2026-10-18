@@ -507,6 +507,22 @@ namespace FWO.Test
             Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(oldTask));
         }
 
+        /// <summary>
+        /// Verifies that an explicitly permitted approval edit can replace a locked task.
+        /// </summary>
+        [Test]
+        public async Task ChangeReqTask_AllowsExplicitApprovalUpdateForLockedTask()
+        {
+            WfHandler handler = new();
+            WfReqTask oldTask = new() { Id = 11, TaskNumber = 2, Title = "Old" };
+            handler.ActTicket = new WfTicket { Tasks = { oldTask } };
+            handler.ActReqTask = new WfReqTask { Id = 11, TaskNumber = 2, Title = "New", Locked = true };
+
+            await handler.ChangeReqTask(allowLockedApprovalUpdate: true);
+
+            Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(handler.ActReqTask));
+        }
+
         [Test]
         public async Task ChangeOwner_ReplacesTaskByTaskNumber()
         {
@@ -605,6 +621,80 @@ namespace FWO.Test
                 Assert.That(handler.ActTicket.Tasks[0].StateId, Is.EqualTo(2));
                 Assert.That(handler.DisplayReqTaskMode, Is.True);
                 Assert.That(handler.EditReqTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task StartWorkOnReqTask_InReadOnlyMode_OpensPhaseViewWithoutWriting()
+        {
+            WfHandler handler = new() { ReadOnlyMode = true };
+            string taskType = WfTaskType.access.ToString();
+            StateMatrix matrix = new()
+            {
+                Matrix = new Dictionary<int, List<int>> { [0] = [2] },
+                LowestStartedState = 2,
+                LowestEndState = 10
+            };
+            SetMatrix(handler, taskType, matrix);
+            WfReqTask reqTask = new() { Id = 11, TicketId = 7, TaskType = taskType, StateId = 0 };
+            handler.ActTicket = new WfTicket { Id = 7, Tasks = { reqTask } };
+            handler.TicketList.Add(handler.ActTicket);
+
+            await handler.StartWorkOnReqTask(reqTask, ObjAction.approve);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(0));
+                Assert.That(handler.ActReqTask.CurrentHandler, Is.Null);
+                Assert.That(handler.ActTicket.Tasks[0].StateId, Is.EqualTo(0));
+                Assert.That(handler.DisplayReqTaskMode, Is.True);
+                Assert.That(handler.ApproveReqTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ContinuePhase_InReadOnlyMode_KeepsCurrentHandler()
+        {
+            WfHandler handler = new() { ReadOnlyMode = true };
+            handler.userConfig.User.Dn = "cn=auditor";
+            handler.userConfig.User.DbId = 10;
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            UiUser previousHandler = new() { Dn = "cn=old", DbId = 9 };
+            WfReqTask reqTask = new() { Id = 11, TicketId = 7, TaskType = taskType, CurrentHandler = previousHandler };
+            handler.ActTicket = new WfTicket { Id = 7, Tasks = { reqTask } };
+            handler.TicketList.Add(handler.ActTicket);
+            handler.SetContinueEnv(ObjAction.plan);
+
+            await handler.ContinuePhase(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.CurrentHandler, Is.SameAs(previousHandler));
+                Assert.That(handler.ActTicket.Tasks[0].CurrentHandler, Is.SameAs(previousHandler));
+                Assert.That(handler.PlanReqTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ViewReqTaskInPhase_OpensTheTaskInTheContinueMode()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            WfReqTask reqTask = new() { Id = 11, TicketId = 7, TaskType = taskType, StateId = 3 };
+            handler.ActTicket = new WfTicket { Id = 7, Tasks = { reqTask } };
+            handler.TicketList.Add(handler.ActTicket);
+            handler.SetContinueEnv(ObjAction.approve);
+
+            await handler.ViewReqTaskInPhase(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.Id, Is.EqualTo(11));
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(3));
+                Assert.That(handler.ActReqTask.CurrentHandler, Is.Null);
+                Assert.That(handler.ApproveReqTaskMode, Is.True);
             });
         }
 

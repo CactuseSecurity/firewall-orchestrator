@@ -142,8 +142,7 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
         "clearing_import_ran",
         "force_initial_import",
         "config_path",
-        "hide_in_gui",
-        "importer_hostname"
+        "hide_in_gui"
     ],
     "computed_fields": [],
     "allow_aggregations": true
@@ -240,7 +239,6 @@ public       | management | reporters | select    | {
     "columns": [
         "mgm_id",
         ...
-        "importer_hostname"
     ],
     "computed_fields": [],
     "allow_aggregations": false

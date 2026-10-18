@@ -15,7 +15,7 @@
 
 @if(InitComplete && accessAllowed)
 {
-    <DisplayTicketTable Phase="WorkflowPhases.request" States="states" WfHandler="wfHandler" ResetParent="Reset"/>
+    <DisplayTicketTable Phase="WorkflowPhases.request" States="states" WfHandler="wfHandler" ResetParent="Reset" Overview="true"/>
 }
 else if(InitComplete)
 {

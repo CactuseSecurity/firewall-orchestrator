@@ -1,12 +1,23 @@
 using FWO.Basics;
 using NetTools;
+using System.Globalization;
 using System.Net;
 
 namespace FWO.Data.Workflow
 {
     /// <summary>
+    /// Kind of the single object an object task orders.
+    /// </summary>
+    public enum ObjectTaskKind
+    {
+        Network,
+        Service,
+        Time
+    }
+
+    /// <summary>
     /// Rules of the object_create and object_modify request tasks, which order exactly one network object
-    /// (host, network, address range) or service standing alone without a group.
+    /// (host, network, address range), service or time object standing alone without a group.
     /// An object_create task holds one element with request action create. An object_modify task holds the
     /// state of the referenced imported object as unchanged element and the requested state as modify element,
     /// both referencing the same object, as rule_modify keeps the rule content as unchanged elements.
@@ -32,6 +43,36 @@ namespace FWO.Data.Workflow
         /// Service types offered by the search: simple services only (see stm_svc_typ).
         /// </summary>
         public static readonly List<int> ServiceTypeIds = [1];
+
+        /// <summary>
+        /// Format of a point in time shown for time objects.
+        /// </summary>
+        public const string kTimeFormat = "yyyy-MM-dd HH:mm";
+
+        /// <summary>
+        /// Value format of a date input field.
+        /// </summary>
+        public const string kDateInputFormat = "yyyy-MM-dd";
+
+        /// <summary>
+        /// Value format of a time input field.
+        /// </summary>
+        public const string kTimeInputFormat = "HH:mm";
+
+        /// <summary>
+        /// Time of day taken for a start date entered without time.
+        /// </summary>
+        public const string kDefaultStartTimeInput = "00:00";
+
+        /// <summary>
+        /// Time of day taken for an end date entered without time.
+        /// </summary>
+        public const string kDefaultEndTimeInput = "23:59";
+
+        /// <summary>
+        /// Accepted time input values; DateTime.TryParseExact takes the formats as array.
+        /// </summary>
+        private static readonly string[] TimeInputFormats = [kTimeInputFormat, "HH:mm:ss"];
 
         /// <summary>
         /// Determines whether the task type orders a single object.
@@ -63,12 +104,134 @@ namespace FWO.Data.Workflow
 
         /// <summary>
         /// Determines whether an object task orders services (service group or single service) rather than
-        /// network objects, which decides the provisioning setting for the object creation level.
+        /// network objects, which decides the device specific setting for the object creation level.
         /// </summary>
         public static bool OrdersServiceObject(WfReqTask task)
         {
             return task.Elements.Any(element => element.Field == ElemFieldType.service.ToString())
                 || !string.IsNullOrEmpty(task.GetAddInfoValue(AdditionalInfoKeys.SvcGrpId));
+        }
+
+        /// <summary>
+        /// Determines the kind of object an element of an object task describes.
+        /// </summary>
+        public static ObjectTaskKind GetKind(WfElementBase? element)
+        {
+            if (element?.Field == ElemFieldType.service.ToString())
+            {
+                return ObjectTaskKind.Service;
+            }
+            return element?.Field == ElemFieldType.time.ToString() ? ObjectTaskKind.Time : ObjectTaskKind.Network;
+        }
+
+        /// <summary>
+        /// Converts an imported time object into a request element referencing it.
+        /// </summary>
+        public static WfReqElement ToTimeElement(TimeObject timeObject, string requestAction, long taskId)
+        {
+            return new()
+            {
+                TaskId = taskId,
+                Field = ElemFieldType.time.ToString(),
+                TimeObjId = timeObject.Id,
+                Name = timeObject.Name,
+                StartTime = timeObject.StartTime,
+                EndTime = timeObject.EndTime,
+                RequestAction = requestAction
+            };
+        }
+
+        /// <summary>
+        /// Checks that the time element carries a name and at least one bound, and that the start is not after the end.
+        /// An open bound stands for "from now on" or "without end".
+        /// </summary>
+        public static bool HasTimeMinimum(WfElementBase element)
+        {
+            if (string.IsNullOrWhiteSpace(element.Name) || (element.StartTime == null && element.EndTime == null))
+            {
+                return false;
+            }
+            return element.StartTime == null || element.EndTime == null
+                || element.StartTime.Value.ToUniversalTime() <= element.EndTime.Value.ToUniversalTime();
+        }
+
+        /// <summary>
+        /// Determines whether the requested time element equals the referenced time object, comparing the bounds
+        /// as points in time independently of their time zone.
+        /// </summary>
+        public static bool IsUnchangedTimeObject(WfElementBase original, WfElementBase requested)
+        {
+            return string.Equals(original.Name ?? "", requested.Name ?? "", StringComparison.Ordinal)
+                && IsSamePointInTime(original.StartTime, requested.StartTime)
+                && IsSamePointInTime(original.EndTime, requested.EndTime);
+        }
+
+        /// <summary>
+        /// Formats the bounds of a time object in local time; an open bound is shown as "&gt;=" or "&lt;=".
+        /// </summary>
+        public static string FormatTimeRange(DateTime? startTime, DateTime? endTime)
+        {
+            if (startTime.HasValue && endTime.HasValue)
+            {
+                return $"{FormatPointInTime(startTime.Value)} - {FormatPointInTime(endTime.Value)}";
+            }
+            if (startTime.HasValue)
+            {
+                return $">= {FormatPointInTime(startTime.Value)}";
+            }
+            return endTime.HasValue ? $"<= {FormatPointInTime(endTime.Value)}" : "";
+        }
+
+        /// <summary>
+        /// Combines the values of a date and a time input field into a point in local time. Both empty means no
+        /// bound; a date without time takes the given default time; a time without date is incomplete.
+        /// </summary>
+        /// <returns>False when the input is incomplete or cannot be read.</returns>
+        public static bool TryParseDateTimeInput(string dateInput, string timeInput, string defaultTimeInput, out DateTime? pointInTime)
+        {
+            pointInTime = null;
+            if (string.IsNullOrWhiteSpace(dateInput))
+            {
+                return string.IsNullOrWhiteSpace(timeInput);
+            }
+            string effectiveTimeInput = string.IsNullOrWhiteSpace(timeInput) ? defaultTimeInput : timeInput;
+            if (!DateTime.TryParseExact(dateInput, kDateInputFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date)
+                || !DateTime.TryParseExact(effectiveTimeInput, TimeInputFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime time))
+            {
+                return false;
+            }
+            pointInTime = date.Date.Add(time.TimeOfDay);
+            return true;
+        }
+
+        /// <summary>
+        /// Formats the date part of a point in time as value of a date input field, in local time.
+        /// </summary>
+        public static string FormatDateInput(DateTime? pointInTime)
+        {
+            return pointInTime.HasValue ? ToLocal(pointInTime.Value).ToString(kDateInputFormat, CultureInfo.InvariantCulture) : "";
+        }
+
+        /// <summary>
+        /// Formats the time part of a point in time as value of a time input field, in local time.
+        /// </summary>
+        public static string FormatTimeInput(DateTime? pointInTime)
+        {
+            return pointInTime.HasValue ? ToLocal(pointInTime.Value).ToString(kTimeInputFormat, CultureInfo.InvariantCulture) : "";
+        }
+
+        /// <summary>
+        /// Determines which kind of object an object task (group or single object) creates, which selects the
+        /// device specific setting for the creation level: time object, service (service group or single service)
+        /// or else network object.
+        /// </summary>
+        public static ObjectTaskKind GetCreationKind(WfReqTask task)
+        {
+            if (task.Elements.Any(element => element.Field == ElemFieldType.time.ToString()))
+            {
+                return ObjectTaskKind.Time;
+            }
+            return OrdersServiceObject(task) ? ObjectTaskKind.Service : ObjectTaskKind.Network;
         }
 
         /// <summary>
@@ -293,9 +456,38 @@ namespace FWO.Data.Workflow
 
         private static bool ReferencesSameObject(WfReqElement original, WfReqElement requested)
         {
-            return original.Field == ElemFieldType.service.ToString()
-                ? original.ServiceId is > 0 && original.ServiceId == requested.ServiceId
-                : original.NetworkId is > 0 && original.NetworkId == requested.NetworkId;
+            return GetKind(original) switch
+            {
+                ObjectTaskKind.Service => original.ServiceId is > 0 && original.ServiceId == requested.ServiceId,
+                ObjectTaskKind.Time => original.TimeObjId is > 0 && original.TimeObjId == requested.TimeObjId,
+                _ => original.NetworkId is > 0 && original.NetworkId == requested.NetworkId
+            };
+        }
+
+        private static bool IsSamePointInTime(DateTime? first, DateTime? second)
+        {
+            if (first == null || second == null)
+            {
+                return first == null && second == null;
+            }
+            return first.Value.ToUniversalTime() == second.Value.ToUniversalTime();
+        }
+
+        /// <summary>
+        /// Formats a point in time in local time.
+        /// </summary>
+        private static string FormatPointInTime(DateTime pointInTime)
+        {
+            return ToLocal(pointInTime).ToString(kTimeFormat, CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Converts a point in time to local time. An unspecified kind stems from an input and already is local
+        /// time, while ToLocalTime would take it for utc.
+        /// </summary>
+        private static DateTime ToLocal(DateTime pointInTime)
+        {
+            return pointInTime.Kind == DateTimeKind.Utc ? pointInTime.ToLocalTime() : pointInTime;
         }
 
         private static (IPAddress? Start, IPAddress? End) GetAddressRange(string ip, string ipEnd)

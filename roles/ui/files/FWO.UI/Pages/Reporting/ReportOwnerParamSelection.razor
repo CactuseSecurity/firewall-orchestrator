@@ -32,7 +32,7 @@ else
     private List<OwnerLifeCycleState> ownerLifeCycleStates = [];
     private List<string> AvailableCriticalities { get; set; } = [];
 
-    private string SectionHeaderClass => UseLightText ? "text-left text-white" : "text-left";
+    private string SectionHeaderClass => UseLightText ? "text-start text-white" : "text-start";
     private string FieldContainerClass => UseFormLayout ? "form-group row mt-2" : string.Empty;
     private string FieldLabelClass => UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : SectionHeaderClass;
     private string FieldContentClass => UseFormLayout ? "col-sm-8" : string.Empty;

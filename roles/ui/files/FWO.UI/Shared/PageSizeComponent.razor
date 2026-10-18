@@ -1,7 +1,7 @@
 @inject UserConfig UserConfig
 
 
-<form class="my-1" onsubmit="SubmitPageSize">
+<form class="my-1" @onsubmit="SubmitPageSize" @onsubmit:preventDefault="true">
     <div class="d-flex justify-content-end">
         <label for="pagesize" class="p-2 d-inline-flex">@UserConfig.GetText("PagerPagesize")</label>
         <input id="pagesize" type="text" class="cwidth-70 d-inline-flex form-control form-control-sm me-2" @bind="PageSize" />

@@ -1,0 +1,20 @@
+query searchTimeObjectsForRequestByName(
+  $mgmId: Int!
+  $pattern: String!
+  $limit: Int!
+) {
+  time_object(
+    where: {
+      mgm_id: { _eq: $mgmId }
+      removed: { _is_null: true }
+      time_obj_name: { _ilike: $pattern }
+    }
+    order_by: [{ time_obj_name: asc }, { time_obj_id: asc }]
+    limit: $limit
+  ) {
+    time_obj_id
+    time_obj_name
+    start_time
+    end_time
+  }
+}

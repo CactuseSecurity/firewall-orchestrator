@@ -7,7 +7,7 @@
 @using FWO.Data.Flow
 @using Microsoft.AspNetCore.Components.Authorization
 
-@attribute [Authorize(Roles = $"{Roles.Admin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -59,14 +59,14 @@
         }
         <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
             <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-primary" disabled="@workInProgress" @onclick="SaveNamingSource">
+                <button type="button" class="btn btn-sm btn-primary" disabled="@(workInProgress || !WriteAllowed)" @onclick="SaveNamingSource">
                     @if (workInProgress)
                     {
                         <Loading CssClass="me-1" />
                     }
                     @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
                 </button>
-                <button type="button" class="btn btn-sm btn-warning" disabled="@workInProgress" @onclick="OpenRecalculateConfirm">@(DisplayService.DisplayButton(userConfig, "recalculate_flow_names", Icons.Refresh))</button>
+                <button type="button" class="btn btn-sm btn-warning" disabled="@(workInProgress || !WriteAllowed)" @onclick="OpenRecalculateConfirm">@(DisplayService.DisplayButton(userConfig, "recalculate_flow_names", Icons.Refresh))</button>
             </div>
             <div class="text-muted small">
                 @($"{userConfig.GetText("current")}: {SelectedNamingManagement?.Name ?? "-"}")
@@ -130,7 +130,7 @@
                 <button type="button" class="btn btn-sm btn-secondary" disabled="@workInProgress" @onclick="AddZoneGroupPattern">
                     @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
                 </button>
-                <button type="button" class="btn btn-sm btn-primary" disabled="@workInProgress" @onclick="SaveZoneGroupPatterns">
+                <button type="button" class="btn btn-sm btn-primary" disabled="@(workInProgress || !WriteAllowed)" @onclick="SaveZoneGroupPatterns">
                     @if (workInProgress)
                     {
                         <Loading CssClass="me-1" />
@@ -148,7 +148,7 @@
 <div class="mb-2">
     <label class="form-label form-label-sm mb-1">@(userConfig.GetText("reset_flow_db")):</label>
     <div class="d-flex flex-wrap align-items-center gap-2">
-        <button type="button" class="btn btn-sm btn-danger" disabled="@workInProgress" @onclick="OpenResetFlowDbConfirm">
+        <button type="button" class="btn btn-sm btn-danger" disabled="@(workInProgress || !WriteAllowed)" @onclick="OpenResetFlowDbConfirm">
             @(DisplayService.DisplayButton(userConfig, "reset_flow_db", Icons.Refresh))
         </button>
         <div class="text-muted small">
@@ -184,6 +184,11 @@
     private List<FlowZoneGroupPattern> zoneGroupPatterns = [];
     private ConfigData? configData;
     private bool workInProgress = false;
+
+    /// <summary>
+    /// Only admins may change flow settings, auditors can only view them.
+    /// </summary>
+    private bool WriteAllowed => userConfig.CanUseAnyRole(Roles.Admin);
     private bool RecalculateConfirmMode = false;
     private bool ResetFlowDbConfirmMode = false;
 
@@ -203,7 +208,7 @@
             workInProgress = true;
             StateHasChanged();
 
-            if (!userConfig.CanUseAnyRole(Roles.Admin))
+            if (!userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor))
             {
                 workInProgress = false;
                 return;

@@ -17,18 +17,15 @@
 @(userConfig.GetText("U5212"))
 <hr />
 
-@if (addDeleteAllowed)
-{
-     <div class="btn-group m-1 sticky-marker-60" data-toggle="tooltip" title="@(userConfig.PureLine("H5231"))">
-        <button type="button" class="btn btn-sm btn-success"
-            @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
-        @if (showCleanupButton)
-        {
-            <button type="button" class="btn btn-sm btn-danger"
-                @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
-        }
-    </div>
-}
+<div class="btn-group m-1 sticky-marker-60" data-toggle="tooltip" title="@(userConfig.PureLine("H5231"))">
+    <button type="button" class="btn btn-sm btn-success"
+        @onclick="NewTenant">@(userConfig.GetText("add_tenant"))</button>
+    @if (deleteAllowed && showCleanupButton)
+    {
+        <button type="button" class="btn btn-sm btn-danger"
+            @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
+    }
+</div>
 <div class="mt-2 vheight75">
     <Table class="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header"
         TableItem="Tenant" Items="tenants" PageSize="0" ColumnReorder="true">
@@ -120,7 +117,7 @@
         <div class="btn-group">
             <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
-                    @if (addDeleteAllowed && !AddTenantMode)
+                    @if (deleteAllowed && !AddTenantMode)
                     {
                         @if (actTenant.Id != GlobalConst.kTenant0Id)
                         {
@@ -208,7 +205,7 @@
     private List<NwObjectElement> ipsToAdd = [];
     private List<NwObjectElement> ipsToDelete = [];
 
-    private bool addDeleteAllowed = false;
+    private bool deleteAllowed = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -216,8 +213,9 @@
         try
         {
             // Auditor has read-only access. Adding, changing and deleting tenants is admin-only at the
-            // REST layer (TenantController), so only Admin sees those affordances.
-            addDeleteAllowed = userConfig.CanUseAnyRole(Roles.Admin);
+            // REST layer (TenantController): the add and edit dialogs open for everyone, but only Admin
+            // can save, and only Admin sees the delete affordances.
+            deleteAllowed = userConfig.CanUseAnyRole(Roles.Admin);
             await GetTenantsFromLdap();
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
         }

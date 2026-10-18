@@ -1688,6 +1688,21 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "nwgrp_id",
+                      "show_in_request_module",
+                      "name",
+                      "nwgrp_hash",
+                      "state",
+                      "removed_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -1752,6 +1767,17 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "nwgrp_id",
+                      "nwobj_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "middleware-server",
                   "permission": {
@@ -1887,6 +1913,23 @@
                         }
                       ]
                     }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "nwobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "nwobj_hash",
+                      "state",
+                      "ip_end",
+                      "ip_start",
+                      "removed_date"
+                    ],
+                    "filter": {}
                   },
                   "comment": ""
                 },
@@ -2150,6 +2193,21 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "svcgrp_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "svcgrp_hash",
+                      "removed_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -2214,6 +2272,17 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "svcgrp_id",
+                      "svcobj_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "middleware-server",
                   "permission": {
@@ -2347,6 +2416,24 @@
                         }
                       ]
                     }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "svcobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "svcobj_hash",
+                      "ip_proto_id",
+                      "port_end",
+                      "port_start",
+                      "removed_date"
+                    ],
+                    "filter": {}
                   },
                   "comment": ""
                 },
@@ -2627,6 +2714,23 @@
                         }
                       ]
                     }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "timeobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "timeobj_hash",
+                      "end_time",
+                      "removed_date",
+                      "start_time"
+                    ],
+                    "filter": {}
                   },
                   "comment": ""
                 },

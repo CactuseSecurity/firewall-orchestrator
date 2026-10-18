@@ -2,8 +2,13 @@
 Shared version-reservation logic for the FWO PR versioning workflows.
 
 The workflows call the subcommands of this script; it depends only on the
-Python standard library, so it runs on a plain GitHub runner. Tested by
+Python standard library and the Version gate rules in scripts/ci/version_gate.py,
+so it runs on a plain GitHub runner. Tested by
 scripts/tests/test_fwo_version_reservations.py.
+
+A reservation opens a new version, which the Version gate only accepts once
+develop's version is sealed. While develop's version is open, changes go into
+its upgrade script without a reservation.
 """
 
 from __future__ import annotations
@@ -22,6 +27,11 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
+
+try:  # run as scripts/fwo_version_reservations.py by the workflows
+    from ci.version_gate import SEALING_DOCUMENTATION, sealing_version
+except ImportError:  # imported as scripts.fwo_version_reservations by the tests
+    from scripts.ci.version_gate import SEALING_DOCUMENTATION, sealing_version
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -279,6 +289,31 @@ def is_released_on_base(client: GitHubClient, version: str) -> bool:
     return has_version_heading(read_file(client, REVISION_HISTORY_FILE, BASE_BRANCH) or "", version)
 
 
+def is_sealed(client: GitHubClient, version: str) -> bool:
+    """Returns whether a tag seals a version, read with the same tag rules as the Version gate."""
+    for prefix in (f"v{version}", version):
+        refs: list[JsonObject] = client.get(f"/git/matching-refs/tags/{urllib.parse.quote(prefix)}")
+        tag_names = [ref["ref"].removeprefix("refs/tags/") for ref in refs]
+        if any(sealing_version(tag_name) == version for tag_name in tag_names):
+            return True
+    return False
+
+
+def check_base_sealed(client: GitHubClient, base_version: str) -> None:
+    """
+    Fails while develop's version is open. The Version gate only lets a PR open
+    a new version once the current one is sealed; until then the change belongs
+    in the open version's upgrade script, which needs no reservation.
+    """
+    if not is_sealed(client, base_version):
+        raise VersionError(
+            f"develop's version {base_version} is still open, so this PR cannot open a new version yet. "
+            f"Remove the {VERSIONED_LABEL} label and put the change into {UPGRADE_DIRECTORY}{base_version}.sql "
+            f"with product_version {base_version}, or ask a release maintainer to seal {base_version} first: "
+            f"{SEALING_DOCUMENTATION}."
+        )
+
+
 def list_versioned_pull_requests(client: GitHubClient) -> list[JsonObject]:
     """Lists all open, labelled pull requests targeting develop."""
     return [
@@ -361,6 +396,7 @@ def plan_allocation(
         raise VersionError("Unsupported allocation command.")
     pull_request = authorize_allocation(client, pull_request_number, comment_author)
     base_version = read_product_version(client, BASE_BRANCH)
+    check_base_sealed(client, base_version)
     current_version = read_product_version(client, pull_request["head"]["sha"])
     reservations = list_reservations(client, pull_request_number)
     reallocate = is_reallocation(client, pull_request_number, current_version, base_version, reservations)
@@ -376,11 +412,24 @@ def plan_allocation(
     }
 
 
-def check_unlabelled(client: GitHubClient, pull_request_number: int) -> None:
-    """Fails when an unlabelled PR changes versioned files, which would bypass the reservation."""
-    findings = find_unlabelled_version_changes(client.paginate(f"/pulls/{pull_request_number}/files"))
+def check_unlabelled(client: GitHubClient, pull_request_number: int, base_version: str) -> None:
+    """
+    Fails when an unlabelled PR changes versioned files, which would bypass the
+    reservation. Adding the upgrade script of develop's own version is exempt:
+    that is how a change merges into the open version.
+    """
+    open_version_script = f"{UPGRADE_DIRECTORY}{base_version}.sql"
+    changed_files = [
+        changed_file
+        for changed_file in client.paginate(f"/pulls/{pull_request_number}/files")
+        if changed_file["filename"] != open_version_script
+    ]
+    findings = find_unlabelled_version_changes(changed_files)
     if findings:
-        raise VersionError(f"Add the versioned-change label; this PR changes versioned files: {', '.join(findings)}.")
+        raise VersionError(
+            f"Add the versioned-change label; this PR changes versioned files: {', '.join(findings)}. "
+            f"Only {open_version_script}, the upgrade script of develop's version, may be added without it."
+        )
 
 
 def check_versioned_files(client: GitHubClient, pull_request_number: int, head_sha: str) -> None:
@@ -436,13 +485,14 @@ def validate_pull_request(client: GitHubClient, pull_request_number: int) -> Non
     conclusion = "success"
     message = "Version validation passed."
     try:
+        base_version = read_product_version(client, BASE_BRANCH)
         if is_versioned(pull_request):
-            base_version = read_product_version(client, BASE_BRANCH)
+            check_base_sealed(client, base_version)
             check_versioned_content(client, head_sha, base_version)
             check_versioned_files(client, pull_request_number, head_sha)
             check_order(client, pull_request_number, head_sha, base_version)
         else:
-            check_unlabelled(client, pull_request_number)
+            check_unlabelled(client, pull_request_number, base_version)
     except (VersionError, urllib.error.HTTPError) as error:
         conclusion = "failure"
         message = str(error)
@@ -502,6 +552,7 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--pull-request", type=int, required=True)
     unlabelled = commands.add_parser("check-unlabelled")
     unlabelled.add_argument("--pull-request", type=int, required=True)
+    unlabelled.add_argument("--base-version", required=True)
     versioned_files = commands.add_parser("check-versioned-files")
     versioned_files.add_argument("--pull-request", type=int, required=True)
     versioned_files.add_argument("--head-sha", required=True)
@@ -528,7 +579,7 @@ def run_command(arguments: argparse.Namespace, client: GitHubClient, repository:
             os.environ.get("COMMENT_BODY", ""),
             os.environ.get("COMMENT_AUTHOR", ""),
         ),
-        "check-unlabelled": lambda: check_unlabelled(client, arguments.pull_request),
+        "check-unlabelled": lambda: check_unlabelled(client, arguments.pull_request, arguments.base_version),
         "check-versioned-files": lambda: check_versioned_files(client, arguments.pull_request, arguments.head_sha),
         "base-version": lambda: {"value": read_product_version(client, BASE_BRANCH)},
         "check-order": lambda: check_order(client, arguments.pull_request, arguments.head_sha, arguments.base_version),

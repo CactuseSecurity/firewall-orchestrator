@@ -1,11 +1,19 @@
 name: Requeue FWO PR version checks
-# When develop advances or a reservation is released, the version-order result
-# of every other labelled PR may change. Neither event re-runs their checks, so
-# this workflow dispatches Validate FWO PR version on each of them.
+# When develop advances, its version is sealed, or a reservation is released,
+# the result of every other labelled PR may change. None of these events re-runs
+# their checks, so this workflow dispatches Validate FWO PR version on each of them.
 
 on:
   push:
     branches: [develop]
+    # Sealing tags as the Version gate reads them (scripts/ci/version_gate.py).
+    # A tag-push run uses the workflow from the tagged commit, which the tag
+    # creation ruleset limits to release maintainers, see versioning.md.
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-dev"
+      - "[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+-dev"
   # Trusted upstream code can refresh checks for both fork and upstream PRs.
   pull_request_target:
     branches: [develop]
@@ -29,8 +37,8 @@ jobs:
       (github.event.action == 'unlabeled' && github.event.label.name == 'versioned-change')
     runs-on: ubuntu-latest
     steps:
-      # No explicit ref: push and pull_request_target both default to the develop
-      # commit of the triggering event, so a PR head is never checked out.
+      # No explicit ref: push and pull_request_target default to the develop or
+      # tagged commit of the triggering event, so a PR head is never checked out.
       - name: Check out trusted versioning tooling
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:

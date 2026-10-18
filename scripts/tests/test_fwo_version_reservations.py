@@ -4,6 +4,7 @@ import base64
 import io
 import re
 import urllib.error
+import urllib.parse
 from email.message import Message
 from typing import TYPE_CHECKING, Any
 
@@ -20,7 +21,10 @@ LABEL: list[JsonObject] = [{"name": "versioned-change"}]
 
 
 class FakeGitHub:
-    """Serves open PRs, product versions per ref, develop files, permissions, and changed files; records posts."""
+    """
+    Serves open PRs, product versions per ref, develop files, permissions, changed files, and tags; records posts.
+    Without explicit tags, develop's version is sealed, which is the state in which PRs reserve versions.
+    """
 
     def __init__(
         self,
@@ -28,11 +32,14 @@ class FakeGitHub:
         versions_by_ref: dict[str, str],
         permission: str = "write",
         changed_files: list[JsonObject] | None = None,
+        tags: list[str] | None = None,
     ) -> None:
         self.pull_requests = pull_requests
         self.versions_by_ref = versions_by_ref
         self.permission = permission
         self.changed_files = changed_files or []
+        develop_version = versions_by_ref.get("develop")
+        self.tags = tags if tags is not None else [f"v{develop_version}-dev"] if develop_version else []
         self.posts: list[tuple[str, JsonObject]] = []
         self.failing_prs: set[str] = set()
         self.patches: list[tuple[str, JsonObject]] = []
@@ -53,6 +60,9 @@ class FakeGitHub:
             return {"content": base64.b64encode(files[file_path].encode()).decode()}
         if path.startswith("/collaborators/"):
             return {"permission": self.permission}
+        if path.startswith("/git/matching-refs/tags/"):
+            prefix = urllib.parse.unquote(path.removeprefix("/git/matching-refs/tags/"))
+            return [{"ref": f"refs/tags/{tag}"} for tag in self.tags if tag.startswith(prefix)]
         number = int(path.removeprefix("/pulls/"))
         return next(pull_request for pull_request in self.pull_requests if pull_request["number"] == number)
 
@@ -348,8 +358,42 @@ def test_check_unlabelled_fails_on_new_upgrade_script() -> None:
         [], {}, changed_files=[{"filename": "roles/database/files/upgrade/9.5.5.sql", "status": "added"}]
     )
     with pytest.raises(VersionError, match="Add the versioned-change label"):
-        versions.check_unlabelled(client, 2)
-    versions.check_unlabelled(FakeGitHub([], {}), 2)
+        versions.check_unlabelled(client, 2, "9.5.4")
+    versions.check_unlabelled(FakeGitHub([], {}), 2, "9.5.4")
+
+
+@pytest.mark.parametrize("status", ["added", "renamed", "copied"])
+def test_check_unlabelled_allows_the_script_of_develops_open_version(status: str) -> None:
+    client = FakeGitHub(
+        [], {}, changed_files=[{"filename": f"{versions.UPGRADE_DIRECTORY}9.7.1.sql", "status": status}]
+    )
+    arguments = versions.build_parser().parse_args(
+        ["check-unlabelled", "--pull-request", "2", "--base-version", "9.7.1"]
+    )
+    assert versions.run_command(arguments, client, REPOSITORY) == {}
+    with pytest.raises(VersionError, match=re.escape(f"Only {versions.UPGRADE_DIRECTORY}9.7.0.sql")):
+        versions.check_unlabelled(client, 2, "9.7.0")
+
+
+@pytest.mark.parametrize(
+    ("tags", "expected"),
+    [
+        (["v9.7.1-dev"], True),
+        (["v9.7.1"], True),
+        (["9.7.1-dev"], True),
+        (["9.7.1"], True),
+        (["v9.7.1-rc1", "v9.7.1-beta", "v9.7.10", "v9.7.10-dev", "9.7.1.1"], False),
+        ([], False),
+    ],
+)
+def test_is_sealed_reads_sealing_tags_like_the_version_gate(tags: list[str], expected: bool) -> None:
+    assert versions.is_sealed(FakeGitHub([], {}, tags=tags), "9.7.1") is expected
+
+
+def test_plan_allocation_refuses_while_develops_version_is_open() -> None:
+    client = FakeGitHub([pull_request(2, LABEL)], {"develop": "9.7.1", "sha-2": "999.0.0"}, tags=["v9.7.0-dev"])
+    with pytest.raises(VersionError, match=r"develop's version 9\.7\.1 is still open"):
+        versions.plan_allocation(client, REPOSITORY, 2, "/allocate-fwo-version", "maintainer")
 
 
 def test_read_file_reraises_errors_other_than_not_found() -> None:

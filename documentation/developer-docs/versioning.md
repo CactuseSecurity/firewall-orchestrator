@@ -139,6 +139,19 @@ upstream and fork pull requests targeting `develop`. The
 workflow commits allocations to upstream branches; fork authors apply the
 allocation locally and push it to their own branch.
 
+A reservation opens a new version, so it follows the
+[version lifecycle](#version-lifecycle):
+
+- **`develop`'s version is open** (no sealing tag yet): do not reserve. Keep
+  `product_version`, add the change to `develop`'s upgrade script, e.g.
+  `roles/database/files/upgrade/9.7.1.sql` while `develop` is on `9.7.1`
+  (create it if it does not exist yet), and extend that version's
+  revision-history section. No label is needed. The validator and the
+  allocator reject a reservation in this state, just as the **Version gate**
+  rejects opening a new version.
+- **`develop`'s version is sealed**: every change that needs a new version
+  reserves one as described below.
+
 ### Repository setup
 
 - Create the `versioned-change` label.
@@ -160,7 +173,7 @@ allocation locally and push it to their own branch.
 | --- | --- | --- |
 | **Allocate FWO PR version** | `/allocate-fwo-version` comment | Selects the next free version; commits it upstream or shows a local command for fork authors |
 | **Validate FWO PR version** | Trusted PR events, or dispatch on `develop` | Checks the versioned files, uniqueness, and merge order |
-| **Requeue FWO PR version checks** | Push to `develop`; closing or unlabelling a labelled PR | Re-runs validation on every other labelled PR |
+| **Requeue FWO PR version checks** | Push to `develop`; sealing tag; closing or unlabelling a labelled PR | Re-runs validation on every other labelled PR |
 | **Test FWO versioning tooling** | Changes to the tooling | Runs the tooling tests |
 
 The validator runs on `pull_request_target` and reads the current PR head
@@ -175,7 +188,8 @@ the validator workflow.
 
 ### Author workflow
 
-1. Add the `versioned-change` label.
+1. Make sure `develop`'s version is sealed; otherwise put the change into the
+   open version without the label, see above. Add the `versioned-change` label.
 2. Use the placeholder `999.0.0` in all three versioned files:
    `product_version: "999.0.0"` in `inventory/group_vars/all.yml`, an
    idempotent `roles/database/files/upgrade/999.0.0.sql`, and one heading
@@ -197,7 +211,7 @@ write access to contributor repositories.
 
 Do not change an allocated version manually. A PR without the label fails
 validation when it changes `product_version` or adds or renames an upgrade
-script. Labelled PRs must remove the placeholder script and heading, and may
+script other than the one of `develop`'s current version. Labelled PRs must remove the placeholder script and heading, and may
 only add, copy, or rename an upgrade script to their allocated version. The
 allocator refuses to overwrite an existing target script or heading.
 
@@ -210,6 +224,13 @@ PRs. A closed PR's number may be handed out again, and gaps are safe, because
 the installer version-sorts the existing upgrade files. Only the lowest open
 reservation passes validation, so `9.5.5` merges before `9.5.6`; the requeue
 workflow then re-validates the rest.
+
+Once `9.5.5` has merged, it is `develop`'s open version, and `9.5.6` fails
+validation and the **Version gate** until `9.5.5` is sealed. The `9.5.6` PR can
+either wait for that seal, after which the requeue workflow re-validates it, or
+join the open version: remove the label, set `product_version` back to `9.5.5`,
+and move its migration into `9.5.5.sql` and its revision-history entry into the
+`9.5.5` section.
 
 If two open PRs end up with the same version (e.g. a closed PR is reopened),
 the lower PR number keeps it. The other PR fails validation until a maintainer
@@ -401,12 +422,12 @@ Create an active repository tag ruleset with the following configuration:
 - Enable `Restrict creations`
 - Allow only trusted release maintainers to bypass the creation restriction
 
-This ruleset is mandatory for the **Version gate refresh** workflow as well as for release
-authority. A tag-push run uses the workflow definition from the tagged commit, and the refresh
-workflow has `actions: write` permission so that it can re-run gates. The ruleset must therefore
-cover every tag (`*`), not only version-shaped tags: otherwise a repository writer could tag a
-commit containing a modified refresh workflow and execute it with that permission before the
-workflow's tag-name check takes effect.
+This ruleset is mandatory for the **Version gate refresh** and **Requeue FWO PR version
+checks** workflows as well as for release authority. A tag-push run uses the workflow definition
+from the tagged commit, and both workflows have `actions: write` permission so that they can
+re-run checks. The ruleset must therefore cover every tag (`*`), not only version-shaped tags:
+otherwise a repository writer could tag a commit containing a modified workflow and execute it
+with that permission before the workflow's tag-name check takes effect.
 
 A **second** tag ruleset, also targeting `*`, must block tag deletion, update and
 non-fast-forward, with no bypass actors, so that a sealing tag stays the immutable record that a

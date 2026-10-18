@@ -6,6 +6,7 @@ on:
     paths:
       - scripts/allocate-fwo-version.sh
       - scripts/fwo_version_reservations.py
+      - scripts/ci/version_gate.py
       - scripts/tests/test-allocate-fwo-version.sh
       - scripts/tests/test_fwo_version_reservations.py
       - roles/importer/files/importer/test/test_fwo_version_validation.py
@@ -15,6 +16,7 @@ on:
     paths:
       - scripts/allocate-fwo-version.sh
       - scripts/fwo_version_reservations.py
+      - scripts/ci/version_gate.py
       - scripts/tests/test-allocate-fwo-version.sh
       - scripts/tests/test_fwo_version_reservations.py
       - roles/importer/files/importer/test/test_fwo_version_validation.py

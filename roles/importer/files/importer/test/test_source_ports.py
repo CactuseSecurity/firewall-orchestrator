@@ -10,7 +10,12 @@ from fw_modules.ciscoasa9.asa_acl_parser import AsaConfigParseError
 from fw_modules.ciscoasa9.asa_models import EndpointKind
 from fw_modules.ciscoasa9.asa_normalize import normalize_config
 from fw_modules.ciscoasa9.asa_parser import parse_asa_config
-from fw_modules.ciscoasa9.asa_source_port import restrict_source_ports, service_leaves, store_qualified_service
+from fw_modules.ciscoasa9.asa_source_port import (
+    _port_group_member_bounds,  # pyright: ignore[reportPrivateUsage]
+    restrict_source_ports,
+    service_leaves,
+    store_qualified_service,
+)
 from fw_modules.fortiadom5ff.fmgr_service import normalize_service_object
 from fw_modules.fortiosmanagementREST.fos_models import SvcObjCustom
 from fw_modules.fortiosmanagementREST.fos_service import normalize_single_custom_service_object
@@ -174,6 +179,17 @@ def test_unknown_and_cyclic_source_groups_stop_import() -> None:
     )
     with pytest.raises(ValueError, match="exceeds"):
         service_leaves("CYCLE", {"CYCLE": cyclic})
+
+
+@pytest.mark.parametrize(
+    ("port", "port_end", "expected"),
+    [(1000, 1010, (1000, 1010)), (1000, None, (1000, 1000)), (None, None, (0, 65535))],
+)
+def test_port_group_member_bounds(port: int | None, port_end: int | None, expected: tuple[int, int]) -> None:
+    member = ServiceObject(
+        svc_uid="member", svc_name="member", svc_typ="simple", svc_color="black", svc_port=port, svc_port_end=port_end
+    )
+    assert _port_group_member_bounds(member) == expected
 
 
 def test_disjoint_source_ranges_do_not_widen_service() -> None:

@@ -130,38 +130,44 @@ def normalize_service_objects(
 
     for svc in service_objects:
         if svc.src_port is not None:
-            leaves = normalize_source_service(svc)
-            if len(leaves) == 1:
-                normalized[svc.name] = leaves[0]
-            else:
-                members = [store_qualified_service(leaf, normalized, reserved_names) for leaf in leaves]
-                normalized[svc.name] = create_service_group_object(svc.name, members, svc.description)
-            continue
-        if svc.dst_port_eq:
-            # Service with specific port (eq)
-            port = svc.dst_port_eq
-            if not port.isdigit():
-                port = name_to_port[port]["port"]
-
-            obj = create_service_object(svc.name, int(port), int(port), svc.protocol, svc.description)
-            normalized[svc.name] = obj
-
-        elif svc.dst_port_range:
-            # Service with port range
-            start, end = svc.dst_port_range
-            if not start.isdigit():
-                start = name_to_port[start]["port"]
-            if not end.isdigit():
-                end = name_to_port[end]["port"]
-            obj = create_service_object(svc.name, int(start), int(end), svc.protocol, svc.description)
-            normalized[svc.name] = obj
-
+            normalized[svc.name] = _normalize_source_restricted_service(svc, normalized, reserved_names)
         else:
-            # Protocol-only service (no specific ports)
-            obj = create_protocol_service_object(svc.name, svc.protocol, svc.description)
-            normalized[svc.name] = obj
+            normalized[svc.name] = _normalize_destination_service(svc)
 
     return normalized
+
+
+def _normalize_source_restricted_service(
+    svc: AsaServiceObject, normalized: dict[str, ServiceObject], reserved_names: frozenset[str]
+) -> ServiceObject:
+    """Normalize a named service with source ports; a tcp-udp service becomes a group of one leaf per protocol."""
+    leaves = normalize_source_service(svc)
+    if len(leaves) == 1:
+        return leaves[0]
+    members = [store_qualified_service(leaf, normalized, reserved_names) for leaf in leaves]
+    return create_service_group_object(svc.name, members, svc.description)
+
+
+def _normalize_destination_service(svc: AsaServiceObject) -> ServiceObject:
+    """Normalize a named service that restricts destination ports only, or no ports at all."""
+    if svc.dst_port_eq:
+        # Service with specific port (eq)
+        port = svc.dst_port_eq
+        if not port.isdigit():
+            port = name_to_port[port]["port"]
+        return create_service_object(svc.name, int(port), int(port), svc.protocol, svc.description)
+
+    if svc.dst_port_range:
+        # Service with port range
+        start, end = svc.dst_port_range
+        if not start.isdigit():
+            start = name_to_port[start]["port"]
+        if not end.isdigit():
+            end = name_to_port[end]["port"]
+        return create_service_object(svc.name, int(start), int(end), svc.protocol, svc.description)
+
+    # Protocol-only service (no specific ports)
+    return create_protocol_service_object(svc.name, svc.protocol, svc.description)
 
 
 def _canonical_any_protocol(obj: ServiceObject) -> str | None:

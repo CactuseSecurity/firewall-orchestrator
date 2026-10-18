@@ -101,14 +101,41 @@ def _source_ranges(
             continue
         if service.svc_source_port is not None:
             raise ValueError(f"Source port group '{source.value}' contains a service with source restrictions.")
-        start = service.svc_port if service.svc_port is not None else 0
-        end = (
-            service.svc_port_end
-            if service.svc_port_end is not None
-            else (service.svc_port if service.svc_port is not None else k_max_port)
-        )
-        ranges.append((start, end))
+        ranges.append(_port_group_member_bounds(service))
     return ranges
+
+
+def _port_group_member_bounds(service: ServiceObject) -> tuple[int, int]:
+    """Return the port range a source port group member contributes; a member without ports covers all."""
+    start = service.svc_port if service.svc_port is not None else 0
+    if service.svc_port_end is not None:
+        return start, service.svc_port_end
+    if service.svc_port is not None:
+        return start, service.svc_port
+    return start, k_max_port
+
+
+def _intersect_source_range(service: ServiceObject, source_start: int, source_end: int) -> tuple[int, int] | None:
+    """Intersect a source range with the service's own source restriction; None if they are disjoint."""
+    current_start = service.svc_source_port if service.svc_source_port is not None else 0
+    current_end = service.svc_source_port_end if service.svc_source_port_end is not None else k_max_port
+    start = max(source_start, current_start)
+    end = min(source_end, current_end)
+    return (start, end) if start <= end else None
+
+
+def _qualify_service(service: ServiceObject, source: EndpointKind, services: dict[str, ServiceObject]) -> list[str]:
+    """Store one source-qualified copy of a destination service per overlapping source range."""
+    if service.ip_proto not in k_port_protocols:
+        raise ValueError(f"Source ports require TCP, UDP or SCTP, got '{service.ip_proto}'.")
+    references: list[str] = []
+    for source_start, source_end in _source_ranges(source, service.ip_proto, services):
+        bounds = _intersect_source_range(service, source_start, source_end)
+        if bounds is not None:
+            start, end = bounds
+            qualified = service.model_copy(update={"svc_source_port": start, "svc_source_port_end": end})
+            references.append(store_qualified_service(qualified, services))
+    return references
 
 
 def restrict_source_ports(reference: str, source: EndpointKind, services: dict[str, ServiceObject]) -> str:
@@ -116,16 +143,7 @@ def restrict_source_ports(reference: str, source: EndpointKind, services: dict[s
     references: list[str] = []
     for base_ref in reference.split(fwo_const.LIST_DELIMITER):
         for service in service_leaves(base_ref, services):
-            if service.ip_proto not in k_port_protocols:
-                raise ValueError(f"Source ports require TCP, UDP or SCTP, got '{service.ip_proto}'.")
-            for source_start, source_end in _source_ranges(source, service.ip_proto, services):
-                start = max(source_start, service.svc_source_port if service.svc_source_port is not None else 0)
-                end = min(
-                    source_end, service.svc_source_port_end if service.svc_source_port_end is not None else k_max_port
-                )
-                if start <= end:
-                    qualified = service.model_copy(update={"svc_source_port": start, "svc_source_port_end": end})
-                    references.append(store_qualified_service(qualified, services))
+            references.extend(_qualify_service(service, source, services))
     if not references:
         raise ValueError(f"Source port '{source.value}' matches no service in '{reference}'.")
     return fwo_base.sort_and_join(list(set(references)))

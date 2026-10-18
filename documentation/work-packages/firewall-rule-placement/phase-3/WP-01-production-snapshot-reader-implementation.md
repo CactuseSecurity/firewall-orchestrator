@@ -2,9 +2,9 @@
 
 ## Status
 
-Ready for implementation.
+Implemented and locally validated on 2026-10-18.
 
-This brief is self-contained. Implement only this work package and do not reopen the paired planning brief unless repository evidence makes this design impossible or unsafe.
+The production reader, query contracts, dependency-injection registration, and tests described here are present at commit `b7300acef`.
 
 ## Goal
 
@@ -310,6 +310,14 @@ dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --filter "FullyQuali
 ```
 
 Confirm more than 80% line coverage for the new production reader and query-loader code. No disposable-VM installer validation is required because this package changes no installation, schema, metadata, configuration, or versioned upgrade behavior.
+
+Validation evidence recorded on 2026-10-18:
+
+- 76 focused WP-01 and positioning-contract tests passed;
+- the Debug solution build completed with 0 warnings and 0 errors;
+- the complete unit suite passed with 7,777 passed, 29 skipped, and 0 failed;
+- focused line coverage was 98.4% for `RulebaseGraphSnapshotReader` and 87.5% for `RulePositioningQueries`; and
+- all WP-01 changed C# files passed targeted formatting verification. Repository-wide formatting verification still reports unrelated pre-existing differences in `UiDisplayImplementationTaskTest.cs` and `UiDisplayRequestTaskTest.cs`.
 
 ## Acceptance criteria
 

@@ -4,13 +4,13 @@
 
 This directory is the repository source of truth for firewall rule positioning work. Active planning documents override chat history and any material under `archive/`.
 
-Phase 1 is implemented and locally validated on the current `Cactus/develop` baseline. It remains open until the mandatory disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade checks pass. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 is structured into five paired planning/implementation work packages; WP-01 planning is complete and ready for implementation, while no Phase 3 production code has been implemented.
+Phase 1 is implemented and locally validated on the current `Cactus/develop` baseline. It remains open until the mandatory disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade checks pass. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 is structured into five paired planning/implementation work packages; WP-01 is implemented and locally validated, and WP-02 is planned and ready for implementation.
 
 | Phase | Status | Purpose |
 | --- | --- | --- |
 | Phase 1 | Implemented; VM validation pending | Build a calculation-only, cross-vendor positioning foundation and independent position persistence. |
 | Phase 2 | Implemented and locally validated | Build generic composition contracts, a reusable immutable structural graph, semantic positions, and structural blocks. |
-| Phase 3 | WP-01 planned; implementation not started | Add production inputs and rendering first, then analyze the customer document in the final work package and activate complete recipes. |
+| Phase 3 | WP-01 implemented; WP-02 ready for implementation | Add production inputs and rendering first, then analyze the customer document in the final work package and activate complete recipes. |
 | Previous proposal | Archived | Historical context only; it is not an alternative active plan. |
 
 ## Reading order
@@ -129,6 +129,7 @@ WP-02 and WP-03 may proceed in parallel after WP-01 stabilizes. Phase 1 is not c
 - The final Phase 2 snapshot is a vendor-neutral projection of normalized `Rulebase` and `RulebaseLink` structure; Check Point blocks interpret that graph.
 - Existing-rule semantics remain excluded until a concrete block needs them; structural rule identity and order remain available for anchors.
 - Phase 3 production loading accepts the latest successfully completed import regardless of age, without a freshness threshold or fingerprint requirement.
+- Phase 3 creation-rule zone resolution expands existing request-visible Flow groups and reuses the established compliance-zone overlap and Internet/local behavior.
 - Existing empty scopes are valid; missing, ambiguous, and malformed scopes fail explicitly.
 - The existing positioning enum remains unchanged and no value maps to a recipe before the Phase 3 WP-05 implementation.
 

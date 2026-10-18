@@ -2,11 +2,11 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
-using Microsoft.Extensions.Logging;
+using FWO.Logging;
 
 namespace FWO.Services.Workflow
 {
-    public class WorkflowConfigurationTransferService(ApiConnection apiConnection, ILogger<WorkflowConfigurationTransferService>? logger = null)
+    public class WorkflowConfigurationTransferService(ApiConnection apiConnection)
     {
         public WorkflowConfigurationImportStatistics LastImportStatistics { get; private set; } = new();
         /// <summary>
@@ -108,8 +108,8 @@ namespace FWO.Services.Workflow
                     await MergeIntoConfiguration(package, targetConfiguration.Id, targetConfiguration.Name, targetPhases,
                         transitionGroupIds, statistics);
                     LastImportStatistics = statistics;
-                    logger?.LogDebug("Imported workflow configuration package into {ConfigurationName}: {Statistics}",
-                        targetConfiguration.Name, StatisticsText(statistics));
+                    Log.WriteDebug("Workflow configuration transfer",
+                        $"Imported workflow configuration package into {targetConfiguration.Name}: {StatisticsText(statistics)}");
                     return targetConfiguration.Id;
                 }
                 LastImportStatistics = new()
@@ -125,8 +125,8 @@ namespace FWO.Services.Workflow
                     description = NormalizeOptional(package.Configuration.Description),
                     phaseMappings = BuildPhaseMappings(package.Configuration.Phases, configurationName.Trim(), transitionGroupIds)
                 });
-                logger?.LogDebug("Imported workflow configuration package as {ConfigurationName}: {Statistics}",
-                    configurationName.Trim(), StatisticsText(LastImportStatistics));
+                Log.WriteDebug("Workflow configuration transfer",
+                    $"Imported workflow configuration package as {configurationName.Trim()}: {StatisticsText(LastImportStatistics)}");
                 return result.NewId;
             }
             catch (Exception importException)

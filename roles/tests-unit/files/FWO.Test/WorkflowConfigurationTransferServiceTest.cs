@@ -84,6 +84,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Export_RejectsAnEmptyPhaseSelection()
+        {
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration> { new() { Id = 5, Name = "Shared" } });
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase> { PhaseMapping(10) });
+            WorkflowConfigurationTransferService service = new(api);
+
+            InvalidDataException? exception = Assert.ThrowsAsync<InvalidDataException>(() => service.Export(5, false, new HashSet<string>()));
+
+            Assert.That(exception?.Message, Does.Contain("At least one"));
+        }
+
+        [Test]
         public void Package_RoundTripsWithVersionedPortablePropertyNames()
         {
             string json = JsonSerializer.Serialize(Package());
@@ -227,6 +240,79 @@ namespace FWO.Test
                 Assert.That(api.Calls.Any(call => call.Query == RequestQueries.addWorkflowConfigurationPhase), Is.False);
                 Assert.That(api.Calls.Any(call => call.Query == RequestQueries.replaceStateMatrixConfiguration), Is.False);
             });
+        }
+
+        [Test]
+        public async Task Import_MergesNewDerivedStateAndTransitionGroupLink()
+        {
+            RecordingWorkflowApiConnection api = new();
+            WorkflowTransitionGroupTransferData importedExtraGroup = new()
+            {
+                Name = "Additional",
+                Transitions = []
+            };
+            WorkflowConfigurationTransferPackage package = Package();
+            package.Configuration.Phases[0].DerivedStates.Add(new() { FromStateId = 2, DerivedStateId = 3 });
+            package.Configuration.Phases[0].TransitionGroups.Add(importedExtraGroup.Name);
+            package.TransitionGroups.Add(importedExtraGroup);
+            StateMatrixTransitionGroup existingExtraGroup = new() { Id = 31, Name = "Additional", Transitions = [] };
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration> { new() { Id = 5, Name = "Existing" } });
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup>
+            {
+                TransitionGroup(30, 20), existingExtraGroup
+            });
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup> { VisibilityGroup(20) });
+            api.Respond(RequestQueries.getStates, States());
+            WorkflowConfigurationPhase targetPhase = PhaseMapping(30);
+            targetPhase.PhaseMatrixId = 101;
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase> { targetPhase });
+            api.Respond(RequestQueries.replaceStateMatrixConfiguration, new object());
+            api.Respond(RequestQueries.linkStateMatrixTransitionGroup, new object());
+            WorkflowConfigurationTransferService service = new(api);
+
+            int result = await service.Import(package, "Ignored", 5);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.EqualTo(5));
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.replaceStateMatrixConfiguration), Is.True);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.linkStateMatrixTransitionGroup), Is.True);
+                Assert.That(service.LastImportStatistics.AddedDerivedStates, Is.EqualTo(1));
+                Assert.That(service.LastImportStatistics.AddedTransitionGroupLinks, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task Import_AddsPhaseToSelectedExistingConfiguration()
+        {
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration> { new() { Id = 5, Name = "Existing" } });
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup> { TransitionGroup(30, 20) });
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup> { VisibilityGroup(20) });
+            api.Respond(RequestQueries.getStates, States());
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase>());
+            api.Respond(RequestQueries.addWorkflowConfigurationPhase, new object());
+            WorkflowConfigurationTransferService service = new(api);
+
+            int result = await service.Import(Package(), "Ignored", 5);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.EqualTo(5));
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.addWorkflowConfigurationPhase), Is.True);
+                Assert.That(service.LastImportStatistics.AddedPhases, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public void Import_RejectsUnknownSelectedTarget()
+        {
+            RecordingWorkflowApiConnection api = EmptyImportApi();
+            WorkflowConfigurationTransferService service = new(api);
+
+            InvalidDataException? exception = Assert.ThrowsAsync<InvalidDataException>(() => service.Import(Package(), "Ignored", 99));
+
+            Assert.That(exception?.Message, Does.Contain("does not exist"));
         }
 
         [Test]
@@ -582,5 +668,6 @@ namespace FWO.Test
         };
 
         private static List<WfState> States() => [new() { Id = 1 }, new() { Id = 2 }, new() { Id = 3 }];
+
     }
 }

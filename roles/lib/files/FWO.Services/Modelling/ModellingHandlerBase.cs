@@ -80,7 +80,7 @@ namespace FWO.Services.Modelling
             string textToDisplay = (app.Active ? textMarkerEmptyApp : "!") + app.Display(userConfig.GetText("common_service"));
             string classEmptyApp = app.ConnectionCount.Aggregate.Count > 0 ? "" : "text-success";
             string textClass = app.Active ? classEmptyApp : "text-danger";
-            return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{textToDisplay}{(app.Active ? "" : "</i>")}</span>";
+            return $"<span class=\"{textClass}\" {tooltip}>{(app.Active ? "" : "<i>")}{HtmlOutputEncoder.EncodeText(textToDisplay)}{(app.Active ? "" : "</i>")}</span>";
         }
 
         public static string DisplayReqInt(UserConfig userConfig, long? ticketId, bool otherOwner, bool rejected = false)

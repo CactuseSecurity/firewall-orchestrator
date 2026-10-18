@@ -160,7 +160,7 @@
 
             if (!string.IsNullOrWhiteSpace(globalConfig.WelcomeMessage))
             {
-                SanitizedWelcomeMessage = globalConfig.WelcomeMessage.StripDangerousHtmlTags().Replace("\n", "<br>");
+                SanitizedWelcomeMessage = FWO.Basics.HtmlOutputEncoder.SanitizeRichText(globalConfig.WelcomeMessage);
                 ShowWelcomeMessage = true;
             }
 

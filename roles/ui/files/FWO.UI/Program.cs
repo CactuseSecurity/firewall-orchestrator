@@ -151,6 +151,7 @@ else
 }
 
 // app.UseHttpsRedirection();
+app.UseMiddleware<ContentSecurityPolicyMiddleware>();
 app.UseStaticFiles();
 
 app.UseRouting();

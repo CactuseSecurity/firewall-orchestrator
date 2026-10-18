@@ -1,3 +1,4 @@
+@using FWO.Basics
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Display
@@ -292,7 +293,7 @@
 
     private string DisplayInterfaceWithIcon(ModellingConnection interf)
     {
-        return $"<span class=\"{Icons.Interface}\"></span> " + ConnHandler?.DisplayInterface(interf);
+        return $"<span class=\"{Icons.Interface}\"></span> " + HtmlOutputEncoder.EncodeText(ConnHandler?.DisplayInterface(interf));
     }
 
     private async Task ReplaceInterface()

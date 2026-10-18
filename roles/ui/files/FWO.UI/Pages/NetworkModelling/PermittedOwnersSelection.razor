@@ -7,7 +7,7 @@
     @foreach(var owner in PermittedOwners)
     {
         <div class="list-group-item border">
-            <label>@((MarkupString)owner.Display(userConfig.GetText("common_service")))</label>
+            <label>@(owner.Display(userConfig.GetText("common_service")))</label>
         </div>
     }
 }
@@ -15,7 +15,7 @@ else
 {
     <EditList ElementType="FwoOwner" Elements="PermittedOwners.ToArray()" ElementsToAdd="OwnersToAdd" ElementsToDelete="OwnersToDelete" StdLayout="false">
         <Display>
-            <div class="border bg-transparent">@((MarkupString)context.Display(userConfig.GetText("common_service")))</div>
+            <div class="border bg-transparent">@(context.Display(userConfig.GetText("common_service")))</div>
         </Display>
     </EditList>
     <div class="row col-sm-12 mt-2">
@@ -23,7 +23,7 @@ else
             <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display(userConfig.GetText("common_service")))"
                         @bind-SelectedElement="SelectedOwner" Elements="AllOwners" Nullable="true">
                 <ElementTemplate Context="app">
-                    @((MarkupString)(app.Display(userConfig.GetText("common_service"))))
+                    @(app.Display(userConfig.GetText("common_service")))
                 </ElementTemplate>
             </Dropdown>
         </div>

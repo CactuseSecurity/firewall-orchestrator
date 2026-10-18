@@ -38,10 +38,25 @@
                                     {
                                         <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await EditReqTask(context)">
                                             @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                                        <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">
+                                        @* deleting acts at once, so read-only users only see the button *@
+                                        <button type="button" class="btn btn-sm btn-danger" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">
                                             @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                     }
-                                    @if (Phase > WorkflowPhases.request && !WfHandler.ReadOnlyMode)
+                                    @if (Phase > WorkflowPhases.request && WfHandler.ReadOnlyMode)
+                                    {
+                                        @if (context.StateId < taskStateMatrix.LowestEndState)
+                                        {
+                                            @* read-only users follow the phase, starting or continuing would write the task state *@
+                                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ViewInPhase(context)">
+                                                @(userConfig.GetText("open_in_phase_view"))</button>
+                                            @if (Phase == WorkflowPhases.planning && context.StateId >= taskStateMatrix.LowestStartedState)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-warning" disabled>
+                                                    @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                            }
+                                        }
+                                    }
+                                    else if (Phase > WorkflowPhases.request)
                                     {
                                         @if (context.StateId < taskStateMatrix.LowestStartedState)
                                         {
@@ -179,6 +194,10 @@
 
     private void DeleteReqTask(WfReqTask reqTask)
     {
+        if (WfHandler.ReadOnlyMode)
+        {
+            return;
+        }
         WfHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayDelete);
     }
 
@@ -195,6 +214,11 @@
     private async Task ContinuePhase(WfReqTask reqTask)
     {
         await WfHandler.ContinuePhase(reqTask);
+    }
+
+    private async Task ViewInPhase(WfReqTask reqTask)
+    {
+        await WfHandler.ViewReqTaskInPhase(reqTask);
     }
 
     private bool IsEditable(WfReqTask implTreqTasksk)

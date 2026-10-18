@@ -55,23 +55,76 @@ namespace FWO.Test
             });
         }
 
+        [TestCase(Roles.Auditor, false)]
+        [TestCase(Roles.Admin, true)]
+        public async Task AddAndEditOpenForAdminAndAuditorButOnlyAdminCanSaveOrDelete(string role, bool writeAllowed)
+        {
+            await using BunitContext context = new();
+            IRenderedComponent<SettingsExternalWorkflowList> rendered = RenderPageAs(context, role);
+            SetField(rendered.Instance, "extTicketSystems", new List<ExternalTicketSystem> { new() { Id = 1, Name = "Generic", TypeId = BuiltInExternalTicketSystemTypes.GenericId } });
+            rendered.Render();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(FindButton(rendered, "add_ext_ticket_system").HasAttribute("disabled"), Is.False);
+                Assert.That(FindButton(rendered, "edit").HasAttribute("disabled"), Is.False);
+                Assert.That(FindButton(rendered, "delete").HasAttribute("disabled"), Is.EqualTo(!writeAllowed));
+            });
+
+            FindButton(rendered, "edit").Click();
+
+            rendered.WaitForAssertion(() =>
+            {
+                // the service data save and the save of the opened dialog
+                List<AngleSharp.Dom.IElement> saveButtons = [.. rendered.FindAll("button").Where(button => button.TextContent.Trim() == "Save")];
+                Assert.That(GetField<bool>(rendered.Instance, "editMode"), Is.True);
+                Assert.That(saveButtons, Has.Count.EqualTo(2));
+                Assert.That(saveButtons.All(button => button.HasAttribute("disabled") == !writeAllowed), Is.True);
+            });
+        }
+
         private static SettingsExternalWorkflowList RenderPage(BunitContext context)
+        {
+            return RenderPageAs(context, Roles.Admin, assignUserRole: false).Instance;
+        }
+
+        private static IRenderedComponent<SettingsExternalWorkflowList> RenderPageAs(BunitContext context, string role, bool assignUserRole = true)
         {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddSingleton<ApiConnection>(new ExternalWorkflowListTestApiConn());
             context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            SimulatedUserConfig userConfig = new() { ModIconify = false };
+            if (assignUserRole)
+            {
+                userConfig.User.Roles = [role];
+            }
+            context.Services.AddSingleton<UserConfig>(userConfig);
             context.Services.AddSingleton<DomEventService>();
             context.Services.AddLocalization();
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
-            context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(role));
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<SettingsExternalWorkflowList>());
-            SettingsExternalWorkflowList page = wrapper.FindComponent<SettingsExternalWorkflowList>().Instance;
-            wrapper.WaitForAssertion(() => Assert.That(GetField<bool>(page, "InitComplete"), Is.True));
-            return page;
+            IRenderedComponent<SettingsExternalWorkflowList> rendered = wrapper.FindComponent<SettingsExternalWorkflowList>();
+            wrapper.WaitForAssertion(() => Assert.That(GetField<bool>(rendered.Instance, "InitComplete"), Is.True));
+            return rendered;
+        }
+
+        private static AngleSharp.Dom.IElement FindButton(IRenderedComponent<SettingsExternalWorkflowList> rendered, string textKey)
+        {
+            string text = new SimulatedUserConfig().GetText(textKey);
+            List<AngleSharp.Dom.IElement> matches = [.. rendered.FindAll("button").Where(button => button.TextContent.Trim() == text)];
+            Assert.That(matches, Has.Count.EqualTo(1), $"button '{text}'");
+            return matches[0];
+        }
+
+        private static void SetField<T>(SettingsExternalWorkflowList page, string name, T value)
+        {
+            FieldInfo field = typeof(SettingsExternalWorkflowList).GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(nameof(SettingsExternalWorkflowList), name);
+            field.SetValue(page, value);
         }
 
         private static T GetField<T>(SettingsExternalWorkflowList page, string name)

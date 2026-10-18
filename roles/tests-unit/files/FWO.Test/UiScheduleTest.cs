@@ -239,6 +239,77 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task Schedule_AuditorCanOpenForeignScheduleButCannotSaveOrDeleteIt()
+        {
+            TrackingScheduleApiConnection apiConnection = new(
+                new List<ReportSchedule>
+                {
+                    CreateSchedule(1, "Foreign schedule", 77, ReportType.Rules, "Rules template")
+                },
+                new List<ReportTemplate>
+                {
+                    CreateTemplate(21, "Rules template", ReportType.Rules)
+                },
+                new List<FwoOwner>());
+
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), new List<string> { Roles.Auditor }, apiConnection, out SimulatedUserConfig userConfig);
+            userConfig.ModIconify = false;
+            IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
+            wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportSchedule>>(wrapper.FindComponent<Schedule>().Instance, "reportSchedules"), Has.Count.EqualTo(1)));
+
+            Schedule component = wrapper.FindComponent<Schedule>().Instance;
+            Assert.Multiple(() =>
+            {
+                Assert.That(wrapper.Find("button.btn.btn-sm.btn-warning").HasAttribute("disabled"), Is.False);
+                Assert.That(wrapper.Find("button.btn.btn-sm.btn-danger").HasAttribute("disabled"), Is.True);
+            });
+
+            await wrapper.InvokeAsync(() => wrapper.Find("button.btn.btn-sm.btn-warning").Click());
+
+            wrapper.WaitForAssertion(() =>
+            {
+                Assert.That(GetPrivateField<bool>(component, "ShowEditReportScheduleDialog"), Is.True);
+                AngleSharp.Dom.IElement saveButton = wrapper.FindAll("button").Single(button => button.TextContent.Trim() == userConfig.GetText("save"));
+                Assert.That(saveButton.HasAttribute("disabled"), Is.True);
+            });
+
+            await (Task)InvokePrivateMethod(component, "UpdateReportSchedule")!;
+            await (Task)InvokePrivateMethod(component, "DeleteReportSchedule")!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpdateScheduleCalls, Is.EqualTo(0));
+                Assert.That(apiConnection.DeleteScheduleCalls, Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Schedule_AuditorCanSaveNewSchedule()
+        {
+            TrackingScheduleApiConnection apiConnection = new(
+                new List<ReportSchedule>(),
+                new List<ReportTemplate>
+                {
+                    CreateTemplate(21, "Rules template", ReportType.Rules)
+                },
+                new List<FwoOwner>());
+
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), new List<string> { Roles.Auditor }, apiConnection, out SimulatedUserConfig userConfig);
+            userConfig.ModIconify = false;
+            IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
+            Schedule component = wrapper.FindComponent<Schedule>().Instance;
+
+            await wrapper.InvokeAsync(() => wrapper.Find("button.btn.btn-sm.btn-success").Click());
+
+            wrapper.WaitForAssertion(() =>
+            {
+                Assert.That(GetPrivateField<bool>(component, "ShowAddReportScheduleDialog"), Is.True);
+                AngleSharp.Dom.IElement saveButton = wrapper.FindAll("button").Single(button => button.TextContent.Trim() == userConfig.GetText("save"));
+                Assert.That(saveButton.HasAttribute("disabled"), Is.False);
+            });
+        }
+
         private static BunitContext CreateContext(AuthenticationStateProvider authStateProvider, List<string> roles, ApiConnection apiConnection, out SimulatedUserConfig userConfig)
         {
             BunitContext context = new();

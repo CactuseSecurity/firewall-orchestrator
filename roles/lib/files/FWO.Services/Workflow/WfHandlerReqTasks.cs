@@ -314,16 +314,20 @@ namespace FWO.Services.Workflow
             ActTicket.Tasks.Add(ActReqTask);
         }
 
-        public async Task ChangeReqTask()
+        /// <summary>
+        /// Persists the active request task and replaces it in the active ticket.
+        /// </summary>
+        /// <param name="allowLockedApprovalUpdate">Allows the explicitly permitted approval-phase field update on a locked task.</param>
+        public async Task ChangeReqTask(bool allowLockedApprovalUpdate = false)
         {
-            if (ActReqTask.Locked)
+            if (ActReqTask.Locked && !allowLockedApprovalUpdate)
             {
                 return;
             }
 
             if (ActReqTask.Id > 0 && dbAcc != null)
             {
-                await dbAcc.UpdateReqTaskInDb(ActReqTask);
+                await dbAcc.UpdateReqTaskInDb(ActReqTask, allowLockedApprovalUpdate);
             }
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.TaskNumber == ActReqTask.TaskNumber)] = ActReqTask;
         }

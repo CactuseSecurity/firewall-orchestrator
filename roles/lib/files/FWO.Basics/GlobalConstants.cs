@@ -73,6 +73,7 @@ namespace FWO.Basics
         public const string kPlaceholderMarker = "@@";
         public const string kModellerGroup = "ModellerGroup_";
         public const string kImportChangeNotify = "importChangeNotify";
+        public const string kSystemUser = "system";
         public const string kRuleOwnerMapping = "ruleOwnerMapping";
         public const string kExternalRequest = "externalRequest";
         public const string kComplianceCheck = "complianceCheck";

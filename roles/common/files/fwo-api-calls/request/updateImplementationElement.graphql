@@ -15,6 +15,9 @@ mutation updateImplementationElement(
   $ruleUid: String
   $groupName: String
   $name: String
+  $startTime: timestamptz
+  $endTime: timestamptz
+  $timeObjId: bigint
   ) {
   update_request_implelement_by_pk(
     pk_columns: { id: $id }
@@ -34,6 +37,9 @@ mutation updateImplementationElement(
       rule_uid: $ruleUid
       group_name: $groupName
       name: $name
+      start_time: $startTime
+      end_time: $endTime
+      time_obj_id: $timeObjId
   }) {
     UpdatedIdLong: id
   }

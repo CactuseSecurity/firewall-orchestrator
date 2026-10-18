@@ -65,6 +65,11 @@ if TYPE_CHECKING:
 """
 
 
+def is_responsible_importer(importer_host_name: str) -> bool:
+    """Return whether this host imports a management whose effective importer host name is given; empty means any."""
+    return importer_host_name in ("", gethostname())
+
+
 def import_management(
     mgm_id: int,
     api_call: FwoApiCall,
@@ -149,7 +154,10 @@ def _import_management(
         FWOLogger.info(f"import_management - import disabled for mgm  {mgm_id!s} - skipping")
         return
 
-    if import_state.state.mgm_details.importer_hostname != gethostname() and not import_state.state.force_import:
+    if (
+        not is_responsible_importer(import_state.state.mgm_details.importer_hostname)
+        and not import_state.state.force_import
+    ):
         FWOLogger.info(
             f"import_management - this host ({gethostname()}) is not responsible for importing management {mgm_id!s}"
         )

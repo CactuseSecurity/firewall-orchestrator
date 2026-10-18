@@ -1,3 +1,4 @@
+using FWO.Basics;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
@@ -23,7 +24,7 @@ namespace FWO.Data.Modelling
 
         public override string DisplayHtml()
         {
-            return $"<span>{(IsGlobal ? "<b>" : "")}{Display()}{(IsGlobal ? "</b>" : "")}</span>";
+            return $"<span>{(IsGlobal ? "<b>" : "")}{HtmlOutputEncoder.EncodeText(Display())}{(IsGlobal ? "</b>" : "")}</span>";
         }
     }
 }

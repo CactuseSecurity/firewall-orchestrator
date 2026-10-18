@@ -10,7 +10,7 @@
 
 <Sidebar @ref="archiveSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
     <div class="p-3 mt-2">
-        <h5 class="text-left">@(userConfig.GetText("report_type"))</h5>
+        <h5 class="text-start">@(userConfig.GetText("report_type"))</h5>
         <Dropdown ElementType="ReportType" ElementToString="DisplayArchiveReportType" SelectedElement="selectedReportType"
             SelectedElementChanged="ReportTypeChanged" Elements="visibleReportTypes">
             <ElementTemplate Context="reportType">
@@ -20,7 +20,7 @@
         @if(selectedReportType == ReportType.RecertificationEvent)
         {
             <br>
-            <h5 class="text-left">@(userConfig.GetText("owner"))</h5>
+            <h5 class="text-start">@(userConfig.GetText("owner"))</h5>
             <Dropdown ElementType="FwoOwner" ElementToString="@(o => o.Name)" SelectedElement="selectedOwner"
                 SelectedElementChanged="OwnerChanged" Elements="ownerList">
                 <ElementTemplate Context="owner">

@@ -1,4 +1,4 @@
-mutation refreshNotificationLog($id: Int!, $timestamp: timestamp!) {
+mutation refreshNotificationLog($id: Int!, $timestamp: timestamptz!) {
   update_notification_log(
     where: { id: { _eq: $id } }
     _set: { timestamp: $timestamp }

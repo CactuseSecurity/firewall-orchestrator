@@ -89,7 +89,6 @@
             </Template>
         </Column>
 
-        <Column TableItem="Management" Title="@(userConfig.GetText("importer_host"))" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
                 @((!context.ImportDisabled).ShowAsHtml())
@@ -220,12 +219,6 @@
                         </div>
                     </div>
                 }
-                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5120"))">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("importer_host")):</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
-                    </div>
-                </div>
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5121"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("debug_level")) (0-9):</label>
                     <div class="col-sm-8">
@@ -508,7 +501,6 @@
                 cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
                 cloudTenantId = actManagement.CloudTenantId,                        
                 superManager = actManagement.SuperManagerId,
-                importerHostname = actManagement.ImporterHostname,
                 debugLevel = actManagement.DebugLevel,
                 comment = actManagement.Comment,
                 extMgtData = actManagement.ExtMgtData,
@@ -555,7 +547,6 @@
                 cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
                 cloudTenantId = actManagement.CloudTenantId,                        
                 superManager = actManagement.SuperManagerId,
-                importerHostname = actManagement.ImporterHostname,
                 debugLevel = actManagement.DebugLevel,
                 comment = actManagement.Comment,
                 extMgtData = actManagement.ExtMgtData,

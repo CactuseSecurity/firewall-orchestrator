@@ -53,6 +53,7 @@ insert into config (config_key, config_value, config_user) VALUES ('reqPrioritie
 insert into config (config_key, config_value, config_user) VALUES ('reqAutoCreateImplTasks', 'enterInReqTask', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqConsiderBundling', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqDisplayBundledTasksAsOne', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reqCreateObjectsSeparately', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqOwnerBased', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqVisibilityBased', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqUseFlowDb', 'False', 0);
@@ -192,6 +193,6 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRol
 INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZoneMatrix', '0', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('labelLogic', 'AND', 0); -- combination of the labels of a rule side: AND | OR
 
-INSERT INTO provisioning_config_node (node_type, object_key, display_name, sort_order)
+INSERT INTO device_specific_config_node (node_type, object_key, display_name, sort_order)
 VALUES ('global', 'global', 'Global', 0)
 ON CONFLICT (node_type, object_key) DO NOTHING;

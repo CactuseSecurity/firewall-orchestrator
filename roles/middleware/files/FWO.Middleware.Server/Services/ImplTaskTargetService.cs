@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Data;
+using FWO.Data.Workflow;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Services.Workflow;
@@ -11,7 +12,7 @@ namespace FWO.Middleware.Server.Services;
 /// </summary>
 /// <remarks>
 /// Runs with the shared internal API connection as middleware-server, so every sub-management and the
-/// provisioning settings are found regardless of the managements visible to the caller.
+/// device specific settings are found regardless of the managements visible to the caller.
 /// </remarks>
 public sealed class ImplTaskTargetService
 {
@@ -30,21 +31,21 @@ public sealed class ImplTaskTargetService
     /// Returns one page of the target managements of an object task.
     /// </summary>
     /// <remarks>
-    /// The targets are computed from the management hierarchy and the provisioning settings, so the page cannot
+    /// The targets are computed from the management hierarchy and the device specific settings, so the page cannot
     /// be cut in the GraphQL query; it is cut here after the filter is applied. Targets are ordered by name and
     /// then id after the names hidden from the caller are removed, so the order does not reveal hidden names:
     /// visible targets come first, targets without name follow by id.
     /// </remarks>
     /// <param name="managementId">Management the request task belongs to.</param>
-    /// <param name="isServiceObject">True for services, false for network objects.</param>
+    /// <param name="kind">Kind of the created objects, which selects the device specific setting.</param>
     /// <param name="options">Filter and paging options of the request.</param>
     /// <param name="visibleManagementIds">Managements visible to the caller, or null when the caller sees every
     /// management. Targets outside this set are returned without name, before the filter is applied.</param>
     /// <returns>The matching target managements of the requested page.</returns>
-    public async Task<ListPage<ImplTaskTargetResponse>> GetImplTaskTargetsAsync(int managementId, bool isServiceObject,
+    public async Task<ListPage<ImplTaskTargetResponse>> GetImplTaskTargetsAsync(int managementId, ObjectTaskKind kind,
         GetImplTaskTargetsOptions options, IReadOnlySet<int>? visibleManagementIds = null)
     {
-        List<Management> targets = await new ImplTaskManagementResolver(apiConnection).ResolveObjectTargets(managementId, isServiceObject);
+        List<Management> targets = await new ImplTaskManagementResolver(apiConnection).ResolveObjectTargets(managementId, kind);
         int pageSize = options.Limit ?? GetImplTaskTargetsOptions.kMaxLimit;
         List<ImplTaskTargetResponse> pageWithLookahead = [.. targets
             .Select(target => new ImplTaskTargetResponse

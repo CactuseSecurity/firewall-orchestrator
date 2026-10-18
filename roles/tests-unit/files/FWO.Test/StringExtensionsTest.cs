@@ -452,22 +452,6 @@ namespace FWO.Test
             Assert.That(result, Is.EqualTo(expected));
         }
 
-        // --- StripDangerousHtmlTags ---
-        [TestCase("<br>line<br>", "<br>line<br>")]
-        [TestCase("<script>alert(1)</script>", "alert(1)")]
-        [TestCase("<b>bold</b>", "<b>bold</b>")]
-        [TestCase("<i>italic</i>", "<i>italic</i>")]
-        [TestCase("<i><script>evil</script>text</i>", "<i>eviltext</i>")]
-        [TestCase("<BR/>line<br>", "line<br>")]
-        [TestCase("<b>bold</b><i>italic</i>", "<b>bold</b><i>italic</i>")]
-        [TestCase("<x>fictitious tag</x>", "fictitious tag")]
-        [TestCase("<x>fictitious tag<x>", "fictitious tag")]
-        public void StripDangerousHtmlTags_Works(string input, string expected)
-        {
-            string result = input.StripDangerousHtmlTags();
-            Assert.That(result, Is.EqualTo(expected));
-        }
-
         // --- IsIPv4 / IsIPv6 ---
         [TestCase("192.168.0.1", true, false)]
         [TestCase("::1", false, true)]

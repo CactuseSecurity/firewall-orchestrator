@@ -1,6 +1,6 @@
 using FWO.Data;
 using FWO.Data.Middleware;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services;
@@ -35,26 +35,26 @@ namespace FWO.Test
         private static readonly List<int?> kRemainingGateways = [2, 3];
         private static readonly List<int> kOffsetsOfTwoSinglePages = [0, 1];
 
-        private static InMemoryProvisioningApiConnection CreateApi(ProvisioningObjectCreationMode globalMode)
+        private static InMemoryDeviceSpecificSettingsApiConnection CreateApi(ProvisioningObjectCreationMode globalMode)
         {
             DeviceType mdsType = new() { Id = 13, Name = "Check Point MDS", Version = "R8x" };
             DeviceType domainType = new() { Id = 9, Name = "Check Point", Version = "R8x" };
-            InMemoryProvisioningApiConnection api = new();
+            InMemoryDeviceSpecificSettingsApiConnection api = new();
             api.Managements.Add(new Management { Id = kSuperManagementId, Name = "mds", DeviceType = mdsType, IsSupermanager = true });
             api.Managements.Add(new Management { Id = kFirstSubManagementId, Name = kFirstSubName, DeviceType = domainType, SuperManagerId = kSuperManagementId });
             api.Managements.Add(new Management { Id = kSecondSubManagementId, Name = kSecondSubName, DeviceType = domainType, SuperManagerId = kSuperManagementId });
-            api.AddNode(kGlobalNodeId, ProvisioningScopeType.Global, ProvisioningScopePath.GlobalObjectKey, displayName: "Global");
-            api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.AddressObjectCreation, globalMode);
+            api.AddNode(kGlobalNodeId, DeviceSpecificScopeType.Global, DeviceSpecificScopePath.GlobalObjectKey, displayName: "Global");
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AddressObjectCreation, globalMode);
             return api;
         }
 
-        private static WfHandler CreateMiddlewareHandler(InMemoryProvisioningApiConnection api, AutoCreateImplTaskOptions option = AutoCreateImplTaskOptions.never)
+        private static WfHandler CreateMiddlewareHandler(InMemoryDeviceSpecificSettingsApiConnection api, AutoCreateImplTaskOptions option = AutoCreateImplTaskOptions.never)
         {
             return new WfHandler(new SimulatedUserConfig { ReqAutoCreateImplTasks = option }, api, WorkflowPhases.planning, null);
         }
 
         /// <summary>
-        /// Builds a handler as the ui does: its own api connection has no access to managements or provisioning
+        /// Builds a handler as the ui does: its own api connection has no access to managements or device specific
         /// settings, the target managements come from the middleware.
         /// </summary>
         private static WfHandler CreateUiHandler(MiddlewareClient middlewareClient)
@@ -76,9 +76,25 @@ namespace FWO.Test
             ];
         }
 
+        private static ObjectTaskKind ToKind(ImplTaskTargetParameters parameters)
+        {
+            if (parameters.IsTimeObject)
+            {
+                return ObjectTaskKind.Time;
+            }
+            return parameters.IsServiceObject ? ObjectTaskKind.Service : ObjectTaskKind.Network;
+        }
+
         private static WfReqTask CreateGroupTask(int? managementId)
         {
             return new WfReqTask { Id = 7, TaskType = WfTaskType.group_create.ToString(), StateId = kOpenStateId, Title = "New group", ManagementId = managementId };
+        }
+
+        private static WfReqTask CreateTimeObjectTask(int? managementId)
+        {
+            WfReqTask reqTask = new() { Id = 9, TaskType = WfTaskType.object_create.ToString(), StateId = kOpenStateId, Title = "New time", ManagementId = managementId };
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.time.ToString(), Name = "maintenance" });
+            return reqTask;
         }
 
         private static WfReqTask CreateAccessTask(int? managementId)
@@ -244,6 +260,84 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ObjectTask_TimeObjectsUseTimeSetting()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Submanager);
+            ImplTaskTargetMiddlewareClient middlewareClient = new(api);
+            WfHandler handler = CreateUiHandler(middlewareClient);
+            WfReqTask reqTask = new() { Id = 9, TaskType = WfTaskType.object_create.ToString(), StateId = kOpenStateId, Title = "New time", ManagementId = kSuperManagementId };
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.time.ToString(), Name = "maintenance" });
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ManagementIds(reqTask), Is.EqualTo(kBothSubManagements));
+                Assert.That(middlewareClient.Calls.Single().IsTimeObject, Is.True);
+                Assert.That(middlewareClient.Calls.Single().IsServiceObject, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task ObjectTask_IgnoredTimeObjectsGetNoImplTask()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Submanager);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Ignore);
+            WfHandler handler = CreateUiHandler(new ImplTaskTargetMiddlewareClient(api));
+            WfReqTask reqTask = CreateTimeObjectTask(kSuperManagementId);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks, Is.Empty);
+        }
+
+        [Test]
+        public async Task HasObjectTargets_IsFalseOnlyForIgnoredTimeObjects()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Submanager);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Ignore);
+            WfHandler handler = CreateUiHandler(new ImplTaskTargetMiddlewareClient(api));
+
+            bool? timeObject = await handler.HasObjectTargets(CreateTimeObjectTask(kSuperManagementId));
+            bool? group = await handler.HasObjectTargets(CreateGroupTask(kSuperManagementId));
+            bool? allManagements = await handler.HasObjectTargets(CreateTimeObjectTask(null));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(timeObject, Is.False);
+                Assert.That(group, Is.True);
+                Assert.That(allManagements, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task HasObjectTargets_IsTrueWhenTimeObjectsAreCreated()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
+            WfHandler handler = CreateUiHandler(new ImplTaskTargetMiddlewareClient(api));
+
+            Assert.That(await handler.HasObjectTargets(CreateTimeObjectTask(kSuperManagementId)), Is.True);
+        }
+
+        [Test]
+        public async Task HasObjectTargets_IsUnknownWhenTheTargetsCannotBeResolved()
+        {
+            ImplTaskTargetMiddlewareClient failingClient = new(CreateApi(ProvisioningObjectCreationMode.Submanager)) { Fail = true };
+            WfHandler uiHandler = CreateUiHandler(failingClient);
+            WfHandler handlerWithoutBackend = new();
+
+            bool? failed = await uiHandler.HasObjectTargets(CreateTimeObjectTask(kSuperManagementId));
+            bool? withoutBackend = await handlerWithoutBackend.HasObjectTargets(CreateTimeObjectTask(kSuperManagementId));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(failed, Is.Null);
+                Assert.That(withoutBackend, Is.Null);
+            });
+        }
+
+        [Test]
         public async Task ObjectTask_FallsBackToRequestManagementWhenMiddlewareFails()
         {
             ImplTaskTargetMiddlewareClient middlewareClient = new(CreateApi(ProvisioningObjectCreationMode.Submanager)) { Fail = true };
@@ -258,7 +352,7 @@ namespace FWO.Test
         [Test]
         public async Task ObjectTask_FallsBackToRequestManagementWhenResolutionFails()
         {
-            InMemoryProvisioningApiConnection api = CreateApi(ProvisioningObjectCreationMode.Submanager);
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Submanager);
             api.FailingQuery = FWO.Api.Client.Queries.DeviceQueries.getManagementHierarchy;
             WfHandler handler = CreateMiddlewareHandler(api);
             WfReqTask reqTask = CreateGroupTask(kSuperManagementId);
@@ -332,7 +426,7 @@ namespace FWO.Test
         [Test]
         public async Task CreateImplTasksAction_CreatesTasksForTheTicket()
         {
-            InMemoryProvisioningApiConnection api = CreateApi(ProvisioningObjectCreationMode.Submanager);
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Submanager);
             WfHandler handler = CreateMiddlewareHandler(api);
             SetMatrix(handler, WfTaskType.group_create.ToString(), new StateMatrix { MinTicketCompleted = kCompletedStateId });
             WfTicket ticket = new() { Id = 5, Tasks = [CreateGroupTask(kSuperManagementId)] };
@@ -365,7 +459,7 @@ namespace FWO.Test
         [Test]
         public async Task CreateImplTasksAction_SkipsWhenNoTicketCanBeResolved()
         {
-            InMemoryProvisioningApiConnection api = CreateApi(ProvisioningObjectCreationMode.Submanager);
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Submanager);
             WfHandler handler = CreateMiddlewareHandler(api);
             ActionHandler actionHandler = new(api, handler);
             int callsBefore = api.Calls.Count;
@@ -378,7 +472,7 @@ namespace FWO.Test
         [Test]
         public async Task CreateImplTasksAction_IsDispatchedByPerformAction()
         {
-            InMemoryProvisioningApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
             WfHandler handler = CreateMiddlewareHandler(api);
             SetMatrix(handler, WfTaskType.group_create.ToString(), new StateMatrix { MinTicketCompleted = kCompletedStateId });
             WfTicket ticket = new() { Id = 5, Tasks = [CreateGroupTask(kSuperManagementId)] };
@@ -416,7 +510,7 @@ namespace FWO.Test
         /// Plays the middleware endpoint getImplTaskTargets: resolves with the middleware's view of the
         /// managements and records every call.
         /// </summary>
-        private sealed class ImplTaskTargetMiddlewareClient(InMemoryProvisioningApiConnection middlewareApi) : MiddlewareClient("http://localhost/")
+        private sealed class ImplTaskTargetMiddlewareClient(InMemoryDeviceSpecificSettingsApiConnection middlewareApi) : MiddlewareClient("http://localhost/")
         {
             public List<ImplTaskTargetParameters> Calls { get; } = [];
             public bool Fail { get; init; }
@@ -436,7 +530,7 @@ namespace FWO.Test
                     };
                 }
                 List<Management> targets = await new ImplTaskManagementResolver(middlewareApi)
-                    .ResolveObjectTargets(parameters.ManagementId, parameters.IsServiceObject);
+                    .ResolveObjectTargets(parameters.ManagementId, ToKind(parameters));
                 List<Management> page = [.. targets.Skip(parameters.Options.Offset).Take(PageSize)];
                 bool hasMore = AlwaysHasMore || parameters.Options.Offset + page.Count < targets.Count;
                 List<HeaderParameter> headers = [new HeaderParameter(ImplTaskTargetPaging.kHasMoreHeader, hasMore ? "true" : "false")];
@@ -452,7 +546,7 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Api connection of a ui user who may neither read managements nor provisioning settings.
+        /// Api connection of a ui user who may neither read managements nor device specific settings.
         /// </summary>
         private sealed class NoAccessApiConnection : SimulatedApiConnection
         {

@@ -5782,8 +5782,8 @@ INSERT INTO txt VALUES ('H1602', 'English', '<li>Network objects: Name, type, IP
     <li>Users: Name, type, UID, real name, group members if applicable, last changed, comment</li>
 ');
 
-INSERT INTO txt VALUES ('H1603', 'German', 'Dienst-Tabellen zeigen Quell- und Zielportbereiche in eigenen Spalten. In Regel- und &Auml;nderungsexporten bedeutet die Schreibweise Quelle &rarr; Ziel, dass beide Portbereiche eingeschr&auml;nkt sind. Ohne Quellportangabe ist der Quellport nicht eingeschr&auml;nkt.');
-INSERT INTO txt VALUES ('H1603', 'English', 'Service tables show source and destination port ranges in separate columns. In rule and change exports, source &rarr; destination indicates that both port ranges are restricted. An absent source port means the source port is unrestricted.');
+INSERT INTO txt VALUES ('H1603', 'German', 'Dienst-Tabellen zeigen Zielportbereiche in einer eigenen Spalte; die Spalte Quellport erscheint nur, wenn mindestens ein Dienst Quellports einschr&auml;nkt. In Regel- und &Auml;nderungsexporten bedeutet die Schreibweise Quelle &rarr; Ziel, dass beide Portbereiche eingeschr&auml;nkt sind. Ohne Quellportangabe ist der Quellport nicht eingeschr&auml;nkt.');
+INSERT INTO txt VALUES ('H1603', 'English', 'Service tables show destination port ranges in a separate column; the source port column only appears if at least one service restricts source ports. In rule and change exports, source &rarr; destination indicates that both port ranges are restricted. An absent source port means the source port is unrestricted.');
 
 INSERT INTO txt VALUES ('H2001', 'German',  'Es k&ouml;nnen Reports f&uuml;r einen bestimmten Termin oder als wiederkehrende Auftr&auml;ge festgelegt werden.
     Jeder Nutzer kann seine eigenen Terminpl&auml;ne verwalten.

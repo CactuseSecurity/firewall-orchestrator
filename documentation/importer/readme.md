@@ -19,7 +19,8 @@ Supported vendor formats:
   UDP and SCTP. Each source/destination pair is retained as a separate service,
   including pairs that share destination ports.
 
-Service tables show separate source and destination port ranges. Rule and change
+Service tables show destination port ranges in their own column; the source port
+column and detail only appear when a source restriction exists. Rule and change
 exports use `source → destination` when a source restriction exists; `*` denotes an
 unspecified destination. Existing services without source constraints retain their
 previous rule display format. Existing ASA rules without source constraints retain

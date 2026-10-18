@@ -109,9 +109,12 @@
                                 </div>
                             </Template>
                         </Column>
-                        <Column TableItem="NetworkService" Title="@(userConfig.GetText("source_port"))" Field="@(x => x.SourcePort)">
-                            <Template>@DisplayBase.DisplayPort(context.SourcePort, context.SourcePortEnd)</Template>
-                        </Column>
+                        @if (HasSourcePorts(NetworkServiceExtractor(Content)))
+                        {
+                            <Column TableItem="NetworkService" Title="@(userConfig.GetText("source_port"))" Field="@(x => x.SourcePort)">
+                                <Template>@DisplayBase.DisplayPort(context.SourcePort, context.SourcePortEnd)</Template>
+                            </Column>
+                        }
                         <Column TableItem="NetworkService" Title="@(userConfig.GetText("destination_port"))" Field="@(x => x.DestinationPort)">
                             <Template>@DisplayBase.DisplayPort(context.DestinationPort, context.DestinationPortEnd)</Template>
                         </Column>
@@ -120,7 +123,10 @@
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />
                             @if (context.Type == null || context.Type.Name != ServiceType.Group)
                             {
-                                <Detail Title="@(userConfig.GetText("source_port"))" Data=@DisplayBase.DisplayPort(context.SourcePort, context.SourcePortEnd) />
+                                if (context.SourcePort != null)
+                                {
+                                    <Detail Title="@(userConfig.GetText("source_port"))" Data=@DisplayBase.DisplayPort(context.SourcePort, context.SourcePortEnd) />
+                                }
                                 <Detail Title="@(userConfig.GetText("destination_port"))" Data=@DisplayBase.DisplayPort(context.DestinationPort, context.DestinationPortEnd) />
                                 if (!context.Name.Equals("Any") && !context.Name.Equals("ALL") || !(context.Protocol?.Id == 0))
                                 {
@@ -385,6 +391,14 @@
             return;
 
         await FetchContent(objCategory);
+    }
+
+    /// <summary>
+    /// Shows the source port column only if at least one listed service restricts source ports.
+    /// </summary>
+    private static bool HasSourcePorts(IEnumerable<NetworkService> services)
+    {
+        return services.Any(service => service.SourcePort != null);
     }
 
     private bool IsDetailed(ObjCategory objCategory)

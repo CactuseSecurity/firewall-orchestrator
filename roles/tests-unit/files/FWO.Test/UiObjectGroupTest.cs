@@ -21,27 +21,51 @@ namespace FWO.Test
             new() { Id = 1, Name = "source-service", SourcePort = 7937, SourcePortEnd = 10000, DestinationPort = 443, DestinationPortEnd = 444 }
         ];
 
-        /// <summary>Checks the service table displays both complete port ranges as separate columns.</summary>
-        [Test]
-        public void RendersSourceAndDestinationPortColumns()
+        private static readonly NetworkService[] kDestinationOnlyServices =
+        [
+            new() { Id = 2, Name = "destination-service", DestinationPort = 443, DestinationPortEnd = 444 }
+        ];
+
+        /// <summary>Renders the service table of a rule for the given services.</summary>
+        private IRenderedComponent<ObjectGroup<Rule>> RenderServiceTable(IEnumerable<NetworkService> services)
         {
             Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
             Services.AddScoped(_ => JSInterop.JSRuntime);
             Services.AddLocalization();
             Rule rule = new() { Id = 1, MgmtId = 1, Name = "rule", Detailed = true };
-            IRenderedComponent<ObjectGroup<Rule>> cut = Render<ObjectGroup<Rule>>(parameters => parameters
+            return Render<ObjectGroup<Rule>>(parameters => parameters
                 .Add(p => p.Tab, RsbTab.rule)
                 .Add(p => p.PageSize, 0)
                 .Add(p => p.StartContentDetailed, true)
                 .Add(p => p.StartCollapsed, false)
                 .Add(p => p.Content, rule)
                 .Add(p => p.NameExtractor, entry => entry.Name ?? string.Empty)
-                .Add(p => p.NetworkServiceExtractor, _ => kSourcePortServices));
+                .Add(p => p.NetworkServiceExtractor, _ => services));
+        }
+
+        /// <summary>Checks the service table displays both complete port ranges as separate columns.</summary>
+        [Test]
+        public void RendersSourceAndDestinationPortColumns()
+        {
+            IRenderedComponent<ObjectGroup<Rule>> cut = RenderServiceTable(kSourcePortServices);
             Assert.Multiple(() =>
             {
                 Assert.That(cut.Markup, Does.Contain("source_port"));
                 Assert.That(cut.Markup, Does.Contain("destination_port"));
                 Assert.That(cut.Markup, Does.Contain("7937-10000"));
+                Assert.That(cut.Markup, Does.Contain("443-444"));
+            });
+        }
+
+        /// <summary>Checks the source port column is hidden when no listed service restricts source ports.</summary>
+        [Test]
+        public void HidesSourcePortColumnWithoutSourcePorts()
+        {
+            IRenderedComponent<ObjectGroup<Rule>> cut = RenderServiceTable(kDestinationOnlyServices);
+            Assert.Multiple(() =>
+            {
+                Assert.That(cut.Markup, Does.Not.Contain("source_port"));
+                Assert.That(cut.Markup, Does.Contain("destination_port"));
                 Assert.That(cut.Markup, Does.Contain("443-444"));
             });
         }

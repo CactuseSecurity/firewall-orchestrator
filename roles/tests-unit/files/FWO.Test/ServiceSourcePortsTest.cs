@@ -84,6 +84,25 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>Checks the selection list format keeps legacy output and prefixes source restrictions.</summary>
+        [TestCase(null, null, 443, 443, "TCP", "443/TCP")]
+        [TestCase(null, null, null, null, "TCP", "TCP")]
+        [TestCase(null, null, null, null, null, "")]
+        [TestCase(1024, 2048, 443, 444, "TCP", "1024-2048 → 443-444/TCP")]
+        [TestCase(1024, 1024, null, null, "UDP", "1024 → */UDP")]
+        [TestCase(1024, 1024, null, null, null, "1024 → *")]
+        public void SelectionListPortsShowSourceRestrictions(int? source, int? sourceEnd, int? destination, int? destinationEnd, string? protocol, string expected)
+        {
+            NetworkService service = new()
+            {
+                SourcePort = source,
+                SourcePortEnd = sourceEnd,
+                DestinationPort = destination,
+                DestinationPortEnd = destinationEnd
+            };
+            Assert.That(DisplayBase.DisplayServicePortsWithProtocol(service, protocol), Is.EqualTo(expected));
+        }
+
         /// <summary>Checks both JSON serializers preserve source ranges in normalized exports and read-back.</summary>
         [Test]
         public void NormalizedServiceRoundTripPreservesSourcePorts()

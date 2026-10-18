@@ -53,10 +53,30 @@ namespace FWO.Data
         /// </summary>
         public static string DisplayServicePorts(NetworkService service, bool inBrackets = false)
         {
-            string destination = DisplayPort(service.DestinationPort, service.DestinationPortEnd);
-            string ports = service.SourcePort == null ? destination :
-                $"{DisplayPort(service.SourcePort, service.SourcePortEnd)} → {(destination.Length == 0 ? "*" : destination)}";
+            string ports = DisplayPort(service.DestinationPort, service.DestinationPortEnd);
+            if (service.SourcePort != null)
+            {
+                string destination = ports.Length == 0 ? "*" : ports;
+                ports = $"{DisplayPort(service.SourcePort, service.SourcePortEnd)} → {destination}";
+            }
             return inBrackets && ports.Length > 0 ? $" ({ports})" : ports;
+        }
+
+        /// <summary>
+        /// Formats ports with protocol for selection lists, prefixing a source port restriction when present.
+        /// </summary>
+        public static string DisplayServicePortsWithProtocol(NetworkService service, string? protocolName)
+        {
+            string destination = DisplayPort(service.DestinationPort, service.DestinationPortEnd, false, protocolName);
+            if (service.SourcePort == null)
+            {
+                return string.IsNullOrWhiteSpace(destination) ? protocolName ?? "" : destination;
+            }
+            if (string.IsNullOrWhiteSpace(destination))
+            {
+                destination = protocolName == null ? "*" : $"*/{protocolName}";
+            }
+            return $"{DisplayPort(service.SourcePort, service.SourcePortEnd)} → {destination}";
         }
 
         public static string DisplayService(Workflow.NwServiceElement svcElem, List<IpProtocol> IpProtos)

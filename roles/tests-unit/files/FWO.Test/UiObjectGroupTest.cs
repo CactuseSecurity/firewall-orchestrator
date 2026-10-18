@@ -70,6 +70,20 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>Checks the source port column keeps its position before the destination column when it appears later.</summary>
+        [Test]
+        public void SourcePortColumnPrecedesDestinationAfterServicesChange()
+        {
+            IRenderedComponent<ObjectGroup<Rule>> cut = RenderServiceTable(kDestinationOnlyServices);
+            cut.Render(parameters => parameters.Add(p => p.NetworkServiceExtractor, _ => kSourcePortServices));
+            string markup = cut.Markup;
+            Assert.Multiple(() =>
+            {
+                Assert.That(markup, Does.Contain("source_port"));
+                Assert.That(markup.IndexOf("source_port", StringComparison.Ordinal), Is.LessThan(markup.IndexOf("destination_port", StringComparison.Ordinal)));
+            });
+        }
+
         [Test]
         public void FetchesDetailsWhenContentChanges()
         {

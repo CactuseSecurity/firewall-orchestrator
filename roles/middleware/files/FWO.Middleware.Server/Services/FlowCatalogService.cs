@@ -179,8 +179,11 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <summary>
     /// Resolves only the requested, request-visible Flow groups and their active members.
     /// </summary>
-    public async Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(FlowGroupResolutionParameters parameters)
+    public async Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(
+        FlowGroupResolutionParameters parameters,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         parameters.NetworkGroupIds ??= [];
         parameters.NetworkGroupNames ??= [];
         parameters.ServiceGroupIds ??= [];
@@ -193,14 +196,16 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
             ? Task.FromResult<List<FlowSvcGroup>>([])
             : apiConnection.SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowServiceGroups, BuildGroupResolutionVariables(
                 "svcgrp_id", parameters.ServiceGroupIds, parameters.ServiceGroupNames));
-        await Task.WhenAll(networkGroupsTask, serviceGroupsTask);
+        Task<List<FlowNwGroup>> cancellableNetworkGroupsTask = networkGroupsTask.WaitAsync(cancellationToken);
+        Task<List<FlowSvcGroup>> cancellableServiceGroupsTask = serviceGroupsTask.WaitAsync(cancellationToken);
+        await Task.WhenAll(cancellableNetworkGroupsTask, cancellableServiceGroupsTask);
 
         return new FlowGroupResolutionResult
         {
-            NetworkGroups = ResolveGroupMatches(await networkGroupsTask ?? [], parameters.NetworkGroupIds, parameters.NetworkGroupNames)
+            NetworkGroups = ResolveGroupMatches(await cancellableNetworkGroupsTask ?? [], parameters.NetworkGroupIds, parameters.NetworkGroupNames)
                 .Select(ToNetworkGroupResolution)
                 .ToList(),
-            ServiceGroups = ResolveGroupMatches(await serviceGroupsTask ?? [], parameters.ServiceGroupIds, parameters.ServiceGroupNames)
+            ServiceGroups = ResolveGroupMatches(await cancellableServiceGroupsTask ?? [], parameters.ServiceGroupIds, parameters.ServiceGroupNames)
                 .Select(ToServiceGroupResolution)
                 .ToList()
         };

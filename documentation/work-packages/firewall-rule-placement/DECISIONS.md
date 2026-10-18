@@ -189,3 +189,13 @@ The production snapshot reader selects one management-scoped type-1 rule import 
 The reader validates gateway-management ownership, historical intervals, exact endpoint completeness, and source-rule ownership before constructing the existing `RulebaseGraphSnapshot`. It returns a typed success or safe typed failure, while caller cancellation remains exceptional. The existing GraphQL schema and middleware-server permissions are sufficient; no schema or Hasura metadata change is required.
 
 Rationale: a fixed import ID reconstructs the completed post-import state even if a newer failed or in-progress import is changing current rows, and explicit validation prevents partial historical data from becoming a calculation input.
+
+## 2026-10-18 - D-030 - Reuse compliance zone and Flow group resolution for creation placement
+
+Phase 3 WP-02 resolves active source and destination elements into immutable ordered zone sets rather than requiring one exact zone pair. It preserves multiple and overlapping matches for the later customer-policy decision. Existing request-visible Flow network groups are expanded through `IFlowGroupResolver`, with positive IDs preferred over names and selector calls chunked to the existing limit.
+
+Address normalization reuses workflow CIDR precedence and `ComplianceCheck.ParseIpRange`. Zone matching reuses `ComplianceZoneResolver` directly, including the persisted automatic-Internet zone when enabled, the synthetic Internet/local fallback for uncovered IPv4 when disabled, and unassignable uncovered IPv6 ranges. The positioning result gives the synthetic fallback an explicit non-localized kind and reports complete, partial, or absent coverage without choosing a section or recipe.
+
+Groups created in the same ticket but not yet available in the Flow catalog are treated as unresolved in WP-02. Stakeholders must confirm whether cross-task pre-catalog group resolution is required before WP-05 activates the production workflow.
+
+Rationale: the established compliance and Flow seams already implement the required general behavior. Reusing them prevents a competing zone algorithm while preserving unresolved and multi-zone information for the final customer-specific mapping.

@@ -120,6 +120,22 @@ internal class ComplianceZoneResolverTest
         });
     }
 
+    /// <summary>Verifies the cancellation-aware overload stops before scanning zones.</summary>
+    [Test]
+    public void ResolveZones_CancelledToken_ThrowsOperationCanceledException()
+    {
+        CancellationTokenSource cancellation = new();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => ComplianceZoneResolver.ResolveZones(
+            [new IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))],
+            [Ipv4Zone],
+            autoCalculatedInternetZoneActive: true,
+            "Internet/Local",
+            cancellation.Token,
+            out _));
+    }
+
     private static ComplianceNetworkZone Ipv4Zone => new()
     {
         Id = 10,

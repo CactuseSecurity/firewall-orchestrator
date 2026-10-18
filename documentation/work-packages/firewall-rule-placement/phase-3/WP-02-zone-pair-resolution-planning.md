@@ -2,7 +2,9 @@
 
 ## Status
 
-Blocked until WP-01 implementation and validation are complete.
+Planning complete on 2026-10-18. The paired implementation brief is self-contained and marked `Ready for implementation`.
+
+The settled design reuses `ComplianceZoneResolver`, including its existing persisted automatic-Internet and synthetic Internet/local behavior. Existing request-visible Flow groups are loaded through `IFlowGroupResolver`; same-ticket groups that are not yet present in Flow are treated as unresolved pending stakeholder confirmation before WP-05 activation.
 
 ## Planning objective
 
@@ -49,7 +51,7 @@ Record decisions in `DECISIONS.md` and update the phase status and `SESSION-HAND
 
 ## Planning acceptance
 
-- The planned resolver consumes only new-rule workflow data and caller-loaded zone data.
+- The planned resolver consumes new-rule workflow data, existing Flow group members when referenced, and caller-loaded zone data.
 - It does not compare existing rule semantics.
 - It does not select a layer, section, recipe, or enum mapping.
 - Existing reusable zone behavior is not duplicated without a documented reason.

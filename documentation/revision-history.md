@@ -10,6 +10,7 @@
 - import and retain network service source ports and source port ranges for Cisco ASA, Check Point, FortiManager and FortiOS (#4651)
 - report service tables show source and destination port ranges; rule and change exports retain source restrictions
 - Cisco ASA supports inline source port operators and port groups, plus source ports in named services and service groups; existing rule UIDs without source restrictions stay unchanged
+- variance analysis regards service source ports when port and protocol are compared; a full source range (1-65535) counts as unrestricted
 
 ## 9.7.4 - 14.10.2026
 - rename the hierarchical provisioning settings to device specific settings, as they are also used e.g. for importing: UI page (now settings/devicespecificsettings), help page, code and the tables provisioning_config_* (now device_specific_config_*)

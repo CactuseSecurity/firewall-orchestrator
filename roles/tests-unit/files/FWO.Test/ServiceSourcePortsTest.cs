@@ -1,9 +1,11 @@
 using System.Text;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Report;
 using FWO.Report.Filter;
+using FWO.Services;
 using FWO.Ui.Display;
 using Newtonsoft.Json;
 using NUnit.Framework;
@@ -16,6 +18,9 @@ namespace FWO.Test
     {
         private const string kPayload = "<img src=x onerror=\"alert('quote')\">";
         private static readonly NetworkService[] kReportServices = [CreateService()];
+        private static readonly NetworkService kModelledGroup = new() { Name = "grp", ServiceGroupFlats = [new GroupFlat<NetworkService>() { Object = CreateHttpsService(null, null) }] };
+        private static readonly NetworkService kSourceRestrictedGroup = new() { Name = "grp", ServiceGroupFlats = [new GroupFlat<NetworkService>() { Object = CreateHttpsService(1024, 1024) }] };
+        private static readonly NetworkService kFullSourceRangeGroup = new() { Name = "grp", ServiceGroupFlats = [new GroupFlat<NetworkService>() { Object = CreateHttpsService(1, 65535) }] };
 
         private sealed class RulesReportProbe() : ReportRules(new DynGraphqlQuery(""), new SimulatedUserConfig(), ReportType.Rules)
         {
@@ -101,6 +106,70 @@ namespace FWO.Test
                 DestinationPortEnd = destinationEnd
             };
             Assert.That(DisplayBase.DisplayServicePortsWithProtocol(service, protocol), Is.EqualTo(expected));
+        }
+
+        /// <summary>Creates a TCP service on port 443 with the given source port range.</summary>
+        private static NetworkService CreateHttpsService(int? sourcePort, int? sourcePortEnd)
+        {
+            return new NetworkService
+            {
+                Name = "https",
+                ProtoId = 6,
+                DestinationPort = 443,
+                DestinationPortEnd = 443,
+                SourcePort = sourcePort,
+                SourcePortEnd = sourcePortEnd
+            };
+        }
+
+        /// <summary>Checks the variance comparer treats a source restriction as different from an unrestricted service.</summary>
+        [TestCase(null, null, true)]
+        [TestCase(1, 65535, true)]
+        [TestCase(0, 65535, true)]
+        [TestCase(1024, 1024, false)]
+        [TestCase(1024, 65535, false)]
+        [TestCase(1, 1023, false)]
+        public void ComparerRegardsSourcePortsAgainstUnrestrictedService(int? sourcePort, int? sourcePortEnd, bool expectedEqual)
+        {
+            NetworkServiceComparer comparer = new(new RuleRecognitionOption() { SvcRegardPortAndProt = true });
+            NetworkService unrestricted = CreateHttpsService(null, null);
+            NetworkService imported = CreateHttpsService(sourcePort, sourcePortEnd);
+            Assert.Multiple(() =>
+            {
+                Assert.That(comparer.Equals(unrestricted, imported), Is.EqualTo(expectedEqual));
+                Assert.That(comparer.Equals(imported, unrestricted), Is.EqualTo(expectedEqual));
+                Assert.That(comparer.GetHashCode(unrestricted) == comparer.GetHashCode(imported), Is.EqualTo(expectedEqual));
+            });
+        }
+
+        /// <summary>Checks equal source ranges match, different ones do not, and ports are ignored when configured.</summary>
+        [Test]
+        public void ComparerComparesSourceRanges()
+        {
+            NetworkServiceComparer comparer = new(new RuleRecognitionOption() { SvcRegardPortAndProt = true });
+            NetworkServiceComparer portBlindComparer = new(new RuleRecognitionOption() { SvcRegardPortAndProt = false });
+            NetworkService source1024 = CreateHttpsService(1024, 1024);
+            NetworkService sameSource = CreateHttpsService(1024, null);
+            NetworkService otherSource = CreateHttpsService(2048, 2048);
+            Assert.Multiple(() =>
+            {
+                Assert.That(comparer.Equals(source1024, sameSource), Is.True);
+                Assert.That(comparer.GetHashCode(source1024), Is.EqualTo(comparer.GetHashCode(sameSource)));
+                Assert.That(comparer.Equals(source1024, otherSource), Is.False);
+                Assert.That(portBlindComparer.Equals(source1024, otherSource), Is.True);
+            });
+        }
+
+        /// <summary>Checks service groups differing only in a member's source restriction are not equal.</summary>
+        [Test]
+        public void GroupComparerRegardsMemberSourcePorts()
+        {
+            NetworkServiceGroupComparer comparer = new(new RuleRecognitionOption() { SvcRegardPortAndProt = true });
+            Assert.Multiple(() =>
+            {
+                Assert.That(comparer.Equals(kModelledGroup, kSourceRestrictedGroup), Is.False);
+                Assert.That(comparer.Equals(kModelledGroup, kFullSourceRangeGroup), Is.True);
+            });
         }
 
         /// <summary>Checks both JSON serializers preserve source ranges in normalized exports and read-back.</summary>

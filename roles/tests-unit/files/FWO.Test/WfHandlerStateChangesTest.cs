@@ -784,6 +784,20 @@ namespace FWO.Test
 
             Assert.That(approval.Comments, Has.Count.EqualTo(1));
             Assert.That(approval.Comments[0].Comment.CommentText, Is.EqualTo("Automatically approved"));
+            Assert.That(approval.Comments[0].Comment.Creator.Name, Is.EqualTo(FWO.Basics.GlobalConst.kSystemUser));
+            Assert.That(approval.Comments[0].Comment.Creator.DbId, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void CurrentUserDn_UsesSystemForApiActionsWithoutUserIdentity()
+        {
+            WfHandler handler = new() { userConfig = new SimulatedUserConfig() };
+            MethodInfo? method = typeof(WfHandler).GetMethod("CurrentUserDn", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            string actorDn = (string)(method!.Invoke(handler, null) ?? "");
+
+            Assert.That(actorDn, Is.EqualTo(FWO.Basics.GlobalConst.kSystemUser));
         }
 
         [Test]
@@ -1036,7 +1050,7 @@ namespace FWO.Test
             Assert.That(reqTask.StateId, Is.EqualTo(6));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(5));
             Assert.That(reqTask.Approvals[0].ApprovalDate, Is.Not.Null);
-            Assert.That(reqTask.Approvals[0].ApproverDn, Is.EqualTo("system"));
+            Assert.That(reqTask.Approvals[0].ApproverDn, Is.EqualTo("uid=approver,dc=example"));
             Assert.That(reqTask.Approvals[1].StateId, Is.EqualTo(6));
         }
 
@@ -1047,6 +1061,7 @@ namespace FWO.Test
             {
                 userConfig = new SimulatedUserConfig()
             };
+            handler.userConfig.User.Dn = "uid=approver,dc=example";
             StateMatrix matrix = new()
             {
                 LowestInputState = 0,
@@ -1097,7 +1112,7 @@ namespace FWO.Test
             {
                 Assert.That(firstTask.StateId, Is.EqualTo(6));
                 Assert.That(firstTask.Approvals[0].StateId, Is.EqualTo(5));
-                Assert.That(firstTask.Approvals[0].ApproverDn, Is.EqualTo("system"));
+                Assert.That(firstTask.Approvals[0].ApproverDn, Is.EqualTo("uid=approver,dc=example"));
                 Assert.That(firstTask.Approvals[1].StateId, Is.EqualTo(6));
                 Assert.That(secondTask.StateId, Is.EqualTo(6));
                 Assert.That(secondTask.Approvals[0].StateId, Is.EqualTo(5));
@@ -1429,6 +1444,47 @@ namespace FWO.Test
                 Assert.That(handler.ActApproval.StateId, Is.EqualTo(2));
                 Assert.That(handler.ActReqTask.StateId, Is.EqualTo(1));
                 Assert.That(handler.ActTicket.StateId, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task ChangeApprovalStateForMonitoring_NormalizesLaterStateAndSetsApprover()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig(),
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestEndState = 10,
+                    MinTicketCompleted = 99
+                }
+            };
+            handler.userConfig.User.Dn = "uid=monitor,dc=example";
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                ApprovalLowestEndState = 10,
+                LowestEndState = 99,
+                Matrix = new() { [10] = [10] },
+                PhaseActive = new() { { WorkflowPhases.approval, true } }
+            });
+            WfApproval approval = new() { Id = 12, TaskId = 7, StateId = 1 };
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 1,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 1,
+                Approvals = [approval]
+            };
+            WfTicket ticket = new() { Id = 1, StateId = 1, Tasks = [reqTask] };
+
+            await handler.ChangeApprovalStateForMonitoring(ticket, reqTask, approval, 99, MonitoringStateChangeMode.LocalOnly);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActApproval.StateId, Is.EqualTo(10));
+                Assert.That(handler.ActApproval.ApprovalDate, Is.Not.Null);
+                Assert.That(handler.ActApproval.ApproverDn, Is.EqualTo("uid=monitor,dc=example"));
             });
         }
 

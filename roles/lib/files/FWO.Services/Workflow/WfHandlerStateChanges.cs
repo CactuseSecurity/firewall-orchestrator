@@ -382,8 +382,17 @@ namespace FWO.Services.Workflow
             SetTicketEnv(ticket);
             SetReqTaskEnv(reqTask);
             await SetApprovalEnv(approval, false);
+            StateMatrix approvalTaskMatrix = stateMatrixDict.Matrices[ActReqTask.TaskType];
             int oldStateId = ActApproval.StateId;
-            ActApproval.StateId = targetStateId;
+            ActApproval.StateId = approvalTaskMatrix.ApprovalLowestEndState > 0
+                ? GetApprovalStateForRequestTask(targetStateId, approvalTaskMatrix)
+                : targetStateId;
+            if (approvalTaskMatrix.ApprovalLowestEndState > 0
+                && ActApproval.StateId >= approvalTaskMatrix.ApprovalLowestEndState)
+            {
+                ActApproval.ApprovalDate = DateTime.Now;
+                ActApproval.ApproverDn = CurrentUserDn();
+            }
             await UpdateActApproval(mode == MonitoringStateChangeMode.TriggerActions);
 
             if (mode != MonitoringStateChangeMode.LocalOnly)
@@ -392,7 +401,7 @@ namespace FWO.Services.Workflow
                 SyncActTicketFromReqTask(ActReqTask);
                 await UpdateActTicketStateFromReqTasks(mode == MonitoringStateChangeMode.TriggerActions, false);
             }
-            LogMonitoringStateChange(WfObjectScopes.Approval, ActApproval.Id, ActTicket.Id, oldStateId, targetStateId, mode);
+            LogMonitoringStateChange(WfObjectScopes.Approval, ActApproval.Id, ActTicket.Id, oldStateId, ActApproval.StateId, mode);
         }
 
         private void LogMonitoringStateChange(WfObjectScopes scope, long objectId, long ticketId, int oldStateId, int newStateId, MonitoringStateChangeMode mode)
@@ -417,6 +426,13 @@ namespace FWO.Services.Workflow
                 }
             }
             return userConfig.User.DbId > 0 ? userConfig.User.DbId.ToString() : "unknown";
+        }
+
+        private string CurrentUserDn()
+        {
+            string? authenticatedUserDn = AuthUser?.FindFirst("x-hasura-uuid")?.Value;
+            string userDn = string.IsNullOrWhiteSpace(authenticatedUserDn) ? userConfig.User.Dn : authenticatedUserDn;
+            return string.IsNullOrWhiteSpace(userDn) ? GlobalConst.kSystemUser : userDn;
         }
 
         private static string GetStatefulObjectId(WfStatefulObject statefulObject)
@@ -620,7 +636,10 @@ namespace FWO.Services.Workflow
                 if (approval.StateId >= reqTaskMatrix.ApprovalLowestEndState)
                 {
                     approval.ApprovalDate = DateTime.Now;
-                    approval.ApproverDn = implicitApproval ? "system" : userConfig.User.Dn;
+                    // The comment identifies this as an implicit approval. Keep the
+                    // actual initiating user as approver so the approval remains
+                    // resolvable and visible in the UI.
+                    approval.ApproverDn = CurrentUserDn();
                     await AddApprovalPromotionComment(approval, approvalComment, implicitApproval);
                 }
             }
@@ -686,16 +705,26 @@ namespace FWO.Services.Workflow
             {
                 return;
             }
-            await AddApprovalComment(approval, commentText);
+            await AddApprovalComment(approval, commentText, SystemCommentUser());
         }
 
-        private async Task AddApprovalComment(WfApproval approval, string commentText)
+        private static UiUser SystemCommentUser()
+        {
+            return new UiUser
+            {
+                DbId = 0,
+                Name = GlobalConst.kSystemUser,
+                Dn = GlobalConst.kSystemUser
+            };
+        }
+
+        private async Task AddApprovalComment(WfApproval approval, string commentText, UiUser? creator = null)
         {
             WfComment comment = new()
             {
                 Scope = WfObjectScopes.Approval.ToString(),
                 CreationDate = DateTime.Now,
-                Creator = userConfig.User,
+                Creator = creator ?? userConfig.User,
                 CommentText = commentText
             };
 

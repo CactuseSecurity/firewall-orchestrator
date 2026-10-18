@@ -318,6 +318,12 @@ namespace FWO.Services.Workflow
 
             private static string ElementKey(WfReqElement element)
             {
+                string? groupKey = GroupKey(element);
+                if (groupKey != null)
+                {
+                    return string.Join("|", element.Field, groupKey);
+                }
+
                 return string.Join("|",
                 [
                     element.Field,
@@ -336,6 +342,36 @@ namespace FWO.Services.Workflow
                     element.GroupName ?? "",
                     element.RequestAction
                 ]);
+            }
+
+            private static string? GroupKey(WfReqElement element)
+            {
+                if (element.Field is nameof(ElemFieldType.source) or nameof(ElemFieldType.destination))
+                {
+                    if (element.FlowNetworkGroupId.HasValue)
+                    {
+                        return $"network-group-id:{element.FlowNetworkGroupId.Value}";
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(element.GroupName))
+                    {
+                        return $"network-group-name:{element.GroupName.Trim().ToUpperInvariant()}";
+                    }
+                }
+                else if (element.Field == nameof(ElemFieldType.service))
+                {
+                    if (element.FlowServiceGroupId.HasValue)
+                    {
+                        return $"service-group-id:{element.FlowServiceGroupId.Value}";
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(element.GroupName))
+                    {
+                        return $"service-group-name:{element.GroupName.Trim().ToUpperInvariant()}";
+                    }
+                }
+
+                return null;
             }
         }
     }

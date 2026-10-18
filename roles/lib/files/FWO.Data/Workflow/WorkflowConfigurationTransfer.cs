@@ -2,6 +2,17 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Data.Workflow
 {
+    public class WorkflowConfigurationImportStatistics
+    {
+        public int CreatedStates { get; set; }
+        public int CreatedTransitionGroups { get; set; }
+        public int CreatedVisibilityGroups { get; set; }
+        public int AddedPhases { get; set; }
+        public int MergedPhases { get; set; }
+        public int AddedDerivedStates { get; set; }
+        public int AddedTransitionGroupLinks { get; set; }
+    }
+
     public class WorkflowConfigurationTransferPackage
     {
         public const string kFormat = "fwo-workflow-configuration";

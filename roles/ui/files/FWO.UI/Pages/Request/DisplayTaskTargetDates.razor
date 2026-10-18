@@ -199,7 +199,8 @@
             }
             if (!targetEndDateInitialized || TargetEndDate != displayedTargetEndDate)
             {
-                targetEndDateInput = FormatDateInput(TargetEndDate, true);
+                targetEndDateInput = FormatDateInput(TargetEndDate,
+                    isEndDate: ActiveFlowIntegration.TimeObjectPrecision == FlowIntegrationTimePrecisionOptions.Date);
                 targetEndTimeInput = FormatTimeInput(TargetEndDate, ActiveFlowIntegration.TimeObjectPrecision);
                 targetEndHourInput = FormatHourInput(TargetEndDate);
                 displayedTargetEndDate = TargetEndDate;

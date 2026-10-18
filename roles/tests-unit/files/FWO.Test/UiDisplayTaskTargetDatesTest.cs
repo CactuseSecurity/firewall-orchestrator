@@ -287,6 +287,32 @@ namespace FWO.Test
             Assert.That(component.Markup, Does.Not.Contain("2026-09-01"));
         }
 
+        [TestCase(FlowIntegrationTimePrecisionOptions.Hours, "2026-09-01")]
+        [TestCase(FlowIntegrationTimePrecisionOptions.Minutes, "2026-09-01")]
+        [TestCase(FlowIntegrationTimePrecisionOptions.Seconds, "2026-09-01")]
+        public async Task DisplayTaskTargetDates_NonDatePrecisionKeepsMidnightEndDate(string precision, string expectedDate)
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig
+            {
+                ReqUseFlowDb = false,
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    SelectObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    SelectServices = FlowIntegrationObjectSelectionOptions.Both,
+                    SelectTimeObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    TimeObjectPrecision = precision
+                }.ToConfigValue()
+            });
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.TargetEndDate, new DateTime(2026, 9, 1, 0, 0, 0))
+                .Add(p => p.CanEditTargetEndDate, true));
+
+            Assert.That(component.FindAll("input[type=date]")[0].GetAttribute("value"), Is.EqualTo(expectedDate));
+        }
+
         [Test]
         public async Task DisplayTaskTargetDates_FlowTimeObjectDropdownDisplaysNameWithoutRange()
         {

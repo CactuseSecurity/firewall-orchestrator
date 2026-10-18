@@ -2,7 +2,7 @@
 
 ## Status
 
-WP-01 and WP-02 are implemented and locally validated. WP-03 is ready for its separate planning session. WP-04 and WP-05 remain in their documented blocking states; no WP-03 or later production code has been implemented.
+WP-01 through WP-03 are implemented and locally validated. WP-04 is ready for its separate planning session. WP-05 remains blocked until WP-04 is complete. No WP-04 or WP-05 production code has been implemented.
 
 Phase 3 is split into five work packages. Each work package has two deliberately separate sessions:
 
@@ -17,8 +17,8 @@ The implementation session does not need to read the planning brief. A work pack
 | --- | --- | --- | --- | --- |
 | WP-01 | Implemented and locally validated | [Plan the production snapshot reader](WP-01-production-snapshot-reader-planning.md) | [Implemented production snapshot reader](WP-01-production-snapshot-reader-implementation.md) | Load one immutable gateway graph from the latest successfully completed import. |
 | WP-02 | Implemented and locally validated | [Plan creation-rule zone resolution](WP-02-zone-pair-resolution-planning.md) | [Implemented creation-rule zone resolution](WP-02-zone-pair-resolution-implementation.md) | Resolve the new rule's source and destination workflow elements and existing Flow groups into safe ordered zone sets. |
-| WP-03 | Ready for planning | [Plan the Check Point strategy](WP-03-check-point-strategy-planning.md) | [Implement the Check Point strategy](WP-03-check-point-strategy-implementation.md) | Orchestrate snapshot loading, zone resolution, recipe selection, and recipe execution without customer mappings or registration. |
-| WP-04 | Blocked on WP-03 | [Plan semantic-position rendering](WP-04-semantic-position-rendering-planning.md) | [Implement semantic-position rendering](WP-04-semantic-position-rendering-implementation.md) | Render semantic Check Point anchors into the existing Check Point request representation without activating a workflow. |
+| WP-03 | Implemented and locally validated | [Completed Check Point strategy plan](WP-03-check-point-strategy-planning.md) | [Implemented Check Point strategy](WP-03-check-point-strategy-implementation.md) | Orchestrate snapshot loading, zone resolution, recipe selection, and recipe execution without customer mappings or registration. |
+| WP-04 | Ready for planning | [Plan semantic-position rendering](WP-04-semantic-position-rendering-planning.md) | [Implement semantic-position rendering](WP-04-semantic-position-rendering-implementation.md) | Render semantic Check Point anchors into the existing Check Point request representation without activating a workflow. |
 | WP-05 | Blocked on WP-01 through WP-04 | [Plan customer recipes and activation](WP-05-customer-recipes-and-activation-planning.md) | [Implement customer recipes and activation](WP-05-customer-recipes-and-activation-implementation.md) | Analyze the customer document, add the required recipes and mappings, register the strategy, and connect the approved caller. |
 
 Complete the packages in order. WP-01 and WP-02 describe independent inputs, but their approved contracts are both prerequisites for WP-03. WP-04 may be planned and implemented after WP-03. WP-05 is the final package and depends on all four earlier packages.

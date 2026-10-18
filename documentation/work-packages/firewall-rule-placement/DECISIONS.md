@@ -199,3 +199,13 @@ Address normalization reuses workflow CIDR precedence and `ComplianceCheck.Parse
 Groups created in the same ticket but not yet available in the Flow catalog are treated as unresolved in WP-02. Stakeholders must confirm whether cross-task pre-catalog group resolution is required before WP-05 activates the production workflow.
 
 Rationale: the established compliance and Flow seams already implement the required general behavior. Reusing them prevents a competing zone algorithm while preserving unresolved and multi-zone information for the final customer-specific mapping.
+
+## 2026-10-18 - D-031 - Keep Check Point strategy capability catalog-backed and inactive
+
+Phase 3 WP-03 adds a shared cancellation-aware designated-zone-matrix reader because the Phase 1 strategy context contains no zone rows and the WP-02 resolver deliberately accepts caller-loaded data. The reader becomes the single owner of the existing designated-matrix queries and is reused by `ComplianceZoneService`. It is registered as a singleton, while the Check Point strategy, recipe catalog, positioning manager, and workflow caller remain unregistered.
+
+`CheckPointRulePositioningStrategy` handles only target device type ID `9` and only algorithms reported complete by its injected recipe catalog. MDS type ID `13` is not a target-gateway capability. The catalog is the sole supported-algorithm source; WP-03 defines its typed selection seam but supplies no implementation, customer recipe, zone mapping, or enum mapping. WP-05 must populate the catalog before it may register the strategy.
+
+Each calculation runs sequentially and fail-fast: one graph read, one designated-zone read, one creation-rule zone resolution, one recipe selection, and one recipe execution at most. Caller cancellation propagates. Invalid request/address input maps to `InvalidInput`, unsupported task types to `UnsupportedTask`, invalid matrix/catalog/recipe configuration to `ConfigurationInvalid`, absent recipe mappings to `PositioningMethodNotImplemented`, and operational, graph, scope, unresolved-group, or unexpected failures to `CalculationFailed`. A success is accepted only when the returned `CheckPointRulePosition` retains the exact configured algorithm.
+
+Rationale: one data-loading boundary avoids duplicated matrix-query behavior, catalog-backed capability prevents incomplete strategies from advertising support, and deterministic coarse Phase 1 translations keep child details safe without adding public failure categories.

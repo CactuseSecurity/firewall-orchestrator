@@ -4,13 +4,13 @@
 
 This directory is the repository source of truth for firewall rule positioning work. Active planning documents override chat history and any material under `archive/`.
 
-Phase 1 is implemented and locally validated on the current `Cactus/develop` baseline. It remains open until the mandatory disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade checks pass. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 is structured into five paired planning/implementation work packages; WP-01 is implemented and locally validated, and WP-02 is planned and ready for implementation.
+Phase 1 is implemented and locally validated on the current `Cactus/develop` baseline. It remains open until the mandatory disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade checks pass. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 is structured into five paired planning/implementation work packages; WP-01 and WP-02 are implemented and locally validated, and WP-03 is planned and ready for implementation.
 
 | Phase | Status | Purpose |
 | --- | --- | --- |
 | Phase 1 | Implemented; VM validation pending | Build a calculation-only, cross-vendor positioning foundation and independent position persistence. |
 | Phase 2 | Implemented and locally validated | Build generic composition contracts, a reusable immutable structural graph, semantic positions, and structural blocks. |
-| Phase 3 | WP-01 implemented; WP-02 ready for implementation | Add production inputs and rendering first, then analyze the customer document in the final work package and activate complete recipes. |
+| Phase 3 | WP-01/WP-02 implemented; WP-03 ready for implementation | Add production inputs and rendering first, then analyze the customer document in the final work package and activate complete recipes. |
 | Previous proposal | Archived | Historical context only; it is not an alternative active plan. |
 
 ## Reading order

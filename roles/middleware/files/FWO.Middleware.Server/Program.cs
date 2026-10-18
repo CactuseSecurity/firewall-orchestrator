@@ -84,6 +84,7 @@ builder.Services.AddSingleton(tokenLifetimeProvider);
 builder.Services.AddSingleton(internalApiTokenService);
 builder.Services.AddSingleton<INotificationEmailSender, NotificationEmailSender>();
 builder.Services.AddSingleton<IRulebaseGraphSnapshotReader, RulebaseGraphSnapshotReader>();
+builder.Services.AddSingleton<IDesignatedZoneMatrixReader, DesignatedZoneMatrixReader>();
 builder.Services.AddHostedService<InternalApiTokenRefreshService>();
 
 // Register config listeners as singletons (activated at startup)

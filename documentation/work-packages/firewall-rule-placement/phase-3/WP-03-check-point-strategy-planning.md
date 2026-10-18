@@ -2,7 +2,9 @@
 
 ## Status
 
-Blocked until WP-01 and WP-02 implementation are complete.
+Planning complete on 2026-10-18. The paired implementation brief is self-contained and marked `Ready for implementation`.
+
+The settled design adds one shared cancellation-aware designated-zone-matrix reader, uses an injected catalog as the sole algorithm-capability and recipe-selection source, handles only Check Point R8x target device type ID `9`, and keeps the strategy, catalog implementation, customer mappings, and workflow caller absent from production registration.
 
 ## Planning objective
 

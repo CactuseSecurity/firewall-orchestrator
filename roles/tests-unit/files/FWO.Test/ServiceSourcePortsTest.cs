@@ -18,6 +18,7 @@ namespace FWO.Test
     {
         private const string kPayload = "<img src=x onerror=\"alert('quote')\">";
         private static readonly NetworkService[] kReportServices = [CreateService()];
+        private static readonly ServiceWrapper[] kRuleServices = [new() { Content = CreateService() }];
         private static readonly NetworkService kModelledGroup = new() { Name = "grp", ServiceGroupFlats = [new GroupFlat<NetworkService>() { Object = CreateHttpsService(null, null) }] };
         private static readonly NetworkService kSourceRestrictedGroup = new() { Name = "grp", ServiceGroupFlats = [new GroupFlat<NetworkService>() { Object = CreateHttpsService(1024, 1024) }] };
         private static readonly NetworkService kFullSourceRangeGroup = new() { Name = "grp", ServiceGroupFlats = [new GroupFlat<NetworkService>() { Object = CreateHttpsService(1, 65535) }] };
@@ -84,6 +85,7 @@ namespace FWO.Test
             {
                 Assert.That(DisplayBase.DisplayServicePorts(service), Is.EqualTo(expected));
                 Assert.That(DisplayBase.DisplayServicePorts(service, true), Is.EqualTo($" ({expected})"));
+                Assert.That(DisplayBase.DisplayServiceDetails(service), Is.EqualTo($" ({expected}/TCP)"));
                 Assert.That(DisplayBase.DisplayService(service, true).ToString(), Is.EqualTo($"{expected}/TCP"));
                 Assert.That(DisplayBase.DisplayService(service, false).ToString(), Is.EqualTo($"service ({expected}/TCP)"));
             });
@@ -207,6 +209,25 @@ namespace FWO.Test
                     Assert.That(html, Does.Not.Contain(kPayload));
                 });
             }
+        }
+
+        /// <summary>Checks rule rendering retains source ports while encoding service and protocol payloads.</summary>
+        [TestCase(ReportType.Rules)]
+        [TestCase(ReportType.ResolvedRules)]
+        [TestCase(ReportType.ResolvedRulesTech)]
+        public void HtmlRuleServicesRetainSourcePortsAndEncodeData(ReportType reportType)
+        {
+            RuleDisplayHtml display = new(new SimulatedUserConfig());
+            Rule rule = new() { MgmtId = 1, Services = kRuleServices };
+
+            string html = display.DisplayServices(rule, OutputLocation.report, reportType);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(html, Does.Contain(HtmlOutputEncoder.EncodeText("7937-10000 → 443-444/")));
+                Assert.That(html, Does.Contain(HtmlOutputEncoder.EncodeText(kPayload)));
+                Assert.That(html, Does.Not.Contain("<img"));
+            });
         }
 
         /// <summary>Checks source-only service changes remain visible in every change export.</summary>

@@ -30,7 +30,7 @@ namespace FWO.Data.Modelling
 
         public override string DisplayHtml()
         {
-            string tooltip = $"data-toggle=\"tooltip\" title=\"{TooltipText}\"";
+            string tooltip = $"data-toggle=\"tooltip\" title=\"{HtmlOutputEncoder.EncodeAttribute(TooltipText)}\"";
             return $"<span class=\"{(InUse ? "" : "text-success")}\" {(!InUse && TooltipText != "" ? tooltip : "")}>{base.DisplayHtml()}</span>";
         }
 

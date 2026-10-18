@@ -236,9 +236,9 @@ namespace FWO.Ui.Display
         {
             switch (objectChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(objectChange.OldObject.Uid);
-                case 'I': return OutputHtmlAdded(objectChange.NewObject.Uid);
-                case 'C': return DisplayDiff(objectChange.OldObject.Uid, objectChange.NewObject.Uid);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(objectChange.OldObject.Uid));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(objectChange.NewObject.Uid));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(objectChange.OldObject.Uid), HtmlOutputEncoder.EncodeText(objectChange.NewObject.Uid));
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
@@ -247,9 +247,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Uid);
-                case 'I': return OutputHtmlAdded(serviceChange.NewService.Uid);
-                case 'C': return DisplayDiff(serviceChange.OldService.Uid, serviceChange.NewService.Uid);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Uid));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(serviceChange.NewService.Uid));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Uid), HtmlOutputEncoder.EncodeText(serviceChange.NewService.Uid));
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
@@ -280,9 +280,9 @@ namespace FWO.Ui.Display
         {
             switch (objectChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(objectChange.OldObject.Comment);
-                case 'I': return OutputHtmlAdded(objectChange.NewObject.Comment);
-                case 'C': return DisplayDiff(objectChange.OldObject.Comment, objectChange.NewObject.Comment);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(objectChange.OldObject.Comment));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(objectChange.NewObject.Comment));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(objectChange.OldObject.Comment), HtmlOutputEncoder.EncodeText(objectChange.NewObject.Comment));
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
@@ -291,9 +291,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Comment);
-                case 'I': return OutputHtmlAdded(serviceChange.NewService.Comment);
-                case 'C': return DisplayDiff(serviceChange.OldService.Comment, serviceChange.NewService.Comment);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Comment));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(serviceChange.NewService.Comment));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Comment), HtmlOutputEncoder.EncodeText(serviceChange.NewService.Comment));
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
@@ -302,9 +302,9 @@ namespace FWO.Ui.Display
         {
             switch (userChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(userChange.OldUser.Comment);
-                case 'I': return OutputHtmlAdded(userChange.NewUser.Comment);
-                case 'C': return DisplayDiff(userChange.OldUser.Comment, userChange.NewUser.Comment);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(userChange.OldUser.Comment));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(userChange.NewUser.Comment));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(userChange.OldUser.Comment), HtmlOutputEncoder.EncodeText(userChange.NewUser.Comment));
                 default: ThrowErrorUnknowChangeAction(userChange.ChangeAction); return "";
             }
         }
@@ -368,9 +368,9 @@ namespace FWO.Ui.Display
         {
             switch (objectChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(objectChange.OldObject.Type.Name);
-                case 'I': return OutputHtmlAdded(objectChange.NewObject.Type.Name);
-                case 'C': return DisplayDiff(objectChange.OldObject.Type.Name, objectChange.NewObject.Type.Name);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(objectChange.OldObject.Type.Name));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(objectChange.NewObject.Type.Name));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(objectChange.OldObject.Type.Name), HtmlOutputEncoder.EncodeText(objectChange.NewObject.Type.Name));
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
@@ -379,9 +379,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Type.Name);
-                case 'I': return OutputHtmlAdded(serviceChange.NewService.Type.Name);
-                case 'C': return DisplayDiff(serviceChange.OldService.Type.Name, serviceChange.NewService.Type.Name);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Type.Name));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(serviceChange.NewService.Type.Name));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Type.Name), HtmlOutputEncoder.EncodeText(serviceChange.NewService.Type.Name));
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
@@ -412,9 +412,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Protocol?.Name ?? "");
-                case 'I': return OutputHtmlAdded(serviceChange.NewService.Protocol?.Name ?? "");
-                case 'C': return DisplayDiff(serviceChange.OldService.Protocol?.Name ?? "", serviceChange.NewService.Protocol?.Name ?? "");
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Protocol?.Name ?? ""));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(serviceChange.NewService.Protocol?.Name ?? ""));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Protocol?.Name ?? ""), HtmlOutputEncoder.EncodeText(serviceChange.NewService.Protocol?.Name ?? ""));
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }

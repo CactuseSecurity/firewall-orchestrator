@@ -199,7 +199,8 @@
             }
             if (!targetEndDateInitialized || TargetEndDate != displayedTargetEndDate)
             {
-                targetEndDateInput = FormatDateInput(TargetEndDate);
+                targetEndDateInput = FormatDateInput(TargetEndDate,
+                    isEndDate: ActiveFlowIntegration.TimeObjectPrecision == FlowIntegrationTimePrecisionOptions.Date);
                 targetEndTimeInput = FormatTimeInput(TargetEndDate, ActiveFlowIntegration.TimeObjectPrecision);
                 targetEndHourInput = FormatHourInput(TargetEndDate);
                 displayedTargetEndDate = TargetEndDate;
@@ -297,9 +298,9 @@
         await TargetDatesValidChanged.InvokeAsync(targetBeginDateValid && targetEndDateValid);
     }
 
-    private static string FormatDateInput(DateTime? dateTime)
+    private static string FormatDateInput(DateTime? dateTime, bool isEndDate = false)
     {
-        return dateTime?.ToString(kDateInputFormat, CultureInfo.InvariantCulture) ?? "";
+        return FormatDateOnlyValue(dateTime, isEndDate)?.ToString(kDateInputFormat, CultureInfo.InvariantCulture) ?? "";
     }
 
     private static string FormatTimeInput(DateTime? dateTime, string precision)
@@ -343,7 +344,7 @@
         {
             return ActiveFlowIntegration.TimeObjectPrecision switch
             {
-                FlowIntegrationTimePrecisionOptions.Date => dateTime.Value.ToString(kDateInputFormat, CultureInfo.InvariantCulture),
+                FlowIntegrationTimePrecisionOptions.Date => FormatDateOnlyValue(dateTime, true)?.ToString(kDateInputFormat, CultureInfo.InvariantCulture) ?? "",
                 FlowIntegrationTimePrecisionOptions.Hours => dateTime.Value.ToString("yyyy-MM-dd H 'h'", CultureInfo.InvariantCulture),
                 FlowIntegrationTimePrecisionOptions.Minutes => dateTime.Value.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
                 _ => dateTime.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
@@ -356,9 +357,9 @@
         }
     }
 
-    private static string SafeDateInput(DateTime? dateTime)
+    private static string SafeDateInput(DateTime? dateTime, bool isEndDate = false)
     {
-        return dateTime?.ToString(kDateInputFormat, CultureInfo.InvariantCulture) ?? "";
+        return FormatDateOnlyValue(dateTime, isEndDate)?.ToString(kDateInputFormat, CultureInfo.InvariantCulture) ?? "";
     }
 
     private static string SafeTimeInput(DateTime? dateTime)
@@ -374,6 +375,22 @@
     private static string SafeDateTimeDisplay(DateTime? dateTime)
     {
         return dateTime?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) ?? "";
+    }
+
+    /// <summary>
+    /// Converts an exclusive date-precision end boundary to the inclusive calendar date shown to users.
+    /// </summary>
+    /// <param name="dateTime">The stored date value.</param>
+    /// <param name="isEndDate">Whether the value is the end of a validity period.</param>
+    /// <returns>The date to display, or null when no date is set.</returns>
+    private static DateTime? FormatDateOnlyValue(DateTime? dateTime, bool isEndDate)
+    {
+        if (!dateTime.HasValue || !isEndDate || dateTime.Value.TimeOfDay != TimeSpan.Zero)
+        {
+            return dateTime;
+        }
+
+        return dateTime.Value.Date.AddDays(-1);
     }
 
     private async Task SelectFlowTimeObject(FlowTimeObject timeObject)

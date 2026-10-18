@@ -544,6 +544,9 @@ namespace FWO.Test
                 List<AngleSharp.Dom.IElement> sortLabels = [.. settings.FindAll("label")];
                 AngleSharp.Dom.IElement sortLabel = FindElementByText(sortLabels, sortLabelText);
                 Assert.That(sortLabel.GetAttribute("title"), Is.EqualTo(userConfig.PureLine("C9034")));
+                string bundledTasksLabelText = userConfig.GetText("reqDisplayBundledTasksAsOne");
+                AngleSharp.Dom.IElement bundledTasksLabel = FindElementByText(sortLabels, bundledTasksLabelText);
+                Assert.That(bundledTasksLabel.GetAttribute("title"), Is.EqualTo(userConfig.PureLine("H5579c")));
                 IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = settings.FindComponent<CreateRequestTaskSortConfigPopup>();
                 Assert.That(popup.Instance.Display, Is.False);
             });

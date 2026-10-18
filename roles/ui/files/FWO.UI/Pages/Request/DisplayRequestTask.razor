@@ -365,7 +365,7 @@
                     {
                         DisplayMessageInUi(null, userConfig.GetText("display_task"), userConfig.GetText("E8014"), true);
                     }
-                    if(WfHandler.ActReqTask.TaskType == WfTaskType.new_interface.ToString() && WfHandler.ActReqTask.Owners.Count > 0)
+                    if(WfHandler.ActReqTask.Owners.Count > 0)
                     {
                         oldOwner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
                     }
@@ -636,7 +636,7 @@
                 {
                     return;
                 }
-                await WfHandler.ChangeReqTask();
+                await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
             }
             await WfHandler.ApproveTask(approval);
         }

@@ -173,6 +173,25 @@ namespace FWO.Test
             Assert.That(assignments, Is.Empty);
         }
 
+        [TestCase(ElemFieldType.source)]
+        [TestCase(ElemFieldType.destination)]
+        [TestCase(ElemFieldType.service)]
+        public void BuildBundleAssignments_RecognizesMatchingGroupDimensions(ElemFieldType groupField)
+        {
+            WfReqTask first = CreateTask(1, "10.0.0.1", "10.0.1.1", 443);
+            WfReqTask second = CreateTask(2, "10.0.0.1", "10.0.1.2", 443);
+            WfReqElement firstGroup = CreateGroupElement(groupField, "shared-group");
+            WfReqElement secondGroup = CreateGroupElement(groupField, "SHARED-GROUP");
+            ReplaceElement(first, groupField, firstGroup);
+            ReplaceElement(second, groupField, secondGroup);
+
+            List<WfReqTask> requestTasks = [first, second];
+            Dictionary<long, string> assignments = new RequestTaskBundler().BuildBundleAssignments(requestTasks, BundleTaskType.TwoOutOfThree);
+
+            Assert.That(assignments.Keys, Is.EquivalentTo(new long[] { 1, 2 }));
+            Assert.That(assignments[1], Is.EqualTo(assignments[2]));
+        }
+
         private static WfReqTask CreateTask(long taskId, string sourceIp, string destinationIp, int port, int ownerId = 5)
         {
             return new()
@@ -220,6 +239,23 @@ namespace FWO.Test
             task.Elements[0].GroupName = groupName;
             task.SetAddInfo(AdditionalInfoKeys.GrpName, groupName);
             return task;
+        }
+
+        private static WfReqElement CreateGroupElement(ElemFieldType field, string groupName)
+        {
+            return new()
+            {
+                Field = field.ToString(),
+                Name = groupName,
+                GroupName = groupName,
+                RequestAction = RequestAction.create.ToString()
+            };
+        }
+
+        private static void ReplaceElement(WfReqTask task, ElemFieldType field, WfReqElement replacement)
+        {
+            int elementIndex = task.Elements.FindIndex(element => element.Field == field.ToString());
+            task.Elements[elementIndex] = replacement;
         }
 
         private static WfReqElement CreateNetworkElement(long taskId, ElemFieldType field, string ip)

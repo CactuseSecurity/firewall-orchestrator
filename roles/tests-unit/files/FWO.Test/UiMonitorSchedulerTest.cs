@@ -54,17 +54,19 @@ namespace FWO.Test
             property.SetValue(component, value);
         }
 
-        private static TestSetup RenderComponent(TestMiddlewareClient client)
+        private static TestSetup RenderComponent(TestMiddlewareClient client, string role = Roles.Admin)
         {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddLocalization();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
-            context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(role));
             context.Services.AddSingleton<ApiConnection>(new SimulatedApiConnection());
             context.Services.AddSingleton<MiddlewareClient>(client);
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [role];
+            context.Services.AddSingleton<UserConfig>(userConfig);
 
             IRenderedComponent<CascadingAuthenticationState> component = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<MonitorScheduler>());
@@ -166,6 +168,48 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<string?>(setup.Component, "runningJob"), Is.Null);
                 Assert.That(jobs, Has.Count.EqualTo(1));
                 Assert.That(jobs[0].JobName, Is.EqualTo("Refreshed"));
+            });
+        }
+
+        [Test]
+        public void Render_AuditorSeesJobsButCannotStartThem()
+        {
+            SchedulerSequenceHandler handler = new();
+            handler.NextJobs = CreateJobs("Alpha");
+            handler.RefreshedJobs = CreateJobs("Alpha");
+            TestMiddlewareClient client = new();
+            client.UseHandler(handler);
+
+            using TestSetup setup = RenderComponent(client, Roles.Auditor);
+
+            AngleSharp.Dom.IElement startButton = setup.Rendered.Find("tbody button");
+            Assert.Multiple(() =>
+            {
+                Assert.That(setup.Rendered.Markup, Does.Contain("Alpha"));
+                Assert.That(startButton.TextContent, Does.Contain("scheduler_start_now"));
+                Assert.That(startButton.HasAttribute("disabled"), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task TriggerJob_AsAuditor_DoesNotRunTheJob()
+        {
+            SchedulerSequenceHandler handler = new();
+            handler.NextJobs = CreateJobs("Initial");
+            handler.RefreshedJobs = CreateJobs("Initial");
+            TestMiddlewareClient client = new();
+            client.UseHandler(handler);
+
+            using TestSetup setup = RenderComponent(client, Roles.Auditor);
+
+            object[] triggerArgs = new object[1];
+            triggerArgs[0] = "Initial";
+            await setup.Rendered.InvokeAsync(() => (Task)GetPrivateMethod("TriggerJob", typeof(string)).Invoke(setup.Component, triggerArgs)!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.RunCalls, Is.EqualTo(0));
+                Assert.That(GetPrivateField<string?>(setup.Component, "runningJob"), Is.Null);
             });
         }
 

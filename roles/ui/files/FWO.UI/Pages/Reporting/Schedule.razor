@@ -16,13 +16,17 @@
     <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ReportSchedule" Items="visibleReportSchedules" PageSize="0">
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("actions"))">
             <Template>
-                @if (context.ScheduleOwningUser.DbId == uiUserDbId || userConfig.CanUseAnyRole(Roles.Admin))
-                {
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => OnEditReportScheduleButtonClick(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => OnEditReportScheduleButtonClick(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                    @if (CanModifyReportSchedule(context))
+                    {
                         <button type="button" class="btn btn-sm btn-danger" @onclick="() => { reportScheduleInEdit = context; ShowDeleteReportScheduleDialog = true; }">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
-                    </div>
-                }
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                    }
+                </div>
             </Template>
         </Column>
         <Column TableItem="ReportSchedule" Title="@(userConfig.GetText("id"))" Field="@(reportSchedule => reportSchedule.Id)" Sortable="true" Filterable="true"/>
@@ -207,7 +211,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await (ShowAddReportScheduleDialog ? AddReportSchedule() : UpdateReportSchedule())">
+            <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanSaveReportScheduleInEdit())" @onclick="async () => await (ShowAddReportScheduleDialog ? AddReportSchedule() : UpdateReportSchedule())">
                 @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ShowEditReportScheduleDialog = ShowAddReportScheduleDialog = false">
                 @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
@@ -369,6 +373,10 @@
 
     private async Task UpdateReportSchedule()
     {
+        if (!CanModifyReportSchedule(reportScheduleInEdit))
+        {
+            return;
+        }
         try
         {
             reportScheduleInEdit.StartTime = actDate.Date.Add(actTime.TimeOfDay);
@@ -418,6 +426,10 @@
 
     private async Task DeleteReportSchedule()
     {
+        if (!CanModifyReportSchedule(reportScheduleInEdit))
+        {
+            return;
+        }
         try
         {
             var queryVariables = new
@@ -526,6 +538,23 @@
         scheduleEmailRecipients = "";
         scheduleEmailSubject = "";
         scheduleEmailBody = "";
+    }
+
+    /// <summary>
+    /// Checks whether the current user may change or delete the given report schedule:
+    /// only its owner and admins may, all others can only view it.
+    /// </summary>
+    private bool CanModifyReportSchedule(ReportSchedule schedule)
+    {
+        return schedule.ScheduleOwningUser.DbId == uiUserDbId || userConfig.CanUseAnyRole(Roles.Admin);
+    }
+
+    /// <summary>
+    /// Checks whether the schedule dialog may be saved: a new schedule always belongs to the current user.
+    /// </summary>
+    private bool CanSaveReportScheduleInEdit()
+    {
+        return ShowAddReportScheduleDialog || CanModifyReportSchedule(reportScheduleInEdit);
     }
 
     private List<ReportSchedule> FilterVisibleReportSchedules(List<ReportSchedule> schedules)

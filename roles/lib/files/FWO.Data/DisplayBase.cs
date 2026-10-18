@@ -14,12 +14,14 @@ namespace FWO.Data
             result.Append($" {gateway.Name}");
             return result;
         }
+        /// <summary>
+        /// Displays a service with its source and destination port restrictions.
+        /// </summary>
         public static StringBuilder DisplayService(NetworkService service, bool isTechReport, string? serviceName = null)
         {
             StringBuilder result = new();
-            string ports = service.DestinationPortEnd == null || service.DestinationPortEnd == 0 || service.DestinationPort == service.DestinationPortEnd ?
-                $"{service.DestinationPort}" : $"{service.DestinationPort}-{service.DestinationPortEnd}";
-            bool displayPorts = IpProtocol.HasPorts(service.Protocol?.Id) && service.DestinationPort != null;
+            string ports = DisplayServicePorts(service);
+            bool displayPorts = IpProtocol.HasPorts(service.Protocol?.Id) && (service.DestinationPort != null || service.SourcePort != null);
             if (isTechReport)
             {
                 if (displayPorts)
@@ -44,6 +46,17 @@ namespace FWO.Data
                 }
             }
             return result;
+        }
+
+        /// <summary>
+        /// Formats source-to-destination ports, retaining the previous format for unrestricted sources.
+        /// </summary>
+        public static string DisplayServicePorts(NetworkService service, bool inBrackets = false)
+        {
+            string destination = DisplayPort(service.DestinationPort, service.DestinationPortEnd);
+            string ports = service.SourcePort == null ? destination :
+                $"{DisplayPort(service.SourcePort, service.SourcePortEnd)} → {(destination.Length == 0 ? "*" : destination)}";
+            return inBrackets && ports.Length > 0 ? $" ({ports})" : ports;
         }
 
         public static string DisplayService(Workflow.NwServiceElement svcElem, List<IpProtocol> IpProtos)

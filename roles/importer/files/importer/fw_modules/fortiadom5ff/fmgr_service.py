@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from fwo_base import sort_and_join
 from fwo_const import ANY_IP_PROTOCOL_ID, LIST_DELIMITER
 from fwo_log import FWOLogger
+from services.port_range import parse_transport_ports
 
 FORTI_PROTOCOL_ANY = 0
 FORTI_PROTOCOL_ICMP = 1
@@ -156,37 +156,6 @@ def check_split(obj_orig: dict[str, Any]) -> bool:
     return count > 1
 
 
-def extract_ports(port_ranges: list[str] | None) -> tuple[list[Any], list[Any]]:
-    ports: list[Any] = []
-    port_ends: list[Any] = []
-    if port_ranges is not None and len(port_ranges) > 0:
-        for port_range in port_ranges:
-            # remove src-ports
-            port = port_range.split(":")[0]
-            port_end = port
-
-            # open ranges (not found so far in data)
-            pattern = re.compile(r"^\>(\d+)$")
-            match = pattern.match(port)
-            if match:
-                port = str(int(match.group()[1:]) + 1)
-                port_end = str(65535)
-            pattern = re.compile(r"^\<(\d+)$")
-            match = pattern.match(port)
-            if match:
-                port = str(1)
-                port_end = str(int(match.group()[1:]) - 1)
-
-            # split ranges
-            pattern = re.compile(r"^(\d+)\-(\d+)$")
-            match = pattern.match(port)
-            if match:
-                port, port_end = match.group().split("-")
-            ports.append(port)
-            port_ends.append(port_end)
-    return ports, port_ends
-
-
 def create_svc_object(name: str, proto: int | None, color: str, port: Any, comment: str) -> dict[str, Any]:
     return {
         "svc_name": name,
@@ -197,6 +166,14 @@ def create_svc_object(name: str, proto: int | None, color: str, port: Any, comme
         "svc_uid": name,  # services have no uid in fortimanager
         "svc_comment": comment,
     }
+
+
+def _split_member_name(name: str, port: str, source_port: int | None, source_port_end: int | None) -> str:
+    """Name a split service member; the source suffix keeps pairs with the same destination port distinct."""
+    member_name = f"{name}_{port}"
+    if source_port is not None:
+        member_name += f"_src{source_port}-{source_port_end}"
+    return member_name
 
 
 def add_object(
@@ -234,13 +211,12 @@ def add_object(
         )
     else:
         range_names = ""
-        ports, port_ends = extract_ports(port_ranges)
-        split = len(ports) > 1
-        for index, port in enumerate(ports):
-            port_end = port_ends[index]
-            full_name = name
+        paired_ranges = [parse_transport_ports(value) for value in port_ranges]
+        split = len(paired_ranges) > 1
+        for port_start, port_last, source_port, source_port_end in paired_ranges:
+            port, port_end = str(port_start), str(port_last)
+            full_name = _split_member_name(name, port, source_port, source_port_end) if split else name
             if split:
-                full_name += "_" + str(port)
                 range_names += full_name + LIST_DELIMITER
             svc_objects.extend(
                 [
@@ -253,6 +229,8 @@ def add_object(
                         "ip_proto": proto,
                         "svc_port": port,
                         "svc_port_end": port_end,
+                        "svc_source_port": source_port,
+                        "svc_source_port_end": source_port_end,
                         "svc_member_refs": member_names,  # ?
                         "svc_member_names": member_names,
                         "svc_timeout": session_timeout,

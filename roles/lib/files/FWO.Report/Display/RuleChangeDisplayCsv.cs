@@ -355,9 +355,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputCsv(DisplayBase.DisplayPort(serviceChange.OldService.DestinationPort, serviceChange.OldService.DestinationPortEnd, true));
-                case 'I': return OutputCsv(DisplayBase.DisplayPort(serviceChange.NewService.DestinationPort, serviceChange.NewService.DestinationPortEnd, true));
-                case 'C': return OutputCsv(DisplayDiff(DisplayBase.DisplayPort(serviceChange.OldService.DestinationPort, serviceChange.OldService.DestinationPortEnd, true), (DisplayBase.DisplayPort(serviceChange.NewService.DestinationPort, serviceChange.NewService.DestinationPortEnd, true))));
+                case 'D': return OutputCsv(DisplayBase.DisplayServicePorts(serviceChange.OldService, true));
+                case 'I': return OutputCsv(DisplayBase.DisplayServicePorts(serviceChange.NewService, true));
+                case 'C': return OutputCsv(DisplayDiff(DisplayBase.DisplayServicePorts(serviceChange.OldService, true), (DisplayBase.DisplayServicePorts(serviceChange.NewService, true))));
                 default: return "";
             }
         }

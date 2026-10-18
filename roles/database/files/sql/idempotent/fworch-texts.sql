@@ -575,6 +575,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
+    <li>Der Import von Cisco ASA, Check Point, FortiManager und FortiOS &uuml;bernimmt nun Quellports und Quellportbereiche von Diensten. Report-Tabellen zeigen Quell- und Zielportbereiche; Regel- und &Auml;nderungsexporte behalten die Quellport-Einschr&auml;nkungen bei.</li>
     <li>Die hierarchischen Provisionierungs-Einstellungen hei&szlig;en nun ger&auml;tespezifische Einstellungen, da sie z.B. auch f&uuml;r den Import genutzt werden. Sie enthalten nun Guardicore-Objektanlage, Modellierungslabels und Verbindungs-IDs, Importer-Host, externes Ticketsystem sowie &Uuml;berschreibungen f&uuml;r Regelumsetzung und Planung.</li>
     <li>Der Importer-Hostname wird nicht mehr pro Management, sondern in den ger&auml;tespezifischen Einstellungen (Global, Ger&auml;tetyp oder Manager) festgelegt. Ist er leer, importiert jeder Importer. Das Upgrade &uuml;bernimmt den h&auml;ufigsten Hostnamen als globalen Wert und abweichende als Manager-Werte.</li>
     <li>Cloud-Zugangsdaten werden als zus&auml;tzliche Zugangsdaten mit verschl&uuml;sseltem Passwort verwaltet. Das Upgrade &uuml;bertr&auml;gt vorhandene Cloud Client IDs und Secrets automatisch. Cisco ASA verwendet das zus&auml;tzliche Passwort f&uuml;r den Enable-Modus.</li>
@@ -606,6 +607,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 ');
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
+    <li>Cisco ASA, Check Point, FortiManager and FortiOS imports now retain service source ports and source port ranges. Report tables show source and destination port ranges; rule and change exports preserve source-port restrictions.</li>
     <li>The hierarchical provisioning settings are renamed to device specific settings, as they are also used e.g. for importing. They now include Guardicore object creation, modelling labels and connection IDs, importer host and external ticket system, plus rule implementation and planning overrides.</li>
     <li>The importer host name is no longer set per management but in the device specific settings (Global, device type or manager). If it is empty, every importer imports. The upgrade takes the most common host name as global value and differing ones as manager values.</li>
     <li>Cloud credentials are managed as additional credentials with encrypted passwords. The upgrade automatically transfers existing cloud client IDs and secrets. Cisco ASA uses the additional password for enable mode.</li>
@@ -5777,6 +5779,9 @@ INSERT INTO txt VALUES ('H1602', 'English', '<li>Network objects: Name, type, IP
     <li>Services: Name, type, UID, source port, destination port, protocol, timeout, group members if applicable, last changed, comment</li>
     <li>Users: Name, type, UID, real name, group members if applicable, last changed, comment</li>
 ');
+
+INSERT INTO txt VALUES ('H1603', 'German', 'Dienst-Tabellen zeigen Quell- und Zielportbereiche in eigenen Spalten. In Regel- und &Auml;nderungsexporten bedeutet die Schreibweise Quelle &rarr; Ziel, dass beide Portbereiche eingeschr&auml;nkt sind. Ohne Quellportangabe ist der Quellport nicht eingeschr&auml;nkt.');
+INSERT INTO txt VALUES ('H1603', 'English', 'Service tables show source and destination port ranges in separate columns. In rule and change exports, source &rarr; destination indicates that both port ranges are restricted. An absent source port means the source port is unrestricted.');
 
 INSERT INTO txt VALUES ('H2001', 'German',  'Es k&ouml;nnen Reports f&uuml;r einen bestimmten Termin oder als wiederkehrende Auftr&auml;ge festgelegt werden.
     Jeder Nutzer kann seine eigenen Terminpl&auml;ne verwalten.

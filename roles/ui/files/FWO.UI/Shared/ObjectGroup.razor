@@ -109,6 +109,12 @@
                                 </div>
                             </Template>
                         </Column>
+                        <Column TableItem="NetworkService" Title="@(userConfig.GetText("source_port"))" Field="@(x => x.SourcePort)">
+                            <Template>@DisplayBase.DisplayPort(context.SourcePort, context.SourcePortEnd)</Template>
+                        </Column>
+                        <Column TableItem="NetworkService" Title="@(userConfig.GetText("destination_port"))" Field="@(x => x.DestinationPort)">
+                            <Template>@DisplayBase.DisplayPort(context.DestinationPort, context.DestinationPortEnd)</Template>
+                        </Column>
                         <DetailTemplate TableItem="NetworkService">
                             <Detail Title="@(userConfig.GetText("type"))" Data=@(context.Type != null ? context.Type.Name : "") />
                             <Detail Title="@(userConfig.GetText("uid"))" Data=@context.Uid />

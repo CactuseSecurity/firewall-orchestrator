@@ -1,5 +1,10 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.6 - 18.10.2026
+- import and retain network service source ports and source port ranges for Cisco ASA, Check Point, FortiManager and FortiOS (#4651)
+- report service tables show source and destination port ranges; rule and change exports retain source restrictions
+- Cisco ASA supports inline source port operators and port groups, plus source ports in named services and service groups; existing rule UIDs without source restrictions stay unchanged
+
 ## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time
   - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)

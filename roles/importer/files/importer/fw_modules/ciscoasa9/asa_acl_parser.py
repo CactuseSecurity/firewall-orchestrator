@@ -128,7 +128,7 @@ def parse_access_list_entry(
             [PORT | ICMP_TYPE] [log [LEVEL] [interval SECS] | log disable | log default] [time-range NAME] [inactive]
 
     Raises:
-        AsaConfigParseError: for unknown, truncated or unsupported syntax (e.g. source ports, interface addresses)
+        AsaConfigParseError: for unknown, truncated or unsupported syntax (e.g. interface addresses)
 
     """
     parts = line.split()
@@ -140,7 +140,7 @@ def parse_access_list_entry(
     protocol, pos = _parse_protocol(parts, pos + 1, protocol_groups, svc_objects, svc_obj_groups)
     service_group_names = {group.name for group in svc_obj_groups}
     src, pos = parse_endpoint(parts, pos)
-    _reject_source_port(parts, pos, service_group_names)
+    src_port, pos = _parse_source_port(parts, pos, service_group_names)
     dst, pos = parse_endpoint(parts, pos)
     dst_port, pos = _parse_destination_service(parts, pos, protocol)
     inactive, time_range = _parse_options(parts, pos)
@@ -154,6 +154,7 @@ def parse_access_list_entry(
         dst_port=dst_port,
         inactive=inactive,
         time_range=time_range,
+        src_port=src_port,
     )
 
 
@@ -223,16 +224,16 @@ def _parse_protocol(
     return EndpointKind(kind="protocol", value=keyword.lower()), pos + 1
 
 
-def _reject_source_port(parts: list[str], pos: int, service_group_names: set[str]) -> None:
-    """Source ports cannot be imported; ignoring them would widen the entry to all source ports."""
+def _parse_source_port(parts: list[str], pos: int, service_group_names: set[str]) -> tuple[EndpointKind | None, int]:
+    """Read an optional source port without consuming a destination network object-group."""
     if pos >= len(parts):
-        return
+        return None, pos
     keyword = parts[pos].lower()
     if keyword in PORT_OPERATORS:
-        construct = " ".join(parts[pos : pos + 2])
-        raise AsaConfigParseError(f"unsupported source port '{construct}'", pos)
+        return parse_port_operator(parts, pos)
     if keyword == "object-group" and pos + 1 < len(parts) and parts[pos + 1] in service_group_names:
-        raise AsaConfigParseError(f"unsupported source port object-group '{parts[pos + 1]}'", pos)
+        return EndpointKind(kind="service-group", value=parts[pos + 1]), pos + 2
+    return None, pos
 
 
 def _parse_destination_service(parts: list[str], pos: int, protocol: EndpointKind) -> tuple[EndpointKind, int]:
@@ -253,7 +254,7 @@ def _parse_explicit_destination_service(
         return None, pos
     keyword = parts[pos].lower()
     if keyword in PORT_OPERATORS:
-        return _parse_port_operator(parts, pos)
+        return parse_port_operator(parts, pos)
     if keyword == "object-group":
         return EndpointKind(kind="service-group", value=_expect_token(parts, pos + 1, "service object-group")), pos + 2
     if keyword == "object":
@@ -263,14 +264,16 @@ def _parse_explicit_destination_service(
     return None, pos
 
 
-def _parse_port_operator(parts: list[str], pos: int) -> tuple[EndpointKind, int]:
+def parse_port_operator(parts: list[str], pos: int) -> tuple[EndpointKind, int]:
     """
     Parse eq/lt/gt/range; neq cannot be represented as a single port range.
 
     Every port must be a number from 0 to 65535 or a known port name. eq and range keep the port as written,
     so the rule uids of valid entries stay the same.
     """
-    operator = parts[pos].lower()
+    operator = _expect_token(parts, pos, "port operator").lower()
+    if operator not in PORT_OPERATORS:
+        raise AsaConfigParseError(f"unknown port operator '{operator}'", pos)
     if operator == "neq":
         raise AsaConfigParseError(f"unsupported port operator 'neq {' '.join(parts[pos + 1 : pos + 2])}'", pos)
     port = _expect_token(parts, pos + 1, f"port after '{operator}'")

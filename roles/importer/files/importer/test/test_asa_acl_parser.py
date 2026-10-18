@@ -172,8 +172,8 @@ def test_line_number_and_deny_are_parsed() -> None:
         (f"{ACL_PREFIX} ip somethingunknown any", 5, "unsupported address 'somethingunknown'"),
         (f"{ACL_PREFIX} ip 10.0.0.0 0.0.0.255 any", 5, "unsupported address '10.0.0.0'"),
         (f"{ACL_PREFIX} ip 10.0.0.0 any", 5, "unsupported address '10.0.0.0'"),
-        (f"{ACL_PREFIX} tcp any eq 1024 any", 6, "unsupported source port 'eq 1024'"),
-        (f"{ACL_PREFIX} tcp any object-group SVC_PORTS any", 6, "unsupported source port object-group"),
+        (f"{ACL_PREFIX} tcp any neq 1024 any", 6, "unsupported port operator 'neq 1024'"),
+        (f"{ACL_PREFIX} tcp any range 100 10 any", 6, "ends before it starts"),
         (f"{ACL_PREFIX} tcp any any neq 80", 7, "unsupported port operator 'neq 80'"),
         (f"{ACL_PREFIX} tcp any any lt 0", 7, "is empty"),
         (f"{ACL_PREFIX} tcp any any gt 65535", 7, "is empty"),
@@ -233,7 +233,7 @@ def test_interface_inside_entry_stops_the_config_parse_with_its_line_number() ->
 
 def test_no_entry_is_silently_dropped() -> None:
     config: str = (
-        "access-list OUTSIDE_IN extended deny tcp any eq 1024 any\naccess-list OUTSIDE_IN extended permit ip any any\n"
+        "access-list OUTSIDE_IN extended deny tcp any neq 1024 any\naccess-list OUTSIDE_IN extended permit ip any any\n"
     )
 
     with pytest.raises(AsaConfigParseError):
@@ -294,6 +294,7 @@ def test_rule_uid_of_entries_without_time_range_is_unchanged() -> None:
     entry: AccessListEntry = parse(f"{ACL_PREFIX} tcp any host 198.51.100.1 eq 22")
     dump_before_time_range_existed: dict[str, object] = entry.model_dump()
     del dump_before_time_range_existed["time_range"]
+    del dump_before_time_range_existed["src_port"]
 
     rule = create_rule_from_acl_entry("ACL", entry, PROTOCOL_GROUPS, {}, {})
 

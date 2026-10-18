@@ -1,8 +1,7 @@
-using FWO.Api.Client;
-using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Basics.Exceptions;
 using FWO.Compliance;
+using FWO.Compliance.RulePositioning;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Middleware.Server.Requests;
@@ -14,7 +13,7 @@ namespace FWO.Middleware.Server.Services;
 /// <summary>
 /// Resolves compliance zones for stored and provided network objects.
 /// </summary>
-public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalConfig globalConfig)
+public sealed class ComplianceZoneService(IDesignatedZoneMatrixReader zoneMatrixReader, GlobalConfig globalConfig)
 {
     /// <summary>
     /// Returns the zones defined by the configured designated zone matrix.
@@ -65,23 +64,22 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
 
     private async Task<List<ComplianceNetworkZone>> LoadDesignatedZoneMatrixZonesAsync()
     {
-        if (globalConfig.DesignatedZoneMatrixId <= 0)
+        DesignatedZoneMatrixReadResult result = await zoneMatrixReader.ReadAsync(CancellationToken.None);
+        if (result is DesignatedZoneMatrixReadSuccess success)
+        {
+            return [.. success.NetworkZones];
+        }
+        if (result is DesignatedZoneMatrixReadFailure failure
+            && failure.Category is DesignatedZoneMatrixReadFailureCategory.ConfigurationInvalid
+                or DesignatedZoneMatrixReadFailureCategory.MatrixUnavailable)
         {
             return [];
         }
 
-        List<ComplianceCriterion> designatedMatrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(
-            ComplianceQueries.getMatrixById,
-            new { criterionId = globalConfig.DesignatedZoneMatrixId }) ?? [];
-
-        if (designatedMatrices.Count == 0)
-        {
-            return [];
-        }
-
-        return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
-            NetworkZoneQueries.getNetworkZonesForMatrix,
-            new { criterionId = globalConfig.DesignatedZoneMatrixId }) ?? [];
+        string diagnostic = result is DesignatedZoneMatrixReadFailure readFailure
+            ? readFailure.Diagnostic
+            : new DesignatedZoneMatrixReadFailure(DesignatedZoneMatrixReadFailureCategory.QueryFailed).Diagnostic;
+        throw new InvalidOperationException(diagnostic);
     }
 
     private static List<IPAddressRange> CollectRanges(IEnumerable<ResolveZonesForObjectsRequest.ObjectRequest> objects)

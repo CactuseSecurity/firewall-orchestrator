@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Compliance.RulePositioning;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
@@ -657,7 +658,7 @@ namespace FWO.Test
                 DesignatedZoneMatrixId = matrixId
             };
 
-            return new ComplianceZoneService(apiConnection, globalConfig);
+            return new ComplianceZoneService(new DesignatedZoneMatrixReader(apiConnection, globalConfig), globalConfig);
         }
 
     }

@@ -6,69 +6,33 @@ Last updated: 2026-10-18
 
 Phase 1 and Phase 2 remain implemented on the rebased `Cactus/develop` baseline. Phase 1 local validation passes, but the mandatory disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade gates remain pending. Phase 2 is implemented and locally validated.
 
-Phase 3 WP-01 is implemented at commit `b7300acef` and locally validated. WP-02 is implemented and locally validated in the current unstaged worktree. No WP-03 or later production code has been implemented. WP-03 is now ready for its separate planning session.
+Phase 3 WP-01 through WP-03 are implemented and locally validated. WP-04 is ready for its separate planning session. No WP-04 or WP-05 production code has been implemented.
 
-The customer document `FWO_Regel_Platzierung_Regelwerk.md` was not inspected. It must remain unopened during WP-01 through WP-04 and is first analyzed in the WP-05 planning session.
+The customer document `FWO_Regel_Platzierung_Regelwerk.md` was not inspected. It must remain unopened during WP-03 and WP-04 and is first analyzed in the WP-05 planning session.
 
-## Implemented WP-01
+## Implemented WP-03
 
-- `IRulebaseGraphSnapshotReader` and `RulebaseGraphSnapshotReader` load one fixed latest successfully completed rule import for one management/gateway and construct the existing immutable `RulebaseGraphSnapshot`.
-- The three dedicated GraphQL operations, query loader, middleware singleton registration, and focused tests are present.
-- Validation on 2026-10-18: 76 focused tests passed; the Debug build had 0 warnings/errors; the complete unit suite had 7,777 passed, 29 skipped, and 0 failed; focused line coverage was 98.4% for the reader and 87.5% for its query loader.
-- WP-01 changed files pass targeted formatting. Repository-wide formatting verification still reports unrelated pre-existing differences in `UiDisplayImplementationTaskTest.cs` and `UiDisplayRequestTaskTest.cs`.
+- A shared cancellation-aware `IDesignatedZoneMatrixReader` under `FWO.Compliance.RulePositioning` captures the configured matrix ID once, validates the active matrix, loads its zones with the existing queries, and returns typed safe results.
+- Only that reader is registered as a singleton. `ComplianceZoneService` reuses it while preserving its public behavior.
+- `ICheckPointPositioningRecipeCatalog` and typed selection results exist under `FWO.Compliance.RulePositioning.CheckPoint`; there is no catalog implementation or production mapping.
+- The inactive `CheckPointRulePositioningStrategy` depends on the WP-01 graph reader, the designated-zone reader, the WP-02 resolver, and the catalog.
+- The strategy handles exact target device type ID `9` only. MDS type ID `13` is not a target gateway. The catalog is the sole algorithm capability source.
+- Every calculation is sequential and fail-fast: graph read, designated-zone read, zone resolution, recipe selection, then one Phase 2 execution. There are no retries or fallbacks.
+- Child failures map deterministically to existing Phase 1 categories. Caller cancellation propagates, and successful positions must preserve the exact configured algorithm.
+- Do not register `IRulePositioningStrategy`, the catalog, `RulePositioningManager`, or a workflow caller. No incomplete strategy can be selected in production.
 
-The complete contract and evidence are in:
+The architectural decision is recorded in D-031. Local validation on 2026-10-18 completed with 281 focused regression tests passing, a clean formatted Debug solution build with 0 warnings/errors, 7,896 complete-suite tests passing with 29 environment-dependent skips and no failures, and 100% focused line coverage for every new production class (at least 92.42% executable branch coverage).
 
-`documentation/work-packages/firewall-rule-placement/phase-3/WP-01-production-snapshot-reader-implementation.md`
+The complete contracts, implementation record, file list, tests, and validation evidence are in:
 
-## Implemented WP-02
-
-- Add a shared `ICreationRuleZoneResolver` in `FWO.Compliance.RulePositioning`. It accepts one new access `WfReqTask`, caller-loaded designated-matrix zones, and a cancellation token.
-- The immutable success result contains the designated criterion ID, ordered source/destination zone sets, and `Complete`, `Partial`, or `None` coverage per side. Multiple and overlapping zones remain valid; WP-02 does not form Cartesian pairs or choose customer behavior.
-- Active source/destination actions are `create`, `unchanged`, `modify`, and `addAfterCreation`; `delete` and irrelevant fields are ignored. Workflow `Cidr`/`CidrEnd` precedence is retained.
-- Existing Flow groups are resolved through `IFlowGroupResolver`, with positive IDs preferred over names and calls chunked to 100 selectors. Every technical member must resolve to a numeric range.
-- Same-ticket groups not yet present in Flow return `GroupUnresolved`. Confirm whether sibling group-creation tasks must be resolved before catalog synchronization with stakeholders before WP-05 activation.
-- Direct and group-member address normalization reuses `ComplianceCheck.ParseIpRange`.
-- Zone matching calls the existing `ComplianceZoneResolver` directly. Preserve persisted automatic-Internet matching, synthetic Internet/local fallback for uncovered IPv4 when automatic calculation is disabled, and unassignable uncovered IPv6 ranges.
-- The immutable output represents the synthetic fallback with `Id = null` and `PositioningZoneKind.SyntheticInternetFallback`; downstream code must not identify it by localized name.
-- Add cancellation support to `ComplianceZoneResolver` and `IFlowGroupResolver` while preserving existing callers and behavior.
-- Register only the zone resolver. Do not register a production positioning strategy or workflow caller.
-- No schema, Hasura, importer, installer, UI, version, positioning-enum, customer mapping, or customer-document change belongs to WP-02.
-
-These decisions are recorded in D-030 and specified completely in:
-
-`documentation/work-packages/firewall-rule-placement/phase-3/WP-02-zone-pair-resolution-implementation.md`
-
-Validation on 2026-10-18: 99 focused tests passed; the Debug solution build had 0 warnings/errors; the complete unit suite had 7,809 passed, 29 skipped, and 0 failed; the 29-test resolver coverage run passed; `CreationRuleZoneResolver` line coverage was 94.75%, and every public result-contract class exceeded 90% line coverage. Repository formatting completed successfully, with unrelated pre-existing formatter differences restored and left untouched.
-
-## Phase 3 session protocol
-
-For each remaining work package:
-
-1. Run the implementation session only when its brief is marked `Ready for implementation` and contains no blocking placeholders.
-2. Implement only that package, its tests, and its prescribed documentation updates.
-3. Run focused tests, formatting, the Debug build, the full unit suite, and focused coverage above 80%.
-4. Record validation evidence before advancing to the next package.
-5. Run the next planning session separately and do not reopen settled decisions without conflicting repository evidence.
-
-All changes remain unstaged and uncommitted unless the user explicitly requests otherwise.
-
-## Implemented foundation available to WP-03
-
-- Phase 1 provides polymorphic positions, typed calculation results, exact strategy selection, and independent nullable position persistence.
-- Phase 2 provides immutable recipes, a cancellation-aware executor, stable block failures, `RulebaseGraphSnapshot`, Check Point graph interpretation, semantic `CheckPointRulePosition`, and structural layer/section boundary blocks.
-- Phase 3 WP-01 provides the production immutable graph reader.
-- Phase 3 WP-02 provides immutable creation-rule source/destination zone sets, coverage states, Flow-group expansion, and safe cancellation-aware failures.
-- Existing compliance code continues to own `ComplianceCheck.ParseIpRange`, overlapping-zone matching, and Internet/local behavior.
-- Existing Flow code now provides cancellation-aware request-visible group resolution while retaining optional-token source compatibility.
-- No production strategy, enum-to-recipe mapping, workflow caller, or Check Point position renderer exists yet.
+`documentation/work-packages/firewall-rule-placement/phase-3/WP-03-check-point-strategy-implementation.md`
 
 ## Next action
 
-Run the separate planning session described by:
+Run a separate planning session for Phase 3 WP-04. Read `.agents/AGENTS.md`, the roadmap and decision log, this handoff, and `phase-3/WP-04-semantic-position-rendering-planning.md`. Plan only WP-04, update its paired implementation brief, and do not implement WP-04 in the same session.
 
-`documentation/work-packages/firewall-rule-placement/phase-3/WP-03-check-point-strategy-planning.md`
+Do not inspect the customer document, add customer mappings, register the positioning strategy, activate a caller, persist a calculated position, or render a Check Point request.
 
-Plan only WP-03 and make its implementation brief self-contained. Do not implement WP-03 during that planning session, do not register a positioning strategy, and do not inspect the customer document.
+All changes remain unstaged and uncommitted unless the user explicitly requests otherwise.
 
 Separately, execute the remaining Phase 1 VM acceptance gates when the required FWO VM integration is available. Do not run the installation manually.

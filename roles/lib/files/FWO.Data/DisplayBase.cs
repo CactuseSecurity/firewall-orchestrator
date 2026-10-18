@@ -20,30 +20,14 @@ namespace FWO.Data
         public static StringBuilder DisplayService(NetworkService service, bool isTechReport, string? serviceName = null)
         {
             StringBuilder result = new();
-            string ports = DisplayServicePorts(service);
-            bool displayPorts = IpProtocol.HasPorts(service.Protocol?.Id) && (service.DestinationPort != null || service.SourcePort != null);
             if (isTechReport)
             {
-                if (displayPorts)
-                {
-                    result.Append($"{ports}/{service.Protocol?.Name}");
-                }
-                else
-                {
-                    result.Append(ShouldDisplayProtocolName(service) ? $"{service.Protocol?.Name}" : $"{service.Name}");
-                }
+                result.Append(DisplayTechnicalService(service));
             }
             else
             {
                 result.Append($"{serviceName ?? service.Name}");
-                if (displayPorts)
-                {
-                    result.Append($" ({ports}/{service.Protocol?.Name})");
-                }
-                else if (ShouldDisplayProtocolName(service))
-                {
-                    result.Append($" ({service.Protocol?.Name})");
-                }
+                result.Append(DisplayServiceDetails(service));
             }
             return result;
         }
@@ -77,6 +61,43 @@ namespace FWO.Data
                 destination = protocolName == null ? "*" : $"*/{protocolName}";
             }
             return $"{DisplayPort(service.SourcePort, service.SourcePortEnd)} → {destination}";
+        }
+
+        /// <summary>
+        /// Builds the port and protocol part that follows the service name in a non-technical display,
+        /// e.g. " (443/tcp)". Html output prepends the encoded name or a link to it.
+        /// </summary>
+        /// <param name="service">The service to describe.</param>
+        /// <returns>The plain text suffix, empty if neither ports nor protocol are shown.</returns>
+        public static string DisplayServiceDetails(NetworkService service)
+        {
+            if (ShouldDisplayServicePorts(service))
+            {
+                string ports = DisplayServicePorts(service);
+                return $" ({ports}/{service.Protocol?.Name})";
+            }
+            if (ShouldDisplayProtocolName(service))
+            {
+                return $" ({service.Protocol?.Name})";
+            }
+            return "";
+        }
+
+        /// <summary>Formats technical service output without a service name when ports or a protocol are available.</summary>
+        private static string DisplayTechnicalService(NetworkService service)
+        {
+            if (ShouldDisplayServicePorts(service))
+            {
+                string ports = DisplayServicePorts(service);
+                return $"{ports}/{service.Protocol?.Name}";
+            }
+            return ShouldDisplayProtocolName(service) ? $"{service.Protocol?.Name}" : $"{service.Name}";
+        }
+
+        /// <summary>Checks whether the protocol supports ports and either direction has a restriction.</summary>
+        private static bool ShouldDisplayServicePorts(NetworkService service)
+        {
+            return IpProtocol.HasPorts(service.Protocol?.Id) && (service.DestinationPort != null || service.SourcePort != null);
         }
 
         public static string DisplayService(Workflow.NwServiceElement svcElem, List<IpProtocol> IpProtos)
@@ -132,151 +153,131 @@ namespace FWO.Data
             }
         }
 
+        /// <summary>Formats addresses according to their object type, converting network ranges to CIDR when possible.</summary>
         public static string DisplayIp(string ip1, string ip2, string nwObjType, bool inBrackets = false)
         {
-            string result = "";
-            if (nwObjType != ObjectType.Group)
+            if (nwObjType == ObjectType.Group)
             {
+                return "";
+            }
+            if (string.IsNullOrEmpty(ip2))
+            {
+                ip2 = ip1;
+            }
+            if (string.IsNullOrEmpty(ip1))
+            {
+                Log.WriteDebug("Ip displaying", $"Nessessary parameter {nameof(ip1)} is empty.");
+                return "";
+            }
+            if (!CanDisplayIpAddresses(ip1, ip2))
+            {
+                return "";
+            }
 
-                if (string.IsNullOrEmpty(ip2))
-                {
-                    ip2 = ip1;
-                }
+            string ipStart = ip1.StripOffUnnecessaryNetmask();
+            string ipEnd = ip2.StripOffUnnecessaryNetmask();
+            string result = inBrackets ? " (" : "";
+            try
+            {
+                result += FormatIpAddress(ipStart, ipEnd, nwObjType);
+            }
+            catch (Exception exc)
+            {
+                Log.WriteWarning("Ip displaying", $"Wrong ip format {ipStart} - {ipEnd}\nMessage: {exc.Message}");
+                result += $"{ipStart}-{ipEnd}";
+            }
+            result += inBrackets ? ")" : "";
+            return result;
+        }
 
-                if (string.IsNullOrEmpty(ip1))
-                {
-                    Log.WriteDebug("Ip displaying", $"Nessessary parameter {nameof(ip1)} is empty.");
-                }
-                else if (!ip1.IsV4Address() && !ip1.IsV6Address())
-                {
-                    Log.WriteError("Ip displaying", $"Found undefined IP family: {ip1} - {ip2}");
-                }
-                else if (ip1.IsV4Address() == ip2.IsV6Address())
-                {
-                    Log.WriteError("Ip displaying", $"Found mixed IP family: {ip1} - {ip2}");
-                }
-                else
-                {
-                    string IpStart = ip1.StripOffUnnecessaryNetmask();
-                    string IpEnd = ip2.StripOffUnnecessaryNetmask();
+        /// <summary>Formats a network as CIDR or preserves the endpoints of a host or address range.</summary>
+        private static string FormatIpAddress(string ipStart, string ipEnd, string objectType)
+        {
+            if (objectType == ObjectType.Network)
+            {
+                return FormatNetworkAddress(ipStart, ipEnd);
+            }
+            return objectType == ObjectType.IPRange ? $"{ipStart}-{ipEnd}" : ipStart;
+        }
 
-                    try
-                    {
-                        result = inBrackets ? " (" : "";
-                        if (nwObjType == ObjectType.Network)
-                        {
-                            if (IpStart.GetNetmask() == "")
-                            {
-                                if (IpStart.IsGreater(IpEnd))
-                                {
-                                    // swap
-                                    Log.WriteWarning("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd} - swapping values");
-                                    string temp = IpStart;
-                                    IpStart = IpEnd;
-                                    IpEnd = temp;
-                                }
-                                IPAddressRange ipRange = new(IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
-                                if (ipRange != null)
-                                {
-                                    try
-                                    {
-                                        // tryint to convert range to network
-                                        string rangeString = ipRange.ToCidrString();
-                                        result += rangeString;
-                                    }
-                                    catch (Exception exc)
-                                    {
-                                        Log.WriteWarning("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd} is not a network\nMessage: {exc.Message}");
-                                        // we display the incorrect ip data nevertheless without throwing errors
-                                        result += $"{IpStart}-{IpEnd}";
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                result += IpStart;
-                            }
-                        }
-                        else
-                        {
-                            result += IpStart;
-                            if (nwObjType == ObjectType.IPRange)
-                            {
-                                result += $"-{IpEnd}";
-                            }
-                        }
-                        result += inBrackets ? ")" : "";
-                    }
-                    catch (Exception exc)
-                    {
-                        Log.WriteWarning("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd}\nMessage: {exc.Message}");
-                        // we display the incorrect ip data nevertheless without throwing errors
-                        result += $"{IpStart}-{IpEnd}";
-                        result += inBrackets ? ")" : "";
-                    }
-                }
+        /// <summary>Converts network endpoints to CIDR, retaining non-CIDR ranges as text.</summary>
+        private static string FormatNetworkAddress(string ipStart, string ipEnd)
+        {
+            if (ipStart.GetNetmask() != "")
+            {
+                return ipStart;
+            }
+            if (ipStart.IsGreater(ipEnd))
+            {
+                Log.WriteWarning("Ip displaying", $"Wrong ip format {ipStart} - {ipEnd} - swapping values");
+                string previousStart = ipStart;
+                ipStart = ipEnd;
+                ipEnd = previousStart;
+            }
+            IPAddressRange ipRange = new(IPAddress.Parse(ipStart), IPAddress.Parse(ipEnd));
+            try
+            {
+                return ipRange.ToCidrString();
+            }
+            catch (Exception exc)
+            {
+                Log.WriteWarning("Ip displaying", $"Wrong ip format {ipStart} - {ipEnd} is not a network\nMessage: {exc.Message}");
+                return $"{ipStart}-{ipEnd}";
+            }
+        }
+
+        /// <summary>Formats inferred address types while retaining the endpoints of network ranges.</summary>
+        public static string DisplayIpRange(string ip1, string ip2, bool inBrackets = false)
+        {
+            string nwObjType = IpOperations.GetObjectType(ip1, ip2);
+            if (nwObjType == ObjectType.Group || !CanDisplayIpAddresses(ip1, ip2))
+            {
+                return "";
+            }
+            if (ip2 == "")
+            {
+                ip2 = ip1;
+            }
+            string ipStart = ip1.StripOffUnnecessaryNetmask();
+            string ipEnd = ip2.StripOffUnnecessaryNetmask();
+            string result = inBrackets ? " (" : "";
+            try
+            {
+                result += FormatIpRange(ipStart, ipEnd, nwObjType);
+                result += inBrackets ? ")" : "";
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Ip displaying", $"Wrong ip format {ipStart} - {ipEnd}\nMessage: {exc.Message}");
             }
             return result;
         }
 
-        public static string DisplayIpRange(string ip1, string ip2, bool inBrackets = false)
+        /// <summary>Formats network endpoints without CIDR conversion, preserving explicit CIDR notation.</summary>
+        private static string FormatIpRange(string ipStart, string ipEnd, string objectType)
         {
-            string result = "";
-            string nwObjType = IpOperations.GetObjectType(ip1, ip2);
-            if (nwObjType != ObjectType.Group)
+            if (objectType == ObjectType.Network && ipStart.GetNetmask() == "")
             {
-                if (!ip1.IsV4Address() && !ip1.IsV6Address())
-                {
-                    Log.WriteError("Ip displaying", $"Found undefined IP family: {ip1} - {ip2}");
-                }
-                else if (ip1.IsV4Address() == ip2.IsV6Address())
-                {
-                    Log.WriteError("Ip displaying", $"Found mixed IP family: {ip1} - {ip2}");
-                }
-                else
-                {
-                    if (ip2 == "")
-                    {
-                        ip2 = ip1;
-                    }
-                    string IpStart = ip1.StripOffUnnecessaryNetmask();
-                    string IpEnd = ip2.StripOffUnnecessaryNetmask();
-
-                    try
-                    {
-                        result = inBrackets ? " (" : "";
-                        if (nwObjType == ObjectType.Network)
-                        {
-                            if (IpStart.GetNetmask() == "")
-                            {
-                                IPAddressRange ipRange = new(IPAddress.Parse(IpStart), IPAddress.Parse(IpEnd));
-                                if (ipRange != null)
-                                {
-                                    result += $"{ipRange.Begin}-{ipRange.End}";
-                                }
-                            }
-                            else
-                            {
-                                result += IpStart;
-                            }
-                        }
-                        else
-                        {
-                            result += IpStart;
-                            if (nwObjType == ObjectType.IPRange)
-                            {
-                                result += $"-{IpEnd}";
-                            }
-                        }
-                        result += inBrackets ? ")" : "";
-                    }
-                    catch (Exception exc)
-                    {
-                        Log.WriteError("Ip displaying", $"Wrong ip format {IpStart} - {IpEnd}\nMessage: {exc.Message}");
-                    }
-                }
+                IPAddressRange ipRange = new(IPAddress.Parse(ipStart), IPAddress.Parse(ipEnd));
+                return $"{ipRange.Begin}-{ipRange.End}";
             }
-            return result;
+            return objectType == ObjectType.IPRange ? $"{ipStart}-{ipEnd}" : ipStart;
+        }
+
+        /// <summary>Checks the existing address-family rules and logs unsupported or mixed families.</summary>
+        private static bool CanDisplayIpAddresses(string ipStart, string ipEnd)
+        {
+            if (!ipStart.IsV4Address() && !ipStart.IsV6Address())
+            {
+                Log.WriteError("Ip displaying", $"Found undefined IP family: {ipStart} - {ipEnd}");
+                return false;
+            }
+            if (ipStart.IsV4Address() == ipEnd.IsV6Address())
+            {
+                Log.WriteError("Ip displaying", $"Found mixed IP family: {ipStart} - {ipEnd}");
+                return false;
+            }
+            return true;
         }
 
         public static string DisplayPort(int? port, int? portEnd, bool inBrackets = false, string? proto = null)

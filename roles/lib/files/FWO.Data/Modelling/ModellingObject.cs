@@ -40,7 +40,7 @@ namespace FWO.Data.Modelling
 
         public virtual string DisplayHtml()
         {
-            return $"<span class=\"\">{Display()}</span>";
+            return $"<span class=\"\">{HtmlOutputEncoder.EncodeText(Display())}</span>";
         }
 
         public virtual string DisplayProblematicWithIcon()

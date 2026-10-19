@@ -319,6 +319,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateTask_IsShownWithNameAndContentInReadOnlyMode()
+        {
+            await using BunitContext context = CreateContext();
+            WfReqTask task = new() { TaskType = WfTaskType.object_create.ToString() };
+            task.Elements.Add(new()
+            {
+                Field = ElemFieldType.source.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                Name = "srv_web01",
+                IpString = "10.1.1.5"
+            });
+
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, false, kManagementId, false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("srv_web01"));
+                Assert.That(component.Markup, Does.Contain("10.1.1.5"));
+                Assert.That(component.Markup, Does.Not.Contain("requested_state"));
+                Assert.That(component.FindAll(".list-group-item"), Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
         public async Task ExistingTask_PrefillsTheInputsAndKeepsTheElementIds()
         {
             await using BunitContext context = CreateContext();

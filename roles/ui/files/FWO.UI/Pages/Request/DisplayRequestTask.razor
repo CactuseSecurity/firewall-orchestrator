@@ -415,7 +415,7 @@
         actRuleDevice = metadataEditor.CurrentRuleDevice;
         actOwner = metadataEditor.CurrentOwner;
         actRequestingOwner = metadataEditor.CurrentRequestingOwner;
-        actGrpName = metadataEditor.CurrentGroupName;
+        actGrpName = elementEditor?.CurrentGroupName;
         selectedDevices = metadataEditor.CurrentSelectedDevices;
     }
 
@@ -768,7 +768,7 @@
                 WfHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
                 break;
             case WfTaskType.group_create:
-                WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, actGrpName ?? "");
+                WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, elementEditor?.CurrentGroupName ?? actGrpName ?? "");
                 break;
             case WfTaskType.object_create:
                 WfHandler.ActReqTask.RequestAction = RequestAction.create.ToString();

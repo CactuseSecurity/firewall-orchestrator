@@ -22,32 +22,33 @@ else if (TaskType == WfTaskType.rule_delete)
 }
 else if (TaskType == WfTaskType.group_create)
 {
+    @if (!IsEditable())
+    {
+        <div class="form-group row mt-2">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText(grpTypeSvc ? "service_group" : "network_group")):</label>
+            <div class="col-sm-3">
+                <label class="col-sm-12 h-100 border bg-secondary">@groupName</label>
+            </div>
+        </div>
+    }
     <div class="form-group row mt-2">
         @if (IsEditable())
         {
-            <div class="col-sm-2">
-                <input class="form-check-input" type="radio" checked="@(!grpTypeSvc)" name="shortcutRange" id="nwGrp" @onchange="() => grpTypeSvc = false">
-                <label class="col-sm-1 col-form-label col-form-label-sm" for="nwGrp">@(userConfig.GetText("network_group"))</label>
-            </div>
-            <div class="col-sm-2">
-                <input class="form-check-input" type="radio" checked="@(grpTypeSvc)" name="shortcutRange" id="svcGrp" @onchange="() => grpTypeSvc = true">
-                <label class="col-sm-1 col-form-label col-form-label-sm" for="svcGrp">@(userConfig.GetText("service_group"))</label>
-            </div>
-            <div class="col-sm-4">
-                @if (!grpTypeSvc)
-                {
-                    <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false" />
-                }
-                else
-                {
-                    <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                        IpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false" />
-                }
+            <div class="col-sm-6">
+                <div class="btn-group btn-group-sm" role="group">
+                    <input type="radio" class="btn-check" name="groupKind" id="grpKindNetwork" autocomplete="off"
+                        checked="@(!grpTypeSvc)" @onchange="() => grpTypeSvc = false">
+                    <label class="btn btn-outline-primary" for="grpKindNetwork">@(userConfig.GetText("network_group"))</label>
+
+                    <input type="radio" class="btn-check" name="groupKind" id="grpKindService" autocomplete="off"
+                        checked="@(grpTypeSvc)" @onchange="() => grpTypeSvc = true">
+                    <label class="btn btn-outline-primary" for="grpKindService">@(userConfig.GetText("service_group"))</label>
+                </div>
             </div>
         }
         else
         {
-            <div class="list-group col-sm-4">
+            <div class="list-group col-sm-6">
                 @foreach (var source in actSources)
                 {
                     <div class="list-group-item border bg-secondary">
@@ -63,6 +64,35 @@ else if (TaskType == WfTaskType.group_create)
             </div>
         }
     </div>
+    @if (IsEditable())
+    {
+        <div class="form-group row mt-2">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+            @if (CanEditField(WorkflowEditableFieldKeys.Name))
+            {
+                <div class="col-sm-3">
+                    <input type="text" class="form-control form-control-sm" value="@groupName" @onchange="GroupNameChangedFromInput" />
+                </div>
+            }
+            else
+            {
+                <div class="col-sm-3">
+                    <label class="col-sm-12 h-100 border bg-secondary">@groupName</label>
+                </div>
+            }
+            <div class="col-sm-6">
+                @if (!grpTypeSvc)
+                {
+                    <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false" />
+                }
+                else
+                {
+                    <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
+                        IpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false" />
+                }
+            </div>
+        </div>
+    }
 }
 else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 {
@@ -112,6 +142,7 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
     private List<NwObjectElement> actDestinations = [];
     private List<NwServiceElement> actServices = [];
     private List<NwRuleElement> actRules = [];
+    private string? groupName;
 
     private List<NwObjectElement> sourcesToAdd = [];
     private List<NwObjectElement> sourcesToDelete = [];
@@ -127,6 +158,7 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
     public int DestinationCount => actDestinations.Count;
     public int ServiceCount => actServices.Count;
     public int RuleCount => actRules.Count;
+    public string? CurrentGroupName => groupName;
 
     private bool IsEditable()
     {
@@ -167,6 +199,7 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
         actServices = displayTask.GetServiceElements();
         actRules = displayTask.GetRuleElements();
         grpTypeSvc = actServices.Count > 0;
+        groupName = displayTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
     }
 
     public void ResetPendingChanges()
@@ -272,5 +305,11 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
             return element.Name;
         }
         return DisplayBase.DisplayService(element, DisplayIpProtos);
+    }
+
+    private Task GroupNameChangedFromInput(ChangeEventArgs args)
+    {
+        groupName = args.Value?.ToString();
+        return Task.CompletedTask;
     }
 }

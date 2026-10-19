@@ -2,6 +2,7 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Request;
+using Microsoft.AspNetCore.Components;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -130,6 +131,19 @@ internal class UiRequestTaskElementEditorTest
             Assert.That(reqTask.Elements.Count(element => element.Field == ElemFieldType.source.ToString()), Is.EqualTo(1));
             Assert.That(reqTask.Elements.Any(element => element.Field == ElemFieldType.service.ToString()), Is.False);
         });
+    }
+
+    [Test]
+    public void GroupCreate_StoresAndEditsGroupNameInElementEditor()
+    {
+        WfReqTask reqTask = new() { Id = 42, TaskType = WfTaskType.group_create.ToString() };
+        reqTask.SetAddInfo(AdditionalInfoKeys.GrpName, "initial-group");
+        RequestTaskElementEditor component = CreateComponent(reqTask, WfTaskType.group_create);
+
+        component.InitializeElements();
+        InvokePrivate<Task>(component, "GroupNameChangedFromInput", new ChangeEventArgs { Value = "changed-group" }).GetAwaiter().GetResult();
+
+        Assert.That(component.CurrentGroupName, Is.EqualTo("changed-group"));
     }
 
     [Test]

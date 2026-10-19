@@ -122,7 +122,6 @@ internal class UiRequestTaskMetadataEditorTest
         InvokePrivateTask(component, "OnRuleDeviceChanged", new Device { Id = 4, Name = "changed-gateway" }).GetAwaiter().GetResult();
         InvokePrivateTask(component, "OnOwnerChanged", new FwoOwner { Id = 5, Name = "changed-owner" }).GetAwaiter().GetResult();
         InvokePrivateTask(component, "OnRequestingOwnerChanged", new FwoOwner { Id = 6, Name = "requesting-owner" }).GetAwaiter().GetResult();
-        InvokePrivateTask(component, "GroupNameChangedFromInput", new ChangeEventArgs { Value = "changed-group" }).GetAwaiter().GetResult();
 
         Assert.Multiple(() =>
         {
@@ -131,7 +130,6 @@ internal class UiRequestTaskMetadataEditorTest
             Assert.That(component.CurrentRuleDevice?.Id, Is.EqualTo(4));
             Assert.That(component.CurrentOwner?.Id, Is.EqualTo(5));
             Assert.That(component.CurrentRequestingOwner?.Id, Is.EqualTo(6));
-            Assert.That(component.CurrentGroupName, Is.EqualTo("changed-group"));
             Assert.That(taskTypeCallbackCalled, Is.True);
             Assert.That(managementCallbackCalled, Is.True);
         });
@@ -185,7 +183,6 @@ internal class UiRequestTaskMetadataEditorTest
             Assert.That(component.CurrentTaskType, Is.EqualTo(WfTaskType.new_interface));
             Assert.That(component.CurrentManagement?.Id, Is.EqualTo(7));
             Assert.That(component.CurrentOwner?.Id, Is.EqualTo(21));
-            Assert.That(component.CurrentGroupName, Is.EqualTo("group-name"));
             Assert.That(component.CurrentSelectedDevices.Select(device => device.Id), Is.EqualTo(kSelectedGatewayId));
         });
     }
@@ -257,7 +254,7 @@ internal class UiRequestTaskMetadataEditorTest
             "roles", "ui", "files", "FWO.UI", "Pages", "Request", "RequestTaskMetadataEditor.razor"));
         string source = File.ReadAllText(path);
         const string startMarker = "else if (TaskType == WfTaskType.new_interface)";
-        const string endMarker = "else if (TaskType == WfTaskType.group_create)";
+        const string endMarker = "@code";
         int start = source.IndexOf(startMarker, StringComparison.Ordinal);
         int end = source.IndexOf(endMarker, start, StringComparison.Ordinal);
         Assert.That(start, Is.GreaterThanOrEqualTo(0));

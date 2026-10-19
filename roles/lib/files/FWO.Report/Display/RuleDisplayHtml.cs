@@ -15,6 +15,86 @@ namespace FWO.Ui.Display
             return firstEndTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
         }
 
+        /// <summary>
+        /// Html variant of <see cref="RuleDisplayBase.DisplayName(Rule)"/>: the name is encoded.
+        /// </summary>
+        public static new string DisplayName(Rule rule)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleDisplayBase.DisplayName(rule));
+        }
+
+        /// <summary>
+        /// Html variant of <see cref="RuleDisplayBase.DisplayName(NetworkObject)"/>: the name is encoded.
+        /// </summary>
+        public static new string DisplayName(NetworkObject nto)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleDisplayBase.DisplayName(nto));
+        }
+
+        /// <summary>
+        /// Html variant of <see cref="RuleDisplayBase.DisplayName(NetworkService)"/>: the name is encoded.
+        /// </summary>
+        public static new string DisplayName(NetworkService nts)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleDisplayBase.DisplayName(nts));
+        }
+
+        /// <summary>
+        /// Html variant of <see cref="RuleDisplayBase.DisplayName(NetworkUser)"/>: the name is encoded.
+        /// </summary>
+        public static new string DisplayName(NetworkUser ntu)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleDisplayBase.DisplayName(ntu));
+        }
+
+        /// <summary>
+        /// Html variant of <see cref="RuleDisplayBase.DisplayAction(Rule)"/>: the action is encoded.
+        /// </summary>
+        public static new string DisplayAction(Rule rule)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleDisplayBase.DisplayAction(rule));
+        }
+
+        /// <summary>
+        /// Html variant of <see cref="RuleDisplayBase.DisplayTrack(Rule)"/>: the track is encoded.
+        /// </summary>
+        public static new string DisplayTrack(Rule rule)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleDisplayBase.DisplayTrack(rule));
+        }
+
+        /// <summary>
+        /// Html variant of <see cref="RuleDisplayBase.DisplayUid(Rule)"/>: the uid is encoded.
+        /// </summary>
+        public static new string DisplayUid(Rule rule)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleDisplayBase.DisplayUid(rule));
+        }
+
+        /// <summary>
+        /// Html variant of <see cref="RuleDisplayBase.DisplayUid(NetworkObject)"/>: the uid is encoded.
+        /// </summary>
+        public static new string DisplayUid(NetworkObject nwo)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleDisplayBase.DisplayUid(nwo));
+        }
+
+        /// <summary>
+        /// Html variant of <see cref="RuleDisplayBase.DisplayUid(NetworkService)"/>: the uid is encoded.
+        /// </summary>
+        public static new string DisplayUid(NetworkService nws)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleDisplayBase.DisplayUid(nws));
+        }
+
+        /// <summary>
+        /// Html variant of <see cref="RuleDisplayBase.DisplayComment(Rule)"/>: the comment is encoded.
+        /// </summary>
+        public static new string DisplayComment(Rule rule)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleDisplayBase.DisplayComment(rule));
+        }
+
         public string DisplaySource(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "", bool overwriteIsResolvedReport = false)
         {
             return DisplaySourceOrDestination(rule, chapterNumber, location, reportType, style, true, overwriteIsResolvedReport);
@@ -49,7 +129,7 @@ namespace FWO.Ui.Display
         public static string DisplayEnforcingGateways(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
         {
             StringBuilder result = new();
-            result.AppendJoin("<br>", Array.ConvertAll(rule.EnforcingGateways, gw => EnforcingGatewayToHtml(gw.Content, rule.MgmtId, chapterNumber, location, style, reportType)));
+            result.AppendJoin("<br>", Array.ConvertAll(rule.EnforcingGateways, gw => EnforcingGatewayToHtml(gw.Content, reportType)));
             return result.ToString();
         }
         public static string DisplaySectionHeader(Rule rule, int ColumnCount)
@@ -109,7 +189,7 @@ namespace FWO.Ui.Display
                 objectLink = ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nobj, networkLocation.Object.Type.Name), networkLocation.Object.Name, style, objLink);
             }
 
-            string nwLocation = DisplayNetworkLocation(networkLocation, reportType, userOutput, objectLink).ToString();
+            string nwLocation = DisplayNetworkLocationHtml(networkLocation, reportType, userOutput, objectLink);
 
             return reportType.IsRuleReport() ? $"<span style=\"{style}\">{nwLocation}</span>" : nwLocation;
         }
@@ -118,22 +198,20 @@ namespace FWO.Ui.Display
         {
             if (reportType.IsResolvedReport() || reportType == ReportType.VarianceAnalysis)
             {
-                return DisplayService(service, reportType, null).ToString();
+                return DisplayServiceHtml(service, reportType);
             }
             else
             {
                 // Construct link for unresolved report types
                 string serviceLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.Svc, chapterNumber, service.Id, reportType);
                 string serviceName = ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, service.Type.Name), service.Name, style, serviceLink);
-                return DisplayService(service, reportType, serviceName).ToString();
+                return DisplayServiceHtml(service, reportType, serviceName);
             }
         }
-        protected static string EnforcingGatewayToHtml(Device gateway, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
+        protected static string EnforcingGatewayToHtml(Device gateway, ReportType reportType)
         {
-            string gwLink = ReportDevicesBase.GetReportDevicesLinkAddress(location, mgmtId, ObjCatString.NwObj, chapterNumber, gateway.Id, reportType);
-
-            return DisplayGateway(gateway, reportType, reportType.IsResolvedReport() ? null :
-                ReportBase.ConstructLink(ReportBase.GetIconClass(ObjCategory.nsrv, "Gateway"), gateway.Name ?? string.Empty, style, gwLink)).ToString();
+            // DisplayGateway shows the plain gateway name in every report type, so it is encoded as a whole
+            return HtmlOutputEncoder.EncodeText(DisplayGateway(gateway, reportType).ToString());
         }
 
         private string DisplaySourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, bool isSource, bool overwriteIsResolvedReport = false)
@@ -202,12 +280,12 @@ namespace FWO.Ui.Display
 
         private static string GetOwnerDisplayString(string countString, Recertification recert)
         {
-            return "<p>" + countString + (recert.FwoOwner != null && recert.FwoOwner?.Name != null ? recert.FwoOwner.Name : "") + "</p>";
+            return "<p>" + countString + HtmlOutputEncoder.EncodeText(recert.FwoOwner?.Name) + "</p>";
         }
 
         private static string GetIpMatchDisplayString(string countString, Recertification recert)
         {
-            return "<p>" + countString + (recert.IpMatch != null && recert.IpMatch != "" ? recert.IpMatch : "&#8208;") + "</p>";
+            return "<p>" + countString + (recert.IpMatch != null && recert.IpMatch != "" ? HtmlOutputEncoder.EncodeText(recert.IpMatch) : "&#8208;") + "</p>";
         }
 
         private static string GetLastRecertifierDisplayString(string countString, Recertification recert)

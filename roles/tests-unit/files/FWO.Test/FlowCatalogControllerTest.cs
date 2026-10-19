@@ -49,21 +49,23 @@ namespace FWO.Test
             });
             ActionResult<AddressObjectIdResponse> addressObjectIdResult = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
             {
-                IpStart = "10.0.0.1",
-                IpEnd = "10.0.0.2"
+                IpRange = ["10.0.0.1", "10.0.0.2"]
             });
-            GetAddressObjectIdRequest maskedAddressObjectIdRequest = new()
-            {
-                IpStart = "10.0.0.1/32",
-                IpEnd = "10.0.0.2/32"
-            };
-            ActionResult<AddressObjectIdResponse> maskedAddressObjectIdResult = await controller.GetAddressObjectId(maskedAddressObjectIdRequest);
             GetAddressObjectIdRequest ipv6AddressObjectIdRequest = new()
             {
-                IpStart = "2001:db8::",
-                IpEnd = "2001:db8::3"
+                IpRange = ["2001:db8::", "2001:db8::3"]
             };
             ActionResult<AddressObjectIdResponse> ipv6AddressObjectIdResult = await controller.GetAddressObjectId(ipv6AddressObjectIdRequest);
+            GetAddressObjectIdRequest networkAddressObjectIdRequest = new()
+            {
+                IpNetwork = "192.0.2.0/24"
+            };
+            ActionResult<AddressObjectIdResponse> networkAddressObjectIdResult = await controller.GetAddressObjectId(networkAddressObjectIdRequest);
+            GetAddressObjectIdRequest bareAddressObjectIdRequest = new()
+            {
+                IpHost = "2001:db8::10"
+            };
+            ActionResult<AddressObjectIdResponse> bareAddressObjectIdResult = await controller.GetAddressObjectId(bareAddressObjectIdRequest);
 
             Assert.Multiple(() =>
             {
@@ -93,11 +95,13 @@ namespace FWO.Test
                 Assert.That(addressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
                 Assert.That(ExtractValue<AddressObjectIdResponse>(addressObjectIdResult).Name, Is.EqualTo("Host"));
 
-                Assert.That(maskedAddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
-                Assert.That(maskedAddressObjectIdRequest.IpStart, Is.EqualTo("10.0.0.1"));
-                Assert.That(maskedAddressObjectIdRequest.IpEnd, Is.EqualTo("10.0.0.2"));
-
                 Assert.That(ipv6AddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
+                Assert.That(networkAddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
+                Assert.That(networkAddressObjectIdRequest.NormalizedIpStart, Is.EqualTo("192.0.2.0"));
+                Assert.That(networkAddressObjectIdRequest.NormalizedIpEnd, Is.EqualTo("192.0.2.255"));
+                Assert.That(bareAddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
+                Assert.That(bareAddressObjectIdRequest.NormalizedIpStart, Is.EqualTo("2001:db8::10"));
+                Assert.That(bareAddressObjectIdRequest.NormalizedIpEnd, Is.EqualTo("2001:db8::10"));
             });
 
             Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowAddressObjects));
@@ -105,6 +109,20 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Contain(StmQueries.getIpProtocols));
             Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowServiceObjectId));
             Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowAddressObjectId));
+        }
+
+        [Test]
+        public async Task GetAddressObjectId_RejectsLeadingZeroIpv4Octets()
+        {
+            using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
+            FlowCatalogController controller = new(service);
+
+            ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
+            {
+                IpRange = ["010.0.0.1", "010.0.0.2"]
+            });
+
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
         }
 
         [Test]
@@ -171,8 +189,7 @@ namespace FWO.Test
 
             ActionResult<AddressObjectIdResponse> missingIpBounds = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
             {
-                IpStart = string.Empty,
-                IpEnd = "10.0.0.2"
+                IpRange = ["10.0.0.2"]
             });
 
             Assert.Multiple(() =>

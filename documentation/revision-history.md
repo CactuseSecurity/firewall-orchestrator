@@ -2,6 +2,12 @@
 
 ## 9.7.7 - 19.10.26
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
+- middleware REST API: unify address inputs for `getAddressObjectId`, `getFlowComplianceState`,
+  `resolveZonesForObjects` and `createTicket.addressObjects`. Each address now uses exactly one of
+  `ipHost`, `ipNetwork` or the two-entry `ipRange`; values follow the shared FWO IP parser and CIDRs
+  are normalized to inclusive bounds. Breaking change: the legacy request fields `ipStart` and
+  `ipEnd` were removed, so clients must migrate start/end pairs to one of the new representations.
+  Response payloads and persisted workflow start/end bounds are unchanged
 
 ## 9.7.6 - 18.10.26
 - various sanitizing fixes for XSS (cross site scripting) in reporting, welcome message, and modelling

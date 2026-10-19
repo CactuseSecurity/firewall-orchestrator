@@ -7,7 +7,7 @@
   - a created time object is stored in the Flow DB like other single objects
   - implementation tasks of time objects follow the device specific setting timeObjectCreation; a time object task for a management set to ignore is rejected when it is saved
 - request workflow: new setting "create objects separately (planned)" under Workflow Customizing, currently without effect
-- new REST endpoint `POST /api/pathAnalysis/resolvePathDevices` (roles admin, auditor, planner): returns the firewall devices on the paths between every source and every destination, deduplicated and unordered, together with the algorithm and zone matrix actually used. This makes the network zone tree path analysis callable
+- new REST endpoint `POST /api/pathAnalysis/resolvePathDevices` (roles admin, auditor): returns the firewall devices on the paths between every source and every destination, deduplicated and unordered, together with the algorithm and zone matrix actually used. This makes the network zone tree path analysis callable
   - sources and destinations: 1 to 100 entries each, given as inclusive range (`ipStart`, `ipEnd`) or CIDR network (`ipNetwork`), IPv4 and IPv6; networks with host bits and IPv4 written as IPv6 are rejected
   - options: `algorithm` (currently `networkZoneTree`), `matrixId` (only together with `networkZoneTree`) and a filter on device id and name; omitted options fall back to the configured algorithm and designated zone matrix
   - 400 reports every invalid key at once, including a configured default that cannot be used (algorithm none, no designated matrix); 404 a requested matrix that does not exist or holds no configured zones; 500 an unusable designated matrix

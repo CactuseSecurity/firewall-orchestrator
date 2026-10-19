@@ -219,3 +219,35 @@ The renderer is a synchronous, dependency-free `FWO.ExternalSystems.CheckPoint` 
 WP-04 does not inspect `WfReqTask.ImplementationTasks`, choose among gateway-specific positions, invoke `CheckPointClient`, register a strategy or renderer, add an endpoint, or connect the workflow. WP-05 must select the applicable implementation task and effective algorithm before invoking this seam. The recipe catalog remains the sole source of supported algorithms; the renderer checks identity only and carries no algorithm allowlist.
 
 Rationale: the vendor request shape can be implemented and exhaustively tested independently of the unresolved activation context, while an explicit expected algorithm and no silent fallback prevent stale or foreign persisted positions from reaching a future API call.
+
+## 2026-10-19 - D-033 - End the generic product at persisted semantic output
+
+Phase 3 production activation ends after calculating and independently persisting a semantic `RulePosition` on the applicable gateway-specific implementation task. The WP-04 Check Point renderer remains an inactive adapter and is not connected to the workflow. Phase 3 must not call `CheckPointClient`, execute `add-access-rule`, publish, install policy, or weaken the existing rule-change execution gate.
+
+D-033 narrows the future-activation direction in D-032: a later placer integration may choose to consume the semantic position and use or replace the dormant renderer, but that downstream contract is not part of the current generic product.
+
+Rationale: rule positioning produces placement intent; applying that intent to a firewall is a separate product responsibility and must not be activated implicitly.
+
+## 2026-10-19 - D-034 - Separate generic completion from the customer extension
+
+D-034 supersedes the Phase 3 packaging and customer-document timing in D-016 and D-028 while preserving their reusable-first intent. Phase 3 WP-05 now completes a generic semantic-positioning product: it confirms at least one genuinely generic existing enum mapping, implements the corresponding production catalog recipe, registers the calculation path, connects the approved workflow caller, and persists semantic output.
+
+The customer document remains unopened throughout Phase 3. A new Phase 4 WP-01 analyzes it only after the generic product is implemented and validated, then adds only the missing customer-specific blocks, recipes, and enum mappings. Phase 4 reuses the Phase 3 activation and persistence path and does not activate request rendering or firewall execution.
+
+Rationale: the infrastructure should become a usable, testable product independently of one customer's special algorithm. Customer behavior is then an extension rather than the event that first makes the entire pipeline operational.
+
+## 2026-10-19 - D-035 - Keep generic recipes independent of zone input
+
+Phase 3 generic recipes consume the imported rulebase graph and no `CreationRuleZoneInput`. The generic runtime path must not load the designated zone matrix, expand Flow groups, invoke compliance-zone resolution, or require zone configuration. The zone reader, creation-rule zone resolver, and zone-dependent orchestration implemented earlier remain inactive preparation for Phase 4 customer algorithms.
+
+Phase 3 WP-05 must isolate the graph-only generic capability from the currently zone-dependent Check Point strategy shape. It may refactor the orchestration seam or introduce a distinct exact-capability strategy, but it must preserve `RulePositioningManager`'s exact-one-match behavior and must not register zone dependencies for the generic path.
+
+Rationale: zone input was built for known future customer behavior, not because generic structural placement requires it. Making it a generic prerequisite would add avoidable configuration, queries, and failure modes.
+
+## 2026-10-19 - D-036 - Remove the speculative Check Point renderer
+
+D-036 supersedes the retention option in D-033 and the future-caller direction in D-032. Phase 3 WP-05 removes `CheckPointRulePositionRenderer`, its dedicated unit tests, and renderer-only compatibility assertions that no longer protect retained behavior. It does not replace them with another Check Point payload adapter.
+
+A future placer must define and own any conversion from persisted semantic position to vendor request shape. Phase 4 remains semantic-output-only and must not recreate rendering as part of the customer algorithm.
+
+Rationale: no current product path owns Check Point rule execution, so retaining a predesigned API adapter creates maintenance cost and prematurely constrains the later placer contract.

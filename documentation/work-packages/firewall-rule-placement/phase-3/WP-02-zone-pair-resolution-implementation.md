@@ -4,6 +4,8 @@
 
 Implemented and locally validated on 2026-10-18.
 
+Roadmap amendment D-035 classifies this implemented service as inactive Phase 4 preparation. It is not a dependency of generic Phase 3 recipes and must not be registered or invoked by the Phase 3 WP-05 positioning path.
+
 This brief is self-contained. Implement only this work package and do not reopen the paired planning brief unless repository evidence makes this design impossible or unsafe.
 
 ## Goal
@@ -46,7 +48,7 @@ Ripple Checklist:
 
 Risk Notes:
 - Flow group expansion is the only additional read performed by WP-02.
-- A group created in the same ticket but not yet present in the Flow catalog returns `GroupUnresolved` under the current explicit assumption. Confirm the desired cross-task behavior with stakeholders before WP-05 activation.
+- A group created in the same ticket but not yet present in the Flow catalog returns `GroupUnresolved` under the current explicit assumption. Confirm the desired cross-task behavior with stakeholders before Phase 4 customer activation.
 
 ## Public contracts
 
@@ -131,7 +133,7 @@ Resolve through `IFlowGroupResolver.ResolveFlowGroupMembersAsync` as follows:
 
 Do not silently omit unresolved groups or members. Do not recursively query nested groups: the current Flow resolution contract exposes technical network-object members, not nested group nodes.
 
-A group created by another request task in the same ticket is not resolved from sibling task data in this package. If it is not yet queryable through Flow, return `GroupUnresolved`. This is a deliberate non-blocking assumption pending stakeholder confirmation before WP-05 activation.
+A group created by another request task in the same ticket is not resolved from sibling task data in this package. If it is not yet queryable through Flow, return `GroupUnresolved`. This is a deliberate non-blocking assumption pending stakeholder confirmation before Phase 4 customer activation.
 
 Extend `IFlowGroupResolver` without breaking existing callers:
 
@@ -189,7 +191,7 @@ Derive each side's coverage after resolution:
 - `Partial` when at least one zone and at least one unassignable range exist; and
 - `None` when there are unassignable ranges and no zone.
 
-`Partial` and `None` are successful, information-preserving results rather than resolver failures. WP-05 may map them, or `SyntheticInternetFallback`, to a customer recipe only after the customer document is analyzed.
+`Partial` and `None` are successful, information-preserving results rather than resolver failures. Phase 4 WP-01 may map them, or `SyntheticInternetFallback`, to a customer recipe only after the customer document is analyzed.
 
 Add a cancellation-aware overload to `ComplianceZoneResolver` with the parameter order shown above. Keep both existing overloads source- and behavior-compatible by delegating with `CancellationToken.None`. Check cancellation while copying unseen ranges, scanning zones, and processing remaining ranges. Do not extract or replace its Internet/local algorithm.
 

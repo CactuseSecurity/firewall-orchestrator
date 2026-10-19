@@ -4,7 +4,9 @@
 
 Planning complete on 2026-10-18. The paired implementation brief is self-contained and marked `Ready for implementation`.
 
-The settled design reuses `ComplianceZoneResolver`, including its existing persisted automatic-Internet and synthetic Internet/local behavior. Existing request-visible Flow groups are loaded through `IFlowGroupResolver`; same-ticket groups that are not yet present in Flow are treated as unresolved pending stakeholder confirmation before WP-05 activation.
+Roadmap amendment D-035 classifies this work as early Phase 4 preparation. Generic Phase 3 recipes consume no zone input, and Phase 3 WP-05 must not activate this service for positioning.
+
+The settled design reuses `ComplianceZoneResolver`, including its existing persisted automatic-Internet and synthetic Internet/local behavior. Existing request-visible Flow groups are loaded through `IFlowGroupResolver`; same-ticket groups that are not yet present in Flow are treated as unresolved pending stakeholder confirmation before Phase 4 customer activation.
 
 ## Planning objective
 
@@ -41,7 +43,7 @@ Inspect and record:
 7. Which data is caller-loaded and which work is performed by the resolver.
 8. Safe diagnostic boundaries.
 
-If exact zone cardinality is customer-policy-dependent, preserve that information in the generic result and defer only the mapping decision to WP-05. Do not guess it here.
+If exact zone cardinality is customer-policy-dependent, preserve that information in the generic result and defer only the mapping decision to Phase 4 WP-01. Do not guess it here.
 
 ## Required planning output
 

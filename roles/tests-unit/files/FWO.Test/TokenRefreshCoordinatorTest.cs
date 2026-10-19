@@ -378,13 +378,13 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SessionCheckSignal_MakesAStartedCoordinatorCheckItsSessionAtOnce()
+        public async Task SessionCheckRequest_MakesAStartedCoordinatorCheckItsSessionAtOnce()
         {
             SessionCheckFixture fixture = await SessionCheckFixture.CreateAsync(DateTime.UtcNow.AddMinutes(10));
             fixture.MiddlewareClient.SessionCheckResponse = MockMiddlewareClient.CreateSessionCheckResponse(System.Net.HttpStatusCode.OK, "false");
             await fixture.Coordinator.StartAsync();
 
-            fixture.Signal.RequestSessionCheck();
+            fixture.SessionTracker.RequestSessionCheck();
 
             DateTime deadline = DateTime.UtcNow.Add(kTestTimeout);
             while (fixture.NavigationManager.ForcedNavigationCount == 0 && DateTime.UtcNow < deadline)
@@ -414,13 +414,13 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SessionCheckSignal_IsIgnoredByAStoppedCoordinator()
+        public async Task SessionCheckRequest_IsIgnoredByAStoppedCoordinator()
         {
             SessionCheckFixture fixture = await SessionCheckFixture.CreateAsync(DateTime.UtcNow.AddMinutes(10));
             await fixture.Coordinator.StartAsync();
             await fixture.Coordinator.StopAsync();
 
-            fixture.Signal.RequestSessionCheck();
+            fixture.SessionTracker.RequestSessionCheck();
             await Task.Delay(50);
 
             Assert.That(fixture.MiddlewareClient.CheckSessionCallCount, Is.Zero);
@@ -435,7 +435,7 @@ namespace FWO.Test
 
             public MockMiddlewareClient MiddlewareClient { get; } = new();
             public TestNavigationManager NavigationManager { get; } = new();
-            public UiSessionCheckSignal Signal { get; } = new();
+            public UiSessionTracker SessionTracker { get; } = new();
             public TrackingPeriodicTaskRunnerFactory RunnerFactory { get; } = new();
             public TokenService TokenService { get; }
             public TokenRefreshCoordinator Coordinator { get; }
@@ -446,7 +446,7 @@ namespace FWO.Test
                 AuthStateProvider authStateProvider = new(TokenService, new EventMediator(), NavigationManager);
                 UiSessionRestorer sessionRestorer = new(authStateProvider, new RecordingApiConnection(), MiddlewareClient, new UserConfig());
                 Coordinator = new(TokenService, authStateProvider, sessionRestorer,
-                    RunnerFactory, NavigationManager, Signal);
+                    RunnerFactory, NavigationManager, SessionTracker);
             }
 
             public static async Task<SessionCheckFixture> CreateAsync(DateTime accessTokenExpiresUtc)

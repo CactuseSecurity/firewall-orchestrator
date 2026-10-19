@@ -345,14 +345,6 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Clears the stored token pair without revoking it, for a session the middleware has already ended.
-        /// </summary>
-        public async Task ClearTokens()
-        {
-            await ClearStoredTokenPair();
-        }
-
-        /// <summary>
         /// Whether a failed refresh says nothing about the refresh token itself.
         /// </summary>
         /// <param name="response">Response the middleware returned.</param>
@@ -419,10 +411,10 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        ///  Clears the stored token pair from memory and session storage
+        /// Clears the stored token pair from memory and session storage without revoking it, e.g. for a session
+        /// the middleware has already ended.
         /// </summary>
-        /// <returns></returns>
-        private async Task ClearStoredTokenPair()
+        public async Task ClearStoredTokenPair()
         {
             await EnsureInitializedAsync();
 

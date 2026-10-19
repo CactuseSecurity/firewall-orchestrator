@@ -8,7 +8,7 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 @inject GlobalConfig globalConfig
-@inject UiSessionCheckSignal SessionCheckSignal
+@inject UiSessionTracker SessionTracker
 
 <div class="input-group">
     <h3>@(userConfig.GetText("users"))</h3>
@@ -289,7 +289,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Handler = new SettingsUsersHandler(apiConnection, middlewareClient, userConfig, globalConfig, SessionCheckSignal, DisplayMessageInUi);
+        Handler = new SettingsUsersHandler(apiConnection, middlewareClient, userConfig, globalConfig, SessionTracker, DisplayMessageInUi);
         await Handler.Init();
     }
 }

@@ -53,7 +53,7 @@ namespace FWO.Test
             middlewareClient.UseHandler(new SettingsUsersMiddlewareHandler());
             context.Services.AddSingleton<ApiConnection>(apiConnection);
             context.Services.AddSingleton<MiddlewareClient>(middlewareClient);
-            context.Services.AddSingleton<UiSessionCheckSignal>();
+            context.Services.AddSingleton<UiSessionTracker>();
             context.Services.AddSingleton<UserConfig>(CreateUserConfig());
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters

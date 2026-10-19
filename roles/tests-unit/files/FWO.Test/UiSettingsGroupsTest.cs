@@ -477,7 +477,7 @@ namespace FWO.Test
             TestMiddlewareClient middlewareClient = new("https://middleware.example/");
             middlewareClient.UseHandler(handler);
             context.Services.AddSingleton<MiddlewareClient>(middlewareClient);
-            context.Services.AddSingleton<UiSessionCheckSignal>();
+            context.Services.AddSingleton<UiSessionTracker>();
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
 
             IRenderedComponent<CascadingAuthenticationState> rendered = context.Render<CascadingAuthenticationState>(parameters => parameters
@@ -590,7 +590,7 @@ namespace FWO.Test
             TestMiddlewareClient middlewareClient = new("https://middleware.example/");
             middlewareClient.UseHandler(handler);
             context.Services.AddSingleton<MiddlewareClient>(middlewareClient);
-            context.Services.AddSingleton<UiSessionCheckSignal>();
+            context.Services.AddSingleton<UiSessionTracker>();
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
 
             IRenderedComponent<CascadingAuthenticationState> rendered = context.Render<CascadingAuthenticationState>(parameters => parameters
@@ -819,7 +819,7 @@ namespace FWO.Test
 
             SetMember(component, "apiConnection", new SimulatedApiConnection());
             SetMember(component, "middlewareClient", middlewareClient);
-            SetMember(component, "SessionCheckSignal", new UiSessionCheckSignal());
+            SetMember(component, "SessionTracker", new UiSessionTracker());
             SetMember(component, "userConfig", userConfig);
             SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, isError) =>
             {

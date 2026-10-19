@@ -13,7 +13,7 @@
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
 @inject IEventMediator EventMediator
-@inject UiSessionCheckSignal SessionCheckSignal
+@inject UiSessionTracker SessionTracker
 
 <div class="input-group">
     <h3>@(userConfig.GetText("roles"))</h3>
@@ -187,7 +187,7 @@
                         RemoveUserMode = false;
 
                         EventMediator.Publish(nameof(PermissionChangedEvent), new PermissionChangedEvent(new PermissionChangedEventArgs(selectedUserToRemove.Dn)));
-                        SessionCheckSignal.RequestSessionCheck();
+                        SessionTracker.RequestSessionCheck();
 
                         Log.WriteAudit(
                             Title: $"Roles Settings",

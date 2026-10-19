@@ -10,7 +10,7 @@
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
-@inject UiSessionCheckSignal SessionCheckSignal
+@inject UiSessionTracker SessionTracker
 
 <div class="input-group">
     <h3>@(userConfig.GetText("groups"))</h3>
@@ -380,7 +380,7 @@
             {
                 groups.Remove(actGroup);
                 DeleteGroupMode = false;
-                SessionCheckSignal.RequestSessionCheck();
+                SessionTracker.RequestSessionCheck();
 
                 Log.WriteAudit(
                     Title: $"Groups Settings",
@@ -467,7 +467,7 @@
                     actGroup.Users.Remove(selectedUserToDelete);
                     groups[groups.FindIndex(x => x.Name == actGroup.Name)] = actGroup;
                     RemoveUserMode = false;
-                    SessionCheckSignal.RequestSessionCheck();
+                    SessionTracker.RequestSessionCheck();
 
                     Log.WriteAudit(
                         Title: $"Groups Settings",

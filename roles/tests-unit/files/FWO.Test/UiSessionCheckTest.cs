@@ -8,7 +8,7 @@ using RestSharp;
 namespace FWO.Test
 {
     /// <summary>
-    /// Tests the session check of the token service and the signal that triggers it in all sessions.
+    /// Tests the session check of the token service.
     /// </summary>
     [TestFixture]
     internal class UiSessionCheckTest
@@ -80,14 +80,14 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ClearTokens_DropsTheTokensWithoutRevokingThem()
+        public async Task ClearStoredTokenPair_DropsTheTokensWithoutRevokingThem()
         {
             MockMiddlewareClient middlewareClient = new();
             MockProtectedSessionStorage sessionStorage = new();
             TokenService tokenService = new(middlewareClient, sessionStorage);
             await tokenService.SetTokenPair(new TokenPair { AccessToken = "access", RefreshToken = kRefreshToken });
 
-            await tokenService.ClearTokens();
+            await tokenService.ClearStoredTokenPair();
 
             Assert.Multiple(async () =>
             {
@@ -95,27 +95,6 @@ namespace FWO.Test
                 Assert.That(sessionStorage.ContainsKey("token_pair"), Is.False);
                 Assert.That(middlewareClient.RevokeRefreshTokenCallCount, Is.Zero);
             });
-        }
-
-        [Test]
-        public void RequestSessionCheck_AsksEverySubscriberEvenIfOneFails()
-        {
-            UiSessionCheckSignal signal = new();
-            int askedSubscribers = 0;
-            signal.SessionCheckRequested += () => throw new InvalidOperationException("broken session");
-            signal.SessionCheckRequested += () => askedSubscribers++;
-
-            signal.RequestSessionCheck();
-
-            Assert.That(askedSubscribers, Is.EqualTo(1));
-        }
-
-        [Test]
-        public void RequestSessionCheck_WithoutSubscribersDoesNothing()
-        {
-            UiSessionCheckSignal signal = new();
-
-            Assert.DoesNotThrow(signal.RequestSessionCheck);
         }
 
         private static async Task<TokenService> CreateLoggedInTokenService(MockMiddlewareClient middlewareClient)

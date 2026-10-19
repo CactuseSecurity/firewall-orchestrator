@@ -67,8 +67,6 @@ builder.Services.AddScoped<UiSessionRestorer>();
 builder.Services.AddScoped<ITokenRefreshCoordinator, TokenRefreshCoordinator>();
 builder.Services.AddSingleton<IPeriodicTaskRunnerFactory, PeriodicTaskRunnerFactory>();
 builder.Services.AddScoped<ExecutionModeStorage>();
-// lets a change that ends sessions of other users make their circuits check their session at once
-builder.Services.AddSingleton<UiSessionCheckSignal>();
 builder.Services.AddSingleton<IInternalCaCertificateProvider, InternalCaCertificateProvider>();
 
 // system usage monitoring: track the open circuits and sample the resource usage of this UI server

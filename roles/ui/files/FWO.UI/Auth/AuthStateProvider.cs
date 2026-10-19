@@ -164,7 +164,7 @@ namespace FWO.Ui.Auth
 
             try
             {
-                await tokenService.ClearTokens();
+                await tokenService.ClearStoredTokenPair();
             }
             catch (Exception ex)
             {

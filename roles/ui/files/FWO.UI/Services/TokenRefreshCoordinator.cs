@@ -20,7 +20,7 @@ namespace FWO.Ui.Services
         private readonly UiSessionRestorer sessionRestorer;
         private readonly IPeriodicTaskRunnerFactory periodicTaskRunnerFactory;
         private readonly NavigationManager navigationManager;
-        private readonly UiSessionCheckSignal? sessionCheckSignal;
+        private readonly UiSessionTracker? sessionTracker;
         private readonly SemaphoreSlim startStopLock = new(1, 1);
 
         private IPeriodicTaskRunner? runner;
@@ -35,14 +35,14 @@ namespace FWO.Ui.Services
             UiSessionRestorer sessionRestorer,
             IPeriodicTaskRunnerFactory periodicTaskRunnerFactory,
             NavigationManager navigationManager,
-            UiSessionCheckSignal? sessionCheckSignal = null)
+            UiSessionTracker? sessionTracker = null)
         {
             this.tokenService = tokenService;
             this.authenticationProvider = authenticationProvider;
             this.sessionRestorer = sessionRestorer;
             this.periodicTaskRunnerFactory = periodicTaskRunnerFactory;
             this.navigationManager = navigationManager;
-            this.sessionCheckSignal = sessionCheckSignal;
+            this.sessionTracker = sessionTracker;
         }
 
         /// <inheritdoc />
@@ -58,9 +58,9 @@ namespace FWO.Ui.Services
 
                 started = true;
                 navigationManager.LocationChanged += OnLocationChanged;
-                if (sessionCheckSignal != null)
+                if (sessionTracker != null)
                 {
-                    sessionCheckSignal.SessionCheckRequested += OnSessionCheckRequested;
+                    sessionTracker.SessionCheckRequested += OnSessionCheckRequested;
                 }
                 runner = periodicTaskRunnerFactory.Create(CheckTokenAndSessionAsync, TokenRefreshCheckInterval, nameof(TokenRefreshCoordinator));
                 runner.Start();
@@ -145,9 +145,9 @@ namespace FWO.Ui.Services
 
             started = false;
             navigationManager.LocationChanged -= OnLocationChanged;
-            if (sessionCheckSignal != null)
+            if (sessionTracker != null)
             {
-                sessionCheckSignal.SessionCheckRequested -= OnSessionCheckRequested;
+                sessionTracker.SessionCheckRequested -= OnSessionCheckRequested;
             }
             IPeriodicTaskRunner? runnerToStop = runner;
             runner = null;

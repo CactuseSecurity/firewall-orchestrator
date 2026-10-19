@@ -1071,7 +1071,7 @@ namespace FWO.Test
                 effectiveMiddlewareClient,
                 userConfig,
                 effectiveGlobalConfig,
-                new UiSessionCheckSignal(),
+                new UiSessionTracker(),
                 (exception, title, message, _) => effectiveMessages.Add((title, message)));
 
             return (handler, userConfig, effectiveApiConnection, effectiveMessages);

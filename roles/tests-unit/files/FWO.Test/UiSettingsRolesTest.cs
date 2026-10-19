@@ -246,10 +246,10 @@ namespace FWO.Test
             await InvokePrivateTask(component, "OnInitializedAsync");
             SetMember(component, "actRole", GetMember<List<Role>>(component, "roles")[0]);
             SetMember(component, "RemoveUserMode", true);
-            UiSessionCheckSignal sessionCheckSignal = new();
+            UiSessionTracker sessionTracker = new();
             int sessionChecks = 0;
-            sessionCheckSignal.SessionCheckRequested += () => sessionChecks++;
-            SetMember(component, "SessionCheckSignal", sessionCheckSignal);
+            sessionTracker.SessionCheckRequested += () => sessionChecks++;
+            SetMember(component, "SessionTracker", sessionTracker);
 
             UiUser userToRemove = GetMember<List<Role>>(component, "roles")[0].Users[0];
             await InvokePrivateTask(component, "RemoveUser", userToRemove);
@@ -312,7 +312,7 @@ namespace FWO.Test
             userConfig.User.Dn = "uid=role-test-user,ou=users,dc=fworch,dc=internal";
 
             SetMember(component, "middlewareClient", middlewareClient);
-            SetMember(component, "SessionCheckSignal", new UiSessionCheckSignal());
+            SetMember(component, "SessionTracker", new UiSessionTracker());
             SetMember(component, "apiConnection", new SimulatedApiConnection());
             SetMember(component, "userConfig", userConfig);
             SetMember(component, "EventMediator", eventMediator);

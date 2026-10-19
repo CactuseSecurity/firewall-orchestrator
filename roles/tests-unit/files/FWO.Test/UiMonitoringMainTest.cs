@@ -102,7 +102,7 @@ namespace FWO.Test
             context.Services.AddSingleton(middlewareClient ?? new MiddlewareClient("http://localhost/"));
             SimulatedUserConfig userConfig = new();
             context.Services.AddSingleton<UserConfig>(userConfig);
-            context.Services.AddSingleton<UiSessionCheckSignal>();
+            context.Services.AddSingleton<UiSessionTracker>();
 
             IRenderedComponent<CascadingAuthenticationState> component = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<MonitoringMain>());

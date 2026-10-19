@@ -2,6 +2,7 @@ using NUnit.Framework;
 using System.Net.Http.Json;
 using FWO.Data.Middleware;
 using FWO.Logging;
+using FWO.Middleware.Server.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net;
@@ -20,8 +21,10 @@ namespace FWO.Test
     [RequiresIntegrationEnvironment]
     internal class AuthenticationTokenIntegrationTest
     {
-        // High enough that the requests genuinely overlap on the single-use token.
-        private const int kConcurrentRefreshRequests = 40;
+        // High enough that the requests genuinely overlap on the single-use token, but not above the
+        // number of requests the refresh lock lets wait for one token: further ones are refused with
+        // 503 by design and would be miscounted as failures to reach the API.
+        private const int kConcurrentRefreshRequests = KeyedAsyncLock<string>.kDefaultMaxCallersPerKey;
         private const int kConcurrentDistinctRefreshRequests = 8;
         // A burst this size can lose a call to a transport blip, which is a failure to
         // complete rather than a second token being spent. Tolerated, but bounded: without

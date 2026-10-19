@@ -1,5 +1,8 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.7 - 19.10.2026
+- Changed the help text H2019 to display the possible usages of ";" "," and "|"
+
 ## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time
   - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)

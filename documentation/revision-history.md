@@ -8,6 +8,7 @@
   are normalized to inclusive bounds. Breaking change: the legacy request fields `ipStart` and
   `ipEnd` were removed, so clients must migrate start/end pairs to one of the new representations.
   Response payloads and persisted workflow start/end bounds are unchanged
+- First step towards replacing BlazorTable with FancyTable: the FancyTable based rules report from #5198 is added as a separate preview on a new Monitoring page that only shows up in Debug builds. The productive RulesReport.razor is unchanged.
 
 ## 9.7.6 - 18.10.26
 - various sanitizing fixes for XSS (cross site scripting) in reporting, welcome message, and modelling

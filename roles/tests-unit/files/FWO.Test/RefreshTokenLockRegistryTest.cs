@@ -85,6 +85,30 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// A request beyond the cap of the keyed lock must be refused at once, not queued.
+        /// </summary>
+        [Test]
+        [CancelAfter(kTestTimeoutMs)]
+        public async Task TryAcquireAsync_WhenCapIsExceeded_ReturnsNullWithoutWaiting(CancellationToken cancellationToken)
+        {
+            string lockKey = NewLockKey();
+            KeyedAsyncLock<string> locks = new(maxCallersPerKey: 1);
+            IDisposable holder = (await RefreshTokenLockRegistry.TryAcquireAsync(locks, lockKey, TimeSpan.FromSeconds(1), cancellationToken))!;
+
+            Task<IDisposable?> refused = RefreshTokenLockRegistry.TryAcquireAsync(locks, lockKey, TimeSpan.FromMinutes(1), cancellationToken);
+            bool refusedAtOnce = refused.IsCompleted;
+            IDisposable? refusedLease = await refused;
+            holder.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(refusedAtOnce, Is.True);
+                Assert.That(refusedLease, Is.Null);
+                Assert.That(locks.Count, Is.Zero);
+            });
+        }
+
         private static string NewLockKey()
         {
             // The registry is process-wide, so every test uses its own key.

@@ -406,9 +406,14 @@ namespace FWO.Middleware.Server.Controllers
                     AuthManager.GenerateTokenHash(request.RefreshToken), kRefreshLockTimeout, requestAborted);
                 if (refreshTokenLock == null)
                 {
-                    // Another request with this token has been running for too long; this one
-                    // has not touched the token, so a retry is safe.
-                    Log.WriteWarning(kRefreshLogCategory, $"Timed out after {kRefreshLockTimeout.TotalSeconds} s waiting for a concurrent refresh with the same token.");
+                    // Another request with this token has been running for too long, or too many
+                    // requests use the lock already; this one has not touched the token, so a retry is safe.
+                    Log.WriteWarning(kRefreshLogCategory, $"Could not take the lock of the refresh token within {kRefreshLockTimeout.TotalSeconds} s " +
+                        "or too many concurrent refreshes are pending.");
+                    if (HttpContext != null)
+                    {
+                        HttpContext.Response.Headers.RetryAfter = LoginThrottle.kRetryAfterSeconds.ToString();
+                    }
                     return StatusCode(StatusCodes.Status503ServiceUnavailable,
                         "Another refresh with this token is still in progress. Please retry.");
                 }

@@ -255,10 +255,11 @@ namespace FWO.Test
         [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_WithConcurrentRequestsForSameToken_OnlyOneRebuildsAndRotates()
         {
-            const int requestCount = 40;
+            // As many requests as the refresh lock lets wait for one token; further ones are refused with 503.
+            const int requestCount = KeyedAsyncLock<string>.kDefaultMaxCallersPerKey;
             CancellationToken cancellationToken = TestContext.CurrentContext.CancellationToken;
             int tokenIsLive = 1;
-            int userQueryCount = 0;
+            int liveTokenValidationCount = 0;
             int revokeCount = 0;
             int storeCount = 0;
             int activeUserQueries = 0;
@@ -272,14 +273,16 @@ namespace FWO.Test
                 {
                     if (query == AuthQueries.getRefreshToken)
                     {
-                        return Volatile.Read(ref tokenIsLive) == 1
-                            ? kRefreshTokenUserId7
-                            : Array.Empty<RefreshTokenInfo>();
+                        if (Volatile.Read(ref tokenIsLive) == 1)
+                        {
+                            Interlocked.Increment(ref liveTokenValidationCount);
+                            return kRefreshTokenUserId7;
+                        }
+                        return Array.Empty<RefreshTokenInfo>();
                     }
 
                     if (query == AuthQueries.getUserByDbId)
                     {
-                        Interlocked.Increment(ref userQueryCount);
                         int activeQueries = Interlocked.Increment(ref activeUserQueries);
                         RecordMaximum(ref maxActiveUserQueries, activeQueries);
                         userQueryEntered.TrySetResult();
@@ -335,7 +338,9 @@ namespace FWO.Test
             {
                 Assert.That(successCount, Is.EqualTo(1));
                 Assert.That(unauthorizedCount, Is.EqualTo(requestCount - 1));
-                Assert.That(userQueryCount, Is.EqualTo(1));
+                // Counts the requests that found the token still valid and therefore rebuilt the user; this does
+                // not depend on how many queries one rebuild sends.
+                Assert.That(liveTokenValidationCount, Is.EqualTo(1));
                 Assert.That(revokeCount, Is.EqualTo(1));
                 Assert.That(storeCount, Is.EqualTo(1));
                 Assert.That(maxActiveUserQueries, Is.EqualTo(1));
@@ -430,6 +435,40 @@ namespace FWO.Test
                 Assert.That((result.Result as ObjectResult)?.StatusCode ?? (result.Result as StatusCodeResult)?.StatusCode,
                     Is.EqualTo(StatusCodes.Status499ClientClosedRequest));
                 Assert.That(trackedWhileHolderRuns, Is.True, "the holder is still registered");
+                Assert.That(HasRefreshTokenLock(refreshToken), Is.False);
+            });
+        }
+
+        /// <summary>
+        /// When too many requests already hold or wait for the lock of a token, a further one
+        /// must be refused right away with a retryable 503 instead of queueing without bound.
+        /// </summary>
+        [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
+        public async Task RefreshToken_WhenTooManyRequestsWaitForTheSameToken_InvitesARetry(CancellationToken cancellationToken)
+        {
+            const string refreshToken = "capped-refresh-token";
+            string lockKey = GenerateTokenHash(refreshToken);
+            IDisposable holder = (await RefreshTokenLockRegistry.TryAcquireAsync(lockKey, TimeSpan.FromSeconds(1), cancellationToken))!;
+            using CancellationTokenSource waitersCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            List<Task<IDisposable?>> waiters = [.. Enumerable.Range(1, KeyedAsyncLock<string>.kDefaultMaxCallersPerKey - 1)
+                .Select(_ => RefreshTokenLockRegistry.TryAcquireAsync(lockKey, TimeSpan.FromMinutes(1), waitersCancellation.Token))];
+            DefaultHttpContext httpContext = new();
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection());
+            controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = refreshToken });
+            await waitersCancellation.CancelAsync();
+            foreach (Task<IDisposable?> waiter in waiters)
+            {
+                Assert.CatchAsync<OperationCanceledException>(async () => await waiter);
+            }
+            holder.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(((ObjectResult)result.Result!).StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+                Assert.That(httpContext.Response.Headers.RetryAfter.ToString(), Is.EqualTo(LoginThrottle.kRetryAfterSeconds.ToString()));
                 Assert.That(HasRefreshTokenLock(refreshToken), Is.False);
             });
         }

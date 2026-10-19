@@ -76,6 +76,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateRequestStringDoesNotCallCheckPointClient()
+        {
+            Management management = CreateManagement();
+            SimulatedCheckPointClient checkPointClient = new(checkPointSystem, management);
+            CheckPointTicket ticket = new(checkPointSystem, CertificateChecks, checkPointClient)
+            {
+                OnManagement = management
+            };
+
+            await ticket.CreateRequestString([CreateGroupCreateTaskWithNewHostMember()], [], new ModellingNamingConvention());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(checkPointClient.CalledEndpoints, Is.Empty);
+                Assert.That(checkPointClient.RequestBodies, Is.Empty);
+            });
+        }
+
+        [Test]
         public async Task CreateRequestStringForGroupCreateReplacesSlashInNetworkObjectName()
         {
             CheckPointTicket ticket = new(checkPointSystem, CertificateChecks);

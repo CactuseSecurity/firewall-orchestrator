@@ -2,7 +2,9 @@
 
 ## Status
 
-Blocked until WP-03 implementation is complete.
+Planning complete on 2026-10-19. The paired implementation brief is self-contained and marked `Ready for implementation`.
+
+The settled design adds one pure renderer in `FWO.ExternalSystems.CheckPoint`. It overlays the authoritative Check Point `layer` and `position` fields on a cloned access-rule request body, treats a null position as an exact legacy no-op, validates an explicitly supplied expected algorithm, and performs no implementation-task selection, client call, registration, or workflow activation.
 
 ## Planning objective
 

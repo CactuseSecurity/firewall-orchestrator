@@ -10,6 +10,7 @@ using FWO.Report.Data.ViewData;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
 using System.Collections.Generic;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -51,6 +52,15 @@ namespace FWO.Report
         private int _maxCellSize;
         private readonly int _maxPrintedViolations;
         private readonly List<int> _relevanteManagementIDs = new();
+
+        /// <summary>
+        /// Columns that hold rendered html, whose encoded text is decoded for the csv export.
+        /// All other columns hold plain values and are exported as they are.
+        /// </summary>
+        private static readonly HashSet<string> CsvHtmlColumns = new(StringComparer.Ordinal)
+        {
+            "Source", "SourceShort", "Destination", "DestinationShort", "Services", "ServicesShort", "ViolationDetails"
+        };
 
         #endregion
 
@@ -546,7 +556,7 @@ namespace FWO.Report
                         violationDetails = formatter(violation);
                     }
 
-                    rule.ViolationDetails += violationDetails;
+                    rule.ViolationDetails += HtmlOutputEncoder.EncodeText(violationDetails);
                     addedViolationDetails++;
                 }
             }
@@ -646,7 +656,8 @@ namespace FWO.Report
                 return "";
             });
 
-            return string.Join(_separator, values.Select(value => $"\"{value}\""));
+            // Quotes inside a value are doubled, so that a value cannot end its cell and start a new one.
+            return string.Join(_separator, values.Select(value => $"\"{value.Replace("\"", "\"\"")}\""));
         }
 
         private string TransformHtmlToCsv(string propertyName, string htmlInput)
@@ -667,6 +678,11 @@ namespace FWO.Report
                     .Replace("\r\n", " | ")
                     .Replace("\n", " | ")
                     .Replace("<br>", " | ");
+
+            if (CsvHtmlColumns.Contains(propertyName))
+            {
+                htmlInput = WebUtility.HtmlDecode(htmlInput);
+            }
 
             if (htmlInput.Length > _maxCellSize)
             {

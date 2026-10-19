@@ -226,6 +226,80 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayAccessElements_LocalGroupDetailsDoNotMixSourceAndDestinationMembers()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+            WfReqTask groupTask = new()
+            {
+                TaskType = WfTaskType.group_create.ToString(),
+                AdditionalInfo = JsonSerializer.Serialize(new Dictionary<string, string>
+                {
+                    [AdditionalInfoKeys.GrpName] = "Local Group"
+                }),
+                Elements =
+                [
+                    new() { Field = ElemFieldType.source.ToString(), IpString = "198.51.100.1/32" },
+                    new() { Field = ElemFieldType.destination.ToString(), IpString = "203.0.113.1/32" }
+                ]
+            };
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement> { new() { GroupName = "Local Group" } })
+                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.TicketTasks, new List<WfReqTask> { groupTask })
+                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.EditMode, false));
+
+            component.FindAll("button").Single().Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("198.51.100.1"));
+                Assert.That(component.Markup, Does.Not.Contain("203.0.113.1"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayAccessElements_LocalDestinationGroupUsesGroupDefinitionMembers()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+            WfReqTask groupTask = new()
+            {
+                TaskType = WfTaskType.group_create.ToString(),
+                AdditionalInfo = JsonSerializer.Serialize(new Dictionary<string, string>
+                {
+                    [AdditionalInfoKeys.GrpName] = "Destination Group"
+                }),
+                Elements =
+                [
+                    new() { Field = ElemFieldType.source.ToString(), IpString = "192.0.2.10/32" },
+                    new() { Field = ElemFieldType.destination.ToString(), IpString = "198.51.100.10/32" }
+                ]
+            };
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement>())
+                .Add(p => p.Destinations, new List<NwObjectElement> { new() { GroupName = "Destination Group" } })
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.TicketTasks, new List<WfReqTask> { groupTask })
+                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.EditMode, false));
+
+            component.FindAll("button").Single().Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("192.0.2.10"));
+                Assert.That(component.Markup, Does.Not.Contain("198.51.100.10"));
+            });
+        }
+
+        [Test]
         public async Task DisplayAccessElements_ReadOnlyFlowServiceGroupUsesCatalogMemberDetails()
         {
             await using BunitContext context = new();

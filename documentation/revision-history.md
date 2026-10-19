@@ -27,6 +27,7 @@
   normalized config of the middleware returns them, so that unchanged labels are not reported as rule changes
 - upgrade: 9.8.0.sql adds the labelling schema, the rule label columns, the labelLogic setting and the Guardicore
   device types to existing installations
+  
 ## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time
   - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)

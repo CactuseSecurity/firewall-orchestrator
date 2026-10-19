@@ -188,153 +188,190 @@
         - stat:
             exists: false
     internalca_ldap_certificate_is_fwo_managed: false
+  # test_pinned_variables comes from detect-pinned-variables.yml, run in main.yml.
+  when: "'internalca_issue_ldap_certificate' not in test_pinned_variables"
 
 # Successful completion of the include is the assertion: either production guard fails the
 # run if the opt-out regresses.
 
-# The Apache opt-out has a second half the LDAP one does not need. OpenLDAP reads its identity
-# from the paths FWO configures, so switching issuance off is enough; every FWO Apache vhost
-# renders internalca_apache_certificate, so switching issuance off there also has to stop that
-# variable naming a path the run will never create.
-- name: Remember the Apache identity paths before testing the issuance opt-out
+- name: Report the OpenLDAP opt-out case the operator settings pin
+  debug:
+    msg: >-
+      Skipping the OpenLDAP certificate-management opt-out case: it switches
+      internalca_issue_ldap_certificate off, which extra variables pin on this run.
+  when: "'internalca_issue_ldap_certificate' in test_pinned_variables"
+
+# Every case from here on hands the production rules their Apache inputs through set_fact or
+# include parameters. Where the operator's settings pin one of them as an extra variable,
+# neither can replace it, so the cases are skipped rather than failed.
+- name: Collect the Apache inputs the operator settings pin
   set_fact:
-    test_ownership_apache_identity_before:
-      certificate: "{{ internalca_apache_certificate }}"
-      private_key: "{{ internalca_apache_private_key }}"
+    test_ownership_pinned_apache_inputs: >-
+      {{
+        test_pinned_variables | intersect([
+          'internalca_apache_certificate',
+          'internalca_apache_private_key',
+          'internalca_issue_apache_certificate',
+          'internalca_peer_ca_intermediate_certificates',
+          'internalca_apache_intermediate_certificates',
+          'internalca_fwo_apache_certificate',
+          'internalca_fwo_apache_private_key',
+        ])
+      }}
 
-- name: Seed the FWO default Apache identity for the opt-out case
-  set_fact:
-    internalca_apache_certificate: /test/fwo-issued.crt
-    internalca_apache_private_key: /test/fwo-issued.key
+- name: Report the Apache identity cases the operator settings pin
+  debug:
+    msg: >-
+      Skipping the Apache identity opt-out and recognition cases: extra variables pin
+      {{ test_ownership_pinned_apache_inputs | join(', ') }} on this run.
+  when: test_ownership_pinned_apache_inputs | length > 0
 
-- name: Resolve the Apache identity with issuance switched off by the operator
-  include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
-  vars:
-    internalca_existing_apache_configuration: /test/fworch-ui.conf
-    internalca_existing_apache_certificate: /test/operator.crt
-    internalca_existing_apache_private_key: /test/operator.key
-    internalca_issue_apache_certificate: false
-    internalca_preserve_apache_certificate: false
+- name: Test the Apache identity opt-out and its recognition
+  when: test_ownership_pinned_apache_inputs | length == 0
+  block:
+    # The Apache opt-out has a second half the LDAP one does not need. OpenLDAP reads its identity
+    # from the paths FWO configures, so switching issuance off is enough; every FWO Apache vhost
+    # renders internalca_apache_certificate, so switching issuance off there also has to stop that
+    # variable naming a path the run will never create.
+    - name: Remember the Apache identity paths before testing the issuance opt-out
+      set_fact:
+        test_ownership_apache_identity_before:
+          certificate: "{{ internalca_apache_certificate }}"
+          private_key: "{{ internalca_apache_private_key }}"
 
-- name: Verify the operator's own Apache identity is what the vhosts will name
-  assert:
-    that:
-      - internalca_apache_certificate == '/test/operator.crt'
-      - internalca_apache_private_key == '/test/operator.key'
-    fail_msg: >-
-      With internalca_issue_apache_certificate set to false the FWO Apache vhosts still name
-      {{ internalca_apache_certificate }}, which this run does not create. Apache would refuse
-      to start on the next upgrade of a host whose identity FWO was told to keep away from.
+    - name: Seed the FWO default Apache identity for the opt-out case
+      set_fact:
+        internalca_apache_certificate: /test/fwo-issued.crt
+        internalca_apache_private_key: /test/fwo-issued.key
 
-- name: Seed the FWO default Apache identity for the ownership-detection case
-  set_fact:
-    internalca_apache_certificate: /test/fwo-issued.crt
-    internalca_apache_private_key: /test/fwo-issued.key
+    - name: Resolve the Apache identity with issuance switched off by the operator
+      include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
+      vars:
+        internalca_existing_apache_configuration: /test/fworch-ui.conf
+        internalca_existing_apache_certificate: /test/operator.crt
+        internalca_existing_apache_private_key: /test/operator.key
+        internalca_issue_apache_certificate: false
+        internalca_preserve_apache_certificate: false
 
-# Ownership detection rewrites the paths itself, and along with them the intermediate chain.
-# Doing it twice would be harmless here but would hide a later change that stopped it.
-- name: Resolve the Apache identity when ownership detection already retained it
-  include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
-  vars:
-    internalca_existing_apache_configuration: /test/fworch-ui.conf
-    internalca_existing_apache_certificate: /test/operator.crt
-    internalca_existing_apache_private_key: /test/operator.key
-    internalca_issue_apache_certificate: false
-    internalca_preserve_apache_certificate: true
+    - name: Verify the operator's own Apache identity is what the vhosts will name
+      assert:
+        that:
+          - internalca_apache_certificate == '/test/operator.crt'
+          - internalca_apache_private_key == '/test/operator.key'
+        fail_msg: >-
+          With internalca_issue_apache_certificate set to false the FWO Apache vhosts still name
+          {{ internalca_apache_certificate }}, which this run does not create. Apache would refuse
+          to start on the next upgrade of a host whose identity FWO was told to keep away from.
 
-- name: Resolve the Apache identity on a host FWO does issue for
-  include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
-  vars:
-    internalca_existing_apache_configuration: /test/fworch-ui.conf
-    internalca_existing_apache_certificate: /test/operator.crt
-    internalca_existing_apache_private_key: /test/operator.key
-    internalca_issue_apache_certificate: true
-    internalca_preserve_apache_certificate: false
+    - name: Seed the FWO default Apache identity for the ownership-detection case
+      set_fact:
+        internalca_apache_certificate: /test/fwo-issued.crt
+        internalca_apache_private_key: /test/fwo-issued.key
 
-- name: Verify the issued identity is left alone in both other cases
-  assert:
-    that:
-      - internalca_apache_certificate == '/test/fwo-issued.crt'
-      - internalca_apache_private_key == '/test/fwo-issued.key'
-    fail_msg: >-
-      The Apache identity was redirected at the installed vhost paths on a host where FWO
-      issues the identity itself, or where ownership detection had already retained it.
+    # Ownership detection rewrites the paths itself, and along with them the intermediate chain.
+    # Doing it twice would be harmless here but would hide a later change that stopped it.
+    - name: Resolve the Apache identity when ownership detection already retained it
+      include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
+      vars:
+        internalca_existing_apache_configuration: /test/fworch-ui.conf
+        internalca_existing_apache_certificate: /test/operator.crt
+        internalca_existing_apache_private_key: /test/operator.key
+        internalca_issue_apache_certificate: false
+        internalca_preserve_apache_certificate: true
 
-- name: Restore the Apache identity paths after the issuance opt-out test
-  set_fact:
-    internalca_apache_certificate: "{{ test_ownership_apache_identity_before.certificate }}"
-    internalca_apache_private_key: "{{ test_ownership_apache_identity_before.private_key }}"
+    - name: Resolve the Apache identity on a host FWO does issue for
+      include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
+      vars:
+        internalca_existing_apache_configuration: /test/fworch-ui.conf
+        internalca_existing_apache_certificate: /test/operator.crt
+        internalca_existing_apache_private_key: /test/operator.key
+        internalca_issue_apache_certificate: true
+        internalca_preserve_apache_certificate: false
 
-# The settings file is loaded with include_vars, which every set_fact outranks, so a pair the
-# operator names there was overruled by the installed vhost on the run that was meant to
-# switch to it. roles/internalCA now records that request before anything rewrites the
-# paths; these cases pin down which configurations count as one.
-- name: Remember the operator Apache identity state before testing its recognition
-  set_fact:
-    test_ownership_operator_identity_before:
-      requested: "{{ internalca_operator_apache_identity | default(false) }}"
-      certificate: "{{ internalca_operator_apache_certificate | default(internalca_apache_certificate) }}"
-      private_key: "{{ internalca_operator_apache_private_key | default(internalca_apache_private_key) }}"
-      intermediates: "{{ internalca_apache_intermediate_certificates }}"
-    test_ownership_serves_apache: >-
-      {{ ['apiserver', 'middlewareserver', 'frontends'] | intersect(group_names) | length > 0 }}
+    - name: Verify the issued identity is left alone in both other cases
+      assert:
+        that:
+          - internalca_apache_certificate == '/test/fwo-issued.crt'
+          - internalca_apache_private_key == '/test/fwo-issued.key'
+        fail_msg: >-
+          The Apache identity was redirected at the installed vhost paths on a host where FWO
+          issues the identity itself, or where ownership detection had already retained it.
 
-- name: Recognise an operator pair named with issuance switched off
-  include_tasks: "{{ role_path }}/../internalCA/tasks/select-operator-apache-identity.yml"
-  vars:
-    internalca_issue_apache_certificate: false
-    internalca_apache_certificate: /test/letsencrypt/cert.pem
-    internalca_apache_private_key: /test/letsencrypt/privkey.pem
-    internalca_peer_ca_intermediate_certificates: /test/letsencrypt/chain.pem
+    - name: Restore the Apache identity paths after the issuance opt-out test
+      set_fact:
+        internalca_apache_certificate: "{{ test_ownership_apache_identity_before.certificate }}"
+        internalca_apache_private_key: "{{ test_ownership_apache_identity_before.private_key }}"
 
-- name: Verify the operator pair and its intermediates are what the vhosts will name
-  assert:
-    that:
-      - internalca_operator_apache_identity | bool
-      - internalca_operator_apache_certificate == '/test/letsencrypt/cert.pem'
-      - internalca_operator_apache_private_key == '/test/letsencrypt/privkey.pem'
-      - internalca_apache_intermediate_certificates == '/test/letsencrypt/chain.pem'
-    fail_msg: >-
-      An Apache pair the operator configured with internalca_issue_apache_certificate set to
-      false was not recognised (recognised: {{ internalca_operator_apache_identity }},
-      intermediates: {{ internalca_apache_intermediate_certificates }}), so ownership
-      detection would replace it with the identity the installed vhost names.
-  when: test_ownership_serves_apache | bool
+    # The settings file is loaded with include_vars, which every set_fact outranks, so a pair the
+    # operator names there was overruled by the installed vhost on the run that was meant to
+    # switch to it. roles/internalCA now records that request before anything rewrites the
+    # paths; these cases pin down which configurations count as one.
+    - name: Remember the operator Apache identity state before testing its recognition
+      set_fact:
+        test_ownership_operator_identity_before:
+          requested: "{{ internalca_operator_apache_identity | default(false) }}"
+          certificate: "{{ internalca_operator_apache_certificate | default(internalca_apache_certificate) }}"
+          private_key: "{{ internalca_operator_apache_private_key | default(internalca_apache_private_key) }}"
+          intermediates: "{{ internalca_apache_intermediate_certificates }}"
+        test_ownership_serves_apache: >-
+          {{ ['apiserver', 'middlewareserver', 'frontends'] | intersect(group_names) | length > 0 }}
 
-- name: Recognise the FWO location named with issuance switched off
-  include_tasks: "{{ role_path }}/../internalCA/tasks/select-operator-apache-identity.yml"
-  vars:
-    internalca_issue_apache_certificate: false
-    internalca_apache_certificate: "{{ internalca_fwo_apache_certificate }}"
-    internalca_apache_private_key: "{{ internalca_fwo_apache_private_key }}"
+    - name: Recognise an operator pair named with issuance switched off
+      include_tasks: "{{ role_path }}/../internalCA/tasks/select-operator-apache-identity.yml"
+      vars:
+        internalca_issue_apache_certificate: false
+        internalca_apache_certificate: /test/letsencrypt/cert.pem
+        internalca_apache_private_key: /test/letsencrypt/privkey.pem
+        internalca_peer_ca_intermediate_certificates: /test/letsencrypt/chain.pem
 
-- name: Verify switching issuance off alone still keeps the installed identity
-  assert:
-    that:
-      - not (internalca_operator_apache_identity | bool)
-    fail_msg: >-
-      Switching internalca_issue_apache_certificate off without naming a pair was taken for
-      a request to serve the FWO location, so the identity the installed vhost serves would
-      no longer be kept.
+    - name: Verify the operator pair and its intermediates are what the vhosts will name
+      assert:
+        that:
+          - internalca_operator_apache_identity | bool
+          - internalca_operator_apache_certificate == '/test/letsencrypt/cert.pem'
+          - internalca_operator_apache_private_key == '/test/letsencrypt/privkey.pem'
+          - internalca_apache_intermediate_certificates == '/test/letsencrypt/chain.pem'
+        fail_msg: >-
+          An Apache pair the operator configured with internalca_issue_apache_certificate set to
+          false was not recognised (recognised: {{ internalca_operator_apache_identity }},
+          intermediates: {{ internalca_apache_intermediate_certificates }}), so ownership
+          detection would replace it with the identity the installed vhost names.
+      when: test_ownership_serves_apache | bool
 
-- name: Recognise an own pair named while FWO issues the identity
-  include_tasks: "{{ role_path }}/../internalCA/tasks/select-operator-apache-identity.yml"
-  vars:
-    internalca_issue_apache_certificate: true
-    internalca_apache_certificate: /test/letsencrypt/cert.pem
-    internalca_apache_private_key: /test/letsencrypt/privkey.pem
+    - name: Recognise the FWO location named with issuance switched off
+      include_tasks: "{{ role_path }}/../internalCA/tasks/select-operator-apache-identity.yml"
+      vars:
+        internalca_issue_apache_certificate: false
+        internalca_apache_certificate: "{{ internalca_fwo_apache_certificate }}"
+        internalca_apache_private_key: "{{ internalca_fwo_apache_private_key }}"
 
-- name: Verify an issued identity is never taken for the operator's own
-  assert:
-    that:
-      - not (internalca_operator_apache_identity | bool)
-    fail_msg: >-
-      A pair named while internalca_issue_apache_certificate is true was taken for an
-      administrator-managed identity, although FWO issues that pair itself.
+    - name: Verify switching issuance off alone still keeps the installed identity
+      assert:
+        that:
+          - not (internalca_operator_apache_identity | bool)
+        fail_msg: >-
+          Switching internalca_issue_apache_certificate off without naming a pair was taken for
+          a request to serve the FWO location, so the identity the installed vhost serves would
+          no longer be kept.
 
-- name: Restore the operator Apache identity state after the recognition test
-  set_fact:
-    internalca_operator_apache_identity: "{{ test_ownership_operator_identity_before.requested | bool }}"
-    internalca_operator_apache_certificate: "{{ test_ownership_operator_identity_before.certificate }}"
-    internalca_operator_apache_private_key: "{{ test_ownership_operator_identity_before.private_key }}"
-    internalca_apache_intermediate_certificates: "{{ test_ownership_operator_identity_before.intermediates }}"
+    - name: Recognise an own pair named while FWO issues the identity
+      include_tasks: "{{ role_path }}/../internalCA/tasks/select-operator-apache-identity.yml"
+      vars:
+        internalca_issue_apache_certificate: true
+        internalca_apache_certificate: /test/letsencrypt/cert.pem
+        internalca_apache_private_key: /test/letsencrypt/privkey.pem
+
+    - name: Verify an issued identity is never taken for the operator's own
+      assert:
+        that:
+          - not (internalca_operator_apache_identity | bool)
+        fail_msg: >-
+          A pair named while internalca_issue_apache_certificate is true was taken for an
+          administrator-managed identity, although FWO issues that pair itself.
+
+    - name: Restore the operator Apache identity state after the recognition test
+      set_fact:
+        internalca_operator_apache_identity: "{{ test_ownership_operator_identity_before.requested | bool }}"
+        internalca_operator_apache_certificate: "{{ test_ownership_operator_identity_before.certificate }}"
+        internalca_operator_apache_private_key: "{{ test_ownership_operator_identity_before.private_key }}"
+        internalca_apache_intermediate_certificates: "{{ test_ownership_operator_identity_before.intermediates }}"

@@ -251,3 +251,53 @@ D-036 supersedes the retention option in D-033 and the future-caller direction i
 A future placer must define and own any conversion from persisted semantic position to vendor request shape. Phase 4 remains semantic-output-only and must not recreate rendering as part of the customer algorithm.
 
 Rationale: no current product path owns Check Point rule execution, so retaining a predesigned API adapter creates maintenance cost and prematurely constrains the later placer contract.
+
+## 2026-10-19 - D-037 - Use the generic end-of-initial-rulebase recipe
+
+Phase 3 WP-05 supports exactly `ProvisioningPositioningAlgorithm.DefaultEndOfRulebase` for Check Point gateway device type ID `9`. It maps to `EndOfBlock(CheckPointLayerScopeBlock(CheckPointLayerSelector.InitialLayer()))`, producing `Below` the last direct rule in a populated initial layer and `Bottom` in an existing empty initial layer. Every other named value, `Undefined`, and unknown numeric value is unsupported without fallback.
+
+The mapping is supported by both the compiled `GatewayProvisioningSettings` default and the existing localized UI statement that the default is the end of the rulebase; it is not inferred from the enum name alone.
+
+Rationale: this is the only existing setting whose current product default and description establish genuinely generic graph-only behavior without opening the customer document or requiring zone input.
+
+## 2026-10-19 - D-038 - Add a separate graph-only Check Point strategy
+
+WP-05 adds a graph-only catalog and Check Point strategy that depend only on the production graph reader and immutable recipe execution. Only this strategy is registered with `RulePositioningManager`. The existing zone-capable `CheckPointRulePositioningStrategy` and its catalog remain unregistered Phase 4 preparation; existing zone services remain registered only for their non-positioning consumers.
+
+The audit of `RuleTreeBuilder` found no safe extraction for WP-05. Its mutable, cached, presentation-oriented, synthetic-node/NAT behavior and tolerant missing-link semantics differ materially from the immutable strict positioning interpreter, so the two remain separate over the same normalized source data.
+
+Rationale: a distinct exact-capability strategy enforces the graph-only boundary without destabilizing the already implemented customer-oriented seam or weakening topology validation.
+
+## 2026-10-19 - D-039 - Treat the persisted implementation task as the gateway calculation unit
+
+The concrete persisted `WfImplTask` supplies the target gateway for one positioning calculation. Its positive device ID must equal the supplied gateway, and its effective management remains `implTask.ManagementId ?? requestTask.ManagementId`. A finite explicit parent device list must contain that gateway, while empty, all-device, and workflow-expanded implicit selections do not invalidate a concrete gateway implementation task. Combined or targetless implementation tasks remain inapplicable.
+
+Rationale: workflow expansion can create gateway-specific implementation tasks from parent selections that are not themselves a single-device list; validating the persisted unit avoids rejecting legitimate work while retaining strict identity checks.
+
+## 2026-10-19 - D-040 - Clear stale positions after every completed failure
+
+A successful calculation stores or replaces the semantic position. Every completed typed failure and unexpected non-cancellation failure attempts one `null` persistence to clear stale state. Cancellation before persistence begins preserves the prior value and propagates; after a mutation begins, the caller awaits its known result because the existing API mutation has no cancellation token. Persistence failure is reported safely without retry.
+
+Rationale: a stale position is more dangerous than no position after a fresh failed attempt, while pre-write cancellation must not mutate state and automatic retry could duplicate or obscure workflow behavior.
+
+## 2026-10-19 - D-041 - Keep positioning best-effort and defer only its workflow hook
+
+Positioning and semantic-position persistence are best-effort relative to the surrounding workflow. Their failure must not roll back or fail otherwise successful workflow processing. The calculation/persistence caller is designed and registered independently, but remains unhooked until the workflow diagram is reviewed and one authoritative post-persistence implementation-task trigger is selected as the final WP-05 planning decision.
+
+Rationale: the diagram may reveal the only reliable creation/expansion seam. Deferring that small hook avoids embedding an uncertain event assumption while preserving all settled generic design and failure semantics.
+
+## 2026-10-19 - D-042 - Split callable completion from workflow activation
+
+D-042 refines the packaging consequence of D-041. WP-05 is ready for implementation and owns the complete graph-only recipe, strategy, manager correction, independently callable context-loading/persistence service, production registration, failure policy, and renderer removal. It deliberately leaves that registered caller unreferenced by production workflow code.
+
+New Phase 3 WP-06 owns a separate planning and implementation pair for the workflow activation hook after the workflow diagram is available. WP-06 must reuse the WP-05 caller and may add only the authoritative server-side invocation, applicability/idempotency behavior, focused tests, and documentation unless its planning proves a mandatory correction.
+
+Rationale: the uncertain trigger does not prevent implementing or validating the self-contained calculation/persistence capability. Isolating activation allows WP-05 work to begin now without guessing the workflow event and preserves the two-session planning gate for the blocked feature.
+
+## 2026-10-19 - D-043 - Complete the unhooked generic production capability
+
+Phase 3 WP-05 implements D-036 through D-042. Production registration now contains exactly one graph-only positioning strategy for Check Point gateway type `9` and `DefaultEndOfRulebase`, plus an independently callable best-effort context-loading and semantic-position-persistence service. The zone-capable strategy remains unregistered, and no production workflow controller or handler invokes the caller.
+
+The implementation removes the speculative WP-04 renderer and retains persisted semantic `RulePosition` as the terminal output. Focused coverage, a warning-free Debug build, the complete unit suite, and exclusion searches validate the package. WP-06 remains responsible for diagram-based activation planning and the sole authoritative post-persistence hook.
+
+Rationale: completing calculation and persistence independently provides a testable generic capability without guessing workflow event semantics or introducing firewall execution behavior.

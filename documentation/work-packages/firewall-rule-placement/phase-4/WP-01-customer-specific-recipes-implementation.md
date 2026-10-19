@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft — customer analysis and planning required after Phase 3 WP-05 is complete.
+Draft — customer analysis and planning required after Phase 3 WP-05 and WP-06 are complete.
 
 Do not implement this package until the paired planner has replaced every draft section and marked it `Ready for implementation`.
 

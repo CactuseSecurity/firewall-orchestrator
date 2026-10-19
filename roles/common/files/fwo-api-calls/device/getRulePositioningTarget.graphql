@@ -1,0 +1,20 @@
+query getRulePositioningTarget($gatewayId: Int!) {
+  device(where: { dev_id: { _eq: $gatewayId } }) {
+    id: dev_id
+    name: dev_name
+    deviceType: stm_dev_typ {
+      id: dev_typ_id
+      name: dev_typ_name
+      version: dev_typ_version
+    }
+    management {
+      id: mgm_id
+      name: mgm_name
+      deviceType: stm_dev_typ {
+        id: dev_typ_id
+        name: dev_typ_name
+        version: dev_typ_version
+      }
+    }
+  }
+}

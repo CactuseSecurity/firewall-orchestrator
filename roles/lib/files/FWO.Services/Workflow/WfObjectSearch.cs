@@ -13,7 +13,7 @@ using System.Text;
 namespace FWO.Services.Workflow
 {
     /// <summary>
-    /// Server side search for the imported object or service an object_modify request task refers to.
+    /// Server side search for the imported object, service or time object an object_modify request task refers to.
     /// The search runs with the workflow role scope, which prefers the requester role - the only workflow role
     /// permitted to read imported objects - and returns at most WfObjectTaskHelper.kSearchLimit hits of one
     /// management. Searching is only offered while editing a request task, which requires the requester role.
@@ -92,6 +92,26 @@ namespace FWO.Services.Workflow
                 {
                     mgmId = managementId,
                     svcTypeIds = WfObjectTaskHelper.ServiceTypeIds,
+                    pattern = ToContainsPattern(text),
+                    limit = WfObjectTaskHelper.kSearchLimit
+                }));
+        }
+
+        /// <summary>
+        /// Searches time objects by a part of the name.
+        /// Texts shorter than WfObjectTaskHelper.kMinSearchLength return no hits without querying the api.
+        /// </summary>
+        public async Task<List<TimeObject>> SearchTimeObjects(int managementId, string searchText)
+        {
+            string text = searchText.Trim();
+            if (text.Length < WfObjectTaskHelper.kMinSearchLength)
+            {
+                return [];
+            }
+            return await apiConnection.RunWithWorkflowRole(user, () =>
+                apiConnection.SendQueryAsync<List<TimeObject>>(ObjectQueries.searchTimeObjectsForRequestByName, new
+                {
+                    mgmId = managementId,
                     pattern = ToContainsPattern(text),
                     limit = WfObjectTaskHelper.kSearchLimit
                 }));

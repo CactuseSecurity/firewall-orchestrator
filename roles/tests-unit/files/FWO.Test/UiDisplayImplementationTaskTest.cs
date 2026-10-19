@@ -15,6 +15,8 @@ namespace FWO.Test
     [TestFixture]
     internal class UiDisplayImplementationTaskTest
     {
+        private static readonly object?[] kNoArgs = [];
+
         [Test]
         public void DisplayObjectAndServiceElements_UseFlowIdsWhenNoNamesAreAvailable()
         {
@@ -192,6 +194,34 @@ namespace FWO.Test
                 Assert.That(readOnlyAction, Is.True);
                 Assert.That(hiddenAction, Is.False);
             });
+        }
+
+        [Test]
+        public async Task ReadOnlyPhaseView_OffersOnlyReadOnlyActionsAndBlocksWrites()
+        {
+            DisplayImplementationTask component = new();
+            WfImplTask implTask = new() { Title = "Unchanged" };
+            WfHandler handler = new() { ActImplTask = implTask, ReadOnlyMode = true, ImplementImplTaskMode = true };
+            SetMember(component, nameof(DisplayImplementationTask.WfHandler), handler);
+            SetMember(component, "userConfig", CreateUserConfig());
+
+            GetPrivateMethod(typeof(DisplayImplementationTask), "InitAddComment").Invoke(component, kNoArgs);
+            GetPrivateMethod(typeof(DisplayImplementationTask), "InitPromoteImplTask").Invoke(component, kNoArgs);
+            await (Task)GetPrivateMethod(typeof(DisplayImplementationTask), "SaveImplTask").Invoke(component, kNoArgs)!;
+            bool readOnlyAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DisplayConnection.ToString() });
+            bool changingAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayImplTaskCommentMode, Is.False);
+                Assert.That(handler.DisplayPromoteImplTaskMode, Is.False);
+                Assert.That(implTask.Title, Is.EqualTo("Unchanged"));
+                Assert.That(readOnlyAction, Is.True);
+                Assert.That(changingAction, Is.False);
+            });
+
+            handler.ReadOnlyMode = false;
+            Assert.That(InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() }), Is.True);
         }
 
         [Test]

@@ -22,6 +22,10 @@ namespace FWO.Test
         private static readonly List<string> kReqElementInsertRoles = ["approver", "modeller", "requester"];
         private static readonly List<string> kReqElementUpdateRoles = ["approver", "requester"];
         private static readonly List<string> kFlowCatalogTables = ["nwobject", "svcobject", "timeobject"];
+        private static readonly List<string> kAuditorReadableFlowTables = ["nwobject", "nwgroup", "nwgroup_member", "svcobject", "svcgroup", "svcgroup_member", "timeobject"];
+        private static readonly List<string> kWritePermissionKinds = ["insert_permissions", "update_permissions", "delete_permissions"];
+        private static readonly List<string> kUnrestrictedReadRoles = ["middleware-server", "auditor"];
+        private const string kAuditorRole = "auditor";
         private static readonly List<string> kFlowRelationships = ["flow_nwobject", "flow_nwgroup", "flow_svcobject", "flow_svcgroup"];
         private const string kShownCondition = "\"show_in_request_module\":{\"_eq\":true}";
         private const string kNotRetiredCondition = "\"removed_date\":{\"_is_null\":true}";
@@ -81,6 +85,32 @@ namespace FWO.Test
                 Assert.That(Serialize(FindPermission(table, "select_permissions", "middleware-server")?["filter"]), Is.EqualTo("{}"),
                     $"flow.{tableName}");
             }
+        }
+
+        /// <summary>
+        /// The auditor views the Flow settings, so it reads the whole catalog including retired and hidden
+        /// entries, but it must never write to any Flow table.
+        /// </summary>
+        [Test]
+        public void FlowTables_LetTheAuditorReadEverythingButWriteNothing()
+        {
+            Assert.Multiple(() =>
+            {
+                foreach (string tableName in kAuditorReadableFlowTables)
+                {
+                    JsonNode table = FindTable("flow", tableName);
+                    Assert.That(Serialize(FindPermission(table, "select_permissions", kAuditorRole)?["filter"]), Is.EqualTo("{}"),
+                        $"flow.{tableName}");
+                }
+                foreach (JsonNode table in FindTables(metadata).Where(candidate => candidate["table"]?["schema"]?.GetValue<string>() == "flow"))
+                {
+                    foreach (string permissionKind in kWritePermissionKinds)
+                    {
+                        Assert.That(FindPermission(table, permissionKind, kAuditorRole), Is.Null,
+                            $"flow.{table["table"]?["name"]?.GetValue<string>()} / {permissionKind}");
+                    }
+                }
+            });
         }
 
         /// <summary>
@@ -148,7 +178,7 @@ namespace FWO.Test
         /// The set is stated here rather than read out of the metadata: a list derived from the file under
         /// test would still pass when a role's permission is deleted outright, and would not notice a new
         /// role added without one - the two regressions most worth catching.
-        /// The middleware is left out, it is unrestricted by design and pinned separately.
+        /// The middleware and the auditor are left out, their read access is unrestricted by design and pinned separately.
         /// </summary>
         /// <param name="table">The table node to read.</param>
         /// <param name="permissionKind">Name of the permission list.</param>
@@ -158,10 +188,19 @@ namespace FWO.Test
         {
             List<string> roles = [.. (table[permissionKind]?.AsArray() ?? [])
                 .Select(permission => permission?["role"]?.GetValue<string>() ?? "")
-                .Where(role => role.Length > 0 && role != "middleware-server")];
+                .Where(role => role.Length > 0 && !IsPinnedSeparately(role, permissionKind))];
             Assert.That(roles, Is.EquivalentTo(expectedRoles),
                 $"the roles holding a {permissionKind} on this table changed - every one of them needs the eligibility predicate");
             return expectedRoles;
+        }
+
+        /// <summary>
+        /// The middleware is unrestricted for every permission, the auditor only for reading.
+        /// </summary>
+        private static bool IsPinnedSeparately(string role, string permissionKind)
+        {
+            bool unrestrictedReader = permissionKind == "select_permissions" && kUnrestrictedReadRoles.Contains(role);
+            return unrestrictedReader || role == "middleware-server";
         }
 
         private JsonNode FindTable(string schema, string name)

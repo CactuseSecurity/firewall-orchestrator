@@ -119,7 +119,7 @@ else
         return taskType == null ? userConfig.GetText("all") : userConfig.GetText(taskType.ToString() ?? "");
     }
 
-    private string SectionHeaderClass => UseLightText ? "text-left text-white" : "text-left";
+    private string SectionHeaderClass => UseLightText ? "text-start text-white" : "text-start";
     private string CheckboxLabelClass => UseLightText ? "form-check-label text-white" : "form-check-label";
     private string DetailedViewCheckboxId => UseFormLayout ? "detailedViewTemplate" : "detailedView";
     private string ShowFullTicketCheckboxId => UseFormLayout ? "showFullTicketTemplate" : "showFullTicket";

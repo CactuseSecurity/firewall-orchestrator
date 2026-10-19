@@ -97,6 +97,12 @@ namespace FWO.Services.Workflow
 
         public async Task StartWorkOnImplTask(WfImplTask implTask, ObjAction action)
         {
+            if (ReadOnlyMode)
+            {
+                // read-only users follow the phase without starting work, so no state is written
+                SelectImplTask(implTask, action);
+                return;
+            }
             SetImplTaskEnv(implTask);
             ActImplTask.CurrentHandler = userConfig.User;
             List<int> actPossibleStates = ActStateMatrix.getAllowedTransitions(ActImplTask.StateId);
@@ -116,12 +122,22 @@ namespace FWO.Services.Workflow
 
         public async Task ContinueImplPhase(WfImplTask implTask)
         {
-            SelectImplTask(implTask, contOption);
-            if (ActImplTask.CurrentHandler != userConfig.User)
+            ViewImplTaskInPhase(implTask);
+            if (!ReadOnlyMode && ActImplTask.CurrentHandler != userConfig.User)
             {
                 ActImplTask.CurrentHandler = userConfig.User;
                 await UpdateActImplTaskState();
             }
+        }
+
+        /// <summary>
+        /// Opens an implementation task in the view of the current phase without starting work on it or taking it over,
+        /// so that read-only users can see the phase dialog. No state is written.
+        /// </summary>
+        /// <param name="implTask">The implementation task to open.</param>
+        public void ViewImplTaskInPhase(WfImplTask implTask)
+        {
+            SelectImplTask(implTask, contOption);
         }
 
         public bool SelectOwnerImplTasks(FwoOwner selectedOwnerOpt)

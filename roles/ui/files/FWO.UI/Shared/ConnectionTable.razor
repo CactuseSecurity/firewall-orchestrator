@@ -1,3 +1,4 @@
+@using FWO.Basics
 @using FWO.Ui.Display
 @using FWO.Data.Modelling
 
@@ -119,7 +120,7 @@
         }
         <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true">
             <Template>
-                @((MarkupString)DisplayConditional(context, context.Name ?? ""))
+                @((MarkupString)DisplayConditional(context, HtmlOutputEncoder.EncodeText(context.Name)))
             </Template>
         </Column>
         @if(!DiffMode)
@@ -127,7 +128,7 @@
             <Column TableItem="ModellingConnection" Title="@(Connections.Count > 0 && Connections.First().IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))"
                     Field="@(x => x.Reason)" Sortable="true" Filterable="true" Class="@(OrphanedMode ? "d-none" : "")">
                 <Template>
-                    @((MarkupString)DisplayConditional(context, context.Reason ?? ""))
+                    @((MarkupString)DisplayConditional(context, HtmlOutputEncoder.SanitizeRichText(context.Reason)))
                 </Template>
             </Column>
         }
@@ -277,13 +278,16 @@
     private bool ShowImplementationStateColumn => userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications ||
         userConfig.VarianceAnalysisSync || userConfig.VarianceAnalysisRefresh || userConfig.VarianceAnalysisSleepTime > 0;
 
-    private string DisplayConditional(ModellingConnection conn, string content)
+    /// <summary>
+    /// Greys out the content of requested connections. The content must already be encoded or sanitized html.
+    /// </summary>
+    private string DisplayConditional(ModellingConnection conn, string safeHtmlContent)
     {
         if (conn.IsRequested)
         {
-            return $"<span class=\"text-secondary\">{content}</span>";
+            return $"<span class=\"text-secondary\">{safeHtmlContent}</span>";
         }
-        return content;
+        return safeHtmlContent;
     }
 
     private bool ShowDeleteButton(ModellingConnection conn)

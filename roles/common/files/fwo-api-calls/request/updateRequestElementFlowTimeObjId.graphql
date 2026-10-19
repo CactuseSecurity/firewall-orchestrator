@@ -1,0 +1,13 @@
+mutation updateRequestElementFlowTimeObjId(
+  $id: bigint!
+  $flowTimeObjId: bigint
+) {
+  update_request_reqelement_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      flow_timeobj_id: $flowTimeObjId
+    }
+  ) {
+    UpdatedIdLong: id
+  }
+}

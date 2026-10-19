@@ -297,7 +297,6 @@ namespace FWO.DeviceAutoDiscovery
             {
                 Hostname = SuperManagement.Hostname,
                 ImportCredential = SuperManagement.ImportCredential,
-                ImporterHostname = SuperManagement.ImporterHostname,
                 DebugLevel = SuperManagement.DebugLevel,
                 Port = SuperManagement.Port,
                 ImportDisabled = false,

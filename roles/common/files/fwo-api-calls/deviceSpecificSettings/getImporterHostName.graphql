@@ -1,0 +1,16 @@
+query getImporterHostName($deviceTypeKey: String!, $managementKey: String!) {
+  device_specific_config_node(
+    where: {
+      _or: [
+        {node_type: {_eq: "global"}}
+        {node_type: {_eq: "device_type"}, object_key: {_eq: $deviceTypeKey}}
+        {node_type: {_eq: "management"}, object_key: {_eq: $managementKey}}
+      ]
+    }
+  ) {
+    node_type
+    values(where: {config_key: {_eq: "importerHostName"}}) {
+      config_value
+    }
+  }
+}

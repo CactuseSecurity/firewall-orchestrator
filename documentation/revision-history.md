@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.7.7 - 19.10.2026
+## 9.7.6 - 19.10.2026
 - Changed the help text H2019 to display the possible usages of ";" "," and "|"
 
 ## 9.7.5 - 16.10.2026

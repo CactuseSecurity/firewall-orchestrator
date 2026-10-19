@@ -264,3 +264,77 @@
   set_fact:
     internalca_apache_certificate: "{{ test_ownership_apache_identity_before.certificate }}"
     internalca_apache_private_key: "{{ test_ownership_apache_identity_before.private_key }}"
+
+# The settings file is loaded with include_vars, which every set_fact outranks, so a pair the
+# operator names there was overruled by the installed vhost on the run that was meant to
+# switch to it. roles/internalCA now records that request before anything rewrites the
+# paths; these cases pin down which configurations count as one.
+- name: Remember the operator Apache identity state before testing its recognition
+  set_fact:
+    test_ownership_operator_identity_before:
+      requested: "{{ internalca_operator_apache_identity | default(false) }}"
+      certificate: "{{ internalca_operator_apache_certificate | default(internalca_apache_certificate) }}"
+      private_key: "{{ internalca_operator_apache_private_key | default(internalca_apache_private_key) }}"
+      intermediates: "{{ internalca_apache_intermediate_certificates }}"
+    test_ownership_serves_apache: >-
+      {{ ['apiserver', 'middlewareserver', 'frontends'] | intersect(group_names) | length > 0 }}
+
+- name: Recognise an operator pair named with issuance switched off
+  include_tasks: "{{ role_path }}/../internalCA/tasks/select-operator-apache-identity.yml"
+  vars:
+    internalca_issue_apache_certificate: false
+    internalca_apache_certificate: /test/letsencrypt/cert.pem
+    internalca_apache_private_key: /test/letsencrypt/privkey.pem
+    internalca_peer_ca_intermediate_certificates: /test/letsencrypt/chain.pem
+
+- name: Verify the operator pair and its intermediates are what the vhosts will name
+  assert:
+    that:
+      - internalca_operator_apache_identity | bool
+      - internalca_operator_apache_certificate == '/test/letsencrypt/cert.pem'
+      - internalca_operator_apache_private_key == '/test/letsencrypt/privkey.pem'
+      - internalca_apache_intermediate_certificates == '/test/letsencrypt/chain.pem'
+    fail_msg: >-
+      An Apache pair the operator configured with internalca_issue_apache_certificate set to
+      false was not recognised (recognised: {{ internalca_operator_apache_identity }},
+      intermediates: {{ internalca_apache_intermediate_certificates }}), so ownership
+      detection would replace it with the identity the installed vhost names.
+  when: test_ownership_serves_apache | bool
+
+- name: Recognise the FWO location named with issuance switched off
+  include_tasks: "{{ role_path }}/../internalCA/tasks/select-operator-apache-identity.yml"
+  vars:
+    internalca_issue_apache_certificate: false
+    internalca_apache_certificate: "{{ internalca_fwo_apache_certificate }}"
+    internalca_apache_private_key: "{{ internalca_fwo_apache_private_key }}"
+
+- name: Verify switching issuance off alone still keeps the installed identity
+  assert:
+    that:
+      - not (internalca_operator_apache_identity | bool)
+    fail_msg: >-
+      Switching internalca_issue_apache_certificate off without naming a pair was taken for
+      a request to serve the FWO location, so the identity the installed vhost serves would
+      no longer be kept.
+
+- name: Recognise an own pair named while FWO issues the identity
+  include_tasks: "{{ role_path }}/../internalCA/tasks/select-operator-apache-identity.yml"
+  vars:
+    internalca_issue_apache_certificate: true
+    internalca_apache_certificate: /test/letsencrypt/cert.pem
+    internalca_apache_private_key: /test/letsencrypt/privkey.pem
+
+- name: Verify an issued identity is never taken for the operator's own
+  assert:
+    that:
+      - not (internalca_operator_apache_identity | bool)
+    fail_msg: >-
+      A pair named while internalca_issue_apache_certificate is true was taken for an
+      administrator-managed identity, although FWO issues that pair itself.
+
+- name: Restore the operator Apache identity state after the recognition test
+  set_fact:
+    internalca_operator_apache_identity: "{{ test_ownership_operator_identity_before.requested | bool }}"
+    internalca_operator_apache_certificate: "{{ test_ownership_operator_identity_before.certificate }}"
+    internalca_operator_apache_private_key: "{{ test_ownership_operator_identity_before.private_key }}"
+    internalca_apache_intermediate_certificates: "{{ test_ownership_operator_identity_before.intermediates }}"

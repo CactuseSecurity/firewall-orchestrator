@@ -38,7 +38,8 @@
   fail:
     msg: >-
       internalca_peer_ca_certificate is set to {{ internalca_bundle_peer_ca }},
-      but that file cannot be read on {{ inventory_hostname }}. Place the issuing root
+      but that file cannot be read on {{ inventory_hostname }}
+      ({{ internalca_bundle_peer_ca_content.msg | default('no reason reported', true) }}). Place the issuing root
       CA certificate of the retained Apache certificate at that path on every FWO host,
       or leave the setting at its default to trust the {{ product_name }} internal CA alone.
   when:

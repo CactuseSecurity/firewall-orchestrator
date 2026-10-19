@@ -71,3 +71,8 @@ fwo_endpoint_hostname: ""
 # directly; keep the root out of that bundle.
 # internalca_peer_ca_certificate: /etc/ssl/certs/customer-root.pem
 # internalca_peer_ca_intermediate_certificates: /etc/ssl/certs/customer-intermediates.pem
+# To serve that certificate on every FWO Apache endpoint, switch FWO's own issuance off and
+# name the pair. Without the two paths, the certificate the installed vhosts serve is kept.
+# internalca_issue_apache_certificate: false
+# internalca_apache_certificate: /etc/ssl/certs/fwo.example.com.crt
+# internalca_apache_private_key: /etc/ssl/private/fwo.example.com.key

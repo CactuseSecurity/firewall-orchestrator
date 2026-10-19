@@ -204,6 +204,42 @@ certificate on every FWO client host. When an upgrade retains a customer-managed
 API certificate without this setting, FWO stops before deploying clients that
 would trust the unrelated internal CA.
 
+Keep these settings in `/etc/fworch/fwo-install-settings.yml` so every later
+upgrade applies them as well. A pair named there replaces whatever certificate
+the installed vhosts serve, including on the run that switches away from an
+FWO-issued one, and it gets the same checks as a retained certificate: both
+files must exist, the root must be configured, and the certificate must cover
+every FWO endpoint name. Naming the FWO location, or no pair at all, keeps the
+certificate the installed vhosts already serve. For a pair named this way the
+chain is taken only from `internalca_peer_ca_intermediate_certificates`, not
+from the vhost being replaced. For example, for a Let's Encrypt certificate
+renewed by certbot:
+
+```yaml
+# /etc/fworch/fwo-install-settings.yml
+fwo_endpoint_hostname: fwo.example.com
+internalca_issue_apache_certificate: false
+internalca_apache_certificate: /etc/letsencrypt/live/fwo.example.com/cert.pem
+internalca_apache_private_key: /etc/letsencrypt/live/fwo.example.com/privkey.pem
+internalca_peer_ca_intermediate_certificates: /etc/letsencrypt/live/fwo.example.com/chain.pem
+internalca_peer_ca_certificate: /etc/ssl/letsencrypt-roots.pem
+```
+
+Let's Encrypt issues under more than one root - an ECDSA certificate from a
+`YE` intermediate does not chain to ISRG Root X1 - so configure a bundle of
+all its roots rather than a single one, for example
+`cat /etc/ssl/certs/ISRG_Root_X1.pem /etc/ssl/certs/ISRG_Root_X2.pem > /etc/ssl/letsencrypt-roots.pem`,
+plus any newer ISRG root the chain in `chain.pem` ends at.
+`openssl verify -CAfile /etc/ssl/letsencrypt-roots.pem -untrusted chain.pem cert.pem`
+must report `OK`. The installer runs the same check against its trust bundle
+for every retained or administrator-managed Apache certificate and stops
+early in the run, before the database and the services are upgraded, when it
+fails.
+
+The `live/` paths are symlinks that certbot moves on every renewal, so the
+vhosts keep naming the current certificate. Apache only reads it again when it
+is reloaded, for example by a certbot deploy hook.
+
 To prevent FWO from issuing or replacing an administrator-managed OpenLDAP
 identity, set `internalca_issue_ldap_certificate: false` and place the certificate
 and private key at the configured OpenLDAP certificate paths. The installer then

@@ -39,19 +39,27 @@
 #   retained_chain_trust_bundle - anchors to build against; the installed trust bundle by
 #                                 default, overridable so roles/tests-integration can
 #                                 drive this file against generated certificates
+#   retained_chain_intermediates - a separate file the server sends after the certificate
+#                                 file, as Apache does with SSLCertificateChainFile; empty
+#                                 when the certificate file is the whole chain, as for slapd
+#   retained_chain_consequence  - what the components reading the trust bundle would do
+#                                 with a chain that reaches no anchor; defaults to the
+#                                 OpenLDAP clients, the first caller
 - name: Verify the retained {{ retained_chain_subject }} certificate reaches a trusted anchor
-  # The certificate file is passed as -untrusted as well, deliberately: that file is the
-  # whole chain the server presents, so a leaf accompanied by its intermediate is accepted
-  # while a leaf on its own is not - which is precisely what the client will conclude.
+  # The certificate file is passed as -untrusted as well, deliberately: together with the
+  # optional chain file it is the whole chain the server presents, so a leaf accompanied
+  # by its intermediate is accepted while a leaf on its own is not - which is precisely
+  # what the client will conclude.
   command:
-    argv:
-      - openssl
-      - verify
-      - -CAfile
-      - "{{ retained_chain_trust_bundle | default(internalca_trust_bundle, true) }}"
-      - -untrusted
-      - "{{ retained_chain_certificate }}"
-      - "{{ retained_chain_certificate }}"
+    argv: >-
+      {{
+        ['openssl', 'verify', '-CAfile',
+          retained_chain_trust_bundle | default(internalca_trust_bundle, true),
+          '-untrusted', retained_chain_certificate]
+        + (['-untrusted', retained_chain_intermediates]
+          if retained_chain_intermediates | default('', true) | length > 0 else [])
+        + [retained_chain_certificate]
+      }}
   register: internalca_retained_chain_verification
   changed_when: false
   failed_when: false
@@ -113,13 +121,15 @@
       it was pointed at, so make both readable and rerun
     internalca_retained_chain_period_verdict: >-
       cannot be used at all - openssl refused it before any anchor was reached
-    internalca_retained_chain_anchor_verdict: >-
-      cannot be built to any anchor in
-      {{ retained_chain_trust_bundle | default(internalca_trust_bundle, true) }}, so the
-      {{ product_name }} components that read that bundle - the ldapsearch and ldapmodify
+    internalca_retained_chain_ldap_consequence: >-
+      the {{ product_name }} components that read that bundle - the ldapsearch and ldapmodify
       calls of the installer among them - would reject it. The middleware additionally
       accepts whatever the host itself trusts, so logins may still be working; that does
       not let this upgrade continue
+    internalca_retained_chain_anchor_verdict: >-
+      cannot be built to any anchor in
+      {{ retained_chain_trust_bundle | default(internalca_trust_bundle, true) }}, so
+      {{ retained_chain_consequence | default(internalca_retained_chain_ldap_consequence, true) }}
     internalca_retained_chain_verdict: >-
       {{
         internalca_retained_chain_input_verdict
@@ -132,8 +142,12 @@
     # certificate nor naming another root makes an unreadable file readable. The two paths
     # involved are known here, so this branch answers for itself.
     internalca_retained_chain_input_remedy: >-
-      The two files are {{ retained_chain_certificate }} and
-      {{ retained_chain_trust_bundle | default(internalca_trust_bundle, true) }}. OpenSSL
+      The files involved are
+      {{
+        ([retained_chain_certificate, retained_chain_intermediates | default('', true),
+          retained_chain_trust_bundle | default(internalca_trust_bundle, true)])
+        | reject('equalto', '') | join(', ')
+      }}. OpenSSL
       names the one it stumbled over above; check that it exists, is readable by root and
       holds PEM certificates.
     internalca_retained_chain_advice: >-

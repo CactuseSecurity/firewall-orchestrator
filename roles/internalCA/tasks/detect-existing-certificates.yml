@@ -20,25 +20,38 @@
 # Block scalars keep backslashes verbatim, so these patterns use single
 # backslashes. Doubling them would silently never match and fall through to the
 # legacy defaults below.
+#
+# An identity the operator configured (select-operator-apache-identity.yml) is the one the
+# vhosts are about to name, so that is the one inspected: it then gets the same ownership,
+# trust and endpoint name checks as a retained one, and the rewrites below keep its paths
+# instead of reverting them to the installed vhost. Its chain comes only from
+# internalca_peer_ca_intermediate_certificates; the installed SSLCertificateChainFile
+# belongs to the certificate being replaced.
 - name: Determine existing Apache certificate paths
   set_fact:
     internalca_existing_apache_certificate: >-
       {{
-        (internalca_existing_apache_configuration_content.content | default('') | b64decode
-        | regex_findall('(?m)^\s*SSLCertificateFile\s+([^\s]+)') | first)
-        | default(internalca_legacy_apache_certificate, true)
+        internalca_operator_apache_certificate
+        if internalca_operator_apache_identity | bool
+        else (internalca_existing_apache_configuration_content.content | default('') | b64decode
+          | regex_findall('(?m)^\s*SSLCertificateFile\s+([^\s]+)') | first)
+          | default(internalca_legacy_apache_certificate, true)
       }}
     internalca_existing_apache_private_key: >-
       {{
-        (internalca_existing_apache_configuration_content.content | default('') | b64decode
-        | regex_findall('(?m)^\s*SSLCertificateKeyFile\s+([^\s]+)') | first)
-        | default(internalca_legacy_apache_private_key, true)
+        internalca_operator_apache_private_key
+        if internalca_operator_apache_identity | bool
+        else (internalca_existing_apache_configuration_content.content | default('') | b64decode
+          | regex_findall('(?m)^\s*SSLCertificateKeyFile\s+([^\s]+)') | first)
+          | default(internalca_legacy_apache_private_key, true)
       }}
     internalca_existing_peer_ca_intermediate_certificates: >-
       {{
-        (internalca_existing_apache_configuration_content.content | default('') | b64decode
-        | regex_findall('(?m)^\s*SSLCertificateChainFile\s+([^\s]+)') | first)
-        | default('', true)
+        ''
+        if internalca_operator_apache_identity | bool
+        else (internalca_existing_apache_configuration_content.content | default('') | b64decode
+          | regex_findall('(?m)^\s*SSLCertificateChainFile\s+([^\s]+)') | first)
+          | default('', true)
       }}
   when: internalca_existing_apache_configuration is defined
 

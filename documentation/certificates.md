@@ -207,13 +207,17 @@ would trust the unrelated internal CA.
 Keep these settings in `/etc/fworch/fwo-install-settings.yml` so every later
 upgrade applies them as well. A pair named there replaces whatever certificate
 the installed vhosts serve, including on the run that switches away from an
-FWO-issued one, and it gets the same checks as a retained certificate: both
-files must exist, the root must be configured, and the certificate must cover
-every FWO endpoint name. Naming the FWO location, or no pair at all, keeps the
-certificate the installed vhosts already serve. For a pair named this way the
-chain is taken only from `internalca_peer_ca_intermediate_certificates`, not
-from the vhost being replaced. For example, for a Let's Encrypt certificate
-renewed by certbot:
+FWO-issued one. Before any vhost names the pair, on a new installation as on an
+upgrade, the installer checks that both files exist, that the private key
+belongs to the certificate and loads without a passphrase, that the certificate
+covers every FWO endpoint name, and that it chains to the configured root (see
+below). Naming the FWO location, or no pair at all, keeps the certificate the
+installed vhosts already serve. For a pair named this way the chain is taken
+from `internalca_peer_ca_intermediate_certificates`. The `SSLCertificateChainFile`
+of the installed vhost is only used when that setting is empty and the vhost
+already serves the same certificate; a chain file that belongs to the
+certificate being replaced is never carried over. For example, for a Let's
+Encrypt certificate renewed by certbot:
 
 ```yaml
 # /etc/fworch/fwo-install-settings.yml

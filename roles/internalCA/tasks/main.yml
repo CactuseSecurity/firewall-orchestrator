@@ -78,30 +78,16 @@
   include_tasks: select-operator-apache-identity.yml
 
 # Every FWO vhost is about to name this pair, and with issuance switched off FWO creates
-# neither file. A missing one would otherwise only surface as Apache failing its
-# configuration test after the vhosts have been rewritten. follow, because an ACME client
-# keeps a symlink that can dangle.
-- name: Check the Apache identity the operator configured
-  stat:
-    path: "{{ item }}"
-    follow: true
-  loop:
-    - "{{ internalca_operator_apache_certificate }}"
-    - "{{ internalca_operator_apache_private_key }}"
-  register: internalca_operator_apache_files
-  become: true
-  when: internalca_operator_apache_identity | bool
-
-- name: Require the Apache identity the operator configured
-  assert:
-    that:
-      - internalca_operator_apache_files.results | selectattr('stat.exists') | list | length == 2
-    fail_msg: >-
-      internalca_issue_apache_certificate is false and the Apache identity is configured as
-      {{ internalca_operator_apache_certificate }} and
-      {{ internalca_operator_apache_private_key }}, but these are not both present on
-      {{ inventory_hostname }}. {{ product_name }} does not create them on this route. Provide
-      both files, or correct the two settings, then run the installer again.
+# neither file. Anything wrong with it would otherwise only surface as Apache failing to
+# start after the vhosts have been rewritten and the database has been migrated. Before
+# detection, because detection only runs on an upgrade.
+- name: Validate the Apache identity the operator configured
+  include_tasks: validate-operator-apache-identity.yml
+  vars:
+    operator_apache_certificate: "{{ internalca_operator_apache_certificate }}"
+    operator_apache_private_key: "{{ internalca_operator_apache_private_key }}"
+    operator_apache_required_names: "{{ internalca_endpoint_host_names }}"
+    operator_apache_names_remedy: "{{ internalca_apache_endpoint_names_remedy }}"
   when: internalca_operator_apache_identity | bool
 
 - name: Detect customer managed certificates during upgrade
@@ -140,6 +126,15 @@
     retained_chain_replacement_remedy: >-
       Have the certificate renewed or reissued and run the installer again. No trust
       configuration can make this certificate usable as it stands.
+    # A configured pair is not being kept: on a new installation, and on the run that
+    # switches to it, the vhosts have never served it.
+    retained_chain_lead: >-
+      {{
+        ('The Apache certificate configured for ' ~ inventory_hostname
+          ~ ' (' ~ internalca_apache_certificate ~ ')')
+        if internalca_operator_apache_identity | bool
+        else ''
+      }}
   when: >-
     internalca_preserve_apache_certificate | default(false) | bool
     or internalca_operator_apache_identity | bool

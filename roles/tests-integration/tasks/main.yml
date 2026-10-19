@@ -118,6 +118,9 @@
 - name: certificate ownership testing
   import_tasks: test-certificate-ownership.yml
 
+- name: operator Apache identity testing
+  import_tasks: test-operator-apache-identity.yml
+
 - name: internal CA reset testing
   import_tasks: test-internal-ca-reset.yml
   when:

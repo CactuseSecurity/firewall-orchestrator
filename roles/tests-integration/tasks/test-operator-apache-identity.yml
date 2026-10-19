@@ -1,0 +1,178 @@
+---
+# An Apache pair the operator configures with internalca_issue_apache_certificate set to
+# false is named by every FWO vhost, and FWO creates neither file. These cases drive the
+# production rules against generated pairs and literal vhost fixtures, so they run on every
+# installation - including the ones CI builds, which never carry an operator pair.
+#
+# Every input is passed under a name of the production file's own, never under a setting
+# the operator's fwo-install-settings.yml could pin as an extra variable, so no case here
+# depends on detect-pinned-variables.yml.
+
+# --- Which identity detection inspects, and which chain it keeps ---------------------------
+
+# Shaped like the slurp result detection reads the installed vhost into. A literal block,
+# because a newline escape inside a Jinja literal in a folded scalar is not decoded.
+- name: Write the installed vhost fixture for the existing identity cases
+  set_fact:
+    test_operator_identity_vhost:
+      content: "{{ test_operator_identity_vhost_text | b64encode }}"
+  vars:
+    test_operator_identity_vhost_text: |
+      <VirtualHost *:443>
+          SSLCertificateFile /test/installed/cert.pem
+          SSLCertificateKeyFile /test/installed/privkey.pem
+          SSLCertificateChainFile /test/installed/chain.pem
+      </VirtualHost>
+
+- name: Resolve the existing identity when FWO keeps whatever the vhost serves
+  include_tasks: "{{ role_path }}/../internalCA/tasks/select-existing-apache-identity.yml"
+  vars:
+    internalca_existing_apache_configuration_content: "{{ test_operator_identity_vhost }}"
+    internalca_operator_apache_identity: false
+    internalca_operator_apache_certificate: /test/fwo/server.crt
+    internalca_operator_apache_private_key: /test/fwo/server.key
+    internalca_legacy_apache_certificate: /test/legacy/server.crt
+    internalca_legacy_apache_private_key: /test/legacy/server.key
+
+- name: Verify the installed vhost identity and its chain are inspected
+  assert:
+    that:
+      - internalca_existing_apache_certificate == '/test/installed/cert.pem'
+      - internalca_existing_apache_private_key == '/test/installed/privkey.pem'
+      - internalca_existing_peer_ca_intermediate_certificates == '/test/installed/chain.pem'
+    fail_msg: >-
+      Without an operator pair, detection did not inspect the pair and chain the installed
+      vhost names (got {{ internalca_existing_apache_certificate }},
+      {{ internalca_existing_apache_private_key }},
+      {{ internalca_existing_peer_ca_intermediate_certificates }}).
+
+- name: Resolve the existing identity when the operator names a different pair
+  include_tasks: "{{ role_path }}/../internalCA/tasks/select-existing-apache-identity.yml"
+  vars:
+    internalca_existing_apache_configuration_content: "{{ test_operator_identity_vhost }}"
+    internalca_operator_apache_identity: true
+    internalca_operator_apache_certificate: /test/letsencrypt/cert.pem
+    internalca_operator_apache_private_key: /test/letsencrypt/privkey.pem
+    internalca_legacy_apache_certificate: /test/legacy/server.crt
+    internalca_legacy_apache_private_key: /test/legacy/server.key
+
+- name: Verify a replacing pair is inspected without the replaced certificate's chain
+  assert:
+    that:
+      - internalca_existing_apache_certificate == '/test/letsencrypt/cert.pem'
+      - internalca_existing_apache_private_key == '/test/letsencrypt/privkey.pem'
+      - internalca_existing_peer_ca_intermediate_certificates == ''
+    fail_msg: >-
+      An operator pair replacing the installed one was not inspected on its own (got
+      {{ internalca_existing_apache_certificate }},
+      {{ internalca_existing_apache_private_key }}, chain
+      {{ internalca_existing_peer_ca_intermediate_certificates }}). The chain file of the
+      certificate being replaced must not be served with the new one.
+
+- name: Resolve the existing identity when the operator names the pair already served
+  include_tasks: "{{ role_path }}/../internalCA/tasks/select-existing-apache-identity.yml"
+  vars:
+    internalca_existing_apache_configuration_content: "{{ test_operator_identity_vhost }}"
+    internalca_operator_apache_identity: true
+    internalca_operator_apache_certificate: /test/installed/cert.pem
+    internalca_operator_apache_private_key: /test/installed/privkey.pem
+    internalca_legacy_apache_certificate: /test/legacy/server.crt
+    internalca_legacy_apache_private_key: /test/legacy/server.key
+
+- name: Verify naming the served pair keeps its installed chain
+  assert:
+    that:
+      - internalca_existing_apache_certificate == '/test/installed/cert.pem'
+      - internalca_existing_peer_ca_intermediate_certificates == '/test/installed/chain.pem'
+    fail_msg: >-
+      Naming the pair the installed vhost already serves dropped its chain file
+      ({{ internalca_existing_peer_ca_intermediate_certificates }}), so an upgrade over an
+      unchanged certificate would stop at the chain check.
+
+# --- Whether the configured pair can be served -----------------------------------------------
+
+- name: Create a temporary directory for operator Apache identity tests
+  tempfile:
+    state: directory
+    prefix: fworch-operator-identity-
+  register: test_operator_identity_directory
+
+- name: Create the operator Apache identity test pairs
+  command:
+    argv:
+      - openssl
+      - req
+      - -x509
+      - -newkey
+      - rsa:2048
+      - -nodes
+      - -days
+      - "1"
+      - -keyout
+      - "{{ test_operator_identity_directory.path }}/{{ item }}.key"
+      - -out
+      - "{{ test_operator_identity_directory.path }}/{{ item }}.crt"
+      - -subj
+      - /CN=fwo.example.test
+      - -addext
+      - subjectAltName=DNS:fwo.example.test
+  loop:
+    - operator
+    - other
+  changed_when: false
+
+- name: Create a passphrase protected copy of the operator test key
+  command:
+    argv:
+      - openssl
+      - pkey
+      - -in
+      - "{{ test_operator_identity_directory.path }}/operator.key"
+      - -out
+      - "{{ test_operator_identity_directory.path }}/encrypted.key"
+      - -aes256
+      - -passout
+      - pass:fwo-integration-test
+  changed_when: false
+
+- name: Verify a complete operator pair covering the endpoint names is accepted
+  include_tasks: "{{ role_path }}/../internalCA/tasks/validate-operator-apache-identity.yml"
+  vars:
+    operator_apache_certificate: "{{ test_operator_identity_directory.path }}/operator.crt"
+    operator_apache_private_key: "{{ test_operator_identity_directory.path }}/operator.key"
+    operator_apache_required_names:
+      - fwo.example.test
+    operator_apache_names_remedy: unused in the positive case
+
+- name: Run the operator Apache identity refusal cases
+  include_tasks: test-operator-apache-identity-refusal.yml
+  loop:
+    - name: missing key
+      private_key: absent.key
+      required_names:
+        - fwo.example.test
+      expected: are not both present
+    - name: passphrase protected key
+      private_key: encrypted.key
+      required_names:
+        - fwo.example.test
+      expected: passphrase protected private key
+    - name: key of another certificate
+      private_key: other.key
+      required_names:
+        - fwo.example.test
+      expected: does not belong to
+    - name: uncovered endpoint name
+      private_key: operator.key
+      required_names:
+        - fwo.example.test
+        - api.example.test
+      expected: has no subjectAltName entry for api.example.test
+  loop_control:
+    loop_var: test_operator_identity_case
+    label: "{{ test_operator_identity_case.name }}"
+
+- name: Remove the operator Apache identity test directory
+  file:
+    path: "{{ test_operator_identity_directory.path }}"
+    state: absent

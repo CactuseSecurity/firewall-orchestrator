@@ -29,7 +29,7 @@
 # Handing one remedy to every verdict is what made the first version of this check tell
 # the operator of an expired certificate to configure its issuing root.
 #
-# Inputs, all required except the last two:
+# Inputs, all required:
 #   retained_chain_subject      - what is being checked, e.g. "OpenLDAP" (for the message)
 #   retained_chain_certificate  - path to the certificate file the endpoint serves
 #   retained_chain_remedy       - the caller's advice for a chain that reaches no anchor
@@ -45,6 +45,9 @@
 #   retained_chain_consequence  - what the components reading the trust bundle would do
 #                                 with a chain that reaches no anchor; defaults to the
 #                                 OpenLDAP clients, the first caller
+#   retained_chain_lead         - how to name the certificate in the message, for a caller
+#                                 whose certificate is not a retained one; defaults to
+#                                 "The customer managed <subject> certificate kept on ..."
 - name: Verify the retained {{ retained_chain_subject }} certificate reaches a trusted anchor
   # The certificate file is passed as -untrusted as well, deliberately: together with the
   # optional chain file it is the whole chain the server presents, so a leaf accompanied
@@ -158,10 +161,12 @@
         if internalca_retained_chain_invalid_period | bool
         else retained_chain_remedy
       }}
-  fail:
-    msg: >-
+    internalca_retained_chain_default_lead: >-
       The customer managed {{ retained_chain_subject }} certificate kept on
       {{ inventory_hostname }} ({{ retained_chain_certificate }})
+  fail:
+    msg: >-
+      {{ retained_chain_lead | default(internalca_retained_chain_default_lead, true) }}
       {{ internalca_retained_chain_verdict }}.
       OpenSSL reported: {{ internalca_retained_chain_report }}.
       {{ internalca_retained_chain_advice }}

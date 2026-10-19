@@ -11,7 +11,10 @@
   (`internalca_issue_apache_certificate: false` with `internalca_apache_certificate` and
   `internalca_apache_private_key`) is now applied to every FWO vhost. Before, the run that switched
   away from an FWO-issued certificate kept the paths of the installed vhost, and a new installation
-  served the pair without `internalca_peer_ca_intermediate_certificates`
+  served the pair without `internalca_peer_ca_intermediate_certificates`. Before any vhost names the
+  pair, on new installations and upgrades alike, the installer now checks that both files exist, that the
+  key belongs to the certificate and loads without a passphrase, and that the certificate covers every
+  FWO endpoint name
 - installer: a retained or administrator-managed Apache certificate must chain to the FWO trust bundle,
   including the intermediates Apache serves; a missing intermediate or a root other than the configured
   `internalca_peer_ca_certificate` now stops the run before the database and the services are upgraded instead of

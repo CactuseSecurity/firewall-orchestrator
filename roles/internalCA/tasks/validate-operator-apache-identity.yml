@@ -1,0 +1,105 @@
+---
+# Proves that the Apache pair the operator configured (select-operator-apache-identity.yml)
+# can be served before any FWO vhost names it. With issuance switched off FWO creates
+# neither file, and the guards detect-existing-certificates.yml has for a retained pair do
+# not cover this one: they only run on an upgrade, and the key and readability guards stand
+# down as soon as issuance is switched off. roles/common's passphrase preflight only reads
+# the key the installed vhost names, which on the run that switches to this pair is still
+# the old one. A missing file, a key that belongs to another certificate or carries a
+# passphrase, or a certificate that does not cover the FWO endpoint names therefore passed
+# the whole internalCA play and only failed when Apache was restarted in the service roles -
+# after the database play had migrated the schema. Run from main.yml on a new installation
+# as on an upgrade for that reason; the internalCA play is any_errors_fatal.
+#
+# Split out of main.yml so roles/tests-integration drives this code against generated
+# pairs rather than a copy of it.
+#
+# Inputs, all required:
+#   operator_apache_certificate    - path of the configured certificate
+#   operator_apache_private_key    - path of the configured private key
+#   operator_apache_required_names - plain host names the certificate must cover
+#   operator_apache_names_remedy   - advice appended when a name is not covered
+
+# follow, because an ACME client keeps a symlink that can dangle.
+- name: Check the Apache identity the operator configured
+  stat:
+    path: "{{ item }}"
+    follow: true
+  loop:
+    - "{{ operator_apache_certificate }}"
+    - "{{ operator_apache_private_key }}"
+  register: internalca_operator_apache_files
+  become: true
+
+- name: Require the Apache identity the operator configured
+  assert:
+    that:
+      - internalca_operator_apache_files.results | selectattr('stat.exists') | list | length == 2
+    fail_msg: >-
+      internalca_issue_apache_certificate is false and the Apache identity is configured as
+      {{ operator_apache_certificate }} and
+      {{ operator_apache_private_key }}, but these are not both present on
+      {{ inventory_hostname }}. {{ product_name }} does not create them on this route. Provide
+      both files, or correct the two settings, then run the installer again.
+
+- name: Read the Apache certificate the operator configured
+  community.crypto.x509_certificate_info:
+    path: "{{ operator_apache_certificate }}"
+  register: internalca_operator_apache_certificate_info
+  failed_when: false
+  become: true
+
+# openssl_privatekey_info fails on a key it cannot parse without a passphrase, which is
+# exactly what Apache does when it starts unattended - so its failure is the answer here.
+- name: Read the Apache private key the operator configured
+  community.crypto.openssl_privatekey_info:
+    path: "{{ operator_apache_private_key }}"
+  register: internalca_operator_apache_key_info
+  failed_when: false
+  become: true
+
+- name: Require an Apache identity the operator configured that loads unattended
+  vars:
+    internalca_operator_apache_unreadable_files: >-
+      {{
+        ([operator_apache_certificate]
+          if 'public_key_fingerprints' not in internalca_operator_apache_certificate_info
+          else [])
+        + ([operator_apache_private_key]
+          if 'public_key_fingerprints' not in internalca_operator_apache_key_info
+          else [])
+      }}
+  fail:
+    msg: >-
+      Cannot read {{ internalca_operator_apache_unreadable_files | join(' and ') }} on
+      {{ inventory_hostname }}, configured as the Apache identity with
+      internalca_issue_apache_certificate set to false. Apache loads its identity without a
+      passphrase every time it starts, so a passphrase protected private key is the usual
+      cause. Replace it with an unencrypted private key protected by root ownership and mode
+      0640, or correct the two settings, then run the installer again.
+  when: internalca_operator_apache_unreadable_files | length > 0
+
+- name: Require the Apache private key the operator configured to belong to its certificate
+  fail:
+    msg: >-
+      {{ operator_apache_private_key }} on {{ inventory_hostname }} does not belong to
+      {{ operator_apache_certificate }}, although both are configured as the Apache identity
+      with internalca_issue_apache_certificate set to false. Apache refuses to start with a
+      key that does not match its certificate. Name the key that was issued together with
+      this certificate (with certbot, privkey.pem from the same live/ directory), then run
+      the installer again.
+  when: >-
+    internalca_operator_apache_certificate_info.public_key_fingerprints.sha256
+    != internalca_operator_apache_key_info.public_key_fingerprints.sha256
+
+- name: Require the Apache certificate the operator configured to cover every FWO endpoint name
+  include_tasks: validate-retained-certificate.yml
+  vars:
+    retained_certificate_subject: Apache
+    retained_certificate_path: "{{ operator_apache_certificate }}"
+    retained_certificate_info: "{{ internalca_operator_apache_certificate_info }}"
+    retained_certificate_required_names: "{{ operator_apache_required_names }}"
+    retained_certificate_lead: >-
+      The Apache certificate configured for {{ inventory_hostname }}
+      ({{ operator_apache_certificate }})
+    retained_certificate_remedy: "{{ operator_apache_names_remedy }}"

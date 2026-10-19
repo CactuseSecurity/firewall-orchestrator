@@ -4164,6 +4164,36 @@ INSERT INTO txt VALUES ('fancy_table_ex_column_layout',     'German',   'Spalten
 INSERT INTO txt VALUES ('fancy_table_ex_column_layout',     'English',  'Resizing and reordering');
 INSERT INTO txt VALUES ('fancy_table_ex_tree_table',        'German',   'Baumtabelle');
 INSERT INTO txt VALUES ('fancy_table_ex_tree_table',        'English',  'Tree table');
+INSERT INTO txt VALUES ('fancy_table_ex_city',              'German',   'Stadt');
+INSERT INTO txt VALUES ('fancy_table_ex_city',              'English',  'City');
+INSERT INTO txt VALUES ('fancy_table_ex_age',               'German',   'Alter');
+INSERT INTO txt VALUES ('fancy_table_ex_age',               'English',  'Age');
+INSERT INTO txt VALUES ('fancy_table_ex_years',             'German',   '{0} Jahre');
+INSERT INTO txt VALUES ('fancy_table_ex_years',             'English',  '{0} yrs');
+INSERT INTO txt VALUES ('fancy_table_ex_sku',               'German',   'Artikelnummer');
+INSERT INTO txt VALUES ('fancy_table_ex_sku',               'English',  'SKU');
+INSERT INTO txt VALUES ('fancy_table_ex_price',             'German',   'Preis');
+INSERT INTO txt VALUES ('fancy_table_ex_price',             'English',  'Price');
+INSERT INTO txt VALUES ('fancy_table_ex_custom_search',     'German',   'Eigene Suche');
+INSERT INTO txt VALUES ('fancy_table_ex_custom_search',     'English',  'Custom search UI');
+INSERT INTO txt VALUES ('fancy_table_ex_search_people',     'German',   'Name oder Stadt suchen...');
+INSERT INTO txt VALUES ('fancy_table_ex_search_people',     'English',  'Search name or city...');
+INSERT INTO txt VALUES ('fancy_table_ex_search_rules',      'German',   'Regeln suchen...');
+INSERT INTO txt VALUES ('fancy_table_ex_search_rules',      'English',  'Search rules...');
+INSERT INTO txt VALUES ('fancy_table_ex_flagged_for_review','German',   '{0} aus {1} ist zur Pr&uuml;fung markiert.');
+INSERT INTO txt VALUES ('fancy_table_ex_flagged_for_review','English',  '{0} is flagged for review from {1}.');
+INSERT INTO txt VALUES ('fancy_table_ex_inspect',           'German',   'Untersuchen');
+INSERT INTO txt VALUES ('fancy_table_ex_inspect',           'English',  'Inspect');
+INSERT INTO txt VALUES ('fancy_table_ex_expand_via_ref',    'German',   'Per @ref aufklappen');
+INSERT INTO txt VALUES ('fancy_table_ex_expand_via_ref',    'English',  'Expand via @ref');
+INSERT INTO txt VALUES ('fancy_table_ex_tree_state',        'German',   '{0} sichtbare Zeilen, {1} aufgeklappte Knoten');
+INSERT INTO txt VALUES ('fancy_table_ex_tree_state',        'English',  '{0} visible rows, {1} expanded nodes');
+INSERT INTO txt VALUES ('fancy_table_ex_opened_details',    'German',   'Details f&uuml;r {0} ge&ouml;ffnet');
+INSERT INTO txt VALUES ('fancy_table_ex_opened_details',    'English',  'Opened details for {0}');
+INSERT INTO txt VALUES ('fancy_table_ex_inspected_section', 'German',   'Abschnitt {0} untersucht');
+INSERT INTO txt VALUES ('fancy_table_ex_inspected_section', 'English',  'Inspected section {0}');
+INSERT INTO txt VALUES ('violation_details',                'German',   'Versto&szlig;details');
+INSERT INTO txt VALUES ('violation_details',                'English',  'Violation details');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');

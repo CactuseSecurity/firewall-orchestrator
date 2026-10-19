@@ -45,7 +45,7 @@
                                             TreeActionsContainerClass="sticky-collapse"
                                             TreeActionsTemplate="RuleTreeActionsTemplate"
                                             RowTemplate="CustomRowTemplate"
-                                            RowTemplateSelector="context => context.Item.IsSectionHeader || context.Item.IsRulebaseReference"
+                                            RowTemplateSelector="context => context.Item.IsStructuralHeader || context.Item.IsRulebaseReference"
                                             EnableColumnReordering="true"
                                             EnableColumnResizing="true" />
                         </Collapse>
@@ -98,6 +98,10 @@
                     aria-expanded="@context.IsExpanded">
                 <i class="bi @(context.IsExpanded ? "bi-caret-down-fill" : "bi-caret-right-fill")"></i>
             </button>
+            @if (!string.IsNullOrEmpty(context.Item.Rule.DisplayOrderNumberString))
+            {
+                <span class="me-2">@context.Item.Rule.DisplayOrderNumberString</span>
+            }
             @context.Item.SectionHeaderTitle
             <span class="ms-2 text-muted">(@CountRealRuleDescendants(context.Item) @(userConfig.GetText("rules")))</span>
         </td>
@@ -136,9 +140,6 @@
 
     #region Consts - Private
 
-    private const string LastModifiedTitle = "LastModified";
-    private const string ComplianceTitle = "Compliance";
-    private const string ViolationDetailsTitle = "Violation Details";
     private const string kActiveCellClass = "table-active";
     private const int kColumnMinWidth = 150;
 
@@ -155,7 +156,7 @@
     private IReadOnlyList<FancyColumn<RuleReportTreeRow>> _ruleColumns = [];
     private readonly Dictionary<(int managementId, int deviceId), IReadOnlyList<RuleReportTreeRow>> _ruleRowsByDevice = [];
     private ReportType _cachedReportType = ReportType.Undefined;
-    private int _cachedManagementsHash;
+    private List<object> _cachedReportInstances = [];
 
     #endregion
 
@@ -188,10 +189,10 @@
             RefreshColumns();
         }
 
-        int managementsHash = CalculateManagementsHash();
-        if (_cachedManagementsHash != managementsHash)
+        List<object> reportInstances = CollectReportInstances();
+        if (!reportInstances.SequenceEqual(_cachedReportInstances, ReferenceEqualityComparer.Instance))
         {
-            RefreshRuleRows();
+            RefreshRuleRows(reportInstances);
         }
     }
 
@@ -222,7 +223,7 @@
     {
         List<FancyColumn<RuleReportTreeRow>> columns =
         [
-            CreateTextColumn("number", userConfig.GetText("number"), row => row.Rule.DisplayOrderNumberString, kFixedColumn),
+            CreateNumberColumn(),
         ];
 
         AddLeadingColumns(columns);
@@ -242,17 +243,17 @@
             columns.Add(CreateMarkupColumn("last_hit_pre", userConfig.GetText("last_hit"),
                 row => RuleDisplayHtml.DisplayLastHit(row.Rule.Metadata),
                 row => row.Rule.Metadata.LastHit?.ToString("O") ?? string.Empty, kFixedColumn));
-            columns.Add(CreateMarkupColumn("last_modified_pre", LastModifiedTitle,
+            columns.Add(CreateMarkupColumn("last_modified_pre", userConfig.GetText("last_modified"),
                 row => RuleDisplayBase.DisplayLastModified(row.Rule),
                 row => row.Rule.LastModified?.ToString("O") ?? string.Empty, kFixedColumn));
         }
 
         if (SelectedReportType.IsComplianceReport())
         {
-            columns.Add(CreateMarkupColumn("compliance", ComplianceTitle,
+            columns.Add(CreateMarkupColumn("compliance", userConfig.GetText("compliance"),
                 row => RuleDisplayHtml.DisplayIsCompliant(row.Rule, GetActLocation()),
                 row => row.Rule.Compliance.ToString(), kFixedColumn));
-            columns.Add(CreateMarkupColumn("violation_details", ViolationDetailsTitle,
+            columns.Add(CreateMarkupColumn("violation_details", userConfig.GetText("violation_details"),
                 row => RuleDisplayHtml.DisplayViolationDetails(row.Rule),
                 row => row.Rule.ViolationDetails, kFixedColumn));
         }
@@ -321,7 +322,7 @@
 
         if (!ShowLastModifiedAfterLastHit)
         {
-            columns.Add(CreateMarkupColumn("last_modified", LastModifiedTitle,
+            columns.Add(CreateMarkupColumn("last_modified", userConfig.GetText("last_modified"),
                 row => RuleDisplayBase.DisplayLastModified(row.Rule),
                 row => row.Rule.LastModified?.ToString("O") ?? string.Empty, kFlexibleColumn));
         }
@@ -335,10 +336,21 @@
     }
 
     /// <summary>
-    /// Creates a plain text column, which is displayed, searched and sorted by the same value.
+    /// Creates the rule number column, which displays the dotted hierarchical number but sorts by the
+    /// numeric display order, so that e.g. 1.2 precedes 1.10.
     /// </summary>
-    private static FancyColumn<RuleReportTreeRow> CreateTextColumn(string key, string title,
-        Func<RuleReportTreeRow, string> valueSelector, ColumnBehavior behavior, string? cellClass = null)
+    private FancyColumn<RuleReportTreeRow> CreateNumberColumn()
+    {
+        return CreateTextColumn("number", userConfig.GetText("number"), row => row.Rule.DisplayOrderNumberString, kFixedColumn,
+            sortValueSelector: row => row.Rule.DisplayOrderNumber);
+    }
+
+    /// <summary>
+    /// Creates a plain text column, which is displayed and searched by the same value. It is sorted by
+    /// this value too, unless a separate sort value selector is given.
+    /// </summary>
+    private static FancyColumn<RuleReportTreeRow> CreateTextColumn(string key, string title, Func<RuleReportTreeRow, string> valueSelector,
+        ColumnBehavior behavior, string? cellClass = null, Func<RuleReportTreeRow, IComparable?>? sortValueSelector = null)
     {
         return new FancyColumn<RuleReportTreeRow>
         {
@@ -349,7 +361,7 @@
             Hideable = behavior.Hideable,
             CellClass = cellClass,
             ValueSelector = valueSelector,
-            SortValueSelector = row => valueSelector(row),
+            SortValueSelector = sortValueSelector ?? (row => valueSelector(row)),
             Resizable = behavior.Resizable,
             Reorderable = behavior.Reorderable,
             MinWidth = kColumnMinWidth
@@ -408,7 +420,7 @@
     /// <summary>
     /// Rebuilds the tree rows of all devices of all managements.
     /// </summary>
-    private void RefreshRuleRows()
+    private void RefreshRuleRows(List<object> reportInstances)
     {
         _ruleRowsByDevice.Clear();
 
@@ -420,31 +432,33 @@
             }
         }
 
-        _cachedManagementsHash = CalculateManagementsHash();
+        _cachedReportInstances = reportInstances;
     }
 
     /// <summary>
-    /// Calculates a hash over the report structure to detect changed report data.
+    /// Collects the report and rule tree instances the rows are built from. Regenerating a report replaces
+    /// these instances, so comparing them by reference detects new report data even if ids and counts are unchanged.
     /// </summary>
-    private int CalculateManagementsHash()
+    private List<object> CollectReportInstances()
     {
-        HashCode hash = new();
-        hash.Add(Managements.Count);
+        List<object> instances = [Managements];
 
         foreach (ManagementReport management in Managements)
         {
-            hash.Add(management.Id);
-            hash.Add(management.Rulebases.Length);
-            hash.Add(management.Devices.Length);
+            instances.Add(management);
 
             foreach (DeviceReport device in management.Devices)
             {
-                hash.Add(device.Id);
-                hash.Add(device.GetNumberOfRules());
+                instances.Add(device);
+
+                if (ruleTreeBuilder.RuleTreeCache.TryGetValue((management.Id, device.Id), out RuleTreeItem? ruleTree))
+                {
+                    instances.Add(ruleTree);
+                }
             }
         }
 
-        return hash.ToHashCode();
+        return instances;
     }
 
     /// <summary>
@@ -502,11 +516,11 @@
     }
 
     /// <summary>
-    /// Counts the real rules below a row, ignoring section headers and rulebase references.
+    /// Counts the real rules below a row, ignoring structural headers and rulebase references.
     /// </summary>
     private static int CountRealRuleDescendants(RuleReportTreeRow row)
     {
-        int count = row.IsSectionHeader || row.IsRulebaseReference ? 0 : 1;
+        int count = row.Node.IsRule ? 1 : 0;
 
         foreach (RuleReportTreeRow child in row.Children)
         {
@@ -541,12 +555,12 @@
         public Rule Rule { get; }
         public IReadOnlyList<RuleReportTreeRow> Children { get; }
         public bool IsInitiallyExpanded => Node.IsExpanded;
-        public bool IsSectionHeader => Node.IsSectionHeader;
+        public bool IsStructuralHeader => Node.IsSectionHeader || Node.IsOrderedLayerHeader || Node.IsPolicyHeader;
         public bool IsRulebaseReference => Node.IsRulebaseReference;
         public int ManagementId { get; init; }
         public int ReferencedTreeId { get; init; }
         public string ReferencedTreeName { get; init; } = string.Empty;
-        public string DisplayName => IsSectionHeader || IsRulebaseReference ? string.Empty : Rule.Name ?? string.Empty;
+        public string DisplayName => IsStructuralHeader || IsRulebaseReference ? string.Empty : Rule.Name ?? string.Empty;
         public string SectionHeaderTitle => Rule.SectionHeader ?? string.Empty;
     }
 

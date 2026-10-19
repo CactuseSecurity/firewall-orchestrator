@@ -20,7 +20,7 @@
             <h5>@(userConfig.GetText("fancy_table_ex_default_toolbar"))</h5>
             <FancyTable TItem="PersonRow"
                         Items="kPeopleRows"
-                        Columns="kPeopleColumns"
+                        Columns="peopleColumns"
                         PaginationEnabled="true"
                         PageSize="10"
                         ShowPageSizeSelector="true"
@@ -31,14 +31,14 @@
             <h5>@(userConfig.GetText("fancy_table_ex_custom_toolbar"))</h5>
             <FancyTable TItem="ProductRow"
                         Items="kProductRows"
-                        Columns="kProductColumns"
+                        Columns="productColumns"
                         Texts="tableTexts">
                 <ToolbarTemplate>
                     <div class="d-flex">
                         <button type="button" class="btn btn-sm btn-info mx-1">
                             <i class="bi bi-search"></i>
                         </button>
-                        <input class="form-control form-control-md" placeholder="Custom search UI" />
+                        <input class="form-control form-control-md" placeholder="@(userConfig.GetText("fancy_table_ex_custom_search"))" />
                     </div>
                 </ToolbarTemplate>
             </FancyTable>
@@ -48,7 +48,7 @@
             <h5>@(userConfig.GetText("fancy_table_ex_conditional_rows"))</h5>
             <FancyTable TItem="PersonRow"
                         Items="kPeopleRows"
-                        Columns="kStyledPeopleColumns"
+                        Columns="styledPeopleColumns"
                         RowClassSelector="GetPersonRowClass"
                         RowTemplate="PersonHighlightRow"
                         RowTemplateSelector="context => context.Item.Age >= kHighlightAge"
@@ -61,7 +61,7 @@
         <h5>@(userConfig.GetText("fancy_table_ex_column_layout"))</h5>
         <FancyTable TItem="PersonRow"
                     Items="kPeopleRows"
-                    Columns="kPeopleColumns"
+                    Columns="peopleColumns"
                     EnableColumnResizing="true"
                     EnableColumnReordering="true"
                     InitialColumnLayout="savedLayout"
@@ -78,7 +78,7 @@
         <FancyTreeTable TItem="ExampleRuleRow"
                         @ref="ruleTable"
                         Items="kRules"
-                        Columns="kRuleColumns"
+                        Columns="ruleColumns"
                         ChildItemsSelector="row => row.Children"
                         HasChildrenSelector="row => row.Children.Count > 0"
                         PaginationEnabled="true"
@@ -125,92 +125,10 @@
         new("", "Section Header", "", "", "", "", kSectionRules)
     ];
 
-    private static readonly IReadOnlyList<FancyColumn<PersonRow>> kPeopleColumns =
-    [
-        new FancyColumn<PersonRow>
-        {
-            Key = "name",
-            Title = "Name",
-            Sortable = true,
-            Searchable = true,
-            ValueSelector = person => person.Name,
-            SortValueSelector = person => person.Name
-        },
-        new FancyColumn<PersonRow>
-        {
-            Key = "city",
-            Title = "City",
-            Sortable = true,
-            Searchable = true,
-            Hideable = true,
-            ValueSelector = person => person.City,
-            SortValueSelector = person => person.City
-        },
-        new FancyColumn<PersonRow>
-        {
-            Key = "age",
-            Title = "Age",
-            Sortable = true,
-            Searchable = false,
-            ValueSelector = person => person.Age,
-            SortValueSelector = person => person.Age
-        }
-    ];
-
-    private static readonly IReadOnlyList<FancyColumn<ProductRow>> kProductColumns =
-    [
-        new FancyColumn<ProductRow>
-        {
-            Key = "sku",
-            Title = "SKU",
-            Sortable = true,
-            Searchable = true,
-            ValueSelector = product => product.Sku,
-            SortValueSelector = product => product.Sku
-        },
-        new FancyColumn<ProductRow>
-        {
-            Key = "price",
-            Title = "Price",
-            Sortable = true,
-            Searchable = false,
-            ValueSelector = product => product.Price.ToString("C2"),
-            SortValueSelector = product => product.Price
-        }
-    ];
-
-    private static readonly IReadOnlyList<FancyColumn<PersonRow>> kStyledPeopleColumns =
-    [
-        new FancyColumn<PersonRow>
-        {
-            Key = "styled-name",
-            Title = "Name",
-            Sortable = true,
-            Searchable = true,
-            HeaderClass = "text-bg-dark",
-            CellClass = "fw-semibold text-primary",
-            ValueSelector = person => person.Name,
-            SortValueSelector = person => person.Name
-        },
-        new FancyColumn<PersonRow>
-        {
-            Key = "styled-age",
-            Title = "Age",
-            Sortable = true,
-            Searchable = false,
-            CellTemplate = person => @<span class="badge text-bg-info-subtle border border-info text-info-emphasis">@person.Age yrs</span>
-        }
-    ];
-
-    private static readonly IReadOnlyList<FancyColumn<ExampleRuleRow>> kRuleColumns =
-    [
-        new() { Key = "number", Title = "Rule", ValueSelector = rule => rule.Number },
-        new() { Key = "name", Title = "Name", ValueSelector = rule => rule.Name },
-        new() { Key = "service", Title = "Service", ValueSelector = rule => rule.Service },
-        new() { Key = "source", Title = "Source", ValueSelector = rule => rule.Source },
-        new() { Key = "destination", Title = "Destination", ValueSelector = rule => rule.Destination },
-        new() { Key = "action", Title = "Action", ValueSelector = rule => rule.Action }
-    ];
+    private IReadOnlyList<FancyColumn<PersonRow>> peopleColumns = [];
+    private IReadOnlyList<FancyColumn<ProductRow>> productColumns = [];
+    private IReadOnlyList<FancyColumn<PersonRow>> styledPeopleColumns = [];
+    private IReadOnlyList<FancyColumn<ExampleRuleRow>> ruleColumns = [];
 
     private FancyTableTexts tableTexts = FancyTableTexts.Default;
     private FancyTableTexts demoTexts = FancyTableTexts.Default;
@@ -221,8 +139,8 @@
 
     private RenderFragment<FancyRowContext<PersonRow>> PersonHighlightRow => context => @<tr class="table-warning">
         <td colspan="@context.VisibleColumnCount">
-            <strong>@context.Item.Name</strong> is flagged for review from @context.Item.City.
-            <button type="button" class="btn btn-sm btn-primary ms-2" @onclick="() => OpenPerson(context.Item)">Details</button>
+            @(string.Format(userConfig.GetText("fancy_table_ex_flagged_for_review"), context.Item.Name, context.Item.City))
+            <button type="button" class="btn btn-sm btn-primary ms-2" @onclick="() => OpenPerson(context.Item)">@(userConfig.GetText("details"))</button>
         </td>
     </tr>;
 
@@ -237,7 +155,7 @@
             </button>
             @context.Item.Name
             <span class="ms-2 text-muted">(@context.Item.Children.Count @(userConfig.GetText("rules")))</span>
-            <button type="button" class="btn btn-sm btn-outline-primary ms-3" @onclick="() => InspectSection(context.Item)">Inspect</button>
+            <button type="button" class="btn btn-sm btn-outline-primary ms-3" @onclick="() => InspectSection(context.Item)">@(userConfig.GetText("fancy_table_ex_inspect"))</button>
         </td>
     </tr>;
 
@@ -249,10 +167,10 @@
             @(userConfig.GetText("collapse"))
         </button>
         <button type="button" class="btn btn-sm btn-outline-dark" disabled="@(ruleTable is null)" @onclick="ExpandViaReferenceAsync">
-            Expand via @@ref
+            @(userConfig.GetText("fancy_table_ex_expand_via_ref"))
         </button>
         <span class="small text-muted">
-            @context.VisibleNodeCount visible rows, @context.ExpandedNodeCount expanded nodes
+            @(string.Format(userConfig.GetText("fancy_table_ex_tree_state"), context.VisibleNodeCount, context.ExpandedNodeCount))
         </span>
     </div>;
 
@@ -262,8 +180,123 @@
     protected override void OnInitialized()
     {
         tableTexts = FancyTableTextFactory.Create(userConfig);
-        demoTexts = tableTexts with { SearchPlaceholder = "Search name or city..." };
-        ruleTableTexts = tableTexts with { SearchPlaceholder = "Search rules..." };
+        demoTexts = tableTexts with { SearchPlaceholder = userConfig.GetText("fancy_table_ex_search_people") };
+        ruleTableTexts = tableTexts with { SearchPlaceholder = userConfig.GetText("fancy_table_ex_search_rules") };
+        peopleColumns = BuildPeopleColumns();
+        productColumns = BuildProductColumns();
+        styledPeopleColumns = BuildStyledPeopleColumns();
+        ruleColumns = BuildRuleColumns();
+    }
+
+    /// <summary>
+    /// Builds the localized columns of the person tables.
+    /// </summary>
+    private IReadOnlyList<FancyColumn<PersonRow>> BuildPeopleColumns()
+    {
+        return
+        [
+            new FancyColumn<PersonRow>
+            {
+                Key = "name",
+                Title = userConfig.GetText("name"),
+                Sortable = true,
+                Searchable = true,
+                ValueSelector = person => person.Name,
+                SortValueSelector = person => person.Name
+            },
+            new FancyColumn<PersonRow>
+            {
+                Key = "city",
+                Title = userConfig.GetText("fancy_table_ex_city"),
+                Sortable = true,
+                Searchable = true,
+                Hideable = true,
+                ValueSelector = person => person.City,
+                SortValueSelector = person => person.City
+            },
+            new FancyColumn<PersonRow>
+            {
+                Key = "age",
+                Title = userConfig.GetText("fancy_table_ex_age"),
+                Sortable = true,
+                Searchable = false,
+                ValueSelector = person => person.Age,
+                SortValueSelector = person => person.Age
+            }
+        ];
+    }
+
+    /// <summary>
+    /// Builds the localized columns of the product table.
+    /// </summary>
+    private IReadOnlyList<FancyColumn<ProductRow>> BuildProductColumns()
+    {
+        return
+        [
+            new FancyColumn<ProductRow>
+            {
+                Key = "sku",
+                Title = userConfig.GetText("fancy_table_ex_sku"),
+                Sortable = true,
+                Searchable = true,
+                ValueSelector = product => product.Sku,
+                SortValueSelector = product => product.Sku
+            },
+            new FancyColumn<ProductRow>
+            {
+                Key = "price",
+                Title = userConfig.GetText("fancy_table_ex_price"),
+                Sortable = true,
+                Searchable = false,
+                ValueSelector = product => product.Price.ToString("C2"),
+                SortValueSelector = product => product.Price
+            }
+        ];
+    }
+
+    /// <summary>
+    /// Builds the localized columns of the person table with styled header and cells.
+    /// </summary>
+    private IReadOnlyList<FancyColumn<PersonRow>> BuildStyledPeopleColumns()
+    {
+        return
+        [
+            new FancyColumn<PersonRow>
+            {
+                Key = "styled-name",
+                Title = userConfig.GetText("name"),
+                Sortable = true,
+                Searchable = true,
+                HeaderClass = "text-bg-dark",
+                CellClass = "fw-semibold text-primary",
+                ValueSelector = person => person.Name,
+                SortValueSelector = person => person.Name
+            },
+            new FancyColumn<PersonRow>
+            {
+                Key = "styled-age",
+                Title = userConfig.GetText("fancy_table_ex_age"),
+                Sortable = true,
+                Searchable = false,
+                CellTemplate = person => @<span class="badge text-bg-info-subtle border border-info text-info-emphasis">@(string.Format(userConfig.GetText("fancy_table_ex_years"), person.Age))</span>
+            }
+        ];
+    }
+
+    /// <summary>
+    /// Builds the localized columns of the rule tree table.
+    /// </summary>
+    private IReadOnlyList<FancyColumn<ExampleRuleRow>> BuildRuleColumns()
+    {
+        return
+        [
+            new() { Key = "number", Title = userConfig.GetText("rule"), ValueSelector = rule => rule.Number },
+            new() { Key = "name", Title = userConfig.GetText("name"), ValueSelector = rule => rule.Name },
+            new() { Key = "service", Title = userConfig.GetText("service"), ValueSelector = rule => rule.Service },
+            new() { Key = "source", Title = userConfig.GetText("source"), ValueSelector = rule => rule.Source },
+            new() { Key = "destination", Title = userConfig.GetText("destination"), ValueSelector = rule => rule.Destination },
+            new() { Key = "action", Title = userConfig.GetText("action"), ValueSelector = rule => rule.Action }
+        ];
     }
 
     /// <summary>
@@ -295,7 +328,7 @@
     /// </summary>
     private void OpenPerson(PersonRow person)
     {
-        lastAction = $"Open details for {person.Name}";
+        lastAction = string.Format(userConfig.GetText("fancy_table_ex_opened_details"), person.Name);
     }
 
     /// <summary>
@@ -303,7 +336,7 @@
     /// </summary>
     private void InspectSection(ExampleRuleRow row)
     {
-        lastAction = $"Inspect section {row.Name}";
+        lastAction = string.Format(userConfig.GetText("fancy_table_ex_inspected_section"), row.Name);
     }
 
     /// <summary>

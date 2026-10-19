@@ -1,7 +1,10 @@
 # Firewall Orchestrator Revision History
 
-## 9.7.6 - 19.10.26
+## 9.7.7 - 19.10.26
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
+
+## 9.7.6 - 18.10.26
+- various sanitizing fixes for XSS (cross site scripting) in reporting, welcome message, and modelling
 
 ## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time

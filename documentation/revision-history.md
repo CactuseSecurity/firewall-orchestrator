@@ -1,5 +1,8 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.6 - 19.10.2026
+- Refresh-token rotation now behaves predictably under concurrent requests, and an unreachable API during authentication is reported as a retryable 503. Before, it came back as a 400 with the raw transport error.
+
 ## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time
   - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)

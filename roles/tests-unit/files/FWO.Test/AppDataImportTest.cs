@@ -2676,6 +2676,11 @@ namespace FWO.Test
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
+                if (query == AuthQueries.getUserByDn)
+                {
+                    return Task.FromResult((QueryResponseType)(object)Array.Empty<UiUser>());
+                }
+
                 if (query == AuthQueries.upsertUiUser)
                 {
                     ++UpsertCount;

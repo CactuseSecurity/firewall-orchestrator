@@ -108,21 +108,19 @@ namespace FWO.Test
             Assert.That(recipients.Select(user => user.Email), Is.EqualTo(kNoEmails));
         }
 
-        private static TestableLdap CreateLdap(RecordingLdapClient client)
+        private static TestableLdap CreateLdap(RecordingLdapClient client) => new TestableLdap(client)
         {
-            return new TestableLdap(client)
-            {
-                Id = 3,
-                Address = "ldap.example.test",
-                Port = 389,
-                SearchUser = "cn=search,dc=test",
-                SearchUserPwd = LdapTestSupport.CreateEncryptedSecret("searchpwd"),
-                UserSearchPath = kUserSearchPath
-            };
-        }
+            Id = 3,
+            Addresses = ["ldap.example.test"],
+            Port = 389,
+            SearchUser = "cn=search,dc=test",
+            SearchUserPwd = LdapTestSupport.CreateEncryptedSecret("searchpwd"),
+            UserSearchPath = kUserSearchPath
+        };
 
         /// <summary>
-        /// Returns <see cref="CachedUsers"/> as uiuser cache and loses the API as soon as a user is to be written.
+        /// Returns <see cref="CachedUsers"/> as uiuser cache, knows no user bound to another directory entry
+        /// and loses the API as soon as a user is to be written.
         /// </summary>
         private sealed class RecipientApiConnection : SimulatedApiConnection
         {
@@ -137,6 +135,11 @@ namespace FWO.Test
                 if (query == AuthQueries.getUserEmails)
                 {
                     return Task.FromResult((QueryResponseType)(object)CachedUsers);
+                }
+
+                if (query == AuthQueries.getUserByDn)
+                {
+                    return Task.FromResult((QueryResponseType)(object)Array.Empty<UiUser>());
                 }
 
                 if (query == AuthQueries.upsertUiUser)

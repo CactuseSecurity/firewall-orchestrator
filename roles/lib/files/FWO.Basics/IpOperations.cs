@@ -1,6 +1,7 @@
 using System.Net;
 using System.Numerics;
 using System.Net.Sockets;
+using System.Globalization;
 using DnsClient;
 using NetTools;
 
@@ -11,6 +12,12 @@ namespace FWO.Basics
     /// </summary>
     public static class IpOperations
     {
+        private const int kIpv4OctetCount = 4;
+        private const int kMaxIpv4OctetLength = 3;
+        private const int kIpv4CompatiblePrefixByteCount = 12;
+        private const int kBitsPerByte = 8;
+        private const uint kIpv6LoopbackSuffix = 1;
+
         // Reuse the client to avoid socket churn and disable client-side caching.
         private static readonly LookupClient ReverseLookupClient = new(new LookupClientOptions
         {
@@ -186,10 +193,17 @@ namespace FWO.Basics
             return true;
         }
 
+        /// <summary>
+        /// Checks whether an IPv4 value uses four unambiguous decimal octets.
+        /// </summary>
         private static bool IsValidIPv4(string ipAddress)
         {
             string[] octets = ipAddress.Split('.');
-            return octets.Length == 4 && octets.All(octet => byte.TryParse(octet, out _));
+            // Leading zeros are rejected because .NET interprets them as octal while FWO uses decimal addresses.
+            return octets.Length == kIpv4OctetCount
+                && octets.All(octet => octet.Length is > 0 and <= kMaxIpv4OctetLength
+                    && octet.All(char.IsAsciiDigit)
+                    && (octet.Length == 1 || octet[0] != '0'));
         }
 
         /// <summary>
@@ -564,10 +578,14 @@ namespace FWO.Basics
 
             try
             {
+                if (strictv4Parse && !HasStrictIpParseFormat(ipString))
+                {
+                    return false;
+                }
+
                 (ipStart, ipEnd) = SplitIpToRange(ipString);
                 return IPAddress.TryParse(ipStart, out addressStart)
-                    && IPAddress.TryParse(ipEnd, out addressEnd)
-                    && !HasStrictIPv4ParseError(ipStart, ipEnd, addressStart, addressEnd, strictv4Parse);
+                    && IPAddress.TryParse(ipEnd, out addressEnd);
             }
             catch (Exception)
             {
@@ -575,17 +593,85 @@ namespace FWO.Basics
             }
         }
 
-        private static bool HasStrictIPv4ParseError(
-            string ipStart,
-            string ipEnd,
-            IPAddress addressStart,
-            IPAddress addressEnd,
-            bool strictv4Parse)
+        /// <summary>
+        /// Checks every address in a single address, CIDR, or explicit range for strict notation.
+        /// </summary>
+        private static bool HasStrictIpParseFormat(string ipString)
         {
-            return strictv4Parse
-                && addressStart.AddressFamily == AddressFamily.InterNetwork
-                && addressEnd.AddressFamily == AddressFamily.InterNetwork
-                && (!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd));
+            string[] rangeParts = ipString.Split('-');
+            return rangeParts.Length switch
+            {
+                1 => HasStrictAddressFormat(rangeParts[0]),
+                2 => rangeParts.All(part => HasStrictAddressFormat(part.Trim())),
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// Checks one address, with an optional CIDR prefix, without allowing framework-specific aliases.
+        /// </summary>
+        private static bool HasStrictAddressFormat(string value)
+        {
+            string[] parts = value.Split('/');
+            if (parts.Length > 2
+                || !IPAddress.TryParse(parts[0], out IPAddress? address)
+                || !HasStrictAddressNotation(parts[0], address))
+            {
+                return false;
+            }
+
+            if (parts.Length == 1)
+            {
+                return true;
+            }
+
+            int maxPrefixLength = address.GetAddressBytes().Length * kBitsPerByte;
+            return int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int prefixLength)
+                && prefixLength <= maxPrefixLength;
+        }
+
+        /// <summary>
+        /// Checks that an address uses unambiguous dotted-decimal IPv4 or a supported IPv6 representation.
+        /// </summary>
+        private static bool HasStrictAddressNotation(string value, IPAddress address)
+        {
+            return address.AddressFamily switch
+            {
+                AddressFamily.InterNetwork => IsValidIPv4(value),
+                AddressFamily.InterNetworkV6 => value == value.Trim()
+                    && !value.Contains('%')
+                    && !value.Contains('[')
+                    && !value.Contains(']')
+                    && !value.Contains('.')
+                    && !IsIpv4EncodedAsIpv6(address),
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// Checks whether an IPv6 value represents an IPv4 address in mapped or compatible notation.
+        /// </summary>
+        private static bool IsIpv4EncodedAsIpv6(IPAddress address)
+        {
+            if (address.IsIPv4MappedToIPv6)
+            {
+                return true;
+            }
+
+            byte[] addressBytes = address.GetAddressBytes();
+            if (addressBytes.Take(kIpv4CompatiblePrefixByteCount).Any(addressByte => addressByte != 0))
+            {
+                return false;
+            }
+
+            uint embeddedIpv4 = 0;
+            foreach (byte addressByte in addressBytes.Skip(kIpv4CompatiblePrefixByteCount))
+            {
+                embeddedIpv4 = (embeddedIpv4 << kBitsPerByte) | addressByte;
+            }
+
+            // The unspecified address and loopback share the zero prefix but are native IPv6 addresses.
+            return embeddedIpv4 > kIpv6LoopbackSuffix;
         }
 
         private static List<IPNetwork2> ToNetworks(IEnumerable<IPAddressRange> ranges)

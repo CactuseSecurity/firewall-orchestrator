@@ -1,37 +1,35 @@
 # Session handoff
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 ## Current status
 
 Phase 1 and Phase 2 remain implemented on the rebased `Cactus/develop` baseline. Phase 1 local validation passes, but the mandatory disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade gates remain pending. Phase 2 is implemented and locally validated.
 
-Phase 3 WP-01 through WP-03 are implemented and locally validated. WP-04 is ready for its separate planning session. No WP-04 or WP-05 production code has been implemented.
+Phase 3 WP-01 through WP-04 are implemented and locally validated. No WP-05 production code has been implemented.
 
 The customer document `FWO_Regel_Platzierung_Regelwerk.md` was not inspected. It must remain unopened during WP-03 and WP-04 and is first analyzed in the WP-05 planning session.
 
-## Implemented WP-03
+## Implemented WP-04
 
-- A shared cancellation-aware `IDesignatedZoneMatrixReader` under `FWO.Compliance.RulePositioning` captures the configured matrix ID once, validates the active matrix, loads its zones with the existing queries, and returns typed safe results.
-- Only that reader is registered as a singleton. `ComplianceZoneService` reuses it while preserving its public behavior.
-- `ICheckPointPositioningRecipeCatalog` and typed selection results exist under `FWO.Compliance.RulePositioning.CheckPoint`; there is no catalog implementation or production mapping.
-- The inactive `CheckPointRulePositioningStrategy` depends on the WP-01 graph reader, the designated-zone reader, the WP-02 resolver, and the catalog.
-- The strategy handles exact target device type ID `9` only. MDS type ID `13` is not a target gateway. The catalog is the sole algorithm capability source.
-- Every calculation is sequential and fail-fast: graph read, designated-zone read, zone resolution, recipe selection, then one Phase 2 execution. There are no retries or fallbacks.
-- Child failures map deterministically to existing Phase 1 categories. Caller cancellation propagates, and successful positions must preserve the exact configured algorithm.
-- Do not register `IRulePositioningStrategy`, the catalog, `RulePositioningManager`, or a workflow caller. No incomplete strategy can be selected in production.
+- Add one internal static `CheckPointRulePositionRenderer` in `FWO.ExternalSystems.CheckPoint`; it receives an existing request `JsonNode`, one nullable `RulePosition`, and the explicit expected positioning algorithm.
+- Render every non-null valid position with `layer: <LayerUid>` and explicit `position`: `"top"`, `"bottom"`, `{ "above": "<rule-uid>" }`, or `{ "below": "<rule-uid>" }`.
+- Ordered and inline access layers use the same `layer` UID field. Never use `inline-layer` to select an insertion target.
+- Null position deep-clones the request unchanged. Unknown/wrong-vendor, malformed, and algorithm-mismatched positions fail with fixed safe `ConfigException` messages.
+- Rendering deep-clones the body, replaces only `layer` and `position`, remains idempotent, and never mutates the persisted position.
+- Do not inspect or select `WfReqTask.ImplementationTasks`, call a client, add an endpoint, register a service, or connect the renderer to the workflow. WP-05 owns activation and selection of the applicable gateway implementation task.
 
-The architectural decision is recorded in D-031. Local validation on 2026-10-18 completed with 281 focused regression tests passing, a clean formatted Debug solution build with 0 warnings/errors, 7,896 complete-suite tests passing with 29 environment-dependent skips and no failures, and 100% focused line coverage for every new production class (at least 92.42% executable branch coverage).
+Implementation added the pure internal renderer and focused tests, plus a `CheckPointTicketTest` regression proving that `CreateRequestString` makes no client call. Validation on 2026-10-19 passed with 86 focused tests, a warning-free Debug solution build, 7,917 passed and 29 skipped full-suite tests, and 97.95% renderer line coverage (96.77% branch coverage). `dotnet format roles/FWO.sln` completed successfully; unrelated formatter-only changes were removed.
 
-The complete contracts, implementation record, file list, tests, and validation evidence are in:
+The architectural decision is recorded in D-032. The complete request contract, renderer signature, validation order, exact diagnostics, file list, tests, and validation commands are in:
 
-`documentation/work-packages/firewall-rule-placement/phase-3/WP-03-check-point-strategy-implementation.md`
+`documentation/work-packages/firewall-rule-placement/phase-3/WP-04-semantic-position-rendering-implementation.md`
 
 ## Next action
 
-Run a separate planning session for Phase 3 WP-04. Read `.agents/AGENTS.md`, the roadmap and decision log, this handoff, and `phase-3/WP-04-semantic-position-rendering-planning.md`. Plan only WP-04, update its paired implementation brief, and do not implement WP-04 in the same session.
+Run a separate planning session for Phase 3 WP-05. Read `.agents/AGENTS.md`, the roadmap and decision log, this handoff, and `phase-3/WP-05-customer-recipes-and-activation-planning.md`. Analyze the customer document only within that planning session and make the paired implementation brief self-contained before implementation begins.
 
-Do not inspect the customer document, add customer mappings, register the positioning strategy, activate a caller, persist a calculated position, or render a Check Point request.
+Do not add customer mappings, register the positioning strategy, activate a caller, select an implementation task, persist a calculated position, or execute a Check Point request before WP-05 settles those behaviors.
 
 All changes remain unstaged and uncommitted unless the user explicitly requests otherwise.
 

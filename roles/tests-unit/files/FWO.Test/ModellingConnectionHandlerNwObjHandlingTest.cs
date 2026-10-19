@@ -92,37 +92,95 @@ namespace FWO.Test
             ClassicAssert.IsFalse(modellerHandler.CanModifyAppRoles());
         }
 
-        [Test]
-        public void CreateAppRole_DoesNotOpenEditorForAuditor()
+        /// <summary>
+        /// Auditors and admins may try out the add dialog, but the dialog handler must not let them save.
+        /// </summary>
+        [TestCase(Roles.Auditor)]
+        [TestCase(Roles.Admin)]
+        public void CreateAppRole_OpensTryOutEditorForAuditorAndAdmin(string role)
         {
             List<string> messages = [];
-            ModellingConnectionHandler handler = CreateAuditorHandler(102, messages);
+            ModellingConnectionHandler handler = CreateRoleHandler(102, role, messages);
 
             handler.CreateAppRole();
 
-            ClassicAssert.IsFalse(handler.AddAppRoleMode);
-            ClassicAssert.IsFalse(handler.EditAppRoleMode);
-            ClassicAssert.AreEqual(1, messages.Count);
-            ClassicAssert.AreEqual(kExpectedForbiddenMessage, messages[0]);
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.CanOpenAppRoleEditor(), Is.True);
+                Assert.That(handler.AddAppRoleMode, Is.True);
+                Assert.That(handler.EditAppRoleMode, Is.True);
+                Assert.That(handler.AppRoleHandler?.IsOwner, Is.False);
+                Assert.That(messages, Is.Empty);
+            });
         }
 
         /// <summary>
-        /// Editing and deleting used to fail silently, leaving the user without any hint
-        /// why nothing happened. All three paths must report the same reason.
+        /// Auditors and admins may try out the edit dialog, but the dialog handler must not let them save.
         /// </summary>
-        [Test]
-        public void EditAppRole_ReportsForbiddenInsteadOfSilentlyDoingNothing()
+        [TestCase(Roles.Auditor)]
+        [TestCase(Roles.Admin)]
+        public void EditAppRole_OpensTryOutEditorForAuditorAndAdmin(string role)
         {
             List<string> messages = [];
-            ModellingConnectionHandler handler = CreateAuditorHandler(103, messages);
+            ModellingConnectionHandler handler = CreateRoleHandler(103, role, messages);
 
             handler.EditAppRole(new ModellingAppRole() { Id = 1 });
 
-            ClassicAssert.IsFalse(handler.EditAppRoleMode);
-            ClassicAssert.AreEqual(1, messages.Count);
-            ClassicAssert.AreEqual(kExpectedForbiddenMessage, messages[0]);
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.AddAppRoleMode, Is.False);
+                Assert.That(handler.EditAppRoleMode, Is.True);
+                Assert.That(handler.AppRoleHandler?.IsOwner, Is.False);
+                Assert.That(messages, Is.Empty);
+            });
         }
 
+        /// <summary>
+        /// An owning modeller gets a dialog handler which may save.
+        /// </summary>
+        [Test]
+        public void CreateAppRole_LetsOwningModellerSave()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateRoleHandler(106, Roles.Modeller, messages);
+
+            handler.CreateAppRole();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.EditAppRoleMode, Is.True);
+                Assert.That(handler.AppRoleHandler?.IsOwner, Is.True);
+                Assert.That(messages, Is.Empty);
+            });
+        }
+
+        /// <summary>
+        /// Users without access to the application must not open the dialogs and are told why,
+        /// instead of nothing happening silently.
+        /// </summary>
+        [Test]
+        public void AppRoleEditors_ReportForbiddenForNonOwner()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateRoleHandler(107, Roles.Modeller, messages);
+            handler.IsOwner = false;
+
+            handler.CreateAppRole();
+            handler.EditAppRole(new ModellingAppRole() { Id = 1 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.CanOpenAppRoleEditor(), Is.False);
+                Assert.That(handler.AddAppRoleMode, Is.False);
+                Assert.That(handler.EditAppRoleMode, Is.False);
+                Assert.That(messages, Is.EqualTo(new List<string> { kExpectedForbiddenMessage, kExpectedForbiddenMessage }));
+            });
+        }
+
+        /// <summary>
+        /// Deleting is persisted immediately, so there is nothing to try out: it stays forbidden for auditors
+        /// and reports the reason instead of silently doing nothing.
+        /// </summary>
         [Test]
         public async Task RequestDeleteAppRole_ReportsForbiddenInsteadOfSilentlyDoingNothing()
         {
@@ -152,12 +210,17 @@ namespace FWO.Test
 
         private static ModellingConnectionHandler CreateAuditorHandler(int connectionId, List<string> messages)
         {
+            return CreateRoleHandler(connectionId, Roles.Auditor, messages);
+        }
+
+        private static ModellingConnectionHandler CreateRoleHandler(int connectionId, string role, List<string> messages)
+        {
             ModellingConnection connection = new() { Id = connectionId };
-            SimulatedUserConfig auditorConfig = new();
-            auditorConfig.User.Roles = new List<string> { Roles.Auditor };
+            SimulatedUserConfig roleConfig = new();
+            roleConfig.User.Roles = new List<string> { role };
             List<ModellingConnection> connections = [connection];
             Action<Exception?, string, string, bool> displayMessage = (_, title, text, _) => messages.Add($"{title}:{text}");
-            return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), auditorConfig, Application, connections, connection, false, false, displayMessage, DefaultInit.DoNothing, true);
+            return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), roleConfig, Application, connections, connection, false, false, displayMessage, DefaultInit.DoNothing, true);
         }
 
         [Test]
@@ -630,10 +693,9 @@ namespace FWO.Test
             {
                 ModNamingConvention = $"{{\"networkAreaRequired\":true,\"fixedPartLength\":{fixedPartLength},\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\"}}"
             };
-            // Changing an application role requires an owning modeller (CanModifyAppRoles).
+            // Saving an application role requires an owning modeller (CanModifyAppRoles).
             // These cases cover whether the area can be converted, not who may convert it, so
-            // the user is given that role - without it the dialogs never open and every case
-            // would pass or fail for the wrong reason.
+            // the user is given that role to exercise the regular editing path.
             config.User.Roles = new List<string> { Roles.Modeller };
             ModellingConnection connection = new() { Id = 21 };
             List<ModellingConnection> connections = new() { connection };

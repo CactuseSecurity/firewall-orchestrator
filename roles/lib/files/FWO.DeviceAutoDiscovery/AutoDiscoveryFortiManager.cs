@@ -221,7 +221,6 @@ namespace FWO.DeviceAutoDiscovery
             {
                 Name = $"{superManagement.Name}{AdomSeparator}{domainName}",
                 Uid = domainUid,
-                ImporterHostname = superManagement.ImporterHostname,
                 Hostname = superManagement.Hostname,
                 ImportCredential = superManagement.ImportCredential,
                 Port = superManagement.Port,
@@ -279,7 +278,6 @@ namespace FWO.DeviceAutoDiscovery
         //             Management currentManagement = new Management
         //             {
         //                 Name = $"{superManagement.Name}{AdomSeparator}{TestAdom}",
-        //                 ImporterHostname = superManagement.ImporterHostname,
         //                 Hostname = superManagement.Hostname,
         //                 ImportUser = superManagement.ImportUser,
         //                 Secret = superManagement.Secret,

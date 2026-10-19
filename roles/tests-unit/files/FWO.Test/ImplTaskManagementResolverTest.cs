@@ -1,5 +1,6 @@
 using FWO.Data;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using NUnit.Framework;
 
@@ -25,24 +26,27 @@ namespace FWO.Test
         private static readonly List<int> kSuperAndSecondSub = [kSuperManagementId, kSecondSubManagementId];
         private static readonly List<int> kStandaloneOnly = [kStandaloneManagementId];
         private static readonly List<int> kUnknownOnly = [kUnknownManagementId];
+        private static readonly List<int> kFirstSubOnly = [kFirstSubManagementId];
+        private static readonly List<int> kNoTarget = [];
 
-        private static InMemoryProvisioningApiConnection CreateApi()
+        private static InMemoryDeviceSpecificSettingsApiConnection CreateApi()
         {
             DeviceType mdsType = new() { Id = kMdsDeviceTypeId, Name = "Check Point MDS", Version = "R8x" };
             DeviceType domainType = new() { Id = kDomainDeviceTypeId, Name = "Check Point", Version = "R8x" };
-            InMemoryProvisioningApiConnection api = new();
+            InMemoryDeviceSpecificSettingsApiConnection api = new();
             api.Managements.Add(new Management { Id = kSuperManagementId, Name = "mds", DeviceType = mdsType, IsSupermanager = true });
             api.Managements.Add(new Management { Id = kSecondSubManagementId, Name = "domain-b", DeviceType = domainType, SuperManagerId = kSuperManagementId });
             api.Managements.Add(new Management { Id = kFirstSubManagementId, Name = "domain-a", DeviceType = domainType, SuperManagerId = kSuperManagementId });
             api.Managements.Add(new Management { Id = kHiddenSubManagementId, Name = "domain-hidden", DeviceType = domainType, SuperManagerId = kSuperManagementId, HideInUi = true });
             api.Managements.Add(new Management { Id = kStandaloneManagementId, Name = "sms", DeviceType = domainType });
-            api.AddNode(kGlobalNodeId, ProvisioningScopeType.Global, ProvisioningScopePath.GlobalObjectKey, displayName: "Global");
+            api.AddNode(kGlobalNodeId, DeviceSpecificScopeType.Global, DeviceSpecificScopePath.GlobalObjectKey, displayName: "Global");
             return api;
         }
 
-        private static async Task<List<int>> Resolve(InMemoryProvisioningApiConnection api, int managementId, bool isServiceObject = false)
+        private static async Task<List<int>> Resolve(InMemoryDeviceSpecificSettingsApiConnection api, int managementId,
+            ObjectTaskKind kind = ObjectTaskKind.Network)
         {
-            List<Management> targets = await new ImplTaskManagementResolver(api).ResolveObjectTargets(managementId, isServiceObject);
+            List<Management> targets = await new ImplTaskManagementResolver(api).ResolveObjectTargets(managementId, kind);
             return [.. targets.Select(target => target.Id)];
         }
 
@@ -55,8 +59,8 @@ namespace FWO.Test
         [Test]
         public async Task ResolveObjectTargets_SubmanagerSettingTargetsEveryVisibleSubManagementOrderedByName()
         {
-            InMemoryProvisioningApiConnection api = CreateApi();
-            api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
 
             Assert.That(await Resolve(api, kSuperManagementId), Is.EqualTo(kAllSubs));
         }
@@ -64,8 +68,8 @@ namespace FWO.Test
         [Test]
         public async Task ResolveObjectTargets_RequestOnSubManagementUsesItsSuperManagement()
         {
-            InMemoryProvisioningApiConnection api = CreateApi();
-            api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
 
             Assert.That(await Resolve(api, kFirstSubManagementId), Is.EqualTo(kAllSubs));
         }
@@ -73,10 +77,10 @@ namespace FWO.Test
         [Test]
         public async Task ResolveObjectTargets_HonoursOverrideOnSingleSubManagement()
         {
-            InMemoryProvisioningApiConnection api = CreateApi();
-            api.AddNode(kDomainDeviceTypeNodeId, ProvisioningScopeType.DeviceType, kDomainDeviceTypeId.ToString(), kGlobalNodeId);
-            api.AddNode(kSecondSubManagementNodeId, ProvisioningScopeType.Management, kSecondSubManagementId.ToString(), kDomainDeviceTypeNodeId);
-            api.SetValue(kSecondSubManagementNodeId, ProvisioningSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.AddNode(kDomainDeviceTypeNodeId, DeviceSpecificScopeType.DeviceType, kDomainDeviceTypeId.ToString(), kGlobalNodeId);
+            api.AddNode(kSecondSubManagementNodeId, DeviceSpecificScopeType.Management, kSecondSubManagementId.ToString(), kDomainDeviceTypeNodeId);
+            api.SetValue(kSecondSubManagementNodeId, DeviceSpecificSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
 
             Assert.That(await Resolve(api, kSuperManagementId), Is.EqualTo(kSuperAndSecondSub));
         }
@@ -84,11 +88,11 @@ namespace FWO.Test
         [Test]
         public async Task ResolveObjectTargets_ServiceObjectsUseServiceSetting()
         {
-            InMemoryProvisioningApiConnection api = CreateApi();
-            api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
 
-            List<int> serviceTargets = await Resolve(api, kSuperManagementId, true);
-            List<int> addressTargets = await Resolve(api, kSuperManagementId, false);
+            List<int> serviceTargets = await Resolve(api, kSuperManagementId, ObjectTaskKind.Service);
+            List<int> addressTargets = await Resolve(api, kSuperManagementId, ObjectTaskKind.Network);
 
             Assert.Multiple(() =>
             {
@@ -98,10 +102,81 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ResolveObjectTargets_TimeObjectsUseTimeSetting()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Submanager);
+
+            List<int> timeTargets = await Resolve(api, kSuperManagementId, ObjectTaskKind.Time);
+            List<int> addressTargets = await Resolve(api, kSuperManagementId, ObjectTaskKind.Network);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(timeTargets, Is.EqualTo(kAllSubs));
+                Assert.That(addressTargets, Is.EqualTo(kSuperOnly));
+            });
+        }
+
+        [Test]
+        public async Task ResolveObjectTargets_IgnoreSkipsTheSubManagement()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Submanager);
+            api.AddNode(kDomainDeviceTypeNodeId, DeviceSpecificScopeType.DeviceType, kDomainDeviceTypeId.ToString(), kGlobalNodeId);
+            api.AddNode(kSecondSubManagementNodeId, DeviceSpecificScopeType.Management, kSecondSubManagementId.ToString(), kDomainDeviceTypeNodeId);
+            api.SetValue(kSecondSubManagementNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Ignore);
+
+            Assert.That(await Resolve(api, kSuperManagementId, ObjectTaskKind.Time), Is.EqualTo(kFirstSubOnly));
+        }
+
+        [Test]
+        public async Task ResolveObjectTargets_IgnoreEverywhereLeavesNoTarget()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Ignore);
+
+            List<int> fromSuper = await Resolve(api, kSuperManagementId, ObjectTaskKind.Time);
+            List<int> fromSub = await Resolve(api, kFirstSubManagementId, ObjectTaskKind.Time);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(fromSuper, Is.EqualTo(kNoTarget));
+                Assert.That(fromSub, Is.EqualTo(kNoTarget));
+            });
+        }
+
+        [Test]
+        public async Task ResolveObjectTargets_StandaloneManagementSetToIgnoreHasNoTarget()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.TimeObjectCreation, ProvisioningObjectCreationMode.Ignore);
+
+            List<int> timeTargets = await Resolve(api, kStandaloneManagementId, ObjectTaskKind.Time);
+            List<int> addressTargets = await Resolve(api, kStandaloneManagementId, ObjectTaskKind.Network);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(timeTargets, Is.EqualTo(kNoTarget));
+                Assert.That(addressTargets, Is.EqualTo(kStandaloneOnly));
+            });
+        }
+
+        [Test]
+        public void GetCreationSettingKey_MapsEveryKindToItsSetting()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(ImplTaskManagementResolver.GetCreationSettingKey(ObjectTaskKind.Network), Is.EqualTo(DeviceSpecificSettingKeys.AddressObjectCreation));
+                Assert.That(ImplTaskManagementResolver.GetCreationSettingKey(ObjectTaskKind.Service), Is.EqualTo(DeviceSpecificSettingKeys.ServiceObjectCreation));
+                Assert.That(ImplTaskManagementResolver.GetCreationSettingKey(ObjectTaskKind.Time), Is.EqualTo(DeviceSpecificSettingKeys.TimeObjectCreation));
+            });
+        }
+
+        [Test]
         public async Task ResolveObjectTargets_StandaloneManagementIsItsOwnTarget()
         {
-            InMemoryProvisioningApiConnection api = CreateApi();
-            api.SetValue(kGlobalNodeId, ProvisioningSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
 
             Assert.That(await Resolve(api, kStandaloneManagementId), Is.EqualTo(kStandaloneOnly));
         }
@@ -115,7 +190,7 @@ namespace FWO.Test
         [Test]
         public async Task ResolveObjectTargets_ReturnsManagementNames()
         {
-            List<Management> targets = await new ImplTaskManagementResolver(CreateApi()).ResolveObjectTargets(kSuperManagementId, false);
+            List<Management> targets = await new ImplTaskManagementResolver(CreateApi()).ResolveObjectTargets(kSuperManagementId, ObjectTaskKind.Network);
 
             Assert.That(targets.Single().Name, Is.EqualTo("mds"));
         }

@@ -24,11 +24,8 @@ namespace FWO.Data
         [JsonProperty("sshPublicKey"), JsonPropertyName("sshPublicKey")]
         public string? PublicKey { get; set; }
 
-        [JsonProperty("cloud_client_id"), JsonPropertyName("cloud_client_id")]
-        public string? CloudClientId { get; set; }
-
-        [JsonProperty("cloud_client_secret"), JsonPropertyName("cloud_client_secret")]
-        public string? CloudClientSecret { get; set; }
+        [JsonProperty("additional_credential_id"), JsonPropertyName("additional_credential_id")]
+        public int? AdditionalCredentialId { get; set; }
 
         public Credential()
         { }
@@ -41,8 +38,7 @@ namespace FWO.Data
             ImportUser = cred.ImportUser;
             Secret = cred.Secret;
             PublicKey = cred.PublicKey;
-            CloudClientId = cred.CloudClientId;
-            CloudClientSecret = cred.CloudClientSecret;
+            AdditionalCredentialId = cred.AdditionalCredentialId;
         }
         public Credential(string username, string password)
         {
@@ -56,8 +52,7 @@ namespace FWO.Data
             ImportUser = ImportUser.SanitizeOpt(ref shortened);
             PublicKey = PublicKey.SanitizeKeyOpt(ref shortened);
             Secret = Secret.SanitizeKeyMand(ref shortened);
-            CloudClientId = CloudClientId.SanitizeOpt(ref shortened);
-            CloudClientSecret = CloudClientSecret.SanitizeKeyOpt(ref shortened);
+
             return shortened;
         }
     }

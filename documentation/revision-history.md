@@ -1,5 +1,13 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.7 - 19.10.2026
+- middleware REST API: unify address inputs for `getAddressObjectId`, `getFlowComplianceState`,
+  `resolveZonesForObjects` and `createTicket.addressObjects`. Each address now uses exactly one of
+  `ipHost`, `ipNetwork` or the two-entry `ipRange`; values follow the shared FWO IP parser and CIDRs
+  are normalized to inclusive bounds. Breaking change: the legacy request fields `ipStart` and
+  `ipEnd` were removed, so clients must migrate start/end pairs to one of the new representations.
+  Response payloads and persisted workflow start/end bounds are unchanged
+
 ## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time
   - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)
@@ -293,12 +301,6 @@
     Rotate the passwords of the ticket system accounts, as they may already have been read
 - api: upgrade hasura graphql API to 2.50.3
 - importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
-- middleware REST API: unify address inputs for `getAddressObjectId`, `getFlowComplianceState`,
-  `resolveZonesForObjects` and `createTicket.addressObjects`. Each address now uses exactly one of
-  `ipHost`, `ipNetwork` or the two-entry `ipRange`; values follow the shared FWO IP parser and CIDRs
-  are normalized to inclusive bounds. Breaking change: the legacy request fields `ipStart` and
-  `ipEnd` were removed, so clients must migrate start/end pairs to one of the new representations.
-  Response payloads and persisted workflow start/end bounds are unchanged
 
 ## 9.7.0 - 07.10.2026
 - resolve reverse DNS asynchronously with shutdown cancellation; reuse stored names and empty

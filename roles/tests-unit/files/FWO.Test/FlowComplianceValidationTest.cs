@@ -28,7 +28,7 @@ internal class FlowComplianceValidationTest
         GetFlowComplianceStateRequest request = new()
         {
             Source = Enumerable.Range(0, FlowComplianceRequestValidator.kMaxRangeEntries + 1)
-                .Select(_ => new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1", IpEnd = "10.0.0.1" })
+                .Select(_ => new GetFlowComplianceStateRequest.IpRangeRequest { IpHost = "10.0.0.1" })
                 .ToList(),
             Policies = Enumerable.Range(1, FlowComplianceRequestValidator.kMaxPolicies + 1).ToList()
         };

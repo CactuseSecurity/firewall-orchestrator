@@ -2,7 +2,7 @@
 
 ## Status
 
-Blocked until Phase 3 WP-05 is implemented and validated.
+Blocked until Phase 3 WP-05 and WP-06 are implemented and validated.
 
 ## Planning objective
 

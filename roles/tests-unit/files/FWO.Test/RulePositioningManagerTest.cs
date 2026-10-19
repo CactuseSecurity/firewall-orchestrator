@@ -87,11 +87,9 @@ public class RulePositioningManagerTest
     [TestCase(InvalidContextCase.MissingManagement)]
     [TestCase(InvalidContextCase.MissingDeviceType)]
     [TestCase(InvalidContextCase.InvalidDeviceType)]
+    [TestCase(InvalidContextCase.MissingImplementationTaskId)]
     [TestCase(InvalidContextCase.MissingRequestTaskId)]
     [TestCase(InvalidContextCase.RequestTaskMismatch)]
-    [TestCase(InvalidContextCase.NoRequestGateway)]
-    [TestCase(InvalidContextCase.InvalidRequestGateway)]
-    [TestCase(InvalidContextCase.MultipleRequestGateways)]
     [TestCase(InvalidContextCase.MissingImplementationGateway)]
     [TestCase(InvalidContextCase.ImplementationGatewayMismatch)]
     [TestCase(InvalidContextCase.SuppliedGatewayMismatch)]
@@ -114,6 +112,29 @@ public class RulePositioningManagerTest
 
         AssertFailure(result, RulePositioningFailureCategory.InvalidInput);
         AssertStrategyCalls(strategy, 0, 0);
+    }
+
+    [TestCase(ParentGatewaySelection.Empty)]
+    [TestCase(ParentGatewaySelection.AllDevices)]
+    [TestCase(ParentGatewaySelection.MultipleIncludingTarget)]
+    public async Task CalculateAsync_AcceptsConcreteImplementationGatewayForImplicitParentSelection(
+        ParentGatewaySelection selection)
+    {
+        RulePositioningContext context = ValidContext();
+        context.ParentRequestTask.SetDeviceList(selection switch
+        {
+            ParentGatewaySelection.Empty => [],
+            ParentGatewaySelection.AllDevices => [WfReqTaskBase.kAllDevicesId],
+            ParentGatewaySelection.MultipleIncludingTarget => [kGatewayId, kGatewayId + 1],
+            _ => throw new ArgumentOutOfRangeException(nameof(selection))
+        });
+        RecordingStrategy strategy = CheckPointStrategy();
+
+        RulePositioningResult result = await new RulePositioningManager([strategy])
+            .CalculateAsync(context, CancellationToken.None);
+
+        Assert.That(result, Is.TypeOf<RulePositioningSuccess>());
+        AssertStrategyCalls(strategy, 1, 1);
     }
 
     [TestCase(true, "rule_modify", "modify")]
@@ -411,21 +432,15 @@ public class RulePositioningManagerTest
             case InvalidContextCase.InvalidDeviceType:
                 context.TargetGateway.DeviceType.Id = 0;
                 break;
+            case InvalidContextCase.MissingImplementationTaskId:
+                context.ImplementationTask.Id = 0;
+                break;
             case InvalidContextCase.MissingRequestTaskId:
                 context.ParentRequestTask.Id = 0;
                 context.ImplementationTask.ReqTaskId = 0;
                 break;
             case InvalidContextCase.RequestTaskMismatch:
                 context.ImplementationTask.ReqTaskId++;
-                break;
-            case InvalidContextCase.NoRequestGateway:
-                context.ParentRequestTask.SetDeviceList(new List<int>());
-                break;
-            case InvalidContextCase.InvalidRequestGateway:
-                context.ParentRequestTask.SetDeviceList([WfReqTaskBase.kAllDevicesId]);
-                break;
-            case InvalidContextCase.MultipleRequestGateways:
-                context.ParentRequestTask.SetDeviceList([kGatewayId, kGatewayId + 1]);
                 break;
             case InvalidContextCase.MissingImplementationGateway:
                 context.ImplementationTask.DeviceId = null;
@@ -554,11 +569,9 @@ public class RulePositioningManagerTest
         MissingManagement,
         MissingDeviceType,
         InvalidDeviceType,
+        MissingImplementationTaskId,
         MissingRequestTaskId,
         RequestTaskMismatch,
-        NoRequestGateway,
-        InvalidRequestGateway,
-        MultipleRequestGateways,
         MissingImplementationGateway,
         ImplementationGatewayMismatch,
         SuppliedGatewayMismatch,
@@ -570,6 +583,13 @@ public class RulePositioningManagerTest
         MissingGatewayManagement,
         GatewayManagementMismatch,
         LoadedRequestManagementMismatch
+    }
+
+    public enum ParentGatewaySelection
+    {
+        Empty,
+        AllDevices,
+        MultipleIncludingTarget
     }
 
     private sealed class RecordingStrategy : IRulePositioningStrategy

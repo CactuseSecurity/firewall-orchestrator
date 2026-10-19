@@ -44,6 +44,8 @@
 ## 9.7.3 - 14.10.2026
 - add nullable, forward-compatible rule-position storage to implementation tasks
 - add a dedicated GraphQL persistence operation that stores, replaces, or clears only the rule position
+- add a graph-only Check Point end-of-rulebase positioning strategy and an independently callable best-effort workflow service
+- remove the inactive speculative Check Point rule-position renderer; semantic positions remain the terminal output
 - replace cloud client fields with selectable additional credentials; migrate existing values into encrypted credential secrets (#3766)
 - the Cisco ASA importer decrypts the selected additional credential for enable mode
 - modelling: auditors and admins can open the add and edit dialog of app roles again to try it out (closes #4968)

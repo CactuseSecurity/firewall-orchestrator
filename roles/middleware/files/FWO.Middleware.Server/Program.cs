@@ -6,6 +6,7 @@ using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Compliance;
 using FWO.Compliance.RulePositioning;
+using FWO.Compliance.RulePositioning.CheckPoint;
 using FWO.Logging;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.OpenApi;
@@ -85,6 +86,13 @@ builder.Services.AddSingleton(internalApiTokenService);
 builder.Services.AddSingleton<INotificationEmailSender, NotificationEmailSender>();
 builder.Services.AddSingleton<IRulebaseGraphSnapshotReader, RulebaseGraphSnapshotReader>();
 builder.Services.AddSingleton<IDesignatedZoneMatrixReader, DesignatedZoneMatrixReader>();
+builder.Services.AddSingleton<ICheckPointGraphPositioningRecipeCatalog, CheckPointGraphPositioningRecipeCatalog>();
+builder.Services.AddSingleton<CheckPointGraphRulePositioningStrategy>();
+builder.Services.AddSingleton<IRulePositioningStrategy>(serviceProvider =>
+    serviceProvider.GetRequiredService<CheckPointGraphRulePositioningStrategy>());
+builder.Services.AddSingleton<RulePositioningManager>();
+builder.Services.AddSingleton<ProvisioningSettingsManager>();
+builder.Services.AddSingleton<IRulePositioningWorkflowCaller, RulePositioningWorkflowCaller>();
 builder.Services.AddHostedService<InternalApiTokenRefreshService>();
 
 // Register config listeners as singletons (activated at startup)

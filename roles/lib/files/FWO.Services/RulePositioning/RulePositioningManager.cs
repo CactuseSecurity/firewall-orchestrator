@@ -130,7 +130,10 @@ public sealed class RulePositioningManager
     /// </summary>
     private static bool HasConsistentTaskAndTargetReferences(RulePositioningContext context)
     {
-        if (context.ParentRequestTask.Id <= 0
+        if (context.ImplementationTask.Id <= 0
+            || context.ImplementationTask.ReqTaskId <= 0
+            || context.ImplementationTask.DeviceId is null or <= 0
+            || context.ParentRequestTask.Id <= 0
             || context.ImplementationTask.ReqTaskId != context.ParentRequestTask.Id)
         {
             return false;
@@ -141,10 +144,14 @@ public sealed class RulePositioningManager
             .. context.ParentRequestTask.GetDeviceList()
                 .Distinct()
         ];
-        if (requestGatewayIds.Count != 1
-            || requestGatewayIds[0] <= 0
-            || context.ImplementationTask.DeviceId != requestGatewayIds[0]
-            || context.TargetGateway.Id != requestGatewayIds[0])
+        bool hasExplicitFiniteGatewaySelection = requestGatewayIds.Count > 0
+            && !requestGatewayIds.Contains(WfReqTaskBase.kAllDevicesId);
+        if (hasExplicitFiniteGatewaySelection
+            && !requestGatewayIds.Contains(context.ImplementationTask.DeviceId.Value))
+        {
+            return false;
+        }
+        if (context.TargetGateway.Id != context.ImplementationTask.DeviceId.Value)
         {
             return false;
         }

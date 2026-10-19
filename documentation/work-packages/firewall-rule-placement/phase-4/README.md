@@ -2,7 +2,7 @@
 
 ## Status
 
-Deferred until Phase 3 WP-05 has produced and validated a usable generic semantic-positioning product.
+Deferred until Phase 3 WP-05 has produced and validated the generic semantic-positioning capability and Phase 3 WP-06 has activated it through the approved workflow seam.
 
 Phase 4 extends the finished product with customer-specific behavior. It owns the first active use of the already-implemented designated-zone reader, creation-rule zone resolver, and zone-dependent strategy orchestration. It does not own generic activation, workflow integration, persistence, request rendering, or firewall execution.
 
@@ -10,7 +10,7 @@ Phase 4 extends the finished product with customer-specific behavior. It owns th
 
 | Work package | Status | Planning brief | Implementation brief | Outcome |
 | --- | --- | --- | --- | --- |
-| WP-01 | Blocked by Phase 3 WP-05 | [Plan customer-specific recipes](WP-01-customer-specific-recipes-planning.md) | [Implement customer-specific recipes](WP-01-customer-specific-recipes-implementation.md) | Analyze the customer document and extend the production catalog with only the required blocks, recipes, and enum mappings. |
+| WP-01 | Blocked by Phase 3 WP-06 | [Plan customer-specific recipes](WP-01-customer-specific-recipes-planning.md) | [Implement customer-specific recipes](WP-01-customer-specific-recipes-implementation.md) | Analyze the customer document and extend the production catalog with only the required blocks, recipes, and enum mappings. |
 
 ## Pre-implemented Phase 4 foundation
 

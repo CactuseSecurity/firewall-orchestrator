@@ -464,7 +464,7 @@ internal class CheckPointRulePositioningStrategyTest
     }
 
     [Test]
-    public void Program_RegistersOnlyReusablePositioningReaders()
+    public void Program_RegistersGraphOnlyPositioningServices()
     {
         string source = File.ReadAllText(FindRepositoryFile(
             "roles", "middleware", "files", "FWO.Middleware.Server", "Program.cs"));
@@ -476,8 +476,10 @@ internal class CheckPointRulePositioningStrategyTest
             Assert.That(source, Does.Contain("AddSingleton<ICreationRuleZoneResolver, CreationRuleZoneResolver>()"));
             Assert.That(source, Does.Not.Contain("CheckPointRulePositioningStrategy"));
             Assert.That(source, Does.Not.Contain("ICheckPointPositioningRecipeCatalog"));
-            Assert.That(source, Does.Not.Contain("IRulePositioningStrategy"));
-            Assert.That(source, Does.Not.Contain("RulePositioningManager"));
+            Assert.That(source, Does.Contain("AddSingleton<ICheckPointGraphPositioningRecipeCatalog, CheckPointGraphPositioningRecipeCatalog>()"));
+            Assert.That(source, Does.Contain("AddSingleton<IRulePositioningStrategy>"));
+            Assert.That(source, Does.Contain("AddSingleton<RulePositioningManager>()"));
+            Assert.That(source, Does.Contain("AddSingleton<IRulePositioningWorkflowCaller, RulePositioningWorkflowCaller>()"));
         });
     }
 

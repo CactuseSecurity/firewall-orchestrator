@@ -1,7 +1,12 @@
 using System.Security.Claims;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Compliance.RulePositioning.CheckPoint;
+using FWO.Data;
+using FWO.Data.Provisioning;
 using FWO.Data.RulePositioning;
+using FWO.Data.RulePositioning.CheckPoint;
+using FWO.Data.Workflow;
 using FWO.Services.RulePositioning;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -93,6 +98,90 @@ public class RulebaseGraphSnapshotReaderTest
         });
 
         AssertExactCalls(api);
+    }
+
+    [Test]
+    public async Task ImportedEmptyInitialLayer_ProducesGenericBottomPosition()
+    {
+        SimulatedApiConnection api = EmptyInitialLayerApi();
+        Management management = new()
+        {
+            Id = kManagementId,
+            DeviceType = new DeviceType { Id = 9, Name = "Check Point", Version = "R8x" }
+        };
+        Device gateway = new()
+        {
+            Id = kGatewayId,
+            DeviceType = new DeviceType { Id = 9, Name = "Check Point", Version = "R8x" },
+            Management = management
+        };
+        WfReqTask requestTask = new()
+        {
+            Id = 30,
+            TaskType = WfTaskType.access.ToString(),
+            RequestAction = RequestAction.create.ToString(),
+            ManagementId = kManagementId,
+            OnManagement = management
+        };
+        requestTask.SetDeviceList([kGatewayId]);
+        RulePositioningContext context = new(
+            new WfImplTask
+            {
+                Id = 40,
+                ReqTaskId = requestTask.Id,
+                DeviceId = kGatewayId,
+                TaskType = WfTaskType.access.ToString(),
+                ImplAction = RequestAction.create.ToString()
+            },
+            requestTask,
+            gateway,
+            management,
+            new GatewayProvisioningSettings
+            {
+                PositioningAlgorithm = ProvisioningPositioningAlgorithm.DefaultEndOfRulebase
+            });
+        CheckPointGraphRulePositioningStrategy strategy = new(
+            new RulebaseGraphSnapshotReader(api),
+            new CheckPointGraphPositioningRecipeCatalog());
+
+        RulePositioningResult result = await strategy.CalculateAsync(context, CancellationToken.None);
+
+        CheckPointRulePosition position = (CheckPointRulePosition)((RulePositioningSuccess)result).Position;
+        Assert.Multiple(() =>
+        {
+            Assert.That(position.LayerUid, Is.EqualTo("rb-1"));
+            Assert.That(position.AnchorKind, Is.EqualTo(CheckPointPositionAnchorKind.Bottom));
+            Assert.That(position.AnchorRuleUid, Is.Null);
+        });
+        AssertExactCalls(api, [1]);
+    }
+
+    /// <summary>Creates imported data for one existing, structurally valid empty initial layer.</summary>
+    private static SimulatedApiConnection EmptyInitialLayerApi()
+    {
+        const string linksJson = """
+            [{
+              "dev_id": 20,
+              "mgm_id": 10,
+              "rulebase_links": [
+                { "id": 1, "gw_id": 20, "from_rule_id": null, "from_rulebase_id": null,
+                  "to_rulebase_id": 1, "link_type": 1, "is_initial": true, "is_global": false,
+                  "is_section": false, "created": 90, "removed": null, "rule": null }
+              ]
+            }]
+            """;
+        const string rulebasesJson = """
+            [{
+              "id": 1,
+              "name": "Empty policy",
+              "uid": "rb-1",
+              "mgm_id": 10,
+              "created": 80,
+              "removed": null,
+              "rules": []
+            }]
+            """;
+        return new SimulatedApiConnection(kImportJson, linksJson, rulebasesJson);
     }
 
     [TestCase(0, kGatewayId)]
@@ -301,7 +390,9 @@ public class RulebaseGraphSnapshotReaderTest
         return failure;
     }
 
-    private static void AssertExactCalls(SimulatedApiConnection api)
+    private static void AssertExactCalls(
+        SimulatedApiConnection api,
+        IReadOnlyList<int>? expectedRulebaseIds = null)
     {
         Assert.That(api.Calls.Select(call => call.OperationName), Is.EqualTo(new[]
         {
@@ -327,7 +418,8 @@ public class RulebaseGraphSnapshotReaderTest
             Assert.That((int?)linkVariables["gatewayId"], Is.EqualTo(kGatewayId));
             Assert.That((long?)rulebaseVariables["importId"], Is.EqualTo(kImportId));
             Assert.That((int?)rulebaseVariables["managementId"], Is.EqualTo(kManagementId));
-            Assert.That(rulebaseVariables["rulebaseIds"]!.Values<int>(), Is.EqualTo(new[] { 1, 2, 3, 4 }));
+            Assert.That(rulebaseVariables["rulebaseIds"]!.Values<int>(),
+                Is.EqualTo(expectedRulebaseIds ?? new[] { 1, 2, 3, 4 }));
         });
     }
 

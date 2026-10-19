@@ -2,16 +2,20 @@
 
 This file tracks unresolved review, validation, and product-boundary work. An item is not approved implementation scope merely because it appears here; move it into a decision-complete work package before coding.
 
-## Before Phase 3 WP-05 implementation
+## Phase 3 WP-05 implementation work (complete)
 
-- [ ] Audit `CheckPointRulebaseGraphInterpreter` against reusable lower-level `RuleTreeBuilder` graph logic. Preserve the immutable positioning boundary, but remove duplicated topology handling if an existing neutral seam can be reused safely.
-- [ ] Add a representative imported empty Check Point policy fixture. Distinguish an existing initial layer with zero rules, which must support a top/bottom anchor, from a genuinely missing initial layer, which must fail explicitly.
+- [x] Audit `CheckPointRulebaseGraphInterpreter` against `RuleTreeBuilder`. No safe neutral seam exists: the builder is mutable, cached, report-oriented, synthetic-node/NAT aware, and tolerant where positioning deliberately fails. Keep the immutable strict interpreter separate in WP-05.
+- [x] Add a representative imported empty Check Point policy fixture. The production reader, graph-only strategy, and complete recipe produce `Bottom` for an existing empty initial layer, while a missing initial layer fails explicitly.
 - [x] Generic recipes do not consume zone input. The designated-zone reader, creation-rule zone resolver, and zone-dependent orchestration are inactive Phase 4 preparation and must not be required or registered by the generic Phase 3 path (D-035).
-- [ ] Confirm the generic baseline algorithm and exact existing enum mapping without relying on the enum name.
-- [ ] Define the exact workflow caller, applicable gateway-specific implementation-task selection, and store/replace/preserve/clear policy.
+- [x] Confirm the generic baseline mapping: Check Point gateway type `9` plus `DefaultEndOfRulebase` maps exactly to `EndOfBlock(CheckPointLayerScopeBlock(CheckPointLayerSelector.InitialLayer()))`; every other existing/unknown enum is unsupported in WP-05.
+- [x] Define the graph-only strategy/catalog, caller, implementation-task selection, and store/replace/preserve/clear policy. Positioning is best-effort and all completed non-cancellation failures clear stale state.
 - [x] Product boundary resolved: persisted semantic output is terminal; WP-05 removes `CheckPointRulePositionRenderer`, and no replacement renderer, `CheckPointClient`, `add-access-rule`, publish, or policy installation is part of the feature (D-033 and D-036).
 - [x] Remove the dormant WP-04 renderer and its dedicated tests during Phase 3 WP-05. A future placer must define and own any required conversion contract rather than inheriting this speculative adapter (D-036).
 - [x] Correct or remove active documentation that describes customer analysis or renderer activation as Phase 3 WP-05 work. Historical decision entries remain append-only and are superseded by D-033 and D-034.
+
+## Before Phase 3 WP-06 implementation
+
+- [ ] Review the workflow diagram and settle the exact post-persistence implementation-task trigger in a separate WP-06 planning session. WP-05 implements and registers the caller but deliberately leaves it unhooked.
 
 ## Validation and stakeholder follow-up
 

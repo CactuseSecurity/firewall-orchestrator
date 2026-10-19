@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for a separate planning session. This planning brief authorizes repository discovery and documentation changes only; do not implement production code in the planning session.
+Planning completed. The paired implementation brief is ready. Workflow activation was split into Phase 3 WP-06 so WP-05 can be implemented with its caller deliberately unhooked.
 
 ## Planning objective
 
@@ -12,7 +12,7 @@ Do not inspect `FWO_Regel_Platzierung_Regelwerk.md`. Customer-specific analysis 
 
 ## Required discovery
 
-- Identify the exact workflow caller and trigger that have enough information to construct one `RulePositioningContext` per gateway-specific implementation task.
+- Identify the exact callable service that has enough information to construct one `RulePositioningContext` per gateway-specific implementation task. Defer selection of its production workflow trigger to WP-06.
 - Establish how the caller selects the applicable implementation task and effective management/configuration.
 - Confirm at least one genuinely generic existing `ProvisioningPositioningAlgorithm` and its exact recipe semantics. Do not infer behavior from the enum name.
 - Design the generic activation path so it loads the rulebase graph but never loads a designated zone matrix or invokes creation-rule zone resolution. The existing zone-input services remain inactive preparation for Phase 4.
@@ -27,7 +27,7 @@ Do not inspect `FWO_Regel_Platzierung_Regelwerk.md`. Customer-specific analysis 
 1. The exact generic enum-to-recipe mapping and the enum values that remain unsupported.
 2. The graph-only recipe tree and the minimal strategy/catalog shape that keeps all zone dependencies outside the generic runtime path.
 3. Whether to refactor the existing zone-dependent Check Point strategy into separable orchestration or add a distinct generic strategy, while preserving exact-one-match manager behavior.
-4. The concrete workflow caller, trigger, transaction boundary, and one-task-per-gateway iteration.
+4. The concrete callable service, transaction boundary, and one-task-per-gateway operation. The production workflow trigger belongs to WP-06.
 5. Dependency-injection registration for only the generic catalog, strategy, manager, and caller. Do not register zone-input services for positioning.
 6. Store, replace, preserve, and clear behavior for success, typed failures, unexpected failures, and cancellation.
 7. Behavior when the imported policy has an empty initial layer versus no positionable layer.
@@ -48,7 +48,7 @@ Do not inspect `FWO_Regel_Platzierung_Regelwerk.md`. Customer-specific analysis 
 
 ## Required planning output
 
-Replace every draft section in `WP-05-generic-production-completion-implementation.md` with a decision-complete implementation brief. Include the graph-only caller sequence, recipe/catalog contract, generic-only registrations, renderer-removal list, persistence policy, files, tests, validation, and exclusions. Update the roadmap, decision log, TODO status, and handoff.
+Replace every draft section in `WP-05-generic-production-completion-implementation.md` with a decision-complete implementation brief. Include the graph-only caller sequence, recipe/catalog contract, generic-only registrations, renderer-removal list, persistence policy, files, tests, validation, and exclusions. Explicitly prohibit production workflow invocation in WP-05 and route that work to WP-06. Update the roadmap, decision log, TODO status, and handoff.
 
 ## Planning acceptance
 

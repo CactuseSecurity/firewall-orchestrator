@@ -4,6 +4,8 @@
 
 Planning complete on 2026-10-18. The paired implementation brief is self-contained and marked `Ready for implementation`.
 
+Roadmap amendment D-035 keeps this zone-dependent orchestration inactive for Phase 4. Phase 3 WP-05 must provide or extract a graph-only generic path that performs no designated-zone or creation-rule zone work.
+
 The settled design adds one shared cancellation-aware designated-zone-matrix reader, uses an injected catalog as the sole algorithm-capability and recipe-selection source, handles only Check Point R8x target device type ID `9`, and keeps the strategy, catalog implementation, customer mappings, and workflow caller absent from production registration.
 
 ## Planning objective
@@ -31,7 +33,7 @@ Inspect and record:
 ## Decisions the planner must settle
 
 1. Constructor dependencies and service lifetimes.
-2. The recipe catalog/selector contract WP-05 will populate.
+2. The recipe catalog/selector contract Phase 3 WP-05 will populate with confirmed generic capabilities and Phase 4 may later extend with customer mappings.
 3. Whether `CanHandle` is based on a populated catalog, an explicit supported-algorithm set, or another exact capability source.
 4. Translation from loader, zone-resolution, recipe-selection, and block failures into Phase 1 `RulePositioningResult` categories and safe diagnostics.
 5. The order of operations and short-circuit behavior.

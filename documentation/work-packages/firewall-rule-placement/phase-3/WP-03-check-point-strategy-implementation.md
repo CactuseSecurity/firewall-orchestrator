@@ -4,6 +4,8 @@
 
 Implemented and locally validated on 2026-10-18.
 
+Roadmap amendment D-035 keeps the implemented zone-dependent orchestration inactive for Phase 4 customer algorithms. Phase 3 WP-05 must not register this shape as a generic capability; it must provide or extract a graph-only path while preserving exact-one-match strategy selection.
+
 ## Implementation result
 
 - Added the cancellation-aware designated-zone-matrix reader and reused it from `ComplianceZoneService` without changing public routes or response models.
@@ -44,7 +46,7 @@ Ripple Checklist:
 Risk Notes:
 - The Phase 1 strategy contract supplies no zone collection, while WP-02 deliberately requires caller-loaded designated-matrix zones. The new reader closes that orchestration gap without moving GraphQL access into the strategy or resolver.
 - Check Point R8x device type ID `9` is used by target gateways (and ordinary/domain managements); MDS type ID `13` is not a target gateway capability.
-- The catalog is the single capability source. WP-05 must populate it before registering the strategy, preventing a strategy from advertising an algorithm whose complete recipe set is absent.
+- The catalog is the single capability source. Phase 3 WP-05 must populate it with at least one confirmed generic capability before registering the strategy, preventing a strategy from advertising an algorithm whose complete recipe set is absent. Phase 4 may later extend it with customer mappings.
 
 ## Fixed requirements
 
@@ -154,7 +156,7 @@ Use these diagnostics:
 
 Unknown enum values use the `CatalogInvalid` diagnostic. Constructors reject null success recipes and do not accept caller-supplied diagnostics.
 
-WP-03 adds no implementation of `ICheckPointPositioningRecipeCatalog`. Tests use an explicit fake catalog. WP-05 will add the immutable production catalog, customer-derived recipes and mappings, and registration.
+WP-03 adds no implementation of `ICheckPointPositioningRecipeCatalog`. Tests use an explicit fake catalog. Phase 3 WP-05 will add the immutable production catalog, confirmed generic recipes and mappings, and registration. Customer-derived recipes and mappings are deferred to Phase 4.
 
 ## Capability behavior
 

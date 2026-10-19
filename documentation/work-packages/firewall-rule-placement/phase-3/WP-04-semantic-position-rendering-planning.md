@@ -4,6 +4,8 @@
 
 Planning complete on 2026-10-19. The paired implementation brief is self-contained and marked `Ready for implementation`.
 
+Superseded by D-036 for future scope: the implemented renderer is scheduled for removal in Phase 3 WP-05. A later placer must define its own conversion contract if one is required.
+
 The settled design adds one pure renderer in `FWO.ExternalSystems.CheckPoint`. It overlays the authoritative Check Point `layer` and `position` fields on a cloned access-rule request body, treats a null position as an exact legacy no-op, validates an explicitly supplied expected algorithm, and performs no implementation-task selection, client call, registration, or workflow activation.
 
 ## Planning objective

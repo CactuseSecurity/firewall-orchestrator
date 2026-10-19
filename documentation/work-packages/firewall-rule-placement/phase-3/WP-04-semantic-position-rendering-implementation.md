@@ -4,6 +4,8 @@
 
 Implemented and locally validated on 2026-10-19.
 
+Superseded by D-036 for retained scope: Phase 3 WP-05 removes this renderer, its dedicated tests, and renderer-only compatibility assertions. Phase 4 must not recreate it.
+
 This brief is self-contained. Implement only this work package and do not reopen the paired planning brief unless repository evidence makes this design impossible or unsafe.
 
 ## Goal
@@ -31,7 +33,7 @@ Ripple Checklist:
 - [x] Keep schema, Hasura, auth, installer, importer, middleware, UI, versioning, and customer mappings unchanged.
 
 Risk Notes:
-- One request task can contain multiple gateway-specific implementation tasks. Choosing which persisted position applies is workflow orchestration and remains deferred to WP-05; this renderer accepts one explicitly selected position.
+- One request task can contain multiple gateway-specific implementation tasks. This renderer accepts one explicitly selected position, but the Phase 3 product ends at semantic persistence and does not invoke it. A future placer integration must own renderer-specific selection.
 - Existing Check Point rule tasks are rendered from configurable JSON templates, while rule execution is still rejected before `CheckPointClient.RestCall`. The renderer must preserve arbitrary non-placement template fields and must not weaken that execution gate.
 - The WP-03 catalog remains the sole source of supported algorithms. The renderer checks exact equality with a caller-supplied expected algorithm and must not duplicate a Check Point algorithm allowlist.
 
@@ -55,7 +57,7 @@ Risk Notes:
 
 `CheckPointTicket.BuildRequestTasks` currently obtains a template, calls `CheckPointTicketTask.FillTaskText`, and adds the parsed `TaskBody` to its internal execution plan. That parsed `JsonNode` is the existing access-rule request representation and is the renderer's input.
 
-WP-04 must not change `BuildRequestTasks`, inspect `WfReqTask.ImplementationTasks`, or automatically invoke the renderer. A request task may have several gateway-specific implementation tasks and positions, while the current external-request path is request-task/management oriented. WP-05 must settle and implement the activated caller that selects exactly one applicable implementation task, obtains its effective `GatewayProvisioningSettings.PositioningAlgorithm`, and invokes the WP-04 renderer before adding the access-rule body to the execution plan.
+WP-04 did not change `BuildRequestTasks`, inspect `WfReqTask.ImplementationTasks`, or automatically invoke the renderer. D-033 later established that Phase 3 ends at persisted semantic output, and D-036 now requires WP-05 to remove this seam. Any future placer must define its own conversion contract.
 
 This inactive boundary is deliberate: WP-04 supplies and tests the complete conversion primitive without making existing workflow traffic start consuming persisted positions.
 
@@ -132,7 +134,7 @@ Validation stops at the first failure in the sequence above. Do not wrap `Argume
 
 A null position is a supported backward-compatibility state, not an error. It returns a deep clone whose JSON is structurally identical to the input, including any existing template-supplied `layer` or `position` field. This preserves all Check Point request templates and task bodies that predate rule positioning.
 
-The renderer does not read `WfReqTask`, choose among `ImplementationTasks`, or derive effective configuration. Its explicit `RulePosition?` and `expectedAlgorithm` parameters ensure the eventual WP-05 caller owns those decisions. An unknown or wrong-vendor non-null position is never silently treated as null.
+The implemented renderer does not read `WfReqTask`, choose among `ImplementationTasks`, or derive effective configuration. This historical behavior remains documented for removal review; D-036 prohibits retaining it as the future placer contract.
 
 ## External-call boundary
 
@@ -223,7 +225,7 @@ No installer or browser validation was run, as allowed by this work package's un
 - Invalid positions fail safely before an external call.
 - Existing unrelated Check Point request behavior remains unchanged.
 - No workflow or strategy becomes active.
-- The renderer remains callable only through an explicit in-process seam until WP-05 selects the applicable implementation task and effective algorithm.
+- At WP-04 completion the renderer was callable only through an inactive in-process seam; D-036 supersedes this retained state and requires WP-05 removal.
 
 ## Out of scope
 

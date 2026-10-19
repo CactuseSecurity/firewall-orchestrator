@@ -16,6 +16,7 @@
   including the intermediates Apache serves; a missing intermediate or a root other than the configured
   `internalca_peer_ca_certificate` now stops the run before the database and the services are upgraded instead of
   failing in the integration tests
+- First step towards replacing BlazorTable with FancyTable: the FancyTable based rules report from #5198 is added as a separate preview on a new Monitoring page that only shows up in Debug builds. The productive RulesReport.razor is unchanged.
 
 ## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time

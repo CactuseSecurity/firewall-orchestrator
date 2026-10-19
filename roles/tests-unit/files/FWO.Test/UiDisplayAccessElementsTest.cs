@@ -16,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
 using static FWO.Test.UiRequestWorkflowTest;
 
@@ -61,6 +62,340 @@ namespace FWO.Test
                 Assert.That(component.Markup, Does.Not.Contain("HiddenSourceName"));
                 Assert.That(component.Markup, Does.Not.Contain("HiddenDestinationName"));
                 Assert.That(component.Markup, Does.Not.Contain("HiddenServiceName"));
+                Assert.That(component.Markup, Does.Contain("manually"));
+                Assert.That(component.Markup, Does.Contain("title=\"Element origin\""));
+            });
+        }
+
+        [Test]
+        public async Task DisplayAccessElements_ReadOnlyFlowObjectShowsDetailsFromFlowDb()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn
+            {
+                FlowNwObjects =
+                [
+                    new FlowNwObject
+                    {
+                        Id = 101,
+                        Name = "Flow Source",
+                        IpStart = "10.0.0.1/32",
+                        IpEnd = "10.0.0.8/32",
+                        State = FlowState.Implemented,
+                        ShowInRequestModule = true
+                    }
+                ]
+            });
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig { ReqUseFlowDb = true });
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement> { new() { FlowNetworkObjectId = 101, Name = "Flow Source" } })
+                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.EditMode, false));
+
+            component.FindAll("button")[0].Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("10.0.0.1-10.0.0.8"));
+                Assert.That(component.Markup, Does.Contain("from Flow DB"));
+                Assert.That(component.Markup, Does.Not.Contain(FlowState.Implemented));
+            });
+        }
+
+        [Test]
+        public async Task DisplayAccessElements_ReadOnlyElementFallsBackToTaskData()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+            WfReqTask fallbackTask = new()
+            {
+                Id = 77,
+                Elements = new List<WfReqElement>
+                {
+                    new()
+                    {
+                        TaskId = 77,
+                        Field = ElemFieldType.source.ToString(),
+                        Name = "Task Source",
+                        Cidr = new Cidr("192.0.2.1/32")
+                    },
+                    new()
+                    {
+                        TaskId = 77,
+                        Field = ElemFieldType.destination.ToString(),
+                        Name = "Task Destination",
+                        Cidr = new Cidr("192.0.2.2/32")
+                    }
+                }
+            };
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement> { new() { Name = "Task Source", IpString = "192.0.2.1/32" } })
+                .Add(p => p.Destinations, new List<NwObjectElement> { new() { Name = "Task Destination", IpString = "192.0.2.2/32" } })
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.TicketTasks, new List<WfReqTask> { fallbackTask })
+                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.EditMode, false));
+
+            component.FindAll("button")[0].Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("192.0.2.1"));
+                Assert.That(component.Markup, Does.Contain("From Ticket"));
+                Assert.That(component.FindComponent<DisplayFlowElementDetails>().Instance.NetworkFallback, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task DisplayAccessElements_ReadOnlyFlowGroupShowsMembers()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn
+            {
+                FlowNwGroups =
+                [
+                    new FlowNwGroup
+                    {
+                        Id = 501,
+                        Name = "Flow Group",
+                        NwGroupMembers =
+                        [
+                            new FlowNwGroupMember
+                            {
+                                NwObject = new FlowNwObject { Id = 101, Name = "Group Member", IpStart = "198.51.100.1/32" }
+                            }
+                        ]
+                    }
+                ]
+            });
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig { ReqUseFlowDb = true });
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement> { new() { FlowNetworkGroupId = 501, GroupName = "Flow Group" } })
+                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.EditMode, false));
+
+            component.FindAll("button").Single().Click();
+
+            Assert.That(component.Markup, Does.Contain("Group Member"));
+        }
+
+        [Test]
+        public async Task DisplayAccessElements_ReadOnlyLocalGroupUsesGroupDefinitionTaskMembers()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+            WfReqTask groupTask = new()
+            {
+                TaskType = WfTaskType.group_create.ToString(),
+                AdditionalInfo = JsonSerializer.Serialize(new Dictionary<string, string>
+                {
+                    [AdditionalInfoKeys.GrpName] = "Local Group"
+                }),
+                Elements =
+                [
+                    new() { Field = ElemFieldType.source.ToString(), IpString = "198.51.100.1/32" },
+                    new() { Field = ElemFieldType.source.ToString(), IpString = "198.51.100.2/32" }
+                ]
+            };
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement> { new() { GroupName = "Local Group" } })
+                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.TicketTasks, new List<WfReqTask> { groupTask })
+                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.EditMode, false));
+
+            component.FindAll("button").Single().Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("198.51.100.1"));
+                Assert.That(component.Markup, Does.Contain("198.51.100.2"));
+                Assert.That(component.Markup, Does.Contain("From Ticket"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayAccessElements_LocalGroupDetailsDoNotMixSourceAndDestinationMembers()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+            WfReqTask groupTask = new()
+            {
+                TaskType = WfTaskType.group_create.ToString(),
+                AdditionalInfo = JsonSerializer.Serialize(new Dictionary<string, string>
+                {
+                    [AdditionalInfoKeys.GrpName] = "Local Group"
+                }),
+                Elements =
+                [
+                    new() { Field = ElemFieldType.source.ToString(), IpString = "198.51.100.1/32" },
+                    new() { Field = ElemFieldType.destination.ToString(), IpString = "203.0.113.1/32" }
+                ]
+            };
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement> { new() { GroupName = "Local Group" } })
+                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.TicketTasks, new List<WfReqTask> { groupTask })
+                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.EditMode, false));
+
+            component.FindAll("button").Single().Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("198.51.100.1"));
+                Assert.That(component.Markup, Does.Not.Contain("203.0.113.1"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayAccessElements_LocalDestinationGroupUsesGroupDefinitionMembers()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+            WfReqTask groupTask = new()
+            {
+                TaskType = WfTaskType.group_create.ToString(),
+                AdditionalInfo = JsonSerializer.Serialize(new Dictionary<string, string>
+                {
+                    [AdditionalInfoKeys.GrpName] = "Destination Group"
+                }),
+                Elements =
+                [
+                    new() { Field = ElemFieldType.source.ToString(), IpString = "192.0.2.10/32" },
+                    new() { Field = ElemFieldType.destination.ToString(), IpString = "198.51.100.10/32" }
+                ]
+            };
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement>())
+                .Add(p => p.Destinations, new List<NwObjectElement> { new() { GroupName = "Destination Group" } })
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.TicketTasks, new List<WfReqTask> { groupTask })
+                .Add(p => p.IpProtos, new List<IpProtocol>())
+                .Add(p => p.EditMode, false));
+
+            component.FindAll("button").Single().Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("192.0.2.10"));
+                Assert.That(component.Markup, Does.Not.Contain("198.51.100.10"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayAccessElements_ReadOnlyFlowServiceGroupUsesCatalogMemberDetails()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn
+            {
+                FlowSvcObjects =
+                [
+                    new FlowSvcObject { Id = 201, Name = "Correct service", PortStart = 443, PortEnd = 443, ProtoId = 6, ShowInRequestModule = true }
+                ],
+                FlowSvcGroups =
+                [
+                    new FlowSvcGroup
+                    {
+                        Id = 601,
+                        Name = "Flow service group",
+                        SvcGroupMembers =
+                        [
+                            new FlowSvcGroupMember
+                            {
+                                SvcObjectId = 201,
+                                SvcObject = new FlowSvcObject { Id = 201, Name = "Stale nested service", PortStart = 1, ProtoId = 17 }
+                            }
+                        ]
+                    }
+                ]
+            });
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig { ReqUseFlowDb = true });
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement>())
+                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Services, new List<NwServiceElement>
+                {
+                    new() { FlowServiceGroupId = 601, GroupName = "Flow service group" }
+                })
+                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
+                .Add(p => p.EditMode, false));
+
+            component.FindAll("button").Single().Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Flow service group"));
+                Assert.That(component.Markup, Does.Contain("Correct service"));
+                Assert.That(component.Markup, Does.Contain("443/tcp"));
+                Assert.That(component.Markup, Does.Not.Contain("Stale nested service"));
+            });
+
+            component.FindAll("button")[^1].Click();
+            Assert.That(component.Markup, Does.Not.Contain("modal-backdrop"));
+        }
+
+        [Test]
+        public async Task DisplayAccessElements_ReadOnlyLocalServiceGroupUsesParallelGroupTaskMembers()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+            WfReqTask groupTask = new()
+            {
+                TaskType = WfTaskType.group_create.ToString(),
+                AdditionalInfo = JsonSerializer.Serialize(new Dictionary<string, string>
+                {
+                    [AdditionalInfoKeys.GrpName] = "Local service group"
+                }),
+                Elements =
+                [
+                    new()
+                    {
+                        Field = ElemFieldType.service.ToString(),
+                        Name = "Local service member",
+                        Port = 8443,
+                        ProtoId = 6,
+                        GroupName = "Local service group"
+                    }
+                ]
+            };
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement>())
+                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Services, new List<NwServiceElement>
+                {
+                    new() { GroupName = "Local service group", Name = "Local service group" }
+                })
+                .Add(p => p.TicketTasks, new List<WfReqTask> { groupTask })
+                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
+                .Add(p => p.EditMode, false));
+
+            component.FindAll("button").Single().Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Local service member"));
+                Assert.That(component.Markup, Does.Contain("8443/tcp"));
+                Assert.That(component.Markup, Does.Contain("From Ticket"));
             });
         }
 
@@ -237,27 +572,35 @@ namespace FWO.Test
             await using BunitContext context = new();
             context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn
             {
-                FlowNwObjects = [new FlowNwObject { Id = 101, Name = "Flow Source", IpStart = "10.0.0.1/32", ShowInRequestModule = true }],
+                FlowNwObjects =
+                [
+                    new FlowNwObject { Id = 101, Name = "Flow Source", IpStart = "10.0.0.1/32", ShowInRequestModule = true },
+                    new FlowNwObject { Id = 102, Name = "Flow Destination", IpStart = "10.0.0.2/32", ShowInRequestModule = true }
+                ],
                 FlowSvcObjects = [new FlowSvcObject { Id = 201, Name = "Flow Service", PortStart = 443, ProtoId = 6, ShowInRequestModule = true }]
             });
             context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig { ReqUseFlowDb = true });
             context.Services.AddSingleton<DomEventService>();
             List<NwObjectElement> sources = [];
             List<NwObjectElement> sourcesToAdd = [];
+            List<NwObjectElement> destinationsToAdd = [];
             List<NwServiceElement> services = [];
             List<NwServiceElement> servicesToAdd = [];
             IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
                 .Add(p => p.Sources, sources)
                 .Add(p => p.SourcesToAdd, sourcesToAdd)
                 .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.DestinationsToAdd, destinationsToAdd)
                 .Add(p => p.Services, services)
                 .Add(p => p.ServicesToAdd, servicesToAdd)
                 .Add(p => p.IpProtos, new List<IpProtocol>())
                 .Add(p => p.EditMode, true));
 
-            NetworkObject flowObject = GetMember<List<NetworkObject>>(component.Instance, "nwObjects").Single();
+            NetworkObject flowObject = GetMember<List<NetworkObject>>(component.Instance, "nwObjects").Single(obj => obj.FlowNetworkObjectId == 101);
+            NetworkObject flowDestination = GetMember<List<NetworkObject>>(component.Instance, "nwObjects").Single(obj => obj.FlowNetworkObjectId == 102);
             NetworkService flowService = GetMember<List<NetworkService>>(component.Instance, "nwServices").Single();
             await component.InvokeAsync(() => SetMember(component.Instance, "newSourceNetwork", flowObject));
+            await component.InvokeAsync(() => SetMember(component.Instance, "newDestinationNetwork", flowDestination));
             await component.InvokeAsync(() => SetMember(component.Instance, "newService", flowService));
             IReadOnlyList<IRenderedComponent<IpSelector>> ipSelectors = component.FindComponents<IpSelector>();
             IRenderedComponent<ServiceSelector> serviceSelector = component.FindComponent<ServiceSelector>();
@@ -268,6 +611,8 @@ namespace FWO.Test
                 Assert.That(sourcesToAdd.Single().NetworkId, Is.Null);
                 Assert.That(sourcesToAdd.Single().FlowNetworkObjectId, Is.EqualTo(101));
                 Assert.That(sourcesToAdd.Single().IpString, Is.EqualTo("10.0.0.1/32"));
+                Assert.That(destinationsToAdd.Single().FlowNetworkObjectId, Is.EqualTo(102));
+                Assert.That(destinationsToAdd.Single().IpString, Is.EqualTo("10.0.0.2/32"));
                 Assert.That(services, Is.Empty);
                 Assert.That(servicesToAdd.Single().ServiceId, Is.Null);
                 Assert.That(servicesToAdd.Single().FlowServiceObjectId, Is.EqualTo(201));

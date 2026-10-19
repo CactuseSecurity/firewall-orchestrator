@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.7.3"
+product_version: "9.7.5"
 # The oldest product version an upgrade may start from, enforced by
 # roles/common/tasks/validate-upgrade-source-version.yml before anything touches the
 # database. It exists because 9.5.0 removed the migration files below 8.0:
@@ -59,7 +59,6 @@ fworch_inventory_hosts: >-
 # which cannot read Ansible variables - keep the two in step, and see the script for the
 # FWORCH_LOCAL_SETTINGS override that a relocated fworch_home needs.
 fwo_install_settings_file: "{{ fworch_conf_dir }}/fwo-install-settings.yml"
-importer_hostname: "{{ groups['importers'].0 }}"
 ui_hostname: "{{ fwo_endpoint_hostname or groups['frontends'].0 }}"
 syslog_host: "{{ groups['logserver'].0 }}"
 # Not derived from fwo_endpoint_hostname: this is the inventory host the database tasks
@@ -605,6 +604,11 @@ dotnet_ms_repo_package_sha256:
   ubuntu/26.04: "b2e7c6b9328e0c6a68bfe5d0045be90ceb192b32e0ca906c6c529b9012726f39"
 dotnet_mode: "Release"
 # dotnet_mode: "Debug"
+# dotnet keeps its named mutexes under $XDG_RUNTIME_DIR. sudo can pass the invoking user's
+# /run/user/<uid> on to the dotnet commands run as {{ fworch_user }}, which cannot open it, so they
+# get a runtime directory of their own (owner only, as the XDG base directory spec requires)
+dotnet_xdg_runtime_dir: "{{ fworch_home }}/.xdg-runtime"
+dotnet_env: "{{ proxy_env | combine({'XDG_RUNTIME_DIR': dotnet_xdg_runtime_dir}) }}"
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 lib_tmp_dir: "{{ fworch_home }}/lib/tmp"

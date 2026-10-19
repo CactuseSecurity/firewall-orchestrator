@@ -212,7 +212,7 @@
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
                         Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                        IpProtos="displayIpProtos" SelectableIpProtos="selectableIpProtos" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
+                        IpProtos="displayIpProtos" SelectableIpProtos="selectableIpProtos" TaskId="WfHandler.ActImplTask.Id" TicketTasks="WfHandler.ActTicket.Tasks" EditMode="WfHandler.EditImplTaskMode" />
                 }
                 else if(WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())
                 {
@@ -263,7 +263,8 @@
                         <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
                         @if(WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode)
                         {
-                            <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
+                            @* read-only users follow the phase, but cannot comment *@
+                            <button type="button" class="btn btn-sm btn-success" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="InitAddComment">
                                 @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                         }
                     </div>
@@ -295,7 +296,7 @@
                     {
                         <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}")">
                             <Authorized>
-                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                                <button type="button" class="btn btn-sm btn-primary" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="SaveImplTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
@@ -306,7 +307,8 @@
                     {
                         <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}")">
                             <Authorized>
-                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+                                @* a reviewer opening the implementation phase read-only must not promote the task *@
+                                <button type="button" class="btn btn-sm btn-primary" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
@@ -557,9 +559,13 @@
         }
     }
 
+    /// <summary>
+    /// Checks whether a configured action is offered: read-only users only get actions that do not change anything.
+    /// </summary>
     private bool CanShowConfiguredActionButton(WfStateAction action)
     {
-        return WfHandler.EditImplTaskMode || WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode || WfStateAction.IsReadonlyType(action.ActionType);
+        bool inChangingMode = WfHandler.EditImplTaskMode || WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode;
+        return (inChangingMode && !WfHandler.ReadOnlyMode) || WfStateAction.IsReadonlyType(action.ActionType);
     }
 
     private void RequestAssignOwner()
@@ -592,6 +598,10 @@
 
     private void InitAddComment()
     {
+        if (WfHandler.ReadOnlyMode)
+        {
+            return;
+        }
         WfHandler.SetImplTaskPopUpOpt(ObjAction.displayComment);
     }
 
@@ -670,6 +680,10 @@
 
     private async Task SaveImplTask()
     {
+        if (WfHandler.ReadOnlyMode)
+        {
+            return;
+        }
         if (WorkInProgress)
         {
             return;
@@ -777,6 +791,10 @@
 
     private void InitPromoteImplTask()
     {
+        if (WfHandler.ReadOnlyMode)
+        {
+            return;
+        }
         WfHandler.SetImplTaskPopUpOpt(ObjAction.displayPromote);
     }
 

@@ -15,6 +15,8 @@ namespace FWO.Test
     [TestFixture]
     internal class UiDisplayImplementationTaskTest
     {
+        private static readonly object?[] kNoArgs = [];
+
         [Test]
         public void DisplayObjectAndServiceElements_UseFlowIdsWhenNoNamesAreAvailable()
         {
@@ -195,6 +197,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ReadOnlyPhaseView_OffersOnlyReadOnlyActionsAndBlocksWrites()
+        {
+            DisplayImplementationTask component = new();
+            WfImplTask implTask = new() { Title = "Unchanged" };
+            WfHandler handler = new() { ActImplTask = implTask, ReadOnlyMode = true, ImplementImplTaskMode = true };
+            SetMember(component, nameof(DisplayImplementationTask.WfHandler), handler);
+            SetMember(component, "userConfig", CreateUserConfig());
+
+            GetPrivateMethod(typeof(DisplayImplementationTask), "InitAddComment").Invoke(component, kNoArgs);
+            GetPrivateMethod(typeof(DisplayImplementationTask), "InitPromoteImplTask").Invoke(component, kNoArgs);
+            await (Task)GetPrivateMethod(typeof(DisplayImplementationTask), "SaveImplTask").Invoke(component, kNoArgs)!;
+            bool readOnlyAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DisplayConnection.ToString() });
+            bool changingAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayImplTaskCommentMode, Is.False);
+                Assert.That(handler.DisplayPromoteImplTaskMode, Is.False);
+                Assert.That(implTask.Title, Is.EqualTo("Unchanged"));
+                Assert.That(readOnlyAction, Is.True);
+                Assert.That(changingAction, Is.False);
+            });
+
+            handler.ReadOnlyMode = false;
+            Assert.That(InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() }), Is.True);
+        }
+
+        [Test]
         public void UpdateElements_ReconcilesListsAndRules()
         {
             DisplayImplementationTask component = new();
@@ -230,6 +260,105 @@ namespace FWO.Test
                 Assert.That(GetMember<List<NwObjectElement>>(component, "destinationsToDelete"), Is.Empty);
                 Assert.That(GetMember<List<NwServiceElement>>(component, "servicesToAdd"), Is.Empty);
                 Assert.That(GetMember<List<NwServiceElement>>(component, "servicesToDelete"), Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task DisplayImplementationTask_PerformAction_ExecutesNormalPath()
+        {
+            WfReqTask reqTask = new() { Id = 20, TaskType = WfTaskType.generic.ToString() };
+            WfImplTask implTask = new()
+            {
+                Id = 30,
+                TaskNumber = 1,
+                ReqTaskId = reqTask.Id,
+                TaskType = WfTaskType.generic.ToString(),
+                Title = "Implementation task"
+            };
+            reqTask.ImplementationTasks = [implTask];
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                ActReqTask = reqTask,
+                ActImplTask = implTask,
+                ActTicket = new WfTicket { Tasks = [reqTask] }
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler,
+                new WfStateDict(), Roles.Implementer);
+
+            await component.InvokeAsync(() => InvokePrivateTask(typeof(DisplayImplementationTask), component.Instance,
+                "PerformAction", new WfStateAction()));
+
+            Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+        }
+
+        [Test]
+        public async Task DisplayImplementationTask_SaveImplTask_ChangesExistingTaskThroughNormalPath()
+        {
+            WfReqTask reqTask = new() { Id = 20, TaskType = WfTaskType.generic.ToString() };
+            WfImplTask implTask = new()
+            {
+                Id = 30,
+                TaskNumber = 1,
+                ReqTaskId = reqTask.Id,
+                TaskType = WfTaskType.generic.ToString(),
+                Title = "Implementation task",
+                FreeText = "instructions"
+            };
+            reqTask.ImplementationTasks = [implTask];
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                EditImplTaskMode = true,
+                ActReqTask = reqTask,
+                ActImplTask = implTask,
+                ActTicket = new WfTicket { Tasks = [reqTask] }
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler,
+                new WfStateDict(), Roles.Implementer);
+
+            await component.InvokeAsync(() => InvokePrivateTask(typeof(DisplayImplementationTask), component.Instance,
+                "SaveImplTask"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+                Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
+                Assert.That(reqTask.ImplementationTasks[0], Is.SameAs(implTask));
+            });
+        }
+
+        [Test]
+        public async Task DisplayImplementationTask_ConfAddComment_UpdatesCommentsThroughNormalPath()
+        {
+            WfImplTask implTask = new()
+            {
+                Id = 30,
+                TaskType = WfTaskType.generic.ToString(),
+                Title = "Implementation task"
+            };
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                ActReqTask = new WfReqTask(),
+                ActImplTask = implTask
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler,
+                new WfStateDict(), Roles.Implementer);
+
+            await component.InvokeAsync(() => InvokePrivateTask(typeof(DisplayImplementationTask), component.Instance,
+                "ConfAddComment", "Implementation comment"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(implTask.Comments.Any(comment => comment.Comment.CommentText == "Implementation comment"), Is.True);
+                Assert.That(handler.DisplayImplTaskCommentMode, Is.False);
             });
         }
 

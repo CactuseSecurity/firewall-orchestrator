@@ -44,7 +44,6 @@ namespace FWO.Ui.Services
     {
         private const string kDeviceRoles = $"{Roles.Admin}, {Roles.Importer}, {Roles.Auditor}";
         private const string kAdminAuditor = $"{Roles.Admin}, {Roles.Auditor}";
-        private const string kAdminOnly = Roles.Admin;
 
         private static readonly List<SettingsNavEntry> kDeviceEntries = new()
         {
@@ -100,12 +99,12 @@ namespace FWO.Ui.Services
 
         private static readonly List<SettingsNavEntry> kFlowEntries = new()
         {
-            new("flow_general_settings", "settings/flows/general", Icons.Settings, kAdminOnly),
-            new("network_objects", "settings/flows/networkobjects", Icons.Settings, kAdminOnly),
-            new("network_groups", "settings/flows/networkgroups", Icons.Settings, kAdminOnly),
-            new("service_objects", "settings/flows/serviceobjects", Icons.Settings, kAdminOnly),
-            new("service_groups", "settings/flows/servicegroups", Icons.Settings, kAdminOnly),
-            new("time_objects", "settings/flows/timeobjects", Icons.Settings, kAdminOnly)
+            new("flow_general_settings", "settings/flows/general", Icons.Settings, kAdminAuditor),
+            new("network_objects", "settings/flows/networkobjects", Icons.Settings, kAdminAuditor),
+            new("network_groups", "settings/flows/networkgroups", Icons.Settings, kAdminAuditor),
+            new("service_objects", "settings/flows/serviceobjects", Icons.Settings, kAdminAuditor),
+            new("service_groups", "settings/flows/servicegroups", Icons.Settings, kAdminAuditor),
+            new("time_objects", "settings/flows/timeobjects", Icons.Settings, kAdminAuditor)
         };
 
         private static readonly List<SettingsNavEntry> kDefaultEntries = new()
@@ -122,7 +121,7 @@ namespace FWO.Ui.Services
         private static readonly List<SettingsNavEntry> kFwConfigChangeEntries = new()
         {
             new("fwconfigchangegeneral", "settings/fwconfigchangegeneral", Icons.Settings, kAdminAuditor),
-            new("prov_settings", "settings/fwconfigprovisioning", Icons.Settings, kAdminAuditor),
+            new("dss_settings", "settings/devicespecificsettings", Icons.Settings, kAdminAuditor),
             new("ext_ticket_templates", "settings/exttickettemplates", Icons.Settings, kAdminAuditor)
         };
 
@@ -141,7 +140,7 @@ namespace FWO.Ui.Services
             new("modules", kModuleEntries, kAdminAuditor, "U5017"),
             new("modelling", kModellingEntries, kAdminAuditor),
             new("workflow", kWorkflowEntries, kAdminAuditor, "U5015"),
-            new("flow", kFlowEntries, kAdminOnly, "U5011"),
+            new("flow", kFlowEntries, kAdminAuditor, "U5011"),
             new("defaults", kDefaultEntries, kAdminAuditor, "U5013"),
             new("fwconfigchange", kFwConfigChangeEntries, kAdminAuditor, "U5013"),
             new("personal", kPersonalEntries, TooltipKey: "U5014")

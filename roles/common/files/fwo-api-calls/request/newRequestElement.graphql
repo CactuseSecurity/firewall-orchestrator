@@ -19,6 +19,10 @@ mutation newRequestElement(
   $flowNwGrpId: bigint
   $flowSvcObjId: bigint
   $flowSvcGrpId: bigint
+  $startTime: timestamptz
+  $endTime: timestamptz
+  $timeObjId: bigint
+  $flowTimeObjId: bigint
   ) {
   insert_request_reqelement(objects: {
     request_action: $requestAction
@@ -41,6 +45,10 @@ mutation newRequestElement(
     flow_nwgrp_id: $flowNwGrpId
     flow_svcobj_id: $flowSvcObjId
     flow_svcgrp_id: $flowSvcGrpId
+    start_time: $startTime
+    end_time: $endTime
+    time_obj_id: $timeObjId
+    flow_timeobj_id: $flowTimeObjId
   }) {
     returning {
       newIdLong: id

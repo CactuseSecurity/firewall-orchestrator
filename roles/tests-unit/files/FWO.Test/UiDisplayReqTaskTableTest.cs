@@ -247,6 +247,50 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayReqTaskTable_GroupsBundledTasksOnlyWhenStatesMatch()
+        {
+            await using BunitContext context = new();
+            WfReqTask first = new()
+            {
+                Id = 1,
+                Title = "First bundled task",
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 1
+            };
+            first.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-1-2");
+            WfReqTask sameState = new()
+            {
+                Id = 2,
+                Title = "Second bundled task",
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 1
+            };
+            sameState.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-1-2");
+            WfReqTask differentState = new()
+            {
+                Id = 3,
+                Title = "Different state task",
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 2
+            };
+            differentState.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-1-2");
+            WfTicket ticket = new() { Id = 1, Tasks = [first, sameState, differentState] };
+            WfHandler handler = CreateWorkflowHandler(WorkflowPhases.approval, WfTaskType.access.ToString(), ticket);
+            handler.InitDone = true;
+            handler.userConfig.ReqConsiderBundling = true;
+            handler.userConfig.ReqDisplayBundledTasksAsOne = true;
+
+            IRenderedComponent<DisplayReqTaskTable> component = RenderDisplayReqTaskTable(context, handler, WorkflowPhases.approval, new WfStateDict());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("First bundled task"));
+                Assert.That(component.Markup, Does.Not.Contain("Second bundled task"));
+                Assert.That(component.Markup, Does.Contain("Different state task"));
+            });
+        }
+
+        [Test]
         public async Task DisplayReqTaskTable_HidesTableBeforeHandlerInitialization()
         {
             await using BunitContext context = new();
@@ -274,6 +318,24 @@ namespace FWO.Test
                 Assert.That(component.FindAll("table"), Is.Empty);
                 Assert.That(component.Markup, Does.Not.Contain("Hidden task"));
             });
+        }
+
+        [Test]
+        public void DisplayReqTaskTable_DoesNotGroupSeparateUnsavedTasks()
+        {
+            WfReqTask first = new() { Id = 0, Title = "First new task" };
+            WfReqTask second = new() { Id = 0, Title = "Second new task" };
+            WfTicket ticket = new() { Id = 0, Tasks = [first, second] };
+            WfHandler handler = CreateWorkflowHandler(WorkflowPhases.request, WfTaskType.access.ToString(), ticket);
+            handler.InitDone = true;
+            handler.userConfig.ReqConsiderBundling = true;
+            handler.userConfig.ReqDisplayBundledTasksAsOne = true;
+            DisplayReqTaskTable component = CreateReqTaskTable(handler, WorkflowPhases.request);
+            MethodInfo method = typeof(DisplayReqTaskTable).GetMethod("GetDisplayedTasks", BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+            IEnumerable<WfReqTask> displayedTasks = (IEnumerable<WfReqTask>)method.Invoke(component, [])!;
+
+            Assert.That(displayedTasks, Has.Count.EqualTo(2));
         }
 
         [Test]
@@ -387,7 +449,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task DisplayReqTaskTable_ReadOnlyModeSuppressesPhaseActions()
+        public async Task DisplayReqTaskTable_ReadOnlyModeOffersPhaseViewInsteadOfPhaseActions()
         {
             await using BunitContext context = new();
             WfTicket ticket = new()
@@ -413,11 +475,23 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(component.FindAll("table tbody button.btn-primary"), Is.Not.Empty);
-                Assert.That(component.FindAll("table tbody button.btn-warning"), Is.Empty);
+                Assert.That(component.FindAll("table tbody button.btn-warning").Select(button => button.TextContent.Trim()), Is.EqualTo(kPhaseViewButtonText));
                 Assert.That(component.Markup, Does.Not.Contain("start_planning"));
                 Assert.That(component.Markup, Does.Not.Contain("continue_planning"));
             });
+
+            handler.SetContinueEnv(ObjAction.plan);
+            await component.InvokeAsync(() => component.Find("table tbody button.btn-warning").Click());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.PlanReqTaskMode, Is.True);
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(0));
+                Assert.That(handler.ActReqTask.CurrentHandler, Is.Null);
+            });
         }
+
+        private static readonly List<string> kPhaseViewButtonText = ["open_in_phase_view"];
 
         [Test]
         public void DisplayReqTaskTable_AddReqTaskInitializesDefaultAccessTask()

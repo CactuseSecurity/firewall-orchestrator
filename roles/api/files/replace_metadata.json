@@ -1688,6 +1688,21 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "nwgrp_id",
+                      "show_in_request_module",
+                      "name",
+                      "nwgrp_hash",
+                      "state",
+                      "removed_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -1752,6 +1767,17 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "nwgrp_id",
+                      "nwobj_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "middleware-server",
                   "permission": {
@@ -1887,6 +1913,23 @@
                         }
                       ]
                     }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "nwobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "nwobj_hash",
+                      "state",
+                      "ip_end",
+                      "ip_start",
+                      "removed_date"
+                    ],
+                    "filter": {}
                   },
                   "comment": ""
                 },
@@ -2150,6 +2193,21 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "svcgrp_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "svcgrp_hash",
+                      "removed_date"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -2214,6 +2272,17 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "svcgrp_id",
+                      "svcobj_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "middleware-server",
                   "permission": {
@@ -2347,6 +2416,24 @@
                         }
                       ]
                     }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "svcobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "svcobj_hash",
+                      "ip_proto_id",
+                      "port_end",
+                      "port_start",
+                      "removed_date"
+                    ],
+                    "filter": {}
                   },
                   "comment": ""
                 },
@@ -2627,6 +2714,23 @@
                         }
                       ]
                     }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "timeobj_id",
+                      "show_in_request_module",
+                      "name",
+                      "state",
+                      "timeobj_hash",
+                      "end_time",
+                      "removed_date",
+                      "start_time"
+                    ],
+                    "filter": {}
                   },
                   "comment": ""
                 },
@@ -7225,7 +7329,7 @@
             },
             {
               "table": {
-                "name": "provisioning_config_node",
+                "name": "device_specific_config_node",
                 "schema": "public"
               },
               "array_relationships": [
@@ -7235,7 +7339,7 @@
                     "foreign_key_constraint_on": {
                       "column": "parent_id",
                       "table": {
-                        "name": "provisioning_config_node",
+                        "name": "device_specific_config_node",
                         "schema": "public"
                       }
                     }
@@ -7247,7 +7351,7 @@
                     "foreign_key_constraint_on": {
                       "column": "node_id",
                       "table": {
-                        "name": "provisioning_config_value",
+                        "name": "device_specific_config_value",
                         "schema": "public"
                       }
                     }
@@ -7289,6 +7393,17 @@
                       "object_key",
                       "parent_id",
                       "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "node_type",
+                      "object_key"
                     ],
                     "filter": {}
                   },
@@ -7341,7 +7456,7 @@
             },
             {
               "table": {
-                "name": "provisioning_config_value",
+                "name": "device_specific_config_value",
                 "schema": "public"
               },
               "object_relationships": [
@@ -7376,6 +7491,21 @@
                       "node_id"
                     ],
                     "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "importer",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value"
+                    ],
+                    "filter": {
+                      "config_key": {
+                        "_eq": "importerHostName"
+                      }
+                    }
                   },
                   "comment": ""
                 },
@@ -10263,6 +10393,18 @@
                       }
                     }
                   }
+                },
+                {
+                  "name": "primary_credentials",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "additional_credential_id",
+                      "table": {
+                        "name": "credential",
+                        "schema": "public"
+                      }
+                    }
+                  }
                 }
               ],
               "select_permissions": [
@@ -10270,12 +10412,12 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "cloud_client_id",
                       "credential_name",
                       "id",
                       "is_key_pair",
                       "public_key",
-                      "username"
+                      "username",
+                      "additional_credential_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -10286,13 +10428,12 @@
                   "permission": {
                     "columns": [
                       "is_key_pair",
-                      "cloud_client_id",
-                      "cloud_client_secret",
                       "credential_name",
                       "username",
                       "id",
                       "public_key",
-                      "secret"
+                      "secret",
+                      "additional_credential_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -10303,16 +10444,23 @@
                   "permission": {
                     "columns": [
                       "is_key_pair",
-                      "cloud_client_id",
-                      "cloud_client_secret",
                       "credential_name",
                       "username",
                       "id",
                       "public_key",
-                      "secret"
+                      "secret",
+                      "additional_credential_id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  }
+                }
+              ],
+              "object_relationships": [
+                {
+                  "name": "additional_credential",
+                  "using": {
+                    "foreign_key_constraint_on": "additional_credential_id"
                   }
                 }
               ]
@@ -11874,7 +12022,6 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "import_credential_id",
-                      "importer_hostname",
                       "is_super_manager",
                       "last_import_attempt",
                       "last_import_attempt_successful",
@@ -11936,7 +12083,6 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "import_credential_id",
-                      "importer_hostname",
                       "is_super_manager",
                       "last_import_attempt",
                       "last_import_attempt_successful",
@@ -11974,7 +12120,6 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "import_credential_id",
-                      "importer_hostname",
                       "is_super_manager",
                       "last_import_attempt",
                       "last_import_attempt_successful",
@@ -12060,7 +12205,6 @@
                       "force_initial_import",
                       "hide_in_gui",
                       "import_credential_id",
-                      "importer_hostname",
                       "is_super_manager",
                       "last_import_attempt",
                       "last_import_attempt_successful",
@@ -26719,6 +26863,34 @@
                     "filter": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "time_obj_id",
+                      "mgm_id",
+                      "time_obj_name",
+                      "start_time",
+                      "end_time",
+                      "removed"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "removed": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
+                    "limit": 50
+                  }
                 }
               ],
               "update_permissions": [
@@ -30279,6 +30451,17 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "approval_id",
+                      "comment_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -30971,7 +31154,10 @@
                       "port_end",
                       "rule_uid",
                       "service_id",
-                      "user_id"
+                      "user_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ]
                   }
                 },
@@ -30995,7 +31181,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ]
                   },
                   "comment": ""
@@ -31020,7 +31209,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ]
                   },
                   "comment": ""
@@ -31045,7 +31237,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ]
                   }
                 },
@@ -31069,7 +31264,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ]
                   }
                 }
@@ -31094,7 +31292,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   }
@@ -31118,7 +31319,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   }
@@ -31142,7 +31346,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   }
@@ -31166,7 +31373,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   },
@@ -31191,7 +31401,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   },
@@ -31216,7 +31429,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   }
@@ -31240,7 +31456,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   },
@@ -31265,7 +31484,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   },
@@ -31290,7 +31512,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   }
@@ -31314,7 +31539,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {}
                   }
@@ -31340,7 +31568,10 @@
                       "port",
                       "port_end",
                       "field",
-                      "implementation_action"
+                      "implementation_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id"
                     ],
                     "filter": {},
                     "check": null
@@ -32269,6 +32500,12 @@
                   }
                 },
                 {
+                  "name": "flow_timeobject",
+                  "using": {
+                    "foreign_key_constraint_on": "flow_timeobj_id"
+                  }
+                },
+                {
                   "name": "object",
                   "using": {
                     "foreign_key_constraint_on": "network_object_id"
@@ -32475,6 +32712,39 @@
                               }
                             }
                           ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_timeobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_timeobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
                         }
                       ]
                     },
@@ -32499,7 +32769,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ]
                   },
                   "comment": ""
@@ -32529,7 +32803,11 @@
                       "port",
                       "port_end",
                       "field",
-                      "request_action"
+                      "request_action",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ]
                   },
                   "comment": ""
@@ -32689,6 +32967,39 @@
                               }
                             }
                           ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_timeobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_timeobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
                         }
                       ]
                     },
@@ -32713,7 +33024,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ]
                   },
                   "comment": ""
@@ -32873,6 +33188,39 @@
                               }
                             }
                           ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_timeobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_timeobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
                         }
                       ]
                     },
@@ -32897,7 +33245,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ]
                   }
                 }
@@ -32927,7 +33279,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   }
@@ -32956,7 +33312,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   }
@@ -32985,7 +33345,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   }
@@ -33014,7 +33378,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   },
@@ -33044,7 +33412,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   },
@@ -33074,7 +33446,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   }
@@ -33103,7 +33479,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   },
@@ -33133,7 +33513,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   },
@@ -33163,7 +33547,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   }
@@ -33192,7 +33580,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {}
                   }
@@ -33223,7 +33615,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {},
                     "check": {
@@ -33371,7 +33767,8 @@
                       "flow_nwgrp_id",
                       "flow_nwobj_id",
                       "flow_svcgrp_id",
-                      "flow_svcobj_id"
+                      "flow_svcobj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {},
                     "check": {}
@@ -33402,7 +33799,11 @@
                       "flow_nwobj_id",
                       "flow_nwgrp_id",
                       "flow_svcobj_id",
-                      "flow_svcgrp_id"
+                      "flow_svcgrp_id",
+                      "start_time",
+                      "end_time",
+                      "time_obj_id",
+                      "flow_timeobj_id"
                     ],
                     "filter": {},
                     "check": {
@@ -35772,6 +36173,7 @@
                     "columns": [
                       "id",
                       "locked",
+                      "additional_info",
                       "assigned_group",
                       "external_ticket_id",
                       "pre_workflow_ticket_reference",
@@ -35816,7 +36218,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ]
                   },
                   "comment": ""
@@ -35844,7 +36247,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ]
                   }
                 }
@@ -35872,7 +36276,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   }
@@ -35899,7 +36304,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   }
@@ -35926,7 +36332,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   }
@@ -35953,7 +36360,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   },
@@ -35981,7 +36389,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   },
@@ -36009,7 +36418,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   }
@@ -36036,7 +36446,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   },
@@ -36064,7 +36475,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   },
@@ -36092,7 +36504,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   }
@@ -36119,7 +36532,8 @@
                       "date_completed",
                       "date_created",
                       "ticket_deadline",
-                      "locked"
+                      "locked",
+                      "additional_info"
                     ],
                     "filter": {}
                   }

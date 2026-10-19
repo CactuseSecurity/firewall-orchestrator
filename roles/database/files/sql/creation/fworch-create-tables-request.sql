@@ -4,7 +4,7 @@
 -- create schema
 create schema request;
 
-CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service', 'rule', 'modelled_source', 'modelled_destination');
+CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service', 'rule', 'modelled_source', 'modelled_destination', 'time');
 CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify', 'unchanged', 'addAfterCreation');
 
 -- create tables
@@ -61,7 +61,11 @@ create table request.reqelement
 	flow_nwobj_id bigint,
 	flow_nwgrp_id bigint,
 	flow_svcobj_id bigint,
-	flow_svcgrp_id bigint
+	flow_svcgrp_id bigint,
+	start_time Timestamp with time zone,
+	end_time Timestamp with time zone,
+	time_obj_id bigint,
+	flow_timeobj_id bigint
 );
 
 create table request.approval 
@@ -101,7 +105,8 @@ create table request.ticket
 	pre_workflow_ticket_reference varchar,
 	ticket_deadline Timestamp,
 	ticket_priority int,
-	locked boolean NOT NULL DEFAULT FALSE
+	locked boolean NOT NULL DEFAULT FALSE,
+	additional_info varchar
 );
 
 create table request.comment 
@@ -268,7 +273,10 @@ create table request.implelement
     original_nat_id bigint,
 	rule_uid varchar,
 	group_name varchar,
-	name varchar
+	name varchar,
+	start_time Timestamp with time zone,
+	end_time Timestamp with time zone,
+	time_obj_id bigint
 );
 
 create table request.impltask

@@ -11,7 +11,7 @@
         {
             if (Collapsible)
             {
-                <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar"
+                <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-start" @onclick="MinMaxSidebar"
                      draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
                     <div class="@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
                 </div>
@@ -34,7 +34,7 @@
 
             if (Collapsible)
             {
-                <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left"
+                <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-start"
                      style="transform:rotate(180deg);" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())"
                      @ondragstart="ResizeStart" @ondragend="Resize">
                     <div class="@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>

@@ -1,3 +1,4 @@
+@using FWO.Basics
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Display
@@ -46,7 +47,7 @@
                     <button type="button" class="btn btn-sm btn-success" @onclick="SearchNwObject">
                         @(DisplayService.DisplayButton(userConfig, "search_nw_object", Icons.Search))</button>
                 }
-                <button type="button" class="btn btn-sm btn-success" disabled="@(!ConnHandler.CanModifyAppRoles())" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                <button type="button" class="btn btn-sm btn-success" disabled="@(!ConnHandler.CanOpenAppRoleEditor())" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
                     @(DisplayService.DisplayButton(userConfig, "add_app_role", Icons.Add))</button>
                 @if(selectedNwElems.Count == 1)
                 {
@@ -54,7 +55,7 @@
                     {
                         if(!(ResolveAppRole(selectedNwElems[0].Value)?.IsDeleted ?? true))
                         {
-                            <button type="button" class="btn btn-sm btn-warning" disabled="@(!ConnHandler.CanModifyAppRoles())" @onclick="async () =>
+                            <button type="button" class="btn btn-sm btn-warning" disabled="@(!ConnHandler.CanOpenAppRoleEditor())" @onclick="async () =>
                                 {ConnHandler.EditAppRole(ResolveAppRole(selectedNwElems[0].Value)); await ResetNw();}">
                                 @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                             <button type="button" class="btn btn-sm btn-danger" disabled="@(!ConnHandler.CanModifyAppRoles())" @onclick="async () =>
@@ -292,7 +293,7 @@
 
     private string DisplayInterfaceWithIcon(ModellingConnection interf)
     {
-        return $"<span class=\"{Icons.Interface}\"></span> " + ConnHandler?.DisplayInterface(interf);
+        return $"<span class=\"{Icons.Interface}\"></span> " + HtmlOutputEncoder.EncodeText(ConnHandler?.DisplayInterface(interf));
     }
 
     private async Task ReplaceInterface()

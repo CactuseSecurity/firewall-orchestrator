@@ -23,6 +23,11 @@ public static class GetImplTaskTargetsValidationSchema
     public const string kManagementIdPath = "managementId";
 
     /// <summary>
+    /// JSON path of the time object key.
+    /// </summary>
+    public const string kIsTimeObjectPath = "isTimeObject";
+
+    /// <summary>
     /// JSON path of the options object.
     /// </summary>
     public const string kOptionsPath = "options";
@@ -51,6 +56,7 @@ public static class GetImplTaskTargetsValidationSchema
     [
         new RequestKeyDefinition("managementId", "Database id of the management the request task belongs to. Required and greater than 0."),
         new RequestKeyDefinition("isServiceObject", "True for services, false for network objects; selects serviceObjectCreation or addressObjectCreation. Defaults to false."),
+        new RequestKeyDefinition("isTimeObject", "True for time objects; selects timeObjectCreation. Must not be true together with isServiceObject. Defaults to false."),
         new RequestKeyDefinition("options", "Optional output options. Defaults to {}.")
     ];
 

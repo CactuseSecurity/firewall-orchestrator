@@ -25,6 +25,7 @@ public static class GetImplTaskTargetsRequestValidator
         }
 
         ValidateManagementId(request, result);
+        ValidateObjectKind(request, result);
         ValidatePaging(request.Options, result);
         ValidateFilterName(request.Options.Filter, result);
         AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.AdditionalData, GetImplTaskTargetsValidationSchema.kRootPath,
@@ -47,6 +48,15 @@ public static class GetImplTaskTargetsRequestValidator
         {
             result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kManagementIdPath,
                 $"'{GetImplTaskTargetsValidationSchema.kManagementIdPath}' must be greater than 0."));
+        }
+    }
+
+    private static void ValidateObjectKind(GetImplTaskTargetsRequest request, RequestValidationErrorResponse result)
+    {
+        if (request.IsServiceObject && request.IsTimeObject)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kIsTimeObjectPath,
+                $"'{GetImplTaskTargetsValidationSchema.kIsTimeObjectPath}' must not be true together with 'isServiceObject'."));
         }
     }
 

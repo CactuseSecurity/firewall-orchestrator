@@ -97,6 +97,12 @@ namespace FWO.Services.Workflow
 
         public async Task StartWorkOnImplTask(WfImplTask implTask, ObjAction action)
         {
+            if (ReadOnlyMode)
+            {
+                // read-only users follow the phase without starting work, so no state is written
+                SelectImplTask(implTask, action);
+                return;
+            }
             SetImplTaskEnv(implTask);
             ActImplTask.CurrentHandler = userConfig.User;
             List<int> actPossibleStates = ActStateMatrix.getAllowedTransitions(ActImplTask.StateId);
@@ -116,12 +122,22 @@ namespace FWO.Services.Workflow
 
         public async Task ContinueImplPhase(WfImplTask implTask)
         {
-            SelectImplTask(implTask, contOption);
-            if (ActImplTask.CurrentHandler != userConfig.User)
+            ViewImplTaskInPhase(implTask);
+            if (!ReadOnlyMode && ActImplTask.CurrentHandler != userConfig.User)
             {
                 ActImplTask.CurrentHandler = userConfig.User;
                 await UpdateActImplTaskState();
             }
+        }
+
+        /// <summary>
+        /// Opens an implementation task in the view of the current phase without starting work on it or taking it over,
+        /// so that read-only users can see the phase dialog. No state is written.
+        /// </summary>
+        /// <param name="implTask">The implementation task to open.</param>
+        public void ViewImplTaskInPhase(WfImplTask implTask)
+        {
+            SelectImplTask(implTask, contOption);
         }
 
         public bool SelectOwnerImplTasks(FwoOwner selectedOwnerOpt)
@@ -309,7 +325,8 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Returns the request tasks that should receive initially generated implementation tasks.
         /// </summary>
-        private async Task<List<WfReqTask>> RequestTasksForInitialImplCreation(List<WfReqTask> requestTasks)
+        private async Task<List<WfReqTask>> RequestTasksForInitialImplCreation(
+            List<WfReqTask> requestTasks, bool includeExistingImplementationTasks = false)
         {
             // every implementation task creation run starts here
             ResetObjectTargetCache();
@@ -317,7 +334,8 @@ namespace FWO.Services.Workflow
             foreach (WfReqTask reqTask in requestTasks)
             {
                 WfReqTask detailedReqTask = await LoadReqTaskDetailsForImplCreation(reqTask);
-                if (TaskHasRequiredContentForImplCreation(detailedReqTask))
+                if ((includeExistingImplementationTasks || detailedReqTask.ImplementationTasks.Count == 0)
+                    && TaskHasRequiredContentForImplCreation(detailedReqTask))
                 {
                     requestTasksWithDetails.Add(detailedReqTask);
                 }
@@ -348,22 +366,23 @@ namespace FWO.Services.Workflow
 
         private async Task<WfReqTask> LoadReqTaskDetailsForImplCreation(WfReqTask reqTask)
         {
-            // Only access tasks need their elements reloaded. Generic tasks, including new-interface tasks,
-            // intentionally have no request elements and must keep the active ticket instance unchanged.
-            if (reqTask.TaskType != WfTaskType.access.ToString()
-                || reqTask.Elements.Count > 0 || reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null)
+            if (reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null)
             {
                 return reqTask;
             }
 
+            WfTicket activeTicket = ActTicket;
             WfReqTask detailedReqTask = await LoadReqTaskDetails(reqTask, true);
+            // Loading details refreshes the handler environment as a side effect. Keep the
+            // ticket state that was already derived from the current request-task states;
+            // otherwise the persisted pre-change ticket state can overwrite that derivation.
+            ActTicket = activeTicket;
             detailedReqTask.StateId = reqTask.StateId;
             detailedReqTask.Start = reqTask.Start;
             detailedReqTask.Stop = reqTask.Stop;
             detailedReqTask.CurrentHandler = reqTask.CurrentHandler;
             detailedReqTask.RecentHandler = reqTask.RecentHandler;
             detailedReqTask.AssignedGroup = reqTask.AssignedGroup;
-            detailedReqTask.ImplementationTasks = reqTask.ImplementationTasks;
             SyncActTicketFromReqTask(detailedReqTask);
             return detailedReqTask;
         }

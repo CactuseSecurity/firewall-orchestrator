@@ -228,16 +228,37 @@ namespace FWO.Logging
             WriteInColor($"FWORCHAlert - {Title}, {Text}");
         }
 
+        /// <summary>
+        /// Writes a line to the console in the given colors. A failing console write is swallowed
+        /// and the log semaphore is always released, so one broken write can neither break the
+        /// caller nor block every later log call of the process.
+        /// </summary>
         private static void WriteInColor(string Text, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
         {
             semaphore.Wait();
-            if (ForegroundColor != null)
-                Console.ForegroundColor = (ConsoleColor)ForegroundColor;
-            if (BackgroundColor != null)
-                Console.BackgroundColor = (ConsoleColor)BackgroundColor;
-            Console.Out.WriteLine(SanitizeForLogOutput(Text)); // TODO: async method ?
-            Console.ResetColor();
-            semaphore.Release();
+            try
+            {
+                try
+                {
+                    if (ForegroundColor != null)
+                        Console.ForegroundColor = (ConsoleColor)ForegroundColor;
+                    if (BackgroundColor != null)
+                        Console.BackgroundColor = (ConsoleColor)BackgroundColor;
+                    Console.Out.WriteLine(SanitizeForLogOutput(Text)); // TODO: async method ?
+                }
+                finally
+                {
+                    Console.ResetColor();
+                }
+            }
+            catch (Exception)
+            {
+                // a failing log write (e.g. stdout temporarily not writable) must never break the caller
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
 
         /// <summary>

@@ -273,6 +273,38 @@ namespace FWO.Test
             return wrapper.FindComponent<DisplayTicketTable>();
         }
 
+        internal static IRenderedComponent<DisplayTicketTable> RenderDisplayTicketTableWithUserConfig(
+            BunitContext context,
+            WfHandler handler,
+            WorkflowPhases phase,
+            WfStateDict states,
+            UserConfig configuredUserConfig,
+            params string[] roles)
+        {
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new RequestWorkflowAuthStateProvider(roles.Length > 0 ? roles : [Roles.Requester]));
+            context.Services.TryAddSingleton<ApiConnection>(new RequestWorkflowApiConn());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.RemoveAll<UserConfig>();
+            context.Services.AddSingleton(configuredUserConfig);
+            context.Services.TryAddSingleton<DomEventService>();
+            context.Services.TryAddSingleton<IEventMediator>(new EventMediator());
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<DisplayTicketTable>(child => child
+                    .Add(p => p.Phase, phase)
+                    .Add(p => p.States, states)
+                    .Add(p => p.WfHandler, handler)
+                    .Add(p => p.ResetParent, DefaultInit.DoNothing)
+                    .Add(p => p.StartPhase, (Func<WfReqTask, Task>)DefaultInit.DoNothing)
+                    .Add(p => p.StartImplPhase, (Func<WfImplTask, Task>)DefaultInit.DoNothing)));
+
+            return wrapper.FindComponent<DisplayTicketTable>();
+        }
+
         internal static WfReqTask CreateAccessTask(long id, string sourceIp, string destinationIp, int servicePort)
         {
             return new()
@@ -382,6 +414,17 @@ namespace FWO.Test
             WfStatefulObject statefulObject,
             params string[] roles)
         {
+            return RenderPromoteObject(context, states, stateMatrix, statefulObject, false, roles);
+        }
+
+        internal static IRenderedComponent<PromoteObject> RenderPromoteObject(
+            BunitContext context,
+            WfStateDict states,
+            StateMatrix stateMatrix,
+            WfStatefulObject statefulObject,
+            bool withComment,
+            params string[] roles)
+        {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
@@ -394,6 +437,7 @@ namespace FWO.Test
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<PromoteObject>(child => child
                     .Add(p => p.Promote, true)
+                    .Add(p => p.WithComment, withComment)
                     .Add(p => p.States, states)
                     .Add(p => p.StateMatrix, stateMatrix)
                     .Add(p => p.StatefulObject, statefulObject)
@@ -629,7 +673,9 @@ namespace FWO.Test
         {
             public List<string> Queries { get; } = [];
             public List<FlowNwObject> FlowNwObjects { get; set; } = [];
+            public List<FlowNwGroup> FlowNwGroups { get; set; } = [];
             public List<FlowSvcObject> FlowSvcObjects { get; set; } = [];
+            public List<FlowSvcGroup> FlowSvcGroups { get; set; } = [];
             public List<FlowTimeObject> FlowTimeObjects { get; set; } = [];
             public List<Management> Managements { get; set; } = [];
 
@@ -656,9 +702,17 @@ namespace FWO.Test
                 {
                     return Task.FromResult((QueryResponseType)(object)FlowNwObjects);
                 }
+                if (query == FlowQueries.getFlowAddressGroups)
+                {
+                    return Task.FromResult((QueryResponseType)(object)FlowNwGroups);
+                }
                 if (query == FlowQueries.getFlowRequestSvcObjectCatalog)
                 {
                     return Task.FromResult((QueryResponseType)(object)FlowSvcObjects);
+                }
+                if (query == FlowQueries.getFlowServiceGroups)
+                {
+                    return Task.FromResult((QueryResponseType)(object)FlowSvcGroups);
                 }
                 if (query == FlowQueries.getFlowRequestTimeObjectCatalog)
                 {

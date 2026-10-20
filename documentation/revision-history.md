@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
-
 ## 9.8.1 - 20.10.2026
+- enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
 - dependencies: update NuGet packages (AngleSharp to 1.8.5, bunit to 2.12.5, PuppeteerSharp to 25.14.0, Quartz to 4.6.0)
 
 ## 9.8.0 - 20.10.2026
@@ -14,6 +14,9 @@
   `ipEnd` were removed, so clients must migrate start/end pairs to one of the new representations.
   Response payloads and persisted workflow start/end bounds are unchanged
 - First step towards replacing BlazorTable with FancyTable: the FancyTable based rules report from #5198 is added as a separate preview on a new Monitoring page that only shows up in Debug builds. The productive RulesReport.razor is unchanged.
+
+## 9.7.6 - 18.10.26
+- various sanitizing fixes for XSS (cross site scripting) in reporting, welcome message, and modelling
 
 ## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time

@@ -120,7 +120,7 @@ namespace FWO.Services.Workflow
             }
             if (dbAcc != null)
             {
-                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask, previousTicket);
+                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask, reqTask, previousTicket);
             }
             reqTask.ImplementationTasks.Add(newImplTask);
         }

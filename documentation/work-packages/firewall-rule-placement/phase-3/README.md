@@ -2,7 +2,7 @@
 
 ## Status
 
-WP-01 through WP-05 are implemented and locally validated. WP-05 registers the graph-only calculation/persistence caller but deliberately leaves it unhooked and removes the speculative renderer. WP-06 separately waits for the workflow diagram, then plans and implements only the production activation hook. No WP-06 production code has been implemented.
+WP-01 through WP-06 are implemented and locally validated. WP-05 registers the graph-only calculation/persistence caller and removes the speculative renderer; WP-06 activates that caller from the approved middleware implementation-task creation event.
 
 Phase 3 ends with a graph-only generic product that calculates and persists semantic rule positions and is invoked from an approved workflow seam. It does not consume zone input, analyze the customer document, render vendor request bodies, or execute firewall changes. The previously implemented zone services do not participate in positioning until Phase 4, and WP-05 removes the WP-04 renderer.
 
@@ -22,9 +22,9 @@ The implementation session does not need to read the planning brief. A work pack
 | WP-03 | Implemented; zone-capable path remains inactive | [Completed Check Point strategy plan](WP-03-check-point-strategy-planning.md) | [Implemented Check Point strategy](WP-03-check-point-strategy-implementation.md) | Supply an inactive zone-capable seam; WP-05 added a separate graph-only generic path. |
 | WP-04 | Historical; renderer removed | [Historical rendering plan](WP-04-semantic-position-rendering-planning.md) | [Historical renderer implementation](WP-04-semantic-position-rendering-implementation.md) | The speculative renderer and its dedicated tests were removed by WP-05. |
 | WP-05 | Implemented and locally validated | [Completed generic production plan](WP-05-generic-production-completion-planning.md) | [Implemented unhooked generic production capability](WP-05-generic-production-completion-implementation.md) | Add a graph-only generic recipe/catalog mapping, register an independently callable calculation/persistence service, keep it unhooked, keep zones inactive, and remove the renderer. |
-| WP-06 | Waiting for workflow diagram and planning | [Plan workflow activation](WP-06-workflow-activation-planning.md) | [Implement workflow activation](WP-06-workflow-activation-implementation.md) | Connect the completed WP-05 caller to one authoritative server-side post-persistence workflow seam. |
+| WP-06 | Implemented and locally validated | [Completed workflow activation plan](WP-06-workflow-activation-planning.md) | [Implemented workflow activation](WP-06-workflow-activation-implementation.md) | Activate the completed WP-05 caller from the middleware implementation-task creation event. |
 
-WP-01 is the production input for the graph-only generic path. WP-02 and the zone-capable portion of WP-03 were implemented early but are inputs only to Phase 4 customer algorithms. WP-04's renderer has been removed. WP-05 implements the complete callable capability while keeping it unhooked. WP-06 owns only workflow activation and must keep zone services inactive.
+WP-01 is the production input for the graph-only generic path. WP-02 and the zone-capable portion of WP-03 were implemented early but are inputs only to Phase 4 customer algorithms. WP-04's renderer has been removed. WP-05 implements the complete callable capability, and WP-06 activates it while keeping zone services inactive.
 
 ## Two-session protocol
 

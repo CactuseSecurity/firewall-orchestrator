@@ -301,3 +301,13 @@ Phase 3 WP-05 implements D-036 through D-042. Production registration now contai
 The implementation removes the speculative WP-04 renderer and retains persisted semantic `RulePosition` as the terminal output. Focused coverage, a warning-free Debug build, the complete unit suite, and exclusion searches validate the package. WP-06 remains responsible for diagram-based activation planning and the sole authoritative post-persistence hook.
 
 Rationale: completing calculation and persistence independently provides a testable generic capability without guessing workflow event semantics or introducing firewall execution behavior.
+
+## 2026-10-20 - D-044 - Activate positioning from implementation-task creation
+
+Phase 3 WP-06 activates positioning from the middleware implementation-task creation event emitted through `ActionHandler.DoStateChangeActions`, after `WfDbAccess.AddImplTaskToDb` has assigned a durable positive task ID and persisted its nested data. UI-originated creation delegates that event to middleware, while creation already running in middleware invokes the caller locally. The delegated request must retain `StateChangedByCreation`, and the existing state-execution claim remains the replay-suppression boundary.
+
+The activation reuses the caller's single applicability policy and preserves the exact parent request context. Direct middleware creation carries its transient request, including merged bundle context; delegated UI creation reconstructs the same merged bundle from persisted siblings when necessary. Only initial creation activates positioning. Later task edits do not recalculate or clear a position, no manual retry surface is added, and recreating a task with a new ID is a new creation attempt.
+
+Once task persistence succeeds, the best-effort positioning attempt is not cancelled by the originating client request. Typed outcomes and unexpected failures remain contained and safely logged so they cannot fail workflow processing, and no completed failure is retried automatically. This provides one attempt for each normally completed creation event, not crash-durable exactly-once delivery; an outbox, attempt ledger, schema change, or recovery job is outside WP-06.
+
+Rationale: the creation event is the first shared post-persistence seam for manual and automatically expanded implementation tasks, matches the supplied planning-phase workflow, preserves bundle semantics, and activates the completed WP-05 caller without expanding into modification, UI, schema, or firewall-execution concerns.

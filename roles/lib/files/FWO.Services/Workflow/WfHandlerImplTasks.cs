@@ -209,7 +209,7 @@ namespace FWO.Services.Workflow
         {
             if (dbAcc != null)
             {
-                ActImplTask.Id = await dbAcc.AddImplTaskToDb(ActImplTask);
+                ActImplTask.Id = await dbAcc.AddImplTaskToDb(ActImplTask, ActReqTask);
             }
             ActReqTask.ImplementationTasks.Add(ActImplTask);
         }
@@ -407,6 +407,30 @@ namespace FWO.Services.Workflow
             return mergedTask;
         }
 
+        /// <summary>Resolves the persisted or merged request-task context of a delegated creation event.</summary>
+        public WfReqTask? ResolveRulePositioningRequestTask(WfImplTask implementationTask)
+        {
+            WfTicket? loadedTicket = ActTicket.Tasks.Any(task => task.Id == implementationTask.ReqTaskId)
+                ? ActTicket
+                : TicketList.FirstOrDefault(ticket => ticket.Tasks.Any(task => task.Id == implementationTask.ReqTaskId));
+            WfReqTask? requestTask = loadedTicket?.Tasks.FirstOrDefault(task => task.Id == implementationTask.ReqTaskId)
+                ?? (ActReqTask.Id == implementationTask.ReqTaskId ? ActReqTask : null);
+            if (requestTask == null || !userConfig.ReqConsiderBundling)
+            {
+                return requestTask;
+            }
+
+            string bundleId = requestTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
+            if (string.IsNullOrWhiteSpace(bundleId) || loadedTicket == null)
+            {
+                return requestTask;
+            }
+
+            List<WfReqTask> bundleTasks = [.. loadedTicket.Tasks.Where(task =>
+                task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId)];
+            return CreateMergedBundleRequestTask(bundleTasks);
+        }
+
         /// <summary>
         /// Builds the identity used to collapse duplicate elements across bundled request tasks.
         /// </summary>
@@ -591,7 +615,7 @@ namespace FWO.Services.Workflow
             WfImplTask newImplTask = new(reqTask) { TaskNumber = reqTask.HighestImplTaskNumber() + 1, StateId = reqTask.StateId };
             if (dbAcc != null)
             {
-                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask, reqTask);
             }
             reqTask.ImplementationTasks.Add(newImplTask);
         }
@@ -615,7 +639,7 @@ namespace FWO.Services.Workflow
             }
             if (dbAcc != null)
             {
-                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask, previousTicket);
+                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask, reqTask, previousTicket);
             }
             reqTask.ImplementationTasks.Add(newImplTask);
         }

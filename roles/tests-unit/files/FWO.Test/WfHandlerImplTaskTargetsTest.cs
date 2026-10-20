@@ -117,6 +117,26 @@ namespace FWO.Test
             ((StateMatrixDict)field.GetValue(handler)!).Matrices[taskType] = matrix;
         }
 
+        private static void SetDbAccess(
+            WfHandler handler,
+            SimulatedApiConnection apiConnection,
+            RecordingRulePositioningWorkflowCaller caller)
+        {
+            ActionHandler actionHandler = new(apiConnection, handler, null, true, null, null, caller);
+            actionHandler.Init([new WfState { Id = kOpenStateId }]).GetAwaiter().GetResult();
+            WfDbAccess dbAccess = new(
+                DefaultInit.DoNothing,
+                handler.userConfig,
+                apiConnection,
+                actionHandler,
+                false,
+                WorkflowPhases.planning,
+                false);
+            FieldInfo field = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(nameof(WfHandler), "dbAcc");
+            field.SetValue(handler, dbAccess);
+        }
+
         private static List<int?> ManagementIds(WfReqTask reqTask)
         {
             return [.. reqTask.ImplementationTasks.Select(implTask => implTask.ManagementId)];
@@ -167,6 +187,31 @@ namespace FWO.Test
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
             Assert.That(ManagementIds(reqTask), Is.EqualTo(kNoManagement));
+        }
+
+        [Test]
+        public async Task ObjectTask_PersistedCreationDoesNotActivateRulePositioning()
+        {
+            WfReqTask reqTask = CreateGroupTask(null);
+            reqTask.TicketId = 5;
+            WfTicket ticket = new() { Id = 5, Tasks = { reqTask } };
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig(),
+                ActTicket = ticket
+            };
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            ImplTaskCreationApiConnection apiConnection = new(ticket);
+            SetDbAccess(handler, apiConnection, caller);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.InsertCount, Is.EqualTo(1));
+                Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
         }
 
         [Test]

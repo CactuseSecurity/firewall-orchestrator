@@ -21,6 +21,7 @@ namespace FWO.Middleware.Server.Controllers
     {
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
+        private readonly UserSessionRevocation sessionRevocation;
         private readonly string WrongUserId = "Wrong UserId";
         private const string kWrongLdapId = "The LDAP connection does not belong to the user.";
 
@@ -31,6 +32,7 @@ namespace FWO.Middleware.Server.Controllers
         {
             this.ldaps = ldaps;
             this.apiConnection = apiConnection;
+            sessionRevocation = new UserSessionRevocation(apiConnection, ldaps);
         }
 
         // GET: api/<UserController>
@@ -338,6 +340,11 @@ namespace FWO.Middleware.Server.Controllers
 
             await Task.WhenAll(ldapRoleRequests);
 
+            if (userRemoved)
+            {
+                await sessionRevocation.RevokeSessionsOfUser(user.DbId, $"Removed user {user.Dn} from all groups and roles");
+            }
+
             // Return status and result
             return userRemoved;
         }
@@ -377,7 +384,7 @@ namespace FWO.Middleware.Server.Controllers
             }
             if (userDeleted)
             {
-                // Try to delete user in local db
+                // Try to delete user in local db; its refresh tokens are deleted with it, which ends its sessions
                 try
                 {
                     var Variables = new { id = user.DbId };

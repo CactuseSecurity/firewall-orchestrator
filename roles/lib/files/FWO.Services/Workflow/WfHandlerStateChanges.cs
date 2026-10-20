@@ -572,8 +572,7 @@ namespace FWO.Services.Workflow
                     requestTaskActionsChangedState = true;
                     Log.WriteDebug("UpdateRequestTasksFromTicket", $"Request task {reqtask.Id} changed from {oldReqTaskState} to {reqtask.StateId}.");
                 }
-                if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !IsPlanningPhaseActive(stateMatrixDict.Matrices[reqtask.TaskType])
-                    && RequestTaskNeedsInitialImplTasks(reqtask))
+                if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && RequestTaskNeedsInitialImplTasks(reqtask))
                 {
                     requestTasksNeedingInitialImplTasks.Add(reqtask);
                 }

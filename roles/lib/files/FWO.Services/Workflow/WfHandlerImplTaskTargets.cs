@@ -40,7 +40,8 @@ namespace FWO.Services.Workflow
             List<WfReqTask> openTasks = [.. ActTicket.Tasks.Where(RequestTaskIsOpen)];
             foreach (WfReqTask task in await RequestTasksForInitialImplCreation(openTasks, includeExistingImplementationTasks: true))
             {
-                await AutoCreateImplTasks(task);
+                // the explicit action creates every implementation task, regardless of the auto plan settings
+                await AutoCreateImplTasks(task, applyAutoPlan: false);
                 SyncActTicketFromReqTask(task);
             }
             int createdCount = Math.Max(0, CountImplTasks(ActTicket) - previousCount);
@@ -75,23 +76,28 @@ namespace FWO.Services.Workflow
         /// (group_create, group_modify, group_delete) or a single object task (object_create, object_modify).
         /// Without a request management the single task without management of the previous behaviour is created.
         /// </summary>
-        private async Task AutoCreateObjectImplTasks(WfReqTask reqTask)
+        /// <param name="reqTask">Object task to create the implementation tasks for.</param>
+        /// <param name="applyAutoPlan">True to create them only on target managements whose auto plan device specific
+        /// settings allow it; false for the explicit create action.</param>
+        private async Task AutoCreateObjectImplTasks(WfReqTask reqTask, bool applyAutoPlan)
         {
             if (reqTask.ManagementId is not int managementId || managementId <= 0)
             {
-                if (reqTask.ImplementationTasks.Count == 0)
-                {
-                    await CreateGenericImplTask(reqTask);
-                }
+                await AutoCreateOtherImplTask(reqTask, applyAutoPlan);
                 return;
             }
 
             List<Management> targets = await GetObjectTargetManagements(reqTask, managementId);
             if (targets.Count == 0)
             {
+                // ignore is an explicit setting, so no fallback task is created
                 Log.WriteWarning(kImplTaskTargetsLogTitle, $"No implementation task created for request task {reqTask.Id}: " +
                     $"every target management of management {managementId} is set to ignore objects of this kind.");
                 return;
+            }
+            if (applyAutoPlan)
+            {
+                targets = await FilterAutoPlannedManagements(targets);
             }
             List<Management> missingTargets = [.. targets.Where(target =>
                 reqTask.ImplementationTasks.All(implTask => (implTask.ManagementId ?? reqTask.ManagementId) != target.Id))];
@@ -218,28 +224,43 @@ namespace FWO.Services.Workflow
         /// <see cref="kMaxImplTaskTargetPages"/> pages.</exception>
         private async Task<List<Management>> GetObjectTargetsFromMiddleware(int managementId, ObjectTaskKind kind)
         {
-            List<Management> targets = [];
+            return await ReadAllMiddlewarePages(offset => MiddlewareClient!.GetImplTaskTargets(new ImplTaskTargetParameters
+            {
+                ManagementId = managementId,
+                IsServiceObject = kind == ObjectTaskKind.Service,
+                IsTimeObject = kind == ObjectTaskKind.Time,
+                Options = new ImplTaskTargetPaging { Offset = offset }
+            }), result => result.Targets, "target managements");
+        }
+
+        /// <summary>
+        /// Reads every page of a paged middleware lookup, following its X-Has-More response header.
+        /// </summary>
+        /// <param name="fetchPage">Requests the page starting at the given offset, i.e. the number of items received.</param>
+        /// <param name="itemsOf">Returns the items of one page.</param>
+        /// <param name="itemName">Name of the items for the error message.</param>
+        /// <exception cref="InvalidOperationException">The middleware fails or announces more than
+        /// <see cref="kMaxImplTaskTargetPages"/> pages.</exception>
+        private static async Task<List<TItem>> ReadAllMiddlewarePages<TResult, TItem>(Func<int, Task<RestResponse<TResult>>> fetchPage,
+            Func<TResult, List<TItem>> itemsOf, string itemName)
+        {
+            List<TItem> items = [];
             for (int page = 0; page < kMaxImplTaskTargetPages; page++)
             {
-                RestResponse<ImplTaskTargetResult> response = await MiddlewareClient!.GetImplTaskTargets(new ImplTaskTargetParameters
-                {
-                    ManagementId = managementId,
-                    IsServiceObject = kind == ObjectTaskKind.Service,
-                    IsTimeObject = kind == ObjectTaskKind.Time,
-                    Options = new ImplTaskTargetPaging { Offset = targets.Count }
-                });
+                RestResponse<TResult> response = await fetchPage(items.Count);
                 if (!response.IsSuccessful || response.Data == null)
                 {
                     throw new InvalidOperationException($"Middleware answered {(int)response.StatusCode} {response.StatusDescription}. " +
                         (response.ErrorMessage ?? response.Content ?? ""));
                 }
-                targets.AddRange(response.Data.Targets);
-                if (response.Data.Targets.Count == 0 || !HasMoreTargets(response))
+                List<TItem> pageItems = itemsOf(response.Data);
+                items.AddRange(pageItems);
+                if (pageItems.Count == 0 || !HasMoreTargets(response))
                 {
-                    return targets;
+                    return items;
                 }
             }
-            throw new InvalidOperationException($"Middleware announced more than {kMaxImplTaskTargetPages} pages of target managements.");
+            throw new InvalidOperationException($"Middleware announced more than {kMaxImplTaskTargetPages} pages of {itemName}.");
         }
 
         private static bool HasMoreTargets(RestResponse response)

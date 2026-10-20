@@ -1,0 +1,70 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Config.Api;
+using FWO.Data;
+using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Middleware;
+
+namespace FWO.Services.Workflow
+{
+    /// <summary>
+    /// Resolves the effective auto plan settings (autoPlanImplementation, autoPlanImplementationForRules) of gateways
+    /// and managements along the device specific settings hierarchy.
+    /// </summary>
+    /// <remarks>
+    /// Reads the device specific settings tables, which only the middleware server may read. The ui therefore asks the
+    /// middleware, which uses this resolver.
+    /// </remarks>
+    public class ImplTaskAutoPlanResolver(ApiConnection apiConnection)
+    {
+        /// <summary>
+        /// Returns the global settings, followed by the settings of every requested management and gateway that exists,
+        /// ordered by scope type and id. Unknown ids are left out.
+        /// </summary>
+        /// <param name="deviceIds">Gateways to resolve.</param>
+        /// <param name="managementIds">Managements to resolve.</param>
+        public async Task<List<AutoPlanScopeSettings>> Resolve(IReadOnlyCollection<int> deviceIds, IReadOnlyCollection<int> managementIds)
+        {
+            DeviceSpecificSettingsManager settingsManager = new(apiConnection);
+            DeviceSpecificSettingsLevel<GlobalDeviceSpecificSettings> globalLevel =
+                await settingsManager.LoadLevelAsync<GlobalDeviceSpecificSettings>(DeviceSpecificScopePath.Global());
+            List<AutoPlanScopeSettings> settings = [ToScopeSettings(AutoPlanScopeTypes.kGlobal, null, globalLevel.Settings)];
+            if (deviceIds.Count == 0 && managementIds.Count == 0)
+            {
+                return settings;
+            }
+
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsForAutoPlan,
+                new { managementIds = managementIds.Distinct().ToList(), deviceIds = deviceIds.Distinct().ToList() }) ?? [];
+            List<AutoPlanScopeSettings> gatewaySettings = [];
+            foreach (Management management in managements.OrderBy(management => management.Id))
+            {
+                if (managementIds.Contains(management.Id))
+                {
+                    DeviceSpecificSettingsLevel<ManagementDeviceSpecificSettings> level =
+                        await settingsManager.LoadLevelAsync<ManagementDeviceSpecificSettings>(DeviceSpecificScopePath.ForManagement(management));
+                    settings.Add(ToScopeSettings(AutoPlanScopeTypes.kManagement, management.Id, level.Settings));
+                }
+                foreach (Device device in management.Devices.Where(device => deviceIds.Contains(device.Id)))
+                {
+                    DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> level =
+                        await settingsManager.LoadLevelAsync<GatewayDeviceSpecificSettings>(DeviceSpecificScopePath.ForGateway(management, device));
+                    gatewaySettings.Add(ToScopeSettings(AutoPlanScopeTypes.kGateway, device.Id, level.Settings));
+                }
+            }
+            settings.AddRange(gatewaySettings.OrderBy(setting => setting.Id));
+            return settings;
+        }
+
+        private static AutoPlanScopeSettings ToScopeSettings(string scopeType, int? id, GlobalDeviceSpecificSettings settings)
+        {
+            return new AutoPlanScopeSettings
+            {
+                ScopeType = scopeType,
+                Id = id,
+                AutoPlanImplementation = settings.AutoPlanImplementation,
+                AutoPlanImplementationForRules = settings.AutoPlanImplementationForRules
+            };
+        }
+    }
+}

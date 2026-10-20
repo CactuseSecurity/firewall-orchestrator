@@ -11,6 +11,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getManagementsDetails;
         public static readonly string getManagementDetailsWithoutSecrets;
         public static readonly string getManagementHierarchy;
+        public static readonly string getManagementsForAutoPlan;
         public static readonly string getManagementsWithRulebases;
         public static readonly string getDeviceTypeDetails;
         public static readonly string newManagement;
@@ -57,6 +58,8 @@ namespace FWO.Api.Client.Queries
                                         + GetQueryText("device/fragments/deviceTypeDetails.graphql")
                                         + GetQueryText("device/fragments/importCredentialsWithoutSecrets.graphql");
                 getManagementHierarchy = GetQueryText("device/getManagementHierarchy.graphql")
+                                        + GetQueryText("device/fragments/deviceTypeDetails.graphql");
+                getManagementsForAutoPlan = GetQueryText("device/getManagementsForAutoPlan.graphql")
                                         + GetQueryText("device/fragments/deviceTypeDetails.graphql");
                 getManagementsWithRulebases = GetQueryText("device/getManagementsWithRulebases.graphql");
                 getDeviceTypeDetails = GetQueryText("device/getDeviceTypeDetails.graphql")

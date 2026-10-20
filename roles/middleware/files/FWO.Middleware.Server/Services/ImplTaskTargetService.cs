@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -60,6 +61,47 @@ public sealed class ImplTaskTargetService
             .Skip(options.Offset ?? 0)
             .Take(pageSize + 1)];
         return ListPage<ImplTaskTargetResponse>.FromLookahead(pageWithLookahead, pageSize);
+    }
+
+    /// <summary>
+    /// Returns one page of the effective auto plan settings of the global level and the requested managements and
+    /// gateways.
+    /// </summary>
+    /// <remarks>
+    /// The settings are inherited along the device specific settings hierarchy, so the page cannot be cut in the
+    /// GraphQL query; it is cut here after the filter is applied. The resolver already orders the settings: global
+    /// first, then managements and gateways by id. Only ids and two flags are returned, no names.
+    /// </remarks>
+    /// <param name="deviceIds">Gateways to resolve.</param>
+    /// <param name="managementIds">Managements to resolve.</param>
+    /// <param name="options">Filter and paging options of the request.</param>
+    /// <returns>The matching settings of the requested page.</returns>
+    public async Task<ListPage<AutoPlanSettingResponse>> GetAutoPlanSettingsAsync(List<int> deviceIds, List<int> managementIds,
+        GetAutoPlanSettingsOptions options)
+    {
+        List<AutoPlanScopeSettings> settings = await new ImplTaskAutoPlanResolver(apiConnection).Resolve(deviceIds, managementIds);
+        int pageSize = options.Limit ?? GetAutoPlanSettingsOptions.kMaxLimit;
+        List<AutoPlanSettingResponse> pageWithLookahead = [.. settings
+            .Select(setting => new AutoPlanSettingResponse
+            {
+                ScopeType = setting.ScopeType,
+                Id = setting.Id,
+                AutoPlanImplementation = setting.AutoPlanImplementation,
+                AutoPlanImplementationForRules = setting.AutoPlanImplementationForRules
+            })
+            .Where(setting => MatchesFilter(setting, options.Filter))
+            .Skip(options.Offset ?? 0)
+            .Take(pageSize + 1)];
+        return ListPage<AutoPlanSettingResponse>.FromLookahead(pageWithLookahead, pageSize);
+    }
+
+    private static bool MatchesFilter(AutoPlanSettingResponse setting, AutoPlanSettingsFilter? filter)
+    {
+        return filter == null
+            || ((filter.ScopeType == null || filter.ScopeType == setting.ScopeType)
+                && (filter.Id == null || filter.Id == setting.Id)
+                && (filter.AutoPlanImplementation == null || filter.AutoPlanImplementation == setting.AutoPlanImplementation)
+                && (filter.AutoPlanImplementationForRules == null || filter.AutoPlanImplementationForRules == setting.AutoPlanImplementationForRules));
     }
 
     private static bool MatchesFilter(ImplTaskTargetResponse target, ImplTaskTargetFilter? filter)

@@ -1125,7 +1125,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices }
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices }
             };
             StateMatrix matrix = new()
             {
@@ -1164,7 +1164,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices }
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices }
             };
             StateMatrix matrix = new()
             {
@@ -1528,7 +1528,7 @@ namespace FWO.Test
                 AuthUser = new ClaimsPrincipal(new ClaimsIdentity([new Claim("x-hasura-uuid", "admin-user")], "test")),
                 userConfig = new SimulatedUserConfig
                 {
-                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices,
+                    ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices,
                     ReqConsiderBundling = false
                 }
             };

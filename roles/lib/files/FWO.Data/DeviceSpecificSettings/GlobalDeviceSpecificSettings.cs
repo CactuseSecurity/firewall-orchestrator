@@ -46,9 +46,18 @@ public class GlobalDeviceSpecificSettings
     /// </summary>
     public string ImporterHostName { get; set; } = "";
 
-    public bool PlanImplementation { get; set; } = true;
+    /// <summary>
+    /// Whether the implementation tasks of a request task are created automatically once the request task is
+    /// approved. When false, a planner creates them. Applies to every task type; rule tasks additionally need
+    /// <see cref="AutoPlanImplementationForRules"/>.
+    /// </summary>
+    public bool AutoPlanImplementation { get; set; } = true;
 
-    public bool PlanImplementationOverrideForRules { get; set; } = true;
+    /// <summary>
+    /// Whether the implementation tasks of rule tasks (access, rule_modify, rule_delete) are created automatically.
+    /// Only effective together with <see cref="AutoPlanImplementation"/>; when false, a planner creates them.
+    /// </summary>
+    public bool AutoPlanImplementationForRules { get; set; } = false;
 
     public bool ModellingCreateAppZones { get; set; } = true;
 

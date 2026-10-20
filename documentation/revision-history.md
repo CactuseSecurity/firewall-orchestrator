@@ -1,5 +1,15 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.2 - 20.10.2026
+- request workflow: the device specific settings autoPlanImplementation and autoPlanImplementationForRules (renamed from planImplementation and planImplementationOverrideForRules) decide which implementation tasks are created automatically, independently of the planning phase
+  - rule tasks (access, rule_modify, rule_delete) need both settings, all other task types autoPlanImplementation; the default of autoPlanImplementationForRules is false, fresh installations set it to true globally as their default workflow has no planning phase
+  - devices entered in the request take precedence over the path analysis algorithm; if the automatic creation finds no target, one implementation task without gateway is created
+  - the action "create implementation tasks" still creates every implementation task
+  - the device specific settings page warns if rules are planned automatically without path analysis algorithm or manually without active planning phase
+- Workflow Customizing: the option "auto-create implementation tasks" is split up: the new setting reqDeviceInput (never, enter device in request, one task for all devices) and the new path analysis algorithms "For each device" and "Only if device available"; consider bundling and display bundled tasks as one are grouped as bundling options
+- new middleware endpoint workflow/getAutoPlanSettings returns the effective auto plan settings of the global level, managements and gateways
+- the upgrade translates reqAutoCreateImplTasks and the planning phases into the new settings and removes the old config key
+
 ## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time
   - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)

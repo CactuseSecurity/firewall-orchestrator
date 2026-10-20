@@ -206,17 +206,31 @@
                 <textarea id="txt_implicit_approval_comment" class="form-control" rows="2" @bind="configData!.ReqImplicitApprovalComment"></textarea>
             </div>
         </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5566") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" +
-                userConfig.PureLine("H5572") + "\r\n" + userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" +
-                userConfig.PureLine("H5577") + "\r\n" + userConfig.PureLine("H5575"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5566a") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" +
+                userConfig.PureLine("H5577"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqDeviceInput")):</label>
             <div class="col-sm-3">
-                <Dropdown ElementType="AutoCreateImplTaskOptions" @bind-SelectedElement="configData!.ReqAutoCreateImplTasks" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(AutoCreateImplTaskOptions)).Cast<AutoCreateImplTaskOptions>()" >
+                <Dropdown ElementType="ReqDeviceInputOptions" @bind-SelectedElement="configData!.ReqDeviceInput" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues<ReqDeviceInputOptions>()" >
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>
                 </Dropdown>
             </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5580") + "\r\n" + userConfig.PureLine("H5575") + "\r\n" +
+                userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5572"))">
+            <label for="pathAnalysisAlgorithm" class="col-form-label col-sm-3">@(userConfig.GetText("path_analysis_algorithm")):</label>
+            <div class="col-sm-3">
+                <select id="pathAnalysisAlgorithm" class="form-select form-select-sm" @bind="configData!.PathAnalysisAlgorithm">
+                    @foreach (PathAnalysisAlgorithm algorithm in pathAnalysisAlgorithms)
+                    {
+                        <option value="@algorithm.Id">@algorithm.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5566"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqBundlingOptions")):</label>
             <label for="cbx_consider_bundling" class="col-form-label col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">@(userConfig.GetText("reqConsiderBundling")):</label>
             <div class="col-sm-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">
                 <input id="cbx_consider_bundling" type="checkbox" @bind="configData!.ReqConsiderBundling">
@@ -232,25 +246,6 @@
                 <input id="cbx_create_objects_separately" type="checkbox" @bind="configData!.ReqCreateObjectsSeparately">
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5580"))">
-            <label for="pathAnalysisAlgorithm" class="col-form-label col-sm-3">@(userConfig.GetText("path_analysis_algorithm")):</label>
-            <div class="col-sm-3">
-                <select id="pathAnalysisAlgorithm" class="form-select form-select-sm" @bind="configData!.PathAnalysisAlgorithm">
-                    @foreach (PathAnalysisAlgorithm algorithm in pathAnalysisAlgorithms)
-                    {
-                        <option value="@algorithm.Id">@algorithm.Name</option>
-                    }
-                </select>
-            </div>
-        </div>
-        @if (!IsPathAnalysisSelectionValid())
-        {
-            <div class="form-group row">
-                <div class="col-sm-9 offset-sm-3">
-                    <span class="text-warning"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5504"))</span>
-                </div>
-            </div>
-        }
     </form>
 
     <hr />
@@ -379,21 +374,6 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
-    }
-
-    /// <summary>
-    /// Checks that the automatic creation after path analysis has a path analysis algorithm to work with.
-    /// </summary>
-    /// <remarks>
-    /// Only drives a hint, saving stays possible: the workflow still runs the routing based path analysis,
-    /// so the algorithm has no effect yet, and installations upgraded with "after path analysis" carry the
-    /// default None.
-    /// </remarks>
-    private bool IsPathAnalysisSelectionValid()
-    {
-        return configData == null
-            || configData.ReqAutoCreateImplTasks != AutoCreateImplTaskOptions.afterPathAnalysis
-            || configData.PathAnalysisAlgorithm != GlobalConst.kPathAnalysisAlgorithmNone;
     }
 
     private void ValidateApiTicketInitialStateSelection()

@@ -127,17 +127,17 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Update_KeepsDefaultEnum_WhenConfigContainsUnknownAutoCreateImplTaskOption()
+        public void Update_KeepsDefaultEnum_WhenConfigContainsUnknownDeviceInputOption()
         {
             SimulatedUserConfig userConfig = new();
-            userConfig.ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.never;
+            userConfig.ReqDeviceInput = ReqDeviceInputOptions.never;
 
             InvokeUpdate(userConfig,
             [
-                new() { Key = "reqAutoCreateImplTasks", Value = "999", User = 0 }
+                new() { Key = "reqDeviceInput", Value = "999", User = 0 }
             ]);
 
-            Assert.That(userConfig.ReqAutoCreateImplTasks, Is.EqualTo(AutoCreateImplTaskOptions.never));
+            Assert.That(userConfig.ReqDeviceInput, Is.EqualTo(ReqDeviceInputOptions.never));
         }
 
         [Test]

@@ -246,38 +246,18 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SettingsCustomizing_AfterPathAnalysisWithoutAlgorithmWarnsButKeepsSaveEnabled()
-        {
-            await using BunitContext context = new();
-            SimulatedGlobalConfig globalConfig = new()
-            {
-                ReqAvailableTaskTypes = "[]",
-                ReqPriorities = "[]",
-                ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.afterPathAnalysis,
-                PathAnalysisAlgorithm = GlobalConst.kPathAnalysisAlgorithmNone
-            };
-            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderCustomizing(context, globalConfig);
-
-            wrapper.WaitForAssertion(() =>
-            {
-                Assert.That(wrapper.FindAll(".text-warning"), Is.Not.Empty);
-                Assert.That(wrapper.FindAll("button.btn-primary")[^1].HasAttribute("disabled"), Is.False);
-            });
-        }
-
-        [Test]
-        public async Task Save_PersistsAfterPathAnalysisWithoutAlgorithm()
+        public async Task Save_PersistsDeviceInput()
         {
             WorkflowCustomizingApiConn apiConnection = new();
             SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]", ReqPriorities = "[]" };
             ConfigData editableConfig = await globalConfig.GetEditableConfig();
-            editableConfig.ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.afterPathAnalysis;
-            editableConfig.PathAnalysisAlgorithm = GlobalConst.kPathAnalysisAlgorithmNone;
+            editableConfig.ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices;
             SettingsCustomizing component = CreateSavableComponent(apiConnection, globalConfig, editableConfig);
 
             await (Task)GetPrivateMethod(typeof(SettingsCustomizing), "Save").Invoke(component, kNoArguments)!;
 
-            Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+            ConfigItem deviceInputConfig = FindConfigItem(apiConnection.LastConfigItems, "reqDeviceInput");
+            Assert.That(deviceInputConfig.Value, Is.EqualTo(nameof(ReqDeviceInputOptions.oneTaskForAllDevices)));
         }
 
         [Test]
@@ -286,7 +266,6 @@ namespace FWO.Test
             WorkflowCustomizingApiConn apiConnection = new();
             SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]", ReqPriorities = "[]" };
             ConfigData editableConfig = await globalConfig.GetEditableConfig();
-            editableConfig.ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.afterPathAnalysis;
             editableConfig.PathAnalysisAlgorithm = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree;
             SettingsCustomizing component = CreateSavableComponent(apiConnection, globalConfig, editableConfig);
 

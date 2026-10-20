@@ -50,7 +50,7 @@ insert into config (config_key, config_value, config_user) VALUES ('importScript
 insert into config (config_key, config_value, config_user) VALUES ('reqAvailableTaskTypes', '[0,1,2,3]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqTicketFieldVisibility', '{"requester":true,"priority":true,"deadline":true,"reason":true,"comments":false,"accessTask":{"management":true,"owner":true,"validFrom":true,"validTo":true,"reason":true,"freeText":false,"comments":true}}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqPriorities', '[{"numeric_prio":1,"name":"Highest","ticket_deadline":1,"approval_deadline":1},{"numeric_prio":2,"name":"High","ticket_deadline":3,"approval_deadline":2},{"numeric_prio":3,"name":"Medium","ticket_deadline":7,"approval_deadline":3},{"numeric_prio":4,"name":"Low","ticket_deadline":14,"approval_deadline":7},{"numeric_prio":5,"name":"Lowest","ticket_deadline":30,"approval_deadline":14}]', 0);
-insert into config (config_key, config_value, config_user) VALUES ('reqAutoCreateImplTasks', 'enterInReqTask', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reqDeviceInput', 'enterInReqTask', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqConsiderBundling', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqDisplayBundledTasksAsOne', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqCreateObjectsSeparately', 'False', 0);
@@ -195,3 +195,8 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZo
 INSERT INTO device_specific_config_node (node_type, object_key, display_name, sort_order)
 VALUES ('global', 'global', 'Global', 0)
 ON CONFLICT (node_type, object_key) DO NOTHING;
+
+-- The default workflow has no active planning phase, so the implementation tasks of rules are created automatically.
+INSERT INTO device_specific_config_value (node_id, config_key, config_value)
+SELECT id, 'autoPlanImplementationForRules', 'true'::jsonb FROM device_specific_config_node WHERE node_type = 'global'
+ON CONFLICT (node_id, config_key) DO NOTHING;

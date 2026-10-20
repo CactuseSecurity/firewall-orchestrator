@@ -359,7 +359,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.enterInReqTask },
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask },
                 Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
@@ -375,7 +375,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices },
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices },
                 Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
@@ -388,11 +388,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AutoCreateImplTasks_OneTaskForAllDevices_TreatsEmptySelectionAsCombinedTask()
+        public async Task AutoCreateImplTasks_NoEnteredDeviceAndNoAlgorithm_CreatesFallbackTaskWithoutDevice()
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices },
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices },
                 Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
@@ -408,7 +408,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices },
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices },
                 Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
@@ -424,7 +424,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.forEachDevice },
+                userConfig = new SimulatedUserConfig(),
                 Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.group_create.ToString(), StateId = 4, Title = "Group" };
@@ -452,7 +452,7 @@ namespace FWO.Test
                 Phase = WorkflowPhases.request,
                 userConfig = new SimulatedUserConfig
                 {
-                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices
+                    ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices
                 },
                 MasterStateMatrix = new StateMatrix
                 {
@@ -727,7 +727,8 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateImplTasks", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(typeof(WfHandler).FullName, "AutoCreateImplTasks");
-            Task task = (Task)(method.Invoke(handler, [reqTask]) ?? throw new InvalidOperationException("AutoCreateImplTasks returned null."));
+            object[] arguments = [reqTask, true];
+            Task task = (Task)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException("AutoCreateImplTasks returned null."));
             await task;
         }
 
@@ -779,7 +780,7 @@ namespace FWO.Test
             {
                 userConfig = new SimulatedUserConfig
                 {
-                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices,
+                    ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices,
                     ReqConsiderBundling = considerBundling
                 },
                 MasterStateMatrix = new StateMatrix
@@ -808,7 +809,7 @@ namespace FWO.Test
             {
                 userConfig = new SimulatedUserConfig
                 {
-                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices
+                    ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices
                 },
                 MasterStateMatrix = new StateMatrix
                 {

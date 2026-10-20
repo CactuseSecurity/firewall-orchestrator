@@ -20,6 +20,10 @@ namespace FWO.Services.PathAnalysis
                     return new NoPathAnalyzer();
                 case GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree:
                     return new NetworkZoneTreePathAnalyzer(apiConnection, globalConfig);
+                case GlobalConst.kPathAnalysisAlgorithmForEachDevice:
+                    return new DeviceListPathAnalyzer(apiConnection, false);
+                case GlobalConst.kPathAnalysisAlgorithmFirstDevice:
+                    return new DeviceListPathAnalyzer(apiConnection, true);
                 default:
                     Log.WriteWarning("Path Analysis",
                         $"unknown path analysis algorithm id {globalConfig.PathAnalysisAlgorithm}, falling back to none");

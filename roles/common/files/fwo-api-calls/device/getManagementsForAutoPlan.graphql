@@ -1,0 +1,14 @@
+query getManagementsForAutoPlan($managementIds: [Int!]!, $deviceIds: [Int!]!) {
+  management(
+    where: { _or: [{ mgm_id: { _in: $managementIds } }, { devices: { dev_id: { _in: $deviceIds } } }] }
+    order_by: { mgm_id: asc }
+  ) {
+    id: mgm_id
+    name: mgm_name
+    deviceType: stm_dev_typ { ...deviceTypeDetails }
+    devices(where: { dev_id: { _in: $deviceIds } }, order_by: { dev_id: asc }) {
+      id: dev_id
+      name: dev_name
+    }
+  }
+}

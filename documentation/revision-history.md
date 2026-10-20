@@ -1,7 +1,10 @@
 # Firewall Orchestrator Revision History
+
+## 9.8.1 - 20.10.2026
+- Refresh-token rotation now behaves predictably under concurrent requests, and an unreachable API during authentication is reported as a retryable 503. Before, it came back as a 400 with the raw transport error.
+
 ## 9.8.0 - 20.10.2026
 - main release of features from 9.7.2ff including bugfixing and security fixes
-- Refresh-token rotation now behaves predictably under concurrent requests, and an unreachable API during authentication is reported as a retryable 503. Before, it came back as a 400 with the raw transport error.
 
 ## 9.7.7 - 19.10.2026
 - middleware REST API: unify address inputs for `getAddressObjectId`, `getFlowComplianceState`,

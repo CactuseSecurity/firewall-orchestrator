@@ -360,6 +360,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DeleteAllGroupsAndRolesEndsTheSessionsOfTheUser()
+        {
+            UserControllerTestApiConnection apiConnection = new()
+            {
+                Users = [new() { DbId = 42, Dn = "uid=user,ou=users,dc=fworch,dc=internal" }]
+            };
+            TestableLdap roleLdap = new(new RecordingLdapClient())
+            {
+                Id = kUserLdapId,
+                Addresses = ["ldap.example.test"],
+                Port = 389,
+                SearchUser = "cn=search,dc=fworch,dc=internal",
+                SearchUserPwd = LdapTestSupport.CreateEncryptedSecret("searchpwd"),
+                WriteUser = "cn=write,dc=fworch,dc=internal",
+                WriteUserPwd = "writepwd",
+                UserSearchPath = kUserSearchPath,
+                RoleSearchPath = "ou=roles,dc=fworch,dc=internal"
+            };
+            UserController controller = CreateController(new List<Ldap> { roleLdap }, apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            bool result = await controller.DeleteAllGroupsAndRoles(new UserDeleteAllEntriesParameters
+            {
+                UserId = 42
+            });
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.revokeRefreshTokensOfUsers));
+        }
+
+        [Test]
         public async Task ChangePasswordRejectsAuditorModeBeforeUserLookup()
         {
             UserControllerTestApiConnection apiConnection = new();

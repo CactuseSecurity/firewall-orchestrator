@@ -152,7 +152,8 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
             List<string> convertedObjects = [];
             foreach (var nwObj in nwObjects)
             {
-                if (nwObj.RequestAction == RequestAction.create.ToString() || nwObj.RequestAction == RequestAction.addAfterCreation.ToString())
+                if (nwObj.RequestAction == RequestAction.create.ToString() || nwObj.RequestAction == RequestAction.addAfterCreation.ToString()
+                    || nwObj.RequestAction == RequestAction.modify.ToString())
                 {
                     string scObjType = GetSCObjectType(IpOperations.GetObjectType(nwObj.IpString, nwObj.IpEndString));
                     string objUpdStatus = ObjUpdStatus(nwObj.RequestAction);
@@ -217,13 +218,19 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
                 nameof(RequestAction.addAfterCreation) => SCStatusValue.ADDED.ToString(),
                 nameof(RequestAction.delete) => SCStatusValue.DELETED.ToString(),
                 nameof(RequestAction.unchanged) => SCStatusValue.NOT_CHANGED.ToString(),
+                nameof(RequestAction.modify) => SCStatusValue.NOT_CHANGED.ToString(),
                 _ => "",
             };
         }
 
         private static string ObjUpdStatus(string action)
         {
-            return action == nameof(RequestAction.create) ? SCObjStatusValue.NEW.ToString() : SCObjStatusValue.EXISTING_NOT_EDITED.ToString();
+            return action switch
+            {
+                nameof(RequestAction.create) => SCObjStatusValue.NEW.ToString(),
+                nameof(RequestAction.modify) => SCObjStatusValue.EXISTING_EDITED.ToString(),
+                _ => SCObjStatusValue.EXISTING_NOT_EDITED.ToString()
+            };
         }
     }
 }

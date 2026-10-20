@@ -311,6 +311,48 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateRequestStringForGroupModifyWithModifiedMemberOnlyChangesHost()
+        {
+            ExternalTicketSystem groupModifyCheckPointSystem = new()
+            {
+                Id = 1,
+                TypeId = 9,
+                Authorization = "X-chkp-sid: xyz",
+                Name = "CheckPoint",
+                Url = "https://checkpoint-test.xxx.de/web_api/",
+                Templates =
+                [
+                    new()
+                    {
+                        TaskType = WfTaskType.group_modify.ToString(),
+                        TicketTemplate = "@@TASKS@@",
+                        TasksTemplate = "{\"name\":\"@@GROUPNAME@@\",\"members\":@@MEMBERS@@}"
+                    },
+                    new()
+                    {
+                        TaskType = CheckPointTaskTypes.Publish,
+                        TicketTemplate = "{}"
+                    }
+                ]
+            };
+            List<WfReqTask> tasks = [CreateGroupModifyTaskWithModifiedMember()];
+
+            CheckPointTicket ticket = new(groupModifyCheckPointSystem, CertificateChecks);
+            await ticket.CreateRequestString(tasks, [], new ModellingNamingConvention());
+
+            using JsonDocument document = JsonDocument.Parse(ticket.TicketText);
+            List<JsonElement> planSteps = [.. document.RootElement.GetProperty("Steps").EnumerateArray()];
+
+            ClassicAssert.AreEqual(2, planSteps.Count);
+            ClassicAssert.AreEqual(CheckPointTaskTypes.HostModify, planSteps[0].GetProperty("TaskType").GetString());
+            ClassicAssert.AreEqual(CheckPointTaskTypes.Publish, planSteps[1].GetProperty("TaskType").GetString());
+
+            JsonElement hostBody = planSteps[0].GetProperty("Body");
+            ClassicAssert.AreEqual("member-modified", hostBody.GetProperty("name").GetString());
+            ClassicAssert.AreEqual("10.0.0.5", hostBody.GetProperty("ip-address").GetString());
+        }
+
+        [Test]
         public async Task CreateRequestStringForGroupModifyReplacesSlashInRemovedNetworkMemberName()
         {
             ExternalTicketSystem groupModifyCheckPointSystem = new()
@@ -562,6 +604,35 @@ namespace FWO.Test
                 IpString = "10.0.0.3/32",
                 RequestAction = RequestAction.delete.ToString()
             }
+                ]
+            };
+        }
+
+        private static WfReqTask CreateGroupModifyTaskWithModifiedMember()
+        {
+            return new()
+            {
+                Id = 5,
+                TaskNumber = 5,
+                TaskType = WfTaskType.group_modify.ToString(),
+                AdditionalInfo = "{\"GrpName\":\"cp-group\"}",
+                Elements =
+                [
+                    new()
+                    {
+                        Name = "member-modified",
+                        Field = ElemFieldType.source.ToString(),
+                        IpString = "10.0.0.5/32",
+                        IpEnd = "10.0.0.5/32",
+                        RequestAction = RequestAction.modify.ToString()
+                    },
+                    new()
+                    {
+                        Name = "member-unchanged",
+                        Field = ElemFieldType.source.ToString(),
+                        IpString = "10.0.0.6/32",
+                        RequestAction = RequestAction.unchanged.ToString()
+                    }
                 ]
             };
         }

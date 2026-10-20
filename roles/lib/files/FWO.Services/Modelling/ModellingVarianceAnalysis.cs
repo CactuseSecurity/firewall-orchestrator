@@ -357,10 +357,13 @@ namespace FWO.Services.Modelling
             else if (AppRoleChanged(modelledAppRole))
             {
                 modelledAppRole.HasDifference = true;
-                ModellingAppRole changedAppRole = new(modelledAppRole) { ManagementName = mgt.Name, SurplusAppServers = deletedAppServers };
+                // members with changed ip are shown as not implemented with the modelled ip and as surplus with the existing ip
+                List<ModellingAppServerWrapper> notImplementedAppServers = [.. newAppServers, .. changedAppServers.Select(c => c.Modelled)];
+                List<ModellingAppServerWrapper> surplusAppServers = [.. deletedAppServers, .. changedAppServers.Select(c => c.Existing)];
+                ModellingAppRole changedAppRole = new(modelledAppRole) { ManagementName = mgt.Name, SurplusAppServers = surplusAppServers };
                 foreach (var appServer in changedAppRole.AppServers.Select(a => a.Content))
                 {
-                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => appServerComparer.Equals(a.Content, appServer)) != null;
+                    appServer.NotImplemented = notImplementedAppServers.FirstOrDefault(a => IsSameGroupMember(a.Content, appServer)) != null;
                 }
                 varianceResult.DifferingAppRoles[mgt.Id].Add(changedAppRole);
             }

@@ -18,6 +18,7 @@ namespace FWO.Test
     {
         const string stdRecogOpt = "{\"nwRegardIp\":true,\"nwRegardName\":false,\"nwRegardGroupName\":false,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":true}";
         const string oppRecogOpt = "{\"nwRegardIp\":false,\"nwRegardName\":true,\"nwRegardGroupName\":true,\"nwResolveGroup\":true,\"nwSeparateGroupAnalysis\":false,\"svcRegardPortAndProt\":false,\"svcRegardName\":true,\"svcRegardGroupName\":true,\"svcResolveGroup\":false,\"svcSplitPortRanges\":false}";
+        const string noIpRecogOpt = "{\"nwRegardIp\":false,\"nwRegardName\":true,\"nwRegardGroupName\":false,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":true}";
         const string grpNameRecogOpt = "{\"nwRegardIp\":true,\"nwRegardName\":false,\"nwRegardGroupName\":true,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":true}";
 
         static readonly SimulatedUserConfig userConfig = new()
@@ -722,8 +723,6 @@ namespace FWO.Test
         [Test]
         public async Task TestAnalyseRules_IgnoresGroupMemberIpIfNotRegarded()
         {
-            const string noIpRecogOpt = "{\"nwRegardIp\":false,\"nwRegardName\":true,\"nwRegardGroupName\":false,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":true}";
-
             ModellingVarianceResult result = await AnalyseAppRoleWithChangedMemberIp(noIpRecogOpt);
 
             ClassicAssert.AreEqual(0, result.DifferingAppRoles[1].Count);
@@ -731,9 +730,77 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, result.AppRoleStats.AppRolesOk);
         }
 
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_ModifiesGroupMemberWithDifferingIp()
+        {
+            List<ModellingConnection> connections = [CreateConnectionWithChangedMemberIp()];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(stdRecogOpt), Application, DefaultInit.DoNothing);
+
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(connections);
+
+            List<WfReqTask> appRoleTasks = [.. taskList.Where(t => t.Title.StartsWith("Update AppRole: AR504711-001"))];
+            ClassicAssert.AreEqual(1, appRoleTasks.Count);
+            WfReqTask modifyTask = appRoleTasks[0];
+            ClassicAssert.AreEqual("Update AppRole: AR504711-001: Modify Members", modifyTask.Title);
+            ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), modifyTask.TaskType);
+            ClassicAssert.AreEqual(2, modifyTask.Elements.Count);
+            ClassicAssert.AreEqual(RequestAction.modify.ToString(), modifyTask.Elements[0].RequestAction);
+            ClassicAssert.AreEqual("AppServerUnchanged", modifyTask.Elements[0].Name);
+            ClassicAssert.AreEqual("1.2.3.5/32", modifyTask.Elements[0].IpString);
+            ClassicAssert.AreEqual("1.2.3.5/32", modifyTask.Elements[0].IpEnd);
+            ClassicAssert.AreEqual(10, modifyTask.Elements[0].NetworkId);
+            ClassicAssert.AreEqual("AR504711-001", modifyTask.Elements[0].GroupName);
+            ClassicAssert.AreEqual(RequestAction.unchanged.ToString(), modifyTask.Elements[1].RequestAction);
+            ClassicAssert.AreEqual("AppServerOld", modifyTask.Elements[1].Name);
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_ModifiesChangedMemberBesideAddAndRemove()
+        {
+            ModellingConnection connection = CreateConnectionWithChangedMemberIp();
+            ModellingAppRole appRole = connection.SourceAppRoles[0].Content;
+            appRole.AppServers = [appRole.AppServers[0], new() { Content = AS3 }];
+            List<ModellingConnection> connections = [connection];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(stdRecogOpt), Application, DefaultInit.DoNothing);
+
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(connections);
+
+            WfReqTask? addTask = taskList.FirstOrDefault(t => t.Title == "Update AppRole: AR504711-001: Add Members");
+            WfReqTask? removeTask = taskList.FirstOrDefault(t => t.Title == "Update AppRole: AR504711-001: Remove Members");
+            Assert.That(addTask, Is.Not.Null);
+            Assert.That(removeTask, Is.Not.Null);
+            WfReqElement? modifiedInAdd = addTask!.Elements.FirstOrDefault(e => e.Name == "AppServerUnchanged");
+            ClassicAssert.AreEqual(RequestAction.modify.ToString(), modifiedInAdd?.RequestAction);
+            ClassicAssert.AreEqual(RequestAction.create.ToString(), addTask.Elements.First(e => e.Name == "AppServerNew2").RequestAction);
+            ClassicAssert.AreEqual(RequestAction.unchanged.ToString(), addTask.Elements.First(e => e.Name == "AppServerOld").RequestAction);
+            WfReqElement? modifiedInRemove = removeTask!.Elements.FirstOrDefault(e => e.Name == "AppServerUnchanged");
+            ClassicAssert.AreEqual(RequestAction.unchanged.ToString(), modifiedInRemove?.RequestAction);
+            ClassicAssert.AreEqual("1.2.3.5/32", modifiedInRemove?.IpString);
+            ClassicAssert.AreEqual(RequestAction.delete.ToString(), removeTask.Elements.First(e => e.Name == "AppServerOld").RequestAction);
+            ClassicAssert.AreEqual(1, removeTask.Elements.Count(e => e.RequestAction == RequestAction.delete.ToString()));
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_IgnoresGroupMemberIpIfNotRegarded()
+        {
+            List<ModellingConnection> connections = [CreateConnectionWithChangedMemberIp()];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(noIpRecogOpt), Application, DefaultInit.DoNothing);
+
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(connections);
+
+            ClassicAssert.AreEqual(0, taskList.Count(t => t.Title.StartsWith("Update AppRole: AR504711-001")));
+        }
+
         private async Task<ModellingVarianceResult> AnalyseAppRoleWithChangedMemberIp(string recognitionOption)
         {
-            SimulatedUserConfig localUserConfig = new()
+            List<ModellingConnection> connections = [CreateConnectionWithChangedMemberIp()];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(recognitionOption), Application, DefaultInit.DoNothing);
+            return await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new());
+        }
+
+        private static SimulatedUserConfig CreateUserConfigForMemberIp(string recognitionOption)
+        {
+            return new()
             {
                 ModNamingConvention = userConfig.ModNamingConvention,
                 ModRolloutResolveServiceGroups = true,
@@ -742,8 +809,14 @@ namespace FWO.Test
                 ModSpecUserAreas = userConfig.ModSpecUserAreas,
                 ModRolloutNatHeuristic = false
             };
-            // same members as the production group AR504711-001, but AppServerUnchanged has a different ip,
-            // AppServerOld uses another notation of the same ip
+        }
+
+        /// <summary>
+        /// Same members as the production group AR504711-001, but AppServerUnchanged has a different ip
+        /// and AppServerOld uses another notation of the same ip.
+        /// </summary>
+        private static ModellingConnection CreateConnectionWithChangedMemberIp()
+        {
             ModellingAppRole appRole = new()
             {
                 Id = 950,
@@ -755,7 +828,7 @@ namespace FWO.Test
                     new() { Content = new() { Id = 952, Name = "AppServerOld", Ip = "1.0.0.0/32", IpEnd = "1.0.0.0/32" } }
                 ]
             };
-            ModellingConnection connection = new()
+            return new()
             {
                 Id = 950,
                 Name = "ConnIpChanged",
@@ -763,9 +836,6 @@ namespace FWO.Test
                 DestinationAppServers = [new() { Content = AS3 }],
                 Services = [new() { Content = new() { Id = 950, Name = "Service950", Port = 950, ProtoId = 6 } }]
             };
-            List<ModellingConnection> connections = [connection];
-            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, localUserConfig, Application, DefaultInit.DoNothing);
-            return await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new());
         }
 
         [Test]

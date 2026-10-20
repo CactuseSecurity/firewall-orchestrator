@@ -45,9 +45,17 @@ namespace FWO.Data.Workflow
             return RequestAction == Workflow.RequestAction.delete.ToString();
         }
 
+        /// <summary>
+        /// Member staying in the group whose object itself is modified (e.g. a changed ip).
+        /// </summary>
+        public bool IsMemberToModify()
+        {
+            return RequestAction == Workflow.RequestAction.modify.ToString();
+        }
+
         public bool IsCurrentMember()
         {
-            return !IsMemberToAdd() && !IsMemberToRemove();
+            return !IsMemberToAdd() && !IsMemberToRemove() && !IsMemberToModify();
         }
     }
 }

@@ -2125,10 +2125,14 @@ INSERT INTO txt VALUES ('members_to_add',       'German',   'Hinzuzuf&uuml;gende
 INSERT INTO txt VALUES ('members_to_add',       'English',  'Members to add');
 INSERT INTO txt VALUES ('members_to_remove',    'German',   'Zu entfernende Mitglieder');
 INSERT INTO txt VALUES ('members_to_remove',    'English',  'Members to remove');
+INSERT INTO txt VALUES ('members_to_modify',    'German',   'Zu &auml;ndernde Mitglieder');
+INSERT INTO txt VALUES ('members_to_modify',    'English',  'Members to modify');
 INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');
 INSERT INTO txt VALUES ('remove_members',       'English',  ': Remove Members');
+INSERT INTO txt VALUES ('modify_members',       'German',   ': Mitglieder &auml;ndern');
+INSERT INTO txt VALUES ('modify_members',       'English',  ': Modify Members');
 INSERT INTO txt VALUES ('delete_app_zone', 	    'German',	'App Zone l&ouml;schen');
 INSERT INTO txt VALUES ('delete_app_zone', 	    'English',	'Delete App Zone');
 INSERT INTO txt VALUES ('extra_params',         'German',   'Sonderkonfigurationen');

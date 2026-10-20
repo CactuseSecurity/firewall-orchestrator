@@ -323,6 +323,7 @@
         List<WfReqElement> currentMembers = [.. task.Elements.Where(element => element.IsCurrentMember())];
         List<WfReqElement> membersToAdd = [.. task.Elements.Where(element => element.IsMemberToAdd())];
         List<WfReqElement> membersToRemove = [.. task.Elements.Where(element => element.IsMemberToRemove())];
+        List<WfReqElement> membersToModify = [.. task.Elements.Where(element => element.IsMemberToModify())];
 
         List<string> rows = [];
 
@@ -334,6 +335,11 @@
         if (membersToAdd.Count > 0)
         {
             rows.Add(DisplayMemberRow(userConfig.GetText("members_to_add"), membersToAdd));
+        }
+
+        if (membersToModify.Count > 0)
+        {
+            rows.Add(DisplayMemberRow(userConfig.GetText("members_to_modify"), membersToModify));
         }
 
         if (membersToRemove.Count > 0)
@@ -397,6 +403,10 @@
         else if (elem.RequestAction == RequestAction.delete.ToString())
         {
             return "text-danger";
+        }
+        else if (elem.RequestAction == RequestAction.modify.ToString())
+        {
+            return "text-warning";
         }
         return "";
     }

@@ -6,9 +6,11 @@ using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Data.Middleware;
 using FWO.Data.Modelling;
+using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services;
+using FWO.Services.RulePositioning;
 using FWO.Services.Workflow;
 using FWO.Test.Mocks;
 using NetTools;
@@ -1461,6 +1463,276 @@ namespace FWO.Test
                 Assert.That(apiConn.Queries.Count(query => query == MonitorQueries.addAlert), Is.EqualTo(1));
                 Assert.That(task.StateChanged(), Is.False);
             });
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_MiddlewareCreationCallsRulePositioningOnceWithExactContext()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            RecordingRulePositioningWorkflowCaller caller = new();
+            WfReqTask requestTask = CreatePositioningRequestTask();
+            WfImplTask implementationTask = CreatePositioningImplementationTask();
+            ActionHandler handler = new(apiConn, new WfHandler(), null, true, null, null, caller);
+
+            await handler.DoStateChangeActions(
+                implementationTask,
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: requestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.CalculationCount, Is.EqualTo(1));
+                Assert.That(caller.LastRequestTask, Is.SameAs(requestTask));
+                Assert.That(caller.LastImplementationTask, Is.SameAs(implementationTask));
+                Assert.That(caller.LastImplementationTask!.Id, Is.EqualTo(41));
+                Assert.That(caller.LastCancellationToken.CanBeCanceled, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_UiDelegationNeverCallsInjectedRulePositioningCaller()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            using TestMiddlewareClient middlewareClient = new();
+            middlewareClient.UseHandler(new RecordingMiddlewareActionsHandler());
+            WfHandler wfHandler = new((_, _, _, _) => { }, new SimulatedUserConfig(),
+                new System.Security.Claims.ClaimsPrincipal(), apiConn, middlewareClient, WorkflowPhases.request);
+            RecordingRulePositioningWorkflowCaller caller = new();
+            ActionHandler handler = new(apiConn, wfHandler, null, false, null, null, caller);
+
+            await handler.DoStateChangeActions(
+                CreatePositioningImplementationTask(),
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: CreatePositioningRequestTask());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.ApplicabilityCount, Is.Zero);
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_NonCreationNeverCallsRulePositioning()
+        {
+            RecordingRulePositioningWorkflowCaller caller = new();
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, null, null, caller);
+            WfImplTask implementationTask = CreatePositioningImplementationTask();
+            implementationTask.ResetStateChanged();
+            implementationTask.StateId = 2;
+
+            await handler.DoStateChangeActions(
+                implementationTask,
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: CreatePositioningRequestTask());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.ApplicabilityCount, Is.Zero);
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task DoStateChangeActions_MissingOrMismatchedParentDoesNotCallRulePositioning(bool supplyMismatch)
+        {
+            RecordingRulePositioningWorkflowCaller caller = new();
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, null, null, caller);
+            WfReqTask? requestTask = supplyMismatch ? CreatePositioningRequestTask() : null;
+            if (requestTask != null)
+            {
+                requestTask.Id = 999;
+            }
+
+            Assert.DoesNotThrowAsync(async () => await handler.DoStateChangeActions(
+                CreatePositioningImplementationTask(),
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: requestTask));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.ApplicabilityCount, Is.Zero);
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
+        }
+
+        [TestCase("non-persisted")]
+        [TestCase("combined")]
+        [TestCase("generic")]
+        [TestCase("object")]
+        [TestCase("update")]
+        [TestCase("delete")]
+        public async Task DoStateChangeActions_InapplicableCreationShapeNeverCalculates(string shape)
+        {
+            WfReqTask requestTask = CreatePositioningRequestTask();
+            WfImplTask implementationTask = CreatePositioningImplementationTask();
+            ApplyInapplicableShape(shape, requestTask, implementationTask);
+            RulePositioningWorkflowCaller productionCaller = CreateApplicabilityCaller();
+            RecordingRulePositioningWorkflowCaller caller = new()
+            {
+                Applicability = productionCaller.IsApplicable
+            };
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, null, null, caller);
+
+            await handler.DoStateChangeActions(
+                implementationTask,
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: requestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.ApplicabilityCount, Is.EqualTo(1));
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
+        }
+
+        [TestCase(RulePositioningWorkflowStatus.Stored)]
+        [TestCase(RulePositioningWorkflowStatus.ClearedAfterFailure)]
+        [TestCase(RulePositioningWorkflowStatus.PersistenceFailed)]
+        public async Task DoStateChangeActions_RulePositioningOutcomeAllowsFollowingStateAction(
+            RulePositioningWorkflowStatus status)
+        {
+            ActionHandlerTestApiConn apiConn = PositioningActionApiConnection();
+            RecordingRulePositioningWorkflowCaller caller = new() { Outcome = new(status) };
+            ActionHandler handler = new(apiConn, new WfHandler(), null, true, null, null, caller);
+            await handler.Init();
+
+            Assert.DoesNotThrowAsync(async () => await handler.DoStateChangeActions(
+                CreatePositioningImplementationTask(),
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: CreatePositioningRequestTask()));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.CalculationCount, Is.EqualTo(1));
+                Assert.That(apiConn.Queries.Count(query => query == MonitorQueries.addAlert), Is.EqualTo(1));
+            });
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task DoStateChangeActions_RulePositioningExceptionIsContainedAndStateActionContinues(
+            bool cancellation)
+        {
+            ActionHandlerTestApiConn apiConn = PositioningActionApiConnection();
+            RecordingRulePositioningWorkflowCaller caller = new()
+            {
+                ExceptionToThrow = cancellation
+                    ? new OperationCanceledException("sensitive cancellation text")
+                    : new InvalidOperationException("sensitive exception text")
+            };
+            ActionHandler handler = new(apiConn, new WfHandler(), null, true, null, null, caller);
+            await handler.Init();
+            StringWriter logOutput = new();
+            TextWriter originalOutput = Console.Out;
+
+            try
+            {
+                Console.SetOut(logOutput);
+                Assert.DoesNotThrowAsync(async () => await handler.DoStateChangeActions(
+                    CreatePositioningImplementationTask(),
+                    WfObjectScopes.ImplementationTask,
+                    creatingRequestTask: CreatePositioningRequestTask()));
+            }
+            finally
+            {
+                Console.SetOut(originalOutput);
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries.Count(query => query == MonitorQueries.addAlert), Is.EqualTo(1));
+                Assert.That(logOutput.ToString(), Does.Contain("Activation failed for implementation task 41"));
+                Assert.That(logOutput.ToString(), Does.Not.Contain("sensitive"));
+            });
+        }
+
+        private static WfReqTask CreatePositioningRequestTask()
+        {
+            WfReqTask requestTask = new()
+            {
+                Id = 31,
+                ManagementId = 11,
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString()
+            };
+            requestTask.SetDeviceList([21]);
+            return requestTask;
+        }
+
+        private static WfImplTask CreatePositioningImplementationTask()
+        {
+            WfImplTask implementationTask = new()
+            {
+                Id = 41,
+                ReqTaskId = 31,
+                DeviceId = 21,
+                TaskType = WfTaskType.access.ToString(),
+                ImplAction = RequestAction.create.ToString()
+            };
+            implementationTask.MarkCreatedStateChanged(1);
+            return implementationTask;
+        }
+
+        private static void ApplyInapplicableShape(
+            string shape,
+            WfReqTask requestTask,
+            WfImplTask implementationTask)
+        {
+            switch (shape)
+            {
+                case "non-persisted":
+                    implementationTask.Id = 0;
+                    break;
+                case "combined":
+                    implementationTask.DeviceId = null;
+                    break;
+                case "generic":
+                    requestTask.TaskType = WfTaskType.generic.ToString();
+                    implementationTask.TaskType = WfTaskType.generic.ToString();
+                    break;
+                case "object":
+                    requestTask.TaskType = WfTaskType.object_create.ToString();
+                    implementationTask.TaskType = WfTaskType.object_create.ToString();
+                    break;
+                case "update":
+                    implementationTask.ImplAction = RequestAction.modify.ToString();
+                    break;
+                case "delete":
+                    requestTask.RequestAction = RequestAction.delete.ToString();
+                    break;
+            }
+        }
+
+        private static RulePositioningWorkflowCaller CreateApplicabilityCaller()
+        {
+            SimulatedApiConnection apiConnection = new();
+            return new RulePositioningWorkflowCaller(
+                apiConnection,
+                new RulePositioningManager([]),
+                new ProvisioningSettingsManager(apiConnection));
+        }
+
+        private static ActionHandlerTestApiConn PositioningActionApiConnection()
+        {
+            return new ActionHandlerTestApiConn
+            {
+                States =
+                [
+                    new WfState
+                    {
+                        Id = 1,
+                        Actions =
+                        [
+                            CreateAction(
+                                StateActionEvents.OnSet.ToString(),
+                                StateActionTypes.SetAlert.ToString(),
+                                WfObjectScopes.ImplementationTask.ToString())
+                        ]
+                    }
+                ]
+            };
         }
 
         /// <summary>

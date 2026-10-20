@@ -96,7 +96,7 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
     }
 
     /// <summary>Checks task shape and identity before loading any external context.</summary>
-    private static bool IsApplicable(WfReqTask? requestTask, WfImplTask? implementationTask)
+    public bool IsApplicable(WfReqTask? requestTask, WfImplTask? implementationTask)
     {
         if (requestTask == null
             || implementationTask == null

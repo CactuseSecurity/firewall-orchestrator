@@ -6,6 +6,9 @@ namespace FWO.Services.RulePositioning;
 /// <summary>Calculates and persists one implementation task's semantic rule position.</summary>
 public interface IRulePositioningWorkflowCaller
 {
+    /// <summary>Checks task shape and identity before loading any external context.</summary>
+    bool IsApplicable(WfReqTask? requestTask, WfImplTask? implementationTask);
+
     /// <summary>Runs one independent best-effort calculation and persistence attempt.</summary>
     Task<RulePositioningWorkflowOutcome> CalculateAndPersistAsync(
         WfReqTask requestTask,

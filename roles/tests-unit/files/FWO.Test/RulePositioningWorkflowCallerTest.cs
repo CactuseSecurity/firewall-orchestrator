@@ -181,20 +181,106 @@ internal class RulePositioningWorkflowCallerTest
     }
 
     [Test]
-    public void ProductionWorkflow_DoesNotInvokeCallerBeforeWp06()
+    public void IsApplicable_AcceptsValidPersistedAccessRuleCreation()
     {
-        string repository = LocateRepository();
-        List<string> workflowFiles = Directory.GetFiles(
-            Path.Combine(repository, "roles", "lib", "files", "FWO.Services", "Workflow"),
-            "*.cs",
-            SearchOption.AllDirectories).ToList();
-        workflowFiles.AddRange(Directory.GetFiles(
-            Path.Combine(repository, "roles", "middleware", "files", "FWO.Middleware.Server", "Controllers"),
-            "*.cs",
-            SearchOption.AllDirectories));
+        RulePositioningWorkflowCaller caller = Caller(new(), new RecordingStrategy(Success()));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
 
-        Assert.That(workflowFiles.All(file =>
-            !File.ReadAllText(file).Contains("IRulePositioningWorkflowCaller", StringComparison.Ordinal)), Is.True);
+        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.True);
+    }
+
+    [TestCase(0, kImplementationTaskId, kRequestTaskId)]
+    [TestCase(kRequestTaskId, 0, kRequestTaskId)]
+    [TestCase(kRequestTaskId, kImplementationTaskId, 999)]
+    public void IsApplicable_RejectsZeroOrMismatchedIds(long requestTaskId, long implementationTaskId, long parentId)
+    {
+        RulePositioningWorkflowCaller caller = Caller(new(), new RecordingStrategy(Success()));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        requestTask.Id = requestTaskId;
+        implementationTask.Id = implementationTaskId;
+        implementationTask.ReqTaskId = parentId;
+
+        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.False);
+    }
+
+    [TestCase(null)]
+    [TestCase(0)]
+    public void IsApplicable_RejectsMissingConcreteGateway(int? gatewayId)
+    {
+        RulePositioningWorkflowCaller caller = Caller(new(), new RecordingStrategy(Success()));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        implementationTask.DeviceId = gatewayId;
+
+        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.False);
+    }
+
+    [Test]
+    public void IsApplicable_RejectsMissingEffectiveManagement()
+    {
+        RulePositioningWorkflowCaller caller = Caller(new(), new RecordingStrategy(Success()));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        requestTask.ManagementId = null;
+        implementationTask.ManagementId = null;
+
+        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.False);
+    }
+
+    [TestCase(WfTaskType.generic, WfTaskType.access)]
+    [TestCase(WfTaskType.access, WfTaskType.generic)]
+    [TestCase(WfTaskType.object_create, WfTaskType.object_create)]
+    public void IsApplicable_RejectsUnsupportedTaskTypes(WfTaskType requestType, WfTaskType implementationType)
+    {
+        RulePositioningWorkflowCaller caller = Caller(new(), new RecordingStrategy(Success()));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        requestTask.TaskType = requestType.ToString();
+        implementationTask.TaskType = implementationType.ToString();
+
+        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.False);
+    }
+
+    [TestCase(RequestAction.modify, RequestAction.create)]
+    [TestCase(RequestAction.delete, RequestAction.create)]
+    [TestCase(RequestAction.create, RequestAction.modify)]
+    [TestCase(RequestAction.create, RequestAction.delete)]
+    public void IsApplicable_RejectsNonCreationActions(RequestAction requestAction, RequestAction implementationAction)
+    {
+        RulePositioningWorkflowCaller caller = Caller(new(), new RecordingStrategy(Success()));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        requestTask.RequestAction = requestAction.ToString();
+        implementationTask.ImplAction = implementationAction.ToString();
+
+        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.False);
+    }
+
+    [Test]
+    public void IsApplicable_RejectsGatewayOutsideFiniteParentSelection()
+    {
+        RulePositioningWorkflowCaller caller = Caller(new(), new RecordingStrategy(Success()));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        requestTask.SetDeviceList([999]);
+
+        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.False);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void IsApplicable_AcceptsEmptyOrAllDeviceParentSelection(bool allDevices)
+    {
+        RulePositioningWorkflowCaller caller = Caller(new(), new RecordingStrategy(Success()));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        requestTask.SetDeviceList(allDevices ? [WfReqTaskBase.kAllDevicesId] : []);
+
+        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.True);
+    }
+
+    [Test]
+    public void IsApplicable_RejectsInconsistentRequestManagement()
+    {
+        RulePositioningWorkflowCaller caller = Caller(new(), new RecordingStrategy(Success()));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        requestTask.OnManagement = new Management { Id = 999 };
+
+        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.False);
     }
 
     private static RulePositioningWorkflowCaller Caller(
@@ -234,18 +320,6 @@ internal class RulePositioningWorkflowCallerTest
             TaskType = WfTaskType.access.ToString(),
             ImplAction = RequestAction.create.ToString()
         });
-    }
-
-    private static string LocateRepository()
-    {
-        for (DirectoryInfo? directory = new(AppContext.BaseDirectory); directory != null; directory = directory.Parent)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "roles", "FWO.sln")))
-            {
-                return directory.FullName;
-            }
-        }
-        throw new DirectoryNotFoundException("Repository root not found.");
     }
 
     private sealed class RecordingStrategy(RulePositioningResult result) : IRulePositioningStrategy

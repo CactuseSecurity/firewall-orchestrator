@@ -5,6 +5,7 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using FWO.Services.RulePositioning;
 using RestSharp;
 using System.Text.Json;
 
@@ -19,6 +20,7 @@ namespace FWO.Services.Workflow
         private readonly bool useInMwServer = false;
         private IRequestedRulePolicyChecker? requestedRulePolicyChecker;
         private readonly IWorkflowRecipientResolver? workflowRecipientResolver;
+        private readonly IRulePositioningWorkflowCaller? rulePositioningWorkflowCaller;
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";
         private string? ScopedUserBcc { get; set; } = "";
@@ -47,7 +49,8 @@ namespace FWO.Services.Workflow
 
 
         public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false,
-            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null, IWorkflowRecipientResolver? workflowRecipientResolver = null)
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null, IWorkflowRecipientResolver? workflowRecipientResolver = null,
+            IRulePositioningWorkflowCaller? rulePositioningWorkflowCaller = null)
         {
             this.apiConnection = apiConnection;
             this.wfHandler = wfHandler;
@@ -55,6 +58,9 @@ namespace FWO.Services.Workflow
             UserGroups = userGroups;
             this.requestedRulePolicyChecker = requestedRulePolicyChecker ?? wfHandler.RequestedRulePolicyChecker;
             this.workflowRecipientResolver = workflowRecipientResolver ?? wfHandler.WorkflowRecipientResolver;
+            this.rulePositioningWorkflowCaller = useInMwServer
+                ? rulePositioningWorkflowCaller ?? ServiceProvider.Services?.GetService(typeof(IRulePositioningWorkflowCaller)) as IRulePositioningWorkflowCaller
+                : null;
         }
 
         public async Task Init()
@@ -86,7 +92,7 @@ namespace FWO.Services.Workflow
         }
 
         public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null,
-            NotificationPlaceholderData? placeholderData = null)
+            NotificationPlaceholderData? placeholderData = null, WfReqTask? creatingRequestTask = null)
         {
             if (!statefulObject.StateChanged())
             {
@@ -108,6 +114,7 @@ namespace FWO.Services.Workflow
             }
 
             await RecordStateChangeExecution(statefulObject, scope);
+            await ActivateRulePositioningForCreation(statefulObject, scope, creatingRequestTask);
 
             if (scope == WfObjectScopes.Ticket)
             {
@@ -121,6 +128,59 @@ namespace FWO.Services.Workflow
             StateActionExecutionContext context = new(owner, ticketId, userGrpDn, placeholderData);
             await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, context);
             await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, context);
+        }
+
+        /// <summary>Attempts positioning for one durable implementation-task creation event.</summary>
+        private async Task ActivateRulePositioningForCreation(
+            WfStatefulObject statefulObject,
+            WfObjectScopes scope,
+            WfReqTask? creatingRequestTask)
+        {
+            if (!useInMwServer
+                || scope != WfObjectScopes.ImplementationTask
+                || statefulObject is not WfImplTask implementationTask
+                || !implementationTask.StateChangedByCreation())
+            {
+                return;
+            }
+
+            try
+            {
+                if (rulePositioningWorkflowCaller == null)
+                {
+                    LogRulePositioningActivationFailure(implementationTask.Id);
+                    return;
+                }
+
+                WfReqTask? requestTask = creatingRequestTask ?? wfHandler.ResolveRulePositioningRequestTask(implementationTask);
+                if (requestTask == null || requestTask.Id != implementationTask.ReqTaskId)
+                {
+                    LogRulePositioningActivationFailure(implementationTask.Id);
+                    return;
+                }
+
+                if (rulePositioningWorkflowCaller.IsApplicable(requestTask, implementationTask))
+                {
+                    await rulePositioningWorkflowCaller.CalculateAndPersistAsync(
+                        requestTask,
+                        implementationTask,
+                        CancellationToken.None);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                LogRulePositioningActivationFailure(implementationTask.Id);
+            }
+            catch (Exception)
+            {
+                LogRulePositioningActivationFailure(implementationTask.Id);
+            }
+        }
+
+        /// <summary>Logs a fixed, payload-free positioning activation failure.</summary>
+        private static void LogRulePositioningActivationFailure(long implementationTaskId)
+        {
+            Log.WriteWarning("Rule positioning activation", $"Activation failed for implementation task {implementationTaskId}.");
         }
 
         /// <summary>

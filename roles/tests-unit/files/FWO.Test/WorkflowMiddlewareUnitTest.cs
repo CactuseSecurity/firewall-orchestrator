@@ -11,9 +11,11 @@ using FWO.Middleware.Server;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Services;
 using FWO.Services;
+using FWO.Services.RulePositioning;
 using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using NUnit.Framework;
 using System.Reflection;
@@ -421,13 +423,30 @@ namespace FWO.Test
             WfTicket ticket = new() { StateId = 5 };
             ticket.ResetStateChanged();
 
-            InvokePrivateStatic<object?>(typeof(WorkflowController), "MarkStateChanged", ticket, 5, 8);
+            InvokePrivateStatic<object?>(typeof(WorkflowController), "MarkStateChanged", ticket, 5, 8, false);
 
             Assert.Multiple(() =>
             {
                 Assert.That(ticket.StateId, Is.EqualTo(8));
                 Assert.That(ticket.StateChanged(), Is.True);
                 Assert.That(ticket.ChangedFrom(), Is.EqualTo(5));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_MarkStateChanged_RestoresCreationMarker()
+        {
+            WfImplTask implementationTask = new() { StateId = 8 };
+            implementationTask.ResetStateChanged();
+
+            InvokePrivateStatic<object?>(typeof(WorkflowController), "MarkStateChanged", implementationTask, 0, 8, true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(implementationTask.StateId, Is.EqualTo(8));
+                Assert.That(implementationTask.StateChanged(), Is.True);
+                Assert.That(implementationTask.ChangedFrom(), Is.Zero);
+                Assert.That(implementationTask.StateChangedByCreation(), Is.True);
             });
         }
 
@@ -666,6 +685,82 @@ namespace FWO.Test
             }
             finally
             {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        [Test]
+        public async Task WorkflowController_RefusedDuplicateCreationNeverActivatesRulePositioning()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new()
+            {
+                States = [],
+                StateChangeClaimAffectedRows = 0
+            };
+            WfReqTask requestTask = new()
+            {
+                Id = 31,
+                TicketId = 42,
+                StateId = 4,
+                ManagementId = 11,
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString()
+            };
+            requestTask.SetDeviceList([21]);
+            requestTask.ImplementationTasks.Add(new WfImplTask
+            {
+                Id = 41,
+                TicketId = 42,
+                ReqTaskId = 31,
+                StateId = 4,
+                DeviceId = 21,
+                TaskType = WfTaskType.access.ToString(),
+                ImplAction = RequestAction.create.ToString()
+            });
+            apiConnection.Ticket = new WfTicket { Id = 42, StateId = 4, Tasks = { requestTask } };
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.ImplementationTask.ToString(),
+                ObjectId = 41,
+                TicketId = 42,
+                Phase = WorkflowPhases.request.ToString(),
+                ExecutionMode = Roles.Admin,
+                OldStateId = 0,
+                NewStateId = 4,
+                StateChangedByCreation = true
+            };
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            IServiceProvider? previousServices = FWO.Services.ServiceProvider.Services;
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            FWO.Services.ServiceProvider.Services = new ServiceCollection()
+                .AddSingleton<IRulePositioningWorkflowCaller>(caller)
+                .BuildServiceProvider();
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                WorkflowActionResult result = await InvokePrivateAsync<WorkflowActionResult>(
+                    controller,
+                    "ExecuteActionsInMiddlewareContext",
+                    apiConnection,
+                    parameters,
+                    WfObjectScopes.ImplementationTask,
+                    WorkflowPhases.request,
+                    42L,
+                    new WorkflowActionResult());
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result.Success, Is.True);
+                    Assert.That(result.Messages.Any(message => message.ErrorFlag), Is.True);
+                    Assert.That(caller.ApplicabilityCount, Is.Zero);
+                    Assert.That(caller.CalculationCount, Is.Zero);
+                });
+            }
+            finally
+            {
+                FWO.Services.ServiceProvider.Services = previousServices;
                 GlobalStateMatrix.Factory = previousFactory;
             }
         }
@@ -1268,6 +1363,32 @@ namespace FWO.Test
             {
                 Assert.That(valid, Is.True);
                 Assert.That(result.ErrorMessage, Is.Null.Or.Empty);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidatePersistedStateTransition_RejectsCreationWithNonzeroOldState()
+        {
+            WfImplTask persistedTask = new() { StateId = 8 };
+            WorkflowActionParameters parameters = new()
+            {
+                OldStateId = 5,
+                NewStateId = 8,
+                StateChangedByCreation = true
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(
+                typeof(WorkflowController),
+                "ValidatePersistedStateTransition",
+                parameters,
+                persistedTask,
+                result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("nonzero old state"));
             });
         }
 

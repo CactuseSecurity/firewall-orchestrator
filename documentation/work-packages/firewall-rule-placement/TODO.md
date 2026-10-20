@@ -13,14 +13,16 @@ This file tracks unresolved review, validation, and product-boundary work. An it
 - [x] Remove the dormant WP-04 renderer and its dedicated tests during Phase 3 WP-05. A future placer must define and own any required conversion contract rather than inheriting this speculative adapter (D-036).
 - [x] Correct or remove active documentation that describes customer analysis or renderer activation as Phase 3 WP-05 work. Historical decision entries remain append-only and are superseded by D-033 and D-034.
 
-## Before Phase 3 WP-06 implementation
+## Phase 3 WP-06 implementation work (complete)
 
-- [ ] Review the workflow diagram and settle the exact post-persistence implementation-task trigger in a separate WP-06 planning session. WP-05 implements and registers the caller but deliberately leaves it unhooked.
+- [x] Review the workflow diagram and settle the exact post-persistence implementation-task trigger in a separate WP-06 planning session. The selected seam is the middleware implementation-task creation event emitted through `ActionHandler.DoStateChangeActions` after `WfDbAccess.AddImplTaskToDb` assigns the durable ID.
+- [x] Implement and validate the decision-complete `phase-3/WP-06-workflow-activation-implementation.md` brief.
 
 ## Validation and stakeholder follow-up
 
 - [ ] Run the outstanding Phase 1 disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade acceptance gates through the approved installation-test workflow.
 - [ ] Consult the audit stakeholders about rule-position change events, actor, payload, retention, and clearing semantics before adding auditing.
+- [ ] Decide in a later modify/retry work package whether changing a persisted implementation task's gateway, management, or relevant rule content clears or recalculates its position, and whether an authorized manual retry is needed. WP-06 activates creation only.
 
 ## Phase 4 customer-extension checks
 

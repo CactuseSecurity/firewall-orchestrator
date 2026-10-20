@@ -1,5 +1,8 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.1 - 20.10.2026
+- dependencies: update NuGet packages (AngleSharp to 1.8.5, bunit to 2.12.5, PuppeteerSharp to 25.14.0, Quartz to 4.6.0)
+
 ## 9.8.0 - 20.10.2026
 - main release of features from 9.7.2ff including bugfixing and security fixes
 

@@ -1,6 +1,7 @@
 # Firewall Orchestrator Revision History
 
 ## 9.8.1 - 20.10.2026
+- enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
 - new REST endpoint `POST /api/pathAnalysis/resolvePathDevices` (roles admin, auditor): returns the firewall devices on the paths between every source and every destination, deduplicated and unordered, together with the algorithm and zone matrix actually used. This makes the network zone tree path analysis callable
   - sources and destinations: 1 to 100 entries each, given as inclusive range (`ipStart`, `ipEnd`) or CIDR network (`ipNetwork`), IPv4 and IPv6; networks with host bits and IPv4 written as IPv6 are rejected
   - options: `algorithm` (currently `networkZoneTree`), `matrixId` (only together with `networkZoneTree`) and a filter on device id and name; omitted options fall back to the configured algorithm and designated zone matrix
@@ -19,6 +20,9 @@
   `ipEnd` were removed, so clients must migrate start/end pairs to one of the new representations.
   Response payloads and persisted workflow start/end bounds are unchanged
 - First step towards replacing BlazorTable with FancyTable: the FancyTable based rules report from #5198 is added as a separate preview on a new Monitoring page that only shows up in Debug builds. The productive RulesReport.razor is unchanged.
+
+## 9.7.6 - 18.10.26
+- various sanitizing fixes for XSS (cross site scripting) in reporting, welcome message, and modelling
 
 ## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time

@@ -37,6 +37,8 @@ namespace FWO.Middleware.Server.Controllers
 
         private const string kRefreshLogCategory = "Token Refresh";
         private const string kRevokeLogCategory = "Token Revoke";
+        private const string kSessionCheckLogCategory = "Session Check";
+        private static readonly string[] kRefreshTokenErrors = [SessionCheckParameters.kRefreshTokenDescription];
         private const string kLoginLogCategory = "User Authentication";
         private const string kTokenGenerationLogCategory = "Token Generation";
 
@@ -634,6 +636,76 @@ namespace FWO.Middleware.Server.Controllers
                 Log.WriteError(kRevokeLogCategory, "Failed to revoke token", ex);
                 return BadRequest("The revocation could not be completed.");
             }
+        }
+
+        /// <summary>
+        /// Checks whether the session of the calling user is still live, i.e. whether the given refresh token belongs
+        /// to the caller and has neither expired nor been revoked. Sessions are revoked when the permissions of their
+        /// user are reduced or the user is deleted, and the UI ends a session as soon as this check reports it ended.
+        /// </summary>
+        /// <remarks>
+        /// RefreshToken (required): refresh token of the session, see <see cref="SessionCheckParameters.kRefreshTokenDescription"/>. &#xA;
+        /// Options (optional): defaults to an empty object. &#xA;
+        /// Only interactive users may call it, so that every call counts against the per-user rate limit.
+        /// </remarks>
+        /// <param name="parameters">Refresh token of the session.</param>
+        /// <returns>True if the session is live, false if it has ended.</returns>
+        /// <response code="400">The refresh token is missing or too long.</response>
+        /// <response code="403">The caller is not an interactive user.</response>
+        /// <response code="503">The API could not be reached; the check may be repeated.</response>
+        [HttpPost("CheckSession")]
+        [Authorize]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<bool>> CheckSession([FromBody] SessionCheckParameters parameters)
+        {
+            // callers without a user identity are exempt from the per-user rate limit, so they are refused before any work
+            if (ApiRateLimiting.GetPartitionKey(User) == null)
+            {
+                return Forbid();
+            }
+
+            Dictionary<string, string[]> errors = ValidateSessionCheck(parameters);
+            if (errors.Count > 0)
+            {
+                return BadRequest(new ValidationProblemDetails(errors) { Status = StatusCodes.Status400BadRequest });
+            }
+
+            try
+            {
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
+                RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(parameters.RefreshToken);
+
+                // a token of another user does not prove a session of the caller
+                bool sessionLive = tokenInfo != null && int.TryParse(User.FindFirst("x-hasura-user-id")?.Value, out int callerUserId)
+                    && tokenInfo.UserId == callerUserId;
+                return Ok(sessionLive);
+            }
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+            {
+                Log.WriteError(kSessionCheckLogCategory, "Could not reach the API while checking a session", exception);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "The API could not be reached while checking the session. Please retry.");
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(kSessionCheckLogCategory, "Failed to check session", exception);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "The session could not be checked. Please retry.");
+            }
+        }
+
+        /// <summary>
+        /// Validates a session check request and returns all errors found, keyed by their request path.
+        /// </summary>
+        /// <param name="parameters">The request.</param>
+        /// <returns>The errors; empty if the request is valid.</returns>
+        internal static Dictionary<string, string[]> ValidateSessionCheck(SessionCheckParameters? parameters)
+        {
+            Dictionary<string, string[]> errors = [];
+            string refreshToken = parameters?.RefreshToken ?? "";
+            if (string.IsNullOrWhiteSpace(refreshToken) || refreshToken.Length > SessionCheckParameters.kMaxRefreshTokenLength)
+            {
+                errors.Add("refreshToken", kRefreshTokenErrors);
+            }
+            return errors;
         }
 
 #if DEBUG

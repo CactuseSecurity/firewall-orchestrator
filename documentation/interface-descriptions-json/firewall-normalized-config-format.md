@@ -105,10 +105,16 @@ kept. Labels are not part of the change detection of the config.
 Each rule entry contains metadata such as `rule_src`, `rule_dst`, `rule_svc`,
 action, hit counters, zones, and audit fields (`last_change_admin`, etc.),
 mirroring the properties shown in the samples. The optional `rule_src_labels` and
-`rule_dst_labels` hold the labels of the rule source and destination as
-`{"label-key": "label-value", ...}`; a key with several values holds an array of
-them (e.g. `{"AppRole": ["AR1", "AR2"], "Stage": "Prod"}`), and both are `null`
-when the side has no labels.
+`rule_dst_labels` hold the labels of the rule source and destination as a list of
+AND-groups that are ORed: a side matches if all labels of at least one group match.
+Each group is an object `{"label-key": "label-value", ...}`; a key with several
+values in one group holds an array of them. For example
+`[{"AppRole": "AR1", "Stage": "Prod"}, {"AppRole": "AR2", "Stage": "Test"}]` means
+(AppRole AR1 and Stage Prod) or (AppRole AR2 and Stage Test). Importers write the
+groups deduplicated and sorted, with sorted keys and values, so that an unchanged
+rule is not reported as changed. Both fields are `null` when the side has no labels.
+Labels that a Guardicore rule references via label groups are not part of the rule
+labels, they are only contained in the network objects of the rule.
 
 ### Gateways
 

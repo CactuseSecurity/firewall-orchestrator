@@ -8,7 +8,6 @@
 - database: assignments keep their history - an assignment is closed by a removal event instead of being deleted,
   and only one active assignment per object and label is allowed
 - database: add columns rule_src_labels and rule_dst_labels (jsonb) to firewall.rule for the labels of an imported rule
-- config: add setting labelLogic (default AND) for combining the labels of a rule side
 - api: track the labelling tables in Hasura with read access for auditor, importer and middleware-server and write
   access (no delete) for importer (labels, change events, rule assignments) and middleware-server
 - importer: new module for Akamai Guardicore Segmentation (device types Guardicore Management / Guardicore Gateway,
@@ -23,9 +22,10 @@
 - importer: the normalized config takes an optional list of labels (key, value) that is upserted into
   labelling.label_key / labelling.label_value on every import
 - importer, middleware: rules carry the labels of their source and destination in rule_src_labels / rule_dst_labels as
-  {"label-key": "label-value", ...}, several values of one key as array of values, null without labels; the
-  normalized config of the middleware returns them, so that unchanged labels are not reported as rule changes
-- upgrade: 9.8.0.sql adds the labelling schema, the rule label columns, the labelLogic setting and the Guardicore
+  list of ORed AND-groups [{"label-key": "label-value", ...}, ...], several values of one key in a group as array of
+  values, null without labels (issue #5531); the groups are written sorted, and the normalized config of the
+  middleware returns them, so that unchanged labels are not reported as rule changes
+- upgrade: 9.8.0.sql adds the labelling schema, the rule label columns and the Guardicore
   device types to existing installations
   
 ## 9.7.5 - 16.10.2026

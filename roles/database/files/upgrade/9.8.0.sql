@@ -1,5 +1,5 @@
--- Guardicore integration (issues #4945, #4949): labelling schema, label columns of firewall rules,
--- the label logic setting and the Guardicore device types for the Guardicore importer
+-- Guardicore integration (issues #4945, #4949): labelling schema, label columns of firewall rules
+-- and the Guardicore device types for the Guardicore importer
 
 -- device types
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
@@ -7,12 +7,9 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (34,'Guardicore Gateway','REST','Akamai','',false,false,false) ON CONFLICT DO NOTHING;
 
--- labels of an imported rule as {"label-key": "label-value", ...}, null if the rule side has no labels
+-- labels of an imported rule side as ORed AND-groups [{"label-key": "label-value", ...}, ...], null without labels
 ALTER TABLE firewall.rule ADD COLUMN IF NOT EXISTS rule_src_labels jsonb;
 ALTER TABLE firewall.rule ADD COLUMN IF NOT EXISTS rule_dst_labels jsonb;
-
--- combination of the labels of a rule side: AND | OR
-INSERT INTO config (config_key, config_value, config_user) VALUES ('labelLogic', 'AND', 0) ON CONFLICT DO NOTHING;
 
 -- labelling schema: generic key/value labels (e.g. Guardicore labels, app roles, stages) and their assignment
 -- to rules, connections, owner networks and access flows (see issue #4949)

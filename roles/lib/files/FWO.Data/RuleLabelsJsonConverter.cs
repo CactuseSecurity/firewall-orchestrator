@@ -4,24 +4,56 @@ using Newtonsoft.Json.Linq;
 namespace FWO.Data
 {
     /// <summary>
-    /// Converts the labels of a rule side, stored as {"label-key": "label-value", ...}. A key with several values
-    /// holds an array of them instead of a single string, so that the labels read from the database are written back
-    /// in exactly the same shape.
+    /// Converts the labels of a rule side, stored as list of ORed AND-groups [{"label-key": "label-value", ...}, ...].
+    /// A key with several values in one group holds an array of them instead of a single string, so that the labels
+    /// read from the database are written back in exactly the same shape.
     /// </summary>
-    public class RuleLabelsJsonConverter : JsonConverter<Dictionary<string, List<string>>>
+    public class RuleLabelsJsonConverter : JsonConverter<List<Dictionary<string, List<string>>>>
     {
         /// <summary>
-        /// Reads a label object, accepting a string or an array of strings per key.
+        /// Reads a list of label groups, accepting a string or an array of strings per key.
         /// </summary>
-        public override Dictionary<string, List<string>>? ReadJson(JsonReader reader, Type objectType, Dictionary<string, List<string>>? existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override List<Dictionary<string, List<string>>>? ReadJson(JsonReader reader, Type objectType, List<Dictionary<string, List<string>>>? existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null)
             {
                 return null;
             }
-            if (JToken.Load(reader) is not JObject labels)
+            if (JToken.Load(reader) is not JArray groups)
             {
-                throw new JsonSerializationException("Rule labels must be a JSON object.");
+                throw new JsonSerializationException("Rule labels must be a JSON array of label groups.");
+            }
+            List<Dictionary<string, List<string>>> result = [];
+            foreach (JToken group in groups)
+            {
+                result.Add(ReadGroup(group));
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Writes a list of label groups, a single value as string and several values as array.
+        /// </summary>
+        public override void WriteJson(JsonWriter writer, List<Dictionary<string, List<string>>>? value, JsonSerializer serializer)
+        {
+            if (value == null)
+            {
+                writer.WriteNull();
+                return;
+            }
+            writer.WriteStartArray();
+            foreach (Dictionary<string, List<string>> group in value)
+            {
+                WriteGroup(writer, group);
+            }
+            writer.WriteEndArray();
+        }
+
+        private static Dictionary<string, List<string>> ReadGroup(JToken group)
+        {
+            if (group is not JObject labels)
+            {
+                throw new JsonSerializationException("A rule label group must be a JSON object.");
             }
             Dictionary<string, List<string>> result = [];
             foreach (JProperty label in labels.Properties())
@@ -33,18 +65,10 @@ namespace FWO.Data
             return result;
         }
 
-        /// <summary>
-        /// Writes a label object, a single value as string and several values as array.
-        /// </summary>
-        public override void WriteJson(JsonWriter writer, Dictionary<string, List<string>>? value, JsonSerializer serializer)
+        private static void WriteGroup(JsonWriter writer, Dictionary<string, List<string>> group)
         {
-            if (value == null)
-            {
-                writer.WriteNull();
-                return;
-            }
             writer.WriteStartObject();
-            foreach (KeyValuePair<string, List<string>> label in value)
+            foreach (KeyValuePair<string, List<string>> label in group)
             {
                 writer.WritePropertyName(label.Key);
                 if (label.Value.Count == 1)

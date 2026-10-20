@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
@@ -8,12 +9,18 @@ from fw_modules.guardicoremanagementREST import gc_const
 from fw_modules.guardicoremanagementREST.gc_service import build_rule_services
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
-from models.rule import RuleAction, RuleLabels, RuleNormalized, RuleTrack, RuleType
+from models.rule import RuleAction, RuleLabelGroup, RuleLabels, RuleNormalized, RuleTrack, RuleType
 from models.rulebase import Rulebase
 from models.rulebase_link import RulebaseLinkUidBased
 
 if TYPE_CHECKING:
-    from fw_modules.guardicoremanagementREST.gc_models import GcLabelRef, GcRule, GcRuleSide, GuardicoreConfig
+    from fw_modules.guardicoremanagementREST.gc_models import (
+        GcAndLabels,
+        GcLabelRef,
+        GcRule,
+        GcRuleSide,
+        GuardicoreConfig,
+    )
     from fw_modules.guardicoremanagementREST.gc_network import GcNetworkObjectCollector
     from model_controllers.management_controller import ManagementController
     from models.serviceobject import ServiceObject
@@ -81,32 +88,52 @@ def resolve_label_key_value(label_ref: GcLabelRef, collector: GcNetworkObjectCol
     key = label.key if label is not None else label_ref.key
     value = label.value if label is not None else label_ref.value
     if key is None or value is None:
-        FWOLogger.warning(f"Guardicore label {label_ref.id} has no key or value, leaving it out of the rule labels")
+        FWOLogger.warning(
+            f"Guardicore label {label_ref.id} has no key or value, leaving its AND-group out of the rule labels"
+        )
         return None
     return key, value
 
 
-def get_side_labels(side: GcRuleSide, collector: GcNetworkObjectCollector) -> RuleLabels | None:
+def get_label_group(and_labels: GcAndLabels, collector: GcNetworkObjectCollector) -> RuleLabelGroup | None:
     """
-    Return the labels of a rule side as {"label-key": "label-value"}, several values of one key as sorted list.
+    Return an AND-group of labels as {"label-key": "label-value"}, several values of one key as sorted list.
 
-    Returns None if the side has no labels.
+    Returns None if the group is empty or contains a label without key or value: leaving out such a label would widen
+    the group, whereas its network object matches no address at all.
     """
-    if side.labels is None:
-        return None
     values_by_key: dict[str, list[str]] = {}
-    label_refs = [label_ref for and_labels in side.labels.or_labels for label_ref in and_labels.and_labels]
-    for label_ref in label_refs:
+    for label_ref in and_labels.and_labels:
         key_value = resolve_label_key_value(label_ref, collector)
         if key_value is None:
-            continue
+            return None
         key, value = key_value
         values = values_by_key.setdefault(key, [])
         if value not in values:
             values.append(value)
     if len(values_by_key) == 0:
         return None
-    return {key: values[0] if len(values) == 1 else sorted(values) for key, values in values_by_key.items()}
+    return {key: values[0] if len(values) == 1 else sorted(values) for key, values in sorted(values_by_key.items())}
+
+
+def get_side_labels(side: GcRuleSide, collector: GcNetworkObjectCollector) -> RuleLabels | None:
+    """
+    Return the labels of a rule side as list of ORed AND-groups, e.g. [{"AppRole": "AR1", "Stage": "Prod"}].
+
+    The groups are deduplicated and sorted, so that a different order in Guardicore is no rule change.
+    Labels referenced via Guardicore label groups are not part of the result, they only become network objects.
+    Returns None if the side has no labels.
+    """
+    if side.labels is None:
+        return None
+    groups_by_sort_key: dict[str, RuleLabelGroup] = {}
+    for and_labels in side.labels.or_labels:
+        group = get_label_group(and_labels, collector)
+        if group is not None:
+            groups_by_sort_key[json.dumps(group, sort_keys=True)] = group
+    if len(groups_by_sort_key) == 0:
+        return None
+    return [groups_by_sort_key[sort_key] for sort_key in sorted(groups_by_sort_key)]
 
 
 def normalize_rule(

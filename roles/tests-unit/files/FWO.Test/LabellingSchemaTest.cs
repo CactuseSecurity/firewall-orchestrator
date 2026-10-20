@@ -22,8 +22,7 @@ namespace FWO.Test
         private const string kFillConfigFile = "fworch-fill-config.sql";
         private const string kFillStmFile = "fworch-fill-stm.sql";
         private const string kLabellingSchemaUpgrade = "create schema if not exists labelling;";
-        private const string kLabelLogicUpgrade = "VALUES ('labelLogic', 'AND', 0) ON CONFLICT DO NOTHING;";
-        private const string kLabelLogicDefault = "VALUES ('labelLogic', 'AND', 0);";
+        private const string kLabelLogicSetting = "'labelLogic'";
         private const string kMetadataFile = "replace_metadata.json";
         private const string kMiddlewareRole = "middleware-server";
         private const string kImporterRole = "importer";
@@ -110,12 +109,16 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// The labels of a rule side are combined with AND unless configured otherwise.
+        /// The rule labels hold ORed AND-groups themselves, so there is no global setting combining them.
         /// </summary>
         [Test]
-        public void Creation_DefaultsTheLabelLogicToAnd()
+        public void CreationAndUpgrade_SeedNoLabelLogicSetting()
         {
-            Assert.That(fillConfig, Does.Contain(kLabelLogicDefault));
+            Assert.Multiple(() =>
+            {
+                Assert.That(fillConfig, Does.Not.Contain(kLabelLogicSetting));
+                Assert.That(upgrade, Does.Not.Contain(kLabelLogicSetting));
+            });
         }
 
         /// <summary>
@@ -151,11 +154,11 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Existing installations get the label columns of the rule table, the label logic setting and the device
-        /// types of the Guardicore importer that writes the labels.
+        /// Existing installations get the label columns of the rule table and the device types of the Guardicore
+        /// importer that writes the labels.
         /// </summary>
         [Test]
-        public void Upgrade_AddsRuleLabelColumnsLabelLogicAndDeviceTypes()
+        public void Upgrade_AddsRuleLabelColumnsAndDeviceTypes()
         {
             Assert.Multiple(() =>
             {
@@ -163,7 +166,6 @@ namespace FWO.Test
                 {
                     Assert.That(upgrade, Does.Contain($"ALTER TABLE firewall.rule ADD COLUMN IF NOT EXISTS {column} jsonb;"), column);
                 }
-                Assert.That(upgrade, Does.Contain(kLabelLogicUpgrade));
                 foreach (string deviceType in kGuardicoreDeviceTypes)
                 {
                     Assert.That(fillStm, Does.Contain(deviceType), deviceType);

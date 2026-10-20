@@ -91,17 +91,28 @@ class TestFwConfigImportRule:
         fwconfig_import_rule.import_details.state.lookup_action.return_value = 1
         fwconfig_import_rule.import_details.state.lookup_track.return_value = 1
         normalized_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
-        normalized_rule.rule_src_labels = {"AppRole": ["AR1", "AR2"], "Stage": "Prod"}
+        normalized_rule.rule_src_labels = [{"AppRole": ["AR1", "AR2"], "Stage": "Prod"}, {"AppRole": "AR3"}]
 
         prepared = fwconfig_import_rule.prepare_rule_for_import(normalized_rule, "rulebase-uid")
 
-        assert prepared.model_dump()["rule_src_labels"] == {"AppRole": ["AR1", "AR2"], "Stage": "Prod"}
+        assert prepared.model_dump()["rule_src_labels"] == [
+            {"AppRole": ["AR1", "AR2"], "Stage": "Prod"},
+            {"AppRole": "AR3"},
+        ]
         assert prepared.rule_dst_labels is None
 
     def test_is_change_security_relevant_detects_label_change(self, fwconfig_import_rule: FwConfigImportRule):
         old_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
         new_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
-        new_rule.rule_dst_labels = {"Stage": "Prod"}
+        new_rule.rule_dst_labels = [{"Stage": "Prod"}]
+
+        assert fwconfig_import_rule.is_change_security_relevant(old_rule, new_rule)
+
+    def test_is_change_security_relevant_detects_regrouped_labels(self, fwconfig_import_rule: FwConfigImportRule):
+        old_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        new_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        old_rule.rule_dst_labels = [{"AppRole": "AR1", "Stage": "Prod"}]
+        new_rule.rule_dst_labels = [{"AppRole": "AR1"}, {"Stage": "Prod"}]
 
         assert fwconfig_import_rule.is_change_security_relevant(old_rule, new_rule)
 

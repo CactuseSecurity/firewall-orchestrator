@@ -46,8 +46,8 @@ class TestNormalizeConfig:
         assert allow_rule.rule_svc == "tcp/5432"
         assert (allow_rule.rule_name, allow_rule.rule_comment) == ("APP-1001", "FWOC1")
         assert allow_rule.last_change_admin == "api-user"
-        assert allow_rule.rule_src_labels == {"AppRole": "AR1001"}
-        assert allow_rule.rule_dst_labels == {"AppRole": "AR1002", "Stage": "Prod"}
+        assert allow_rule.rule_src_labels == [{"AppRole": "AR1001"}]
+        assert allow_rule.rule_dst_labels == [{"AppRole": "AR1002", "Stage": "Prod"}]
 
         override_rule = normalized.rulebases[0].rules["rule-override-block"]
         assert override_rule.rule_disabled
@@ -69,6 +69,26 @@ class TestNormalizeConfig:
             ("AppRole", "AR1002"),
         ]
         assert len(normalized.labels) == 5
+
+    def test_reimport_with_reordered_labels_keeps_rule_labels(
+        self, management_controller: ManagementController
+    ) -> None:
+        native_config = load_native_config()
+        allow_rule = next(rule for rule in native_config["rules"] if rule["id"] == "rule-allow-web-db")
+        allow_rule["destination"]["labels"]["or_labels"].append(
+            {"and_labels": [{"id": "label-approle-web", "key": "AppRole", "value": "AR1001"}]}
+        )
+        first = normalize_config(GuardicoreConfig.model_validate(native_config), management_controller)
+        for or_label in allow_rule["destination"]["labels"]["or_labels"]:
+            or_label["and_labels"].reverse()
+        allow_rule["destination"]["labels"]["or_labels"].reverse()
+        second = normalize_config(GuardicoreConfig.model_validate(native_config), management_controller)
+
+        first_labels = first.rulebases[1].rules["rule-allow-web-db"].rule_dst_labels
+        stored_labels = json.loads(json.dumps(first_labels))
+        second_labels = second.rulebases[1].rules["rule-allow-web-db"].rule_dst_labels
+        assert first_labels == [{"AppRole": "AR1001"}, {"AppRole": "AR1002", "Stage": "Prod"}]
+        assert stored_labels == second_labels
 
 
 class TestFwCommon:

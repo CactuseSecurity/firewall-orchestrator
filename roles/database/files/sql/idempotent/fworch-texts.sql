@@ -489,6 +489,38 @@ INSERT INTO txt VALUES ('order_by',             'German',   'Sortieren nach');
 INSERT INTO txt VALUES ('order_by',             'English',  'Order by');
 INSERT INTO txt VALUES ('sort_order',           'German',   'Sortierreihenfolge');
 INSERT INTO txt VALUES ('sort_order',           'English',  'Sort order');
+INSERT INTO txt VALUES ('rows_per_page',        'German',   'Zeilen pro Seite');
+INSERT INTO txt VALUES ('rows_per_page',        'English',  'Rows per page');
+INSERT INTO txt VALUES ('hidden_columns',       'German',   'Ausgeblendete Spalten:');
+INSERT INTO txt VALUES ('hidden_columns',       'English',  'Hidden columns:');
+INSERT INTO txt VALUES ('pagination',           'German',   'Seitennavigation');
+INSERT INTO txt VALUES ('pagination',           'English',  'Pagination');
+INSERT INTO txt VALUES ('previous',             'German',   'Zur&uuml;ck');
+INSERT INTO txt VALUES ('previous',             'English',  'Previous');
+INSERT INTO txt VALUES ('next',                 'German',   'Weiter');
+INSERT INTO txt VALUES ('next',                 'English',  'Next');
+INSERT INTO txt VALUES ('expand',               'German',   'Aufklappen');
+INSERT INTO txt VALUES ('expand',               'English',  'Expand');
+INSERT INTO txt VALUES ('collapse',             'German',   'Zuklappen');
+INSERT INTO txt VALUES ('collapse',             'English',  'Collapse');
+INSERT INTO txt VALUES ('no_rows',              'German',   'Keine Zeilen');
+INSERT INTO txt VALUES ('no_rows',              'English',  'No rows');
+INSERT INTO txt VALUES ('no_matching_rows',     'German',   'Keine passenden Zeilen');
+INSERT INTO txt VALUES ('no_matching_rows',     'English',  'No matching rows');
+INSERT INTO txt VALUES ('no_matching_rows_with_total',  'German',   'Keine passenden Zeilen ({0} insgesamt)');
+INSERT INTO txt VALUES ('no_matching_rows_with_total',  'English',  'No matching rows ({0} total)');
+INSERT INTO txt VALUES ('no_matching_root_items_format','German',   'Keine passenden Zeilen ({0} Hauptelemente insgesamt)');
+INSERT INTO txt VALUES ('no_matching_root_items_format','English',  'No matching rows ({0} total root items)');
+INSERT INTO txt VALUES ('showing_items_format', 'German',   'Zeige {0}-{1} von {2}');
+INSERT INTO txt VALUES ('showing_items_format', 'English',  'Showing {0}-{1} of {2}');
+INSERT INTO txt VALUES ('showing_filtered_items_format','German',   'Zeige {0}-{1} von {2} gefilterten Zeilen ({3} insgesamt)');
+INSERT INTO txt VALUES ('showing_filtered_items_format','English',  'Showing {0}-{1} of {2} filtered rows ({3} total)');
+INSERT INTO txt VALUES ('showing_visible_rows_format',  'German',   'Zeige {0}-{1} von {2} sichtbaren Zeilen');
+INSERT INTO txt VALUES ('showing_visible_rows_format',  'English',  'Showing {0}-{1} of {2} visible rows');
+INSERT INTO txt VALUES ('resize_column_format', 'German',   'Breite der Spalte {0} &auml;ndern');
+INSERT INTO txt VALUES ('resize_column_format', 'English',  'Resize column {0}');
+INSERT INTO txt VALUES ('reorder_column_format','German',   'Spalte {0} verschieben');
+INSERT INTO txt VALUES ('reorder_column_format','English',  'Reorder column {0}');
 
 -- (re)login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -4116,6 +4148,52 @@ INSERT INTO txt VALUES ('network_areas',        'German',   'Netzwerk-Areas');
 INSERT INTO txt VALUES ('network_areas',        'English',  'Network Areas');
 INSERT INTO txt VALUES ('error',                'German',   'Fehler');
 INSERT INTO txt VALUES ('error',                'English',  'Error');
+INSERT INTO txt VALUES ('debug',                'German',   'Debug');
+INSERT INTO txt VALUES ('debug',                'English',  'Debug');
+INSERT INTO txt VALUES ('fancy_table_preview',  'German',   'FancyTable-Vorschau');
+INSERT INTO txt VALUES ('fancy_table_preview',  'English',  'FancyTable preview');
+INSERT INTO txt VALUES ('fancy_table_examples', 'German',   'FancyTable-Beispiele');
+INSERT INTO txt VALUES ('fancy_table_examples', 'English',  'FancyTable examples');
+INSERT INTO txt VALUES ('fancy_table_ex_default_toolbar',   'German',   'Standard-Toolbar');
+INSERT INTO txt VALUES ('fancy_table_ex_default_toolbar',   'English',  'Default toolbar');
+INSERT INTO txt VALUES ('fancy_table_ex_custom_toolbar',    'German',   'Eigene Toolbar');
+INSERT INTO txt VALUES ('fancy_table_ex_custom_toolbar',    'English',  'Custom toolbar');
+INSERT INTO txt VALUES ('fancy_table_ex_conditional_rows',  'German',   'Bedingte eigene Zeilen');
+INSERT INTO txt VALUES ('fancy_table_ex_conditional_rows',  'English',  'Conditional custom rows');
+INSERT INTO txt VALUES ('fancy_table_ex_column_layout',     'German',   'Spaltenbreite und -reihenfolge');
+INSERT INTO txt VALUES ('fancy_table_ex_column_layout',     'English',  'Resizing and reordering');
+INSERT INTO txt VALUES ('fancy_table_ex_tree_table',        'German',   'Baumtabelle');
+INSERT INTO txt VALUES ('fancy_table_ex_tree_table',        'English',  'Tree table');
+INSERT INTO txt VALUES ('fancy_table_ex_city',              'German',   'Stadt');
+INSERT INTO txt VALUES ('fancy_table_ex_city',              'English',  'City');
+INSERT INTO txt VALUES ('fancy_table_ex_age',               'German',   'Alter');
+INSERT INTO txt VALUES ('fancy_table_ex_age',               'English',  'Age');
+INSERT INTO txt VALUES ('fancy_table_ex_years',             'German',   '{0} Jahre');
+INSERT INTO txt VALUES ('fancy_table_ex_years',             'English',  '{0} yrs');
+INSERT INTO txt VALUES ('fancy_table_ex_sku',               'German',   'Artikelnummer');
+INSERT INTO txt VALUES ('fancy_table_ex_sku',               'English',  'SKU');
+INSERT INTO txt VALUES ('fancy_table_ex_price',             'German',   'Preis');
+INSERT INTO txt VALUES ('fancy_table_ex_price',             'English',  'Price');
+INSERT INTO txt VALUES ('fancy_table_ex_custom_search',     'German',   'Eigene Suche');
+INSERT INTO txt VALUES ('fancy_table_ex_custom_search',     'English',  'Custom search UI');
+INSERT INTO txt VALUES ('fancy_table_ex_search_people',     'German',   'Name oder Stadt suchen...');
+INSERT INTO txt VALUES ('fancy_table_ex_search_people',     'English',  'Search name or city...');
+INSERT INTO txt VALUES ('fancy_table_ex_search_rules',      'German',   'Regeln suchen...');
+INSERT INTO txt VALUES ('fancy_table_ex_search_rules',      'English',  'Search rules...');
+INSERT INTO txt VALUES ('fancy_table_ex_flagged_for_review','German',   '{0} aus {1} ist zur Pr&uuml;fung markiert.');
+INSERT INTO txt VALUES ('fancy_table_ex_flagged_for_review','English',  '{0} is flagged for review from {1}.');
+INSERT INTO txt VALUES ('fancy_table_ex_inspect',           'German',   'Untersuchen');
+INSERT INTO txt VALUES ('fancy_table_ex_inspect',           'English',  'Inspect');
+INSERT INTO txt VALUES ('fancy_table_ex_expand_via_ref',    'German',   'Per @ref aufklappen');
+INSERT INTO txt VALUES ('fancy_table_ex_expand_via_ref',    'English',  'Expand via @ref');
+INSERT INTO txt VALUES ('fancy_table_ex_tree_state',        'German',   '{0} sichtbare Zeilen, {1} aufgeklappte Knoten');
+INSERT INTO txt VALUES ('fancy_table_ex_tree_state',        'English',  '{0} visible rows, {1} expanded nodes');
+INSERT INTO txt VALUES ('fancy_table_ex_opened_details',    'German',   'Details f&uuml;r {0} ge&ouml;ffnet');
+INSERT INTO txt VALUES ('fancy_table_ex_opened_details',    'English',  'Opened details for {0}');
+INSERT INTO txt VALUES ('fancy_table_ex_inspected_section', 'German',   'Abschnitt {0} untersucht');
+INSERT INTO txt VALUES ('fancy_table_ex_inspected_section', 'English',  'Inspected section {0}');
+INSERT INTO txt VALUES ('violation_details',                'German',   'Versto&szlig;details');
+INSERT INTO txt VALUES ('violation_details',                'English',  'Violation details');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -6824,9 +6902,11 @@ INSERT INTO txt VALUES ('H5261', 'English', 'Here all users known to the system 
 ');
 INSERT INTO txt VALUES ('H5271', 'German',  'Aktionen: Nutzer k&ouml;nnen geklont, ge&auml;ndert oder gel&ouml;scht werden.
     Ausserdem kann der Administrator das Passwort der Nutzer zur&uuml;cksetzen und ein neues setzen, welches den Vorgaben der <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> gen&uuml;gen muss.
+    Das L&ouml;schen eines Nutzers beendet sofort alle seine Sitzungen.
 ');
 INSERT INTO txt VALUES ('H5271', 'English', 'Actions: Users can be cloned, edited or deleted.
     Additionally the administrator has the possibility to reset the password of the users and set a new password which has to comply with the <a href="/help/settings/passwordpolicy">Password Policy</a>.
+    Deleting a user ends all of the user''s sessions at once.
 ');
 INSERT INTO txt VALUES ('H5272', 'German',  'Name: Nutzername.');
 INSERT INTO txt VALUES ('H5272', 'English', 'Name: Name of the user.');
@@ -6876,10 +6956,10 @@ INSERT INTO txt VALUES ('H5302', 'German',  'Wenn Beispieldaten (definiert durch
 INSERT INTO txt VALUES ('H5302', 'English', 'If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
     The deletion is only possible, if there are no non-sample users (user name not ending with "_demo") assigned to the group.
 ');
-INSERT INTO txt VALUES ('H5311', 'German',  'Gruppenaktionen: Hier k&ouml;nnen selbstdefinierte Gruppen ge&auml;ndert (zur Zeit nur umbenannt) oder gel&ouml;scht werden.');
-INSERT INTO txt VALUES ('H5311', 'English', 'Group actions: Here is the possibility to edit (currently only rename) or delete self defined user groups.');
-INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) oder aus einem zu durchsuchenden Ldap der Gruppe zugeordnet bzw. von dieser entfernt werden.');
-INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) or searched from an Ldap can be assigned to resp. removed from the user groups.');
+INSERT INTO txt VALUES ('H5311', 'German',  'Gruppenaktionen: Hier k&ouml;nnen selbstdefinierte Gruppen ge&auml;ndert (zur Zeit nur umbenannt) oder gel&ouml;scht werden. Das L&ouml;schen einer Gruppe beendet sofort die Sitzungen ihrer Mitglieder; diese m&uuml;ssen sich neu anmelden.');
+INSERT INTO txt VALUES ('H5311', 'English', 'Group actions: Here is the possibility to edit (currently only rename) or delete self defined user groups. Deleting a group ends the sessions of its members at once; they have to log in again.');
+INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) oder aus einem zu durchsuchenden Ldap der Gruppe zugeordnet bzw. von dieser entfernt werden. Das Entfernen eines Nutzers aus einer Gruppe beendet sofort seine Sitzungen.');
+INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) or searched from an Ldap can be assigned to resp. removed from the user groups. Removing a user from a group ends the user''s sessions at once.');
 INSERT INTO txt VALUES ('H5313', 'German',  'Name: Name der Nutzergruppe.');
 INSERT INTO txt VALUES ('H5313', 'English', 'Name: Name of the user group.');
 INSERT INTO txt VALUES ('H5314', 'German',  'Nutzer: Liste der der Gruppe zugeordneten Nutzer.');
@@ -6896,10 +6976,12 @@ INSERT INTO txt VALUES ('H5332', 'German',  'Die verf&uuml;gbaren Rollen k&ouml;
 INSERT INTO txt VALUES ('H5332', 'English', 'The provided roles can be divided into several categories:');
 INSERT INTO txt VALUES ('H5341', 'German',  'Aktionen: Der Admin hat die M&ouml;glichkeit, Nutzer den Rollen zuzuordnen oder sie von ihnen zu entfernen,
     ausser f&uuml;r "anonymous" oder "middleware-server", welche nur intern genutzt werden kann.
+    Das Entfernen eines Nutzers oder einer Gruppe aus einer Rolle beendet sofort die Sitzungen der betroffenen Nutzer; diese m&uuml;ssen sich neu anmelden.
     Das Hinzuf&uuml;gen der Nutzer kann auf drei Arten erfolgen:
 ');
 INSERT INTO txt VALUES ('H5341', 'English', 'Actions: The admin can add or delete users from the roles,
     except for "anonymous" or "middleware-server" which can only be used internally.
+    Removing a user or group from a role ends the sessions of the affected users at once; they have to log in again.
     For adding users there are three possibilities:
 ');
 INSERT INTO txt VALUES ('H5342', 'German',  'Name: Rollenname');
@@ -8238,15 +8320,14 @@ INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> st
             <tr><td><code>getServiceGroups</code></td><td>Liefert sichtbare Dienstgruppen.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getTimeObjects</code></td><td>Liefert sichtbare Zeitobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getServiceObjectId</code></td><td>L&ouml;st ein Dienstobjekt anhand von Protokoll und Portbereich auf.</td><td><code>protocol</code> erforderlich, dazu <code>portStart</code>, <code>portEnd</code> und optional <code>filter.visibleInRequest</code>.</td></tr>
-            <tr><td><code>getAddressObjectId</code></td><td>L&ouml;st ein Adressobjekt anhand eines IP-Bereichs auf.</td><td><code>ipStart</code> und <code>ipEnd</code> erforderlich, optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressObjectId</code></td><td>L&ouml;st ein Adressobjekt anhand einer IP-Adresse oder eines IP-Bereichs auf.</td><td>Genau eines von <code>ipHost</code>, <code>ipNetwork</code> oder <code>ipRange</code>, optional <code>filter.visibleInRequest</code>.</td></tr>
         </tbody>
     </table>
     Die Filterstruktur ist f&uuml;r diese Endpunkte bewusst klein gehalten und dient vor allem dazu, nur Objekte zur&uuml;ckzugeben, die im Request-Kontext sichtbar sein sollen.
     Die Listen-Endpunkte (<code>getAddressObjects</code>, <code>getAddressGroups</code>, <code>getServiceObjects</code>, <code>getServiceGroups</code>, <code>getTimeObjects</code>) liefern eine Seite pro Request: <code>limit</code> (Standard und Maximum 1000 Objekte bzw. 250 Gruppen) und <code>offset</code> (Standard 0).
     Die Eintr&auml;ge sind nach Name und Id sortiert; der Response-Header <code>X-Has-More</code> gibt an, ob weitere Eintr&auml;ge folgen. Ung&uuml;ltige Werte werden mit 400 beantwortet.
     Passen bei <code>getServiceObjectId</code> mehrere Dienstobjekte (mehrere portlose Dienste desselben Protokolls), wird statt einer Id 409 mit den Kandidaten (<code>candidates</code>) geliefert; Dienste mit Ports und der kanonische ANY-Dienst sind eindeutig.
-    F&uuml;r <code>getAddressObjectId</code> akzeptieren <code>ipStart</code> und <code>ipEnd</code> IPv4- und IPv6-Bereiche, ohne Maske oder mit der Hostmaske (<code>/32</code> bzw. <code>/128</code>); jede andere Maske wird abgelehnt.
-    IPv6-Werte, die lediglich eine IPv4-Adresse abbilden - die IPv4-mapped-Form (<code>::ffff:a.b.c.d</code>) und die veraltete IPv4-compatible-Form (<code>::a.b.c.d</code>) - werden ebenfalls abgelehnt; die IPv4-Schreibweise ist zu verwenden.
+    F&uuml;r <code>getAddressObjectId</code> nimmt <code>ipHost</code> eine einzelne maskenlose Adresse, <code>ipNetwork</code> ein CIDR-Netz und <code>ipRange</code> genau zwei maskenlose, geordnete Adressen derselben Familie auf. Genau eines dieser Felder ist erforderlich. Adresstexte folgen dem gemeinsamen FWO-IP-Parser; gesetzte Hostbits in CIDR-Werten werden auf die inklusiven Netzgrenzen normalisiert.
     F&uuml;r <code>getAddressGroups</code> liefert <code>option.separateZoneGroups=false</code> (Standard) weiterhin ein flaches JSON-Array aller Gruppen.
     Mit <code>option.separateZoneGroups=true</code> wird stattdessen ein Objekt mit den Listen <code>standardGroups</code> und <code>zoneGroups</code> zur&uuml;ckgegeben.
     Welche Gruppen als Zonen gelten, wird &uuml;ber die Namensmuster in den allgemeinen Flow-Einstellungen konfiguriert; ohne konfiguriertes Muster bleibt <code>zoneGroups</code> leer.
@@ -8262,15 +8343,14 @@ INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> ex
             <tr><td><code>getServiceGroups</code></td><td>Returns visible service groups.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getTimeObjects</code></td><td>Returns visible time objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getServiceObjectId</code></td><td>Resolves a service object from protocol and port range.</td><td><code>protocol</code> is required, together with <code>portStart</code>, <code>portEnd</code>, and optional <code>filter.visibleInRequest</code>.</td></tr>
-            <tr><td><code>getAddressObjectId</code></td><td>Resolves an address object from an IP range.</td><td><code>ipStart</code> and <code>ipEnd</code> are required, with optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressObjectId</code></td><td>Resolves an address object from an IP address or range.</td><td>Exactly one of <code>ipHost</code>, <code>ipNetwork</code>, or <code>ipRange</code>, with optional <code>filter.visibleInRequest</code>.</td></tr>
         </tbody>
     </table>
     The filter structure is intentionally small for these endpoints and is mainly used to restrict results to objects that should be visible in the request context.
     The list endpoints (<code>getAddressObjects</code>, <code>getAddressGroups</code>, <code>getServiceObjects</code>, <code>getServiceGroups</code>, <code>getTimeObjects</code>) return one page per request: <code>limit</code> (default and maximum 1000 objects or 250 groups) and <code>offset</code> (default 0).
     Entries are ordered by name and id; the response header <code>X-Has-More</code> tells whether further entries follow. Invalid values are answered with 400.
     If more than one service object matches <code>getServiceObjectId</code> (several portless services of the same protocol), 409 with the <code>candidates</code> is returned instead of an id; services with ports and the canonical ANY service are unique.
-    For <code>getAddressObjectId</code>, <code>ipStart</code> and <code>ipEnd</code> accept IPv4 and IPv6 ranges, without a mask or with the host mask (<code>/32</code> or <code>/128</code>); every other mask is rejected.
-    IPv6 values that merely re-encode an IPv4 address - the IPv4-mapped form (<code>::ffff:a.b.c.d</code>) and the deprecated IPv4-compatible form (<code>::a.b.c.d</code>) - are rejected as well; use the IPv4 notation instead.
+    For <code>getAddressObjectId</code>, <code>ipHost</code> accepts one maskless address, <code>ipNetwork</code> accepts one CIDR network, and <code>ipRange</code> accepts exactly two maskless, ordered addresses of the same family. Exactly one field is required. Address text follows the shared FWO IP parser; set host bits in CIDR values are normalized to the inclusive network bounds.
     For <code>getAddressGroups</code>, <code>option.separateZoneGroups=false</code> (default) still returns a flat JSON array of all groups.
     With <code>option.separateZoneGroups=true</code> an object holding the lists <code>standardGroups</code> and <code>zoneGroups</code> is returned instead.
     Which groups count as zones is configured through the zone name patterns in the general flow settings; without a configured pattern <code>zoneGroups</code> stays empty.
@@ -8284,11 +8364,8 @@ INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b>
             <tr><td><code>getFlowComplianceState</code></td><td>Pr&uuml;ft einen oder mehrere synthetische Flows gegen ausgew&auml;hlte Policies.</td><td><code>source</code>, <code>destination</code>, <code>service</code> und <code>policies</code>.</td></tr>
         </tbody>
     </table>
-    F&uuml;r <code>getFlowComplianceState</code> werden Quellen und Ziele als IP-Bereiche sowie Dienste als Portbereiche mit Protokoll &uuml;bergeben.
     <code>source</code>, <code>destination</code>, <code>service</code> und <code>policies</code> d&uuml;rfen jeweils h&ouml;chstens 100 Eintr&auml;ge enthalten; l&auml;ngere Listen werden mit 400 abgelehnt.
-    <code>ipStart</code> und <code>ipEnd</code> akzeptieren IPv4- und IPv6-Bereiche, ohne Maske oder mit der Hostmaske (<code>/32</code> bzw. <code>/128</code>); jede andere Maske wird abgelehnt.
-    CIDR-Netze werden mit <code>ipNetwork</code> &uuml;bergeben und vor der Pr&uuml;fung in ihre Bereichsgrenzen aufgel&ouml;st. <code>ipNetwork</code> schlie&szlig;t <code>ipStart</code> und <code>ipEnd</code> aus und muss die Netzadresse selbst enthalten; gesetzte Hostbits werden abgelehnt.
-    IPv6-Werte, die lediglich eine IPv4-Adresse abbilden - die IPv4-mapped-Form (<code>::ffff:a.b.c.d</code>) und die veraltete IPv4-compatible-Form (<code>::a.b.c.d</code>) - werden in <code>ipStart</code>, <code>ipEnd</code> und <code>ipNetwork</code> abgelehnt, da sie als IPv6 gelten und deshalb zu keiner IPv4-Zone passen k&ouml;nnten; die IPv4-Schreibweise ist zu verwenden.
+    F&uuml;r <code>getFlowComplianceState</code> enth&auml;lt jede Quelle und jedes Ziel genau eines von <code>ipHost</code>, <code>ipNetwork</code> oder <code>ipRange</code>; Dienste werden als Portbereiche mit Protokoll &uuml;bergeben. Hosts und die genau zwei Bereichsgrenzen sind maskenlos. Adresstexte folgen dem gemeinsamen FWO-IP-Parser; <code>ipNetwork</code> wird vor der Pr&uuml;fung auf seine inklusiven Grenzen normalisiert.
     Kriterien, die nur IPv4 unterst&uuml;tzen, melden einen IPv6-Flow als nicht bewertbar (<code>NotAssessable</code>) statt als Verletzung.
     Das gilt auch f&uuml;r die Zonenmatrix: L&auml;sst sich ein Objekt keiner konfigurierten Netzwerkzone zuordnen, wird der Flow als nicht bewertbar gemeldet und nicht als konform.
     Die Antwort liefert pro angefragter Policy einen Block mit <code>policy</code> und <code>violations</code>.
@@ -8303,11 +8380,8 @@ INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b>
             <tr><td><code>getFlowComplianceState</code></td><td>Checks one or more synthetic flows against selected policies.</td><td><code>source</code>, <code>destination</code>, <code>service</code>, and <code>policies</code>.</td></tr>
         </tbody>
     </table>
-    For <code>getFlowComplianceState</code>, sources and destinations are passed as IP ranges and services as port ranges with protocol.
     <code>source</code>, <code>destination</code>, <code>service</code>, and <code>policies</code> may each contain at most 100 entries; longer lists are rejected with 400.
-    <code>ipStart</code> and <code>ipEnd</code> accept IPv4 and IPv6 ranges, without a mask or with the host mask (<code>/32</code> or <code>/128</code>); every other mask is rejected.
-    CIDR networks are supplied through <code>ipNetwork</code> and expanded to their range boundaries before evaluation. <code>ipNetwork</code> excludes <code>ipStart</code> and <code>ipEnd</code> and has to carry the network address itself; set host bits are rejected.
-    IPv6 values that merely re-encode an IPv4 address - the IPv4-mapped form (<code>::ffff:a.b.c.d</code>) and the deprecated IPv4-compatible form (<code>::a.b.c.d</code>) - are rejected in <code>ipStart</code>, <code>ipEnd</code>, and <code>ipNetwork</code>, because they count as IPv6 and could therefore never match an IPv4 zone; use the IPv4 notation instead.
+    For <code>getFlowComplianceState</code>, every source and destination contains exactly one of <code>ipHost</code>, <code>ipNetwork</code>, or <code>ipRange</code>; services are passed as port ranges with protocol. Hosts and the exactly two range endpoints are maskless. Address text follows the shared FWO IP parser; <code>ipNetwork</code> is normalized to inclusive bounds before evaluation.
     Criteria that only support IPv4 report an IPv6 flow as not assessable (<code>NotAssessable</code>) instead of as a violation.
     This includes the zone matrix: an object that cannot be assigned to any configured network zone is reported as not assessable rather than as compliant.
     The response returns one block per requested policy with <code>policy</code> and <code>violations</code>.
@@ -8323,6 +8397,7 @@ INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>WorkflowTicketController</b>
             <tr><td><code>getTicketStatus</code></td><td>Liefert den Status eines vorhandenen Workflow-Tickets.</td><td>Implementiert. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
+    Jeder Eintrag in <code>createTicket.addressObjects</code> enth&auml;lt genau eines von <code>ipHost</code>, <code>ipNetwork</code> oder <code>ipRange</code>. Hosts und die genau zwei Bereichsgrenzen sind maskenlos. Adresstexte folgen dem gemeinsamen FWO-IP-Parser; <code>ipNetwork</code> wird intern auf die vorhandenen inklusiven Start-/Endgrenzen des Workflows normalisiert.
 ');
 INSERT INTO txt VALUES ('H6943', 'English', 'The <b>WorkflowTicketController</b> provides workflow ticket functions below <code>/api/workflow</code>.
     <table class="table table-sm">
@@ -8332,6 +8407,7 @@ INSERT INTO txt VALUES ('H6943', 'English', 'The <b>WorkflowTicketController</b>
             <tr><td><code>getTicketStatus</code></td><td>Returns the status of an existing workflow ticket.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
+    Every <code>createTicket.addressObjects</code> entry contains exactly one of <code>ipHost</code>, <code>ipNetwork</code>, or <code>ipRange</code>. Hosts and the exactly two range endpoints are maskless. Address text follows the shared FWO IP parser; <code>ipNetwork</code> is normalized internally to the workflow''s existing inclusive start/end bounds.
 ');
 INSERT INTO txt VALUES ('H6944', 'German',  'Die Workflow-REST-API stellt lesende Funktionen f&uuml;r Workflow-Tickets unter <code>/api/workflow</code> bereit.
     Alle Endpunkte verwenden <code>POST</code> und stehen Administratoren und Auditoren zur Verf&uuml;gung.

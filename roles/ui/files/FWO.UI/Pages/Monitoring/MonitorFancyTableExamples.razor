@@ -1,0 +1,359 @@
+@page "/monitoring/fancy_table_examples"
+@attribute [Authorize(Roles = $"{Roles.Admin}")]
+
+@inject UserConfig userConfig
+
+@* Temporary debug-only page showing the usage examples of the SoPro.FancyTable README (https://github.com/SolidProgramming/SoPro.FancyTable). *@
+
+@if (BuildConfiguration.IsDebug)
+{
+    <h3>@(userConfig.GetText("fancy_table_examples"))</h3>
+    <hr />
+
+    @if (!string.IsNullOrEmpty(lastAction))
+    {
+        <div class="alert alert-info py-1">@lastAction</div>
+    }
+
+    <div class="row">
+        <div class="p-3 col">
+            <h5>@(userConfig.GetText("fancy_table_ex_default_toolbar"))</h5>
+            <FancyTable TItem="PersonRow"
+                        Items="kPeopleRows"
+                        Columns="peopleColumns"
+                        PaginationEnabled="true"
+                        PageSize="10"
+                        ShowPageSizeSelector="true"
+                        Texts="demoTexts" />
+        </div>
+
+        <div class="p-3 col">
+            <h5>@(userConfig.GetText("fancy_table_ex_custom_toolbar"))</h5>
+            <FancyTable TItem="ProductRow"
+                        Items="kProductRows"
+                        Columns="productColumns"
+                        Texts="tableTexts">
+                <ToolbarTemplate>
+                    <div class="d-flex">
+                        <button type="button" class="btn btn-sm btn-info mx-1">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        <input class="form-control form-control-md" placeholder="@(userConfig.GetText("fancy_table_ex_custom_search"))" />
+                    </div>
+                </ToolbarTemplate>
+            </FancyTable>
+        </div>
+
+        <div class="p-3 col">
+            <h5>@(userConfig.GetText("fancy_table_ex_conditional_rows"))</h5>
+            <FancyTable TItem="PersonRow"
+                        Items="kPeopleRows"
+                        Columns="styledPeopleColumns"
+                        RowClassSelector="GetPersonRowClass"
+                        RowTemplate="PersonHighlightRow"
+                        RowTemplateSelector="context => context.Item.Age >= kHighlightAge"
+                        Texts="tableTexts" />
+        </div>
+    </div>
+
+    <hr />
+    <div class="p-3">
+        <h5>@(userConfig.GetText("fancy_table_ex_column_layout"))</h5>
+        <FancyTable TItem="PersonRow"
+                    Items="kPeopleRows"
+                    Columns="peopleColumns"
+                    EnableColumnResizing="true"
+                    EnableColumnReordering="true"
+                    InitialColumnLayout="savedLayout"
+                    ColumnLayoutChanged="SaveLayout"
+                    Texts="tableTexts" />
+        <div class="small text-muted">
+            @GetLayoutDescription()
+        </div>
+    </div>
+
+    <hr />
+    <div class="p-3">
+        <h5>@(userConfig.GetText("fancy_table_ex_tree_table"))</h5>
+        <FancyTreeTable TItem="ExampleRuleRow"
+                        @ref="ruleTable"
+                        Items="kRules"
+                        Columns="ruleColumns"
+                        ChildItemsSelector="row => row.Children"
+                        HasChildrenSelector="row => row.Children.Count > 0"
+                        PaginationEnabled="true"
+                        PageSize="5"
+                        ShowPageSizeSelector="true"
+                        TopBarClass="justify-content-end"
+                        PageSizeContainerClass="me-auto"
+                        TreeActionsContainerClass="d-inline-flex align-items-center gap-2"
+                        PaginationContainerClass="justify-content-end"
+                        TreeActionsTemplate="RuleTreeActions"
+                        RowTemplate="SectionHeaderTemplate"
+                        RowTemplateSelector="context => context.Item.IsSectionHeader"
+                        Texts="ruleTableTexts" />
+    </div>
+}
+
+@code
+{
+    private const int kHighlightAge = 35;
+
+    private static readonly IReadOnlyList<ExampleRuleRow> kNoChildren = [];
+
+    private static readonly IReadOnlyList<PersonRow> kPeopleRows =
+    [
+        new("Alice", "Berlin", 31),
+        new("Bob", "Hamburg", 27),
+        new("Carol", "Munich", 36),
+        new("David", "Cologne", 29)
+    ];
+
+    private static readonly IReadOnlyList<ProductRow> kProductRows =
+    [
+        new("SW-1001", "Switch", 149.99m, 42, "NetWare Ltd"),
+        new("FW-2300", "Firewall", 899.00m, 5, "SecureCore AG")
+    ];
+
+    private static readonly ExampleRuleRow kRule11_1 = new("11.1", "Allow HTTPS", "TCP/443", "Any", "Server-A", "Allow", kNoChildren);
+    private static readonly ExampleRuleRow kRule11_2 = new("11.2", "Allow DNS", "UDP/53", "Any", "DNS-1", "Allow", kNoChildren);
+    private static readonly ExampleRuleRow kRule11_3 = new("11.3", "Block Telnet", "TCP/23", "Any", "Any", "Deny", kNoChildren);
+    private static readonly IReadOnlyList<ExampleRuleRow> kSectionRules = [kRule11_1, kRule11_2, kRule11_3];
+
+    private static readonly IReadOnlyList<ExampleRuleRow> kRules =
+    [
+        new("", "Section Header", "", "", "", "", kSectionRules)
+    ];
+
+    private IReadOnlyList<FancyColumn<PersonRow>> peopleColumns = [];
+    private IReadOnlyList<FancyColumn<ProductRow>> productColumns = [];
+    private IReadOnlyList<FancyColumn<PersonRow>> styledPeopleColumns = [];
+    private IReadOnlyList<FancyColumn<ExampleRuleRow>> ruleColumns = [];
+
+    private FancyTableTexts tableTexts = FancyTableTexts.Default;
+    private FancyTableTexts demoTexts = FancyTableTexts.Default;
+    private FancyTableTexts ruleTableTexts = FancyTableTexts.Default;
+    private FancyTreeTable<ExampleRuleRow>? ruleTable;
+    private IReadOnlyList<FancyColumnLayout>? savedLayout;
+    private string lastAction = "";
+
+    private RenderFragment<FancyRowContext<PersonRow>> PersonHighlightRow => context => @<tr class="table-warning">
+        <td colspan="@context.VisibleColumnCount">
+            @(string.Format(userConfig.GetText("fancy_table_ex_flagged_for_review"), context.Item.Name, context.Item.City))
+            <button type="button" class="btn btn-sm btn-primary ms-2" @onclick="() => OpenPerson(context.Item)">@(userConfig.GetText("details"))</button>
+        </td>
+    </tr>;
+
+    private RenderFragment<FancyRowContext<ExampleRuleRow>> SectionHeaderTemplate => context => @<tr class="table-secondary fw-bold">
+        <td colspan="@context.VisibleColumnCount">
+            <button type="button"
+                    class="btn btn-link btn-sm text-decoration-none p-0 me-2"
+                    @onclick="() => context.ToggleNode.InvokeAsync()"
+                    aria-label="@(context.IsExpanded ? context.CollapseLabel : context.ExpandLabel)"
+                    aria-expanded="@context.IsExpanded">
+                <i class="bi @(context.IsExpanded ? "bi-caret-down-fill" : "bi-caret-right-fill")"></i>
+            </button>
+            @context.Item.Name
+            <span class="ms-2 text-muted">(@context.Item.Children.Count @(userConfig.GetText("rules")))</span>
+            <button type="button" class="btn btn-sm btn-outline-primary ms-3" @onclick="() => InspectSection(context.Item)">@(userConfig.GetText("fancy_table_ex_inspect"))</button>
+        </td>
+    </tr>;
+
+    private RenderFragment<FancyTreeTableContext<ExampleRuleRow>> RuleTreeActions => context => @<div class="my-2 d-flex flex-wrap gap-2 align-items-center">
+        <button type="button" class="btn btn-sm btn-outline-primary" disabled="@(!context.CanExpandAny)" @onclick="context.ExpandAll">
+            @(userConfig.GetText("expand"))
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(!context.CanCollapseAny)" @onclick="context.CollapseAll">
+            @(userConfig.GetText("collapse"))
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-dark" disabled="@(ruleTable is null)" @onclick="ExpandViaReferenceAsync">
+            @(userConfig.GetText("fancy_table_ex_expand_via_ref"))
+        </button>
+        <span class="small text-muted">
+            @(string.Format(userConfig.GetText("fancy_table_ex_tree_state"), context.VisibleNodeCount, context.ExpandedNodeCount))
+        </span>
+    </div>;
+
+    /// <summary>
+    /// Initializes the localized table texts.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        tableTexts = FancyTableTextFactory.Create(userConfig);
+        demoTexts = tableTexts with { SearchPlaceholder = userConfig.GetText("fancy_table_ex_search_people") };
+        ruleTableTexts = tableTexts with { SearchPlaceholder = userConfig.GetText("fancy_table_ex_search_rules") };
+        peopleColumns = BuildPeopleColumns();
+        productColumns = BuildProductColumns();
+        styledPeopleColumns = BuildStyledPeopleColumns();
+        ruleColumns = BuildRuleColumns();
+    }
+
+    /// <summary>
+    /// Builds the localized columns of the person tables.
+    /// </summary>
+    private IReadOnlyList<FancyColumn<PersonRow>> BuildPeopleColumns()
+    {
+        return
+        [
+            new FancyColumn<PersonRow>
+            {
+                Key = "name",
+                Title = userConfig.GetText("name"),
+                Sortable = true,
+                Searchable = true,
+                ValueSelector = person => person.Name,
+                SortValueSelector = person => person.Name
+            },
+            new FancyColumn<PersonRow>
+            {
+                Key = "city",
+                Title = userConfig.GetText("fancy_table_ex_city"),
+                Sortable = true,
+                Searchable = true,
+                Hideable = true,
+                ValueSelector = person => person.City,
+                SortValueSelector = person => person.City
+            },
+            new FancyColumn<PersonRow>
+            {
+                Key = "age",
+                Title = userConfig.GetText("fancy_table_ex_age"),
+                Sortable = true,
+                Searchable = false,
+                ValueSelector = person => person.Age,
+                SortValueSelector = person => person.Age
+            }
+        ];
+    }
+
+    /// <summary>
+    /// Builds the localized columns of the product table.
+    /// </summary>
+    private IReadOnlyList<FancyColumn<ProductRow>> BuildProductColumns()
+    {
+        return
+        [
+            new FancyColumn<ProductRow>
+            {
+                Key = "sku",
+                Title = userConfig.GetText("fancy_table_ex_sku"),
+                Sortable = true,
+                Searchable = true,
+                ValueSelector = product => product.Sku,
+                SortValueSelector = product => product.Sku
+            },
+            new FancyColumn<ProductRow>
+            {
+                Key = "price",
+                Title = userConfig.GetText("fancy_table_ex_price"),
+                Sortable = true,
+                Searchable = false,
+                ValueSelector = product => product.Price.ToString("C2"),
+                SortValueSelector = product => product.Price
+            }
+        ];
+    }
+
+    /// <summary>
+    /// Builds the localized columns of the person table with styled header and cells.
+    /// </summary>
+    private IReadOnlyList<FancyColumn<PersonRow>> BuildStyledPeopleColumns()
+    {
+        return
+        [
+            new FancyColumn<PersonRow>
+            {
+                Key = "styled-name",
+                Title = userConfig.GetText("name"),
+                Sortable = true,
+                Searchable = true,
+                HeaderClass = "text-bg-dark",
+                CellClass = "fw-semibold text-primary",
+                ValueSelector = person => person.Name,
+                SortValueSelector = person => person.Name
+            },
+            new FancyColumn<PersonRow>
+            {
+                Key = "styled-age",
+                Title = userConfig.GetText("fancy_table_ex_age"),
+                Sortable = true,
+                Searchable = false,
+                CellTemplate = person => @<span class="badge text-bg-info-subtle border border-info text-info-emphasis">@(string.Format(userConfig.GetText("fancy_table_ex_years"), person.Age))</span>
+            }
+        ];
+    }
+
+    /// <summary>
+    /// Builds the localized columns of the rule tree table.
+    /// </summary>
+    private IReadOnlyList<FancyColumn<ExampleRuleRow>> BuildRuleColumns()
+    {
+        return
+        [
+            new() { Key = "number", Title = userConfig.GetText("rule"), ValueSelector = rule => rule.Number },
+            new() { Key = "name", Title = userConfig.GetText("name"), ValueSelector = rule => rule.Name },
+            new() { Key = "service", Title = userConfig.GetText("service"), ValueSelector = rule => rule.Service },
+            new() { Key = "source", Title = userConfig.GetText("source"), ValueSelector = rule => rule.Source },
+            new() { Key = "destination", Title = userConfig.GetText("destination"), ValueSelector = rule => rule.Destination },
+            new() { Key = "action", Title = userConfig.GetText("action"), ValueSelector = rule => rule.Action }
+        ];
+    }
+
+    /// <summary>
+    /// Keeps the column layout reported by the table, so it is reapplied on rerender.
+    /// </summary>
+    private void SaveLayout(IReadOnlyList<FancyColumnLayout> layout)
+    {
+        savedLayout = layout;
+    }
+
+    /// <summary>
+    /// Describes the last column layout reported by the table.
+    /// </summary>
+    private string GetLayoutDescription()
+    {
+        return savedLayout == null ? "" : string.Join(", ", savedLayout.Select(layout => layout.ToString()));
+    }
+
+    /// <summary>
+    /// Returns the row class highlighting persons of the configured age or older.
+    /// </summary>
+    private static string? GetPersonRowClass(PersonRow person)
+    {
+        return person.Age >= kHighlightAge ? "bg-warning" : null;
+    }
+
+    /// <summary>
+    /// Shows which person's details were requested.
+    /// </summary>
+    private void OpenPerson(PersonRow person)
+    {
+        lastAction = string.Format(userConfig.GetText("fancy_table_ex_opened_details"), person.Name);
+    }
+
+    /// <summary>
+    /// Shows which section was inspected.
+    /// </summary>
+    private void InspectSection(ExampleRuleRow row)
+    {
+        lastAction = string.Format(userConfig.GetText("fancy_table_ex_inspected_section"), row.Name);
+    }
+
+    /// <summary>
+    /// Expands the whole tree via the component reference instead of the tree actions context.
+    /// </summary>
+    private Task ExpandViaReferenceAsync()
+    {
+        return ruleTable?.ExpandAllAsync() ?? Task.CompletedTask;
+    }
+
+    private sealed record PersonRow(string Name, string City, int Age);
+
+    private sealed record ProductRow(string Sku, string Category, decimal Price, int Stock, string Supplier);
+
+    private sealed record ExampleRuleRow(string Number, string Name, string Service, string Source,
+        string Destination, string Action, IReadOnlyList<ExampleRuleRow> Children)
+    {
+        public bool IsSectionHeader => string.IsNullOrEmpty(Number);
+    }
+}

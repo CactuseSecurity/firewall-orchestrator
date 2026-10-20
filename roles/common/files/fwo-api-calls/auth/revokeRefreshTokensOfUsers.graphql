@@ -1,0 +1,10 @@
+# GraphQL mutation to revoke all refresh tokens of several local users, ending all of their sessions
+
+mutation revokeRefreshTokensOfUsers($userIds: [Int!]!, $revokedAt: timestamptz!) {
+    update_refresh_token(
+        where: {user_id: {_in: $userIds}, revoked_at: {_is_null: true}},
+        _set: {revoked_at: $revokedAt}
+    ) {
+        affected_rows
+    }
+}

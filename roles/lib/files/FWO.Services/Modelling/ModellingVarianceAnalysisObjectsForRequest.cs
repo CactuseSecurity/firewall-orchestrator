@@ -3,6 +3,9 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using NetTools;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Text.Json;
 
 namespace FWO.Services.Modelling
@@ -328,7 +331,7 @@ namespace FWO.Services.Modelling
 
             foreach (ModellingAppServerWrapper appserver in appRole.AppServers)
             {
-                if (existingAppRole.AppServers.FirstOrDefault(a => appServerComparer.Equals(a.Content, appserver.Content)) != null)
+                if (existingAppRole.AppServers.FirstOrDefault(a => IsSameGroupMember(a.Content, appserver.Content)) != null)
                 {
                     unchangedAppServers.Add(appserver);
                 }
@@ -339,12 +342,60 @@ namespace FWO.Services.Modelling
             }
             foreach (ModellingAppServerWrapper exAppserver in existingAppRole.AppServers)
             {
-                if (appRole.AppServers.FirstOrDefault(a => appServerComparer.Equals(exAppserver.Content, a.Content)) == null)
+                if (appRole.AppServers.FirstOrDefault(a => IsSameGroupMember(exAppserver.Content, a.Content)) == null)
                 {
                     deletedAppServers.Add(exAppserver);
                 }
             }
             return newAppServers.Count > 0 || deletedAppServers.Count > 0;
+        }
+
+        /// <summary>
+        /// Checks if two app servers represent the same group member.
+        /// Beside the name the ip range has to match if ip addresses are regarded in the rule recognition options.
+        /// </summary>
+        private bool IsSameGroupMember(ModellingAppServer appServer1, ModellingAppServer appServer2)
+        {
+            return appServerComparer.Equals(appServer1, appServer2)
+                && (!ruleRecognitionOption.NwRegardIp || HasSameIpRange(appServer1, appServer2));
+        }
+
+        /// <summary>
+        /// Compares the ip ranges of two app servers independent of the notation (with or without netmask, empty or set ip end).
+        /// Falls back to a string comparison if an address cannot be parsed.
+        /// </summary>
+        private static bool HasSameIpRange(ModellingAppServer appServer1, ModellingAppServer appServer2)
+        {
+            if (TryGetIpRange(appServer1, out IPAddressRange? ipRange1) && TryGetIpRange(appServer2, out IPAddressRange? ipRange2))
+            {
+                return ipRange1.Begin.Equals(ipRange2.Begin) && ipRange1.End.Equals(ipRange2.End);
+            }
+            return string.Equals(appServer1.Ip, appServer2.Ip, StringComparison.Ordinal)
+                && string.Equals(appServer1.IpEnd, appServer2.IpEnd, StringComparison.Ordinal);
+        }
+
+        private static bool TryGetIpRange(ModellingAppServer appServer, [NotNullWhen(true)] out IPAddressRange? ipRange)
+        {
+            ipRange = null;
+            if (string.IsNullOrEmpty(appServer.Ip))
+            {
+                return false;
+            }
+            try
+            {
+                (string ipStart, _) = IpOperations.SplitIpToRange(appServer.Ip);
+                (_, string ipEnd) = IpOperations.SplitIpToRange(string.IsNullOrEmpty(appServer.IpEnd) ? appServer.Ip : appServer.IpEnd);
+                if (IPAddress.TryParse(ipStart, out IPAddress? startAddress) && IPAddress.TryParse(ipEnd, out IPAddress? endAddress))
+                {
+                    ipRange = new(startAddress, endAddress);
+                    return true;
+                }
+            }
+            catch (Exception exception) when (exception is FormatException or ArgumentException)
+            {
+                Log.WriteDebug("Compare AppServer Ip", $"Ip {appServer.Ip} - {appServer.IpEnd} of {appServer.Name} not parsable: {exception.Message}");
+            }
+            return false;
         }
 
         private void RequestNewAppRole(ModellingAppRole appRole, Management mgt)

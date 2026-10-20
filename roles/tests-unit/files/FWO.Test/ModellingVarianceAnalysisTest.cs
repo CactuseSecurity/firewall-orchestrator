@@ -701,6 +701,74 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestAnalyseRules_DetectsGroupMemberWithDifferingIp()
+        {
+            ModellingVarianceResult result = await AnalyseAppRoleWithChangedMemberIp(stdRecogOpt);
+
+            ClassicAssert.AreEqual(1, result.DifferingAppRoles[1].Count);
+            ModellingAppRole differingAppRole = result.DifferingAppRoles[1][0];
+            ClassicAssert.AreEqual("AR504711-001", differingAppRole.IdString);
+            ClassicAssert.AreEqual(1, differingAppRole.SurplusAppServers.Count);
+            ClassicAssert.AreEqual("AppServerUnchanged", differingAppRole.SurplusAppServers[0].Content.Name);
+            ClassicAssert.AreEqual("1.2.3.4", differingAppRole.SurplusAppServers[0].Content.Ip);
+            ClassicAssert.AreEqual(2, differingAppRole.AppServers.Count);
+            ClassicAssert.AreEqual("AppServerUnchanged", differingAppRole.AppServers[0].Content.Name);
+            ClassicAssert.IsTrue(differingAppRole.AppServers[0].Content.NotImplemented);
+            ClassicAssert.AreEqual("AppServerOld", differingAppRole.AppServers[1].Content.Name);
+            ClassicAssert.IsFalse(differingAppRole.AppServers[1].Content.NotImplemented);
+            ClassicAssert.AreEqual(1, result.AppRoleStats.AppRolesDifferenceCount);
+        }
+
+        [Test]
+        public async Task TestAnalyseRules_IgnoresGroupMemberIpIfNotRegarded()
+        {
+            const string noIpRecogOpt = "{\"nwRegardIp\":false,\"nwRegardName\":true,\"nwRegardGroupName\":false,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":true}";
+
+            ModellingVarianceResult result = await AnalyseAppRoleWithChangedMemberIp(noIpRecogOpt);
+
+            ClassicAssert.AreEqual(0, result.DifferingAppRoles[1].Count);
+            ClassicAssert.AreEqual(0, result.AppRoleStats.AppRolesDifferenceCount);
+            ClassicAssert.AreEqual(1, result.AppRoleStats.AppRolesOk);
+        }
+
+        private async Task<ModellingVarianceResult> AnalyseAppRoleWithChangedMemberIp(string recognitionOption)
+        {
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ModNamingConvention = userConfig.ModNamingConvention,
+                ModRolloutResolveServiceGroups = true,
+                CreateAppZones = false,
+                RuleRecognitionOption = recognitionOption,
+                ModSpecUserAreas = userConfig.ModSpecUserAreas,
+                ModRolloutNatHeuristic = false
+            };
+            // same members as the production group AR504711-001, but AppServerUnchanged has a different ip,
+            // AppServerOld uses another notation of the same ip
+            ModellingAppRole appRole = new()
+            {
+                Id = 950,
+                Name = "AppRoleIpChanged",
+                IdString = "AR504711-001",
+                AppServers =
+                [
+                    new() { Content = new() { Id = 951, Name = "AppServerUnchanged", Ip = "1.2.3.5/32", IpEnd = "1.2.3.5/32" } },
+                    new() { Content = new() { Id = 952, Name = "AppServerOld", Ip = "1.0.0.0/32", IpEnd = "1.0.0.0/32" } }
+                ]
+            };
+            ModellingConnection connection = new()
+            {
+                Id = 950,
+                Name = "ConnIpChanged",
+                SourceAppRoles = [new() { Content = appRole }],
+                DestinationAppServers = [new() { Content = AS3 }],
+                Services = [new() { Content = new() { Id = 950, Name = "Service950", Port = 950, ProtoId = 6 } }]
+            };
+            List<ModellingConnection> connections = [connection];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, localUserConfig, Application, DefaultInit.DoNothing);
+            return await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new());
+        }
+
+        [Test]
         public async Task TestAnalyseRulesSpecialUserObjects()
         {
             List<ModellingConnection> Connections = [Connection4];

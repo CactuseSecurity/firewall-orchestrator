@@ -1,5 +1,8 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.0 - 20.10.2026
+- main release of features from 9.7.2ff including bugfixing and security fixes
+
 ## 9.7.7 - 19.10.2026
 - middleware REST API: unify address inputs for `getAddressObjectId`, `getFlowComplianceState`,
   `resolveZonesForObjects` and `createTicket.addressObjects`. Each address now uses exactly one of

@@ -207,28 +207,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TestSCGrpModifyTicketWithModifiedMember()
-        {
-            WfReqTask grpModifyTask = new(grpCreateReqTasks[0])
-            {
-                TaskType = WfTaskType.group_modify.ToString(),
-                RequestAction = RequestAction.modify.ToString(),
-                Elements =
-                [
-                    new() { Id = 1, TaskId = 1, RequestAction = RequestAction.modify.ToString(), IpString = "123.0.0.2/32", GroupName = "ARxx12345-100", Name = "AppServerX", Field = ElemFieldType.source.ToString() },
-                    new() { Id = 2, TaskId = 1, RequestAction = RequestAction.unchanged.ToString(), IpString = "123.0.0.3/32", GroupName = "ARxx12345-100", Name = "AppServerY", Field = ElemFieldType.source.ToString() }
-                ]
-            };
-            List<WfReqTask> tasks = [grpModifyTask];
-
-            SCTicket ticket = new(ticketSystem, CertificateChecks);
-            await ticket.CreateRequestString(tasks, ipProtos, NamingConvention);
-
-            Assert.That(ticket.TicketText, Does.Contain("{\"@type\": \"Object\", \"name\": \"AppServerX\", \"object_type\": \"host\", \"object_details\": \"123.0.0.2/32\", \"status\": \"NOT_CHANGED\", \"comment\": \"\", \"object_updated_status\": \"EXISTING_EDITED\", \"management_id\": 2}"));
-            Assert.That(ticket.TicketText, Does.Contain("{\"@type\": \"Object\", \"name\": \"AppServerY\", \"status\": \"NOT_CHANGED\", \"object_updated_status\": \"EXISTING_NOT_EDITED\"}"));
-        }
-
-        [Test]
         public async Task TestSCAccessTicket()
         {
             SCTicket ticket = new(ticketSystem, CertificateChecks);

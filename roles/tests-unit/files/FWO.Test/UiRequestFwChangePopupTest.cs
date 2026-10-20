@@ -413,9 +413,6 @@ namespace FWO.Test
             Assert.That(details, Does.Contain("<b>Current Members:</b>"));
             Assert.That(details, Does.Contain("<b>Members to add:</b>"));
             Assert.That(details, Does.Contain("<b>Members to remove:</b>"));
-            Assert.That(details, Does.Contain("<b>Members to modify:</b>"));
-            Assert.That(details, Does.Contain("modified-host"));
-            Assert.That(details, Does.Contain("class=\"text-warning\""));
             Assert.That(details, Does.Contain("current-host"));
             Assert.That(details, Does.Contain("new-host"));
             Assert.That(details, Does.Contain("requested-host"));
@@ -510,13 +507,6 @@ namespace FWO.Test
                     Field = ElemFieldType.source.ToString(),
                     Name = "removed-host",
                     IpString = "192.0.2.13/32"
-                },
-                new()
-                {
-                    RequestAction = RequestAction.modify.ToString(),
-                    Field = ElemFieldType.source.ToString(),
-                    Name = "modified-host",
-                    IpString = "192.0.2.14/32"
                 }
             };
 

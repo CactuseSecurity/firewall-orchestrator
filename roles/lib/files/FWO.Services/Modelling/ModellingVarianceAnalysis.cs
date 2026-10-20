@@ -39,7 +39,7 @@ namespace FWO.Services.Modelling
         private List<ModellingAppRole> allModelledAppRoles = [];
 
         private readonly Dictionary<int, List<ModellingAppRole>> allProdAppRoles = [];
-        private readonly Dictionary<int, Dictionary<ModellingAppServer, long>> allExistingAppServers = [];
+        private readonly Dictionary<int, Dictionary<ModellingAppServer, ModellingAppServer>> allExistingAppServers = [];
         private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
         private List<ModellingConnection> DeletedConns = [];
         private List<ModellingNetworkArea> AllAreas = [];
@@ -357,13 +357,10 @@ namespace FWO.Services.Modelling
             else if (AppRoleChanged(modelledAppRole))
             {
                 modelledAppRole.HasDifference = true;
-                // members with changed ip are shown as not implemented with the modelled ip and as surplus with the existing ip
-                List<ModellingAppServerWrapper> notImplementedAppServers = [.. newAppServers, .. changedAppServers.Select(c => c.Modelled)];
-                List<ModellingAppServerWrapper> surplusAppServers = [.. deletedAppServers, .. changedAppServers.Select(c => c.Existing)];
-                ModellingAppRole changedAppRole = new(modelledAppRole) { ManagementName = mgt.Name, SurplusAppServers = surplusAppServers };
+                ModellingAppRole changedAppRole = new(modelledAppRole) { ManagementName = mgt.Name, SurplusAppServers = deletedAppServers };
                 foreach (var appServer in changedAppRole.AppServers.Select(a => a.Content))
                 {
-                    appServer.NotImplemented = notImplementedAppServers.FirstOrDefault(a => IsSameGroupMember(a.Content, appServer)) != null;
+                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => IsSameGroupMember(a.Content, appServer)) != null;
                 }
                 varianceResult.DifferingAppRoles[mgt.Id].Add(changedAppRole);
             }

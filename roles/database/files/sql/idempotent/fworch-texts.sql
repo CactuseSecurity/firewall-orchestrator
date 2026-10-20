@@ -2125,14 +2125,10 @@ INSERT INTO txt VALUES ('members_to_add',       'German',   'Hinzuzuf&uuml;gende
 INSERT INTO txt VALUES ('members_to_add',       'English',  'Members to add');
 INSERT INTO txt VALUES ('members_to_remove',    'German',   'Zu entfernende Mitglieder');
 INSERT INTO txt VALUES ('members_to_remove',    'English',  'Members to remove');
-INSERT INTO txt VALUES ('members_to_modify',    'German',   'Zu &auml;ndernde Mitglieder');
-INSERT INTO txt VALUES ('members_to_modify',    'English',  'Members to modify');
 INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');
 INSERT INTO txt VALUES ('remove_members',       'English',  ': Remove Members');
-INSERT INTO txt VALUES ('modify_members',       'German',   ': Mitglieder &auml;ndern');
-INSERT INTO txt VALUES ('modify_members',       'English',  ': Modify Members');
 INSERT INTO txt VALUES ('delete_app_zone', 	    'German',	'App Zone l&ouml;schen');
 INSERT INTO txt VALUES ('delete_app_zone', 	    'English',	'Delete App Zone');
 INSERT INTO txt VALUES ('extra_params',         'German',   'Sonderkonfigurationen');
@@ -7873,11 +7869,15 @@ INSERT INTO txt VALUES ('H5650', 'German',  'Regelerkennungs-Optionen: Legt fest
     M&ouml;gliche Kriterien sind - jeweils f&uuml;r Netzwerkobjekte und Dienste - Name, IP-Adresse bzw Port/Protokoll, Gruppennname.
     Ausserdem muss festgelegt werden, ob Gruppen aufgel&ouml;st werden sollen; dann werden die einzelnen Objekte unabh&auml;ngig von der Gruppenzugeh&ouml;rigkeit erkannt.
     Wenn der IP-Adressvergleich aktiv ist, entsprechen importierte Identit&auml;tsobjekte wie Check Point Updatable Objects, Access Roles und Domain-Objekte nicht direkt modellierten App Servern &uuml;ber ihre Platzhalter-IP-Felder. In der Soll-Ist-Analyse werden konfigurierte Platzhalter-Areas f&uuml;r Sonderkonfigurationen mit diesen importierten Objekten nach Objekttyp und Name abgeglichen.
+    Bei separater Gruppenanalyse werden die Mitglieder der App-Rollen nach denselben Kriterien verglichen: nur nach IP-Adresse, wenn nur diese gew&auml;hlt ist, nach Name und IP-Adresse, wenn beide gew&auml;hlt sind, sonst nach Name.
+    Hat sich die IP-Adresse eines Mitglieds ge&auml;ndert, wird ein neues Objekt beantragt und das alte Mitglied aus der Gruppe entfernt. Das bestehende Objekt selbst wird nicht ge&auml;ndert, da es in weiteren Regeln verwendet sein kann. Ist sein Name bereits durch ein Objekt mit anderer IP-Adresse belegt, erh&auml;lt das neue Objekt die IP-Adresse als Namenszusatz (z.B. server_10.1.2.3).
 ');
 INSERT INTO txt VALUES ('H5650', 'English', 'Rule Recognition Options: Defines, when implemented rules are regarded as identical to the modelled connections.
     Possible criteria are - separated for network objects and services - Name, IP address resp. Port/Protocol, Group Name.
     Additionally it has to be defined, if groups are resolved; then single objects are identified independently from their group membership.
     When IP address comparison is active, imported identity objects such as Check Point updatable objects, access roles and domain objects do not directly match modelled app servers through their placeholder IP fields. In variance analysis, configured placeholder areas for special configurations are reconciled with these imported objects by object type and name.
+    With separate group analysis, the members of app roles are compared using the same criteria: by IP address only if only this is selected, by name and IP address if both are selected, otherwise by name.
+    If the IP address of a member has changed, a new object is requested and the old member is removed from the group. The existing object itself is not changed, as it may be used in further rules. If its name is already taken by an object with another IP address, the new object gets the IP address appended to its name (e.g. server_10.1.2.3).
 ');
 INSERT INTO txt VALUES ('H5651', 'German',  'Synchroner Soll-Ist-Abgleich: Wenn aktiviert, werden die Status der Verbindungen sofort bei Initialisierung der Seite berechnet.
     Da dies bei gr&ouml;sseren Systemen zu erheblichem Rechenaufwand f&uuml;hrt, kann dies zu einer verz&ouml;gerten Darstellung f&uuml;hren.

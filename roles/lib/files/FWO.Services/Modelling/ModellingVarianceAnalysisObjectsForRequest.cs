@@ -19,14 +19,11 @@ namespace FWO.Services.Modelling
         private List<ModellingAppServerWrapper> newAppServers = [];
         private List<ModellingAppServerWrapper> deletedAppServers = [];
         private List<ModellingAppServerWrapper> unchangedAppServers = [];
-        private List<(ModellingAppServerWrapper Modelled, ModellingAppServerWrapper Existing)> changedAppServers = [];
         private List<WfReqElement> newGroupMembers = [];
         private List<WfReqElement> newCreatedGroupMembers = [];
         private List<WfReqElement> deletedGroupMembers = [];
         private List<WfReqElement> unchangedGroupMembersDuringCreate = [];
         private List<WfReqElement> unchangedGroupMembers = [];
-        private List<WfReqElement> changedGroupMembers = [];
-        private List<WfReqElement> changedGroupMembersAfterModify = [];
 
         private void AnalyseConnectionForRequest(Management mgt, ModellingConnection conn)
         {
@@ -296,24 +293,51 @@ namespace FWO.Services.Modelling
             return existingAppRole;
         }
 
-        private (long?, bool) ResolveAppServerId(ModellingAppServer appServer, Management mgt)
+        /// <summary>
+        /// Resolves the object to request for a modelled app server: an existing object (by name) or one already requested in this run.
+        /// Returns the network id of an existing object, if it has already been requested and the name to be used.
+        /// </summary>
+        private (long?, bool, string) ResolveAppServerId(ModellingAppServer appServer, Management mgt)
         {
-            Log.WriteDebug("Search AppServer", $"Name: {appServer.Name}, Ip: {appServer.Ip}, Management: {mgt.Name}");
+            ModellingAppServer requestedAppServer = GetAppServerToRequest(appServer, mgt);
+            string requestedName = AppServerHelper.ConstructAppServerName(requestedAppServer, namingConvention);
+            Log.WriteDebug("Search AppServer", $"Name: {requestedName}, Ip: {requestedAppServer.Ip}, Management: {mgt.Name}");
 
-            if (allExistingAppServers[mgt.Id].TryGetValue(appServer, out long existingAppServerId))
+            if (allExistingAppServers[mgt.Id].TryGetValue(requestedAppServer, out ModellingAppServer? existingAppServer))
             {
                 Log.WriteDebug("Search AppServer", $"Found!!");
-                return (existingAppServerId, true);
+                return (existingAppServer.Id, true, requestedName);
             }
-            else if (alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => appServerComparer.Equals(a, appServer)) != null)
+            else if (alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => appServerComparer.Equals(a, requestedAppServer)) != null)
             {
-                return (null, true);
+                return (null, true, requestedName);
             }
             else
             {
-                alreadyCreatedAppServers[mgt.Id].Add(appServer);
-                return (null, false);
+                alreadyCreatedAppServers[mgt.Id].Add(requestedAppServer);
+                return (null, false, requestedName);
             }
+        }
+
+        /// <summary>
+        /// If ip addresses are regarded and the name of the modelled app server is already used by an existing or already requested
+        /// object with another ip, a new object with the ip appended to the name is requested instead.
+        /// The existing object is not changed, as it may be used in further rules or groups.
+        /// </summary>
+        private ModellingAppServer GetAppServerToRequest(ModellingAppServer appServer, Management mgt)
+        {
+            if (!ruleRecognitionOption.NwRegardIp)
+            {
+                return appServer;
+            }
+            ModellingAppServer? sameNameAppServer = allExistingAppServers[mgt.Id].TryGetValue(appServer, out ModellingAppServer? existingAppServer)
+                ? existingAppServer
+                : alreadyCreatedAppServers[mgt.Id].FirstOrDefault(a => appServerComparer.Equals(a, appServer));
+            if (sameNameAppServer == null || HasSameIpRange(sameNameAppServer, appServer))
+            {
+                return appServer;
+            }
+            return WithIpSuffixedName(appServer);
         }
 
         private bool AppRoleChanged(ModellingAppRole appRole)
@@ -321,7 +345,6 @@ namespace FWO.Services.Modelling
             newAppServers = [];
             deletedAppServers = [];
             unchangedAppServers = [];
-            changedAppServers = [];
 
             if (existingAppRole is null)
             {
@@ -335,49 +358,49 @@ namespace FWO.Services.Modelling
 
             foreach (ModellingAppServerWrapper appserver in appRole.AppServers)
             {
-                ClassifyModelledAppServer(appserver, existingAppRole);
+                if (existingAppRole.AppServers.FirstOrDefault(a => IsSameGroupMember(a.Content, appserver.Content)) != null)
+                {
+                    unchangedAppServers.Add(appserver);
+                }
+                else
+                {
+                    newAppServers.Add(appserver);
+                }
             }
             foreach (ModellingAppServerWrapper exAppserver in existingAppRole.AppServers)
             {
-                if (appRole.AppServers.FirstOrDefault(a => IsSameGroupMember(exAppserver.Content, a.Content)) == null
-                    && !changedAppServers.Any(c => ReferenceEquals(c.Existing, exAppserver)))
+                if (appRole.AppServers.FirstOrDefault(a => IsSameGroupMember(exAppserver.Content, a.Content)) == null)
                 {
                     deletedAppServers.Add(exAppserver);
                 }
             }
-            return newAppServers.Count > 0 || deletedAppServers.Count > 0 || changedAppServers.Count > 0;
+            return newAppServers.Count > 0 || deletedAppServers.Count > 0;
         }
 
         /// <summary>
-        /// Sorts a modelled app server into unchanged, changed (same name but differing ip in the existing group) or new.
-        /// </summary>
-        private void ClassifyModelledAppServer(ModellingAppServerWrapper appServer, ModellingAppRole existingRole)
-        {
-            if (existingRole.AppServers.FirstOrDefault(a => IsSameGroupMember(a.Content, appServer.Content)) != null)
-            {
-                unchangedAppServers.Add(appServer);
-                return;
-            }
-            ModellingAppServerWrapper? sameNameAppServer = existingRole.AppServers.FirstOrDefault(a => appServerComparer.Equals(a.Content, appServer.Content)
-                && !changedAppServers.Any(c => ReferenceEquals(c.Existing, a)));
-            if (sameNameAppServer != null)
-            {
-                changedAppServers.Add((appServer, sameNameAppServer));
-            }
-            else
-            {
-                newAppServers.Add(appServer);
-            }
-        }
-
-        /// <summary>
-        /// Checks if two app servers represent the same group member.
-        /// Beside the name the ip range has to match if ip addresses are regarded in the rule recognition options.
+        /// Checks if two app servers represent the same group member according to the rule recognition options,
+        /// as the rule comparison does: by ip only if only ips are regarded, by name and ip if both are regarded, otherwise by name.
         /// </summary>
         private bool IsSameGroupMember(ModellingAppServer appServer1, ModellingAppServer appServer2)
         {
-            return appServerComparer.Equals(appServer1, appServer2)
+            bool regardName = ruleRecognitionOption.NwRegardName || !ruleRecognitionOption.NwRegardIp;
+            return (!regardName || HasSameName(appServer1, appServer2))
                 && (!ruleRecognitionOption.NwRegardIp || HasSameIpRange(appServer1, appServer2));
+        }
+
+        /// <summary>
+        /// Names are the same, if they are equal or if one is the ip suffixed variant of the other (see GetAppServerToRequest).
+        /// </summary>
+        private bool HasSameName(ModellingAppServer appServer1, ModellingAppServer appServer2)
+        {
+            return appServerComparer.Equals(appServer1, appServer2)
+                || appServerComparer.Equals(appServer1, WithIpSuffixedName(appServer2))
+                || appServerComparer.Equals(WithIpSuffixedName(appServer1), appServer2);
+        }
+
+        private ModellingAppServer WithIpSuffixedName(ModellingAppServer appServer)
+        {
+            return new(appServer) { Name = AppServerHelper.ConstructIpSuffixedAppServerName(appServer, namingConvention) };
         }
 
         /// <summary>
@@ -424,12 +447,12 @@ namespace FWO.Services.Modelling
             List<WfReqElement> groupMembers = [];
             foreach (ModellingAppServer appServer in ModellingAppServerWrapper.Resolve(appRole.AppServers))
             {
-                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
+                (long? networkId, bool alreadyRequested, string requestedName) = ResolveAppServerId(appServer, mgt);
                 groupMembers.Add(new()
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = AppServerHelper.ConstructAppServerName(appServer, namingConvention),
+                    Name = requestedName,
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
                     GroupName = appRole.IdString,
@@ -454,15 +477,13 @@ namespace FWO.Services.Modelling
             string title = appRole.GetType() == typeof(ModellingAppZone) ? userConfig.GetText("update_app_zone") : userConfig.GetText("update_app_role");
             FillGroupMembers(appRole.IdString, mgt);
             Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appRole.IdString }, { AdditionalInfoKeys.AppRoleId, appRole.Id.ToString() } };
-            if (newGroupMembers.Count > 0 || changedGroupMembers.Count > 0)
+            if (newGroupMembers.Count > 0)
             {
-                string titleSuffix = userConfig.GetText(newGroupMembers.Count > 0 ? "add_members" : "modify_members");
-                newGroupMembers.AddRange(changedGroupMembers);
                 newGroupMembers.AddRange(unchangedGroupMembers);
                 newGroupMembers.AddRange(unchangedGroupMembersDuringCreate); // will be deleted later
                 TaskList.Add(new()
                 {
-                    Title = title + appRole.IdString + titleSuffix,
+                    Title = title + appRole.IdString + userConfig.GetText("add_members"),
                     TaskType = WfTaskType.group_modify.ToString(),
                     RequestAction = RequestAction.modify.ToString(),
                     ManagementId = mgt.Id,
@@ -475,7 +496,6 @@ namespace FWO.Services.Modelling
             {
                 deletedGroupMembers.AddRange(unchangedGroupMembers);
                 deletedGroupMembers.AddRange(newCreatedGroupMembers);
-                deletedGroupMembers.AddRange(changedGroupMembersAfterModify);
                 DeleteObjectTasksList.Add(new()
                 {
                     Title = title + appRole.IdString + userConfig.GetText("remove_members"),
@@ -496,15 +516,14 @@ namespace FWO.Services.Modelling
             deletedGroupMembers = [];
             unchangedGroupMembers = [];
             unchangedGroupMembersDuringCreate = [];
-            FillChangedGroupMembers(idString);
             foreach (var appServer in newAppServers.Select(a => a.Content))
             {
-                (long? networkId, bool alreadyRequested) = ResolveAppServerId(appServer, mgt);
+                (long? networkId, bool alreadyRequested, string requestedName) = ResolveAppServerId(appServer, mgt);
                 newGroupMembers.Add(new()
                 {
                     RequestAction = alreadyRequested ? RequestAction.addAfterCreation.ToString() : RequestAction.create.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = AppServerHelper.ConstructAppServerName(appServer, namingConvention),
+                    Name = requestedName,
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
                     GroupName = idString,
@@ -514,7 +533,7 @@ namespace FWO.Services.Modelling
                 {
                     RequestAction = RequestAction.unchanged.ToString(),
                     Field = ElemFieldType.source.ToString(),
-                    Name = appServer.Name,
+                    Name = requestedName,
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
                     GroupName = idString,
@@ -552,39 +571,6 @@ namespace FWO.Services.Modelling
                     IpString = appServer.Ip,
                     IpEnd = appServer.IpEnd,
                     GroupName = idString
-                });
-            }
-        }
-
-        /// <summary>
-        /// Requests the modification of existing group members, whose ip differs from the modelled one.
-        /// The object keeps its name and stays member of the group, only the ip is changed.
-        /// </summary>
-        private void FillChangedGroupMembers(string idString)
-        {
-            changedGroupMembers = [];
-            changedGroupMembersAfterModify = [];
-            foreach ((ModellingAppServerWrapper modelled, ModellingAppServerWrapper existing) in changedAppServers)
-            {
-                changedGroupMembers.Add(new()
-                {
-                    RequestAction = RequestAction.modify.ToString(),
-                    Field = ElemFieldType.source.ToString(),
-                    Name = existing.Content.Name,
-                    IpString = modelled.Content.Ip,
-                    IpEnd = modelled.Content.IpEnd,
-                    GroupName = idString,
-                    NetworkId = existing.Content.Id
-                });
-                changedGroupMembersAfterModify.Add(new()
-                {
-                    RequestAction = RequestAction.unchanged.ToString(),
-                    Field = ElemFieldType.source.ToString(),
-                    Name = existing.Content.Name,
-                    IpString = modelled.Content.Ip,
-                    IpEnd = modelled.Content.IpEnd,
-                    GroupName = idString,
-                    NetworkId = existing.Content.Id
                 });
             }
         }

@@ -58,6 +58,50 @@ namespace FWO.Test
             Assert.That(analyzer, Is.InstanceOf<NoPathAnalyzer>());
         }
 
+        /// <summary>Verifies a requested algorithm overrides the configured one.</summary>
+        [Test]
+        public void Create_WithRequestedAlgorithm_OverridesConfiguredAlgorithm()
+        {
+            PathAnalyzerFactory factory = CreateFactory(GlobalConst.kPathAnalysisAlgorithmNone);
+
+            IPathAnalyzer analyzer = factory.Create(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree);
+
+            Assert.That(analyzer, Is.InstanceOf<NetworkZoneTreePathAnalyzer>());
+        }
+
+        /// <summary>Verifies a requested none algorithm is honoured even when a searching one is configured.</summary>
+        [Test]
+        public void Create_WithRequestedNoneAlgorithm_ReturnsNoPathAnalyzer()
+        {
+            PathAnalyzerFactory factory = CreateFactory(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree);
+
+            IPathAnalyzer analyzer = factory.Create(GlobalConst.kPathAnalysisAlgorithmNone);
+
+            Assert.That(analyzer, Is.InstanceOf<NoPathAnalyzer>());
+        }
+
+        /// <summary>Verifies an explicit null falls back to the configured algorithm, like omitting the argument.</summary>
+        [Test]
+        public void Create_WithNullAlgorithm_UsesConfiguredAlgorithm()
+        {
+            PathAnalyzerFactory factory = CreateFactory(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree);
+
+            IPathAnalyzer analyzer = factory.Create(null);
+
+            Assert.That(analyzer, Is.InstanceOf<NetworkZoneTreePathAnalyzer>());
+        }
+
+        /// <summary>Verifies an unmapped requested id falls back to the none analyzer like an unmapped configured one.</summary>
+        [Test]
+        public void Create_WithUnmappedRequestedAlgorithm_FallsBackToNoPathAnalyzer()
+        {
+            PathAnalyzerFactory factory = CreateFactory(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree);
+
+            IPathAnalyzer analyzer = factory.Create(kUnknownAlgorithmId);
+
+            Assert.That(analyzer, Is.InstanceOf<NoPathAnalyzer>());
+        }
+
         /// <summary>
         /// Verifies each call builds a new analyzer. The network zone tree analyzer loads and indexes
         /// matrix data per run, so a shared instance would carry state between unrelated requests.

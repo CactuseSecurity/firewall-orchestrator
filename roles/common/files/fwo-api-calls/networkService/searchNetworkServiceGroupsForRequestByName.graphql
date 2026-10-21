@@ -1,0 +1,31 @@
+query searchNetworkServiceGroupsForRequestByName(
+  $mgmId: Int!
+  $pattern: String!
+  $limit: Int!
+) {
+  firewall_nw_service(
+    where: {
+      mgm_id: { _eq: $mgmId }
+      svc_typ_id: { _eq: 2 }
+      active: { _eq: true }
+      removed: { _is_null: true }
+      svc_name: { _ilike: $pattern }
+    }
+    order_by: [{ svc_name: asc }, { svc_id: asc }]
+    limit: $limit
+  ) {
+    svc_id
+    svc_name
+    svc_member_names
+    svcgrps(where: { active: { _eq: true }, removed: { _is_null: true } }) {
+      id: svcgrp_member_id
+      byId: serviceBySvcgrpMemberId {
+        svc_id
+        svc_name
+        svc_port
+        svc_port_end
+        ip_proto_id
+      }
+    }
+  }
+}

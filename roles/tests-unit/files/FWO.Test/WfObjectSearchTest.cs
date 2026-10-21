@@ -71,6 +71,22 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task SearchNetworkGroups_SearchesByName()
+        {
+            RecordingApiConnection apiConnection = new() { Result = new List<NetworkObject>() };
+
+            await new WfObjectSearch(apiConnection, new ClaimsPrincipal()).SearchNetworkGroups(kManagementId, "servers");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.LastQuery, Is.EqualTo(ObjectQueries.searchNetworkGroupsForRequestByName));
+                Assert.That(apiConnection.LastVariables.GetProperty("mgmId").GetInt32(), Is.EqualTo(kManagementId));
+                Assert.That(apiConnection.LastVariables.GetProperty("pattern").GetString(), Is.EqualTo("%servers%"));
+                Assert.That(apiConnection.LastVariables.GetProperty("limit").GetInt32(), Is.EqualTo(WfObjectTaskHelper.kSearchLimit));
+            });
+        }
+
         [TestCase("10.1.1.5")]
         [TestCase("10.1.2.0/24")]
         [TestCase("2001:db8::1")]
@@ -171,6 +187,22 @@ namespace FWO.Test
                 Assert.That(queriesAfterShortText, Is.EqualTo(0));
                 Assert.That(apiConnection.LastQuery, Is.EqualTo(ObjectQueries.searchNetworkServicesForRequestByName));
                 Assert.That(apiConnection.LastVariables.GetProperty("pattern").GetString(), Is.EqualTo("%https%"));
+            });
+        }
+
+        [Test]
+        public async Task SearchServiceGroups_SearchesByName()
+        {
+            RecordingApiConnection apiConnection = new() { Result = new List<NetworkService>() };
+
+            await new WfObjectSearch(apiConnection, new ClaimsPrincipal()).SearchServiceGroups(kManagementId, "web");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.LastQuery, Is.EqualTo(ObjectQueries.searchNetworkServiceGroupsForRequestByName));
+                Assert.That(apiConnection.LastVariables.GetProperty("mgmId").GetInt32(), Is.EqualTo(kManagementId));
+                Assert.That(apiConnection.LastVariables.GetProperty("pattern").GetString(), Is.EqualTo("%web%"));
+                Assert.That(apiConnection.LastVariables.GetProperty("limit").GetInt32(), Is.EqualTo(WfObjectTaskHelper.kSearchLimit));
             });
         }
 

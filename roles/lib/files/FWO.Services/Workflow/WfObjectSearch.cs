@@ -65,6 +65,25 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
+        /// Searches network groups by name for a group_modify request task.
+        /// </summary>
+        public async Task<List<NetworkObject>> SearchNetworkGroups(int managementId, string searchText)
+        {
+            string text = searchText.Trim();
+            if (text.Length < WfObjectTaskHelper.kMinSearchLength)
+            {
+                return [];
+            }
+            return await apiConnection.RunWithWorkflowRole(user, () =>
+                apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.searchNetworkGroupsForRequestByName, new
+                {
+                    mgmId = managementId,
+                    pattern = ToContainsPattern(text),
+                    limit = WfObjectTaskHelper.kSearchLimit
+                }));
+        }
+
+        /// <summary>
         /// Searches services by port, when the text is a number, or else by a part of the name.
         /// Texts shorter than WfObjectTaskHelper.kMinSearchLength return no hits without querying the api,
         /// except for a port number, which may be shorter.
@@ -92,6 +111,25 @@ namespace FWO.Services.Workflow
                 {
                     mgmId = managementId,
                     svcTypeIds = WfObjectTaskHelper.ServiceTypeIds,
+                    pattern = ToContainsPattern(text),
+                    limit = WfObjectTaskHelper.kSearchLimit
+                }));
+        }
+
+        /// <summary>
+        /// Searches service groups by name for a group_modify request task.
+        /// </summary>
+        public async Task<List<NetworkService>> SearchServiceGroups(int managementId, string searchText)
+        {
+            string text = searchText.Trim();
+            if (text.Length < WfObjectTaskHelper.kMinSearchLength)
+            {
+                return [];
+            }
+            return await apiConnection.RunWithWorkflowRole(user, () =>
+                apiConnection.SendQueryAsync<List<NetworkService>>(ObjectQueries.searchNetworkServiceGroupsForRequestByName, new
+                {
+                    mgmId = managementId,
                     pattern = ToContainsPattern(text),
                     limit = WfObjectTaskHelper.kSearchLimit
                 }));

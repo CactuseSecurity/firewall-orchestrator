@@ -62,6 +62,7 @@ internal class UiRequestTaskMetadataEditorTest
             Assert.That(source, Does.Contain("@if (TaskType == WfTaskType.access)"));
             Assert.That(source, Does.Contain("Elements=\"NewInterfaceOwnerOptions\" Nullable=\"true\""));
             Assert.That(source, Does.Contain("CanEditField(WorkflowEditableFieldKeys.Owner)"));
+            Assert.That(source, Does.Contain("WfObjectTaskHelper.IsManagementObjectTask(TaskType.ToString())"));
         });
     }
 

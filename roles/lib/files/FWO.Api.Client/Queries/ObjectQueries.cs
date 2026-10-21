@@ -19,8 +19,10 @@ namespace FWO.Api.Client.Queries
         public static readonly string getReportFilteredUserDetails;
         public static readonly string searchNetworkObjectsForRequestByName;
         public static readonly string searchNetworkObjectsForRequestByIp;
+        public static readonly string searchNetworkGroupsForRequestByName;
         public static readonly string searchNetworkServicesForRequestByName;
         public static readonly string searchNetworkServicesForRequestByPort;
+        public static readonly string searchNetworkServiceGroupsForRequestByName;
         public static readonly string searchTimeObjectsForRequestByName;
 
         static ObjectQueries()
@@ -85,10 +87,14 @@ namespace FWO.Api.Client.Queries
                     GetQueryText("networkObject/searchNetworkObjectsForRequestByName.graphql");
                 searchNetworkObjectsForRequestByIp =
                     GetQueryText("networkObject/searchNetworkObjectsForRequestByIp.graphql");
+                searchNetworkGroupsForRequestByName =
+                    GetQueryText("networkObject/searchNetworkGroupsForRequestByName.graphql");
                 searchNetworkServicesForRequestByName =
                     GetQueryText("networkService/searchNetworkServicesForRequestByName.graphql");
                 searchNetworkServicesForRequestByPort =
                     GetQueryText("networkService/searchNetworkServicesForRequestByPort.graphql");
+                searchNetworkServiceGroupsForRequestByName =
+                    GetQueryText("networkService/searchNetworkServiceGroupsForRequestByName.graphql");
                 searchTimeObjectsForRequestByName =
                     GetQueryText("time/searchTimeObjectsForRequestByName.graphql");
             }

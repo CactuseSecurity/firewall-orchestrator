@@ -456,6 +456,57 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ObjectSelector_SearchesNetworkGroupsInGroupMode()
+        {
+            SearchApiConnection apiConnection = new() { Result = new List<NetworkObject> { new() { Id = 12, Name = "web_group", MemberNames = "web01" } } };
+            await using BunitContext context = CreateContext(apiConnection);
+            IRenderedComponent<ObjectSelector> component = context.Render<ObjectSelector>(parameters => parameters
+                .AddCascadingValue(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())))
+                .Add(p => p.ManagementId, kManagementId)
+                .Add(p => p.GroupMode, true)
+                .Add(p => p.IpProtos, kIpProtos));
+            MethodInfo search = typeof(ObjectSelector).GetMethod("Search", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ObjectSelector).FullName, "Search");
+
+            List<object?> arguments = ["web"];
+            await component.InvokeAsync(() => (Task)search.Invoke(component.Instance, arguments.ToArray())!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
+                Assert.That(component.FindComponent<FlowObjectTable<NetworkObject>>().Instance.FilteredItems.Single().Name, Is.EqualTo("web_group"));
+                Assert.That(component.Markup, Does.Contain("Members"));
+                Assert.That(component.Markup, Does.Contain("search_network_object"));
+            });
+        }
+
+        [Test]
+        public async Task ObjectSelector_SearchesServiceGroupsInGroupMode()
+        {
+            SearchApiConnection apiConnection = new() { Result = new List<NetworkService> { new() { Id = 13, Name = "https_group", MemberNames = "https" } } };
+            await using BunitContext context = CreateContext(apiConnection);
+            IRenderedComponent<ObjectSelector> component = context.Render<ObjectSelector>(parameters => parameters
+                .AddCascadingValue(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())))
+                .Add(p => p.ManagementId, kManagementId)
+                .Add(p => p.Kind, ObjectTaskKind.Service)
+                .Add(p => p.GroupMode, true)
+                .Add(p => p.IpProtos, kIpProtos));
+            MethodInfo search = typeof(ObjectSelector).GetMethod("Search", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ObjectSelector).FullName, "Search");
+
+            List<object?> arguments = ["https"];
+            await component.InvokeAsync(() => (Task)search.Invoke(component.Instance, arguments.ToArray())!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
+                Assert.That(component.FindComponent<FlowObjectTable<NetworkService>>().Instance.FilteredItems.Single().Name, Is.EqualTo("https_group"));
+                Assert.That(component.Markup, Does.Contain("Members"));
+                Assert.That(component.Markup, Does.Contain("search_service_object"));
+            });
+        }
+
+        [Test]
         public async Task ApplyToTask_CreatesATimeElement()
         {
             await using BunitContext context = CreateContext();

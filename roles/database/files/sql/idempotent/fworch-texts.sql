@@ -1,4 +1,4 @@
--- text codes (roughly) categorized:
+﻿-- text codes (roughly) categorized:
 -- U: user texts (explanation or confirmation texts)
 -- E: error texts
 -- A: Api errors
@@ -2093,6 +2093,12 @@ INSERT INTO txt VALUES ('members_to_add',       'German',   'Hinzuzuf&uuml;gende
 INSERT INTO txt VALUES ('members_to_add',       'English',  'Members to add');
 INSERT INTO txt VALUES ('members_to_remove',    'German',   'Zu entfernende Mitglieder');
 INSERT INTO txt VALUES ('members_to_remove',    'English',  'Members to remove');
+INSERT INTO txt VALUES ('unchanged',            'German',   'Unver&auml;ndert');
+INSERT INTO txt VALUES ('unchanged',            'English',  'Unchanged');
+INSERT INTO txt VALUES ('add_member',           'German',   'Mitglied hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_member',           'English',  'Add Member');
+INSERT INTO txt VALUES ('remove_member',        'German',   'Mitglied entfernen');
+INSERT INTO txt VALUES ('remove_member',        'English',  'Remove Member');
 INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');

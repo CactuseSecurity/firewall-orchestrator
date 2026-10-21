@@ -150,7 +150,7 @@
                     CanEditField="CanEditReqTaskField" DisplayIpProtos="displayIpProtos"
                     SelectableIpProtos="selectableIpProtos" RuleDevice="actRuleDevice"
                     ManagementId="@(actManagement?.Id ?? WfHandler.ActReqTask.ManagementId)"
-                    DisplayTask="GetBundledDisplayTask()" />
+                    DisplayTask="@(WfHandler.EditReqTaskMode && actTaskType == WfTaskType.group_modify ? null : GetBundledDisplayTask())" />
 
                 <hr />
                 @if(!WfHandler.EditReqTaskMode && (actTaskType != WfTaskType.access || AccessTaskVisibility.ShowComments))
@@ -397,7 +397,12 @@
 
     private void OnMetadataManagementChanged(Management? management)
     {
+        bool managementChanged = (actManagement?.Id ?? -1) != (management?.Id ?? -1);
         actManagement = management;
+        if (managementChanged)
+        {
+            elementEditor?.ClearSelectedGroup();
+        }
     }
 
     private WfTaskType GetDefaultTaskType()
@@ -514,7 +519,8 @@
 
     private bool CanShowApprovalsButton()
     {
-        return WfHandler.StateMatrix(WfHandler.ActReqTask.TaskType).PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalPhaseActive) && approvalPhaseActive;
+        return WfHandler.ActReqTask.Approvals.Count > 0
+            || (WfHandler.StateMatrix(WfHandler.ActReqTask.TaskType).PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalPhaseActive) && approvalPhaseActive);
     }
 
     /// <summary>
@@ -719,11 +725,11 @@
         }
         ApplyTaskTypeSpecificValues();
 
-        elementEditor?.ApplyChanges(actRuleDevice);
         if (!await CheckTaskValues())
         {
             return false;
         }
+        elementEditor?.ApplyChanges(actRuleDevice);
 
         WfHandler.ActReqTask.SetDeviceList(selectedDevices.Any(dev => dev.Id == WfReqTaskBase.kAllDevicesId)
             ? [WfReqTaskBase.kAllDevicesId]
@@ -768,6 +774,7 @@
                 WfHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
                 break;
             case WfTaskType.group_create:
+            case WfTaskType.group_modify:
                 WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, elementEditor?.CurrentGroupName ?? actGrpName ?? "");
                 break;
             case WfTaskType.object_create:

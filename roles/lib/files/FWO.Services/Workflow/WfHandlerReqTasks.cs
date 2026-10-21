@@ -303,12 +303,29 @@ namespace FWO.Services.Workflow
                 return;
             }
 
+            if (ActReqTask.Approvals.Count == 0)
+            {
+                await AddApproval();
+            }
+
             if (ActTicket.Id > 0) // ticket already created -> write directly to db
             {
                 ActReqTask.TicketId = ActTicket.Id;
                 if (dbAcc != null)
                 {
-                    ActReqTask.Id = await dbAcc.AddReqTaskToDb(ActReqTask);
+                    long newTaskId = await dbAcc.AddReqTaskToDb(ActReqTask);
+                    if (newTaskId <= 0)
+                    {
+                        return;
+                    }
+
+                    // The insert creates the task's elements and approvals in separate API calls.
+                    // Reload the ticket so the task table uses the complete persisted task graph.
+                    if (!await ReloadActTicket())
+                    {
+                        ActTicket.Tasks.Add(ActReqTask);
+                    }
+                    return;
                 }
             }
             ActTicket.Tasks.Add(ActReqTask);

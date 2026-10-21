@@ -5,22 +5,25 @@
         <Display>
             <div class="row align-items-center">
                 <div class="col-sm-4 border bg-transparent">@((MarkupString)context.Area.Content.DisplayHtml())</div>
-                <div class="col-sm-4">
-                    <div class="row align-items-center">
-                        <div class="col-form-label col-sm-8" @onclick="() => context.UseInSrc = !context.UseInSrc">@(userConfig.GetText("use_in_src")):</div>
-                        <div class="col-sm-3">
-                            <input id="cbx_use_in_src" type="checkbox" class="w-100" @bind="context.UseInSrc">
+                @if (ShowUsageFlags)
+                {
+                    <div class="col-sm-4">
+                        <div class="row align-items-center">
+                            <div class="col-form-label col-sm-8" @onclick="() => context.UseInSrc = !context.UseInSrc">@(userConfig.GetText("use_in_src")):</div>
+                            <div class="col-sm-3">
+                                <input id="cbx_use_in_src" type="checkbox" class="w-100" @bind="context.UseInSrc">
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="row align-items-center">
-                        <div class="col-form-label col-sm-8" @onclick="() => context.UseInDst = !context.UseInDst">@(userConfig.GetText("use_in_dst")):</div>
-                        <div class="col-sm-3">
-                            <input id="cbx_use_in_dst" type="checkbox" class="w-100" @bind="context.UseInDst">
+                    <div class="col-sm-4">
+                        <div class="row align-items-center">
+                            <div class="col-form-label col-sm-8" @onclick="() => context.UseInDst = !context.UseInDst">@(userConfig.GetText("use_in_dst")):</div>
+                            <div class="col-sm-3">
+                                <input id="cbx_use_in_dst" type="checkbox" class="w-100" @bind="context.UseInDst">
+                            </div>
                         </div>
                     </div>
-                </div>
+                }
             </div>
         </Display>
     </EditList>
@@ -41,4 +44,10 @@
 
     [Parameter]
     public Func<bool> SearchCommonArea { get; set; } = DefaultInit.DoNothingSync;
+
+    /// <summary>
+    /// Shows the flags restricting the use of an area to source or destination.
+    /// </summary>
+    [Parameter]
+    public bool ShowUsageFlags { get; set; } = true;
 }

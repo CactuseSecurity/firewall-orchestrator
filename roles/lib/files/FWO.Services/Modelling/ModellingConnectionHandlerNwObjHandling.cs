@@ -17,8 +17,10 @@ namespace FWO.Services.Modelling
         public List<ModellingNetworkAreaWrapper> AvailableCommonAreas { get; set; } = [];
         public List<ModellingNwGroupWrapper> AvailableNwGroups { get; set; } = [];
         public List<CommonAreaConfig> CommonAreaConfigItems { get; set; } = [];
+        public HashSet<long> ComSvcExcludedAreaIds { get; set; } = [];
         public ModellingAppServerHandler? AppServerHandler { get; set; }
         private readonly string InsertForbidden = "insert_forbidden";
+        private const string ComSvcExcludedAreaMessage = "U9046";
         private const string ChangeAppRoleForbidden = "change_app_role_forbidden";
         private const string ChangeAppRoleForbiddenMessage = "E9030";
         private ModellingAppRole actAppRole = new();
@@ -75,6 +77,11 @@ namespace FWO.Services.Modelling
                         AvailableCommonAreas.Add(new() { Content = area });
                     }
                 }
+                ComSvcExcludedAreaIds = [];
+                if (userConfig.ModComSvcExcludedAreas != "")
+                {
+                    ComSvcExcludedAreaIds = [.. (JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModComSvcExcludedAreas) ?? []).Select(x => x.AreaId)];
+                }
                 AvailableNwGroups = [];
 
                 AvailableSelectedObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroupWrapper>>(ModellingQueries.getSelectedNwGroupObjects, new { appId = Application.Id });
@@ -89,11 +96,11 @@ namespace FWO.Services.Modelling
         public bool RefreshSelectableNwObjects()
         {
             AvailableNwElems = [];
-            foreach (var obj in AvailableCommonAreas.Select(o => o.Content))
+            foreach (var obj in AvailableCommonAreas.Select(o => o.Content).Where(o => !IsExcludedFromComSvc(o.Id)))
             {
                 AvailableNwElems.Add(new KeyValuePair<int, long>(obj.GroupType, obj.Id));
             }
-            foreach (var obj in AvailableSelectedObjects.Select(o => o.Content))
+            foreach (var obj in AvailableSelectedObjects.Select(o => o.Content).Where(o => !IsExcludedFromComSvc(o.Id)))
             {
                 AvailableNwElems.Add(new KeyValuePair<int, long>(obj.GroupType, obj.Id));
             }
@@ -229,6 +236,12 @@ namespace FWO.Services.Modelling
             if (ActConn.IsInterface)
             {
                 reason.Text = userConfig.GetText("U9021");
+                return false;
+            }
+
+            if (networkAreas.Any(a => IsExcludedFromComSvc(a.Id)))
+            {
+                reason.Text = userConfig.GetText(ComSvcExcludedAreaMessage);
                 return false;
             }
 
@@ -376,6 +389,33 @@ namespace FWO.Services.Modelling
             return networkAreas.All(a => CommonAreaConfigItems.Any(_ => _.AreaId == a.Id));
         }
 
+        /// <summary>
+        /// Checks if the network area with the given id must not be used, because the current connection is a common service
+        /// and the area is configured as excluded from common services.
+        /// </summary>
+        /// <param name="areaId">The id of the network area.</param>
+        /// <returns>True if the area must not be used in the current connection.</returns>
+        private bool IsExcludedFromComSvc(long areaId)
+        {
+            return ActConn.IsCommonService && ComSvcExcludedAreaIds.Contains(areaId);
+        }
+
+        /// <summary>
+        /// Checks if a common service would contain a network area excluded from common services after saving,
+        /// e.g. because the area was used before it has been excluded.
+        /// </summary>
+        /// <returns>True if an excluded network area remains in source or destination.</returns>
+        private bool ComSvcContainsExcludedArea()
+        {
+            HashSet<long> srcAreasToDeleteIds = [.. SrcAreasToDelete.Select(d => d.Id)];
+            HashSet<long> dstAreasToDeleteIds = [.. DstAreasToDelete.Select(d => d.Id)];
+            IEnumerable<long> remainingAreaIds = ActConn.SourceAreas.Select(a => a.Content.Id).Where(id => !srcAreasToDeleteIds.Contains(id))
+                .Concat(SrcAreasToAdd.Select(a => a.Id))
+                .Concat(ActConn.DestinationAreas.Select(a => a.Content.Id).Where(id => !dstAreasToDeleteIds.Contains(id)))
+                .Concat(DstAreasToAdd.Select(a => a.Id));
+            return remainingAreaIds.Any(IsExcludedFromComSvc);
+        }
+
 
         public void DisplayAppServer(ModellingAppServer? appServer)
         {
@@ -462,7 +502,7 @@ namespace FWO.Services.Modelling
                 foreach (var area in areas)
                 {
                     if (ActConn.SourceAreas.FirstOrDefault(w => w.Content.Id == area.Id) == null && !SrcAreasToAdd.Contains(area) &&
-                        (CommonAreaConfigItems.FirstOrDefault(x => x.AreaId == area.Id)?.UseInSrc ?? true))
+                        (CommonAreaConfigItems.FirstOrDefault(x => x.AreaId == area.Id)?.UseInSrc ?? true) && !IsExcludedFromComSvc(area.Id))
                     {
                         SrcAreasToAdd.Add(area);
                     }
@@ -482,7 +522,7 @@ namespace FWO.Services.Modelling
                 foreach (var area in areas)
                 {
                     if (ActConn.DestinationAreas.FirstOrDefault(w => w.Content.Id == area.Id) == null && !DstAreasToAdd.Contains(area) &&
-                        (CommonAreaConfigItems.FirstOrDefault(x => x.AreaId == area.Id)?.UseInSrc ?? true))
+                        (CommonAreaConfigItems.FirstOrDefault(x => x.AreaId == area.Id)?.UseInDst ?? true) && !IsExcludedFromComSvc(area.Id))
                     {
                         DstAreasToAdd.Add(area);
                     }

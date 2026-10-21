@@ -31,7 +31,7 @@ At completion:
 
 ## Shared implementation rules
 
-- Reuse the current hierarchical provisioning settings and `ProvisioningPositioningAlgorithm` unchanged.
+- Reuse the current hierarchical device-specific settings and `ProvisioningPositioningAlgorithm` unchanged.
 - Use the implementation task's target management when present, otherwise the parent request task's management.
 - Do not include credentials or complete rule contents in diagnostics, logs, exception messages surfaced to callers, or test fixtures intended to model safe failures.
 - Do not write failures to `rule_position`.

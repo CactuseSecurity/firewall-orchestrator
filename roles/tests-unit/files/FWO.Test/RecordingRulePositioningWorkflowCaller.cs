@@ -26,7 +26,7 @@ internal sealed class RecordingRulePositioningWorkflowCaller : IRulePositioningW
         RulePositioningWorkflowCaller productionCaller = new(
             apiConnection,
             new RulePositioningManager([]),
-            new ProvisioningSettingsManager(apiConnection));
+            new DeviceSpecificSettingsManager(apiConnection));
         return new() { Applicability = productionCaller.IsApplicable };
     }
 

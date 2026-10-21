@@ -6,7 +6,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using FWO.Services;
@@ -224,7 +224,7 @@ public class RulePositionPersistenceTest
     public void OpenUpgradeAndCreationSchema_DeclareNullableIdempotentJsonbColumn()
     {
         string upgrade = File.ReadAllText(LocateRepositoryFile(
-            "roles", "database", "files", "upgrade", "9.7.3.sql"));
+            "roles", "database", "files", "upgrade", "9.8.1.sql"));
         string sealedUpgrade = File.ReadAllText(LocateRepositoryFile(
             "roles", "database", "files", "upgrade", "9.7.1.sql"));
         string creation = File.ReadAllText(LocateRepositoryFile(

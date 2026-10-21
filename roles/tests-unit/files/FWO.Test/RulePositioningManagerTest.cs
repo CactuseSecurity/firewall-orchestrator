@@ -1,5 +1,5 @@
 using FWO.Data;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using FWO.Services.RulePositioning;
@@ -401,7 +401,7 @@ public class RulePositioningManagerTest
             ImplAction = RequestAction.create.ToString(),
             DeviceId = kGatewayId
         };
-        GatewayProvisioningSettings settings = new() { PositioningAlgorithm = algorithm };
+        GatewayDeviceSpecificSettings settings = new() { PositioningAlgorithm = algorithm };
         return new RulePositioningContext(
             implementationTask,
             requestTask,

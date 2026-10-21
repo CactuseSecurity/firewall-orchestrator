@@ -1,5 +1,5 @@
 using FWO.Data;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
@@ -455,7 +455,7 @@ public class CheckPointStructuralBlocksTest
             new WfReqTask(),
             new Device { Id = gatewayId },
             new Management { Id = managementId },
-            new GatewayProvisioningSettings { PositioningAlgorithm = kAlgorithm });
+            new GatewayDeviceSpecificSettings { PositioningAlgorithm = kAlgorithm });
         return new CheckPointPositioningContext(calculationContext, snapshot);
     }
 

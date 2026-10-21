@@ -1,7 +1,7 @@
 using FWO.Compliance.RulePositioning;
 using FWO.Compliance.RulePositioning.CheckPoint;
 using FWO.Data;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
@@ -545,7 +545,7 @@ internal class CheckPointRulePositioningStrategyTest
                 Management = management
             },
             management,
-            new GatewayProvisioningSettings { PositioningAlgorithm = kAlgorithm });
+            new GatewayDeviceSpecificSettings { PositioningAlgorithm = kAlgorithm });
     }
 
     private static RulebaseGraphSnapshot Snapshot(int managementId, int gatewayId, string layerUid)

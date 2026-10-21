@@ -39,11 +39,14 @@ namespace FWO.Ui.Display
         }
 
 
-        private string DisplayDiff(List<string> addedElems, List<string> deletedElems, List<string> unchangedElems)
+        /// <summary>
+        /// Renders the unchanged elements followed by the elements missing in and surplus in the firewall rule.
+        /// </summary>
+        private string DisplayDiff(List<string> surplusElems, List<string> missingElems, List<string> unchangedElems)
         {
             return (unchangedElems.Count > 0 ? $"<p>{string.Join("<br>", unchangedElems)}<br></p>" : "")
-                    + (deletedElems.Count > 0 ? $"{userConfig.GetText("missing_in_fw_rule")}: <p style=\"{GlobalConst.kStyleMissing}\">{string.Join("<br>", deletedElems)}<br></p>" : "")
-                    + (addedElems.Count > 0 ? $"{userConfig.GetText("surplus_in_fw_rule")}: <p style=\"{GlobalConst.kStyleSurplus}\">{string.Join("<br>", addedElems)}</p>" : "");
+                    + (missingElems.Count > 0 ? $"{userConfig.GetText("missing_in_fw_rule")}: <p style=\"{GlobalConst.kStyleMissing}\">{string.Join("<br>", missingElems)}<br></p>" : "")
+                    + (surplusElems.Count > 0 ? $"{userConfig.GetText("surplus_in_fw_rule")}: <p style=\"{GlobalConst.kStyleSurplus}\">{string.Join("<br>", surplusElems)}</p>" : "");
         }
     }
 }

@@ -98,7 +98,7 @@ namespace FWO.Basics
         public const string kStyleHighlightedGreen = "color: green;";
         public const string kStyleDeleted = "color: red; text-decoration: line-through red;";
         public const string kStyleAdded = "color: green; text-decoration: bold;";
-        public const string kStyleMissing = "color: red;";
+        public const string kStyleMissing = kStyleHighlightedRed;
         public const string kStyleSurplus = "color: #b35900;";
 
         public const string ChromeBinPathLinux = "/usr/local/fworch/bin";

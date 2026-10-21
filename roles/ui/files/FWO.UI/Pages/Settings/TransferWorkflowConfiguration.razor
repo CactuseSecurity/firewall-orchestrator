@@ -172,6 +172,9 @@
         wasDisplayed = Display;
     }
 
+    /// <summary>
+    /// Loads the available workflow phases when the export dialog is first rendered.
+    /// </summary>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (Display && !ImportMode && !exportOptionsLoaded && SelectedConfiguration != null)
@@ -242,7 +245,7 @@
     }
 
     /// <summary>
-    /// Imports the loaded package as a new inactive configuration.
+    /// Imports the loaded package as a new inactive configuration or merges it into an existing configuration.
     /// </summary>
     private async Task Import()
     {

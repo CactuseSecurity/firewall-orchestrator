@@ -326,6 +326,12 @@ namespace FWO.Test
                 }
             });
             api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup>());
+            api.Respond(RequestQueries.getStates, new List<WfState>
+            {
+                new() { Id = 1, Name = "Open" },
+                new() { Id = 2, Name = "Review" },
+                new() { Id = 3, Name = "Closed" }
+            });
             TransferWorkflowConfiguration component = new();
             RecordingJsRuntime jsRuntime = new();
             SetProperty(component, "apiConnection", api);
@@ -433,6 +439,12 @@ namespace FWO.Test
                     }
                 ]
             },
+            States =
+            [
+                new() { Id = 1, Name = "Open" },
+                new() { Id = 2, Name = "Review" },
+                new() { Id = 3, Name = "Closed" }
+            ],
             TransitionGroups = [],
             VisibilityGroups = []
         };

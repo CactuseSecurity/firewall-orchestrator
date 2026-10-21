@@ -16,7 +16,7 @@ namespace FWO.Data.Workflow
     public class WorkflowConfigurationTransferPackage
     {
         public const string kFormat = "fwo-workflow-configuration";
-        public const int kCurrentVersion = 1;
+        public const int kCurrentVersion = 2;
 
         [JsonPropertyName("format")]
         public string Format { get; set; } = kFormat;
@@ -27,11 +27,26 @@ namespace FWO.Data.Workflow
         [JsonPropertyName("configuration")]
         public WorkflowConfigurationTransferData Configuration { get; set; } = new();
 
+        [JsonPropertyName("states")]
+        public List<WorkflowStateTransferData> States { get; set; } = [];
+
         [JsonPropertyName("transition_groups")]
         public List<WorkflowTransitionGroupTransferData> TransitionGroups { get; set; } = [];
 
         [JsonPropertyName("visibility_groups"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<WorkflowVisibilityGroupTransferData>? VisibilityGroups { get; set; }
+    }
+
+    public class WorkflowStateTransferData
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+
+        [JsonPropertyName("automatic_only")]
+        public bool AutomaticOnly { get; set; }
     }
 
     public class WorkflowConfigurationTransferData

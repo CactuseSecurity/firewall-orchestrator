@@ -49,6 +49,8 @@ namespace FWO.Services.Workflow
                 TransitionGroups = usedGroups.OrderBy(group => group.Name)
                     .Select(group => BuildTransitionGroup(group, includeVisibilityGroups)).ToList()
             };
+            List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+            package.States = ExportStates(ReferencedStateIds(package), states);
             if (includeVisibilityGroups)
             {
                 package.VisibilityGroups = await ExportVisibilityGroups(usedGroups);
@@ -88,6 +90,7 @@ namespace FWO.Services.Workflow
             List<int> createdTransitionGroupIds = [];
             List<int> createdVisibilityGroupIds = [];
             List<int> createdStateIds = [];
+            MergeRollback mergeRollback = new();
             try
             {
                 await CreateMissingStates(package, states, createdStateIds);
@@ -106,7 +109,7 @@ namespace FWO.Services.Workflow
                             string.Equals(PhaseKey(target), PhaseKey(phase), StringComparison.OrdinalIgnoreCase)))
                     };
                     await MergeIntoConfiguration(package, targetConfiguration.Id, targetConfiguration.Name, targetPhases,
-                        transitionGroupIds, statistics);
+                        transitionGroupIds, statistics, mergeRollback);
                     LastImportStatistics = statistics;
                     Log.WriteDebug("Workflow configuration transfer",
                         $"Imported workflow configuration package into {targetConfiguration.Name}: {StatisticsText(statistics)}");
@@ -133,7 +136,7 @@ namespace FWO.Services.Workflow
             {
                 try
                 {
-                    await RollBack(createdTransitionGroupIds, createdVisibilityGroupIds, createdStateIds);
+                    await RollBack(createdTransitionGroupIds, createdVisibilityGroupIds, createdStateIds, mergeRollback);
                 }
                 catch (Exception rollbackException)
                 {
@@ -190,7 +193,8 @@ namespace FWO.Services.Workflow
 
         private async Task MergeIntoConfiguration(WorkflowConfigurationTransferPackage package, int configurationId,
             string configurationName, List<WorkflowConfigurationPhase> targetPhases,
-            Dictionary<string, int> transitionGroupIds, WorkflowConfigurationImportStatistics statistics)
+            Dictionary<string, int> transitionGroupIds, WorkflowConfigurationImportStatistics statistics,
+            MergeRollback mergeRollback)
         {
             Dictionary<string, WorkflowConfigurationPhase> existingByKey = targetPhases.ToDictionary(PhaseKey,
                 StringComparer.OrdinalIgnoreCase);
@@ -198,18 +202,19 @@ namespace FWO.Services.Workflow
             {
                 if (!existingByKey.TryGetValue(PhaseKey(imported), out WorkflowConfigurationPhase? existing))
                 {
-                    await AddPhase(configurationId, configurationName, imported, transitionGroupIds);
+                    await AddPhase(configurationId, configurationName, imported, transitionGroupIds, mergeRollback);
                     statistics.AddedPhases++;
                     continue;
                 }
-                (int derivedStateCount, int transitionGroupLinkCount) = await AddMissingPhaseContent(existing, imported, transitionGroupIds);
+                (int derivedStateCount, int transitionGroupLinkCount) = await AddMissingPhaseContent(existing, imported,
+                    transitionGroupIds, mergeRollback);
                 statistics.AddedDerivedStates += derivedStateCount;
                 statistics.AddedTransitionGroupLinks += transitionGroupLinkCount;
             }
         }
 
         private async Task AddPhase(int configurationId, string configurationName, WorkflowPhaseTransferData phase,
-            Dictionary<string, int> transitionGroupIds)
+            Dictionary<string, int> transitionGroupIds, MergeRollback mergeRollback)
         {
             List<object> derivedStates = phase.DerivedStates.Where(state => state.FromStateId != state.DerivedStateId)
                 .Select(state => (object)new { from_state_id = state.FromStateId, derived_state_id = state.DerivedStateId }).ToList();
@@ -231,11 +236,12 @@ namespace FWO.Services.Workflow
                 derivedStates,
                 transitionGroups
             });
+            mergeRollback.AddedPhases.Add(new AddedPhase(configurationId, phase.TaskType, phase.Phase));
         }
 
         private async Task<(int DerivedStateCount, int TransitionGroupLinkCount)> AddMissingPhaseContent(
             WorkflowConfigurationPhase existing, WorkflowPhaseTransferData imported,
-            Dictionary<string, int> transitionGroupIds)
+            Dictionary<string, int> transitionGroupIds, MergeRollback mergeRollback)
         {
             HashSet<int> existingDerivedStateIds = existing.PhaseMatrix.DerivedStates.Select(state => state.FromStateId).ToHashSet();
             List<object> derivedStates = imported.DerivedStates.Where(state => state.FromStateId != state.DerivedStateId
@@ -255,6 +261,12 @@ namespace FWO.Services.Workflow
                     derivedStates,
                     transitions = Array.Empty<object>()
                 });
+                foreach (StateMatrixDerivedState state in imported.DerivedStates.Where(state => state.FromStateId != state.DerivedStateId
+                    && !existingDerivedStateIds.Contains(state.FromStateId)))
+                {
+                    mergeRollback.AddedDerivedStates.Add(new AddedDerivedState(existing.PhaseMatrixId,
+                        state.FromStateId, state.DerivedStateId));
+                }
             }
             HashSet<int> existingGroupIds = existing.PhaseMatrix.TransitionGroups.Select(group => group.TransitionGroupId).ToHashSet();
             int nextSortOrder = existing.PhaseMatrix.TransitionGroups.Count;
@@ -271,6 +283,7 @@ namespace FWO.Services.Workflow
                         sortOrder = nextSortOrder++
                     });
                     addedTransitionGroupLinks++;
+                    mergeRollback.AddedTransitionGroupLinks.Add(new AddedTransitionGroupLink(existing.PhaseMatrixId, groupId));
                 }
             }
             return (derivedStates.Count, addedTransitionGroupLinks);
@@ -280,13 +293,15 @@ namespace FWO.Services.Workflow
             List<int> createdStateIds)
         {
             HashSet<int> existingStateIds = states.Select(state => state.Id).ToHashSet();
+            Dictionary<int, WorkflowStateTransferData> importedStates = package.States.ToDictionary(state => state.Id);
             foreach (int stateId in ReferencedStateIds(package).Where(id => !existingStateIds.Contains(id)).Distinct().Order())
             {
+                WorkflowStateTransferData state = importedStates[stateId];
                 await apiConnection.SendQueryAsync<object>(RequestQueries.createState, new
                 {
                     id = stateId,
-                    name = $"Imported state {stateId}",
-                    automaticOnly = false
+                    name = state.Name,
+                    automaticOnly = state.AutomaticOnly
                 });
                 createdStateIds.Add(stateId);
             }
@@ -320,7 +335,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         public static void ValidateStructure(WorkflowConfigurationTransferPackage package)
         {
-            if (package.Configuration == null || package.TransitionGroups == null || package.Configuration.Phases == null
+            if (package.Configuration == null || package.States == null || package.TransitionGroups == null || package.Configuration.Phases == null
                 || package.Configuration.Phases.Any(phase => phase == null || phase.DerivedStates == null || phase.TransitionGroups == null)
                 || package.TransitionGroups.Any(group => group == null || group.Transitions == null)
                 || (package.VisibilityGroups?.Any(group => group == null || group.Members == null) ?? false))
@@ -332,6 +347,7 @@ namespace FWO.Services.Workflow
                 throw new InvalidDataException($"Unsupported workflow configuration package format or version {package.Version}.");
             }
             ValidateNamesAndReferences(package);
+            ValidateStateDefinitions(package);
             ValidatePhases(package.Configuration.Phases);
         }
 
@@ -358,6 +374,17 @@ namespace FWO.Services.Workflow
                         .Select(link => groupsById[link.TransitionGroupId].Name).ToList()
                 }).ToList()
             };
+
+        /// <summary>
+        /// Creates portable definitions for the states referenced by an exported package.
+        /// </summary>
+        private static List<WorkflowStateTransferData> ExportStates(IEnumerable<int> referencedStateIds, List<WfState> states)
+        {
+            Dictionary<int, WfState> statesById = states.ToDictionary(state => state.Id);
+            return referencedStateIds.Distinct().Order().Select(stateId => statesById.TryGetValue(stateId, out WfState? state)
+                ? new WorkflowStateTransferData { Id = state.Id, Name = state.Name, AutomaticOnly = state.AutomaticOnly }
+                : throw new InvalidDataException($"Referenced workflow state {stateId} was not loaded.")).ToList();
+        }
 
         private static WorkflowTransitionGroupTransferData BuildTransitionGroup(StateMatrixTransitionGroup group, bool includeVisibilityGroup) => new()
         {
@@ -576,6 +603,24 @@ namespace FWO.Services.Workflow
                     .SelectMany(transition => new List<int> { transition.FromStateId, transition.ToStateId }));
         }
 
+        /// <summary>
+        /// Validates that all referenced states have complete, unique and valid definitions.
+        /// </summary>
+        private static void ValidateStateDefinitions(WorkflowConfigurationTransferPackage package)
+        {
+            if (package.States.Any(state => state == null || state.Id <= 0 || string.IsNullOrWhiteSpace(state.Name))
+                || package.States.GroupBy(state => state.Id).Any(group => group.Count() > 1))
+            {
+                throw new InvalidDataException("The package contains an invalid or duplicate workflow state definition.");
+            }
+            HashSet<int> definedStateIds = package.States.Select(state => state.Id).ToHashSet();
+            List<int> missingStateIds = ReferencedStateIds(package).Distinct().Where(id => !definedStateIds.Contains(id)).Order().ToList();
+            if (missingStateIds.Count > 0)
+            {
+                throw new InvalidDataException($"The package is missing workflow state definitions: {string.Join(", ", missingStateIds)}.");
+            }
+        }
+
         private static void ValidateStates(WorkflowConfigurationTransferPackage package, HashSet<int> stateIds)
         {
             IEnumerable<int> referencedStateIds = ReferencedStateIds(package);
@@ -622,45 +667,106 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private async Task RollBack(List<int> transitionGroupIds, List<int> visibilityGroupIds, List<int> stateIds)
+        /// <summary>
+        /// Rolls back all changes made during a failed workflow configuration import.
+        /// </summary>
+        private async Task RollBack(List<int> transitionGroupIds, List<int> visibilityGroupIds, List<int> stateIds,
+            MergeRollback mergeRollback)
         {
-            List<Exception> errors = [];
-            foreach (int id in transitionGroupIds.AsEnumerable().Reverse())
-            {
-                try
-                {
-                    await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteStateMatrixTransitionGroup, new { id });
-                }
-                catch (Exception exception)
-                {
-                    errors.Add(exception);
-                }
-            }
-            foreach (int id in visibilityGroupIds.AsEnumerable().Reverse())
-            {
-                try
-                {
-                    await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteWorkflowVisibilityGroup, new { id });
-                }
-                catch (Exception exception)
-                {
-                    errors.Add(exception);
-                }
-            }
-            foreach (int id in stateIds.AsEnumerable().Reverse())
-            {
-                try
-                {
-                    await apiConnection.SendQueryAsync<object>(RequestQueries.deleteState, new { id });
-                }
-                catch (Exception exception)
-                {
-                    errors.Add(exception);
-                }
-            }
+            List<Exception> errors = await RollBackMerge(mergeRollback);
+            await RollBackCreatedEntities(transitionGroupIds, visibilityGroupIds, stateIds, errors);
             if (errors.Count > 0)
             {
                 throw new AggregateException("Could not fully roll back workflow configuration import.", errors);
+            }
+        }
+
+        /// <summary>
+        /// Rolls back phases and links added while merging into an existing configuration.
+        /// </summary>
+        private async Task<List<Exception>> RollBackMerge(MergeRollback mergeRollback)
+        {
+            List<Exception> errors = [];
+            foreach (AddedTransitionGroupLink link in mergeRollback.AddedTransitionGroupLinks.AsEnumerable().Reverse())
+            {
+                await TryRollback(() => apiConnection.SendQueryAsync<object>(RequestQueries.unlinkStateMatrixTransitionGroup, new
+                {
+                    phaseMatrixId = link.PhaseMatrixId,
+                    transitionGroupId = link.TransitionGroupId
+                }), errors);
+            }
+            foreach (AddedDerivedState state in mergeRollback.AddedDerivedStates.AsEnumerable().Reverse())
+            {
+                await TryRollback(() => RemoveDerivedState(state), errors);
+            }
+            foreach (AddedPhase phase in mergeRollback.AddedPhases.AsEnumerable().Reverse())
+            {
+                await TryRollback(() => apiConnection.SendQueryAsync<object>(RequestQueries.deleteWorkflowConfigurationPhase, new
+                {
+                    configurationId = phase.ConfigurationId,
+                    taskType = phase.TaskType,
+                    phase = phase.Phase
+                }), errors);
+            }
+            return errors;
+        }
+
+        /// <summary>
+        /// Rolls back transition groups, visibility groups and states created during import.
+        /// </summary>
+        private async Task RollBackCreatedEntities(List<int> transitionGroupIds, List<int> visibilityGroupIds,
+            List<int> stateIds, List<Exception> errors)
+        {
+            foreach (int id in transitionGroupIds.AsEnumerable().Reverse())
+            {
+                await TryRollback(() => apiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteStateMatrixTransitionGroup, new { id }), errors);
+            }
+            foreach (int id in visibilityGroupIds.AsEnumerable().Reverse())
+            {
+                await TryRollback(() => apiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteWorkflowVisibilityGroup, new { id }), errors);
+            }
+            foreach (int id in stateIds.AsEnumerable().Reverse())
+            {
+                await TryRollback(() => apiConnection.SendQueryAsync<object>(RequestQueries.deleteState, new { id }), errors);
+            }
+        }
+
+        /// <summary>
+        /// Removes one derived-state mapping created during a configuration merge.
+        /// </summary>
+        private async Task RemoveDerivedState(AddedDerivedState state)
+        {
+            List<object> removedDerivedStates =
+            [
+                new
+                {
+                    phase_matrix_id = new { _eq = state.PhaseMatrixId },
+                    from_state_id = new { _eq = state.FromStateId },
+                    derived_state_id = new { _eq = state.DerivedStateId }
+                }
+            ];
+            await apiConnection.SendQueryAsync<object>(RequestQueries.replaceStateMatrixConfiguration, new
+            {
+                removedDerivedStates,
+                removedTransitions = Array.Empty<object>(),
+                phaseMatrices = Array.Empty<object>(),
+                derivedStates = Array.Empty<object>(),
+                transitions = Array.Empty<object>()
+            });
+        }
+
+        /// <summary>
+        /// Executes one rollback action and collects any failure for aggregate reporting.
+        /// </summary>
+        private static async Task TryRollback(Func<Task> rollbackAction, List<Exception> errors)
+        {
+            try
+            {
+                await rollbackAction();
+            }
+            catch (Exception exception)
+            {
+                errors.Add(exception);
             }
         }
 
@@ -675,5 +781,18 @@ namespace FWO.Services.Workflow
             + $"visibilityGroups={statistics.CreatedVisibilityGroups}, addedPhases={statistics.AddedPhases}, "
             + $"mergedPhases={statistics.MergedPhases}, derivedStates={statistics.AddedDerivedStates}, "
             + $"transitionGroupLinks={statistics.AddedTransitionGroupLinks}";
+
+        private sealed class MergeRollback
+        {
+            public List<AddedPhase> AddedPhases { get; } = [];
+            public List<AddedDerivedState> AddedDerivedStates { get; } = [];
+            public List<AddedTransitionGroupLink> AddedTransitionGroupLinks { get; } = [];
+        }
+
+        private sealed record AddedPhase(int ConfigurationId, string TaskType, string Phase);
+
+        private sealed record AddedDerivedState(int PhaseMatrixId, int FromStateId, int DerivedStateId);
+
+        private sealed record AddedTransitionGroupLink(int PhaseMatrixId, int TransitionGroupId);
     }
 }

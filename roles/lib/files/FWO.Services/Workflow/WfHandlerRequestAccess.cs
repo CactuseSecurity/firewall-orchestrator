@@ -18,6 +18,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         public bool RestrictToResponsibleRequests { get; init; }
 
+        private List<int>? scopedOwnerIds;
         private List<int> responsibleOwnerIds = [];
         private List<long> responsibleOwnerTicketIds = [];
 
@@ -44,12 +45,14 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Loads the apps and app tickets the user is responsible for, if the request restriction applies.
+        /// Keeps the apps the handler was initialized with and, if the request restriction applies, loads the tickets
+        /// registered for them.
         /// </summary>
         /// <param name="activeApiConnection">Connection running with the role of the user.</param>
-        /// <param name="ownerIds">Ids of the apps the user is responsible for.</param>
-        internal async Task LoadResponsibleRequestScope(ApiConnection activeApiConnection, List<int>? ownerIds)
+        /// <param name="ownerIds">Ids of the apps of the user, null if the caller does not scope the handler to them.</param>
+        internal async Task LoadOwnerScope(ApiConnection activeApiConnection, List<int>? ownerIds)
         {
+            scopedOwnerIds = ownerIds;
             responsibleOwnerIds = ownerIds ?? [];
             responsibleOwnerTicketIds = [];
             if (RestrictToResponsibleRequests && responsibleOwnerIds.Count > 0)

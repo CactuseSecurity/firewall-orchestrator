@@ -380,9 +380,18 @@ namespace FWO.Services.Workflow
             return ticketVisible || ticket.Tasks.Count > 0;
         }
 
+        /// <summary>
+        /// Gets the apps tickets are filtered by in owner based mode: the apps the handler was initialized with, so that
+        /// deep links and reloads apply the same scope as the ticket list. Only callers that do not scope the handler to
+        /// the apps of the user (modelling, monitoring, middleware) resolve tickets against all apps.
+        /// </summary>
         private List<int>? GetOwnerIdsForFiltering()
         {
-            return userConfig.ReqOwnerBased ? AllOwners.ConvertAll(owner => owner.Id) : null;
+            if (!userConfig.ReqOwnerBased)
+            {
+                return null;
+            }
+            return scopedOwnerIds ?? AllOwners.ConvertAll(owner => owner.Id);
         }
 
         private Func<WfTicket, bool>? GetVisibilityTicketFilter()

@@ -74,7 +74,7 @@ namespace FWO.Test
             MessageRecorder? recorder = null, bool restricted = true)
         {
             WfHandler handler = CreateHandler(apiConn, userConfig, recorder, restricted);
-            await handler.LoadResponsibleRequestScope(apiConn, kResponsibleOwnerIds);
+            await handler.LoadOwnerScope(apiConn, kResponsibleOwnerIds);
             return handler;
         }
 
@@ -263,12 +263,12 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task LoadResponsibleRequestScope_SkipsQueryWithoutResponsibleApps()
+        public async Task LoadOwnerScope_SkipsQueryWithoutResponsibleApps()
         {
             RequestAccessApiConn apiConn = new() { Ticket = CreateTicket(kOtherUserId), RegisteredTicketIds = [kTicketId] };
             WfHandler handler = CreateHandler(apiConn, CreateUserConfig(Roles.Requester));
 
-            await handler.LoadResponsibleRequestScope(apiConn, null);
+            await handler.LoadOwnerScope(apiConn, null);
             WfTicket? ticket = await handler.ResolveTicket(kTicketId);
 
             Assert.That(ticket, Is.Null);

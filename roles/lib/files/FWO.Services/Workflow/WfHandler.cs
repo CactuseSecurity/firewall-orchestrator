@@ -226,7 +226,7 @@ namespace FWO.Services.Workflow
             AllOwners = await activeApiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             await stateMatrixDict.Init(Phase, activeApiConnection, states);
             MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
-            await LoadResponsibleRequestScope(activeApiConnection, ownerIds);
+            await LoadOwnerScope(activeApiConnection, ownerIds);
             if (fetchData)
             {
                 TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets, GetTicketFilter());

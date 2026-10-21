@@ -18,6 +18,9 @@ namespace FWO.Test
         private static readonly long[] kAllRequestTaskIds = [11, 12];
         private static readonly int[] kExclusiveVisibilityGroupIds = [1, 2, 4, 5, 6];
         private static readonly long[] kImplTaskIds = [21, 22];
+        private const int kOwnAppId = 5;
+        private const int kForeignAppId = 9;
+        private static readonly List<int> kOwnAppIds = [kOwnAppId];
 
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix matrix)
         {
@@ -87,14 +90,15 @@ namespace FWO.Test
             }
         }
 
-        private static WfHandler CreateHandlerWithDbAccess(TicketTestApiConn apiConn, UserConfig userConfig, bool systemContext = false)
+        private static WfHandler CreateHandlerWithDbAccess(TicketTestApiConn apiConn, UserConfig userConfig, bool systemContext = false,
+            WorkflowPhases phase = WorkflowPhases.request)
         {
-            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), apiConn, null!, WorkflowPhases.request)
+            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), apiConn, null!, phase)
             {
                 SystemContext = systemContext
             };
             ActionHandler actionHandler = new(apiConn, handler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, phase);
             FieldInfo? dbAccField = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(dbAccField, Is.Not.Null);
             dbAccField!.SetValue(handler, dbAccess);
@@ -534,6 +538,101 @@ namespace FWO.Test
 
             Assert.That(handler.ActTicket.Id, Is.EqualTo(99));
             Assert.That(handler.TicketList[0].Tasks, Is.Empty);
+        }
+
+        private static WfTicket CreateTicketOwnedBy(int ownerId)
+        {
+            return new WfTicket
+            {
+                Id = 7,
+                StateId = 10,
+                Tasks =
+                [
+                    new WfReqTask
+                    {
+                        Id = 11,
+                        TaskType = WfTaskType.access.ToString(),
+                        StateId = 10,
+                        Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = ownerId } }]
+                    }
+                ]
+            };
+        }
+
+        private static WfHandler CreateOwnerBasedApprovalHandler(TicketTestApiConn apiConn)
+        {
+            UserConfig userConfig = new() { ReqOwnerBased = true };
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, userConfig, phase: WorkflowPhases.approval);
+            handler.AllOwners = [new FwoOwner { Id = kOwnAppId }, new FwoOwner { Id = kForeignAppId }];
+            return handler;
+        }
+
+        [Test]
+        public async Task ResolveTicket_OwnerBasedPhaseHidesTicketOfAppOutsideScope()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = CreateTicketOwnedBy(kForeignAppId) };
+            WfHandler handler = CreateOwnerBasedApprovalHandler(apiConn);
+            await handler.LoadOwnerScope(apiConn, kOwnAppIds);
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Null);
+        }
+
+        [Test]
+        public async Task HandleInjectedTicketId_OwnerBasedPhaseDoesNotOpenTicketOfAppOutsideScope()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = CreateTicketOwnedBy(kForeignAppId) };
+            WfHandler handler = CreateOwnerBasedApprovalHandler(apiConn);
+            handler.MasterStateMatrix = new StateMatrix { LowestEndState = 20 };
+            await handler.LoadOwnerScope(apiConn, kOwnAppIds);
+
+            string phase = await handler.HandleInjectedTicketId(WorkflowPhases.approval, 7);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(phase, Is.Empty);
+                Assert.That(handler.EditTicketMode, Is.False);
+                Assert.That(handler.ActTicket.Id, Is.Not.EqualTo(7));
+            });
+        }
+
+        [Test]
+        public async Task ReloadActReqTask_OwnerBasedPhaseDoesNotReloadTicketOfAppOutsideScope()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = CreateTicketOwnedBy(kForeignAppId) };
+            WfHandler handler = CreateOwnerBasedApprovalHandler(apiConn);
+            await handler.LoadOwnerScope(apiConn, kOwnAppIds);
+            handler.ActReqTask = new WfReqTask { Id = 11, TicketId = 7 };
+
+            bool reloaded = await handler.ReloadActReqTask();
+
+            Assert.That(reloaded, Is.False);
+        }
+
+        [Test]
+        public async Task ResolveTicket_OwnerBasedPhaseAllowsTicketOfAppInScope()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = CreateTicketOwnedBy(kOwnAppId) };
+            WfHandler handler = CreateOwnerBasedApprovalHandler(apiConn);
+            await handler.LoadOwnerScope(apiConn, kOwnAppIds);
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task ResolveTicket_OwnerBasedWithoutScopeResolvesTicketsOfAllApps()
+        {
+            // modelling and monitoring do not scope the handler, e.g. to process interface requests of other apps
+            TicketTestApiConn apiConn = new() { Ticket = CreateTicketOwnedBy(kForeignAppId) };
+            WfHandler handler = CreateOwnerBasedApprovalHandler(apiConn);
+            await handler.LoadOwnerScope(apiConn, null);
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Not.Null);
         }
 
         [Test]

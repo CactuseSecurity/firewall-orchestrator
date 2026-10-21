@@ -553,6 +553,32 @@ class TestObjectDictionaryResolution:
         assert native_config_domain["objects"][0]["type"] == "CpmiVoipSipDomain"
         assert native_config_domain["objects"][0]["chunks"][0]["objects"][0]["color"] == "black"
 
+    def test_resolve_ref_adds_new_style_voip_object_to_native_config(self):
+        native_config_domain: dict[str, Any] = {"objects": []}
+        matched: dict[str, Any] = {
+            "uid": "e9ba0c50-ddd7-4aa8-9df6-1c4045ba10bb",
+            "type": "voip-domain-sip-proxy",
+            "name": "Lync_Test_VoIP",
+            "domain": {"uid": "dom-1", "name": "SMC User", "domain-type": "domain"},
+            "color": "blue",
+        }
+
+        result = cp_getter.resolve_ref_from_object_dictionary(matched["uid"], [matched], native_config_domain)
+
+        assert result == matched
+        added_table = native_config_domain["objects"][0]
+        assert added_table["type"] == "voip-domain-sip-proxy"
+        assert added_table["chunks"][0]["objects"][0]["uid"] == matched["uid"]
+        assert added_table["chunks"][0]["objects"][0]["color"] == "blue"
+
+    def test_resolve_ref_does_not_add_regular_object_to_native_config(self):
+        native_config_domain: dict[str, Any] = {"objects": []}
+        matched: dict[str, Any] = {"uid": "u-1", "type": "host", "name": "h-1", "domain": "dom-1"}
+
+        cp_getter.resolve_ref_from_object_dictionary("u-1", [matched], native_config_domain)
+
+        assert native_config_domain["objects"] == []
+
     def test_resolve_ref_list_resolves_all_value_shapes(self):
         obj_dict: list[dict[str, Any]] = [
             {"uid": "u-1", "type": "host", "name": "h-1"},
@@ -644,6 +670,11 @@ class TestGetObjectDetailsFromApi:
             "simple-gateway": "host",
             "Global": "host",
             "updatable-object": "host",
+            "CpmiVoipSipDomain": "host",
+            "CpmiVoipMgcpDomain": "host",
+            "voip-domain-sip-proxy": "host",
+            "voip-domain-mgcp-call-agent": "host",
+            "gsn_handover_group": "host",
             "Internet": "network",
         }
         for obj_type, expected_type in cases.items():

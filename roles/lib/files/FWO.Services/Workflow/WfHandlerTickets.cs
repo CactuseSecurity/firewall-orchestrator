@@ -21,7 +21,7 @@ namespace FWO.Services.Workflow
             WfTicket? ticket = null;
             if (dbAcc != null)
             {
-                ticket = await dbAcc.FetchTicket(ticketId, GetOwnerIdsForFiltering(), GetVisibilityTicketFilter());
+                ticket = await dbAcc.FetchTicket(ticketId, GetOwnerIdsForFiltering(), GetTicketFilter());
                 if (ticket != null)
                 {
                     SetTicketEnv(ticket);
@@ -94,7 +94,7 @@ namespace FWO.Services.Workflow
                 return null;
             }
 
-            WfTicket? refreshedTicket = await dbAcc.FetchTicket(ticket.Id, GetOwnerIdsForFiltering(), GetVisibilityTicketFilter());
+            WfTicket? refreshedTicket = await dbAcc.FetchTicket(ticket.Id, GetOwnerIdsForFiltering(), GetTicketFilter());
             if (refreshedTicket == null)
             {
                 return null;
@@ -177,7 +177,7 @@ namespace FWO.Services.Workflow
             LastSaveReloadFailed = false;
             try
             {
-                return dbAcc == null ? 0 : await SaveTicketToDb(ticket);
+                return dbAcc == null || !CheckActTicketChangeable() ? 0 : await SaveTicketToDb(ticket);
             }
             catch (Exception exception)
             {

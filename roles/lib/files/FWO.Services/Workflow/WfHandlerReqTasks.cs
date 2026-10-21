@@ -298,7 +298,7 @@ namespace FWO.Services.Workflow
 
         public async Task AddReqTask()
         {
-            if (ActTicket.Locked)
+            if (ActTicket.Locked || !CheckActTicketChangeable())
             {
                 return;
             }
@@ -320,7 +320,7 @@ namespace FWO.Services.Workflow
         /// <param name="allowLockedApprovalUpdate">Allows the explicitly permitted approval-phase field update on a locked task.</param>
         public async Task ChangeReqTask(bool allowLockedApprovalUpdate = false)
         {
-            if (ActReqTask.Locked && !allowLockedApprovalUpdate)
+            if ((ActReqTask.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
             {
                 return;
             }
@@ -334,7 +334,7 @@ namespace FWO.Services.Workflow
 
         public async Task ChangeOwner()
         {
-            if (ActReqTask.Locked)
+            if (ActReqTask.Locked || !CheckActTicketChangeable())
             {
                 return;
             }
@@ -348,7 +348,7 @@ namespace FWO.Services.Workflow
 
         public async Task ConfDeleteReqTask()
         {
-            if (ActTicket.Locked)
+            if (ActTicket.Locked || !CheckActTicketChangeable())
             {
                 DisplayDeleteReqTaskMode = false;
                 return;

@@ -18,6 +18,8 @@ namespace FWO.Test
     [TestFixture]
     public class ModellingOwnerAccessTest
     {
+        private static readonly int[] kResponsibleOwnerIds = [3, 4];
+
         [Test]
         public async Task ReporterViewAllUsesAllOwnersQuery()
         {
@@ -153,6 +155,54 @@ namespace FWO.Test
                 .SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners,
                     Arg.Is<object?>(vars => HasOwnerIds(vars, Array.Empty<int>())),
                     Arg.Any<string?>());
+        }
+
+        [TestCase(Roles.ReporterViewAll)]
+        [TestCase(Roles.Admin)]
+        public async Task ResponsibleAppsIgnoreReadAllRoles(string readAllRole)
+        {
+            ApiConnection apiConnection = Substitute.For<ApiConnection>();
+            apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
+                .Returns(new List<FwoOwner>());
+
+            ClaimsPrincipal principal = BuildPrincipal(
+                new List<string> { readAllRole, Roles.Requester },
+                new Claim("x-hasura-editable-owners", "{3,4}"));
+            Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
+            UserConfig userConfig = new SimulatedUserConfig { User = { Roles = [readAllRole, Roles.Requester] } };
+
+            await ModellingHandlerBase.GetResponsibleApps(authStateTask, userConfig, apiConnection, NoopDisplay);
+
+            await apiConnection.Received(1)
+                .SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners,
+                    Arg.Is<object?>(vars => HasOwnerIds(vars, kResponsibleOwnerIds)),
+                    Arg.Any<string?>());
+            await apiConnection.DidNotReceive()
+                .SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners, Arg.Any<object?>(), Arg.Any<string?>());
+        }
+
+        [Test]
+        public async Task ResponsibleAppsReportFailureAndReturnEmptyList()
+        {
+            ApiConnection apiConnection = Substitute.For<ApiConnection>();
+            apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
+                .Returns(Task.FromException<List<FwoOwner>>(new InvalidOperationException("api down")));
+
+            ClaimsPrincipal principal = BuildPrincipal(
+                new List<string> { Roles.Requester },
+                new Claim("x-hasura-editable-owners", "{3,4}"));
+            Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
+            UserConfig userConfig = new SimulatedUserConfig { User = { Roles = [Roles.Requester] } };
+            Exception? reportedException = null;
+
+            List<FwoOwner> apps = await ModellingHandlerBase.GetResponsibleApps(authStateTask, userConfig, apiConnection,
+                (exception, _, _, _) => reportedException = exception);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apps, Is.Empty);
+                Assert.That(reportedException, Is.InstanceOf<InvalidOperationException>());
+            });
         }
 
         private static ClaimsPrincipal BuildPrincipal(List<string> roles, Claim? extraClaim = null)

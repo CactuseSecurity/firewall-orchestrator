@@ -226,9 +226,10 @@ namespace FWO.Services.Workflow
             AllOwners = await activeApiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             await stateMatrixDict.Init(Phase, activeApiConnection, states);
             MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
+            await LoadResponsibleRequestScope(activeApiConnection, ownerIds);
             if (fetchData)
             {
-                TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets, GetVisibilityTicketFilter());
+                TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets, GetTicketFilter());
             }
             ReloadTasks = !fullTickets;
             PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
@@ -249,19 +250,6 @@ namespace FWO.Services.Workflow
                 Managements = [];
                 Log.WriteError("Workflow", "Could not load the managements visible to the user.", exception);
             }
-        }
-
-        public void FilterForRequester()
-        {
-            List<WfTicket> filteredTicketList = [];
-            foreach (var ticket in TicketList)
-            {
-                if (userConfig.User.DbId == ticket.Requester?.DbId)
-                {
-                    filteredTicketList.Add(ticket);
-                }
-            }
-            TicketList = filteredTicketList;
         }
 
         public StateMatrix StateMatrix(string taskType)

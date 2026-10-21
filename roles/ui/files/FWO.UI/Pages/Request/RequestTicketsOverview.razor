@@ -54,11 +54,9 @@ else
 
             await states.Init(apiConnection);
 
-            if(userConfig.ReqOwnerBased)
-            {
-                OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
-            }
-            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient)){};
+            // also without owner based requests the apps decide which tickets of other requesters a user may change
+            OwnerIds = (await ModellingHandlerBase.GetResponsibleApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient)){ RestrictToResponsibleRequests = true };
             await Reset();
             InitComplete = true;
         }
@@ -74,10 +72,6 @@ else
         {
             wfHandler.ReadOnlyMode = true;
             await wfHandler.Init(true, OwnerIds, true);
-            if(!userConfig.ReqOwnerBased && userConfig.CanUseAnyRole(Roles.Requester) && !userConfig.CanUseAnyRole(Roles.Admin))
-            {
-                wfHandler.FilterForRequester();
-            }
         }
         catch (Exception exception)
         {

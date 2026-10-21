@@ -139,11 +139,12 @@
 
     /// <summary>
     /// Checks whether the ticket is open for changes in this phase. Read-only users open it in the same dialog,
-    /// where saving stays reserved to the phase roles.
+    /// where saving stays reserved to the phase roles. Users who may save only get it for tickets they may change.
     /// </summary>
     private bool CanEditTicketInPhase(WfTicket ticket)
     {
         return CanOpenChangeDialogs()
+            && (ticket.Editable || WfHandler.ReadOnlyMode)
             && ticket.StateId >= WfHandler.MasterStateMatrix.LowestInputState
             && ticket.StateId < WfHandler.MasterStateMatrix.LowestEndState;
     }

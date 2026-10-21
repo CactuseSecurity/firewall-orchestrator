@@ -4870,6 +4870,8 @@ INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werde
 INSERT INTO txt VALUES ('E5112', 'English', 'Gateway could not be created');
 INSERT INTO txt VALUES ('E5113', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten externen Ticket-Systemen verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
 INSERT INTO txt VALUES ('E5113', 'English', 'Deletion of credentials not allowed as they are in use by the external ticket systems named. Change the credentials of these ticket systems before deleting them.');
+INSERT INTO txt VALUES ('E5114', 'German',  'Der Antrag kann nur vom Antragsteller oder von Verantwortlichen der betroffenen Anwendungen ge&auml;ndert werden.');
+INSERT INTO txt VALUES ('E5114', 'English', 'The ticket can only be changed by its requester or by users responsible for the applications concerned.');
 INSERT INTO txt VALUES ('E5121', 'German',  'Bitte einen Namen f&uuml;r das benutzerdefinierte Flow-Objekt eingeben');
 INSERT INTO txt VALUES ('E5121', 'English', 'Please enter a name for the custom flow object');
 INSERT INTO txt VALUES ('E5122', 'German',  'Bitte mindestens einen Dienst ausw&auml;hlen');
@@ -9070,22 +9072,24 @@ INSERT INTO txt VALUES ('H8302', 'English', 'The auditor sees all processing sta
     The auditor cannot change anything though: saving, state changes, comments, assignments and deletion stay disabled, and opening changes neither state nor handler.
 ');
 INSERT INTO txt VALUES ('H8311', 'German',  'Ticket-Liste (Rolle: requester, admin, auditor):
-    Dem Antragsteller steht eine &Uuml;bersicht &uuml;ber alle von ihm selbst angelegten Tickets aller Bearbeitungsstufen zur Verf&uuml;gung. Admin und Auditor k&ouml;nnen hier alle Tickets sehen.
+    Dem Antragsteller steht eine &Uuml;bersicht &uuml;ber alle von ihm selbst angelegten Tickets aller Bearbeitungsstufen zur Verf&uuml;gung, dazu die Tickets der Anwendungen, f&uuml;r die er verantwortlich ist (als beantragte oder bei Schnittstellenantr&auml;gen als beantragende Anwendung). Admin und Auditor k&ouml;nnen hier alle Tickets sehen.
     &Auml;nderungen an den Tickets sind in dieser Ansicht nicht m&ouml;glich.
 ');
 INSERT INTO txt VALUES ('H8311', 'English', 'Ticket List (Role: requester, admin, auditor):
-    The requester gets an overview of all tickets in all processing states created by himself. Admin and auditor have view on all tickets.
+    The requester gets an overview of all tickets in all processing states created by himself, plus the tickets of the applications he is responsible for (as requested application or, for interface requests, as requesting application). Admin and auditor have view on all tickets.
     Changes on the tickets are not possible in this view.
 ');
 INSERT INTO txt VALUES ('H8312', 'German',  'Antrag stellen (Rolle: requester), voreingestellt:
-    Antr&auml;ge k&ouml;nnen nur von Nutzern mit entsprechenden Rechten gestellt werden, definiert durch die Rolle (weitere Einschr&auml;nkungen auf die Eigent&uuml;merschaft ist in sp&auml;teren Versionen vorgesehen).
+    Antr&auml;ge k&ouml;nnen nur von Nutzern mit entsprechenden Rechten gestellt werden, definiert durch die Rolle.
+    Ein Antragsteller sieht und &auml;ndert nur eigene Tickets und Tickets der Anwendungen, f&uuml;r die er verantwortlich ist. Bei Schnittstellenantr&auml;gen gilt das f&uuml;r die beantragte und die beantragende Anwendung. Der Admin sieht und &auml;ndert alle Tickets, der Auditor sieht alle Tickets ohne sie &auml;ndern zu k&ouml;nnen.
     Solange noch kein Status des Ausgangsbereichs erreicht wurde, k&ouml;nnen Tickets beliebig ge&auml;ndert und fachliche Auftr&auml;ge angeh&auml;ngt, ge&auml;ndert oder gel&ouml;scht werden.
     Um Inkonsistenzen zu vermeiden, werden angelegte Auftr&auml;ge erst beim ersten Speichern des Tickets mit erzeugt. Vorher sind sie nur lokal vorhanden und gehen beim Abbruch der Antragstellung verloren.
     Von automatischen Schnittstellen erzeugte Tickets k&ouml;nnen gesperrt sein. Die Sperre sch&uuml;tzt dann die fachlichen Auftr&auml;ge und deren Struktur, w&auml;hrend Kopfdaten des Tickets wie Titel, Priorit&auml;t, Deadline und Grund weiterhin korrigiert werden k&ouml;nnen.
     In sp&auml;teren Phasen sind keine inhaltlichen &Auml;nderungen an Ticket und fachlichen Auftr&auml;gen mehr m&ouml;glich, lediglich an Metadaten wie Status, Start und Stop sowie Kommentierungen.
 ');
 INSERT INTO txt VALUES ('H8312', 'English', 'Create ticket (Role: requester), preselected:
-    Requests can only be created by users with according rights, defined by the roles (further restrictions on ownership are envisaged for later releases).
+    Requests can only be created by users with according rights, defined by the roles.
+    A requester only sees and changes his own tickets and the tickets of the applications he is responsible for. For interface requests this applies to the requested and to the requesting application. The admin sees and changes all tickets, the auditor sees all tickets without being able to change them.
     As long as no state in the exit range is reached, tickets can be changed arbitrarily, and request task can be added, changed or deleted.
     To avoid inconsistencies, already built request tasks are created with the first saving of the ticket. Before, they exist only locally and get lost on cancellation of ticket creation.
     Tickets created by automatic interfaces can be locked. This lock protects request tasks and their structure, while ticket header data such as title, priority, deadline, and reason can still be corrected.

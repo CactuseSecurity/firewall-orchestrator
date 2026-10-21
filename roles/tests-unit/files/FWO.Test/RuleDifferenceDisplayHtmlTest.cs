@@ -80,13 +80,19 @@ namespace FWO.Test
             AssertDiff(display.DisplayServiceDiff(DiffRule(), OutputLocation.report, ReportType.VarianceAnalysis), "SurplusSvc", "MissingSvc");
         }
 
-        [Test]
-        public void ChangeReportStyles_AreUnchanged()
+        [TestCase('D', GlobalConst.kStyleDeleted)]
+        [TestCase('I', GlobalConst.kStyleAdded)]
+        public void ChangeReport_KeepsDeletedAndAddedStyles(char changeAction, string expectedStyle)
         {
+            Rule rule = new() { Id = 1, Froms = [new NetworkLocation(new NetworkUser(), Host("ChangedSrc", false))] };
+            RuleChange ruleChange = new() { ChangeAction = changeAction, OldRule = rule, NewRule = rule };
+            RuleChangeDisplayHtml display = new(userConfig);
+            string html = display.DisplaySource(ruleChange, OutputLocation.report, ReportType.Changes);
             Assert.Multiple(() =>
             {
-                Assert.That(GlobalConst.kStyleDeleted, Does.Contain(kLineThrough));
-                Assert.That(GlobalConst.kStyleAdded, Does.Contain("green"));
+                Assert.That(html, Does.Contain(expectedStyle));
+                Assert.That(html, Does.Contain("ChangedSrc"));
+                Assert.That(html, Does.Not.Contain(GlobalConst.kStyleSurplus));
             });
         }
     }

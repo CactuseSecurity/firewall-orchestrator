@@ -61,8 +61,6 @@ namespace FWO.Test
             {"rule_modified","Rule modified"},
             {"deleted","deleted"},
             {"added","added"},
-            {"missing","missing"},
-            {"surplus","surplus"},
             {"missing_in_fw_rule","missing in firewall rule"},
             {"surplus_in_fw_rule","surplus in firewall rule"},
             {"change_time","Change Time"},

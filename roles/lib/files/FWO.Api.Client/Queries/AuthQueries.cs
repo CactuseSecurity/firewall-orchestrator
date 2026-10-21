@@ -53,6 +53,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getRefreshToken;
         public static readonly string revokeRefreshToken;
         public static readonly string revokeRefreshTokensOfUser;
+        public static readonly string revokeRefreshTokensOfUsers;
 
         static AuthQueries()
         {
@@ -105,6 +106,7 @@ namespace FWO.Api.Client.Queries
                 getRefreshToken = GetQueryText(Path.Combine("auth", "getRefreshToken.graphql"));
                 revokeRefreshToken = GetQueryText(Path.Combine("auth", "revokeRefreshToken.graphql"));
                 revokeRefreshTokensOfUser = GetQueryText(Path.Combine("auth", "revokeRefreshTokensOfUser.graphql"));
+                revokeRefreshTokensOfUsers = GetQueryText(Path.Combine("auth", "revokeRefreshTokensOfUsers.graphql"));
             }
             catch (Exception exception)
             {

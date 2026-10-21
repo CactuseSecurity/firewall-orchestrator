@@ -17,7 +17,8 @@
 	<ItemGroup>
 		<PackageReference Include="IPAddressRange" Version="6.3.0" />
 		<PackageReference Include="BlazorTable" Version="1.17.0" />
-		<PackageReference Include="PuppeteerSharp" Version="25.13.1" />
+		<PackageReference Include="PuppeteerSharp" Version="25.14.0" />
+		<PackageReference Include="SoPro.FancyTable" Version="1.0.8" />
 	</ItemGroup>
 
 	<ItemGroup>

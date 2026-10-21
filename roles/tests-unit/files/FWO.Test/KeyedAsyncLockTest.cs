@@ -279,6 +279,26 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task ContainsKeyOnlyWhileItIsHeld()
+        {
+            KeyedAsyncLock<long> keyedLock = new();
+            const long heldKey = 1;
+            const long otherKey = 2;
+
+            IDisposable handle = await Acquire(keyedLock, heldKey);
+            bool containsWhileHeld = keyedLock.Contains(heldKey);
+            bool containsOther = keyedLock.Contains(otherKey);
+            handle.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(containsWhileHeld, Is.True);
+                Assert.That(containsOther, Is.False);
+                Assert.That(keyedLock.Contains(heldKey), Is.False);
+            });
+        }
+
         private static async Task<IDisposable> Acquire(KeyedAsyncLock<long> keyedLock, long key, string owner = kOwner)
         {
             IDisposable? handle = await keyedLock.TryAcquireAsync(key, owner);

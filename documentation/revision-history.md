@@ -8,6 +8,7 @@
   - 400 reports every invalid key at once, including a configured default that cannot be used (algorithm none, no designated matrix); 404 a requested matrix that does not exist or holds no configured zones; 500 an unusable designated matrix
 - the network zone tree analyzer rejects a zone matrix holding no configured zones instead of reporting no device since the auto calculated zones alone describe no path
 - new shared request building block for IP address blocks (`IpRangeOrNetworkRequest`) with the address rules of flow compliance, for reuse by further endpoints
+- UI report scheduling: help text and input tooltip for recipient email addresses now list all supported separators: comma ( , ), semicolon ( ; ) and vertical bar ( | )
 - Refresh-token rotation now behaves predictably under concurrent requests, and an unreachable API during authentication is reported as a retryable 503. Before, it came back as a 400 with the raw transport error.
 
 ## 9.8.0 - 20.10.2026

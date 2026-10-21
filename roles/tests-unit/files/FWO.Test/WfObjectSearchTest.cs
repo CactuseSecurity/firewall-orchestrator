@@ -87,6 +87,23 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task SearchGroups_SkipsTextsShorterThanTheMinimum()
+        {
+            RecordingApiConnection apiConnection = new();
+            WfObjectSearch search = new(apiConnection, new ClaimsPrincipal());
+
+            List<NetworkObject> networkHits = await search.SearchNetworkGroups(kManagementId, " ab ");
+            List<NetworkService> serviceHits = await search.SearchServiceGroups(kManagementId, " ab ");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(networkHits, Is.Empty);
+                Assert.That(serviceHits, Is.Empty);
+                Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
+            });
+        }
+
         [TestCase("10.1.1.5")]
         [TestCase("10.1.2.0/24")]
         [TestCase("2001:db8::1")]

@@ -321,7 +321,7 @@ namespace FWO.Services.Workflow
 
                     // The insert creates the task's elements and approvals in separate API calls.
                     // Reload the ticket so the task table uses the complete persisted task graph.
-                    if (!await ReloadActTicket())
+                    if (!await ReloadActTicket() || !ActTicket.Tasks.Any(task => task.Id == ActReqTask.Id))
                     {
                         ActTicket.Tasks.Add(ActReqTask);
                     }

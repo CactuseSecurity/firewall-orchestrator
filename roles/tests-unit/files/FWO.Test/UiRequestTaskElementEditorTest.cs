@@ -12,6 +12,8 @@ namespace FWO.Test;
 internal class UiRequestTaskElementEditorTest
 {
     private static readonly long[] kRemovedElementIds = [1L, 2L, 3L];
+    private static readonly string[] kPersistedNetworkMemberNames = ["network-member"];
+    private static readonly string[] kPersistedServiceMemberNames = ["service-member"];
 
     [Test]
     public void InitializeElements_LoadsAllRequestElementKinds()
@@ -273,9 +275,9 @@ internal class UiRequestTaskElementEditorTest
         Assert.Multiple(() =>
         {
             Assert.That(GetMember<List<NwObjectElement>>(component, "sourcesToDelete").Select(element => element.Name),
-                Is.EqualTo(new[] { "network-member" }));
+                Is.EqualTo(kPersistedNetworkMemberNames));
             Assert.That(GetMember<List<NwServiceElement>>(component, "servicesToDelete").Select(element => element.Name),
-                Is.EqualTo(new[] { "service-member" }));
+                Is.EqualTo(kPersistedServiceMemberNames));
             Assert.That(component.SourceCount, Is.Zero);
             Assert.That(component.ServiceCount, Is.Zero);
         });
@@ -593,6 +595,9 @@ internal class UiRequestTaskElementEditorTest
             Assert.That(InvokePrivate<string>(component, "GroupMemberAction", RequestAction.delete.ToString()), Does.Not.Empty);
             Assert.That(InvokePrivate<string>(component, "GroupMemberAction", RequestAction.unchanged.ToString()), Does.Not.Empty);
             Assert.That(InvokePrivate<string>(component, "GroupMemberAction", RequestAction.create.ToString()), Does.Not.Empty);
+            Assert.That(InvokePrivateStatic<string>("GroupMemberBadgeClass", RequestAction.delete.ToString()), Is.EqualTo("text-bg-danger"));
+            Assert.That(InvokePrivateStatic<string>("GroupMemberBadgeClass", RequestAction.unchanged.ToString()), Is.EqualTo("text-bg-secondary"));
+            Assert.That(InvokePrivateStatic<string>("GroupMemberBadgeClass", RequestAction.create.ToString()), Is.EqualTo("text-bg-success"));
         });
     }
 
@@ -657,5 +662,12 @@ internal class UiRequestTaskElementEditorTest
         MethodInfo method = instance.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
             ?? throw new MissingMethodException(instance.GetType().FullName, methodName);
         return (T)(method.Invoke(instance, parameters) ?? throw new AssertionException($"Method '{methodName}' returned null."));
+    }
+
+    private static T InvokePrivateStatic<T>(string methodName, params object?[] parameters)
+    {
+        MethodInfo method = typeof(RequestTaskElementEditor).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(typeof(RequestTaskElementEditor).FullName, methodName);
+        return (T)(method.Invoke(null, parameters) ?? throw new AssertionException($"Method '{methodName}' returned null."));
     }
 }

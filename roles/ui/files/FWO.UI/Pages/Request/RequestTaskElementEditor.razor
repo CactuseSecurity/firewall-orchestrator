@@ -109,7 +109,7 @@ else if (TaskType == WfTaskType.group_modify)
                 @foreach (var source in actSources)
                 {
                     <div class="list-group-item border bg-secondary">
-                        <span class="badge @(source.RequestAction == RequestAction.delete.ToString() ? "text-bg-danger" : source.RequestAction == RequestAction.unchanged.ToString() ? "text-bg-secondary" : "text-bg-success")">
+                        <span class="badge @GroupMemberBadgeClass(source.RequestAction)">
                             @GroupMemberAction(source.RequestAction)
                         </span>
                         <label>@DisplayObjectElement(source)</label>
@@ -118,7 +118,7 @@ else if (TaskType == WfTaskType.group_modify)
                 @foreach (var service in actServices)
                 {
                     <div class="list-group-item border bg-secondary">
-                        <span class="badge @(service.RequestAction == RequestAction.delete.ToString() ? "text-bg-danger" : service.RequestAction == RequestAction.unchanged.ToString() ? "text-bg-secondary" : "text-bg-success")">
+                        <span class="badge @GroupMemberBadgeClass(service.RequestAction)">
                             @GroupMemberAction(service.RequestAction)
                         </span>
                         <label>@DisplayServiceElement(service)</label>
@@ -349,82 +349,114 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 
     public void ApplyChanges(Device? ruleDevice = null)
     {
-        foreach (var src in sourcesToDelete)
+        RemovePendingSources();
+        RemovePendingDestinations();
+        RemovePendingServices();
+        AddPendingSources();
+        AddPendingDestinations();
+        AddPendingServices();
+        ResetPendingChanges();
+        ReplaceRuleElements(ruleDevice);
+    }
+
+    private void RemovePendingSources()
+    {
+        foreach (NwObjectElement source in sourcesToDelete)
         {
-            actSources.Remove(src);
+            actSources.Remove(source);
             if (IsGroupModifyTask())
             {
-                MarkGroupMemberRemoved(src, ElemFieldType.source);
+                MarkGroupMemberRemoved(source, ElemFieldType.source);
             }
             else
             {
-                RemoveElem(src.ElemId);
+                RemoveElem(source.ElemId);
             }
         }
-        foreach (var dst in destinationsToDelete)
+    }
+
+    private void RemovePendingDestinations()
+    {
+        foreach (NwObjectElement destination in destinationsToDelete)
         {
-            actDestinations.Remove(dst);
-            RemoveElem(dst.ElemId);
+            actDestinations.Remove(destination);
+            RemoveElem(destination.ElemId);
         }
-        foreach (var svc in servicesToDelete)
+    }
+
+    private void RemovePendingServices()
+    {
+        foreach (NwServiceElement service in servicesToDelete)
         {
-            actServices.Remove(svc);
+            actServices.Remove(service);
             if (IsGroupModifyTask())
             {
-                MarkGroupMemberRemoved(svc);
+                MarkGroupMemberRemoved(service);
             }
             else
             {
-                RemoveElem(svc.ElemId);
+                RemoveElem(service.ElemId);
             }
         }
-        if (TaskType != WfTaskType.group_create || !grpTypeSvc)
+    }
+
+    private void AddPendingSources()
+    {
+        if (TaskType == WfTaskType.group_create && grpTypeSvc)
         {
-            foreach (var src in sourcesToAdd)
-            {
-                src.TaskId = WfHandler.ActReqTask.Id;
-                if (IsGroupModifyTask())
-                {
-                    src.GroupName = groupName ?? "";
-                }
-                actSources.Add(src);
-                WfHandler.ActReqTask.Elements.Add(src.ToReqElement(ElemFieldType.source));
-            }
-        }
-        foreach (var dst in destinationsToAdd)
-        {
-            dst.TaskId = WfHandler.ActReqTask.Id;
-            actDestinations.Add(dst);
-            WfHandler.ActReqTask.Elements.Add(dst.ToReqElement(ElemFieldType.destination));
-        }
-        if (TaskType != WfTaskType.group_create || grpTypeSvc)
-        {
-            foreach (var svc in servicesToAdd)
-            {
-                svc.TaskId = WfHandler.ActReqTask.Id;
-                if (IsGroupModifyTask())
-                {
-                    svc.GroupName = groupName;
-                }
-                actServices.Add(svc);
-                WfHandler.ActReqTask.Elements.Add(svc.ToReqElement());
-            }
+            return;
         }
 
-        sourcesToDelete = [];
-        destinationsToDelete = [];
-        servicesToDelete = [];
-        sourcesToAdd = [];
-        destinationsToAdd = [];
-        servicesToAdd = [];
-
-        WfHandler.ActReqTask.Elements.RemoveAll(x => x.Field == ElemFieldType.rule.ToString());
-        foreach (var rule in actRules)
+        foreach (NwObjectElement source in sourcesToAdd)
         {
-            WfReqElement reqElem = rule.ToReqElement();
-            reqElem.DeviceId = (ruleDevice ?? RuleDevice)?.Id;
-            reqElem.RequestAction = WfHandler.ActReqTask.RequestAction;
-            WfHandler.ActReqTask.Elements.Add(reqElem);
+            source.TaskId = WfHandler.ActReqTask.Id;
+            if (IsGroupModifyTask())
+            {
+                source.GroupName = groupName ?? "";
+            }
+            actSources.Add(source);
+            WfHandler.ActReqTask.Elements.Add(source.ToReqElement(ElemFieldType.source));
+        }
+    }
+
+    private void AddPendingDestinations()
+    {
+        foreach (NwObjectElement destination in destinationsToAdd)
+        {
+            destination.TaskId = WfHandler.ActReqTask.Id;
+            actDestinations.Add(destination);
+            WfHandler.ActReqTask.Elements.Add(destination.ToReqElement(ElemFieldType.destination));
+        }
+    }
+
+    private void AddPendingServices()
+    {
+        if (TaskType == WfTaskType.group_create && !grpTypeSvc)
+        {
+            return;
+        }
+
+        foreach (NwServiceElement service in servicesToAdd)
+        {
+            service.TaskId = WfHandler.ActReqTask.Id;
+            if (IsGroupModifyTask())
+            {
+                service.GroupName = groupName;
+            }
+            actServices.Add(service);
+            WfHandler.ActReqTask.Elements.Add(service.ToReqElement());
+        }
+    }
+
+    private void ReplaceRuleElements(Device? ruleDevice)
+    {
+        WfHandler.ActReqTask.Elements.RemoveAll(element => element.Field == ElemFieldType.rule.ToString());
+        foreach (NwRuleElement rule in actRules)
+        {
+            WfReqElement requestElement = rule.ToReqElement();
+            requestElement.DeviceId = (ruleDevice ?? RuleDevice)?.Id;
+            requestElement.RequestAction = WfHandler.ActReqTask.RequestAction;
+            WfHandler.ActReqTask.Elements.Add(requestElement);
         }
     }
 
@@ -699,6 +731,16 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
             nameof(RequestAction.delete) => userConfig.GetText("remove_member"),
             nameof(RequestAction.unchanged) => userConfig.GetText("unchanged"),
             _ => userConfig.GetText("add_member")
+        };
+    }
+
+    private static string GroupMemberBadgeClass(string requestAction)
+    {
+        return requestAction switch
+        {
+            nameof(RequestAction.delete) => "text-bg-danger",
+            nameof(RequestAction.unchanged) => "text-bg-secondary",
+            _ => "text-bg-success"
         };
     }
 

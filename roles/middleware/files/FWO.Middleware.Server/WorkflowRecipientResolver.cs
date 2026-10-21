@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Logging;
@@ -75,36 +76,67 @@ namespace FWO.Middleware.Server
             List<UiUser> resolvedUsers = [];
             foreach (string dn in resolvedDns)
             {
-                if (uiUsersByDn.TryGetValue(dn, out UiUser? existingUser) && !string.IsNullOrWhiteSpace(existingUser.Email))
+                UiUser? resolvedUser = await ResolveUser(dn, uiUsersByDn);
+                if (resolvedUser != null)
                 {
-                    resolvedUsers.Add(existingUser);
-                    continue;
-                }
-
-                UiUser? ldapUser = await ResolveLdapUser(dn);
-                if (ldapUser != null)
-                {
-                    await UiUserHandler.UpsertUiUser(apiConnection, ldapUser, false);
-                    if (string.IsNullOrWhiteSpace(ldapUser.Email))
-                    {
-                        Log.WriteWarning("Workflow Recipients", $"LDAP user '{ldapUser.Dn}' was resolved but has no email address.");
-                    }
-                    resolvedUsers.Add(ldapUser);
-                    continue;
-                }
-
-                if (existingUser != null)
-                {
-                    Log.WriteWarning("Workflow Recipients", $"User '{existingUser.Dn}' exists in uiuser but has no email address and could not be resolved from LDAP.");
-                    resolvedUsers.Add(existingUser);
-                }
-                else
-                {
-                    Log.WriteWarning("Workflow Recipients", $"DN '{dn}' could not be resolved to a uiuser or LDAP user.");
+                    resolvedUsers.Add(resolvedUser);
                 }
             }
 
             return resolvedUsers;
+        }
+
+        /// <summary>
+        /// Resolves a single user DN, preferring a cached uiuser with email address over an LDAP lookup.
+        /// </summary>
+        /// <param name="dn">User distinguished name.</param>
+        /// <param name="uiUsersByDn">Cached UI users indexed by DN.</param>
+        /// <returns>The resolved user, or null if the DN is neither a uiuser nor an LDAP user.</returns>
+        private async Task<UiUser?> ResolveUser(string dn, Dictionary<string, UiUser> uiUsersByDn)
+        {
+            if (uiUsersByDn.TryGetValue(dn, out UiUser? existingUser) && !string.IsNullOrWhiteSpace(existingUser.Email))
+            {
+                return existingUser;
+            }
+
+            UiUser? ldapUser = await ResolveLdapUser(dn);
+            if (ldapUser != null)
+            {
+                await CacheLdapUser(ldapUser);
+                if (string.IsNullOrWhiteSpace(ldapUser.Email))
+                {
+                    Log.WriteWarning("Workflow Recipients", $"LDAP user '{ldapUser.Dn}' was resolved but has no email address.");
+                }
+                return ldapUser;
+            }
+
+            if (existingUser != null)
+            {
+                Log.WriteWarning("Workflow Recipients", $"User '{existingUser.Dn}' exists in uiuser but has no email address and could not be resolved from LDAP.");
+            }
+            else
+            {
+                Log.WriteWarning("Workflow Recipients", $"DN '{dn}' could not be resolved to a uiuser or LDAP user.");
+            }
+            return existingUser;
+        }
+
+        /// <summary>
+        /// Caches an LDAP-resolved recipient in uiuser.
+        /// </summary>
+        /// <param name="ldapUser">User resolved from LDAP.</param>
+        private async Task CacheLdapUser(UiUser ldapUser)
+        {
+            try
+            {
+                await UiUserHandler.UpsertUiUser(apiConnection, ldapUser, false);
+            }
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+            {
+                // Caching the recipient in uiuser is a side effect: the LDAP address is
+                // already known, so the mail must not be lost over it.
+                Log.WriteWarning("Workflow Recipients", $"LDAP user '{ldapUser.Dn}' could not be cached in uiuser because the API could not be reached: {exception.Message}");
+            }
         }
 
         private void AddDirectUserDns(List<string> dnsList, HashSet<string> resolvedDns)

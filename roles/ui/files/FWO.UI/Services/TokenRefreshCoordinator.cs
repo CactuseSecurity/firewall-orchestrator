@@ -1,8 +1,5 @@
-using FWO.Api.Client;
-using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
-using FWO.Middleware.Client;
 using FWO.Ui.Auth;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components;
@@ -20,11 +17,10 @@ namespace FWO.Ui.Services
 
         private readonly TokenService tokenService;
         private readonly AuthenticationStateProvider authenticationProvider;
-        private readonly ApiConnection apiConnection;
-        private readonly MiddlewareClient middlewareClient;
-        private readonly UserConfig userConfig;
+        private readonly UiSessionRestorer sessionRestorer;
         private readonly IPeriodicTaskRunnerFactory periodicTaskRunnerFactory;
         private readonly NavigationManager navigationManager;
+        private readonly UiSessionTracker? sessionTracker;
         private readonly SemaphoreSlim startStopLock = new(1, 1);
 
         private IPeriodicTaskRunner? runner;
@@ -36,19 +32,17 @@ namespace FWO.Ui.Services
         public TokenRefreshCoordinator(
             TokenService tokenService,
             AuthenticationStateProvider authenticationProvider,
-            ApiConnection apiConnection,
-            MiddlewareClient middlewareClient,
-            UserConfig userConfig,
+            UiSessionRestorer sessionRestorer,
             IPeriodicTaskRunnerFactory periodicTaskRunnerFactory,
-            NavigationManager navigationManager)
+            NavigationManager navigationManager,
+            UiSessionTracker? sessionTracker = null)
         {
             this.tokenService = tokenService;
             this.authenticationProvider = authenticationProvider;
-            this.apiConnection = apiConnection;
-            this.middlewareClient = middlewareClient;
-            this.userConfig = userConfig;
+            this.sessionRestorer = sessionRestorer;
             this.periodicTaskRunnerFactory = periodicTaskRunnerFactory;
             this.navigationManager = navigationManager;
+            this.sessionTracker = sessionTracker;
         }
 
         /// <inheritdoc />
@@ -64,7 +58,11 @@ namespace FWO.Ui.Services
 
                 started = true;
                 navigationManager.LocationChanged += OnLocationChanged;
-                runner = periodicTaskRunnerFactory.Create(CheckAndRefreshTokenAsync, TokenRefreshCheckInterval, nameof(TokenRefreshCoordinator));
+                if (sessionTracker != null)
+                {
+                    sessionTracker.SessionCheckRequested += OnSessionCheckRequested;
+                }
+                runner = periodicTaskRunnerFactory.Create(CheckTokenAndSessionAsync, TokenRefreshCheckInterval, nameof(TokenRefreshCoordinator));
                 runner.Start();
             }
             finally
@@ -147,6 +145,10 @@ namespace FWO.Ui.Services
 
             started = false;
             navigationManager.LocationChanged -= OnLocationChanged;
+            if (sessionTracker != null)
+            {
+                sessionTracker.SessionCheckRequested -= OnSessionCheckRequested;
+            }
             IPeriodicTaskRunner? runnerToStop = runner;
             runner = null;
             return runnerToStop;
@@ -155,6 +157,47 @@ namespace FWO.Ui.Services
         private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
         {
             await CheckAndRefreshTokenAsync();
+        }
+
+        private void OnSessionCheckRequested()
+        {
+            // raised on the circuit of the user who made the change, which must not wait for the other sessions
+            _ = Task.Run(VerifySessionAsync);
+        }
+
+        /// <summary>
+        /// Periodic work: refreshes the access token when it is about to expire, then checks that the session has
+        /// not been revoked in the meantime.
+        /// </summary>
+        private async Task CheckTokenAndSessionAsync()
+        {
+            await CheckAndRefreshTokenAsync();
+            await VerifySessionAsync();
+        }
+
+        /// <summary>
+        /// Ends the session if the middleware reports it ended, e.g. because the permissions of its user were
+        /// reduced or the user was deleted (#5503). A session whose access token is about to expire is left to the
+        /// refresh, which ends it in that case as well.
+        /// </summary>
+        internal async Task VerifySessionAsync()
+        {
+            try
+            {
+                if (!await tokenService.HasRefreshToken() || await tokenService.IsAccessTokenExpired())
+                {
+                    return;
+                }
+
+                if (await tokenService.CheckSession() == SessionCheckOutcome.Ended && authenticationProvider is AuthStateProvider authStateProvider)
+                {
+                    await authStateProvider.EndRevokedSession();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(LogCategory, "Error during session check", ex);
+            }
         }
 
         private async Task CheckAndRefreshTokenAsync()
@@ -170,16 +213,7 @@ namespace FWO.Ui.Services
                 {
                     Log.WriteDebug(LogCategory, "Access token expired, attempting refresh...");
 
-                    bool refreshSuccess = await ((AuthStateProvider)authenticationProvider).RestoreAuthenticationState(apiConnection, middlewareClient, userConfig);
-
-                    if (refreshSuccess)
-                    {
-                        Log.WriteAudit(LogCategory, $"Successfully restored session for User \"{userConfig.User.Name}\" with DN: \"{userConfig.User.Dn}\".");
-                    }
-                    else
-                    {
-                        Log.WriteAudit(LogCategory, $"Failed to restore session for User \"{userConfig.User.Name}\" with DN: \"{userConfig.User.Dn}\".");
-                    }
+                    await sessionRestorer.RestoreAsync();
                 }
             }
             catch (Exception ex)

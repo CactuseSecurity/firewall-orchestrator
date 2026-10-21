@@ -633,6 +633,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Das Email-Protokoll kann nach Benachrichtigungs-ID, Benachrichtigungstyp, Status und Fehlertext gefiltert werden.</li>
     <li>LDAP: Eine Verbindung kann bis zu 10 Server (Replikate) eines Verzeichnisses enthalten, die der Reihe nach versucht werden. Aktive Verbindungen d&uuml;rfen keine gleichen Such- oder Schreibpfade haben; bisher als getrennte Verbindungen eingerichtete Replikate m&uuml;ssen zu einer Verbindung zusammengefasst werden. Lokale Nutzer werden an die unver&auml;nderliche Objekt-Id ihres Verzeichniseintrags gebunden, daher muss sich nach dem Upgrade jeder Nutzer einmal mit Passwort anmelden.</li>
     <li>Die Auftr&auml;ge &quot;Objekt anlegen&quot; und &quot;Objekt &auml;ndern&quot; unterst&uuml;tzen Zeitobjekte mit Name, Start- und Endzeit.</li>
+    <li>Neuer REST-Aufruf <code>resolvePathDevices</code>: ermittelt die Firewalls auf den Pfaden zwischen Quell- und Zieladressen (Bereiche oder Netze, je bis zu 100) mit dem Network-Zone-Tree-Algorithmus. Algorithmus und Zonenmatrix k&ouml;nnen angegeben werden, sonst gelten die Einstellungen. Die Antwort nennt jedes Ger&auml;t einmal sowie den verwendeten Algorithmus und die verwendete Matrix.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -664,6 +665,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>The email log can be filtered by notification ID, notification type, status and error text.</li>
     <li>LDAP: a connection can list up to 10 servers (replicas) of one directory, which are tried in order. Active connections must not share a search or write path; replicas configured as separate connections so far have to be combined into one connection. Local users are bound to the immutable object id of their directory entry, so every user has to log in with password once after the upgrade.</li>
     <li>The tasks &quot;create object&quot; and &quot;modify object&quot; support time objects with name, start and end time.</li>
+    <li>New REST call <code>resolvePathDevices</code>: determines the firewalls on the paths between source and destination addresses (ranges or networks, up to 100 each) using the network zone tree algorithm. Algorithm and zone matrix can be specified, otherwise the settings apply. The response lists each device once together with the algorithm and matrix used.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -6902,9 +6904,11 @@ INSERT INTO txt VALUES ('H5261', 'English', 'Here all users known to the system 
 ');
 INSERT INTO txt VALUES ('H5271', 'German',  'Aktionen: Nutzer k&ouml;nnen geklont, ge&auml;ndert oder gel&ouml;scht werden.
     Ausserdem kann der Administrator das Passwort der Nutzer zur&uuml;cksetzen und ein neues setzen, welches den Vorgaben der <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> gen&uuml;gen muss.
+    Das L&ouml;schen eines Nutzers beendet sofort alle seine Sitzungen.
 ');
 INSERT INTO txt VALUES ('H5271', 'English', 'Actions: Users can be cloned, edited or deleted.
     Additionally the administrator has the possibility to reset the password of the users and set a new password which has to comply with the <a href="/help/settings/passwordpolicy">Password Policy</a>.
+    Deleting a user ends all of the user''s sessions at once.
 ');
 INSERT INTO txt VALUES ('H5272', 'German',  'Name: Nutzername.');
 INSERT INTO txt VALUES ('H5272', 'English', 'Name: Name of the user.');
@@ -6954,10 +6958,10 @@ INSERT INTO txt VALUES ('H5302', 'German',  'Wenn Beispieldaten (definiert durch
 INSERT INTO txt VALUES ('H5302', 'English', 'If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
     The deletion is only possible, if there are no non-sample users (user name not ending with "_demo") assigned to the group.
 ');
-INSERT INTO txt VALUES ('H5311', 'German',  'Gruppenaktionen: Hier k&ouml;nnen selbstdefinierte Gruppen ge&auml;ndert (zur Zeit nur umbenannt) oder gel&ouml;scht werden.');
-INSERT INTO txt VALUES ('H5311', 'English', 'Group actions: Here is the possibility to edit (currently only rename) or delete self defined user groups.');
-INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) oder aus einem zu durchsuchenden Ldap der Gruppe zugeordnet bzw. von dieser entfernt werden.');
-INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) or searched from an Ldap can be assigned to resp. removed from the user groups.');
+INSERT INTO txt VALUES ('H5311', 'German',  'Gruppenaktionen: Hier k&ouml;nnen selbstdefinierte Gruppen ge&auml;ndert (zur Zeit nur umbenannt) oder gel&ouml;scht werden. Das L&ouml;schen einer Gruppe beendet sofort die Sitzungen ihrer Mitglieder; diese m&uuml;ssen sich neu anmelden.');
+INSERT INTO txt VALUES ('H5311', 'English', 'Group actions: Here is the possibility to edit (currently only rename) or delete self defined user groups. Deleting a group ends the sessions of its members at once; they have to log in again.');
+INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) oder aus einem zu durchsuchenden Ldap der Gruppe zugeordnet bzw. von dieser entfernt werden. Das Entfernen eines Nutzers aus einer Gruppe beendet sofort seine Sitzungen.');
+INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) or searched from an Ldap can be assigned to resp. removed from the user groups. Removing a user from a group ends the user''s sessions at once.');
 INSERT INTO txt VALUES ('H5313', 'German',  'Name: Name der Nutzergruppe.');
 INSERT INTO txt VALUES ('H5313', 'English', 'Name: Name of the user group.');
 INSERT INTO txt VALUES ('H5314', 'German',  'Nutzer: Liste der der Gruppe zugeordneten Nutzer.');
@@ -6974,10 +6978,12 @@ INSERT INTO txt VALUES ('H5332', 'German',  'Die verf&uuml;gbaren Rollen k&ouml;
 INSERT INTO txt VALUES ('H5332', 'English', 'The provided roles can be divided into several categories:');
 INSERT INTO txt VALUES ('H5341', 'German',  'Aktionen: Der Admin hat die M&ouml;glichkeit, Nutzer den Rollen zuzuordnen oder sie von ihnen zu entfernen,
     ausser f&uuml;r "anonymous" oder "middleware-server", welche nur intern genutzt werden kann.
+    Das Entfernen eines Nutzers oder einer Gruppe aus einer Rolle beendet sofort die Sitzungen der betroffenen Nutzer; diese m&uuml;ssen sich neu anmelden.
     Das Hinzuf&uuml;gen der Nutzer kann auf drei Arten erfolgen:
 ');
 INSERT INTO txt VALUES ('H5341', 'English', 'Actions: The admin can add or delete users from the roles,
     except for "anonymous" or "middleware-server" which can only be used internally.
+    Removing a user or group from a role ends the sessions of the affected users at once; they have to log in again.
     For adding users there are three possibilities:
 ');
 INSERT INTO txt VALUES ('H5342', 'German',  'Name: Rollenname');

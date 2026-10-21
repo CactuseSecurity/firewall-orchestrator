@@ -32,7 +32,7 @@ Define a context containing exactly the resolved inputs required by Phase 1:
 - parent request task;
 - target gateway;
 - target management; and
-- effective `GatewayProvisioningSettings`.
+- effective `GatewayDeviceSpecificSettings`.
 
 The context is caller-supplied and calculation-only. It does not load data or persist results.
 

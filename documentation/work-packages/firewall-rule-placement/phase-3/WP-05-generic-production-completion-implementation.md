@@ -18,7 +18,7 @@ The only supported production mapping in this package is:
 | --- | --- | --- | --- | --- |
 | Check Point gateway, device type ID `9` | `ProvisioningPositioningAlgorithm.DefaultEndOfRulebase` | `EndOfBlock(CheckPointLayerScopeBlock(CheckPointLayerSelector.InitialLayer()))` | `Below` the final direct rule | `Bottom` of the initial layer |
 
-This mapping is supported by the compiled `GatewayProvisioningSettings` default and the existing localized UI description of that default as “end of rulebase”; it is not inferred from the enum name alone.
+This mapping is supported by the compiled `GatewayDeviceSpecificSettings` default and the existing localized UI description of that default as “end of rulebase”; it is not inferred from the enum name alone.
 
 The following values are explicitly unsupported by the graph-only catalog in WP-05:
 
@@ -78,7 +78,7 @@ The caller must:
 1. reject non-persisted, combined, or internally inconsistent tasks before loading context;
 2. load exactly the target gateway and its management through one narrow GraphQL read rather than relying on caller-supplied device objects;
 3. derive effective management as `implTask.ManagementId ?? requestTask.ManagementId` and validate all ownership/identity relationships;
-4. load effective `GatewayProvisioningSettings` with `ProvisioningSettingsManager.LoadLevelAsync<GatewayProvisioningSettings>(ProvisioningScopePath.ForGateway(management, gateway))`;
+4. load effective `GatewayDeviceSpecificSettings` with `DeviceSpecificSettingsManager.LoadLevelAsync<GatewayDeviceSpecificSettings>(DeviceSpecificScopePath.ForGateway(management, gateway))`;
 5. construct one `RulePositioningContext` and call `RulePositioningManager.CalculateAsync` exactly once; and
 6. persist the result independently with the existing `updateImplementationTaskRulePosition` mutation, without constructing `WfDbAccess` and without triggering workflow state changes.
 
@@ -119,7 +119,7 @@ In `roles/middleware/files/FWO.Middleware.Server/Program.cs`, register:
 - `ICheckPointGraphPositioningRecipeCatalog` to `CheckPointGraphPositioningRecipeCatalog`;
 - `CheckPointGraphRulePositioningStrategy` as the sole production `IRulePositioningStrategy`;
 - `RulePositioningManager`;
-- `ProvisioningSettingsManager`;
+- `DeviceSpecificSettingsManager`;
 - `IRulePositioningWorkflowCaller` to `RulePositioningWorkflowCaller`.
 
 Register all of these as singletons. They depend only on the existing singleton `ApiConnection`, immutable/stateless collaborators, and constructor-supplied strategy collections; no service may capture request-scoped mutable workflow state.

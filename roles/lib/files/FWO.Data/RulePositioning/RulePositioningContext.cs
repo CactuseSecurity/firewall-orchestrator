@@ -1,4 +1,4 @@
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 
 namespace FWO.Data.RulePositioning;
@@ -11,4 +11,4 @@ public sealed record RulePositioningContext(
     WfReqTask ParentRequestTask,
     Device TargetGateway,
     Management TargetManagement,
-    GatewayProvisioningSettings EffectiveSettings);
+    GatewayDeviceSpecificSettings EffectiveSettings);

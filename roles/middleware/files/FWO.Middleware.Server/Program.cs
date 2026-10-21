@@ -91,7 +91,7 @@ builder.Services.AddSingleton<CheckPointGraphRulePositioningStrategy>();
 builder.Services.AddSingleton<IRulePositioningStrategy>(serviceProvider =>
     serviceProvider.GetRequiredService<CheckPointGraphRulePositioningStrategy>());
 builder.Services.AddSingleton<RulePositioningManager>();
-builder.Services.AddSingleton<ProvisioningSettingsManager>();
+builder.Services.AddSingleton<DeviceSpecificSettingsManager>();
 builder.Services.AddSingleton<IRulePositioningWorkflowCaller, RulePositioningWorkflowCaller>();
 builder.Services.AddHostedService<InternalApiTokenRefreshService>();
 

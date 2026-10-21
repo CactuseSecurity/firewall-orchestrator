@@ -4,7 +4,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
@@ -290,7 +290,7 @@ internal class RulePositioningWorkflowCallerTest
         return new RulePositioningWorkflowCaller(
             api,
             new RulePositioningManager([strategy]),
-            new ProvisioningSettingsManager(api));
+            new DeviceSpecificSettingsManager(api));
     }
 
     private static RulePositioningResult Success()
@@ -380,10 +380,10 @@ internal class RulePositioningWorkflowCallerTest
                 }
                 return (T)(object)new List<Device> { Target() };
             }
-            if (query == ProvisioningQueries.getNodesByNaturalKeys)
+            if (query == DeviceSpecificSettingsQueries.getNodesByNaturalKeys)
             {
                 SettingsReads++;
-                return (T)(object)new List<ProvisioningConfigNodeData>();
+                return (T)(object)new List<DeviceSpecificConfigNodeData>();
             }
             if (query == RequestQueries.updateImplementationTaskRulePosition)
             {

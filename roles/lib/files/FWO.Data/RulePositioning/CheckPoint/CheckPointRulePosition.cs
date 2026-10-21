@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using Newtonsoft.Json;
 
 namespace FWO.Data.RulePositioning.CheckPoint;

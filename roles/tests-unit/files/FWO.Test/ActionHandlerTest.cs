@@ -1711,7 +1711,7 @@ namespace FWO.Test
             return new RulePositioningWorkflowCaller(
                 apiConnection,
                 new RulePositioningManager([]),
-                new ProvisioningSettingsManager(apiConnection));
+                new DeviceSpecificSettingsManager(apiConnection));
         }
 
         private static ActionHandlerTestApiConn PositioningActionApiConnection()

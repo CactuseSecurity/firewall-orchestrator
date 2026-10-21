@@ -22,7 +22,7 @@ Rationale: a side-effect-free calculation API is easier to test, reuse, retry, a
 
 ## 2026-10-05 — D-004 — Context is explicit and management is not duplicated
 
-`RulePositioningContext` contains the implementation task, parent request task, target gateway, target management, and effective `GatewayProvisioningSettings`. Management is derived from the request-task/gateway relationship; no `management_id` is added to the implementation task.
+`RulePositioningContext` contains the implementation task, parent request task, target gateway, target management, and effective `GatewayDeviceSpecificSettings`. Management is derived from the request-task/gateway relationship; no `management_id` is added to the implementation task.
 
 Rationale: callers provide the resolved context while the manager verifies consistency without creating a second source of truth.
 
@@ -256,7 +256,7 @@ Rationale: no current product path owns Check Point rule execution, so retaining
 
 Phase 3 WP-05 supports exactly `ProvisioningPositioningAlgorithm.DefaultEndOfRulebase` for Check Point gateway device type ID `9`. It maps to `EndOfBlock(CheckPointLayerScopeBlock(CheckPointLayerSelector.InitialLayer()))`, producing `Below` the last direct rule in a populated initial layer and `Bottom` in an existing empty initial layer. Every other named value, `Undefined`, and unknown numeric value is unsupported without fallback.
 
-The mapping is supported by both the compiled `GatewayProvisioningSettings` default and the existing localized UI statement that the default is the end of the rulebase; it is not inferred from the enum name alone.
+The mapping is supported by both the compiled `GatewayDeviceSpecificSettings` default and the existing localized UI statement that the default is the end of the rulebase; it is not inferred from the enum name alone.
 
 Rationale: this is the only existing setting whose current product default and description establish genuinely generic graph-only behavior without opening the customer document or requiring zone input.
 

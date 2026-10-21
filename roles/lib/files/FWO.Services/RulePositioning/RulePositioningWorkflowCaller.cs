@@ -2,7 +2,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using FWO.Logging;
@@ -16,13 +16,13 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
 
     private readonly ApiConnection apiConnection;
     private readonly RulePositioningManager positioningManager;
-    private readonly ProvisioningSettingsManager settingsManager;
+    private readonly DeviceSpecificSettingsManager settingsManager;
 
     /// <summary>Creates an independently callable rule-positioning service.</summary>
     public RulePositioningWorkflowCaller(
         ApiConnection apiConnection,
         RulePositioningManager positioningManager,
-        ProvisioningSettingsManager settingsManager)
+        DeviceSpecificSettingsManager settingsManager)
     {
         this.apiConnection = apiConnection ?? throw new ArgumentNullException(nameof(apiConnection));
         this.positioningManager = positioningManager ?? throw new ArgumentNullException(nameof(positioningManager));
@@ -50,9 +50,9 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
                 implementationTask.DeviceId!.Value,
                 EffectiveManagementId(requestTask, implementationTask));
             cancellationToken.ThrowIfCancellationRequested();
-            ProvisioningSettingsLevel<GatewayProvisioningSettings> settings =
-                await settingsManager.LoadLevelAsync<GatewayProvisioningSettings>(
-                    ProvisioningScopePath.ForGateway(target.Management, target.Gateway));
+            DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> settings =
+                await settingsManager.LoadLevelAsync<GatewayDeviceSpecificSettings>(
+                    DeviceSpecificScopePath.ForGateway(target.Management, target.Gateway));
             cancellationToken.ThrowIfCancellationRequested();
 
             RulePositioningContext context = new(

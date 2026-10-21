@@ -1,5 +1,5 @@
 using FWO.Data;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
 
 namespace FWO.Services.RulePositioning;

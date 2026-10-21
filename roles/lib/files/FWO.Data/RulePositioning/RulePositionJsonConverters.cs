@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using Newtonsoft.Json.Linq;
 using NewtonsoftJsonReader = Newtonsoft.Json.JsonReader;
 using NewtonsoftJsonSerializer = Newtonsoft.Json.JsonSerializer;

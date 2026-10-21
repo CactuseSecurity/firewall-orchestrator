@@ -58,6 +58,10 @@
   - report links to app roles, groups and network areas whose names share a prefix now point to the right object
 
 ## 9.8.1 - 20.10.2026
+- add nullable, forward-compatible rule-position storage to implementation tasks
+- add a dedicated GraphQL persistence operation that stores, replaces, or clears only the rule position
+- add a graph-only Check Point end-of-rulebase positioning strategy and an independently callable best-effort workflow service
+- remove the inactive speculative Check Point rule-position renderer; semantic positions remain the terminal output
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
 - autodiscovery: alerts and alert log lines no longer contain the import credential secret of the super management; the upgrade removes it from existing alerts. Rotate the credentials of super managements used with autodiscovery, and purge old middleware logs where possible
 - new REST endpoint `POST /api/pathAnalysis/resolvePathDevices` (roles admin, auditor): returns the firewall devices on the paths between every source and every destination, deduplicated and unordered, together with the algorithm and zone matrix actually used. This makes the network zone tree path analysis callable
@@ -101,10 +105,6 @@
 - replace management.importer_hostname with the device specific setting importerHostName (Global, device type, manager; empty means every importer imports); the upgrade moves the most common host to Global and differing hosts to manager overrides, backs up and drops the column; the importer role may read only this setting
 
 ## 9.7.3 - 14.10.2026
-- add nullable, forward-compatible rule-position storage to implementation tasks
-- add a dedicated GraphQL persistence operation that stores, replaces, or clears only the rule position
-- add a graph-only Check Point end-of-rulebase positioning strategy and an independently callable best-effort workflow service
-- remove the inactive speculative Check Point rule-position renderer; semantic positions remain the terminal output
 - replace cloud client fields with selectable additional credentials; migrate existing values into encrypted credential secrets (#3766)
 - the Cisco ASA importer decrypts the selected additional credential for enable mode
 - modelling: auditors and admins can open the add and edit dialog of app roles again to try it out (closes #4968)

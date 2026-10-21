@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using FWO.Data;
-using FWO.Data.Provisioning;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using Newtonsoft.Json;
@@ -168,7 +168,7 @@ public class RulePositioningContractsTest
         WfReqTask requestTask = new();
         Device gateway = new();
         Management management = new();
-        GatewayProvisioningSettings settings = new();
+        GatewayDeviceSpecificSettings settings = new();
 
         RulePositioningContext context = new(
             implementationTask,

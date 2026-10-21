@@ -623,6 +623,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ResolveTicket_OwnerBasedPhaseShowsInterfaceRequestToRequestingAppWithoutChangeRight()
+        {
+            // only the request phase lets the requesting app change its interface request
+            WfTicket interfaceTicket = CreateTicketOwnedBy(kForeignAppId);
+            interfaceTicket.Tasks[0].SetAddInfo(AdditionalInfoKeys.ReqOwner, kOwnAppId.ToString());
+            TicketTestApiConn apiConn = new() { Ticket = interfaceTicket };
+            WfHandler handler = CreateOwnerBasedApprovalHandler(apiConn);
+            await handler.LoadOwnerScope(apiConn, kOwnAppIds);
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Not.Null);
+            Assert.That(ticket!.Editable, Is.False);
+        }
+
+        [Test]
         public async Task ResolveTicket_OwnerBasedWithoutScopeResolvesTicketsOfAllApps()
         {
             // modelling and monitoring do not scope the handler, e.g. to process interface requests of other apps

@@ -101,7 +101,7 @@
                     <div class="btn-group">
                         @foreach(var action in offeredActions)
                         {
-                            @if(!WfHandler.ReadOnlyMode || WfStateAction.IsReadonlyType(action.ActionType))
+                            @if(WfHandler.CanPerformActionOnActTicket(action))
                             {
                                 <button type="button" class="btn btn-sm btn-dark ml-13" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                             }
@@ -363,7 +363,7 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        if (WorkInProgress)
+        if (WorkInProgress || !WfHandler.CanPerformActionOnActTicket(action))
         {
             return;
         }

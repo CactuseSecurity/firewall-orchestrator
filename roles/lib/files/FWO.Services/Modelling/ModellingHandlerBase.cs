@@ -517,6 +517,15 @@ namespace FWO.Services.Modelling
         {
             try
             {
+                if (userConfig.User.Ownerships.Count == 0)
+                {
+                    // the login claims decide at once, so neither waiting nor querying helps users without apps
+                    UpdateOwnerships(authenticationStateTask, userConfig);
+                }
+                if (userConfig.User.Ownerships.Count == 0)
+                {
+                    return [];
+                }
                 return await LoadResponsibleApps(authenticationStateTask, userConfig, apiConnection, false);
             }
             catch (Exception exception)
@@ -543,11 +552,11 @@ namespace FWO.Services.Modelling
                     UpdateOwnerships(authenticationStateTask, userConfig);
                 }
             }
-            Log.WriteDebug("GetOwnApps", $"User={username ?? "unknown"}, usedClaimFallback={usedClaimFallback}, ownershipCount={userConfig.User.Ownerships.Count}, withConn={withConn}");
+            Log.WriteDebug(nameof(LoadResponsibleApps), $"User={username ?? "unknown"}, usedClaimFallback={usedClaimFallback}, ownershipCount={userConfig.User.Ownerships.Count}, withConn={withConn}");
 
             string query = withConn ? OwnerQueries.getEditableOwnersWithConn : OwnerQueries.getEditableOwners;
             List<FwoOwner> apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(query, new { appIds = userConfig.User.Ownerships.ToArray() });
-            Log.WriteDebug("GetOwnApps", $"User={username ?? "unknown"}, editableAppsCount={apps.Count}, withConn={withConn}");
+            Log.WriteDebug(nameof(LoadResponsibleApps), $"User={username ?? "unknown"}, editableAppsCount={apps.Count}, withConn={withConn}");
             return apps;
         }
 

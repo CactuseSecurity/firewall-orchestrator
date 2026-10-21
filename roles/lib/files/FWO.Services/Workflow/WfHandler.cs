@@ -229,7 +229,7 @@ namespace FWO.Services.Workflow
             await LoadOwnerScope(activeApiConnection, ownerIds);
             if (fetchData)
             {
-                TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets, GetTicketFilter());
+                TicketList = await FetchTicketList(ownerIds, allStates, fullTickets);
             }
             ReloadTasks = !fullTickets;
             PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");

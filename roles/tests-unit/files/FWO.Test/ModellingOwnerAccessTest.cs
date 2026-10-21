@@ -205,6 +205,21 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task ResponsibleAppsSkipQueryWithoutOwnershipClaim()
+        {
+            ApiConnection apiConnection = Substitute.For<ApiConnection>();
+            ClaimsPrincipal principal = BuildPrincipal(new List<string> { Roles.Requester });
+            Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
+            UserConfig userConfig = new SimulatedUserConfig { User = { Roles = [Roles.Requester] } };
+
+            List<FwoOwner> apps = await ModellingHandlerBase.GetResponsibleApps(authStateTask, userConfig, apiConnection, NoopDisplay);
+
+            Assert.That(apps, Is.Empty);
+            await apiConnection.DidNotReceiveWithAnyArgs()
+                .SendQueryAsync<List<FwoOwner>>(default!, default, default);
+        }
+
         private static ClaimsPrincipal BuildPrincipal(List<string> roles, Claim? extraClaim = null)
         {
             List<Claim> claims = roles.ConvertAll(role => new Claim(ClaimTypes.Role, role));

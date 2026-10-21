@@ -18,11 +18,17 @@ namespace FWO.Test
         private const int kResponsibleOwnerId = 5;
         private const int kForeignOwnerId = 9;
         private const long kTicketId = 7;
+        private const long kOwnTicketId = 1;
+        private const long kAppTicketId = 2;
+        private const long kForeignTicketId = 3;
         private static readonly List<int> kResponsibleOwnerIds = [kResponsibleOwnerId];
+        private static readonly List<long> kOwnAndAppTicketIds = [kOwnTicketId, kAppTicketId];
+        private static readonly List<long> kAllTicketIds = [kOwnTicketId, kAppTicketId, kForeignTicketId];
 
         private sealed class RequestAccessApiConn : SimulatedApiConnection
         {
             public WfTicket Ticket { get; set; } = new();
+            public List<WfTicket> Tickets { get; set; } = [];
             public List<long> RegisteredTicketIds { get; set; } = [];
             public List<string> Queries { get; } = [];
 
@@ -37,6 +43,10 @@ namespace FWO.Test
                 if (query == RequestQueries.getTicketById)
                 {
                     return Task.FromResult((T)(object)Ticket);
+                }
+                if (query == RequestQueries.getTickets)
+                {
+                    return Task.FromResult((T)(object)new List<WfTicket>(Tickets));
                 }
                 throw new AssertionException($"Unexpected query: {query}");
             }
@@ -350,6 +360,105 @@ namespace FWO.Test
                 Assert.That(apiConn.Queries, Has.Count.EqualTo(queryCount));
                 Assert.That(recorder.Messages, Has.Count.EqualTo(4));
             });
+        }
+
+        private static List<WfTicket> CreateOwnAppAndForeignTickets()
+        {
+            WfTicket ownTicket = CreateTicket(kCurrentUserId);
+            ownTicket.Id = kOwnTicketId;
+            WfTicket appTicket = CreateTicketWithTaskOwner(kResponsibleOwnerId);
+            appTicket.Id = kAppTicketId;
+            WfTicket foreignTicket = CreateTicketWithTaskOwner(kForeignOwnerId);
+            foreignTicket.Id = kForeignTicketId;
+            return [ownTicket, appTicket, foreignTicket];
+        }
+
+        [Test]
+        public async Task FetchTicketList_RequesterGetsOwnAndAppTicketsOnly()
+        {
+            RequestAccessApiConn apiConn = new() { Tickets = CreateOwnAppAndForeignTickets() };
+            WfHandler handler = await CreateHandlerWithScope(apiConn, CreateUserConfig(Roles.Requester));
+
+            List<WfTicket> tickets = await handler.FetchTicketList(kResponsibleOwnerIds, false, false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(tickets.ConvertAll(ticket => ticket.Id), Is.EquivalentTo(kOwnAndAppTicketIds));
+                Assert.That(tickets.TrueForAll(ticket => ticket.Editable), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task FetchTicketList_AdminGetsAllTickets()
+        {
+            RequestAccessApiConn apiConn = new() { Tickets = CreateOwnAppAndForeignTickets() };
+            WfHandler handler = await CreateHandlerWithScope(apiConn, CreateUserConfig(Roles.Admin));
+
+            List<WfTicket> tickets = await handler.FetchTicketList(null, false, false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(tickets.ConvertAll(ticket => ticket.Id), Is.EquivalentTo(kAllTicketIds));
+                Assert.That(tickets.TrueForAll(ticket => ticket.Editable), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task FetchTicketList_AuditorGetsAllTicketsButMayChangeOnlyOwnAndApp()
+        {
+            RequestAccessApiConn apiConn = new() { Tickets = CreateOwnAppAndForeignTickets() };
+            WfHandler handler = await CreateHandlerWithScope(apiConn, CreateUserConfig(Roles.Auditor));
+
+            List<WfTicket> tickets = await handler.FetchTicketList(kResponsibleOwnerIds, false, false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(tickets.ConvertAll(ticket => ticket.Id), Is.EquivalentTo(kAllTicketIds));
+                Assert.That(tickets.FindAll(ticket => ticket.Editable).ConvertAll(ticket => ticket.Id), Is.EquivalentTo(kOwnAndAppTicketIds));
+            });
+        }
+
+        [Test]
+        public async Task ResolveTicket_OwnerBasedModeLetsRequestingAppEditInterfaceRequest()
+        {
+            RequestAccessApiConn apiConn = new() { Ticket = CreateInterfaceTicketRequestedBy(kResponsibleOwnerId) };
+            UiRequestCoverageTest.RequestCoverageUserConfig userConfig = CreateUserConfig(Roles.Requester);
+            userConfig.ReqOwnerBased = true;
+            WfHandler handler = await CreateHandlerWithScope(apiConn, userConfig);
+
+            WfTicket? ticket = await handler.ResolveTicket(kTicketId);
+
+            Assert.That(ticket, Is.Not.Null);
+            Assert.That(ticket!.Editable, Is.True);
+        }
+
+        [Test]
+        public async Task ResolveTicket_RestrictionNeverMakesTicketEditableAgain()
+        {
+            WfTicket loadedTicket = CreateTicket(kCurrentUserId);
+            loadedTicket.Editable = false;
+            RequestAccessApiConn apiConn = new() { Ticket = loadedTicket };
+            WfHandler handler = await CreateHandlerWithScope(apiConn, CreateUserConfig(Roles.Requester));
+
+            WfTicket? ticket = await handler.ResolveTicket(kTicketId);
+
+            Assert.That(ticket, Is.Not.Null);
+            Assert.That(ticket!.Editable, Is.False);
+        }
+
+        [TestCase(StateActionTypes.TrafficPathAnalysis, false, false, true)]
+        [TestCase(StateActionTypes.AutoPromote, false, false, false)]
+        [TestCase(StateActionTypes.AutoPromote, true, false, true)]
+        [TestCase(StateActionTypes.AutoPromote, true, true, false)]
+        public void CanPerformActionOnActTicket_NeedsChangeRightForChangingActions(StateActionTypes actionType, bool editable, bool readOnly, bool expected)
+        {
+            WfHandler handler = CreateHandler(new RequestAccessApiConn(), CreateUserConfig(Roles.Requester, Roles.Auditor));
+            handler.ActTicket = new WfTicket { Editable = editable };
+            handler.ReadOnlyMode = readOnly;
+
+            bool allowed = handler.CanPerformActionOnActTicket(new WfStateAction { ActionType = actionType.ToString() });
+
+            Assert.That(allowed, Is.EqualTo(expected));
         }
 
         [Test]

@@ -358,13 +358,15 @@ namespace FWO.Services.Modelling
 
             foreach (ModellingAppServerWrapper appserver in appRole.AppServers)
             {
-                if (existingAppRole.AppServers.FirstOrDefault(a => IsSameGroupMember(a.Content, appserver.Content)) != null)
-                {
-                    unchangedAppServers.Add(appserver);
-                }
-                else
+                ModellingAppServerWrapper? matchingAppServer = existingAppRole.AppServers.FirstOrDefault(a => IsSameGroupMember(a.Content, appserver.Content));
+                if (matchingAppServer == null)
                 {
                     newAppServers.Add(appserver);
+                }
+                // keep the existing member: its name may differ from the modelled one (ip only comparison or ip suffixed name)
+                else if (!unchangedAppServers.Contains(matchingAppServer))
+                {
+                    unchangedAppServers.Add(matchingAppServer);
                 }
             }
             foreach (ModellingAppServerWrapper exAppserver in existingAppRole.AppServers)

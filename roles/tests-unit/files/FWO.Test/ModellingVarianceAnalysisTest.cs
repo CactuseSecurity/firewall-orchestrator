@@ -9,6 +9,7 @@ using FWO.Services;
 using FWO.Services.Modelling;
 using FWO.Services.Workflow;
 using NUnit.Framework;
+using System.Reflection;
 using NUnit.Framework.Legacy;
 
 namespace FWO.Test
@@ -844,6 +845,57 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(0, ipOnlyResult.DifferingAppRoles[1].Count);
             ClassicAssert.AreEqual(1, nameAndIpResult.DifferingAppRoles[1].Count);
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_UnchangedMembersKeepExistingName()
+        {
+            ModellingConnection connection = CreateConnectionWithChangedMemberIp();
+            ModellingAppRole appRole = connection.SourceAppRoles[0].Content;
+            // RenamedServer matches the existing member AppServerUnchanged by ip, NewServer forces an update of the group
+            appRole.AppServers =
+            [
+                new() { Content = new() { Id = 960, Name = "RenamedServer", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" } },
+                new() { Content = new() { Id = 961, Name = "AppServerOld", Ip = "1.0.0.0/32", IpEnd = "1.0.0.0/32" } },
+                new() { Content = new() { Id = 962, Name = "NewServer", Ip = "10.9.9.9/32", IpEnd = "10.9.9.9/32" } }
+            ];
+            List<ModellingConnection> connections = [connection];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(stdRecogOpt), Application, DefaultInit.DoNothing);
+
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(connections);
+
+            WfReqTask? addTask = taskList.FirstOrDefault(t => t.Title == "Update AppRole: AR504711-001: Add Members");
+            Assert.That(addTask, Is.Not.Null);
+            List<WfReqElement> unchangedMembers = [.. addTask!.Elements.Where(e => e.RequestAction == RequestAction.unchanged.ToString())];
+            ClassicAssert.AreEqual(2, unchangedMembers.Count);
+            ClassicAssert.AreEqual("AppServerUnchanged", unchangedMembers[0].Name);
+            ClassicAssert.AreEqual("1.2.3.4", unchangedMembers[0].IpString);
+            ClassicAssert.AreEqual("AppServerOld", unchangedMembers[1].Name);
+            ClassicAssert.AreEqual(0, taskList.SelectMany(t => t.Elements).Count(e => e.Name == "RenamedServer"));
+            ClassicAssert.AreEqual(0, taskList.Count(t => t.Title == "Update AppRole: AR504711-001: Remove Members"));
+        }
+
+        [Test]
+        public void TestIsSameGroupMember_ExistingIpSuffixedNameMatchesModelledName()
+        {
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(nameAndIpRecogOpt), Application, DefaultInit.DoNothing);
+            // state after a replacement: the firewall object got the ip suffixed name, the modelled app server keeps its name
+            ModellingAppServer existingReplacement = new() { Name = "AppServerX_1.2.3.5", Ip = "1.2.3.5/32", IpEnd = "1.2.3.5/32" };
+            ModellingAppServer existingOld = new() { Name = "AppServerX", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" };
+            ModellingAppServer otherSuffix = new() { Name = "AppServerX_1.2.3.6", Ip = "1.2.3.5/32", IpEnd = "1.2.3.5/32" };
+            ModellingAppServer modelled = new() { Name = "AppServerX", Ip = "1.2.3.5/32", IpEnd = "1.2.3.5/32" };
+
+            ClassicAssert.IsTrue(InvokeIsSameGroupMember(varianceAnalysis, existingReplacement, modelled));
+            ClassicAssert.IsTrue(InvokeIsSameGroupMember(varianceAnalysis, modelled, existingReplacement));
+            ClassicAssert.IsFalse(InvokeIsSameGroupMember(varianceAnalysis, existingOld, modelled));
+            ClassicAssert.IsFalse(InvokeIsSameGroupMember(varianceAnalysis, otherSuffix, modelled));
+        }
+
+        private static bool InvokeIsSameGroupMember(ModellingVarianceAnalysis varianceAnalysis, ModellingAppServer appServer1, ModellingAppServer appServer2)
+        {
+            MethodInfo method = typeof(ModellingVarianceAnalysis).GetMethod("IsSameGroupMember", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            object[] arguments = [appServer1, appServer2];
+            return (bool)method.Invoke(varianceAnalysis, arguments)!;
         }
 
         [Test]

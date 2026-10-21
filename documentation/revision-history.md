@@ -10,6 +10,7 @@
 - new shared request building block for IP address blocks (`IpRangeOrNetworkRequest`) with the address rules of flow compliance, for reuse by further endpoints
 - UI report scheduling: help text and input tooltip for recipient email addresses now list all supported separators: comma ( , ), semicolon ( ; ) and vertical bar ( | )
 - Refresh-token rotation now behaves predictably under concurrent requests, and an unreachable API during authentication is reported as a retryable 503. Before, it came back as a 400 with the raw transport error.
+- dependencies: update NuGet packages (AngleSharp to 1.8.5, bunit to 2.12.5, PuppeteerSharp to 25.14.0, Quartz to 4.6.0)
 
 ## 9.8.0 - 20.10.2026
 - main release of features from 9.7.2ff including bugfixing and security fixes

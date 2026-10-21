@@ -366,7 +366,9 @@ namespace FWO.Test
             api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup>());
             api.Respond(RequestQueries.getStates, new List<WfState>
             {
-                new() { Id = 1 }, new() { Id = 2 }, new() { Id = 3 }
+                new() { Id = 1, Name = "Open" },
+                new() { Id = 2, Name = "Review" },
+                new() { Id = 3, Name = "Closed" }
             });
             api.Respond(RequestQueries.createWorkflowConfiguration, new ReturnId { NewId = 9 });
             TransferWorkflowConfiguration component = new();

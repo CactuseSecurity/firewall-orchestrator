@@ -81,6 +81,7 @@ namespace FWO.Services.Workflow
             }
             Validate(package, targetConfiguration?.Name ?? configurationName, configurations, states, true,
                 targetConfiguration != null);
+            ValidateExistingStateDefinitions(package, states);
             ValidateExistingDefinitions(package, existingGroups, existingVisibilityGroups);
             List<WorkflowConfigurationPhase> targetPhases = targetConfiguration == null
                 ? []
@@ -326,6 +327,26 @@ namespace FWO.Services.Workflow
                 if (existing != null)
                 {
                     EnsureEquivalent(existing, imported);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Rejects imported state definitions that conflict with existing states having the same ID.
+        /// </summary>
+        private static void ValidateExistingStateDefinitions(WorkflowConfigurationTransferPackage package, List<WfState> states)
+        {
+            Dictionary<int, WfState> existingStates = states.ToDictionary(state => state.Id);
+            foreach (WorkflowStateTransferData imported in package.States)
+            {
+                if (!existingStates.TryGetValue(imported.Id, out WfState? existing))
+                {
+                    continue;
+                }
+                if (!string.Equals(existing.Name, imported.Name, StringComparison.Ordinal)
+                    || existing.AutomaticOnly != imported.AutomaticOnly)
+                {
+                    throw new InvalidDataException($"Workflow state {imported.Id} already exists with a different definition.");
                 }
             }
         }
@@ -608,7 +629,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         private static void ValidateStateDefinitions(WorkflowConfigurationTransferPackage package)
         {
-            if (package.States.Any(state => state == null || state.Id <= 0 || string.IsNullOrWhiteSpace(state.Name))
+            if (package.States.Any(state => state == null || state.Id < 0 || string.IsNullOrWhiteSpace(state.Name))
                 || package.States.GroupBy(state => state.Id).Any(group => group.Count() > 1))
             {
                 throw new InvalidDataException("The package contains an invalid or duplicate workflow state definition.");

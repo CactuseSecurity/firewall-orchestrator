@@ -88,6 +88,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Export_AllowsReferencedStateZero()
+        {
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration>
+            {
+                new() { Id = 5, Name = "Shared" }
+            });
+            WorkflowConfigurationPhase phase = PhaseMapping(10);
+            phase.PhaseMatrix.LowestInputState = 0;
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase> { phase });
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup>
+            {
+                TransitionGroup(10, 20)
+            });
+            api.Respond(RequestQueries.getStates, States());
+            WorkflowConfigurationTransferService service = new(api);
+
+            WorkflowConfigurationTransferPackage package = await service.Export(5, false);
+
+            Assert.That(package.States.Single(state => state.Id == 0).Name, Is.EqualTo("Draft"));
+        }
+
+        [Test]
         public void Export_RejectsAnEmptyPhaseSelection()
         {
             RecordingWorkflowApiConnection api = new();
@@ -184,12 +207,34 @@ namespace FWO.Test
             api.Respond(RequestQueries.replaceStateMatrixTransitionGroupTransitions, new object());
             api.Respond(RequestQueries.createWorkflowConfiguration, new ReturnId { NewId = 40 });
             WorkflowConfigurationTransferPackage package = Package();
-            package.States.Single(state => state.Id == 1).Name = "Source name";
             WorkflowConfigurationTransferService service = new(api);
 
             await service.Import(package, "Imported");
 
             Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createState), Is.False);
+        }
+
+        [TestCase("Source name", false)]
+        [TestCase("Open", true)]
+        public void Import_RejectsConflictingExistingStateDefinitions(string importedName, bool importedAutomaticOnly)
+        {
+            RecordingWorkflowApiConnection api = EmptyImportApi();
+            WorkflowConfigurationTransferPackage package = Package();
+            WorkflowStateTransferData importedState = package.States.Single(state => state.Id == 1);
+            importedState.Name = importedName;
+            importedState.AutomaticOnly = importedAutomaticOnly;
+            WorkflowConfigurationTransferService service = new(api);
+
+            InvalidDataException? exception = Assert.ThrowsAsync<InvalidDataException>(() => service.Import(package, "Imported"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception?.Message, Does.Contain("different definition"));
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createState), Is.False);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createWorkflowVisibilityGroup), Is.False);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createStateMatrixTransitionGroup), Is.False);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createWorkflowConfiguration), Is.False);
+            });
         }
 
         [Test]
@@ -569,7 +614,7 @@ namespace FWO.Test
         {
             Assert.Multiple(() =>
             {
-                Assert.That(StructureError(package => package.States[0].Id = 0)?.Message,
+                Assert.That(StructureError(package => package.States[0].Id = -1)?.Message,
                     Does.Contain("invalid or duplicate workflow state"));
                 Assert.That(StructureError(package => package.States.RemoveAt(0))?.Message,
                     Does.Contain("missing workflow state definitions"));
@@ -796,6 +841,7 @@ namespace FWO.Test
 
         private static List<WfState> States() =>
         [
+            new() { Id = 0, Name = "Draft" },
             new() { Id = 1, Name = "Open" },
             new() { Id = 2, Name = "Automatic approval", AutomaticOnly = true },
             new() { Id = 3, Name = "Closed" }

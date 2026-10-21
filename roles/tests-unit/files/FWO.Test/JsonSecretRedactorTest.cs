@@ -72,13 +72,53 @@ namespace FWO.Test
             Assert.That(JsonSecretRedactor.Redact(text), Is.EqualTo(text));
         }
 
+        // 64 is the default depth limit of the JSON parser
+        [TestCase(63)]
+        [TestCase(64)]
+        [TestCase(80)]
+        [TestCase(JsonSecretRedactor.kMaxDepth)]
+        public void Redact_MasksSecretNestedDeeperThanParserDefault(int nestingDepth)
+        {
+            string jsonText = WrapInArrays($"{{\"secret\":\"{kSecretMarker}\",\"id\":7}}", nestingDepth);
+
+            string redacted = JsonSecretRedactor.Redact(jsonText);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(redacted, Does.Not.Contain(kSecretMarker));
+                Assert.That(redacted, Is.EqualTo(WrapInArrays($"{{\"secret\":\"{JsonSecretRedactor.kRedactedValue}\",\"id\":7}}", nestingDepth)));
+            });
+        }
+
         [Test]
-        public void Redact_StopsAtMaximumDepthWithoutFailing()
+        public void Redact_MasksSecretBeyondMaximumDepth()
+        {
+            string jsonText = WrapInArrays($"{{\"secret\":\"{kSecretMarker}\"}}", JsonSecretRedactor.kMaxDepth + 20);
+
+            Assert.That(JsonSecretRedactor.Redact(jsonText), Does.Not.Contain(kSecretMarker));
+        }
+
+        [Test]
+        public void Redact_MasksSubtreeBeyondMaximumDepthAsAWhole()
         {
             const int nestingDepth = 150;
-            string jsonText = string.Concat(Enumerable.Repeat("[", nestingDepth)) + string.Concat(Enumerable.Repeat("]", nestingDepth));
+            string jsonText = WrapInArrays("", nestingDepth);
 
-            Assert.That(JsonSecretRedactor.Redact(jsonText), Is.EqualTo(jsonText));
+            string expected = WrapInArrays($"\"{JsonSecretRedactor.kRedactedValue}\"", JsonSecretRedactor.kMaxDepth + 1);
+            Assert.That(JsonSecretRedactor.Redact(jsonText), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void Redact_MasksJsonWithDuplicatePropertiesAsAWhole()
+        {
+            string jsonText = $"{{\"name\":\"domain-a\",\"secret\":\"first\",\"secret\":\"{kSecretMarker}\"}}";
+
+            Assert.That(JsonSecretRedactor.Redact(jsonText), Is.EqualTo(JsonSecretRedactor.kRedactedValue));
+        }
+
+        private static string WrapInArrays(string jsonText, int nestingDepth)
+        {
+            return string.Concat(Enumerable.Repeat("[", nestingDepth)) + jsonText + string.Concat(Enumerable.Repeat("]", nestingDepth));
         }
     }
 }

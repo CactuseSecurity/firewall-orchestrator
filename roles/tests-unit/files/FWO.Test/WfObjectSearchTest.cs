@@ -84,6 +84,28 @@ namespace FWO.Test
                 Assert.That(apiConnection.LastVariables.GetProperty("mgmId").GetInt32(), Is.EqualTo(kManagementId));
                 Assert.That(apiConnection.LastVariables.GetProperty("pattern").GetString(), Is.EqualTo("%servers%"));
                 Assert.That(apiConnection.LastVariables.GetProperty("limit").GetInt32(), Is.EqualTo(WfObjectTaskHelper.kSearchLimit));
+                Assert.That(apiConnection.LastQuery, Does.Not.Contain("objgrps"));
+            });
+        }
+
+        [Test]
+        public async Task LoadNetworkGroupMembers_RequestsOnlyTheBoundedMemberWindow()
+        {
+            NetworkObject group = new() { Id = 41, Name = "large-group" };
+            group.ObjectGroups = Enumerable.Range(1, WfObjectTaskHelper.kGroupMemberLimit + 1)
+                .Select(id => new Group<NetworkObject> { Id = id, Object = new NetworkObject { Id = id } })
+                .ToArray();
+            RecordingApiConnection apiConnection = new() { Result = new List<NetworkObject> { group } };
+
+            InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await new WfObjectSearch(apiConnection, new ClaimsPrincipal()).LoadNetworkGroupMembers(kManagementId, group.Id))!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception.Message, Does.Contain("too many members"));
+                Assert.That(apiConnection.LastQuery, Is.EqualTo(ObjectQueries.getNetworkGroupMembersForRequest));
+                Assert.That(apiConnection.LastVariables.GetProperty("memberLimit").GetInt32(),
+                    Is.EqualTo(WfObjectTaskHelper.kGroupMemberLimit + 1));
             });
         }
 
@@ -220,6 +242,25 @@ namespace FWO.Test
                 Assert.That(apiConnection.LastVariables.GetProperty("mgmId").GetInt32(), Is.EqualTo(kManagementId));
                 Assert.That(apiConnection.LastVariables.GetProperty("pattern").GetString(), Is.EqualTo("%web%"));
                 Assert.That(apiConnection.LastVariables.GetProperty("limit").GetInt32(), Is.EqualTo(WfObjectTaskHelper.kSearchLimit));
+                Assert.That(apiConnection.LastQuery, Does.Not.Contain("svcgrps"));
+            });
+        }
+
+        [Test]
+        public async Task LoadServiceGroupMembers_ReturnsTheBoundedGroup()
+        {
+            NetworkService group = new() { Id = 42, Name = "service-group" };
+            group.ServiceGroups = [new Group<NetworkService> { Id = 1, Object = new NetworkService { Id = 7 } }];
+            RecordingApiConnection apiConnection = new() { Result = new List<NetworkService> { group } };
+
+            NetworkService? loaded = await new WfObjectSearch(apiConnection, new ClaimsPrincipal()).LoadServiceGroupMembers(kManagementId, group.Id);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(loaded, Is.SameAs(group));
+                Assert.That(apiConnection.LastQuery, Is.EqualTo(ObjectQueries.getServiceGroupMembersForRequest));
+                Assert.That(apiConnection.LastVariables.GetProperty("memberLimit").GetInt32(),
+                    Is.EqualTo(WfObjectTaskHelper.kGroupMemberLimit + 1));
             });
         }
 

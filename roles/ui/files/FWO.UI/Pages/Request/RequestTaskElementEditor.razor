@@ -37,11 +37,11 @@ else if (TaskType == WfTaskType.group_create)
             <div class="col-sm-6">
                 <div class="btn-group btn-group-sm" role="group">
                     <input type="radio" class="btn-check" name="groupKind" id="grpKindNetwork" autocomplete="off"
-                        checked="@(!grpTypeSvc)" @onchange="() => grpTypeSvc = false">
+                        checked="@(!grpTypeSvc)" @onchange="() => SetGroupType(false)">
                     <label class="btn btn-outline-primary" for="grpKindNetwork">@(userConfig.GetText("network_group"))</label>
 
                     <input type="radio" class="btn-check" name="groupKind" id="grpKindService" autocomplete="off"
-                        checked="@(grpTypeSvc)" @onchange="() => grpTypeSvc = true">
+                        checked="@(grpTypeSvc)" @onchange="() => SetGroupType(true)">
                     <label class="btn btn-outline-primary" for="grpKindService">@(userConfig.GetText("service_group"))</label>
                 </div>
             </div>
@@ -133,11 +133,11 @@ else if (TaskType == WfTaskType.group_modify)
             <div class="col-sm-6">
                 <div class="btn-group btn-group-sm" role="group">
                     <input type="radio" class="btn-check" name="modifyGroupKind" id="modifyGrpKindNetwork" autocomplete="off"
-                        checked="@(!grpTypeSvc)" @onchange="() => grpTypeSvc = false">
+                        checked="@(!grpTypeSvc)" @onchange="() => SetGroupType(false)">
                     <label class="btn btn-outline-primary" for="modifyGrpKindNetwork">@(userConfig.GetText("network_group"))</label>
 
                     <input type="radio" class="btn-check" name="modifyGroupKind" id="modifyGrpKindService" autocomplete="off"
-                        checked="@(grpTypeSvc)" @onchange="() => grpTypeSvc = true">
+                        checked="@(grpTypeSvc)" @onchange="() => SetGroupType(true)">
                     <label class="btn btn-outline-primary" for="modifyGrpKindService">@(userConfig.GetText("service_group"))</label>
                 </div>
             </div>
@@ -551,8 +551,8 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
         {
             return Task.CompletedTask;
         }
+        SetGroupType(false);
         selectedNetworkGroup = group;
-        grpTypeSvc = false;
         groupName = group.Name;
         actSources = ResolveNetworkGroupMembers(group);
         actServices = [];
@@ -567,8 +567,8 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
         {
             return Task.CompletedTask;
         }
+        SetGroupType(true);
         selectedServiceGroup = group;
-        grpTypeSvc = true;
         groupName = group.Name;
         actServices = ResolveServiceGroupMembers(group);
         actSources = [];
@@ -603,6 +603,47 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
         ApplyResolvedElementIds(actServices, resolvedElements);
         WfHandler.ActReqTask.Elements.RemoveAll(element => element.Field == ElemFieldType.service.ToString());
         WfHandler.ActReqTask.Elements.AddRange(resolvedElements);
+    }
+
+    private void SetGroupType(bool service)
+    {
+        if (grpTypeSvc == service)
+        {
+            return;
+        }
+
+        grpTypeSvc = service;
+        ElemFieldType oppositeField = service ? ElemFieldType.source : ElemFieldType.service;
+        RemoveGroupElements(oppositeField);
+        groupName = null;
+        selectedNetworkGroup = null;
+        selectedServiceGroup = null;
+    }
+
+    private void RemoveGroupElements(ElemFieldType field)
+    {
+        List<WfReqElement> groupElements = WfHandler.ActReqTask.Elements
+            .Where(element => element.Field == field.ToString())
+            .ToList();
+        foreach (WfReqElement element in groupElements.Where(element => element.Id > 0
+            && !WfHandler.ActReqTask.RemovedElements.Any(removed => removed.Id == element.Id)))
+        {
+            WfHandler.ActReqTask.RemovedElements.Add(element);
+        }
+
+        WfHandler.ActReqTask.Elements.RemoveAll(element => groupElements.Contains(element));
+        if (field == ElemFieldType.source)
+        {
+            actSources = [];
+            sourcesToAdd = [];
+            sourcesToDelete = [];
+        }
+        else
+        {
+            actServices = [];
+            servicesToAdd = [];
+            servicesToDelete = [];
+        }
     }
 
     private static void ApplyResolvedElementIds<T>(IReadOnlyList<T> members, IReadOnlyList<WfReqElement> elements)

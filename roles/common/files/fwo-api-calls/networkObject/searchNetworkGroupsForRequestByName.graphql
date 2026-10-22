@@ -17,14 +17,5 @@ query searchNetworkGroupsForRequestByName(
     obj_id
     obj_name
     obj_member_names
-    objgrps(where: { active: { _eq: true }, removed: { _is_null: true } }) {
-      id: objgrp_member_id
-      byId: objectByObjgrpMemberId {
-        obj_id
-        obj_name
-        obj_ip
-        obj_ip_end
-      }
-    }
   }
 }

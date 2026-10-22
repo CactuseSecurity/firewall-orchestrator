@@ -246,12 +246,48 @@ else
 
     private async Task SelectNetworkObject(NetworkObject networkObject)
     {
+        if (GroupMode && authenticationStateTask != null)
+        {
+            try
+            {
+                WfObjectSearch search = new(apiConnection, (await authenticationStateTask).User);
+                NetworkObject? loadedGroup = await search.LoadNetworkGroupMembers(ManagementId, networkObject.Id);
+                if (loadedGroup is null)
+                {
+                    return;
+                }
+                networkObject = loadedGroup;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("search_object"), "", true);
+                return;
+            }
+        }
         SelectedNetworkObject = networkObject;
         await SelectedNetworkObjectChanged.InvokeAsync(networkObject);
     }
 
     private async Task SelectService(NetworkService service)
     {
+        if (GroupMode && authenticationStateTask != null)
+        {
+            try
+            {
+                WfObjectSearch search = new(apiConnection, (await authenticationStateTask).User);
+                NetworkService? loadedGroup = await search.LoadServiceGroupMembers(ManagementId, service.Id);
+                if (loadedGroup is null)
+                {
+                    return;
+                }
+                service = loadedGroup;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("search_object"), "", true);
+                return;
+            }
+        }
         SelectedService = service;
         await SelectedServiceChanged.InvokeAsync(service);
     }

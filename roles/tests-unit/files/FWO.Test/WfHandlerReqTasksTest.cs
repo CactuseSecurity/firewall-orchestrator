@@ -14,6 +14,8 @@ namespace FWO.Test
     [TestFixture]
     internal class WfHandlerReqTasksTest
     {
+        private static readonly List<WfState> kRequestedStates = [new WfState { Id = 1, Name = "requested" }];
+
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix? matrix = null)
         {
             FieldInfo? field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1020,7 +1022,7 @@ namespace FWO.Test
             WfHandler handler = new();
             handler.userConfig.ReqVisibilityBased = forceReloadFailure;
             ActionHandler actionHandler = new(apiConnection, handler);
-            await actionHandler.Init([new WfState { Id = 1, Name = "requested" }]);
+            await actionHandler.Init(kRequestedStates);
             WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, false, WorkflowPhases.request);
             SetPrivateField(handler, "dbAcc", dbAccess);
             handler.ActTicket = new WfTicket { Id = 7 };

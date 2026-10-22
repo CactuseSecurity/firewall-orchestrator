@@ -896,6 +896,24 @@
 
         return true;
     }
+
+    private bool RejectInvalidGroupModifyTask()
+    {
+        string? groupName = elementEditor?.CurrentGroupName;
+        if (string.IsNullOrWhiteSpace(groupName))
+        {
+            groupName = actGrpName;
+        }
+
+        if (string.IsNullOrWhiteSpace(groupName) || elementEditor is null
+            || (elementEditor.SourceCount == 0 && elementEditor.ServiceCount == 0))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+
+        return true;
+    }
     
     private async Task<bool> RejectInvalidObjectTask()
     {
@@ -933,6 +951,7 @@
             case WfTaskType.access when !RejectInvalidAccessTask():
             case WfTaskType.rule_delete when !(await RejectInvalidRuleDeleteTask()):
             case WfTaskType.group_create when !RejectInvalidGroupCreateTask():
+            case WfTaskType.group_modify when !RejectInvalidGroupModifyTask():
             case WfTaskType.object_create or WfTaskType.object_modify when !(await RejectInvalidObjectTask()):
                 return false;
             default:

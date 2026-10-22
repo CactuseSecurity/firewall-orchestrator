@@ -904,6 +904,51 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayRequestTask_GroupModifyWithoutSelection_IsRejected()
+        {
+            List<string> messages = [];
+            DisplayRequestTask component = new();
+            SetMember(component, "userConfig", CreateUserConfig());
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = new WfReqTask { Title = "Valid", TaskType = WfTaskType.group_modify.ToString() }
+            });
+            SetMember(component, "actTaskType", WfTaskType.group_modify);
+            SetMember(component, "actGrpName", "");
+            SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((_, _, message, _) => messages.Add(message)));
+
+            bool valid = await InvokePrivateTaskResult<bool>(component, "CheckTaskValues");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0], Is.EqualTo(CreateUserConfig().GetText("E5102")));
+            });
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_GroupModifyWithSelectedGroup_IsAllowed()
+        {
+            DisplayRequestTask component = new();
+            SetMember(component, "userConfig", CreateUserConfig());
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = new WfReqTask { Title = "Valid", TaskType = WfTaskType.group_modify.ToString() }
+            });
+            SetMember(component, "actTaskType", WfTaskType.group_modify);
+            SetMember(component, "actGrpName", "network-group");
+            RequestTaskElementEditor editor = new();
+            SetMember(editor, "actSources", new List<NwObjectElement> { new() { Name = "member" } });
+            SetMember(editor, "groupName", "network-group");
+            SetMember(component, "elementEditor", editor);
+
+            bool valid = await InvokePrivateTaskResult<bool>(component, "CheckTaskValues");
+
+            Assert.That(valid, Is.True);
+        }
+
+        [Test]
         public async Task DisplayRequestTask_StartImplementationPhase_DelegatesTaskAndBlocksReentry()
         {
             TaskCompletionSource<object?> started = new(TaskCreationOptions.RunContinuationsAsynchronously);

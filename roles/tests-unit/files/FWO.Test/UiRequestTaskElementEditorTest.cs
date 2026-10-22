@@ -424,6 +424,73 @@ internal class UiRequestTaskElementEditorTest
     }
 
     [Test]
+    public void SelectServiceGroup_RemovesPersistedNetworkMembersWhenSwitchingGroupKind()
+    {
+        WfReqTask reqTask = new() { Id = 42, TaskType = WfTaskType.group_modify.ToString() };
+        reqTask.Elements =
+        [
+            new WfReqElement { Id = 7, TaskId = 42, Field = ElemFieldType.source.ToString(), NetworkId = 11, Name = "network-member" }
+        ];
+        RequestTaskElementEditor component = CreateComponent(reqTask, WfTaskType.group_modify);
+        NetworkService group = new()
+        {
+            Id = 100,
+            Name = "service-group",
+            ServiceGroups =
+            [
+                new Group<NetworkService>
+                {
+                    Object = new NetworkService { Id = 17, Name = "service-member", ProtoId = 6, DestinationPort = 443 }
+                }
+            ]
+        };
+
+        InvokePrivate<Task>(component, "SelectServiceGroup", group).GetAwaiter().GetResult();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reqTask.Elements, Has.Count.EqualTo(1));
+            Assert.That(reqTask.Elements, Has.All.Property(nameof(WfReqElement.Field)).EqualTo(ElemFieldType.service.ToString()));
+            Assert.That(reqTask.RemovedElements.Select(element => element.Id), Is.EquivalentTo(new List<long> { 7L }));
+            Assert.That(reqTask.Elements.Single().ServiceId, Is.EqualTo(17));
+        });
+    }
+
+    [Test]
+    public void SelectNetworkGroup_RemovesPersistedServiceMembersWhenSwitchingGroupKind()
+    {
+        WfReqTask reqTask = new() { Id = 42, TaskType = WfTaskType.group_modify.ToString() };
+        reqTask.Elements =
+        [
+            new WfReqElement { Id = 8, TaskId = 42, Field = ElemFieldType.service.ToString(), ServiceId = 17, Name = "service-member", ProtoId = 6, Port = 443 }
+        ];
+        RequestTaskElementEditor component = CreateComponent(reqTask, WfTaskType.group_modify);
+        SetMember(component, "grpTypeSvc", true);
+        NetworkObject group = new()
+        {
+            Id = 100,
+            Name = "network-group",
+            ObjectGroups =
+            [
+                new Group<NetworkObject>
+                {
+                    Object = new NetworkObject { Id = 11, Name = "network-member", IP = "10.0.0.1" }
+                }
+            ]
+        };
+
+        InvokePrivate<Task>(component, "SelectNetworkGroup", group).GetAwaiter().GetResult();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reqTask.Elements, Has.Count.EqualTo(1));
+            Assert.That(reqTask.Elements, Has.All.Property(nameof(WfReqElement.Field)).EqualTo(ElemFieldType.source.ToString()));
+            Assert.That(reqTask.RemovedElements.Select(element => element.Id), Is.EquivalentTo(new List<long> { 8L }));
+            Assert.That(reqTask.Elements.Single().NetworkId, Is.EqualTo(11));
+        });
+    }
+
+    [Test]
     public void SelectingANullGroupDoesNotChangeTheEditor()
     {
         RequestTaskElementEditor component = CreateComponent(new WfReqTask(), WfTaskType.group_modify);

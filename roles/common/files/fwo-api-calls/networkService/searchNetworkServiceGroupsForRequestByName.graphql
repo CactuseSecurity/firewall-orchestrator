@@ -17,15 +17,5 @@ query searchNetworkServiceGroupsForRequestByName(
     svc_id
     svc_name
     svc_member_names
-    svcgrps(where: { active: { _eq: true }, removed: { _is_null: true } }) {
-      id: svcgrp_member_id
-      byId: serviceBySvcgrpMemberId {
-        svc_id
-        svc_name
-        svc_port
-        svc_port_end
-        ip_proto_id
-      }
-    }
   }
 }

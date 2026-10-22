@@ -3,8 +3,8 @@
 ## 9.8.2 - 20.10.2026
 - request workflow: the device specific settings autoPlanImplementation and autoPlanImplementationForRules (renamed from planImplementation and planImplementationOverrideForRules) decide which implementation tasks are created automatically, independently of the planning phase
   - rule tasks (access, rule_modify, rule_delete) need both settings, all other task types autoPlanImplementation; the default of autoPlanImplementationForRules is false, fresh installations set it to true globally as their default workflow has no planning phase
-  - devices entered in the request take precedence over the path analysis algorithm; if the automatic creation finds no target, one implementation task without gateway is created
-  - the action "create implementation tasks" still creates every implementation task
+  - devices entered in the request take precedence over the path analysis algorithm; if the action finds no target, one implementation task without gateway is created
+  - breaking: implementation tasks are only created by the state action "create implementation tasks", no longer when a ticket leaves the approval phase; the action follows the auto plan settings. After the upgrade an administrator has to attach the action, e.g. to the state "approved", otherwise no implementation tasks are created automatically any more
   - the device specific settings page warns if rules are planned automatically without path analysis algorithm or manually without active planning phase
 - Workflow Customizing: the option "auto-create implementation tasks" is split up: the new setting reqDeviceInput (never, enter device in request, one task for all devices) and the new path analysis algorithms "For each device" and "Only if device available"; consider bundling and display bundled tasks as one are grouped as bundling options
 - new middleware endpoint workflow/getAutoPlanSettings returns the effective auto plan settings of the global level, managements and gateways; every requested id gets an entry, unknown ids and ids not visible to a non-admin caller get the global settings

@@ -296,29 +296,19 @@ namespace FWO.Services.Workflow
             return dbAcc != null && taskCount > 0 ? await dbAcc.LoadPreviousTicket(reqTask.TicketId) : null;
         }
 
-        private async Task AutoCreateOrUpdateImplTasks()
+        /// <summary>
+        /// Lets the existing implementation tasks follow their request tasks when the ticket leaves the approval phase
+        /// without planning phase. Implementation tasks are not created here: only the state action
+        /// "Create implementation tasks" creates them.
+        /// </summary>
+        private async Task SyncImplTaskStatesAfterApproval()
         {
-            // The device specific settings decide which implementation tasks are created, independently of the planning phase.
-            if (Phase <= WorkflowPhases.approval && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
+            if (Phase <= WorkflowPhases.approval && !IsPlanningPhaseActive(MasterStateMatrix)
+                && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
             {
-                bool planningActive = IsPlanningPhaseActive(MasterStateMatrix);
-                List<WfReqTask> requestTasksNeedingInitialImplTasks = [];
-                foreach (var reqTask in ActTicket.Tasks)
+                foreach (WfReqTask reqTask in ActTicket.Tasks)
                 {
-                    // Todo: further analysis how many impl tasks currently have to be there and create or update where needed
-                    if (reqTask.ImplementationTasks.Count == 0
-                        && RequestTaskNeedsInitialImplTasks(reqTask))
-                    {
-                        requestTasksNeedingInitialImplTasks.Add(reqTask);
-                    }
-                    else if (!planningActive)
-                    {
-                        await UpgradeImplTaskStatesToReqTask(reqTask);
-                    }
-                }
-                foreach (WfReqTask reqTask in await RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
-                {
-                    await AutoCreateImplTasks(reqTask);
+                    await UpgradeImplTaskStatesToReqTask(reqTask);
                 }
             }
         }
@@ -517,30 +507,29 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Creates the implementation tasks of a request task by task type.
+        /// Creates the implementation tasks of a request task by task type, following the auto plan device specific
+        /// settings.
         /// </summary>
         /// <param name="reqTask">Request task to create the implementation tasks for.</param>
-        /// <param name="applyAutoPlan">True for the automatic creation, which follows the auto plan device specific
-        /// settings; false for the explicit create action, which creates every implementation task.</param>
-        private async Task AutoCreateImplTasks(WfReqTask reqTask, bool applyAutoPlan = true)
+        private async Task AutoCreateImplTasks(WfReqTask reqTask)
         {
             if (reqTask.TaskType == WfTaskType.access.ToString())
             {
                 await EnsureDevicesLoaded();
-                await AutoCreateAccessImplTasks(reqTask, applyAutoPlan);
+                await AutoCreateAccessImplTasks(reqTask);
                 return;
             }
             if (WfObjectTaskHelper.IsManagementObjectTask(reqTask.TaskType))
             {
-                await AutoCreateObjectImplTasks(reqTask, applyAutoPlan);
+                await AutoCreateObjectImplTasks(reqTask);
                 return;
             }
             if (IsRuleTaskType(reqTask.TaskType))
             {
-                await AutoCreateRuleChangeImplTask(reqTask, applyAutoPlan);
+                await AutoCreateRuleChangeImplTask(reqTask);
                 return;
             }
-            await AutoCreateOtherImplTask(reqTask, applyAutoPlan);
+            await AutoCreateOtherImplTask(reqTask);
         }
 
         private async Task CreateImplTasksForDevices(WfReqTask reqTask, List<int> deviceIds)

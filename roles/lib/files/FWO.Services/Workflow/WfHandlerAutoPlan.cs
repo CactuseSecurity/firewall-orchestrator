@@ -51,18 +51,14 @@ namespace FWO.Services.Workflow
         /// When no gateway can be determined at all, the fallback task without gateway is created.
         /// </summary>
         /// <param name="reqTask">Access task to create the implementation tasks for.</param>
-        /// <param name="applyAutoPlan">False for the explicit create action, which ignores the auto plan settings.</param>
-        private async Task AutoCreateAccessImplTasks(WfReqTask reqTask, bool applyAutoPlan)
+        private async Task AutoCreateAccessImplTasks(WfReqTask reqTask)
         {
             List<int?> targets = await DetermineAccessTargets(reqTask);
             // the fallback is only for a missing target, not for targets planned manually
             bool noTargetFound = targets.Count == 0;
-            if (applyAutoPlan)
-            {
-                List<int> targetDeviceIds = [.. targets.OfType<int>()];
-                await EnsureAutoPlanSettings(targetDeviceIds, kNoIds);
-                targets = [.. targets.Where(deviceId => IsAutoPlanned(true, AutoPlanScopeTypes.kGateway, deviceId))];
-            }
+            List<int> targetDeviceIds = [.. targets.OfType<int>()];
+            await EnsureAutoPlanSettings(targetDeviceIds, kNoIds);
+            targets = [.. targets.Where(deviceId => IsAutoPlanned(true, AutoPlanScopeTypes.kGateway, deviceId))];
             List<int> deviceIds = [.. targets.OfType<int>()];
             if (targets.Contains(null))
             {
@@ -71,7 +67,7 @@ namespace FWO.Services.Workflow
             await CreateImplTasksForDevices(reqTask, deviceIds);
             if (noTargetFound && reqTask.ImplementationTasks.Count == 0)
             {
-                await CreateFallbackImplTask(reqTask, applyAutoPlan);
+                await CreateFallbackImplTask(reqTask);
             }
         }
 
@@ -138,18 +134,15 @@ namespace FWO.Services.Workflow
         /// Creates the single implementation task of a rule_modify or rule_delete task if the settings of the gateway of
         /// the rule, or the global settings without gateway, allow the automatic creation.
         /// </summary>
-        private async Task AutoCreateRuleChangeImplTask(WfReqTask reqTask, bool applyAutoPlan)
+        private async Task AutoCreateRuleChangeImplTask(WfReqTask reqTask)
         {
             int ruleDeviceId = reqTask.GetRuleDeviceId();
             int? deviceId = ruleDeviceId > 0 ? ruleDeviceId : null;
-            if (applyAutoPlan)
+            List<int> ruleDeviceIds = deviceId == null ? [] : [deviceId.Value];
+            await EnsureAutoPlanSettings(ruleDeviceIds, kNoIds);
+            if (!IsAutoPlanned(true, AutoPlanScopeTypes.kGateway, deviceId))
             {
-                List<int> ruleDeviceIds = deviceId == null ? [] : [deviceId.Value];
-                await EnsureAutoPlanSettings(ruleDeviceIds, kNoIds);
-                if (!IsAutoPlanned(true, AutoPlanScopeTypes.kGateway, deviceId))
-                {
-                    return;
-                }
+                return;
             }
             if (reqTask.ImplementationTasks.Count == 0)
             {
@@ -161,15 +154,12 @@ namespace FWO.Services.Workflow
         /// Creates the single implementation task of a task type without gateway or management, if the global settings
         /// allow the automatic creation.
         /// </summary>
-        private async Task AutoCreateOtherImplTask(WfReqTask reqTask, bool applyAutoPlan)
+        private async Task AutoCreateOtherImplTask(WfReqTask reqTask)
         {
-            if (applyAutoPlan)
+            await EnsureAutoPlanSettings(kNoIds, kNoIds);
+            if (!IsAutoPlanned(IsRuleTaskType(reqTask.TaskType), AutoPlanScopeTypes.kGlobal, null))
             {
-                await EnsureAutoPlanSettings(kNoIds, kNoIds);
-                if (!IsAutoPlanned(IsRuleTaskType(reqTask.TaskType), AutoPlanScopeTypes.kGlobal, null))
-                {
-                    return;
-                }
+                return;
             }
             if (reqTask.ImplementationTasks.Count == 0)
             {
@@ -190,17 +180,14 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Creates one implementation task without gateway or management when the automatic creation found no target,
         /// so that the ticket does not get stuck without implementation task. Only done when the global settings allow
-        /// the automatic creation; the explicit create action always creates it.
+        /// the automatic creation.
         /// </summary>
-        private async Task CreateFallbackImplTask(WfReqTask reqTask, bool applyAutoPlan)
+        private async Task CreateFallbackImplTask(WfReqTask reqTask)
         {
-            if (applyAutoPlan)
+            await EnsureAutoPlanSettings(kNoIds, kNoIds);
+            if (!IsAutoPlanned(IsRuleTaskType(reqTask.TaskType), AutoPlanScopeTypes.kGlobal, null))
             {
-                await EnsureAutoPlanSettings(kNoIds, kNoIds);
-                if (!IsAutoPlanned(IsRuleTaskType(reqTask.TaskType), AutoPlanScopeTypes.kGlobal, null))
-                {
-                    return;
-                }
+                return;
             }
             Log.WriteWarning(kAutoPlanLogTitle, $"No target found for request task {reqTask.Id} ({reqTask.TaskType}); " +
                 "creating one implementation task without gateway or management.");

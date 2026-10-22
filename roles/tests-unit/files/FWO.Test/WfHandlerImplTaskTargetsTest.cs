@@ -107,7 +107,7 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateImplTasks", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingMethodException(nameof(WfHandler), "AutoCreateImplTasks");
-            object[] arguments = [reqTask, true];
+            object[] arguments = [reqTask];
             await (Task)method.Invoke(handler, arguments)!;
         }
 
@@ -444,7 +444,9 @@ namespace FWO.Test
         [Test]
         public async Task CreateMissingImplTasksForTicket_DoesNotDuplicateGenericTasksOnRerun()
         {
-            WfHandler handler = CreateMiddlewareHandler(CreateApi(ProvisioningObjectCreationMode.Supermanager));
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateMiddlewareHandler(api);
             SetMatrix(handler, WfTaskType.rule_delete.ToString(), new StateMatrix { MinTicketCompleted = kCompletedStateId });
             WfReqTask ruleDeleteTask = new() { Id = 11, TaskType = WfTaskType.rule_delete.ToString(), StateId = kOpenStateId, Title = "Delete rule" };
             WfTicket ticket = new() { Id = 5, Tasks = [ruleDeleteTask] };

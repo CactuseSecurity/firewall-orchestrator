@@ -437,7 +437,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AutoCreateOrUpdateImplTasks_IgnoresMissingPlanningPhaseInStateMatrix()
+        public async Task SyncImplTaskStatesAfterApproval_CreatesNoImplTasks()
         {
             WfReqTask reqTask = new()
             {
@@ -475,19 +475,19 @@ namespace FWO.Test
                 MinTicketCompleted = 99
             });
 
-            await InvokeAutoCreateOrUpdateImplTasks(handler);
+            await InvokeSyncImplTaskStatesAfterApproval(handler);
 
-            Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
+            Assert.That(reqTask.ImplementationTasks, Is.Empty, "only the action creates implementation tasks");
         }
 
         [Test]
-        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingFalse_CreatesPerRequestTask()
+        public async Task CreateImplTasksAction_ConsiderBundlingFalse_CreatesPerRequestTask()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
             WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
             WfHandler handler = CreateBundlingHandler(considerBundling: false, firstTask, secondTask);
 
-            await InvokeAutoCreateOrUpdateImplTasks(handler);
+            await handler.CreateMissingImplTasksForTicket(handler.ActTicket);
 
             Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(secondTask.ImplementationTasks, Has.Count.EqualTo(1));
@@ -496,14 +496,14 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingTrue_MergesBundledRequestTasks()
+        public async Task CreateImplTasksAction_ConsiderBundlingTrue_MergesBundledRequestTasks()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
             WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
             WfReqTask unbundledTask = CreateBundledAccessTask(13, "", "src-3");
             WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask, unbundledTask);
 
-            await InvokeAutoCreateOrUpdateImplTasks(handler);
+            await handler.CreateMissingImplTasksForTicket(handler.ActTicket);
 
             Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(secondTask.ImplementationTasks, Is.Empty);
@@ -514,14 +514,14 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingTrue_SkipsBundleWhenAnyBundledTaskAlreadyHasImplTask()
+        public async Task CreateImplTasksAction_ConsiderBundlingTrue_SkipsBundleWhenAnyBundledTaskAlreadyHasImplTask()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
             WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
             secondTask.ImplementationTasks.Add(new WfImplTask { Id = 21, ReqTaskId = secondTask.Id });
             WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
 
-            await InvokeAutoCreateOrUpdateImplTasks(handler);
+            await handler.CreateMissingImplTasksForTicket(handler.ActTicket);
 
             Assert.Multiple(() =>
             {
@@ -586,7 +586,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingTrue_DeduplicatesCommonElements()
+        public async Task CreateImplTasksAction_ConsiderBundlingTrue_DeduplicatesCommonElements()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "shared-source");
             firstTask.Elements[0].IpString = "10.0.0.1";
@@ -596,7 +596,7 @@ namespace FWO.Test
             secondTask.Elements.Add(CreateBundleElement(12, ElemFieldType.destination, "dst-2", "10.0.1.2"));
             WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
 
-            await InvokeAutoCreateOrUpdateImplTasks(handler);
+            await handler.CreateMissingImplTasksForTicket(handler.ActTicket);
 
             Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name),
@@ -604,7 +604,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task UpdateRequestTasksFromTicket_ConsiderBundlingTrue_MergesBundledRequestTasks()
+        public async Task UpdateRequestTasksFromTicket_CreatesNoImplTasks()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
             WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
@@ -612,10 +612,11 @@ namespace FWO.Test
 
             await InvokeUpdateRequestTasksFromTicket(handler);
 
-            Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
-            Assert.That(secondTask.ImplementationTasks, Is.Empty);
-            Assert.That(firstTask.ImplementationTasks[0].ReqTaskId, Is.EqualTo(11));
-            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-1", "src-2" }));
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstTask.ImplementationTasks, Is.Empty, "only the action creates implementation tasks");
+                Assert.That(secondTask.ImplementationTasks, Is.Empty);
+            });
         }
 
         [Test]
@@ -727,16 +728,17 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateImplTasks", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(typeof(WfHandler).FullName, "AutoCreateImplTasks");
-            object[] arguments = [reqTask, true];
+            object[] arguments = [reqTask];
             Task task = (Task)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException("AutoCreateImplTasks returned null."));
             await task;
         }
 
-        private static async Task InvokeAutoCreateOrUpdateImplTasks(WfHandler handler)
+        private static async Task InvokeSyncImplTaskStatesAfterApproval(WfHandler handler)
         {
-            MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateOrUpdateImplTasks", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new MissingMethodException(typeof(WfHandler).FullName, "AutoCreateOrUpdateImplTasks");
-            Task task = (Task)(method.Invoke(handler, []) ?? throw new InvalidOperationException("AutoCreateOrUpdateImplTasks returned null."));
+            MethodInfo method = typeof(WfHandler).GetMethod("SyncImplTaskStatesAfterApproval", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(typeof(WfHandler).FullName, "SyncImplTaskStatesAfterApproval");
+            object[] arguments = [];
+            Task task = (Task)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException("SyncImplTaskStatesAfterApproval returned null."));
             await task;
         }
 
@@ -744,7 +746,8 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(typeof(WfHandler).FullName, "UpdateRequestTasksFromTicket");
-            Task task = (Task)(method.Invoke(handler, [true, true, null, null]) ?? throw new InvalidOperationException("UpdateRequestTasksFromTicket returned null."));
+            object[] arguments = [true, null!, null!];
+            Task task = (Task)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException("UpdateRequestTasksFromTicket returned null."));
             await task;
         }
 

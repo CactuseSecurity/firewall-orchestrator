@@ -98,7 +98,7 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateImplTasks", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingMethodException(nameof(WfHandler), "AutoCreateImplTasks");
-            object[] arguments = [reqTask, true];
+            object[] arguments = [reqTask];
             await (Task)method.Invoke(handler, arguments)!;
         }
 
@@ -320,16 +320,25 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task CreateMissingImplTasksForTicket_IgnoresAutoPlanSettings()
+        public async Task CreateMissingImplTasksForTicket_FollowsAutoPlanSettings()
         {
-            WfHandler handler = CreateHandler(CreateApi());
-            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix { MinTicketCompleted = kCompletedStateId });
-            WfReqTask reqTask = CreateAccessTask(kBothGateways);
-            WfTicket ticket = new() { Id = 5, Tasks = [reqTask] };
+            WfHandler manualHandler = CreateHandler(CreateApi());
+            SetMatrix(manualHandler, WfTaskType.access.ToString(), new StateMatrix { MinTicketCompleted = kCompletedStateId });
+            WfTicket manualTicket = new() { Id = 5, Tasks = [CreateAccessTask(kBothGateways)] };
+            InMemoryDeviceSpecificSettingsApiConnection automaticApi = CreateApi();
+            automaticApi.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler automaticHandler = CreateHandler(automaticApi);
+            SetMatrix(automaticHandler, WfTaskType.access.ToString(), new StateMatrix { MinTicketCompleted = kCompletedStateId });
+            WfTicket automaticTicket = new() { Id = 6, Tasks = [CreateAccessTask(kBothGateways)] };
 
-            int createdCount = await handler.CreateMissingImplTasksForTicket(ticket);
+            int manualCount = await manualHandler.CreateMissingImplTasksForTicket(manualTicket);
+            int automaticCount = await automaticHandler.CreateMissingImplTasksForTicket(automaticTicket);
 
-            Assert.That(createdCount, Is.EqualTo(kBothGateways.Count));
+            Assert.Multiple(() =>
+            {
+                Assert.That(manualCount, Is.EqualTo(0), "rules are planned manually by default");
+                Assert.That(automaticCount, Is.EqualTo(kBothGateways.Count));
+            });
         }
 
         [Test]

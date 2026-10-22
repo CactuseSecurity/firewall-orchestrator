@@ -7,7 +7,7 @@ namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal class RuleQueriesTest
+    internal partial class RuleQueriesTest
     {
         [Test]
         public void GetRuleDetailsById_ShouldSelectTypeAndIdForTopLevelSourceObjects()
@@ -53,8 +53,8 @@ namespace FWO.Test
             {
                 foreach ((string name, string fragments, string labelFragment) in kReportFragmentSets)
                 {
-                    HashSet<string> defined = [.. Regex.Matches(fragments, @"fragment\s+(\w+)\s+on").Select(match => match.Groups[1].Value)];
-                    List<string> spread = [.. Regex.Matches(fragments, @"\.\.\.\s*(\w+)").Select(match => match.Groups[1].Value).Distinct()];
+                    HashSet<string> defined = [.. FragmentDefinitionRegex().Matches(fragments).Select(match => match.Groups[1].Value)];
+                    List<string> spread = [.. FragmentSpreadRegex().Matches(fragments).Select(match => match.Groups[1].Value).Distinct()];
                     Assert.That(spread, Does.Contain(labelFragment), name);
                     Assert.That(spread.Where(fragment => !defined.Contains(fragment)), Is.Empty, name);
                 }
@@ -76,6 +76,12 @@ namespace FWO.Test
                 Assert.That(RuleQueries.ruleDetailsForChangeReportFragments, Does.Contain("import_control_id: { _lte: $import_id_new }"));
             });
         }
+
+        [GeneratedRegex(@"fragment\s+(\w+)\s+on")]
+        private static partial Regex FragmentDefinitionRegex();
+
+        [GeneratedRegex(@"\.\.\.\s*(\w+)")]
+        private static partial Regex FragmentSpreadRegex();
 
         private static string ExtractObjectBlock(string query, string startMarker, string endMarker)
         {

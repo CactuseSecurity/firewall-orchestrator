@@ -2,6 +2,7 @@
 
 ## 9.8.1 - 20.10.2026
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
+- autodiscovery: alerts and alert log lines no longer contain the import credential secret of the super management; the upgrade removes it from existing alerts. Rotate the credentials of super managements used with autodiscovery, and purge old middleware logs where possible
 - new REST endpoint `POST /api/pathAnalysis/resolvePathDevices` (roles admin, auditor): returns the firewall devices on the paths between every source and every destination, deduplicated and unordered, together with the algorithm and zone matrix actually used. This makes the network zone tree path analysis callable
   - sources and destinations: 1 to 100 entries each, given as inclusive range (`ipStart`, `ipEnd`) or CIDR network (`ipNetwork`), IPv4 and IPv6; networks with host bits and IPv4 written as IPv6 are rejected
   - options: `algorithm` (currently `networkZoneTree`), `matrixId` (only together with `networkZoneTree`) and a filter on device id and name; omitted options fall back to the configured algorithm and designated zone matrix

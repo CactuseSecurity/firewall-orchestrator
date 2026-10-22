@@ -26,4 +26,4 @@ roles/test/** -linguist-detectable
 
 # Git canonical EOL policy
 * text=auto eol=lf
-
+*.pdf binary

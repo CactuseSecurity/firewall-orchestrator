@@ -5,6 +5,8 @@
 - add a dedicated GraphQL persistence operation that stores, replaces, or clears only the rule position
 - add a graph-only Check Point end-of-rulebase positioning strategy and an independently callable best-effort workflow service
 - remove the inactive speculative Check Point rule-position renderer; semantic positions remain the terminal output
+- preserve stored rule positions across GraphQL naming policies by writing positioning algorithms numerically and accepting legacy enum, EnumMember, and GraphQL names when reading
+- package repository-contract fixtures with installed C# tests so fresh installations and upgrades can run the rule-positioning source-contract checks
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
 - new REST endpoint `POST /api/pathAnalysis/resolvePathDevices` (roles admin, auditor): returns the firewall devices on the paths between every source and every destination, deduplicated and unordered, together with the algorithm and zone matrix actually used. This makes the network zone tree path analysis callable
   - sources and destinations: 1 to 100 entries each, given as inclusive range (`ipStart`, `ipEnd`) or CIDR network (`ipNetwork`), IPv4 and IPv6; networks with host bits and IPv4 written as IPv6 are rejected

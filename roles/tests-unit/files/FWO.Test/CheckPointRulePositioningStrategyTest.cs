@@ -466,7 +466,7 @@ internal class CheckPointRulePositioningStrategyTest
     [Test]
     public void Program_RegistersGraphOnlyPositioningServices()
     {
-        string source = File.ReadAllText(FindRepositoryFile(
+        string source = File.ReadAllText(RepositoryContractFileLocator.Locate(
             "roles", "middleware", "files", "FWO.Middleware.Server", "Program.cs"));
 
         Assert.Multiple(() =>
@@ -631,18 +631,6 @@ internal class CheckPointRulePositioningStrategyTest
             Assert.That(fixture.Catalog.SelectCallCount, Is.EqualTo(selection));
             Assert.That(fixture.RootExecutionCount, Is.EqualTo(execution));
         });
-    }
-
-    private static string FindRepositoryFile(params string[] pathParts)
-    {
-        DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory != null)
-        {
-            string candidate = Path.Combine([directory.FullName, .. pathParts]);
-            if (File.Exists(candidate)) return candidate;
-            directory = directory.Parent;
-        }
-        throw new FileNotFoundException(string.Join(Path.DirectorySeparatorChar, pathParts));
     }
 
     private sealed class StrategyFixture

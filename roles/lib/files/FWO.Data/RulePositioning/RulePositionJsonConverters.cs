@@ -97,13 +97,12 @@ public sealed class SystemTextRulePositionJsonConverter : System.Text.Json.Seria
     {
         if (value is JsonValue jsonValue && jsonValue.TryGetValue(out int numericValue))
         {
-            return (ProvisioningPositioningAlgorithm)numericValue;
+            return RulePositioningAlgorithmJsonParser.Parse(numericValue);
         }
         if (value is JsonValue stringValue &&
-            stringValue.TryGetValue(out string? namedValue) &&
-            Enum.TryParse(namedValue, out ProvisioningPositioningAlgorithm algorithm))
+            stringValue.TryGetValue(out string? namedValue))
         {
-            return algorithm;
+            return RulePositioningAlgorithmJsonParser.Parse(namedValue);
         }
         return ProvisioningPositioningAlgorithm.Undefined;
     }
@@ -187,11 +186,11 @@ public sealed class NewtonsoftRulePositionJsonConverter : Newtonsoft.Json.JsonCo
     {
         if (value?.Type == JTokenType.Integer)
         {
-            return (ProvisioningPositioningAlgorithm)value.Value<int>();
+            return int.TryParse(value.ToString(), out int numericValue)
+                ? RulePositioningAlgorithmJsonParser.Parse(numericValue)
+                : ProvisioningPositioningAlgorithm.Undefined;
         }
-        return Enum.TryParse(value?.Value<string>(), out ProvisioningPositioningAlgorithm algorithm)
-            ? algorithm
-            : ProvisioningPositioningAlgorithm.Undefined;
+        return RulePositioningAlgorithmJsonParser.Parse(value?.Value<string>());
     }
 }
 

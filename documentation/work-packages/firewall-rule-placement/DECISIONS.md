@@ -311,3 +311,11 @@ The activation reuses the caller's single applicability policy and preserves the
 Once task persistence succeeds, the best-effort positioning attempt is not cancelled by the originating client request. Typed outcomes and unexpected failures remain contained and safely logged so they cannot fail workflow processing, and no completed failure is retried automatically. This provides one attempt for each normally completed creation event, not crash-durable exactly-once delivery; an outbox, attempt ledger, schema change, or recovery job is outside WP-06.
 
 Rationale: the creation event is the first shared post-persistence seam for manual and automatically expanded implementation tasks, matches the supplied planning-phase workflow, preserves bundle semantics, and activates the completed WP-05 caller without expanding into modification, UI, schema, or firewall-execution concerns.
+
+## 2026-10-22 - D-045 - Canonicalize persisted positioning algorithms numerically
+
+`RulePosition.PositioningAlgorithm` writes its numeric enum value through both Newtonsoft.Json and System.Text.Json, independent of any surrounding GraphQL enum naming policy. Reads remain backward compatible with integer values, numeric strings, C# enum field names, `EnumMember` values, and separator-normalized GraphQL names such as `DEFAULT_END_OF_RULEBASE` and `CHECK_POINT_END_OF_APP_SECTION`.
+
+One shared lookup is built from the enum field names and `EnumMemberAttribute` values and is reused by known- and unknown-position readers. Unrecognized values still cause known position validation to fail, while unknown position types remain loadable with their raw payload. The converter is property-local: `ProvisioningPositioningAlgorithm` and device-specific-settings serialization are unchanged globally.
+
+Rationale: persisted JSON must survive GraphQL serializer naming policies and later middleware loading, while already stored uppercase documents and forward-compatible unknown position types must not require a data migration.

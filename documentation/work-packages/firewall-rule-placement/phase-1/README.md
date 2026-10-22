@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation and local validation are complete on the rebased `Cactus/develop` baseline. Phase 1 remains open until the disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade scenarios pass.
+Implementation and local validation are complete on the rebased `Cactus/develop` baseline. Phase 1 remains open until the disposable-VM fresh-install and `9.8.0` to `9.8.1` upgrade scenarios pass.
 
 ## Objective
 

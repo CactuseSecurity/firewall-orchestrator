@@ -17,7 +17,7 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Effective auto plan settings resolved in the current creation run, by scope type and id (null for global).
         /// </summary>
-        private readonly Dictionary<(string ScopeType, int? Id), AutoPlanScopeSettings> autoPlanCache = [];
+        private readonly Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> autoPlanCache = [];
 
         /// <summary>
         /// Replaces the path analyzer selected by the configuration; used by tests.
@@ -58,7 +58,7 @@ namespace FWO.Services.Workflow
             bool noTargetFound = targets.Count == 0;
             List<int> targetDeviceIds = [.. targets.OfType<int>()];
             await EnsureAutoPlanSettings(targetDeviceIds, kNoIds);
-            targets = [.. targets.Where(deviceId => IsAutoPlanned(true, AutoPlanScopeTypes.kGateway, deviceId))];
+            targets = [.. targets.Where(deviceId => IsAutoPlanned(true, DeviceSpecificScopeType.Gateway, deviceId))];
             List<int> deviceIds = [.. targets.OfType<int>()];
             if (targets.Contains(null))
             {
@@ -131,40 +131,29 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Creates the single implementation task of a rule_modify or rule_delete task if the settings of the gateway of
-        /// the rule, or the global settings without gateway, allow the automatic creation.
+        /// Creates the single implementation task of a request task that needs no gateway determination: rule_modify and
+        /// rule_delete with the gateway of the rule, every other non-access and non-object task type without gateway.
+        /// Created only if the settings of the gateway, or the global settings without gateway, allow it.
         /// </summary>
-        private async Task AutoCreateRuleChangeImplTask(WfReqTask reqTask)
+        private async Task AutoCreateSingleImplTask(WfReqTask reqTask)
         {
-            int ruleDeviceId = reqTask.GetRuleDeviceId();
+            int ruleDeviceId = IsRuleTaskType(reqTask.TaskType) ? reqTask.GetRuleDeviceId() : 0;
             int? deviceId = ruleDeviceId > 0 ? ruleDeviceId : null;
-            List<int> ruleDeviceIds = deviceId == null ? [] : [deviceId.Value];
-            await EnsureAutoPlanSettings(ruleDeviceIds, kNoIds);
-            if (!IsAutoPlanned(true, AutoPlanScopeTypes.kGateway, deviceId))
-            {
-                return;
-            }
-            if (reqTask.ImplementationTasks.Count == 0)
+            if (reqTask.ImplementationTasks.Count == 0 && await IsAutoPlannedForDevice(reqTask, deviceId))
             {
                 await CreateGenericImplTask(reqTask);
             }
         }
 
         /// <summary>
-        /// Creates the single implementation task of a task type without gateway or management, if the global settings
-        /// allow the automatic creation.
+        /// Returns whether the implementation tasks of a request task are created automatically on a gateway, or with the
+        /// global settings when there is no gateway.
         /// </summary>
-        private async Task AutoCreateOtherImplTask(WfReqTask reqTask)
+        private async Task<bool> IsAutoPlannedForDevice(WfReqTask reqTask, int? deviceId)
         {
-            await EnsureAutoPlanSettings(kNoIds, kNoIds);
-            if (!IsAutoPlanned(IsRuleTaskType(reqTask.TaskType), AutoPlanScopeTypes.kGlobal, null))
-            {
-                return;
-            }
-            if (reqTask.ImplementationTasks.Count == 0)
-            {
-                await CreateGenericImplTask(reqTask);
-            }
+            List<int> deviceIds = deviceId == null ? [] : [deviceId.Value];
+            await EnsureAutoPlanSettings(deviceIds, kNoIds);
+            return IsAutoPlanned(IsRuleTaskType(reqTask.TaskType), DeviceSpecificScopeType.Gateway, deviceId);
         }
 
         /// <summary>
@@ -174,7 +163,7 @@ namespace FWO.Services.Workflow
         {
             List<int> targetManagementIds = [.. targets.Select(target => target.Id)];
             await EnsureAutoPlanSettings(kNoIds, targetManagementIds);
-            return [.. targets.Where(target => IsAutoPlanned(false, AutoPlanScopeTypes.kManagement, target.Id))];
+            return [.. targets.Where(target => IsAutoPlanned(false, DeviceSpecificScopeType.Management, target.Id))];
         }
 
         /// <summary>
@@ -184,8 +173,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         private async Task CreateFallbackImplTask(WfReqTask reqTask)
         {
-            await EnsureAutoPlanSettings(kNoIds, kNoIds);
-            if (!IsAutoPlanned(IsRuleTaskType(reqTask.TaskType), AutoPlanScopeTypes.kGlobal, null))
+            if (!await IsAutoPlannedForDevice(reqTask, null))
             {
                 return;
             }
@@ -198,63 +186,51 @@ namespace FWO.Services.Workflow
         /// Returns whether implementation tasks are created automatically on a level. A level that was not resolved
         /// inherits the global settings; without any resolved settings the creation stays automatic as before.
         /// </summary>
-        private bool IsAutoPlanned(bool isRuleTask, string scopeType, int? id)
+        private bool IsAutoPlanned(bool isRuleTask, DeviceSpecificScopeType scopeType, int? id)
         {
-            if (id != null && autoPlanCache.TryGetValue((scopeType, id), out AutoPlanScopeSettings? settings))
+            if (id != null && autoPlanCache.TryGetValue((scopeType, id), out GlobalDeviceSpecificSettings? settings))
             {
-                return settings.IsAutomatic(isRuleTask);
+                return settings.IsAutoPlanned(isRuleTask);
             }
-            if (autoPlanCache.TryGetValue((AutoPlanScopeTypes.kGlobal, null), out AutoPlanScopeSettings? globalSettings))
+            if (autoPlanCache.TryGetValue((DeviceSpecificScopeType.Global, null), out GlobalDeviceSpecificSettings? globalSettings))
             {
-                return globalSettings.IsAutomatic(isRuleTask);
+                return globalSettings.IsAutoPlanned(isRuleTask);
             }
             return true;
         }
 
         /// <summary>
         /// Resolves the settings of the given gateways and managements not resolved yet in this run, together with the
-        /// global settings. A failure is logged; the levels then count as automatic.
+        /// global settings, through the own api connection: in the state action it runs in the middleware with the rights
+        /// of the middleware server, in the monitoring of an admin with the admin's rights. A failure is logged; the
+        /// levels then count as automatic.
         /// </summary>
         private async Task EnsureAutoPlanSettings(List<int> deviceIds, List<int> managementIds)
         {
-            List<int> missingDeviceIds = [.. deviceIds.Distinct().Where(id => !autoPlanCache.ContainsKey((AutoPlanScopeTypes.kGateway, id)))];
-            List<int> missingManagementIds = [.. managementIds.Distinct().Where(id => !autoPlanCache.ContainsKey((AutoPlanScopeTypes.kManagement, id)))];
-            if (missingDeviceIds.Count == 0 && missingManagementIds.Count == 0 && autoPlanCache.ContainsKey((AutoPlanScopeTypes.kGlobal, null)))
+            List<int> missingDeviceIds = [.. deviceIds.Distinct().Where(id => !autoPlanCache.ContainsKey((DeviceSpecificScopeType.Gateway, id)))];
+            List<int> missingManagementIds = [.. managementIds.Distinct().Where(id => !autoPlanCache.ContainsKey((DeviceSpecificScopeType.Management, id)))];
+            if (missingDeviceIds.Count == 0 && missingManagementIds.Count == 0 && autoPlanCache.ContainsKey((DeviceSpecificScopeType.Global, null)))
             {
+                return;
+            }
+            if (apiConnection == null)
+            {
+                Log.WriteWarning(kAutoPlanLogTitle, "Auto plan settings cannot be resolved without api connection; implementation tasks are created automatically.");
                 return;
             }
             try
             {
-                List<AutoPlanScopeSettings>? settings = await ResolveAutoPlanSettings(missingDeviceIds, missingManagementIds);
-                if (settings == null)
+                Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> settings =
+                    await new ImplTaskAutoPlanResolver(apiConnection).Resolve(missingDeviceIds, missingManagementIds);
+                foreach (KeyValuePair<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> setting in settings)
                 {
-                    Log.WriteWarning(kAutoPlanLogTitle, "Auto plan settings cannot be resolved here; implementation tasks are created automatically.");
-                    return;
-                }
-                foreach (AutoPlanScopeSettings setting in settings)
-                {
-                    autoPlanCache[(setting.ScopeType, setting.Id)] = setting;
+                    autoPlanCache[setting.Key] = setting.Value;
                 }
             }
             catch (Exception exception)
             {
                 Log.WriteError(kAutoPlanLogTitle, "Could not resolve the auto plan settings; implementation tasks are created automatically.", exception);
             }
-        }
-
-        /// <summary>
-        /// Resolves the settings through the own api connection. Implementation tasks are created by the state action
-        /// "Create implementation tasks", which runs in the middleware with the rights of the middleware server; the
-        /// monitoring of an admin may read the settings as well.
-        /// </summary>
-        /// <returns>The settings, or null without api connection.</returns>
-        private async Task<List<AutoPlanScopeSettings>?> ResolveAutoPlanSettings(List<int> deviceIds, List<int> managementIds)
-        {
-            if (apiConnection == null)
-            {
-                return null;
-            }
-            return await new ImplTaskAutoPlanResolver(apiConnection).Resolve(deviceIds, managementIds);
         }
     }
 }

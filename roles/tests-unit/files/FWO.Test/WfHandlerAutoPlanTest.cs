@@ -39,8 +39,13 @@ namespace FWO.Test
         private static readonly List<int> kRequestedGateways = [kFirstGatewayId, kSecondGatewayId, kUnknownGatewayId];
         private static readonly List<int> kRequestedManagements = [kManagementId, kUnknownManagementId];
         private static readonly List<int> kNoIds = [];
-        private static readonly List<string> kExpectedScopeTypes =
-            [AutoPlanScopeTypes.kGlobal, AutoPlanScopeTypes.kManagement, AutoPlanScopeTypes.kGateway, AutoPlanScopeTypes.kGateway];
+        private static readonly List<(DeviceSpecificScopeType ScopeType, int? Id)> kExpectedResolvedLevels =
+        [
+            (DeviceSpecificScopeType.Global, null),
+            (DeviceSpecificScopeType.Management, kManagementId),
+            (DeviceSpecificScopeType.Gateway, kFirstGatewayId),
+            (DeviceSpecificScopeType.Gateway, kSecondGatewayId)
+        ];
 
         private static InMemoryDeviceSpecificSettingsApiConnection CreateApi()
         {
@@ -357,40 +362,41 @@ namespace FWO.Test
             api.SetValue(kManagementNodeId, DeviceSpecificSettingKeys.AutoPlanImplementation, false);
             api.SetValue(kGatewayNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
 
-            List<AutoPlanScopeSettings> settings = await new ImplTaskAutoPlanResolver(api).Resolve(kRequestedGateways, kRequestedManagements);
+            Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> settings =
+                await new ImplTaskAutoPlanResolver(api).Resolve(kRequestedGateways, kRequestedManagements);
 
             Assert.Multiple(() =>
             {
-                Assert.That(settings.Select(setting => setting.ScopeType), Is.EqualTo(kExpectedScopeTypes));
-                Assert.That(settings[0].AutoPlanImplementation, Is.True);
-                Assert.That(settings[1].AutoPlanImplementation, Is.False);
-                Assert.That(settings[2].Id, Is.EqualTo(kFirstGatewayId));
-                Assert.That(settings[2].AutoPlanImplementation, Is.False, "inherited from the management");
-                Assert.That(settings[2].AutoPlanImplementationForRules, Is.True);
-                Assert.That(settings[3].AutoPlanImplementationForRules, Is.False);
+                Assert.That(settings.Keys, Is.EquivalentTo(kExpectedResolvedLevels));
+                Assert.That(settings[(DeviceSpecificScopeType.Global, null)].AutoPlanImplementation, Is.True);
+                Assert.That(settings[(DeviceSpecificScopeType.Management, kManagementId)].AutoPlanImplementation, Is.False);
+                Assert.That(settings[(DeviceSpecificScopeType.Gateway, kFirstGatewayId)].AutoPlanImplementation, Is.False, "inherited from the management");
+                Assert.That(settings[(DeviceSpecificScopeType.Gateway, kFirstGatewayId)].AutoPlanImplementationForRules, Is.True);
+                Assert.That(settings[(DeviceSpecificScopeType.Gateway, kSecondGatewayId)].AutoPlanImplementationForRules, Is.False);
             });
         }
 
         [Test]
         public async Task Resolver_WithoutIds_ReturnsGlobalSettingsOnly()
         {
-            List<AutoPlanScopeSettings> settings = await new ImplTaskAutoPlanResolver(CreateApi()).Resolve(kNoIds, kNoIds);
+            Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> settings =
+                await new ImplTaskAutoPlanResolver(CreateApi()).Resolve(kNoIds, kNoIds);
 
-            Assert.That(settings.Single().ScopeType, Is.EqualTo(AutoPlanScopeTypes.kGlobal));
+            Assert.That(settings.Keys.Single().ScopeType, Is.EqualTo(DeviceSpecificScopeType.Global));
         }
 
         [TestCase(true, true, true, true)]
         [TestCase(true, false, false, true)]
         [TestCase(false, true, false, false)]
         [TestCase(false, false, false, false)]
-        public void IsAutomatic_CombinesBothSettingsForRules(bool autoPlan, bool forRules, bool expectedForRules, bool expectedForOthers)
+        public void IsAutoPlanned_CombinesBothSettingsForRules(bool autoPlan, bool forRules, bool expectedForRules, bool expectedForOthers)
         {
-            AutoPlanScopeSettings settings = new() { AutoPlanImplementation = autoPlan, AutoPlanImplementationForRules = forRules };
+            GlobalDeviceSpecificSettings settings = new() { AutoPlanImplementation = autoPlan, AutoPlanImplementationForRules = forRules };
 
             Assert.Multiple(() =>
             {
-                Assert.That(settings.IsAutomatic(true), Is.EqualTo(expectedForRules));
-                Assert.That(settings.IsAutomatic(false), Is.EqualTo(expectedForOthers));
+                Assert.That(settings.IsAutoPlanned(true), Is.EqualTo(expectedForRules));
+                Assert.That(settings.IsAutoPlanned(false), Is.EqualTo(expectedForOthers));
             });
         }
 

@@ -83,7 +83,7 @@ namespace FWO.Services.Workflow
         {
             if (reqTask.ManagementId is not int managementId || managementId <= 0)
             {
-                await AutoCreateOtherImplTask(reqTask);
+                await AutoCreateSingleImplTask(reqTask);
                 return;
             }
 

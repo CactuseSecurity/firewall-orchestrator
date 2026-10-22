@@ -59,6 +59,16 @@ public class GlobalDeviceSpecificSettings
     /// </summary>
     public bool AutoPlanImplementationForRules { get; set; } = false;
 
+    /// <summary>
+    /// Returns whether the implementation tasks of a kind of task are created automatically: rule tasks need both auto
+    /// plan settings, every other task type <see cref="AutoPlanImplementation"/>.
+    /// </summary>
+    /// <param name="isRuleTask">True for access, rule_modify and rule_delete tasks.</param>
+    public bool IsAutoPlanned(bool isRuleTask)
+    {
+        return AutoPlanImplementation && (!isRuleTask || AutoPlanImplementationForRules);
+    }
+
     public bool ModellingCreateAppZones { get; set; } = true;
 
     public bool ModellingImplementNetworkAreaObjects { get; set; } = false;

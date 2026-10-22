@@ -524,12 +524,7 @@ namespace FWO.Services.Workflow
                 await AutoCreateObjectImplTasks(reqTask);
                 return;
             }
-            if (IsRuleTaskType(reqTask.TaskType))
-            {
-                await AutoCreateRuleChangeImplTask(reqTask);
-                return;
-            }
-            await AutoCreateOtherImplTask(reqTask);
+            await AutoCreateSingleImplTask(reqTask);
         }
 
         private async Task CreateImplTasksForDevices(WfReqTask reqTask, List<int> deviceIds)

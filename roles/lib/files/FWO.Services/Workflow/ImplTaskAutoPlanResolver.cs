@@ -17,17 +17,21 @@ namespace FWO.Services.Workflow
     public class ImplTaskAutoPlanResolver(ApiConnection apiConnection)
     {
         /// <summary>
-        /// Returns the global settings, followed by the settings of every requested management and gateway that exists,
-        /// ordered by scope type and id. Unknown ids are left out.
+        /// Returns the effective settings of the global level and of every requested management and gateway that
+        /// exists, by scope type and id (null for the global level). Unknown ids are left out.
         /// </summary>
         /// <param name="deviceIds">Gateways to resolve.</param>
         /// <param name="managementIds">Managements to resolve.</param>
-        public async Task<List<AutoPlanScopeSettings>> Resolve(IReadOnlyCollection<int> deviceIds, IReadOnlyCollection<int> managementIds)
+        public async Task<Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings>> Resolve(
+            IReadOnlyCollection<int> deviceIds, IReadOnlyCollection<int> managementIds)
         {
             DeviceSpecificSettingsManager settingsManager = new(apiConnection);
             DeviceSpecificSettingsLevel<GlobalDeviceSpecificSettings> globalLevel =
                 await settingsManager.LoadLevelAsync<GlobalDeviceSpecificSettings>(DeviceSpecificScopePath.Global());
-            List<AutoPlanScopeSettings> settings = [ToScopeSettings(AutoPlanScopeTypes.kGlobal, null, globalLevel.Settings)];
+            Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> settings = new()
+            {
+                [(DeviceSpecificScopeType.Global, null)] = globalLevel.Settings
+            };
             if (deviceIds.Count == 0 && managementIds.Count == 0)
             {
                 return settings;
@@ -35,35 +39,22 @@ namespace FWO.Services.Workflow
 
             List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsForAutoPlan,
                 new { managementIds = managementIds.Distinct().ToList(), deviceIds = deviceIds.Distinct().ToList() }) ?? [];
-            List<AutoPlanScopeSettings> gatewaySettings = [];
-            foreach (Management management in managements.OrderBy(management => management.Id))
+            foreach (Management management in managements)
             {
                 if (managementIds.Contains(management.Id))
                 {
                     DeviceSpecificSettingsLevel<ManagementDeviceSpecificSettings> level =
                         await settingsManager.LoadLevelAsync<ManagementDeviceSpecificSettings>(DeviceSpecificScopePath.ForManagement(management));
-                    settings.Add(ToScopeSettings(AutoPlanScopeTypes.kManagement, management.Id, level.Settings));
+                    settings[(DeviceSpecificScopeType.Management, management.Id)] = level.Settings;
                 }
                 foreach (Device device in management.Devices.Where(device => deviceIds.Contains(device.Id)))
                 {
                     DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> level =
                         await settingsManager.LoadLevelAsync<GatewayDeviceSpecificSettings>(DeviceSpecificScopePath.ForGateway(management, device));
-                    gatewaySettings.Add(ToScopeSettings(AutoPlanScopeTypes.kGateway, device.Id, level.Settings));
+                    settings[(DeviceSpecificScopeType.Gateway, device.Id)] = level.Settings;
                 }
             }
-            settings.AddRange(gatewaySettings.OrderBy(setting => setting.Id));
             return settings;
-        }
-
-        private static AutoPlanScopeSettings ToScopeSettings(string scopeType, int? id, GlobalDeviceSpecificSettings settings)
-        {
-            return new AutoPlanScopeSettings
-            {
-                ScopeType = scopeType,
-                Id = id,
-                AutoPlanImplementation = settings.AutoPlanImplementation,
-                AutoPlanImplementationForRules = settings.AutoPlanImplementationForRules
-            };
         }
     }
 }

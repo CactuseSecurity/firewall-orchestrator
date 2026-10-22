@@ -25,7 +25,7 @@
   list of ORed AND-groups [{"label-key": "label-value", ...}, ...], several values of one key in a group as array of
   values, null without labels (issue #5531); the groups are written sorted, and the normalized config of the
   middleware returns them, so that unchanged labels are not reported as rule changes
-- upgrade: 9.8.0.sql adds the labelling schema, the rule label columns and the Guardicore
+- upgrade: db upgrade file adds the labelling schema, the rule label columns and the Guardicore
   device types to existing installations
   
 ## 9.7.5 - 16.10.2026

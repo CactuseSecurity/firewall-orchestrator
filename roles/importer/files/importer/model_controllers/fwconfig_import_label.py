@@ -6,10 +6,31 @@ import fwo_const
 from fwo_api import FwoApi
 from fwo_exceptions import FwoApiWriteError
 from fwo_log import FWOLogger
+from models.label import LabelNormalized
 
 if TYPE_CHECKING:
     from fwo_api_call import FwoApiCall
-    from models.label import LabelNormalized
+    from models.fwconfig_normalized import FwConfigNormalized
+    from models.rule import RuleLabels
+
+
+def get_side_label_values(labels: RuleLabels | None) -> list[tuple[int, str, str]]:
+    """
+    Flatten the labels of a rule side into (AND-group number, label key, label value) tuples.
+
+    Args:
+        labels (RuleLabels | None): The ORed AND-groups of a rule side.
+
+    Returns:
+        list[tuple[int, str, str]]: One tuple per label value, numbered by the position of its AND-group.
+
+    """
+    label_values: list[tuple[int, str, str]] = []
+    for and_group, group in enumerate(labels or []):
+        for key_name, values in group.items():
+            value_list = [values] if isinstance(values, str) else values
+            label_values.extend((and_group, key_name, value) for value in value_list)
+    return label_values
 
 
 class FwConfigImportLabel:
@@ -50,6 +71,24 @@ class FwConfigImportLabel:
             }
             for key_name, values in sorted(values_by_key.items())
         ]
+
+    @staticmethod
+    def collect_labels(normalized_config: FwConfigNormalized) -> list[LabelNormalized]:
+        """
+        Return the labels of the config plus every label used by a rule side.
+
+        Rules may reference labels by key and value only, without them being part of the label list of the config;
+        these have to be known as well, so that their assignments can be written.
+        """
+        labels = list(normalized_config.labels)
+        for rulebase in normalized_config.rulebases:
+            for rule in rulebase.rules.values():
+                for side_labels in (rule.rule_src_labels, rule.rule_dst_labels):
+                    labels.extend(
+                        LabelNormalized(key_name=key_name, value=value)
+                        for _, key_name, value in get_side_label_values(side_labels)
+                    )
+        return labels
 
     def upsert_labels(self, labels: list[LabelNormalized]) -> int:
         """

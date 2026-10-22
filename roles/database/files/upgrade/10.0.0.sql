@@ -57,6 +57,7 @@ create table if not exists labelling.label_change_event
 -- applying labels ---------------------------------------------------------
 -- a label assignment is active while removed_event_id is null; re-adding a removed label creates a new row,
 -- the partial unique indices in fworch-create-indices.sql allow only one active assignment per object and label
+-- (per object, label and AND-group for the source and destination sides of rules and connections)
 
 -- to firewall.rule (e.g. for Guardicore), source labels: AppRole, Stage, ...
 create table if not exists labelling.rule_source_label
@@ -65,7 +66,8 @@ create table if not exists labelling.rule_source_label
     label_id BIGINT NOT NULL,
     created_event_id BIGINT NOT NULL,
     removed_event_id BIGINT,
-    primary key (rule_id, label_id, created_event_id)
+    and_group Integer NOT NULL Default 0, -- number of the AND-group of the side, the groups of a side are ORed
+    primary key (rule_id, label_id, created_event_id, and_group)
 );
 
 -- to firewall.rule, destination labels: AppRole, Stage
@@ -75,7 +77,8 @@ create table if not exists labelling.rule_destination_label
     label_id BIGINT NOT NULL,
     created_event_id BIGINT NOT NULL,
     removed_event_id BIGINT,
-    primary key (rule_id, label_id, created_event_id)
+    and_group Integer NOT NULL Default 0, -- number of the AND-group of the side, the groups of a side are ORed
+    primary key (rule_id, label_id, created_event_id, and_group)
 );
 
 -- to firewall.rule as a whole: App
@@ -95,7 +98,8 @@ create table if not exists labelling.connection_source_label
     label_id BIGINT NOT NULL,
     created_event_id BIGINT NOT NULL,
     removed_event_id BIGINT,
-    primary key (connection_id, label_id, created_event_id)
+    and_group Integer NOT NULL Default 0, -- number of the AND-group of the side, the groups of a side are ORed
+    primary key (connection_id, label_id, created_event_id, and_group)
 );
 
 -- to modelling.connection, destination labels: AppRole
@@ -105,7 +109,8 @@ create table if not exists labelling.connection_destination_label
     label_id BIGINT NOT NULL,
     created_event_id BIGINT NOT NULL,
     removed_event_id BIGINT,
-    primary key (connection_id, label_id, created_event_id)
+    and_group Integer NOT NULL Default 0, -- number of the AND-group of the side, the groups of a side are ORed
+    primary key (connection_id, label_id, created_event_id, and_group)
 );
 
 -- to modelling.connection as a whole: App
@@ -210,11 +215,11 @@ ALTER TABLE labelling.owner_network_label ADD CONSTRAINT labelling_owner_network
 CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_import_control ON labelling.label_change_event (import_control_id) WHERE import_control_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_request ON labelling.label_change_event (request_id) WHERE request_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_connection ON labelling.label_change_event (connection_id) WHERE connection_id IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_source_label_active_unique ON labelling.rule_source_label (rule_id, label_id) WHERE removed_event_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_source_label_active_unique ON labelling.rule_source_label (rule_id, label_id, and_group) WHERE removed_event_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_source_label_label_id ON labelling.rule_source_label (label_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_source_label_created_event ON labelling.rule_source_label (created_event_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_source_label_removed_event ON labelling.rule_source_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_active_unique ON labelling.rule_destination_label (rule_id, label_id) WHERE removed_event_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_active_unique ON labelling.rule_destination_label (rule_id, label_id, and_group) WHERE removed_event_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_label_id ON labelling.rule_destination_label (label_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_created_event ON labelling.rule_destination_label (created_event_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_removed_event ON labelling.rule_destination_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
@@ -222,11 +227,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_label_active_unique ON labe
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_label_label_id ON labelling.rule_label (label_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_label_created_event ON labelling.rule_label (created_event_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_label_removed_event ON labelling.rule_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_connection_source_label_active_unique ON labelling.connection_source_label (connection_id, label_id) WHERE removed_event_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_connection_source_label_active_unique ON labelling.connection_source_label (connection_id, label_id, and_group) WHERE removed_event_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_connection_source_label_label_id ON labelling.connection_source_label (label_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_connection_source_label_created_event ON labelling.connection_source_label (created_event_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_connection_source_label_removed_event ON labelling.connection_source_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_connection_destination_label_active_unique ON labelling.connection_destination_label (connection_id, label_id) WHERE removed_event_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_connection_destination_label_active_unique ON labelling.connection_destination_label (connection_id, label_id, and_group) WHERE removed_event_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_connection_destination_label_label_id ON labelling.connection_destination_label (label_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_connection_destination_label_created_event ON labelling.connection_destination_label (created_event_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_connection_destination_label_removed_event ON labelling.connection_destination_label (removed_event_id) WHERE removed_event_id IS NOT NULL;

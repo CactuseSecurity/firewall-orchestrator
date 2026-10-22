@@ -25,6 +25,20 @@
   list of ORed AND-groups [{"label-key": "label-value", ...}, ...], several values of one key in a group as array of
   values, null without labels (issue #5531); the groups are written sorted, and the normalized config of the
   middleware returns them, so that unchanged labels are not reported as rule changes
+- database: the source and destination label assignments of rules and connections get the AND-group number and_group
+  (part of the primary key and of the active unique index), so that the tables keep the ORed AND-groups (issue #5549)
+- importer: the label assignment tables are the authoritative source of rule labels (rule_src_labels / rule_dst_labels
+  are a copy). Every inserted rule version gets its assignments in labelling.rule_source_label /
+  rule_destination_label, the assignments of removed rule versions are closed; one label change event per import
+  (with import control id, origin import) covers all of them. Label values used by rules only are upserted as well
+- app data import: app servers may carry labels ("labels": [{"label_key": "stage", "label_value": "prod"}]), written
+  into labelling.owner_network_label. Missing labels leave the labels of the app server untouched, an empty list
+  removes them; deleted app servers lose their labels, reactivated ones get the imported labels again. Unknown keys
+  and values are created as imported; the keys AppRole and AppZone, several values of a single value key, more than
+  50 labels per app server and keys/values longer than 100/250 characters are rejected with a log entry. All label
+  changes of an import run share one label change event of the import control of the run, and a label change counts
+  as change of the owner (changelog_owner)
+- scripts: the app data csv helpers read app server labels from csv columns named "label:<key>"
 - upgrade: db upgrade file adds the labelling schema, the rule label columns and the Guardicore
   device types to existing installations
   

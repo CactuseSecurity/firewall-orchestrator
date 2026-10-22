@@ -247,7 +247,8 @@ class FwConfigImport:
         single_manager: FwConfigManager,
     ) -> None:
         if self.normalized_config is not None:
-            FwConfigImportLabel(self.import_state.api_call).upsert_labels(self.normalized_config.labels)
+            label_import = FwConfigImportLabel(self.import_state.api_call)
+            label_import.upsert_labels(FwConfigImportLabel.collect_labels(self.normalized_config))
 
         self._fw_config_import_object.update_object_diffs(prev_config, prev_global_config, single_manager)
 

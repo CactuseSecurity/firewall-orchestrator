@@ -576,6 +576,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firew
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
     <li>Neues Importmodul f&uuml;r Akamai Guardicore Segmentation: Labels werden als Netzwerkobjektgruppen ihrer IP-Adressen (aus IP-Kriterien und den Assets mit dem Label) sowie als Labels importiert, UND-verkn&uuml;pfte Labels einer Regel als Gruppe der gemeinsamen IP-Adressen. Die Regeln werden je Abschnitt und Ruleset in verkettete Regelwerke aufgeteilt, deren alphabetische Reihenfolge der Guardicore-Abschnittsreihenfolge entspricht. Die Labels der Quelle und des Ziels einer Regel werden zudem an der Regel gespeichert.</li>
+    <li>Der App-Daten-Import kann pro App-Server Labels importieren (Schl&uuml;ssel und Wert, z.B. Stage: Prod); unbekannte Labels werden automatisch angelegt. Die Labels importierter Regeln werden mit ihrer Historie pro Regelversion gespeichert, einschlie&szlig;lich der UND/ODER-Verkn&uuml;pfung der Labels einer Guardicore-Regelseite.</li>
     <li>F&uuml;r einzelne Rollen kann die Sichtbarkeit jedes Reporttyps auf sichtbar, nicht sichtbar oder geerbt (vom Standardverhalten) gesetzt werden.</li>
     <li>Die hierarchischen Provisionierungs-Einstellungen hei&szlig;en nun ger&auml;tespezifische Einstellungen, da sie z.B. auch f&uuml;r den Import genutzt werden. Sie enthalten nun Guardicore-Objektanlage, Modellierungslabels und Verbindungs-IDs, Importer-Host, externes Ticketsystem sowie &Uuml;berschreibungen f&uuml;r Regelumsetzung und Planung.</li>
     <li>Der Importer-Hostname wird nicht mehr pro Management, sondern in den ger&auml;tespezifischen Einstellungen (Global, Ger&auml;tetyp oder Manager) festgelegt. Ist er leer, importiert jeder Importer. Das Upgrade &uuml;bernimmt den h&auml;ufigsten Hostnamen als globalen Wert und abweichende als Manager-Werte.</li>
@@ -609,6 +610,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
     <li>New import module for Akamai Guardicore Segmentation: labels are imported as network object groups of their IP addresses (from IP criteria and from the assets carrying the label) and as labels, ANDed labels of a rule as a group of their common IP addresses. The rules are split into chained rulebases per section and ruleset, whose alphabetical order matches the Guardicore section order. The labels of the source and destination of a rule are also stored with the rule.</li>
+    <li>The app data import can import labels per app server (key and value, e.g. Stage: Prod); unknown labels are created automatically. The labels of imported rules are stored with their history per rule version, keeping the AND/OR combination of the labels of a Guardicore rule side.</li>
     <li>For individual roles, the visibility of each report type can be set to visible, not visible, or inherited (from the default behaviour).</li>
     <li>The hierarchical provisioning settings are renamed to device specific settings, as they are also used e.g. for importing. They now include Guardicore object creation, modelling labels and connection IDs, importer host and external ticket system, plus rule implementation and planning overrides.</li>
     <li>The importer host name is no longer set per management but in the device specific settings (Global, device type or manager). If it is empty, every importer imports. The upgrade takes the most common host name as global value and differing ones as manager values.</li>
@@ -8387,44 +8389,76 @@ INSERT INTO txt VALUES ('H6944', 'English', 'The Workflow REST API provides read
         <li>Invalid requests are answered with 400, an unknown <code>ticketId</code> with 404. Both report every detected error together in the format <code>{"errors": [{"path": "options.filter.taskType", "message": "..."}]}</code>.</li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.
+INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/owners/appdataimport">App-Daten-Import-Einstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
 ');
-INSERT INTO txt VALUES ('H6921', 'English', 'The import of application data is fed from one or several .json files with paths and names defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
+INSERT INTO txt VALUES ('H6921', 'English', 'The import of application data is fed from one or several .json files with paths and names defined in the <a href="/help/settings/owners/appdataimport">App Data Import Settings</a>.
     There also python scripts with the same names can be provided to create these files. The structure of the .json file is as following:
 ');
 INSERT INTO txt VALUES ('H6922', 'German',  'Die einzelnen Felder haben folgende Bedeutung:
     <ul>
-        <li>app_id_external: Eindeutige Kennzeichnung der Applikation. Dies ist ggf. &uuml;ber verschiedene Importquellen hinweg sicherzustellen.</li>
+        <li>app_id_external: Eindeutige Kennzeichnung der Applikation, &uuml;ber die vorhandene Applikationen wiedererkannt werden. Dies ist ggf. &uuml;ber verschiedene Importquellen hinweg sicherzustellen.</li>
         <li>name: Dargestellter Name der Applikation.</li>
-        <li>main_user: Die DN der hauptverantwortlichen Person. Mindestens eines der Felder main_user, modellers oder modeller_groups sollte gef&uuml;llt sein, damit ein Zugriff
-            auf diese Applikation m&ouml;glich ist. (Ansonsten muss dieses in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> manuell nachgeholt werden.)</li>
-        <li>modellers: Hier werden die DNs von allen zur Bearbeitung dieser Applikation Berechtigten angegeben.</li>
-        <li>modeller_groups: Hier k&ouml;nnen die DNs von Gruppen angegeben werden. Zur Zeit werden diese genauso wie die Eintr&auml;ge unter "modellers" behandelt.</li>
+        <li>main_user: Optionale Kennung oder DN der hauptverantwortlichen Person. Sie wird als Verantwortlicher des Haupt-Verantwortlichentyps &uuml;bernommen, sofern dieser aktiv ist.
+            Mindestens eines der Felder main_user oder responsibles sollte gef&uuml;llt sein, damit ein Zugriff auf diese Applikation m&ouml;glich ist.
+            (Ansonsten muss dieses in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> manuell nachgeholt werden.)</li>
+        <li>responsibles: Optionale Verantwortliche je Verantwortlichentyp. Die Schl&uuml;ssel m&uuml;ssen Zahlen sein: Sie werden aufsteigend sortiert den aktiven Verantwortlichentypen
+            in deren Sortierreihenfolge zugeordnet (kleinster Schl&uuml;ssel zum ersten Typ usw.). Enth&auml;lt eine Applikation einen nicht-numerischen Schl&uuml;ssel, werden ihre Verantwortlichen nicht importiert.
+            Die Werte sind Listen von Benutzer- oder Gruppenkennungen bzw. DNs.</li>
+        <li>Benutzer- und Gruppenkennungen in main_user und responsibles, die keine DN sind, werden &uuml;ber das LDAP aufgel&ouml;st (erst als Benutzer, dann als Gruppe).
+            Nicht aufl&ouml;sbare Kennungen werden &uuml;bersprungen und im Importprotokoll vermerkt.</li>
         <li>criticality: Hier kann optional ein String zur Kennzeichnung der Kritikalit&auml;t der Applikation definiert werden.</li>
-        <li>import_source: String zur Kennzeichnung der Importquelle. Dient zur Unterscheidung bei mehreren Quellen.</li>
-        <li>app_servers: Liste aller zur Applikation zugeordneten Host-Adressen.
+        <li>owner_lifecycle_state: Optionaler Name eines vorhandenen Lebenszyklus-Status. Ist der Name unbekannt, wird die Applikation nicht importiert.</li>
+        <li>additional_information: Optionale weitere Angaben zur Applikation als Paare aus Schl&uuml;ssel und Wert (jeweils Strings).</li>
+        <li>import_source: String zur Kennzeichnung der Importquelle. Dient zur Unterscheidung bei mehreren Quellen.
+            Applikationen dieser Quelle, die in der Datei fehlen, werden deaktiviert.</li>
+        <li>recert_active: Optional, Vorgabe false. Bei true wird die Rezertifizierung der Applikation aktiviert (wirksam im Rezertifizierungsmodus f&uuml;r Eigent&uuml;mer und Regeln).</li>
+        <li>recert_period_days: Optionales Rezertifizierungsintervall in Tagen. Ohne Angabe gilt das allgemein eingestellte Intervall.</li>
+        <li>days_until_first_recert: Wird zur Zeit nicht ber&uuml;cksichtigt.</li>
+        <li>app_servers: Liste aller zur Applikation zugeordneten Host-Adressen. Sie werden &uuml;ber ip und ip_end wiedererkannt; App-Server der Importquelle, die in der Datei fehlen, werden als gel&ouml;scht markiert.
+            Weitere Felder (z.B. type) werden ignoriert.
             <ul>
-                <li>name: Optionaler Name zur Darstellung</li>
+                <li>name: Optionaler Name zur Darstellung. Je nach Einstellung des App-Daten-Imports wird er durch einen aus dem DNS gebildeten Namen ersetzt.</li>
                 <li>ip: IP-Adresse</li>
+                <li>ip_end: Optionales Ende eines IP-Bereichs, ohne Angabe gilt nur die Adresse aus ip</li>
+                <li>labels: Optionale Liste von Labels mit label_key und label_value, z.B. Stage: Prod. Fehlt das Feld, bleiben die Labels des App-Servers unver&auml;ndert,
+                    eine leere Liste entfernt alle. Unbekannte Schl&uuml;ssel und Werte werden als importiert angelegt. Abgelehnt und im Importprotokoll vermerkt werden
+                    die Schl&uuml;ssel AppRole und AppZone (sie bleiben Gruppen), mehrere Werte eines Schl&uuml;ssels, der nur einen Wert erlaubt, mehr als 50 Labels pro App-Server
+                    sowie Schl&uuml;ssel mit mehr als 100 und Werte mit mehr als 250 Zeichen.</li>
             </ul>
         </li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H6922', 'English', 'These fields have the following meaning:
     <ul>
-        <li>app_id_external: Unique identification string of the application. This has to be ensured over several import sources.</li>
+        <li>app_id_external: Unique identification string of the application, used to recognize existing applications. This has to be ensured over several import sources.</li>
         <li>name: Displayed name of the application.</li>
-        <li>main_user: DN of the main responsible person. At least one of the fields main_user, modellers or modeller_groups should be filled to ensure access
-            to the application. (Else this has to be ensured manually in the <a href="/help/settings/owners">Owner Settings</a> afterwards.)</li>
-        <li>modellers: Here the DNs of all persons authorized to work on this application have to be delivered.</li>
-        <li>modeller_groups: Here DNs of user groups can be delivered. Currently they are handled the same way as the entries in "modellers".</li>
+        <li>main_user: Optional identifier or DN of the main responsible person. It is taken over as responsible of the main responsible type if that type is active.
+            At least one of the fields main_user or responsibles should be filled to ensure access to the application.
+            (Else this has to be ensured manually in the <a href="/help/settings/owners">Owner Settings</a> afterwards.)</li>
+        <li>responsibles: Optional responsibles per responsible type. The keys have to be numbers: sorted in ascending order they are assigned to the active responsible types
+            in their sort order (lowest key to the first type and so on). If an application contains a non-numeric key, none of its responsibles are imported.
+            The values are lists of user or group identifiers or DNs.</li>
+        <li>User and group identifiers in main_user and responsibles that are no DN are resolved via LDAP (first as user, then as group).
+            Identifiers that cannot be resolved are skipped and noted in the import log.</li>
         <li>criticality: An optional string to mark the criticality of the application can be defined here.</li>
-        <li>import_source: String to identify the import source. Necessary to distinguish between several sources.</li>
-        <li>app_servers: List of all host addresses assigned to the application:
+        <li>owner_lifecycle_state: Optional name of an existing lifecycle state. If the name is unknown, the application is not imported.</li>
+        <li>additional_information: Optional further information on the application as pairs of key and value (both strings).</li>
+        <li>import_source: String to identify the import source. Necessary to distinguish between several sources.
+            Applications of this source that are missing in the file are deactivated.</li>
+        <li>recert_active: Optional, default false. If true, the recertification of the application is activated (effective in the recertification mode for owners and rules).</li>
+        <li>recert_period_days: Optional recertification interval in days. Without it the generally configured interval applies.</li>
+        <li>days_until_first_recert: Currently not regarded.</li>
+        <li>app_servers: List of all host addresses assigned to the application. They are recognized by ip and ip_end; app servers of the import source that are missing in the file are marked as deleted.
+            Further fields (e.g. type) are ignored.
             <ul>
-                <li>name: Optional name for display</li>
+                <li>name: Optional name for display. Depending on the app data import settings it is replaced by a name built from DNS.</li>
                 <li>ip: IP address</li>
+                <li>ip_end: Optional end of an IP range, without it only the address in ip is used</li>
+                <li>labels: Optional list of labels with label_key and label_value, e.g. Stage: Prod. Without this field the labels of the app server stay unchanged,
+                    an empty list removes all of them. Unknown keys and values are created as imported. Rejected and noted in the import log are the keys
+                    AppRole and AppZone (they stay groups), several values of a key that allows a single value only, more than 50 labels per app server,
+                    and keys longer than 100 or values longer than 250 characters.</li>
             </ul>
         </li>
     </ul>

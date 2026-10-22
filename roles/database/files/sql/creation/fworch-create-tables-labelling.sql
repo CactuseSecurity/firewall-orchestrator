@@ -44,6 +44,7 @@ create table labelling.label_change_event
 -- applying labels ---------------------------------------------------------
 -- a label assignment is active while removed_event_id is null; re-adding a removed label creates a new row,
 -- the partial unique indices in fworch-create-indices.sql allow only one active assignment per object and label
+-- (per object, label and AND-group for the source and destination sides of rules and connections)
 
 -- to firewall.rule (e.g. for Guardicore), source labels: AppRole, Stage, ...
 create table labelling.rule_source_label
@@ -52,7 +53,8 @@ create table labelling.rule_source_label
     label_id BIGINT NOT NULL,
     created_event_id BIGINT NOT NULL,
     removed_event_id BIGINT,
-    primary key (rule_id, label_id, created_event_id)
+    and_group Integer NOT NULL Default 0, -- number of the AND-group of the side, the groups of a side are ORed
+    primary key (rule_id, label_id, created_event_id, and_group)
 );
 
 -- to firewall.rule, destination labels: AppRole, Stage
@@ -62,7 +64,8 @@ create table labelling.rule_destination_label
     label_id BIGINT NOT NULL,
     created_event_id BIGINT NOT NULL,
     removed_event_id BIGINT,
-    primary key (rule_id, label_id, created_event_id)
+    and_group Integer NOT NULL Default 0, -- number of the AND-group of the side, the groups of a side are ORed
+    primary key (rule_id, label_id, created_event_id, and_group)
 );
 
 -- to firewall.rule as a whole: App
@@ -82,7 +85,8 @@ create table labelling.connection_source_label
     label_id BIGINT NOT NULL,
     created_event_id BIGINT NOT NULL,
     removed_event_id BIGINT,
-    primary key (connection_id, label_id, created_event_id)
+    and_group Integer NOT NULL Default 0, -- number of the AND-group of the side, the groups of a side are ORed
+    primary key (connection_id, label_id, created_event_id, and_group)
 );
 
 -- to modelling.connection, destination labels: AppRole
@@ -92,7 +96,8 @@ create table labelling.connection_destination_label
     label_id BIGINT NOT NULL,
     created_event_id BIGINT NOT NULL,
     removed_event_id BIGINT,
-    primary key (connection_id, label_id, created_event_id)
+    and_group Integer NOT NULL Default 0, -- number of the AND-group of the side, the groups of a side are ORed
+    primary key (connection_id, label_id, created_event_id, and_group)
 );
 
 -- to modelling.connection as a whole: App

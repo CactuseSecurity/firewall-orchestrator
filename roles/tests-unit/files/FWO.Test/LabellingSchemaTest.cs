@@ -45,6 +45,12 @@ namespace FWO.Test
             "owner_network_label"
         ];
         private static readonly List<string> kImporterLinkTables = ["rule_source_label", "rule_destination_label", "rule_label"];
+        private static readonly List<string> kSideLinkTables =
+        [
+            "rule_source_label", "rule_destination_label", "connection_source_label", "connection_destination_label"
+        ];
+        private static readonly List<string> kReadAndInsertKinds = ["select_permissions", "insert_permissions"];
+        private const string kAndGroupColumn = "and_group";
         private static readonly List<string> kWriteKinds = ["insert_permissions", "update_permissions"];
         private static readonly List<JsonNode> kNoNodes = [];
         private static readonly List<string> kRemovedEventColumns = [kRemovedEventColumn];
@@ -170,6 +176,38 @@ namespace FWO.Test
                 {
                     Assert.That(fillStm, Does.Contain(deviceType), deviceType);
                     Assert.That(upgrade, Does.Contain(deviceType), deviceType);
+                }
+            });
+        }
+
+        /// <summary>
+        /// The source and destination sides of rules and connections keep their ORed AND-groups: the group number is
+        /// part of the key and of the active unique index in creation and upgrade, and readable and writable via Hasura.
+        /// </summary>
+        [Test]
+        public void SideLabels_KeepTheirAndGroup()
+        {
+            List<string> tableScripts = [creationTables, upgrade];
+            List<string> indexScripts = [indices, upgrade];
+            Assert.Multiple(() =>
+            {
+                foreach (string name in kSideLinkTables)
+                {
+                    foreach (string sql in tableScripts)
+                    {
+                        Assert.That(sql, Does.Match($@"labelling\.{name}\s*\([^;]*{kAndGroupColumn} Integer NOT NULL Default 0[^;]*primary key \([^)]*{kAndGroupColumn}\)"), name);
+                    }
+                    foreach (string sql in indexScripts)
+                    {
+                        Assert.That(sql, Does.Match($@"{name}_active_unique ON labelling\.{name} \([^)]*, {kAndGroupColumn}\) WHERE removed_event_id IS NULL"), name);
+                    }
+                    foreach (string kind in kReadAndInsertKinds)
+                    {
+                        foreach (JsonNode permission in Permissions(FindTable(name), kind))
+                        {
+                            Assert.That(Columns(permission), Does.Contain(kAndGroupColumn), $"{name} / {kind}");
+                        }
+                    }
                 }
             });
         }

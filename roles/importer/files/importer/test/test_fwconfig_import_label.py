@@ -3,8 +3,11 @@ import unittest.mock
 import pytest
 from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwoApiWriteError
-from model_controllers.fwconfig_import_label import FwConfigImportLabel
+from model_controllers.fwconfig_import_label import FwConfigImportLabel, get_side_label_values
+from models.fwconfig_normalized import FwConfigNormalized
 from models.label import LabelNormalized
+from models.rulebase import Rulebase
+from test.test_fwconfig_import_rule_label import build_rule
 
 LABELS = [
     LabelNormalized(key_name="Stage", value="Prod"),
@@ -50,3 +53,32 @@ class TestFwConfigImportLabel:
 
         with pytest.raises(FwoApiWriteError):
             FwConfigImportLabel(api_call).upsert_labels(LABELS)
+
+
+class TestRuleSideLabels:
+    def test_side_label_values_are_numbered_by_and_group(self) -> None:
+        labels: list[dict[str, str | list[str]]] = [{"AppRole": ["AR1", "AR2"], "Stage": "Prod"}, {"AppRole": "AR3"}]
+
+        assert get_side_label_values(labels) == [
+            (0, "AppRole", "AR1"),
+            (0, "AppRole", "AR2"),
+            (0, "Stage", "Prod"),
+            (1, "AppRole", "AR3"),
+        ]
+        assert get_side_label_values(None) == []
+
+    def test_collect_labels_adds_the_labels_of_rule_sides(self) -> None:
+        rule = build_rule(src_labels=[{"AppRole": "AR9"}], dst_labels=[{"Stage": ["Prod", "Test"]}])
+        config = FwConfigNormalized(
+            labels=[LabelNormalized(key_name="Stage", value="Prod")],
+            rulebases=[Rulebase(uid="rb", name="rb", mgm_uid="m", rules={"rule-uid": rule})],
+        )
+
+        labels = FwConfigImportLabel.collect_labels(config)
+
+        assert [(label.key_name, label.value) for label in labels] == [
+            ("Stage", "Prod"),
+            ("AppRole", "AR9"),
+            ("Stage", "Prod"),
+            ("Stage", "Test"),
+        ]

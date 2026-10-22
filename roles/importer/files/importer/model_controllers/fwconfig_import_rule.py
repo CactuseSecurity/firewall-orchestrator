@@ -14,6 +14,7 @@ from fwo_exceptions import (
     FwoImporterErrorInconsistenciesError,
 )
 from fwo_log import ChangeLogger, FWOLogger
+from model_controllers.fwconfig_import_rule_label import FwConfigImportRuleLabel
 from model_controllers.fwconfig_import_ruleorder import update_rule_order_diffs
 from models.rule import Rule, RuleNormalized
 from models.rule_from import RuleFrom
@@ -153,6 +154,12 @@ class FwConfigImportRule:
 
         num_set_removed_rules, _removed_rule_ids = self.mark_rules_removed(
             list(removed_rule_uids | changed_rule_uids | xlate_fk_repoint_uids)
+        )
+        self.update_rule_label_assignments(
+            prev_rules,
+            curr_rules,
+            added_rule_uids | changed_rule_uids | xlate_fk_repoint_uids,
+            removed_rule_uids | changed_rule_uids | xlate_fk_repoint_uids,
         )
         # remove old rulebases
         removed_rulebase_uids = [
@@ -991,6 +998,31 @@ class FwConfigImportRule:
             raise FwoApiWriteError(f"failed to remove rulebases: {remove_result['errors']!s}")
 
         return int(remove_result["data"]["update_firewall_rulebase"]["affected_rows"])
+
+    def update_rule_label_assignments(
+        self,
+        prev_rules: dict[str, RuleNormalized],
+        curr_rules: dict[str, RuleNormalized],
+        inserted_rule_uids: set[str],
+        removed_rule_uids: set[str],
+    ) -> None:
+        """
+        Write the label assignments of the inserted rule versions and close those of the removed rule versions.
+
+        Must run after the new rule versions got their rule_ids, so that the assignments can reference them.
+        """
+        inserted_rules = {
+            self.uid2id_mapper.get_rule_id(rule_uid): curr_rules[rule_uid]
+            for rule_uid in inserted_rule_uids
+            if FwConfigImportRuleLabel.has_labels(curr_rules[rule_uid])
+        }
+        removed_rule_ids = [
+            self.uid2id_mapper.get_rule_id(rule_uid, before_update=True)
+            for rule_uid in removed_rule_uids
+            if rule_uid in prev_rules and FwConfigImportRuleLabel.has_labels(prev_rules[rule_uid])
+        ]
+        rule_label_import = FwConfigImportRuleLabel(self.import_details.api_call, self.import_details.state.import_id)
+        rule_label_import.write_rule_label_assignments(inserted_rules, removed_rule_ids)
 
     def mark_rules_removed(self, rule_uids_to_remove: list[str]) -> tuple[int, list[int]]:
         """

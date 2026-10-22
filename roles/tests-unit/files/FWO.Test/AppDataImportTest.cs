@@ -8,6 +8,7 @@ using FWO.Basics;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Labelling;
 using FWO.Data.Modelling;
 using FWO.Middleware.Server;
 using NUnit.Framework;
@@ -855,6 +856,149 @@ namespace FWO.Test
             Assert.That(apiConn.LastNewAppServerIpEnd, Is.EqualTo("10.0.0.1/32"));
             Assert.That(apiConn.SetAppServerDeletedStates, Does.Contain((900L, true)));
             Assert.That(apiConn.AddHistoryEntryCalls, Is.EqualTo(2));
+        }
+
+        private static readonly List<long> kClosedProdLabel = [1L];
+        private static readonly List<ModellingImportLabel> kStageTestLabels = [new() { Key = "Stage", Value = "Test" }];
+        private static readonly List<ModellingImportLabel> kNoLabels = [];
+        private static readonly List<ModellingImportLabel> kStageProdLabels = [new() { Key = "Stage", Value = "Prod" }];
+        private static readonly List<(long, long, long)> kTestLabelOnExistingServer = [(910, 2, 55)];
+        private static readonly List<(long, long, long)> kTestLabelOnNewServer = [(777, 2, 55)];
+        private static readonly List<char> kOwnerChangeOnly = [ChangelogActionType.CHANGE];
+
+        private static (AppDataImportSaveAppApiConn apiConn, AppDataImport import) BuildLabelledServerImport(int appId, bool deleted = false)
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetUserConfig(import, new SimulatedUserConfig());
+            apiConn.AppServersByOwner[(appId, "SRC-SRV")] =
+            [
+                new ModellingAppServer
+                {
+                    Id = 910,
+                    AppId = appId,
+                    Name = "labelled",
+                    Ip = "10.0.1.1/32",
+                    IpEnd = "10.0.1.1/32",
+                    ImportSource = "SRC-SRV",
+                    CustomType = 0,
+                    IsDeleted = deleted
+                }
+            ];
+            apiConn.LabelIdsByKeyValue[("Stage", "Prod")] = 1;
+            apiConn.LabelIdsByKeyValue[("Stage", "Test")] = 2;
+            apiConn.ActiveOwnerNetworkLabels.Add(new OwnerNetworkLabel { OwnerNetworkId = 910, LabelId = 1 });
+            return (apiConn, import);
+        }
+
+        private static ModellingImportAppData BuildLabelledApp(List<ModellingImportLabel>? labels, string ip = "10.0.1.1/32")
+        {
+            return new()
+            {
+                Name = "App-60",
+                ExtAppId = "APP-60",
+                ImportSource = "SRC-SRV",
+                AppServers = [new() { Name = "labelled", Ip = ip, IpEnd = ip, Labels = labels }]
+            };
+        }
+
+        [Test]
+        public async Task ImportAppServers_ReplacesChangedLabelsOfExistingServer()
+        {
+            (AppDataImportSaveAppApiConn apiConn, AppDataImport import) = BuildLabelledServerImport(60);
+
+            await InvokeImportAppServers(import, BuildLabelledApp(kStageTestLabels), 60);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.RemovedOwnerNetworkLabels, Has.Count.EqualTo(1));
+                Assert.That(apiConn.RemovedOwnerNetworkLabels[0].ownerNetworkId, Is.EqualTo(910));
+                Assert.That(apiConn.RemovedOwnerNetworkLabels[0].labelIds, Is.EqualTo(kClosedProdLabel));
+                Assert.That(apiConn.RemovedOwnerNetworkLabels[0].eventId, Is.EqualTo(55));
+                Assert.That(apiConn.AddedOwnerNetworkLabels, Is.EqualTo(kTestLabelOnExistingServer));
+                Assert.That(apiConn.AddLabelChangeEventCalls, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task ImportAppServers_LeavesLabelsUntouchedWithoutLabelsField()
+        {
+            (AppDataImportSaveAppApiConn apiConn, AppDataImport import) = BuildLabelledServerImport(61);
+
+            await InvokeImportAppServers(import, BuildLabelledApp(null), 61);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.RemovedOwnerNetworkLabels, Is.Empty);
+                Assert.That(apiConn.AddedOwnerNetworkLabels, Is.Empty);
+                Assert.That(apiConn.AddLabelChangeEventCalls, Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task ImportAppServers_RemovesAllLabelsForEmptyLabelList()
+        {
+            (AppDataImportSaveAppApiConn apiConn, AppDataImport import) = BuildLabelledServerImport(62);
+
+            await InvokeImportAppServers(import, BuildLabelledApp(kNoLabels), 62);
+
+            Assert.That(apiConn.RemovedOwnerNetworkLabels.Select(removal => removal.labelIds).Single(), Is.EqualTo(kClosedProdLabel));
+            Assert.That(apiConn.AddedOwnerNetworkLabels, Is.Empty);
+        }
+
+        [Test]
+        public async Task ImportAppServers_ClosesLabelsOfDeletedServerAndLabelsNewServer()
+        {
+            (AppDataImportSaveAppApiConn apiConn, AppDataImport import) = BuildLabelledServerImport(63);
+
+            await InvokeImportAppServers(import, BuildLabelledApp(kStageTestLabels, "10.0.1.2/32"), 63);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.SetAppServerDeletedStates, Does.Contain((910L, true)));
+                Assert.That(apiConn.RemovedOwnerNetworkLabels.Select(removal => removal.ownerNetworkId).Single(), Is.EqualTo(910));
+                Assert.That(apiConn.AddedOwnerNetworkLabels, Is.EqualTo(kTestLabelOnNewServer));
+                Assert.That(apiConn.AddLabelChangeEventCalls, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task ImportAppServers_ReappliesLabelsOfReactivatedServer()
+        {
+            (AppDataImportSaveAppApiConn apiConn, AppDataImport import) = BuildLabelledServerImport(64, deleted: true);
+            apiConn.ActiveOwnerNetworkLabels.Clear();
+
+            await InvokeImportAppServers(import, BuildLabelledApp(kStageTestLabels), 64);
+
+            Assert.That(apiConn.SetAppServerDeletedStates, Does.Contain((910L, false)));
+            Assert.That(apiConn.AddedOwnerNetworkLabels, Is.EqualTo(kTestLabelOnExistingServer));
+        }
+
+        [Test]
+        public async Task AddOwnerChangeIfNeeded_LogsChange_WhenOnlyLabelsChanged()
+        {
+            (AppDataImportSaveAppApiConn apiConn, AppDataImport import) = BuildLabelledServerImport(65);
+            ModellingImportAppData incomingApp = BuildLabelledApp(kStageTestLabels);
+            FwoOwner existingApp = new() { Id = 65, Name = "App-60", ExtAppId = "APP-60", Active = true };
+            await InvokeImportAppServers(import, incomingApp, 65);
+
+            await InvokeAddOwnerChangeIfNeeded(import, existingApp, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(apiConn.ChangelogActions, Is.EqualTo(kOwnerChangeOnly));
+        }
+
+        [Test]
+        public async Task AddOwnerChangeIfNeeded_LogsNoChange_WhenLabelsAreUnchanged()
+        {
+            (AppDataImportSaveAppApiConn apiConn, AppDataImport import) = BuildLabelledServerImport(66);
+            ModellingImportAppData incomingApp = BuildLabelledApp(kStageProdLabels);
+            FwoOwner existingApp = new() { Id = 66, Name = "App-60", ExtAppId = "APP-60", Active = true };
+            await InvokeImportAppServers(import, incomingApp, 66);
+
+            await InvokeAddOwnerChangeIfNeeded(import, existingApp, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(apiConn.ChangelogActions, Is.Empty);
+            Assert.That(apiConn.AddLabelChangeEventCalls, Is.EqualTo(0));
         }
 
         [Test]
@@ -2340,6 +2484,11 @@ namespace FWO.Test
             public (long id, string name)? LastSetAppServerName { get; private set; }
             public (long id, int customType)? LastSetAppServerType { get; private set; }
             public List<(long id, bool deleted)> SetAppServerDeletedStates { get; } = [];
+            public List<OwnerNetworkLabel> ActiveOwnerNetworkLabels { get; } = [];
+            public Dictionary<(string key, string value), long> LabelIdsByKeyValue { get; } = [];
+            public List<(long ownerNetworkId, long labelId, long eventId)> AddedOwnerNetworkLabels { get; } = [];
+            public List<(long ownerNetworkId, List<long> labelIds, long eventId)> RemovedOwnerNetworkLabels { get; } = [];
+            public int AddLabelChangeEventCalls { get; private set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -2484,7 +2633,79 @@ namespace FWO.Test
                     });
                 }
 
+                if (TryAnswerLabelQuery(query, variables, out object? labelAnswer))
+                {
+                    return Task.FromResult((QueryResponseType)labelAnswer!);
+                }
+
                 throw new NotImplementedException($"Query not implemented in save-app test api: {query}");
+            }
+
+            private bool TryAnswerLabelQuery(string query, object? variables, out object? answer)
+            {
+                answer = null;
+                if (query == LabellingQueries.getLabelKeys)
+                {
+                    answer = new List<LabelKey>();
+                }
+                else if (query == LabellingQueries.getOwnerNetworkLabels)
+                {
+                    List<long> ids = [.. (IEnumerable<long>)GetAnonymousValue(variables, "ownerNetworkIds")!];
+                    answer = ActiveOwnerNetworkLabels.Where(label => ids.Contains(label.OwnerNetworkId)).ToList();
+                }
+                else if (query == LabellingQueries.upsertImportedLabels || query == LabellingQueries.addOwnerNetworkLabels
+                    || query == LabellingQueries.removeOwnerNetworkLabels)
+                {
+                    RecordLabelChange(query, variables);
+                    answer = new ReturnId { AffectedRows = 1 };
+                }
+                else if (query == LabellingQueries.getLabelIds)
+                {
+                    answer = LabelIdsByKeyValue.Select(label => new LabelValue
+                    {
+                        Id = label.Value,
+                        Value = label.Key.value,
+                        Key = new LabelKey { Name = label.Key.key }
+                    }).ToList();
+                }
+                else if (query == LabellingQueries.addLabelChangeEvent)
+                {
+                    ++AddLabelChangeEventCalls;
+                    answer = new ReturnId { Id = 55 };
+                }
+                return answer != null;
+            }
+
+            private void RecordLabelChange(string query, object? variables)
+            {
+                if (query == LabellingQueries.upsertImportedLabels)
+                {
+                    foreach (object labelKey in (IEnumerable)GetAnonymousValue(variables, "labelKeys")!)
+                    {
+                        string keyName = (string)GetAnonymousValue(labelKey, "key_name")!;
+                        foreach (object labelValue in (IEnumerable)GetAnonymousValue(GetAnonymousValue(labelKey, "label_values"), "data")!)
+                        {
+                            LabelIdsByKeyValue.TryAdd((keyName, (string)GetAnonymousValue(labelValue, "value")!), 1000 + LabelIdsByKeyValue.Count);
+                        }
+                    }
+                }
+                else if (query == LabellingQueries.addOwnerNetworkLabels)
+                {
+                    foreach (object label in (IEnumerable)GetAnonymousValue(variables, "labels")!)
+                    {
+                        AddedOwnerNetworkLabels.Add((GetAnonymousLong(label, "owner_network_id"), GetAnonymousLong(label, "label_id"), GetAnonymousLong(label, "created_event_id")));
+                    }
+                }
+                else if (query == LabellingQueries.removeOwnerNetworkLabels)
+                {
+                    List<long> labelIds = [.. (IEnumerable<long>)GetAnonymousValue(variables, "labelIds")!];
+                    RemovedOwnerNetworkLabels.Add((GetAnonymousLong(variables, "ownerNetworkId"), labelIds, GetAnonymousLong(variables, "removedEventId")));
+                }
+            }
+
+            private static object? GetAnonymousValue(object? variables, string propertyName)
+            {
+                return variables?.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)?.GetValue(variables);
             }
 
             private static bool? GetAnonymousBool(object? variables, string propertyName)

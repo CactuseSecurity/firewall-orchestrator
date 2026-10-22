@@ -1,0 +1,8 @@
+query getOwnerNetworkLabels($ownerNetworkIds: [bigint!]!) {
+    labelling_owner_network_label(
+        where: { owner_network_id: { _in: $ownerNetworkIds }, removed_event_id: { _is_null: true } }
+    ) {
+        owner_network_id
+        label_id
+    }
+}

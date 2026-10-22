@@ -20,7 +20,7 @@ This file tracks unresolved review, validation, and product-boundary work. An it
 
 ## Validation and stakeholder follow-up
 
-- [ ] Run the outstanding Phase 1 disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade acceptance gates through the approved installation-test workflow.
+- [ ] Run the outstanding Phase 1 disposable-VM fresh-install and `9.8.0` to `9.8.1` upgrade acceptance gates through the approved installation-test workflow.
 - [ ] Consult the audit stakeholders about rule-position change events, actor, payload, retention, and clearing semantics before adding auditing.
 - [ ] Decide in a later modify/retry work package whether changing a persisted implementation task's gateway, management, or relevant rule content clears or recalculates its position, and whether an authorized manual retry is needed. WP-06 activates creation only.
 

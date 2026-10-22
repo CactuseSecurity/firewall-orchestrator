@@ -1,10 +1,10 @@
 # Session handoff
 
-Last updated: 2026-10-20
+Last updated: 2026-10-22
 
 ## Current status
 
-Phase 1 and Phase 2 remain implemented on the rebased `Cactus/develop` baseline. Phase 1 local validation passes, but the mandatory disposable-VM fresh-install and `9.7.2` to `9.7.3` upgrade gates remain pending. Phase 2 is implemented and locally validated.
+Phase 1 and Phase 2 remain implemented on the rebased `Cactus/develop` baseline. Phase 1 local validation passes, but the mandatory disposable-VM fresh-install and `9.8.0` to `9.8.1` upgrade gates remain pending. Phase 2 is implemented and locally validated.
 
 Phase 3 WP-01 through WP-06 are implemented and locally validated. WP-05 adds and registers the independently callable graph-only calculation/persistence service, keeps zone input inactive, and removes the WP-04 renderer. WP-06 activates that service from the approved middleware implementation-task creation event while preserving bundle, replay, and best-effort failure semantics.
 
@@ -22,9 +22,14 @@ Phase 4 remains reserved for the later customer-specific extension. The customer
 - The generic runtime path does not load designated zones, expand Flow groups, resolve compliance zones, render vendor requests, call `CheckPointClient`, publish, or install policy.
 - The representative imported empty-initial-layer fixture produces `Bottom`; populated layers produce `Below` the final direct rule; missing or malformed structure fails safely.
 - `CheckPointRulePositionRenderer`, its dedicated tests, and the renderer-only ticket assertion were removed without replacement.
+- Rule-positioning algorithms now persist as numeric enum values and load legacy numeric, C# name, `EnumMember`, and normalized GraphQL name representations without changing device-specific-settings serialization.
+- Installed C# tests receive their required source-contract fixtures in `repository-contracts/`, while the flat metadata fixture remains available for older tests.
 
 ## Validation evidence
 
+- 2026-10-22 round-trip and installed-test packaging repair: 63 focused persistence tests passed; new parser/converters reached 100% line coverage and 87.5% to 100% branch coverage.
+- 2026-10-22 Debug solution build completed with zero warnings and zero errors; complete unit suite passed with 8,746 passed, 30 skipped, and zero failed.
+- The required disposable-VM fresh-install and `9.8.0` to `9.8.1` upgrade retest remains open because the FWO MCP installation tools were unavailable in the repair session.
 - Focused WP-06 selection: 395 tests passed.
 - Focused Coverlet results exceed 80% for every new production seam: activation 91.2% line / 94.4% branch, durable creation 90.5% / 92.9%, delegated parent resolution 100% / 94.4%, and applicability plus middleware marker methods 100% / 100%.
 - `dotnet format roles/FWO.sln --no-restore` completed successfully; unrelated formatter-only changes were removed.

@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using FWO.Api.Client;
@@ -8,6 +9,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
+using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
 using FWO.Services;
 using FWO.Services.Workflow;
@@ -37,6 +39,21 @@ public class RulePositionPersistenceTest
           }
         }
         """;
+    private const string kReportedUppercasePositionJson = """
+        {
+          "position_type": "check-point.rule-position.v1",
+          "schema_version": 1,
+          "positioning_algorithm": "DEFAULT_END_OF_RULEBASE",
+          "layer_uid": "network-layer-uid",
+          "anchor_kind": "BELOW",
+          "anchor_rule_uid": "anchor-rule-uid"
+        }
+        """;
+    private static readonly System.Text.Json.JsonSerializerOptions kGraphQlSystemTextJsonOptions =
+        new()
+        {
+            Converters = { new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.SnakeCaseUpper) }
+        };
 
     [Test]
     public void WfImplTask_SystemTextJsonRoundTripsKnownPosition()
@@ -58,6 +75,109 @@ public class RulePositionPersistenceTest
         WfImplTask? loaded = JsonConvert.DeserializeObject<WfImplTask>(json);
 
         AssertKnownPosition(loaded?.RulePosition, "first");
+    }
+
+    [TestCaseSource(nameof(SupportedAlgorithmRepresentations))]
+    public void PositioningAlgorithm_ReadersAcceptPersistedRepresentations(
+        string serializedValue,
+        ProvisioningPositioningAlgorithm expected)
+    {
+        string json = $$"""
+            {
+              "position_type": "{{kKnownDiscriminator}}",
+              "schema_version": 3,
+              "positioning_algorithm": {{serializedValue}},
+              "markers": ["representation"]
+            }
+            """;
+
+        PersistedTestRulePosition newtonsoftPosition =
+            (PersistedTestRulePosition)JsonConvert.DeserializeObject<RulePosition>(json)!;
+        PersistedTestRulePosition systemTextPosition =
+            (PersistedTestRulePosition)System.Text.Json.JsonSerializer.Deserialize<RulePosition>(json)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(newtonsoftPosition.PositioningAlgorithm, Is.EqualTo(expected));
+            Assert.That(systemTextPosition.PositioningAlgorithm, Is.EqualTo(expected));
+        });
+    }
+
+    [Test]
+    public void ReportedUppercasePosition_LoadsAndRewritesWithoutDataLoss()
+    {
+        List<RulePosition> loadedPositions =
+        [
+            JsonConvert.DeserializeObject<RulePosition>(kReportedUppercasePositionJson)!,
+            System.Text.Json.JsonSerializer.Deserialize<RulePosition>(
+                kReportedUppercasePositionJson,
+                kGraphQlSystemTextJsonOptions)!
+        ];
+
+        foreach (RulePosition loadedPosition in loadedPositions)
+        {
+            AssertCheckPointPosition(loadedPosition, ProvisioningPositioningAlgorithm.DefaultEndOfRulebase);
+            List<string> rewrittenPayloads =
+            [
+                JsonConvert.SerializeObject(loadedPosition),
+                System.Text.Json.JsonSerializer.Serialize(loadedPosition)
+            ];
+            foreach (string rewrittenPayload in rewrittenPayloads)
+            {
+                Assert.That(JsonNode.Parse(rewrittenPayload)!["positioning_algorithm"]!.GetValue<int>(),
+                    Is.EqualTo((int)ProvisioningPositioningAlgorithm.DefaultEndOfRulebase));
+                AssertCheckPointPosition(
+                    JsonConvert.DeserializeObject<RulePosition>(rewrittenPayload),
+                    ProvisioningPositioningAlgorithm.DefaultEndOfRulebase);
+                AssertCheckPointPosition(
+                    System.Text.Json.JsonSerializer.Deserialize<RulePosition>(rewrittenPayload),
+                    ProvisioningPositioningAlgorithm.DefaultEndOfRulebase);
+            }
+        }
+    }
+
+    [TestCase("\"NOT_AN_ALGORITHM\"")]
+    [TestCase("999")]
+    [TestCase("2147483648")]
+    [TestCase("true")]
+    public void KnownPosition_InvalidAlgorithmFailsValidation(string serializedValue)
+    {
+        string json = CreateCheckPointPositionJson(serializedValue, "3");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(() => JsonConvert.DeserializeObject<RulePosition>(json), Throws.Exception);
+            Assert.That(() => System.Text.Json.JsonSerializer.Deserialize<RulePosition>(json), Throws.Exception);
+        });
+    }
+
+    [TestCase("\"NOT_AN_ALGORITHM\"")]
+    [TestCase("999")]
+    [TestCase("2147483648")]
+    [TestCase("true")]
+    public void UnknownPosition_InvalidAlgorithmRetainsRawPayload(string serializedValue)
+    {
+        string json = $$"""
+            {
+              "position_type": "{{kUnknownDiscriminator}}",
+              "schema_version": 8,
+              "positioning_algorithm": {{serializedValue}},
+              "vendor_data": { "anchor": "retained" }
+            }
+            """;
+
+        UnknownRulePosition newtonsoftPosition =
+            (UnknownRulePosition)JsonConvert.DeserializeObject<RulePosition>(json)!;
+        UnknownRulePosition systemTextPosition =
+            (UnknownRulePosition)System.Text.Json.JsonSerializer.Deserialize<RulePosition>(json)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(newtonsoftPosition.RawPayload["vendor_data"]!["anchor"]!.GetValue<string>(),
+                Is.EqualTo("retained"));
+            Assert.That(systemTextPosition.RawPayload["vendor_data"]!["anchor"]!.GetValue<string>(),
+                Is.EqualTo("retained"));
+        });
     }
 
     [Test]
@@ -201,10 +321,43 @@ public class RulePositionPersistenceTest
         });
     }
 
+    [TestCaseSource(nameof(DefinedPositioningAlgorithms))]
+    public void GraphQlSerializers_RoundTripEveryDefinedAlgorithmNumerically(
+        ProvisioningPositioningAlgorithm algorithm)
+    {
+        CheckPointRulePosition position = new(
+            "transport-layer",
+            CheckPointPositionAnchorKind.Below,
+            "transport-anchor",
+            algorithm)
+        {
+            SchemaVersion = 4
+        };
+
+        foreach (string requestJson in SerializeGraphQlVariables(position))
+        {
+            JsonObject transportedPosition = JsonNode.Parse(requestJson)!["variables"]!["rulePosition"]!.AsObject();
+            Assert.That(transportedPosition["positioning_algorithm"]!.GetValue<int>(),
+                Is.EqualTo((int)algorithm));
+            string positionJson = transportedPosition.ToJsonString();
+
+            AssertCheckPointPosition(JsonConvert.DeserializeObject<RulePosition>(positionJson), algorithm,
+                "transport-layer", "transport-anchor", 4);
+            AssertCheckPointPosition(
+                System.Text.Json.JsonSerializer.Deserialize<RulePosition>(
+                    positionJson,
+                    kGraphQlSystemTextJsonOptions),
+                algorithm,
+                "transport-layer",
+                "transport-anchor",
+                4);
+        }
+    }
+
     [Test]
     public void ImplTaskMetadata_PreservesReadAccessAndLimitsNewWriteAccess()
     {
-        JsonObject metadata = JsonNode.Parse(File.ReadAllText(LocateRepositoryFile(
+        JsonObject metadata = JsonNode.Parse(File.ReadAllText(RepositoryContractFileLocator.Locate(
             "roles", "api", "files", "replace_metadata.json")))!.AsObject();
         JsonObject table = FindImplTaskMetadata(metadata);
         List<JsonObject> insertPermissions = ReadPermissionObjects(table, "insert_permissions");
@@ -223,11 +376,11 @@ public class RulePositionPersistenceTest
     [Test]
     public void OpenUpgradeAndCreationSchema_DeclareNullableIdempotentJsonbColumn()
     {
-        string upgrade = File.ReadAllText(LocateRepositoryFile(
+        string upgrade = File.ReadAllText(RepositoryContractFileLocator.Locate(
             "roles", "database", "files", "upgrade", "9.8.1.sql"));
-        string sealedUpgrade = File.ReadAllText(LocateRepositoryFile(
+        string sealedUpgrade = File.ReadAllText(RepositoryContractFileLocator.Locate(
             "roles", "database", "files", "upgrade", "9.7.1.sql"));
-        string creation = File.ReadAllText(LocateRepositoryFile(
+        string creation = File.ReadAllText(RepositoryContractFileLocator.Locate(
             "roles", "database", "files", "sql", "creation", "fworch-create-tables-request.sql"));
 
         Assert.Multiple(() =>
@@ -249,6 +402,75 @@ public class RulePositionPersistenceTest
             PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection,
             Markers = [marker]
         };
+    }
+
+    private static IEnumerable<TestCaseData> SupportedAlgorithmRepresentations()
+    {
+        foreach (ProvisioningPositioningAlgorithm algorithm in
+            Enum.GetValues<ProvisioningPositioningAlgorithm>())
+        {
+            int numericValue = (int)algorithm;
+            yield return new TestCaseData(numericValue.ToString(), algorithm)
+                .SetName($"Algorithm integer {algorithm}");
+            yield return new TestCaseData($"\"{numericValue}\"", algorithm)
+                .SetName($"Algorithm numeric string {algorithm}");
+            yield return new TestCaseData($"\"{algorithm}\"", algorithm)
+                .SetName($"Algorithm C# name {algorithm}");
+            yield return new TestCaseData($"\"{ToScreamingSnakeCase(algorithm.ToString())}\"", algorithm)
+                .SetName($"Algorithm GraphQL name {algorithm}");
+
+            string? enumMemberValue = typeof(ProvisioningPositioningAlgorithm)
+                .GetField(algorithm.ToString())!
+                .GetCustomAttribute<EnumMemberAttribute>()?.Value;
+            if (enumMemberValue != null)
+            {
+                yield return new TestCaseData($"\"{enumMemberValue}\"", algorithm)
+                    .SetName($"Algorithm EnumMember value {algorithm}");
+            }
+        }
+    }
+
+    private static IEnumerable<ProvisioningPositioningAlgorithm> DefinedPositioningAlgorithms() =>
+        Enum.GetValues<ProvisioningPositioningAlgorithm>()
+            .Where(algorithm => algorithm != ProvisioningPositioningAlgorithm.Undefined);
+
+    private static string ToScreamingSnakeCase(string value)
+    {
+        return string.Concat(value.SelectMany((character, index) =>
+            index > 0 && char.IsUpper(character)
+                ? new[] { '_', char.ToUpperInvariant(character) }
+                : new[] { char.ToUpperInvariant(character) }));
+    }
+
+    private static string CreateCheckPointPositionJson(string algorithm, string anchorKind) => $$"""
+        {
+          "position_type": "check-point.rule-position.v1",
+          "schema_version": 1,
+          "positioning_algorithm": {{algorithm}},
+          "layer_uid": "layer",
+          "anchor_kind": {{anchorKind}},
+          "anchor_rule_uid": "anchor"
+        }
+        """;
+
+    private static void AssertCheckPointPosition(
+        RulePosition? position,
+        ProvisioningPositioningAlgorithm expectedAlgorithm,
+        string expectedLayerUid = "network-layer-uid",
+        string expectedAnchorRuleUid = "anchor-rule-uid",
+        int expectedSchemaVersion = 1)
+    {
+        Assert.That(position, Is.TypeOf<CheckPointRulePosition>());
+        CheckPointRulePosition checkPointPosition = (CheckPointRulePosition)position!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(checkPointPosition.PositionType, Is.EqualTo(CheckPointRulePosition.kDiscriminator));
+            Assert.That(checkPointPosition.SchemaVersion, Is.EqualTo(expectedSchemaVersion));
+            Assert.That(checkPointPosition.PositioningAlgorithm, Is.EqualTo(expectedAlgorithm));
+            Assert.That(checkPointPosition.LayerUid, Is.EqualTo(expectedLayerUid));
+            Assert.That(checkPointPosition.AnchorKind, Is.EqualTo(CheckPointPositionAnchorKind.Below));
+            Assert.That(checkPointPosition.AnchorRuleUid, Is.EqualTo(expectedAnchorRuleUid));
+        });
     }
 
     private static void AssertKnownPosition(RulePosition? position, string marker)
@@ -339,22 +561,6 @@ public class RulePositionPersistenceTest
     private static string ReadRole(JsonObject permission)
     {
         return permission["role"]!.GetValue<string>();
-    }
-
-    private static string LocateRepositoryFile(params string[] relativePath)
-    {
-        foreach (string startPath in new List<string> { TestContext.CurrentContext.TestDirectory, Environment.CurrentDirectory })
-        {
-            for (DirectoryInfo? directory = new(startPath); directory != null; directory = directory.Parent)
-            {
-                string candidate = Path.Combine([directory.FullName, .. relativePath]);
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-            }
-        }
-        throw new FileNotFoundException($"Repository file not found: {Path.Combine(relativePath)}");
     }
 
     [RulePositionType(kKnownDiscriminator)]

@@ -43,6 +43,8 @@ public abstract class RulePosition
     public int SchemaVersion { get; set; } = kInitialSchemaVersion;
 
     [JsonProperty("positioning_algorithm"), JsonPropertyName("positioning_algorithm")]
+    [Newtonsoft.Json.JsonConverter(typeof(NewtonsoftProvisioningPositioningAlgorithmJsonConverter))]
+    [System.Text.Json.Serialization.JsonConverter(typeof(SystemTextProvisioningPositioningAlgorithmJsonConverter))]
     public ProvisioningPositioningAlgorithm PositioningAlgorithm { get; set; }
 
     /// <summary>

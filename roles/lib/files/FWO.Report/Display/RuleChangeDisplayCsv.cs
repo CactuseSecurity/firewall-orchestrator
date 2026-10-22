@@ -2,6 +2,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
 using FWO.Report.Filter;
+using FWO.Data.Labelling;
 
 namespace FWO.Ui.Display
 {

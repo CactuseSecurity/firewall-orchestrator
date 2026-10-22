@@ -1,0 +1,5 @@
+mutation addConnectionDestinationLabels($labels: [labelling_connection_destination_label_insert_input!]!) {
+    insert_labelling_connection_destination_label(objects: $labels) {
+        affected_rows
+    }
+}

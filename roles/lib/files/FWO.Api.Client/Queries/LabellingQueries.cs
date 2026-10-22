@@ -20,6 +20,12 @@ namespace FWO.Api.Client.Queries
         public static readonly string addRuleLabelAssignments;
         public static readonly string removeRuleLabelAssignments;
         public static readonly string getOwnerAppServerAppLabels;
+        public static readonly string getModellingLabels;
+        public static readonly string addConnectionSourceLabels;
+        public static readonly string addConnectionDestinationLabels;
+        public static readonly string removeConnectionSourceLabels;
+        public static readonly string removeConnectionDestinationLabels;
+        public static readonly string addConnectionLabelChangeEvent;
 
         static LabellingQueries()
         {
@@ -41,6 +47,12 @@ namespace FWO.Api.Client.Queries
                 addRuleLabelAssignments = GetQueryText("labelling/addRuleLabelAssignments.graphql");
                 removeRuleLabelAssignments = GetQueryText("labelling/removeRuleLabelAssignments.graphql");
                 getOwnerAppServerAppLabels = GetQueryText("labelling/getOwnerAppServerAppLabels.graphql");
+                getModellingLabels = GetQueryText("labelling/getModellingLabels.graphql");
+                addConnectionSourceLabels = GetQueryText("labelling/addConnectionSourceLabels.graphql");
+                addConnectionDestinationLabels = GetQueryText("labelling/addConnectionDestinationLabels.graphql");
+                removeConnectionSourceLabels = GetQueryText("labelling/removeConnectionSourceLabels.graphql");
+                removeConnectionDestinationLabels = GetQueryText("labelling/removeConnectionDestinationLabels.graphql");
+                addConnectionLabelChangeEvent = GetQueryText("labelling/addConnectionLabelChangeEvent.graphql");
             }
             catch (Exception exception)
             {

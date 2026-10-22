@@ -1,9 +1,7 @@
-using FWO.Data;
-using FWO.Data.Labelling;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace FWO.Ui.Display
+namespace FWO.Data.Labelling
 {
     /// <summary>
     /// Formats the labels of rules for reports. The labels of a rule side are ORed AND-groups:

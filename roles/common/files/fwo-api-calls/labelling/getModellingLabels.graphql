@@ -1,0 +1,13 @@
+# the labels that can be used in modelling, except those of keys that stay groups there
+query getModellingLabels($excludedKeys: [String!]!) {
+    labelling_label_value(
+        where: { label_key: { key_name: { _nin: $excludedKeys } } }
+        order_by: [{ label_key: { key_name: asc } }, { value: asc }]
+    ) {
+        label_id
+        value
+        label_key {
+            key_name
+        }
+    }
+}

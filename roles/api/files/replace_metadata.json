@@ -3332,22 +3332,36 @@
                     ],
                     "filter": {
                       "label_values": {
-                        "rule_labels": {
-                          "rule": {
-                            "_and": [
+                        "_or": [
+                          {
+                            "rule_labels": {
+                              "rule": {
+                                "_and": [
+                                  {
+                                    "mgm_id": {
+                                      "_in": "x-hasura-visible-managements"
+                                    }
+                                  },
+                                  {
+                                    "rule_relevant_for_tenant": {
+                                      "_eq": "true"
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "_or": [
                               {
-                                "mgm_id": {
-                                  "_in": "x-hasura-visible-managements"
-                                }
+                                "connection_source_labels": {}
                               },
                               {
-                                "rule_relevant_for_tenant": {
-                                  "_eq": "true"
-                                }
+                                "connection_destination_labels": {}
                               }
                             ]
                           }
-                        }
+                        ]
                       }
                     }
                   }
@@ -3485,6 +3499,21 @@
                 }
               ],
               "array_relationships": [
+                {
+                  "name": "owners_by_app_id",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "value": "app_id_external"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "owner",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
                 {
                   "name": "rule_source_labels",
                   "using": {
@@ -3631,22 +3660,36 @@
                       "value"
                     ],
                     "filter": {
-                      "rule_labels": {
-                        "rule": {
-                          "_and": [
+                      "_or": [
+                        {
+                          "rule_labels": {
+                            "rule": {
+                              "_and": [
+                                {
+                                  "mgm_id": {
+                                    "_in": "x-hasura-visible-managements"
+                                  }
+                                },
+                                {
+                                  "rule_relevant_for_tenant": {
+                                    "_eq": "true"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "_or": [
                             {
-                              "mgm_id": {
-                                "_in": "x-hasura-visible-managements"
-                              }
+                              "connection_source_labels": {}
                             },
                             {
-                              "rule_relevant_for_tenant": {
-                                "_eq": "true"
-                              }
+                              "connection_destination_labels": {}
                             }
                           ]
                         }
-                      }
+                      ]
                     }
                   }
                 },
@@ -3784,6 +3827,41 @@
                 }
               ],
               "insert_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {
+                      "_and": [
+                        {
+                          "origin_is_ui": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "connection": {
+                            "_or": [
+                              {
+                                "app_id": {
+                                  "_in": "x-hasura-editable-owners"
+                                }
+                              },
+                              {
+                                "app_id": {
+                                  "_is_null": true
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "columns": [
+                      "actor",
+                      "connection_id",
+                      "origin_is_ui"
+                    ]
+                  }
+                },
                 {
                   "role": "importer",
                   "permission": {
@@ -4404,6 +4482,55 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {
+                      "_and": [
+                        {
+                          "connection": {
+                            "_or": [
+                              {
+                                "app_id": {
+                                  "_in": "x-hasura-editable-owners"
+                                }
+                              },
+                              {
+                                "app_id": {
+                                  "_is_null": true
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "label_value": {
+                            "_or": [
+                              {
+                                "_not": {
+                                  "owners_by_app_id": {}
+                                }
+                              },
+                              {
+                                "owners_by_app_id": {
+                                  "id": {
+                                    "_in": "x-hasura-editable-owners"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id"
+                    ]
+                  }
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "check": {},
@@ -4419,6 +4546,32 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  }
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -4449,6 +4602,31 @@
                 }
               ],
               "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {
+                      "connection": {
+                        "_or": [
+                          {
+                            "app_id": {
+                              "_in": "x-hasura-editable-owners"
+                            }
+                          },
+                          {
+                            "app_id": {
+                              "_is_null": true
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "check": {}
+                  }
+                },
                 {
                   "role": "middleware-server",
                   "permission": {
@@ -4495,6 +4673,55 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "check": {
+                      "_and": [
+                        {
+                          "connection": {
+                            "_or": [
+                              {
+                                "app_id": {
+                                  "_in": "x-hasura-editable-owners"
+                                }
+                              },
+                              {
+                                "app_id": {
+                                  "_is_null": true
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "label_value": {
+                            "_or": [
+                              {
+                                "_not": {
+                                  "owners_by_app_id": {}
+                                }
+                              },
+                              {
+                                "owners_by_app_id": {
+                                  "id": {
+                                    "_in": "x-hasura-editable-owners"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id"
+                    ]
+                  }
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "check": {},
@@ -4510,6 +4737,32 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "and_group",
+                      "connection_id",
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id"
+                    ],
+                    "filter": {}
+                  }
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -4540,6 +4793,31 @@
                 }
               ],
               "update_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "removed_event_id"
+                    ],
+                    "filter": {
+                      "connection": {
+                        "_or": [
+                          {
+                            "app_id": {
+                              "_in": "x-hasura-editable-owners"
+                            }
+                          },
+                          {
+                            "app_id": {
+                              "_is_null": true
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "check": {}
+                  }
+                },
                 {
                   "role": "middleware-server",
                   "permission": {

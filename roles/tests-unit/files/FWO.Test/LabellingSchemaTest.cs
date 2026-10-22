@@ -38,6 +38,9 @@ namespace FWO.Test
         private static readonly List<string> kGuardicoreDeviceTypes = ["'Guardicore Management','REST'", "'Guardicore Gateway','REST'"];
         private static readonly List<string> kRuleLabelColumns = ["rule_src_labels", "rule_dst_labels"];
         private static readonly List<string> kWriterRoles = [kImporterRole, kMiddlewareRole];
+        private static readonly List<string> kWriterRolesWithModeller = [kImporterRole, kMiddlewareRole, "modeller"];
+        private static readonly List<string> kModellerWrittenTables = ["connection_source_label", "connection_destination_label", kChangeEventTable];
+        private static readonly List<string> kConnectionSideTables = ["connection_source_label", "connection_destination_label"];
         private static readonly List<string> kLinkTablesWithHistory =
         [
             "rule_source_label", "rule_destination_label", "rule_label",
@@ -246,6 +249,32 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// Modellers write the labels of connections of their own apps only, App labels (values that are the app id of an
+        /// owner) only of their own apps, and change events only from the UI for such connections.
+        /// </summary>
+        [Test]
+        public void Metadata_LetsModellersLabelOwnConnectionsOnly()
+        {
+            JsonNode? appIdRelationship = Nodes(FindTable("label_value")["array_relationships"])
+                .FirstOrDefault(relationship => relationship["name"]?.GetValue<string>() == "owners_by_app_id");
+            Assert.Multiple(() =>
+            {
+                Assert.That(appIdRelationship?["using"]?["manual_configuration"]?["column_mapping"]?["value"]?.GetValue<string>(), Is.EqualTo("app_id_external"));
+                foreach (string name in kConnectionSideTables)
+                {
+                    string insertCheck = Permission(FindTable(name), "insert_permissions", "modeller")?["permission"]?["check"]?.ToJsonString() ?? "";
+                    string updateFilter = Permission(FindTable(name), "update_permissions", "modeller")?["permission"]?["filter"]?.ToJsonString() ?? "";
+                    Assert.That(insertCheck, Does.Contain("\"connection\":{\"_or\":[{\"app_id\":{\"_in\":\"x-hasura-editable-owners\"}}"), name);
+                    Assert.That(insertCheck, Does.Contain("\"owners_by_app_id\":{\"id\":{\"_in\":\"x-hasura-editable-owners\"}}"), name);
+                    Assert.That(updateFilter, Does.Contain("x-hasura-editable-owners"), name);
+                }
+                string eventCheck = Permission(FindTable(kChangeEventTable), "insert_permissions", "modeller")?["permission"]?["check"]?.ToJsonString() ?? "";
+                Assert.That(eventCheck, Does.Contain("\"origin_is_ui\":{\"_eq\":true}"));
+                Assert.That(eventCheck, Does.Contain("x-hasura-editable-owners"));
+            });
+        }
+
         private static JsonNode? Permission(JsonNode table, string kind, string role)
         {
             return Permissions(table, kind).FirstOrDefault(permission => permission["role"]?.GetValue<string>() == role);
@@ -277,7 +306,8 @@ namespace FWO.Test
                     Assert.That(Roles(table, "select_permissions"), Does.Contain(kAuditorRole), name);
                     foreach (string kind in kWriteKinds)
                     {
-                        Assert.That(Roles(table, kind), Is.SubsetOf(kWriterRoles), $"{name} / {kind}");
+                        List<string> writers = kModellerWrittenTables.Contains(name) ? kWriterRolesWithModeller : kWriterRoles;
+                        Assert.That(Roles(table, kind), Is.SubsetOf(writers), $"{name} / {kind}");
                     }
                 }
             });

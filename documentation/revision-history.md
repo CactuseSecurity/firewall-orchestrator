@@ -64,6 +64,16 @@
     app servers with the rules of the app data import (rejections are shown as warnings), and the App label of the
     owners is assigned once per owner after the upload; the whole upload shares one label change event The App key is rejected in
     the labels of imported app servers, and imported labels never close the App label
+- modelling: labels as source and destination of connections, interfaces and common services (issue #5552), while
+  label-based modelling is switched on. A side may hold objects, labels or both; labels form AND-groups (∩), the
+  groups and the objects of a side are ORed (∪). Labels of AppRole and AppZone are not offered, App labels only of
+  own apps (also enforced by Hasura via the new relationship label_value.owners_by_app_id). Changes are stored in
+  labelling.connection_source_label / connection_destination_label with the AND-group number and recorded as
+  label_change_event (origin UI, actor, connection) and in the connection history. Connections using an interface
+  show the labels of the interface side; while label-based modelling is off, assigned labels are shown read-only.
+  The connection overview lists the labels of each side
+- api: modeller may read, add and close the labels of connections of own apps and write UI label change events;
+  recertifier may read connection labels
 - modelling: global setting labelBasedModelling ("Label-based Modelling" under Settings - Modelling, default off,
   issue #5553). It switches the selection of labels as source and destination in modelling (#5552) on; when off,
   labels already assigned to connections stay stored and are shown read-only, and reports keep showing imported

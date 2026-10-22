@@ -1,0 +1,5 @@
+mutation addConnectionLabelChangeEvent($connectionId: Int!, $actor: String) {
+    insert_labelling_label_change_event_one(object: { connection_id: $connectionId, actor: $actor, origin_is_ui: true }) {
+        id
+    }
+}

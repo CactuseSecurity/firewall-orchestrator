@@ -173,7 +173,7 @@ namespace FWO.Ui.Display
         /// <summary>
         /// The labels of the deleted or inserted rule, for a changed rule the new labels or, if they changed, the deleted and added labels.
         /// </summary>
-        private string DisplayLabelChange(string tag, RuleChange ruleChange, Func<Rule, string> labelsToJson)
+        private static string DisplayLabelChange(string tag, RuleChange ruleChange, Func<Rule, string> labelsToJson)
         {
             switch (ruleChange.ChangeAction)
             {

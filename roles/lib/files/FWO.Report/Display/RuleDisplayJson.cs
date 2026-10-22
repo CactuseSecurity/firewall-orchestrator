@@ -25,7 +25,7 @@ namespace FWO.Ui.Display
         /// <summary>
         /// Json field with the labels of a rule side in their group structure.
         /// </summary>
-        protected string DisplaySideLabels(string tag, List<Dictionary<string, List<string>>>? labels)
+        protected static string DisplaySideLabels(string tag, List<Dictionary<string, List<string>>>? labels)
         {
             return DisplayJsonPlain(tag, RuleLabelFormatter.SideLabelsToJson(labels));
         }
@@ -44,7 +44,7 @@ namespace FWO.Ui.Display
         }
 
 
-        private string DisplayNumber(Rule rule)
+        private static string DisplayNumber(Rule rule)
         {
             return DisplayJsonPlain("number", rule.OrderNumber.ToString(CultureInfo.InvariantCulture));
         }
@@ -59,7 +59,7 @@ namespace FWO.Ui.Display
             return DisplayJsonArray("source zones", ListNetworkZones(networkZones));
         }
 
-        protected string DisplaySourceNegated(bool sourceNegated)
+        protected static string DisplaySourceNegated(bool sourceNegated)
         {
             return DisplayJsonPlain("source negated", sourceNegated.ToString().ToLower());
         }
@@ -74,7 +74,7 @@ namespace FWO.Ui.Display
             return DisplayJsonArray("destination zones", ListNetworkZones(networkZones));
         }
 
-        protected string DisplayDestinationNegated(bool destinationNegated)
+        protected static string DisplayDestinationNegated(bool destinationNegated)
         {
             return DisplayJsonPlain("destination negated", destinationNegated.ToString().ToLower());
         }
@@ -84,7 +84,7 @@ namespace FWO.Ui.Display
             return DisplayJsonArray("destination", ListNetworkLocations(rule, reportType, false));
         }
 
-        protected string DisplayServiceNegated(bool serviceNegated)
+        protected static string DisplayServiceNegated(bool serviceNegated)
         {
             return DisplayJsonPlain("service negated", serviceNegated.ToString().ToLower());
         }
@@ -114,7 +114,7 @@ namespace FWO.Ui.Display
             return DisplayJsonString("rule uid", uid);
         }
 
-        protected string DisplayEnabled(bool disabled)
+        protected static string DisplayEnabled(bool disabled)
         {
             return DisplayJsonPlain("disabled", disabled.ToString().ToLower());
         }

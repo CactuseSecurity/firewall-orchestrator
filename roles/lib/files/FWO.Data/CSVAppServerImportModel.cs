@@ -11,6 +11,11 @@ namespace FWO.Data
         public string? AppIPRangeStart { get; set; }
         public string? AppIPRangeEnd { get; set; }
 
+        /// <summary>
+        /// Labels from the optional label columns, null if the file has none.
+        /// </summary>
+        public List<FWO.Data.Labelling.ModellingImportLabel>? Labels { get; set; }
+
         public CSVAppServerImportModel(string ipString)
         {
             (AppIPRangeStart, AppIPRangeEnd) = IpOperations.SplitIpToRange(ipString);

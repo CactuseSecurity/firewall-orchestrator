@@ -4,5 +4,10 @@ query getOwnerNetworkLabels($ownerNetworkIds: [bigint!]!) {
     ) {
         owner_network_id
         label_id
+        label_value {
+            label_key {
+                key_name
+            }
+        }
     }
 }

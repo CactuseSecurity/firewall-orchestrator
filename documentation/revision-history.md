@@ -47,6 +47,23 @@
   labels are those active at the report time (via the import ids of their change events), in change reports those
   before / after the change. Label columns and fields only appear if a rule of the report has such labels, so reports
   without labels stay unchanged
+- labelling: App label (issue #5551). The CMDB is the master: every rule and every app server gets the App label of
+  its owner, the value being the external app id (app_id_external); Guardicore has to use the same key and values.
+  The key name is a global setting (appLabelKey, default App, under Settings - App Data Import; empty switches App
+  labels off). The key is kept imported, global and multi-valued, also if it was created before by an importer
+  - rules: the rule owner mapping keeps labelling.rule_label in line with the active rule_owner rows of the
+    configured mapping source, in full and incremental runs, with one label change event per run that carries the
+    import control id of the run. The first run of the middleware process, or the one after a failed sync, compares
+    all rules, which also fills the App labels of the existing mappings after the upgrade. Owners without app id are
+    skipped
+  - app servers: the app data import gives all active app servers of an imported owner the App label of the owner
+    and closes other App labels; at the end of every run it does the same for the active owners that were not part of
+    the import files (e.g. created in the UI), which also fills their App labels after the upgrade. App servers saved
+    in the UI (by admins) and the app servers of an owner saved in the owner settings get it as well.
+  - csv upload of app servers (Settings - App Data Import): optional header columns label:<key> import labels of the
+    app servers with the rules of the app data import (rejections are shown as warnings), and the App label of the
+    owners is assigned once per owner after the upload; the whole upload shares one label change event The App key is rejected in
+    the labels of imported app servers, and imported labels never close the App label
 - api: modeller, recertifier, reporter and reporter-viewall may read labelling.rule_label, label_value, label_key
   (reporter and recertifier only for the rules they see) and id / import id / time of label_change_event
 - upgrade: db upgrade file adds the labelling schema, the rule label columns and the Guardicore

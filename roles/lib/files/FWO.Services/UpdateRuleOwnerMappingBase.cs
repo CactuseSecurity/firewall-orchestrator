@@ -6,6 +6,7 @@ using FWO.Data;
 using FWO.Data.Enums;
 using FWO.Logging;
 using FWO.Services.EventMediator.Events;
+using FWO.Services.Labelling;
 
 
 namespace FWO.Services
@@ -191,6 +192,7 @@ namespace FWO.Services
 
             List<RuleOwner> previousRuleOwners = await SetAllActiveRuleOwnersRemoved(importControlId);
             await InsertNewRuleOwners(newRuleOwners);
+            await new RuleAppLabelSync(apiConnection, globalConfig).SyncAll(importControlId);
 
             // recorded before the completion so a failure there does not lose the result of the run
             await RecordRun(importControlId, previousRuleOwners, newRuleOwners, pendingImportsBefore);
@@ -378,6 +380,8 @@ namespace FWO.Services
 
             await SetAffectedRuleOwnersRemoved(ruleOwnersToRemove, importControlId);
             await InsertNewRuleOwners(await DropStillActiveMappings(newRuleOwners));
+            await new RuleAppLabelSync(apiConnection, globalConfig).Sync(
+                newRuleOwners.Concat(ruleOwnersToRemove).Select(ruleOwner => ruleOwner.RuleId), importControlId);
             await CompleteImportControl(importControlId);
         }
 

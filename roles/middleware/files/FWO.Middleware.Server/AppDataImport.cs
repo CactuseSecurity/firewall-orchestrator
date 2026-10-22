@@ -8,6 +8,7 @@ using FWO.Logging;
 using FWO.Recert;
 using FWO.Services;
 using FWO.Services.Modelling;
+using FWO.Services.Labelling;
 using Novell.Directory.Ldap;
 using System.Data;
 using System.Text.Json;
@@ -23,6 +24,7 @@ namespace FWO.Middleware.Server
         private List<FwoOwner> ExistingApps = [];
         private List<ModellingAppServer> ExistingAppServers = [];
         private AppServerLabelImport appServerLabelImport;
+        private readonly HashSet<int> importedOwnerIds = [];
 
         private Ldap internalLdap = new();
 
@@ -46,7 +48,12 @@ namespace FWO.Middleware.Server
         /// </summary>
         public AppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
         {
-            appServerLabelImport = new(apiConnection, new OwnerChangeImportTracker(apiConnection), AddLogEntry);
+            appServerLabelImport = NewAppServerLabelImport(new OwnerChangeImportTracker(apiConnection));
+        }
+
+        private AppServerLabelImport NewAppServerLabelImport(OwnerChangeImportTracker ownerChangeTracker)
+        {
+            return new(apiConnection, async () => await ownerChangeTracker.EnsureAnCreateImportControl(), false, AddLogEntry, globalConfig.AppLabelKey);
         }
 
         /// <summary>
@@ -94,7 +101,8 @@ namespace FWO.Middleware.Server
             cancellationToken.ThrowIfCancellationRequested();
             List<string> failedImports = [];
             var ownerChangeTracker = new OwnerChangeImportTracker(apiConnection);
-            appServerLabelImport = new(apiConnection, ownerChangeTracker, AddLogEntry);
+            appServerLabelImport = NewAppServerLabelImport(ownerChangeTracker);
+            importedOwnerIds.Clear();
 
             try
             {
@@ -110,6 +118,7 @@ namespace FWO.Middleware.Server
                     }
                     await ImportSingleSource(importSourcePath + ".json", failedImports, ownerChangeTracker, cancellationToken);
                 }
+                await appServerLabelImport.SyncOtherOwners(importedOwnerIds, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -245,6 +254,7 @@ namespace FWO.Middleware.Server
                     await AddOwnerChangeIfNeeded(existingApp, incomingApp, ownerChangeTracker);
                     await AddOwnerLifeCycleStateActiveChangeIfNeeded(existingApp, ownerLifeCycleStateId, incomingApp.ImportSource, ownerChangeTracker);
                 }
+                importedOwnerIds.Add(appId);
                 if (!string.IsNullOrWhiteSpace(incomingApp.MainUser) && IsResponsibleTypeActive(GlobalConst.kOwnerResponsibleTypeMain))
                 {
                     await UpdateRoles(incomingApp.MainUser, GetRolesForType(GlobalConst.kOwnerResponsibleTypeMain));
@@ -541,6 +551,7 @@ namespace FWO.Middleware.Server
                 {
                     await NewAppServer(appServer, appId, incomingApp.ImportSource);
                 }
+                await appServerLabelImport.SyncOwnerAppLabels(appId, incomingApp.Name);
             }
             return appId;
         }
@@ -564,6 +575,7 @@ namespace FWO.Middleware.Server
             await UpdateOwnerResponsibles(existingApp.Id, responsibles, existingApp.OwnerResponsibles ?? []);
             await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
             await ImportAppServers(incomingApp, existingApp.Id);
+            await appServerLabelImport.SyncOwnerAppLabels(existingApp.Id, incomingApp.Name);
         }
 
         private async Task<(int deleted, int failed)> DeactivateMissingApps(string importSource, OwnerChangeImportTracker ownerChangeTracker)

@@ -578,6 +578,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Neues Importmodul f&uuml;r Akamai Guardicore Segmentation: Labels werden als Netzwerkobjektgruppen ihrer IP-Adressen (aus IP-Kriterien und den Assets mit dem Label) sowie als Labels importiert, UND-verkn&uuml;pfte Labels einer Regel als Gruppe der gemeinsamen IP-Adressen. Die Regeln werden je Abschnitt und Ruleset in verkettete Regelwerke aufgeteilt, deren alphabetische Reihenfolge der Guardicore-Abschnittsreihenfolge entspricht. Die Labels der Quelle und des Ziels einer Regel werden zudem an der Regel gespeichert.</li>
     <li>Der App-Daten-Import kann pro App-Server Labels importieren (Schl&uuml;ssel und Wert, z.B. Stage: Prod); unbekannte Labels werden automatisch angelegt. Die Labels importierter Regeln werden mit ihrer Historie pro Regelversion gespeichert, einschlie&szlig;lich der UND/ODER-Verkn&uuml;pfung der Labels einer Guardicore-Regelseite.</li>
     <li>Regelbasierte Reports zeigen die Labels der Regeln in allen Formaten: Quell- und Ziel-Labels (in eigenen Spalten, zusammen mit den Objekten oder gar nicht, einstellbar unter Einstellungen - Reporting) sowie die Labels der Regel als Ganzes, z.B. das App-Label.</li>
+    <li>Jede Regel und jeder App-Server erh&auml;lt das App-Label ihres Eigent&uuml;mers (die App-ID aus der CMDB) - Regeln &uuml;ber das Regel-Eigent&uuml;mer-Mapping, App-Server beim App-Daten-Import bzw. beim Speichern. Der Schl&uuml;ssel des App-Labels wird unter Einstellungen - App-Daten-Import festgelegt.</li>
     <li>F&uuml;r einzelne Rollen kann die Sichtbarkeit jedes Reporttyps auf sichtbar, nicht sichtbar oder geerbt (vom Standardverhalten) gesetzt werden.</li>
     <li>Die hierarchischen Provisionierungs-Einstellungen hei&szlig;en nun ger&auml;tespezifische Einstellungen, da sie z.B. auch f&uuml;r den Import genutzt werden. Sie enthalten nun Guardicore-Objektanlage, Modellierungslabels und Verbindungs-IDs, Importer-Host, externes Ticketsystem sowie &Uuml;berschreibungen f&uuml;r Regelumsetzung und Planung.</li>
     <li>Der Importer-Hostname wird nicht mehr pro Management, sondern in den ger&auml;tespezifischen Einstellungen (Global, Ger&auml;tetyp oder Manager) festgelegt. Ist er leer, importiert jeder Importer. Das Upgrade &uuml;bernimmt den h&auml;ufigsten Hostnamen als globalen Wert und abweichende als Manager-Werte.</li>
@@ -613,6 +614,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>New import module for Akamai Guardicore Segmentation: labels are imported as network object groups of their IP addresses (from IP criteria and from the assets carrying the label) and as labels, ANDed labels of a rule as a group of their common IP addresses. The rules are split into chained rulebases per section and ruleset, whose alphabetical order matches the Guardicore section order. The labels of the source and destination of a rule are also stored with the rule.</li>
     <li>The app data import can import labels per app server (key and value, e.g. Stage: Prod); unknown labels are created automatically. The labels of imported rules are stored with their history per rule version, keeping the AND/OR combination of the labels of a Guardicore rule side.</li>
     <li>Rule-based reports show the labels of the rules in all formats: source and destination labels (in own columns, together with the objects or not at all, configurable under Settings - Reporting) and the labels of the rule as a whole, e.g. the App label.</li>
+    <li>Every rule and every app server gets the App label of its owner (the app id from the CMDB) - rules via the rule owner mapping, app servers with the app data import or when they are saved. The key of the App label is set under Settings - App Data Import.</li>
     <li>For individual roles, the visibility of each report type can be set to visible, not visible, or inherited (from the default behaviour).</li>
     <li>The hierarchical provisioning settings are renamed to device specific settings, as they are also used e.g. for importing. They now include Guardicore object creation, modelling labels and connection IDs, importer host and external ticket system, plus rule implementation and planning overrides.</li>
     <li>The importer host name is no longer set per management but in the device specific settings (Global, device type or manager). If it is empty, every importer imports. The upgrade takes the most common host name as global value and differing ones as manager values.</li>
@@ -3329,6 +3331,8 @@ INSERT INTO txt VALUES ('denied', 'German', 'Verworfen');
 INSERT INTO txt VALUES ('denied', 'English', 'Denied');
 INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'German', 'App-Verantwortliche synchronisieren');
 INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'English', 'Sync owner responsibles');
+INSERT INTO txt VALUES ('appLabelKey', 'German', 'Schl&uuml;ssel des App-Labels');
+INSERT INTO txt VALUES ('appLabelKey', 'English', 'Key of the App label');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'English', 	'Import App data start at');
 INSERT INTO txt VALUES ('importSubnetDataPath', 'German', 	'Pfad und Name von Subnetzdaten-Import (ohne Endung)');
@@ -5003,6 +5007,8 @@ INSERT INTO txt VALUES ('E5422', 'German',  'Eintrag enth&auml;lt nicht alle erf
 INSERT INTO txt VALUES ('E5422', 'English', 'Entry does not contain all required columns');
 INSERT INTO txt VALUES ('E5423', 'German',  'IP-Adresse/IP-Bereich ist fehlerhaft');
 INSERT INTO txt VALUES ('E5423', 'English', 'IP Address/IP Range malformed');
+INSERT INTO txt VALUES ('E5424', 'German',  'Unbekannte Spalten werden ignoriert (erlaubt sind zus&auml;tzlich nur Spalten label:&lt;Schl&uuml;ssel&gt;)');
+INSERT INTO txt VALUES ('E5424', 'English', 'Unknown columns are ignored (only columns label:&lt;key&gt; are allowed additionally)');
 INSERT INTO txt VALUES ('E5430', 'German',  'Hochgeladener Dateityp ist nicht erlaubt');
 INSERT INTO txt VALUES ('E5430', 'English', 'Uploaded Filetype is not allowed');
 INSERT INTO txt VALUES ('E5431', 'German',  'Hochgeladene Datei &uuml;berschreitet Maximum');
@@ -7935,6 +7941,8 @@ INSERT INTO txt VALUES ('H5675', 'German',  'Nur Administratoren k&ouml;nnen &Au
 INSERT INTO txt VALUES ('H5675', 'English', 'Only administrators can save changes.');
 INSERT INTO txt VALUES ('H5676', 'German',  'Wenn aktiviert, werden Benutzer aus Eigent&uuml;mergruppen entfernt, die nicht im Import enthalten sind. Andernfalls werden nur neue Benutzer hinzugef&uuml;gt.');
 INSERT INTO txt VALUES ('H5676', 'English', 'If enabled, users not listed in the import are removed from owner groups. Otherwise only new users are added.');
+INSERT INTO txt VALUES ('H5676a', 'German',  'Schl&uuml;ssel des App-Labels: Name des Label-Schl&uuml;ssels (Standard App), mit dem FWO jeder Regel und jedem App-Server das App-Label ihres Eigent&uuml;mers gibt. Der Wert ist die externe App-ID (app_id_external) aus der CMDB, Guardicore muss denselben Schl&uuml;ssel und dieselben Werte verwenden. Regeln erhalten das App-Label &uuml;ber das Regel-Eigent&uuml;mer-Mapping der eingestellten Quelle, App-Server beim App-Daten-Import (der in jedem Lauf auch die App-Server der nicht importierten Eigent&uuml;mer abgleicht) sowie beim Speichern eines App-Servers oder Eigent&uuml;mers in der Oberfl&auml;che. Im App-Daten-Import wird ein Label mit diesem Schl&uuml;ssel abgelehnt. Ein leerer Wert schaltet App-Labels ab.');
+INSERT INTO txt VALUES ('H5676a', 'English', 'Key of the App label: name of the label key (default App) with which FWO gives every rule and every app server the App label of its owner. The value is the external app id (app_id_external) from the CMDB; Guardicore has to use the same key and values. Rules get the App label via the rule owner mapping of the configured source, app servers with the app data import (which in every run also aligns the app servers of the owners not imported) and when an app server or owner is saved in the UI. In the app data import a label with this key is rejected. An empty value switches App labels off.');
 INSERT INTO txt VALUES ('H5677', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld f&uuml;r den Owner repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.');
 INSERT INTO txt VALUES ('H5677', 'English', 'Enter the keys that represent the Owner field. You can add multiple keys by clicking the + button.');
 INSERT INTO txt VALUES ('H5678', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld f&uuml;r die &Auml;nderungsId repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.');
@@ -8465,7 +8473,7 @@ INSERT INTO txt VALUES ('H6922', 'German',  'Die einzelnen Felder haben folgende
                 <li>ip_end: Optionales Ende eines IP-Bereichs, ohne Angabe gilt nur die Adresse aus ip</li>
                 <li>labels: Optionale Liste von Labels mit label_key und label_value, z.B. Stage: Prod. Fehlt das Feld, bleiben die Labels des App-Servers unver&auml;ndert,
                     eine leere Liste entfernt alle. Unbekannte Schl&uuml;ssel und Werte werden als importiert angelegt. Abgelehnt und im Importprotokoll vermerkt werden
-                    die Schl&uuml;ssel AppRole und AppZone (sie bleiben Gruppen), mehrere Werte eines Schl&uuml;ssels, der nur einen Wert erlaubt, mehr als 50 Labels pro App-Server
+                    die Schl&uuml;ssel AppRole und AppZone (sie bleiben Gruppen), der Schl&uuml;ssel des App-Labels (Standard App, jeder App-Server erh&auml;lt das App-Label seines Eigent&uuml;mers), mehrere Werte eines Schl&uuml;ssels, der nur einen Wert erlaubt, mehr als 50 Labels pro App-Server
                     sowie Schl&uuml;ssel mit mehr als 100 und Werte mit mehr als 250 Zeichen.</li>
             </ul>
         </li>
@@ -8499,7 +8507,7 @@ INSERT INTO txt VALUES ('H6922', 'English', 'These fields have the following mea
                 <li>ip_end: Optional end of an IP range, without it only the address in ip is used</li>
                 <li>labels: Optional list of labels with label_key and label_value, e.g. Stage: Prod. Without this field the labels of the app server stay unchanged,
                     an empty list removes all of them. Unknown keys and values are created as imported. Rejected and noted in the import log are the keys
-                    AppRole and AppZone (they stay groups), several values of a key that allows a single value only, more than 50 labels per app server,
+                    AppRole and AppZone (they stay groups), the key of the App label (default App, every app server gets the App label of its owner), several values of a key that allows a single value only, more than 50 labels per app server,
                     and keys longer than 100 or values longer than 250 characters.</li>
             </ul>
         </li>
@@ -9813,6 +9821,11 @@ INSERT INTO txt VALUES ('H9055', 'German',  'Importieren von App Servern via CSV
     </ul>
     <br>
     Die CSV darf eine &Uuml;berschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+    <br><br>
+    Optional k&ouml;nnen in der &Uuml;berschrift weitere Spalten mit dem Namen label:&lt;Schl&uuml;ssel&gt; folgen (z.B. label:Stage), deren Werte die Labels des App-Servers der Zeile sind.
+    Ohne solche Spalten bleiben die Labels der App-Server unver&auml;ndert; mit ihnen erh&auml;lt jeder App-Server die Labels seiner Zeile, eine leere Zelle bedeutet kein Label dieses Schl&uuml;ssels.
+    Es gelten dieselben Regeln wie beim App-Daten-Import (z.B. werden AppRole, AppZone und der Schl&uuml;ssel des App-Labels abgelehnt); abgelehnte Labels werden als Warnung angezeigt.
+    Jeder App-Server erh&auml;lt au&szlig;erdem das App-Label seines Eigent&uuml;mers.
 ');
 INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV file. The CSV must contain the following data:
     <ul>
@@ -9823,6 +9836,11 @@ INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV fil
     </ul>
     <br>
     The CSV may contain a header and must be formatted/named as follows: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+    <br><br>
+    Optionally the header may be followed by further columns named label:&lt;key&gt; (e.g. label:Stage), whose values are the labels of the app server of the line.
+    Without such columns the labels of the app servers stay unchanged; with them every app server gets the labels of its line, an empty cell meaning no label of that key.
+    The same rules apply as for the app data import (e.g. AppRole, AppZone and the key of the App label are rejected); rejected labels are shown as warnings.
+    Every app server also gets the App label of its owner.
 ');
 INSERT INTO txt VALUES ('H9060', 'German',  'Hier werden alle Tickets dargestellt, die f&uuml;r den ausgew&auml;hlten Eigent&uuml;mer f&uuml;r Externe Auftr&auml;ge angelegt wurden.
     Wenn ein Ticket noch nicht abgeschlossen ist, aber keine offenen Externen Auftr&auml;ge daf&uuml;r existieren, wird dem Administrator die M&ouml;glichkeit zum Wiederaufsetzen angeboten.

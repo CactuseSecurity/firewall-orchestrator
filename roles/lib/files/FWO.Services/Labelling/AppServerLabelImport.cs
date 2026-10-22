@@ -4,7 +4,7 @@ using FWO.Data;
 using FWO.Data.Labelling;
 using FWO.Logging;
 
-namespace FWO.Middleware.Server
+namespace FWO.Services.Labelling
 {
     /// <summary>
     /// Writes the labels of imported app servers into labelling.owner_network_label.
@@ -13,8 +13,9 @@ namespace FWO.Middleware.Server
     /// The assignments are diffed against the active ones: missing labels are added, labels no longer imported are
     /// closed by a removal event. All changes of an import run share one label change event, which belongs to the
     /// import control of the run. Unknown keys and values are created as imported. Labels are rejected (and logged)
-    /// if they exceed the limits, use a key that stays a group (AppRole, AppZone), or give a key that allows a
-    /// single value only several values on one app server.
+    /// if they exceed the limits, use a key that stays a group (AppRole, AppZone) or the App key, or give a key that
+    /// allows a single value only several values on one app server. The App label is not imported: every app server
+    /// gets the App label of its owner (the app id from the CMDB), see <see cref="SyncOwnerAppLabels"/>.
     /// </remarks>
     public class AppServerLabelImport
     {
@@ -42,12 +43,20 @@ namespace FWO.Middleware.Server
         private static readonly HashSet<string> kRejectedKeys = new(StringComparer.OrdinalIgnoreCase) { "AppRole", "AppZone" };
 
         private readonly ApiConnection apiConnection;
-        private readonly OwnerChangeImportTracker ownerChangeTracker;
+        private readonly Func<Task<long?>> getImportControlId;
+        private readonly bool originIsUi;
         private readonly Func<int, string, string, Task> addLogEntry;
         private readonly Dictionary<(string key, string value), long> labelIds = [];
         private Dictionary<string, LabelKey>? keysByName;
         private Dictionary<long, HashSet<long>> activeLabelIdsByAppServer = [];
+        private Dictionary<long, HashSet<long>> activeAppLabelIdsByAppServer = [];
+        private readonly AppLabelHandler appLabels;
         private long? changeEventId;
+
+        /// <summary>
+        /// False if no App key is configured, then no App labels are written.
+        /// </summary>
+        public bool AppLabelsEnabled => appLabels.Enabled;
 
         /// <summary>
         /// True if labels of an app server were added or closed since the active labels were loaded last.
@@ -58,13 +67,18 @@ namespace FWO.Middleware.Server
         /// Constructor for the app server label import of one import run.
         /// </summary>
         /// <param name="apiConnection">Api connection.</param>
-        /// <param name="ownerChangeTracker">Tracker providing the import control of the run.</param>
+        /// <param name="getImportControlId">Returns the import control the label changes belong to, null for changes from the UI.</param>
+        /// <param name="originIsUi">True if the labels are imported in the UI (csv upload).</param>
         /// <param name="addLogEntry">Writes a data import log entry (severity, level, description).</param>
-        public AppServerLabelImport(ApiConnection apiConnection, OwnerChangeImportTracker ownerChangeTracker, Func<int, string, string, Task> addLogEntry)
+        /// <param name="appLabelKey">Configured name of the App key, empty to switch App labels off.</param>
+        public AppServerLabelImport(ApiConnection apiConnection, Func<Task<long?>> getImportControlId, bool originIsUi, Func<int, string, string, Task> addLogEntry,
+            string? appLabelKey = null)
         {
             this.apiConnection = apiConnection;
-            this.ownerChangeTracker = ownerChangeTracker;
+            this.getImportControlId = getImportControlId;
+            this.originIsUi = originIsUi;
             this.addLogEntry = addLogEntry;
+            appLabels = new(apiConnection, appLabelKey);
         }
 
         /// <summary>
@@ -75,6 +89,7 @@ namespace FWO.Middleware.Server
         {
             LabelsChanged = false;
             activeLabelIdsByAppServer = [];
+            activeAppLabelIdsByAppServer = [];
             List<long> ids = [.. appServerIds];
             if (ids.Count == 0)
             {
@@ -84,7 +99,11 @@ namespace FWO.Middleware.Server
                 LabellingQueries.getOwnerNetworkLabels, new { ownerNetworkIds = ids });
             foreach (OwnerNetworkLabel label in activeLabels)
             {
-                ActiveLabelIds(label.OwnerNetworkId).Add(label.LabelId);
+                // App labels are not imported, so the imported labels must not close them
+                HashSet<long> labelIdsOfKind = appLabels.IsAppKey(label.Label?.Key.Name ?? "")
+                    ? LabelIdsOf(activeAppLabelIdsByAppServer, label.OwnerNetworkId)
+                    : ActiveLabelIds(label.OwnerNetworkId);
+                labelIdsOfKind.Add(label.LabelId);
             }
         }
 
@@ -124,12 +143,55 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                List<long> labelIdsToClose = [.. ActiveLabelIds(appServerId)];
+                List<long> labelIdsToClose = [.. ActiveLabelIds(appServerId), .. LabelIdsOf(activeAppLabelIdsByAppServer, appServerId)];
                 await ApplyChanges(appServerId, kNoLabelIds, labelIdsToClose);
+                LabelIdsOf(activeAppLabelIdsByAppServer, appServerId).Clear();
             }
             catch (Exception exception)
             {
                 await LogError($"Labels of app server {appServerName} could not be closed.", exception);
+            }
+        }
+
+        /// <summary>
+        /// Gives all active app servers of an owner the App label of the owner and closes other App labels.
+        /// Errors are logged, not thrown.
+        /// </summary>
+        /// <param name="ownerId">Id of the owner.</param>
+        /// <param name="ownerName">Name of the owner for log messages.</param>
+        public async Task SyncOwnerAppLabels(int ownerId, string ownerName)
+        {
+            try
+            {
+                if (await appLabels.SyncAppServers(ownerId, GetChangeEventId) > 0)
+                {
+                    LabelsChanged = true;
+                }
+            }
+            catch (Exception exception)
+            {
+                await LogError($"App labels of the app servers of {ownerName} could not be assigned.", exception);
+            }
+        }
+
+        /// <summary>
+        /// Gives the app servers of the active owners that were not part of the import files the App label of their
+        /// owner, e.g. of owners created in the UI. This fills their App labels after the upgrade and repairs App labels
+        /// that were missed since; imported owners were synced when they were saved.
+        /// </summary>
+        /// <param name="importedOwnerIds">Owners saved by the import run, which are synced already.</param>
+        /// <param name="cancellationToken">Stops before the next owner.</param>
+        public async Task SyncOtherOwners(IReadOnlySet<int> importedOwnerIds, CancellationToken cancellationToken = default)
+        {
+            if (!AppLabelsEnabled)
+            {
+                return;
+            }
+            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithNetworks);
+            foreach (FwoOwner owner in owners.Where(owner => owner.Active && owner.OwnerNetworks.Length > 0 && !importedOwnerIds.Contains(owner.Id)))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await SyncOwnerAppLabels(owner.Id, owner.Name);
             }
         }
 
@@ -152,7 +214,9 @@ namespace FWO.Middleware.Server
             {
                 string key = label.Key.Trim();
                 string value = label.Value.Trim();
-                string? rejection = GetRejection(key, value);
+                string? rejection = appLabels.IsAppKey(key)
+                    ? $"label key {key} is not importable, every app server gets the App label of its owner"
+                    : GetRejection(key, value);
                 if (rejection != null)
                 {
                     rejections.Add(rejection);
@@ -293,24 +357,23 @@ namespace FWO.Middleware.Server
 
         private async Task<long> GetChangeEventId()
         {
-            if (changeEventId == null)
-            {
-                long importControlId = await ownerChangeTracker.EnsureAnCreateImportControl();
-                ReturnId changeEvent = await apiConnection.SendQueryAsync<ReturnId>(LabellingQueries.addLabelChangeEvent,
-                    new { importControlId, originIsUi = false });
-                changeEventId = changeEvent.Id ?? throw new InvalidOperationException("No label change event id returned.");
-            }
+            changeEventId ??= await appLabels.CreateChangeEvent(await getImportControlId(), originIsUi);
             return changeEventId.Value;
         }
 
         private HashSet<long> ActiveLabelIds(long appServerId)
         {
-            if (!activeLabelIdsByAppServer.TryGetValue(appServerId, out HashSet<long>? activeLabelIds))
+            return LabelIdsOf(activeLabelIdsByAppServer, appServerId);
+        }
+
+        private static HashSet<long> LabelIdsOf(Dictionary<long, HashSet<long>> labelIdsByAppServer, long appServerId)
+        {
+            if (!labelIdsByAppServer.TryGetValue(appServerId, out HashSet<long>? labelIds))
             {
-                activeLabelIds = [];
-                activeLabelIdsByAppServer[appServerId] = activeLabelIds;
+                labelIds = [];
+                labelIdsByAppServer[appServerId] = labelIds;
             }
-            return activeLabelIds;
+            return labelIds;
         }
 
         private async Task LogError(string errorText, Exception exception)

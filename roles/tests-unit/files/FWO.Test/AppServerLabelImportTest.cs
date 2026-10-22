@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Labelling;
 using FWO.Middleware.Server;
+using FWO.Services.Labelling;
 using NUnit.Framework;
 using System.Collections;
 using System.Reflection;
@@ -48,6 +49,16 @@ namespace FWO.Test
         private static readonly List<(string, string)> kKnownKeyCasing = [("Tag", "a")];
         private static readonly List<ModellingImportLabel> kStageTest = [new() { Key = "Stage", Value = "Test" }];
         private static readonly List<long> kNewLabel = [1000];
+        private const string kAppKey = "App";
+        private const long kAppLabelId = 500;
+        private static readonly OwnerNetwork[] kOneNetwork = [new() { Id = 10 }];
+        private static readonly HashSet<int> kImportedOwnerOne = [1];
+        private static readonly List<int> kOwnerTwo = [2];
+        private static readonly List<ModellingImportLabel> kAppAndStage = [new() { Key = "app", Value = "APP-1" }, new() { Key = "Stage", Value = "Prod" }];
+        private static readonly List<ModellingImportLabel> kNoImportedLabels = [];
+        private static readonly List<long> kStageLabel = [2];
+        private static readonly List<long> kAppLabel = [1];
+        private static readonly List<List<long>> kStageThenAppLabel = [kStageLabel, kAppLabel];
         private static readonly List<long> kProdLabel = [1];
         private static readonly List<long> kAppServer10 = [10];
         private static readonly List<long> kNoAppServers = [];
@@ -203,15 +214,87 @@ namespace FWO.Test
             return actual.Item1 == expected.Item1 && actual.Item2.SequenceEqual(expected.Item2) && actual.Item3 == expected.Item3;
         }
 
-        private static AppServerLabelImport BuildLabelImport(LabelImportApiConnection apiConnection, out List<string> logEntries)
+        [Test]
+        public async Task ValidateLabels_RejectsTheAppKey()
+        {
+            LabelImportApiConnection apiConnection = new();
+            AppServerLabelImport labelImport = BuildLabelImport(apiConnection, out List<string> logEntries, kAppKey);
+
+            List<(string, string)> labels = await labelImport.ValidateLabels("srv", kAppAndStage);
+
+            Assert.That(labels, Is.EqualTo(kStageProd));
+            Assert.That(logEntries.Single(), Does.Contain("App label of its owner"));
+        }
+
+        [Test]
+        public async Task SyncLabels_LeavesTheAppLabelAlone_CloseLabelsDoesNot()
+        {
+            LabelImportApiConnection apiConnection = new();
+            apiConnection.ActiveLabels.Add(new OwnerNetworkLabel { OwnerNetworkId = 10, LabelId = 1, Label = new() { Key = new() { Name = kAppKey } } });
+            apiConnection.ActiveLabels.Add(new OwnerNetworkLabel { OwnerNetworkId = 10, LabelId = 2, Label = new() { Key = new() { Name = "Stage" } } });
+            AppServerLabelImport labelImport = BuildLabelImport(apiConnection, out _, kAppKey);
+            await labelImport.LoadActiveLabels(kAppServer10);
+
+            await labelImport.SyncLabels(10, "srv", kNoImportedLabels);
+            await labelImport.CloseLabels(10, "srv");
+
+            Assert.That(apiConnection.Removed.Select(removal => removal.labelIds), Is.EqualTo(kStageThenAppLabel));
+        }
+
+        [Test]
+        public async Task SyncOwnerAppLabels_GivesTheAppServersTheAppLabelOfTheirOwner()
+        {
+            LabelImportApiConnection apiConnection = new();
+            apiConnection.Owners.Add(new OwnerAppServerAppLabels { AppIdExternal = "APP-1", AppServers = [new() { Id = 10 }] });
+            AppServerLabelImport labelImport = BuildLabelImport(apiConnection, out _, kAppKey);
+
+            await labelImport.SyncOwnerAppLabels(5, "Owner5");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Added.Single(), Is.EqualTo((10L, kAppLabelId, kEventId)));
+                Assert.That(apiConnection.ChangeEventImportControlIds, Is.EqualTo(kRunImportControl));
+                Assert.That(labelImport.LabelsChanged, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task SyncOtherOwners_SyncsActiveOwnersWithNetworksThatWereNotImported()
+        {
+            LabelImportApiConnection apiConnection = new();
+            apiConnection.OwnersWithNetworks.Add(new FwoOwner { Id = 1, Active = true, OwnerNetworks = kOneNetwork });
+            apiConnection.OwnersWithNetworks.Add(new FwoOwner { Id = 2, Active = true, OwnerNetworks = kOneNetwork });
+            apiConnection.OwnersWithNetworks.Add(new FwoOwner { Id = 3, Active = false, OwnerNetworks = kOneNetwork });
+            apiConnection.OwnersWithNetworks.Add(new FwoOwner { Id = 4, Active = true });
+            AppServerLabelImport labelImport = BuildLabelImport(apiConnection, out _, kAppKey);
+
+            await labelImport.SyncOtherOwners(kImportedOwnerOne);
+
+            Assert.That(apiConnection.SyncedOwnerIds, Is.EqualTo(kOwnerTwo));
+        }
+
+        [Test]
+        public async Task SyncOtherOwners_DoesNothingWithoutAppKey()
+        {
+            LabelImportApiConnection apiConnection = new();
+            apiConnection.OwnersWithNetworks.Add(new FwoOwner { Id = 2, Active = true, OwnerNetworks = kOneNetwork });
+            AppServerLabelImport labelImport = BuildLabelImport(apiConnection, out _, "");
+
+            await labelImport.SyncOtherOwners(kImportedOwnerOne);
+
+            Assert.That(apiConnection.SyncedOwnerIds, Is.Empty);
+        }
+
+        private static AppServerLabelImport BuildLabelImport(LabelImportApiConnection apiConnection, out List<string> logEntries, string? appLabelKey = null)
         {
             List<string> entries = [];
             logEntries = entries;
-            return new AppServerLabelImport(apiConnection, new OwnerChangeImportTracker(apiConnection), (_, _, description) =>
+            OwnerChangeImportTracker tracker = new(apiConnection);
+            return new AppServerLabelImport(apiConnection, async () => await tracker.EnsureAnCreateImportControl(), false, (_, _, description) =>
             {
                 entries.Add(description);
                 return Task.CompletedTask;
-            });
+            }, appLabelKey);
         }
 
         private sealed class LabelImportApiConnection : SimulatedApiConnection
@@ -220,6 +303,9 @@ namespace FWO.Test
             public bool FailWrites { get; init; }
             public Dictionary<(string key, string value), long> LabelIds { get; } = [];
             public List<OwnerNetworkLabel> ActiveLabels { get; } = [];
+            public List<OwnerAppServerAppLabels> Owners { get; } = [];
+            public List<FwoOwner> OwnersWithNetworks { get; } = [];
+            public List<int> SyncedOwnerIds { get; } = [];
             public List<(long ownerNetworkId, long labelId, long eventId)> Added { get; } = [];
             public List<(long ownerNetworkId, List<long> labelIds, long eventId)> Removed { get; } = [];
             public List<long> ChangeEventImportControlIds { get; } = [];
@@ -241,6 +327,23 @@ namespace FWO.Test
                 {
                     List<long> ids = [.. (IEnumerable<long>)Value(variables, "ownerNetworkIds")!];
                     return ActiveLabels.Where(label => ids.Contains(label.OwnerNetworkId)).ToList();
+                }
+                if (query == LabellingQueries.getOwnerAppServerAppLabels)
+                {
+                    SyncedOwnerIds.Add((int)Value(variables, "ownerId")!);
+                    return Owners;
+                }
+                if (query == OwnerQueries.getOwnersWithNetworks)
+                {
+                    return OwnersWithNetworks;
+                }
+                if (query == LabellingQueries.upsertAppLabelKey)
+                {
+                    return new LabelKey { Id = 7 };
+                }
+                if (query == LabellingQueries.upsertLabelValues)
+                {
+                    return new LabelValueUpsertResult { Returning = [new LabelValue { Id = kAppLabelId, Value = "APP-1" }] };
                 }
                 if (query == LabellingQueries.getLabelIds)
                 {

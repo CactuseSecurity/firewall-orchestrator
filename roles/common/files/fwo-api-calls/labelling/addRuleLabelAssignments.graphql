@@ -1,0 +1,5 @@
+mutation addRuleLabelAssignments($labels: [labelling_rule_label_insert_input!]!) {
+    insert_labelling_rule_label(objects: $labels) {
+        affected_rows
+    }
+}

@@ -19,5 +19,11 @@ namespace FWO.Data.Labelling
         /// </summary>
         [JsonProperty("label_id"), JsonPropertyName("label_id")]
         public long LabelId { get; set; }
+
+        /// <summary>
+        /// The assigned label with its key, if requested.
+        /// </summary>
+        [JsonProperty("label_value"), JsonPropertyName("label_value")]
+        public LabelValue? Label { get; set; }
     }
 }

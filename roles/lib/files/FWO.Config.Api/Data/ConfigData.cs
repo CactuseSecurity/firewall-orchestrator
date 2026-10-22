@@ -49,6 +49,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("showRuleLevelLabels"), JsonPropertyName("showRuleLevelLabels")]
         public bool ShowRuleLevelLabels { get; set; } = true;
 
+        [JsonProperty("appLabelKey"), JsonPropertyName("appLabelKey")]
+        public string AppLabelKey { get; set; } = "App";
+
         [JsonProperty("maxInitialFetchesRightSidebar"), JsonPropertyName("maxInitialFetchesRightSidebar")]
         public int MaxInitialFetchesRightSidebar { get; set; } = 10;
 

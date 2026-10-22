@@ -11,6 +11,15 @@ namespace FWO.Api.Client.Queries
         public static readonly string getOwnerNetworkLabels;
         public static readonly string addOwnerNetworkLabels;
         public static readonly string removeOwnerNetworkLabels;
+        public static readonly string upsertAppLabelKey;
+        public static readonly string upsertLabelValues;
+        public static readonly string getActiveRuleOwnerApps;
+        public static readonly string getAllActiveRuleOwnerApps;
+        public static readonly string getActiveRuleAppLabels;
+        public static readonly string getAllActiveRuleAppLabels;
+        public static readonly string addRuleLabelAssignments;
+        public static readonly string removeRuleLabelAssignments;
+        public static readonly string getOwnerAppServerAppLabels;
 
         static LabellingQueries()
         {
@@ -23,6 +32,15 @@ namespace FWO.Api.Client.Queries
                 getOwnerNetworkLabels = GetQueryText("labelling/getOwnerNetworkLabels.graphql");
                 addOwnerNetworkLabels = GetQueryText("labelling/addOwnerNetworkLabels.graphql");
                 removeOwnerNetworkLabels = GetQueryText("labelling/removeOwnerNetworkLabels.graphql");
+                upsertAppLabelKey = GetQueryText("labelling/upsertAppLabelKey.graphql");
+                upsertLabelValues = GetQueryText("labelling/upsertLabelValues.graphql");
+                getActiveRuleOwnerApps = GetQueryText("labelling/getActiveRuleOwnerApps.graphql");
+                getAllActiveRuleOwnerApps = GetQueryText("labelling/getAllActiveRuleOwnerApps.graphql");
+                getActiveRuleAppLabels = GetQueryText("labelling/getActiveRuleAppLabels.graphql");
+                getAllActiveRuleAppLabels = GetQueryText("labelling/getAllActiveRuleAppLabels.graphql");
+                addRuleLabelAssignments = GetQueryText("labelling/addRuleLabelAssignments.graphql");
+                removeRuleLabelAssignments = GetQueryText("labelling/removeRuleLabelAssignments.graphql");
+                getOwnerAppServerAppLabels = GetQueryText("labelling/getOwnerAppServerAppLabels.graphql");
             }
             catch (Exception exception)
             {

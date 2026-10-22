@@ -8,8 +8,9 @@ namespace FWO.Middleware.Server.Responses;
 public sealed class GetAutoPlanSettingsResponse
 {
     /// <summary>
-    /// Gets or sets one page of the effective settings: the global settings first, then the requested managements
-    /// and then the requested gateways that exist, each ordered by id. Unknown ids are left out.
+    /// Gets or sets one page of the effective settings: the global settings first, then every requested management
+    /// and then every requested gateway, each ordered by id. Unknown ids and ids not visible to the caller get the
+    /// global settings.
     /// </summary>
     [JsonPropertyName("settings")]
     public List<AutoPlanSettingResponse> Settings { get; set; } = [];

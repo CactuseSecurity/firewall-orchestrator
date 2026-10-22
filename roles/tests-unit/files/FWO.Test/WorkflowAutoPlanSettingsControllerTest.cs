@@ -33,6 +33,7 @@ internal class WorkflowAutoPlanSettingsControllerTest
     private const int kManagementId = 20;
     private const int kFirstGatewayId = 1;
     private const int kSecondGatewayId = 2;
+    private const int kUnknownGatewayId = 99;
 
     private static readonly List<int> kBothGateways = [kFirstGatewayId, kSecondGatewayId];
     private static readonly List<int> kManagement = [kManagementId];
@@ -42,6 +43,9 @@ internal class WorkflowAutoPlanSettingsControllerTest
     private static readonly List<int?> kGlobalOnly = [null];
     private static readonly List<int?> kLastSettingOnly = [kSecondGatewayId];
     private static readonly List<string> kPlannerRole = [Roles.Planner];
+    private static readonly List<string> kAdminRole = [Roles.Admin];
+    private static readonly List<int> kUnknownGateway = [kUnknownGatewayId];
+    private static readonly List<int?> kGlobalAndUnknownGateway = [null, kUnknownGatewayId];
     private static readonly List<string> kAllInvalidKeyPaths =
     [
         GetAutoPlanSettingsValidationSchema.kDeviceIdsPath,
@@ -129,6 +133,41 @@ internal class WorkflowAutoPlanSettingsControllerTest
             Assert.That(HasMoreHeader(firstPageController), Is.EqualTo("true"));
             Assert.That(OkResponse(lastPage).Settings.Select(setting => setting.Id), Is.EqualTo(kLastSettingOnly));
             Assert.That(HasMoreHeader(lastPageController), Is.EqualTo("false"));
+        });
+    }
+
+    [Test]
+    public async Task GetAutoPlanSettingsAnswersAnUnknownIdWithTheGlobalSettings()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+        WorkflowImplTaskTargetController controller = CreateController(api);
+
+        ActionResult<GetAutoPlanSettingsResponse> result = await controller.GetAutoPlanSettings(new GetAutoPlanSettingsRequest { DeviceIds = kUnknownGateway });
+
+        GetAutoPlanSettingsResponse response = OkResponse(result);
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Settings.Select(setting => setting.Id), Is.EqualTo(kGlobalAndUnknownGateway));
+            Assert.That(response.Settings[1].AutoPlanImplementationForRules, Is.True, "the global value");
+        });
+    }
+
+    [Test]
+    public async Task GetAutoPlanSettingsAnswersHiddenLevelsOfANonAdminWithTheGlobalSettings()
+    {
+        WorkflowImplTaskTargetController controller = CreateController(CreateApi(), kPlannerRole, "{}", "{2}");
+
+        ActionResult<GetAutoPlanSettingsResponse> result = await controller.GetAutoPlanSettings(
+            new GetAutoPlanSettingsRequest { DeviceIds = kBothGateways, ManagementIds = kManagement });
+
+        GetAutoPlanSettingsResponse response = OkResponse(result);
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Settings.Select(setting => setting.Id), Is.EqualTo(kAllIds));
+            Assert.That(response.Settings[1].AutoPlanImplementation, Is.True, "hidden management gets the global value");
+            Assert.That(response.Settings[2].AutoPlanImplementationForRules, Is.False, "hidden gateway gets the global value");
+            Assert.That(response.Settings[3].AutoPlanImplementation, Is.False, "visible gateway inherits from its management");
         });
     }
 
@@ -224,7 +263,15 @@ internal class WorkflowAutoPlanSettingsControllerTest
 
     private static WorkflowImplTaskTargetController CreateController(InMemoryDeviceSpecificSettingsApiConnection api)
     {
-        List<Claim> claims = [.. kPlannerRole.Select(role => new Claim(ClaimTypes.Role, role))];
+        return CreateController(api, kAdminRole, "", "");
+    }
+
+    private static WorkflowImplTaskTargetController CreateController(InMemoryDeviceSpecificSettingsApiConnection api, List<string> roles,
+        string visibleManagements, string visibleDevices)
+    {
+        List<Claim> claims = [.. roles.Select(role => new Claim(ClaimTypes.Role, role))];
+        claims.Add(new Claim("x-hasura-visible-managements", visibleManagements));
+        claims.Add(new Claim("x-hasura-visible-devices", visibleDevices));
         ClaimsPrincipal user = new(new ClaimsIdentity(claims, "test", ClaimTypes.Name, ClaimTypes.Role));
         return new WorkflowImplTaskTargetController(new ImplTaskTargetService(api))
         {

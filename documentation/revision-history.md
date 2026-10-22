@@ -7,7 +7,8 @@
   - the action "create implementation tasks" still creates every implementation task
   - the device specific settings page warns if rules are planned automatically without path analysis algorithm or manually without active planning phase
 - Workflow Customizing: the option "auto-create implementation tasks" is split up: the new setting reqDeviceInput (never, enter device in request, one task for all devices) and the new path analysis algorithms "For each device" and "Only if device available"; consider bundling and display bundled tasks as one are grouped as bundling options
-- new middleware endpoint workflow/getAutoPlanSettings returns the effective auto plan settings of the global level, managements and gateways
+- new middleware endpoint workflow/getAutoPlanSettings returns the effective auto plan settings of the global level, managements and gateways; every requested id gets an entry, unknown ids and ids not visible to a non-admin caller get the global settings
+- path analysis REST endpoint resolvePathDevices: the device selections "for each device" and "only if device available" are no path analysis, so they can neither be requested nor serve as configured default (400 like none)
 - the upgrade translates reqAutoCreateImplTasks and the planning phases into the new settings and removes the old config key
 
 ## 9.8.1 - 20.10.2026

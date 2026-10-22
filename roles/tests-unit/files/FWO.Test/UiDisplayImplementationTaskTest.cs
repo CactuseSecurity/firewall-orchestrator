@@ -185,8 +185,9 @@ namespace FWO.Test
             SetMember(component, "userConfig", CreateUserConfig());
 
             GetPrivateMethod(typeof(DisplayImplementationTask), "InitAddComment").Invoke(component, []);
-            bool readOnlyAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DisplayConnection.ToString() });
-            bool hiddenAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() });
+            ConfiguredTaskActions actions = new();
+            bool readOnlyAction = InvokePrivateBool(actions, "CanShowAction", new WfStateAction { ActionType = StateActionTypes.DisplayConnection.ToString() });
+            bool hiddenAction = InvokePrivateBool(actions, "CanShowAction", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() });
 
             Assert.Multiple(() =>
             {
@@ -208,8 +209,9 @@ namespace FWO.Test
             GetPrivateMethod(typeof(DisplayImplementationTask), "InitAddComment").Invoke(component, kNoArgs);
             GetPrivateMethod(typeof(DisplayImplementationTask), "InitPromoteImplTask").Invoke(component, kNoArgs);
             await (Task)GetPrivateMethod(typeof(DisplayImplementationTask), "SaveImplTask").Invoke(component, kNoArgs)!;
-            bool readOnlyAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DisplayConnection.ToString() });
-            bool changingAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() });
+            ConfiguredTaskActions actions = new();
+            bool readOnlyAction = InvokePrivateBool(actions, "CanShowAction", new WfStateAction { ActionType = StateActionTypes.DisplayConnection.ToString() });
+            bool changingAction = InvokePrivateBool(actions, "CanShowAction", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() });
 
             Assert.Multiple(() =>
             {
@@ -220,8 +222,8 @@ namespace FWO.Test
                 Assert.That(changingAction, Is.False);
             });
 
-            handler.ReadOnlyMode = false;
-            Assert.That(InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() }), Is.True);
+            SetMember(actions, nameof(ConfiguredTaskActions.AllowStateChangingActions), true);
+            Assert.That(InvokePrivateBool(actions, "CanShowAction", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() }), Is.True);
         }
 
         [Test]
@@ -264,7 +266,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task DisplayImplementationTask_PerformAction_ExecutesNormalPath()
+        public async Task ConfiguredTaskActions_ImplementationTask_ExecutesNormalPath()
         {
             WfReqTask reqTask = new() { Id = 20, TaskType = WfTaskType.generic.ToString() };
             WfImplTask implTask = new()
@@ -288,10 +290,35 @@ namespace FWO.Test
             IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler,
                 new WfStateDict(), Roles.Implementer);
 
-            await component.InvokeAsync(() => InvokePrivateTask(typeof(DisplayImplementationTask), component.Instance,
+            ConfiguredTaskActions actionComponent = component.FindComponent<ConfiguredTaskActions>().Instance;
+            await component.InvokeAsync(() => InvokePrivateTask(typeof(ConfiguredTaskActions), actionComponent,
                 "PerformAction", new WfStateAction()));
 
             Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+        }
+
+        [Test]
+        public async Task DisplayImplementationTask_AfterConfiguredAction_HandlesUnavailableReload()
+        {
+            WfReqTask reqTask = new() { Id = 20, TaskType = WfTaskType.generic.ToString() };
+            WfImplTask implTask = new() { Id = 30, ReqTaskId = reqTask.Id, TaskType = WfTaskType.generic.ToString() };
+            reqTask.ImplementationTasks = [implTask];
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                ActReqTask = reqTask,
+                ActImplTask = implTask,
+                ActTicket = new WfTicket { Tasks = [reqTask] }
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler,
+                new WfStateDict(), Roles.Implementer);
+
+            await component.InvokeAsync(() => InvokePrivateTask(typeof(DisplayImplementationTask), component.Instance,
+                "AfterConfiguredAction"));
+
+            Assert.That(handler.ActImplTask.Id, Is.EqualTo(implTask.Id));
         }
 
         [Test]

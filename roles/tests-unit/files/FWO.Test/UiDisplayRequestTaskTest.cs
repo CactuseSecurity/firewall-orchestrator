@@ -121,14 +121,16 @@ namespace FWO.Test
         [Test]
         public async Task DisplayRequestTask_ActionAndSaveMethods_DoNothingWhileBusy()
         {
+            ConfiguredTaskActions actionComponent = new();
+            SetPrivateField(actionComponent, nameof(ConfiguredTaskActions.WorkInProgress), true);
+            await InvokePrivateTask(actionComponent, "PerformAction", new WfStateAction());
+
             DisplayRequestTask component = new();
             SetPrivateField(component, "WorkInProgress", true);
             SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
             {
                 ActReqTask = new WfReqTask { Title = "Task", TaskType = WfTaskType.generic.ToString() }
             });
-
-            await InvokePrivateTask(component, "PerformAction", new WfStateAction());
             await InvokePrivateTask(component, "ConfApproveTask", new WfApproval());
             await InvokePrivateTask(component, "SaveReqTask");
 
@@ -136,7 +138,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task DisplayRequestTask_PerformAction_ExecutesNormalReloadAndResetPath()
+        public async Task ConfiguredTaskActions_RequestTask_ExecutesNormalReloadAndResetPath()
         {
             WfReqTask task = new() { Id = 0, TaskNumber = 1, Title = "Task", TaskType = WfTaskType.generic.ToString() };
             WfHandler handler = new()
@@ -150,7 +152,8 @@ namespace FWO.Test
             await using BunitContext context = new();
             IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, new WfStateDict(), Roles.Requester);
 
-            await component.InvokeAsync(() => InvokePrivateTask(component.Instance, "PerformAction", new WfStateAction()));
+            ConfiguredTaskActions actionComponent = component.FindComponent<ConfiguredTaskActions>().Instance;
+            await component.InvokeAsync(() => InvokePrivateTask(actionComponent, "PerformAction", new WfStateAction()));
 
             Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
         }
@@ -159,7 +162,7 @@ namespace FWO.Test
         /// Verifies the action execution branch when an action handler is available.
         /// </summary>
         [Test]
-        public async Task DisplayRequestTask_PerformAction_WithActionHandlerRefreshesTask()
+        public async Task ConfiguredTaskActions_RequestTask_WithActionHandlerRefreshesTask()
         {
             WfReqTask task = new() { Id = 0, TaskNumber = 1, Title = "Task", TaskType = WfTaskType.generic.ToString() };
             WfHandler handler = new()
@@ -173,7 +176,8 @@ namespace FWO.Test
             await using BunitContext context = new();
             IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, new WfStateDict(), Roles.Requester);
 
-            await component.InvokeAsync(() => InvokePrivateTask(component.Instance, "PerformAction", new WfStateAction()));
+            ConfiguredTaskActions actionComponent = component.FindComponent<ConfiguredTaskActions>().Instance;
+            await component.InvokeAsync(() => InvokePrivateTask(actionComponent, "PerformAction", new WfStateAction()));
 
             Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
         }
@@ -230,6 +234,35 @@ namespace FWO.Test
             Assert.That(approval.StateId, Is.EqualTo(5));
         }
 
+        [Test]
+        public async Task DisplayRequestTask_ConfApproveTask_SkipsTaskSaveWhenNoChangesAreAllowed()
+        {
+            WfApproval approval = new() { Id = 7, StateId = 0 };
+            WfReqTask task = new()
+            {
+                Id = 11,
+                Title = "Task",
+                TaskType = WfTaskType.generic.ToString(),
+                Approvals = [approval]
+            };
+            WfHandler handler = new()
+            {
+                ActReqTask = task,
+                ActApproval = approval,
+                ActTicket = new WfTicket { Tasks = [task] },
+                ActStateMatrix = new StateMatrix { LowestEndState = 99 }
+            };
+            DisplayRequestTask component = new();
+            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), handler);
+            SetPrivateField(component, nameof(DisplayRequestTask.Phase), WorkflowPhases.approval);
+            SetPrivateField(component, "userConfig", CreateUserConfig());
+            WfApproval target = new() { Id = 7, StateId = 5 };
+
+            await InvokePrivateTask(component, "ConfApproveTask", target);
+
+            Assert.That(target.StateId, Is.EqualTo(5));
+        }
+
         /// <summary>
         /// Verifies that approval-phase edits use the explicit locked-task persistence path.
         /// </summary>
@@ -268,6 +301,39 @@ namespace FWO.Test
             await InvokePrivateTask(component, "ConfApproveTask", approval);
 
             Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(task));
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_AfterConfiguredAction_ResetsRenderedTask()
+        {
+            WfReqTask task = new() { Id = 0, Title = "Task", TaskType = WfTaskType.generic.ToString() };
+            WfHandler handler = new()
+            {
+                DisplayReqTaskMode = true,
+                ActReqTask = task,
+                ActTicket = new WfTicket { Tasks = [task] }
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, new WfStateDict(), Roles.Requester);
+
+            await component.InvokeAsync(() => InvokePrivateTask(component.Instance, "AfterConfiguredAction"));
+
+            Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+        }
+
+        [TestCase(WfTaskType.object_create, RequestAction.create)]
+        [TestCase(WfTaskType.object_modify, RequestAction.modify)]
+        public void DisplayRequestTask_ApplyTaskTypeSpecificValues_SetsObjectRequestAction(WfTaskType taskType, RequestAction requestAction)
+        {
+            DisplayRequestTask component = new();
+            WfReqTask task = new() { TaskType = taskType.ToString() };
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler { ActReqTask = task });
+            SetMember(component, "actTaskType", taskType);
+
+            InvokePrivate(component, "ApplyTaskTypeSpecificValues");
+
+            Assert.That(task.RequestAction, Is.EqualTo(requestAction.ToString()));
         }
 
         [Test]
@@ -379,9 +445,10 @@ namespace FWO.Test
                 Assert.That(InvokePrivate<WfTaskType>(component, "GetDefaultTaskType"), Is.EqualTo(WfTaskType.access));
                 Assert.That(GetPrivateField<Management?>(component, "actManagement"), Is.EqualTo(management));
                 Assert.That(InvokePrivate<bool>(component, "RejectInvalidTargetDates"), Is.False);
-                Assert.That(InvokePrivate<bool>(component, "CanShowApprovalsButton"), Is.True);
                 Assert.That(InvokePrivate<bool>(component, "IsRequestTaskReadOnly"), Is.True);
             });
+
+            Assert.That(InvokePrivate<bool>(component, "CanShowApprovalsButton"), Is.True);
 
             handler.ApproveReqTaskMode = true;
             Assert.That(InvokePrivate<bool>(component, "IsRequestTaskReadOnly"), Is.False);
@@ -399,21 +466,73 @@ namespace FWO.Test
         [Test]
         public void DisplayRequestTask_ConfiguredActionVisibility_RespectsModesAndReadOnlyActions()
         {
-            DisplayRequestTask component = new();
-            WfHandler handler = new() { ActReqTask = new WfReqTask() };
-            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), handler);
+            ConfiguredTaskActions component = new();
 
             WfStateAction normalAction = new() { ActionType = StateActionTypes.DoNothing.ToString() };
             WfStateAction readOnlyAction = new() { ActionType = StateActionTypes.DisplayConnection.ToString() };
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(component, "CanShowAction", normalAction), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "CanShowAction", readOnlyAction), Is.True);
+            });
+
+            SetPrivateField(component, nameof(ConfiguredTaskActions.AllowStateChangingActions), true);
+            Assert.That(InvokePrivate<bool>(component, "CanShowAction", normalAction), Is.True);
+        }
+
+        [Test]
+        public void TaskHeader_RendersFieldsAndForwardsTitleChanges()
+        {
+            using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(CreateUserConfig());
+            string? changedTitle = null;
+            IRenderedComponent<TaskHeader> component = context.Render<TaskHeader>(parameters => parameters
+                .Add(parameter => parameter.IdLabelKey, "req_task_id")
+                .Add(parameter => parameter.HandlerLabelKey, "handler")
+                .Add(parameter => parameter.TaskId, 17)
+                .Add(parameter => parameter.Title, "Initial title")
+                .Add(parameter => parameter.StateName, "requested")
+                .Add(parameter => parameter.HandlerName, "handler-name")
+                .Add(parameter => parameter.AssignedGroup, "cn=group")
+                .Add(parameter => parameter.CanEditTitle, true)
+                .Add(parameter => parameter.BundledTaskCount, 2)
+                .Add(parameter => parameter.TitleChanged,
+                    EventCallback.Factory.Create<string?>(this, value => changedTitle = value)));
+
+            component.Find("input").Change("Changed title");
 
             Assert.Multiple(() =>
             {
-                Assert.That(InvokePrivate<bool>(component, "CanShowConfiguredActionButton", normalAction), Is.False);
-                Assert.That(InvokePrivate<bool>(component, "CanShowConfiguredActionButton", readOnlyAction), Is.True);
+                Assert.That(component.Markup, Does.Contain("Initial title"));
+                Assert.That(component.Markup, Does.Contain("17"));
+                Assert.That(component.Markup, Does.Contain("2"));
+                Assert.That(changedTitle, Is.EqualTo("Changed title"));
             });
+        }
 
-            handler.EditReqTaskMode = true;
-            Assert.That(InvokePrivate<bool>(component, "CanShowConfiguredActionButton", normalAction), Is.True);
+        [Test]
+        public void ConfiguredTaskActions_RendersOnlyReadonlyActionsWhenStateChangesAreDisallowed()
+        {
+            using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(CreateUserConfig());
+            List<WfStateAction> actions =
+            [
+                new() { ActionType = StateActionTypes.DoNothing.ToString(), ButtonText = "change" },
+                new() { ActionType = StateActionTypes.DisplayConnection.ToString(), ButtonText = "display" }
+            ];
+
+            IRenderedComponent<ConfiguredTaskActions> component = context.Render<ConfiguredTaskActions>(parameters => parameters
+                .Add(parameter => parameter.OfferedActions, actions)
+                .Add(parameter => parameter.AllowStateChangingActions, false));
+
+            Assert.That(component.FindAll("button"), Has.Count.EqualTo(1));
+            Assert.That(component.Markup, Does.Contain("display"));
+
+            IRenderedComponent<ConfiguredTaskActions> changingComponent = context.Render<ConfiguredTaskActions>(parameters => parameters
+                .Add(parameter => parameter.OfferedActions, actions)
+                .Add(parameter => parameter.AllowStateChangingActions, true));
+
+            Assert.That(changingComponent.FindAll("button"), Has.Count.EqualTo(2));
         }
 
         [Test]
@@ -431,8 +550,9 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(InvokePrivate<bool>(component, "CanShowConfiguredActionButton", normalAction), Is.False);
-                Assert.That(InvokePrivate<bool>(component, "CanShowConfiguredActionButton", readOnlyAction), Is.True);
+                ConfiguredTaskActions actions = new();
+                Assert.That(InvokePrivate<bool>(actions, "CanShowAction", normalAction), Is.False);
+                Assert.That(InvokePrivate<bool>(actions, "CanShowAction", readOnlyAction), Is.True);
                 Assert.That(handler.DisplayReqTaskCommentMode, Is.False);
                 Assert.That(task.Title, Is.EqualTo("Unchanged"));
                 Assert.That(GetPrivateField<bool>(component, "WorkInProgress"), Is.False);
@@ -772,7 +892,6 @@ namespace FWO.Test
             IRenderedComponent<DisplayRequestTask> component = context.Render<DisplayRequestTask>(parameters => parameters
                 .Add(parameter => parameter.WfHandler, handler)
             );
-
             InvokePrivate(component.Instance, "ShowApprovals");
             Assert.That(handler.DisplayApprovalReqMode, Is.True);
 

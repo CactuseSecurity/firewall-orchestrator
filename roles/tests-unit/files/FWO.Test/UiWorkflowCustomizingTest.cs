@@ -24,6 +24,13 @@ namespace FWO.Test
     {
         private const string kNoneAlgorithmName = "None";
         private const string kNetworkZoneTreeAlgorithmName = "Network Zone Tree";
+        private static readonly List<string> kAlgorithmIdsInOrder =
+        [
+            GlobalConst.kPathAnalysisAlgorithmNone.ToString(),
+            GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString(),
+            GlobalConst.kPathAnalysisAlgorithmForEachDevice.ToString(),
+            GlobalConst.kPathAnalysisAlgorithmFirstDevice.ToString()
+        ];
         private static readonly object[] kNoArguments = [];
 
         private static MethodInfo GetPrivateMethod(Type type, string name)
@@ -237,7 +244,7 @@ namespace FWO.Test
             wrapper.WaitForAssertion(() =>
             {
                 List<AngleSharp.Dom.IElement> options = [.. wrapper.FindAll("#pathAnalysisAlgorithm option")];
-                Assert.That(options, Has.Count.EqualTo(2));
+                Assert.That(options.Select(option => option.GetAttribute("value")), Is.EqualTo(kAlgorithmIdsInOrder));
                 Assert.That(options[1].TextContent, Is.EqualTo(kNetworkZoneTreeAlgorithmName));
                 Assert.That(wrapper.Find("#pathAnalysisAlgorithm").GetAttribute("value"),
                     Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()));
@@ -1054,8 +1061,11 @@ namespace FWO.Test
             public bool ThrowOnUpsertConfig { get; set; } = false;
             public List<PathAnalysisAlgorithm> PathAnalysisAlgorithms { get; set; } = new List<PathAnalysisAlgorithm>
             {
+                // ordered by name like the query
+                new() { Id = GlobalConst.kPathAnalysisAlgorithmForEachDevice, Name = "For each device" },
+                new() { Id = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree, Name = kNetworkZoneTreeAlgorithmName },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmNone, Name = kNoneAlgorithmName },
-                new() { Id = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree, Name = kNetworkZoneTreeAlgorithmName }
+                new() { Id = GlobalConst.kPathAnalysisAlgorithmFirstDevice, Name = "Only if device available" }
             };
             public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } = new List<WorkflowConfiguration>
             {

@@ -89,6 +89,18 @@ namespace FWO.Config.Api
             OverDict = overDict;
         }
 
+        /// <summary>
+        /// Returns a copy of this config whose config items are read freshly from the database, sharing the already
+        /// loaded language data. Used where a config loaded once without subscription, e.g. in the middleware, would
+        /// otherwise apply settings changed after its start. The caller disposes the copy.
+        /// </summary>
+        /// <param name="apiConnection">Connection to read the config items with; not disposed with the copy.</param>
+        public GlobalConfig WithCurrentConfigItems(ApiConnection apiConnection)
+        {
+            ThrowIfDisposed();
+            return new GlobalConfig(apiConnection, ProductVersion, UiLanguages, LangDict, OverDict);
+        }
+
         public override string GetText(string key)
         {
             ThrowIfDisposed();

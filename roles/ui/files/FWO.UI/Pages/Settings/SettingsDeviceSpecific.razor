@@ -35,11 +35,11 @@ else
         <div class="col-sm-9">
             @if (autoPlanCheck?.RulesAutomaticWithoutAlgorithm == true)
             {
-                <div class="alert alert-warning small"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5504"))</div>
+                <div class="alert alert-warning-override small"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5504"))</div>
             }
             @if (autoPlanCheck?.ManualWithoutPlanningPhase.Count > 0)
             {
-                <div class="alert alert-warning small"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5505")) @(string.Join(", ", autoPlanCheck.ManualWithoutPlanningPhase.Select(taskType => userConfig.GetText(taskType))))</div>
+                <div class="alert alert-warning-override small"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5505")) @(string.Join(", ", autoPlanCheck.ManualWithoutPlanningPhase.Select(taskType => userConfig.GetText(taskType))))</div>
             }
             @if (form != null)
             {

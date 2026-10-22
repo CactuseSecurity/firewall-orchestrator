@@ -169,7 +169,9 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<WorkflowActionResult> ExecuteActionsInMiddlewareContext(ApiConnection actionApiConnection, WorkflowActionParameters parameters,
             WfObjectScopes scope, WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
         {
-            using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, actionApiConnection, globalConfig.DefaultLanguage);
+            // the injected config is loaded once at startup, the actions have to follow later customizing changes
+            using GlobalConfig currentGlobalConfig = globalConfig.WithCurrentConfigItems(actionApiConnection);
+            using UserConfig userConfig = UserConfig.ForGlobalSettings(currentGlobalConfig, actionApiConnection, currentGlobalConfig.DefaultLanguage);
             WfHandler wfHandler = CreateWorkflowHandler(actionApiConnection, userConfig, phase, result);
             ApplyCallerIdentity(User, userConfig, wfHandler);
             wfHandler.userConfig.User.WorkflowVisibilityGroupIds = GetClaimIds(User, "x-hasura-workflow-visibility-groups").ToList();

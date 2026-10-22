@@ -318,7 +318,9 @@ else
                 taskTypesActiveDict.Add(type, availableTaskTypes.Contains(type));
             }
             prioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(configData.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
-            pathAnalysisAlgorithms = await apiConnection.SendQueryAsync<List<PathAnalysisAlgorithm>>(PathAnalysisAlgorithmQueries.getPathAnalysisAlgorithms) ?? [];
+            List<PathAnalysisAlgorithm> algorithms = await apiConnection.SendQueryAsync<List<PathAnalysisAlgorithm>>(PathAnalysisAlgorithmQueries.getPathAnalysisAlgorithms) ?? [];
+            // by id: none first, then the path analyses and the device selections in the order they were added
+            pathAnalysisAlgorithms = [.. algorithms.OrderBy(algorithm => algorithm.Id)];
             InitComplete = true;
         }
         catch (Exception exception)

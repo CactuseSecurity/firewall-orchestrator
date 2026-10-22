@@ -12,7 +12,7 @@ namespace FWO.Ui.Display
 {
     public class RuleDisplayJson(UserConfig userConfig) : RuleDisplayBase(userConfig)
     {
-        protected string DisplayJsonPlain(string tag, string? value)
+        protected static string DisplayJsonPlain(string tag, string? value)
         {
             return (value != null ? $"\"{tag}\": {value}," : "");
         }

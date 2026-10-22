@@ -183,22 +183,7 @@ namespace FWO.Ui.Services
                     await AppServerHelper.ConstructAppServerNameFromDns(importAppServer.ToModellingAppServer(), NamingConvention, UserConfig.OverwriteExistingNames) :
                     entries[0];
 
-                // write to db
-                (bool importSuccess, Exception? e, long? appServerId, int ownerId) = await AddAppServerToDb(importAppServer);
-
-                if (!importSuccess && e is not null)
-                {
-                    error.Message = e.Message;
-                    errors.Add(error);
-                }
-                else
-                {
-                    success.Add(line);
-                    if (appServerId != null)
-                    {
-                        uploadedAppServers.Add((appServerId.Value, ownerId, importAppServer));
-                    }
-                }
+                await StoreAppServer(line, importAppServer, error, success, errors, uploadedAppServers);
             }
             await ImportLabels(uploadedAppServers, errors);
 
@@ -211,6 +196,27 @@ namespace FWO.Ui.Services
                 AppServerImportEvent.EventArgs.Errors = errors;
 
                 EventMediator.Publish(nameof(ImportAppServersFromCSV), AppServerImportEvent);
+            }
+        }
+
+        /// <summary>
+        /// Writes an app server of the csv file to the database and records its line as success or error.
+        /// </summary>
+        private async Task StoreAppServer(string line, CSVAppServerImportModel importAppServer, CSVFileUploadErrorModel error, List<string> success,
+            List<CSVFileUploadErrorModel> errors, List<(long appServerId, int ownerId, CSVAppServerImportModel appServer)> uploadedAppServers)
+        {
+            (bool importSuccess, Exception? e, long? appServerId, int ownerId) = await AddAppServerToDb(importAppServer);
+
+            if (!importSuccess && e is not null)
+            {
+                error.Message = e.Message;
+                errors.Add(error);
+                return;
+            }
+            success.Add(line);
+            if (appServerId != null)
+            {
+                uploadedAppServers.Add((appServerId.Value, ownerId, importAppServer));
             }
         }
 

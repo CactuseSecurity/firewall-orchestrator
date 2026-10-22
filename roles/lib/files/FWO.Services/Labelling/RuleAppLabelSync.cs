@@ -38,6 +38,11 @@ namespace FWO.Services.Labelling
             fullSyncDone = false;
         }
 
+        private static void MarkFullSyncDone()
+        {
+            fullSyncDone = true;
+        }
+
         /// <summary>
         /// Syncs the App labels of the rules whose mappings changed, or of all rules if no full sync ran yet.
         /// </summary>
@@ -65,7 +70,7 @@ namespace FWO.Services.Labelling
         {
             if (await Run(null, importControlId))
             {
-                fullSyncDone = true;
+                MarkFullSyncDone();
             }
         }
 
@@ -94,7 +99,7 @@ namespace FWO.Services.Labelling
             catch (Exception exception)
             {
                 // the next run compares all rules again, so that no change gets lost
-                fullSyncDone = false;
+                RequestFullSync();
                 Log.WriteError(LogMessageTitle, $"App labels of rules could not be synced for import control {importControlId}.", exception);
                 return false;
             }

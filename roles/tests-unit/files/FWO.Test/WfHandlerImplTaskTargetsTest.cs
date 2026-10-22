@@ -522,18 +522,6 @@ namespace FWO.Test
             public int PageSize { get; init; } = int.MaxValue;
             public bool AlwaysHasMore { get; init; }
 
-            public override async Task<RestResponse<AutoPlanSettingsResult>> GetAutoPlanSettings(AutoPlanSettingsParameters parameters)
-            {
-                List<AutoPlanScopeSettings> settings = await new ImplTaskAutoPlanResolver(middlewareApi).Resolve(parameters.DeviceIds, parameters.ManagementIds);
-                return new RestResponse<AutoPlanSettingsResult>(new RestRequest())
-                {
-                    StatusCode = HttpStatusCode.OK,
-                    ResponseStatus = ResponseStatus.Completed,
-                    IsSuccessStatusCode = true,
-                    Data = new AutoPlanSettingsResult { Settings = settings }
-                };
-            }
-
             public override async Task<RestResponse<ImplTaskTargetResult>> GetImplTaskTargets(ImplTaskTargetParameters parameters)
             {
                 Calls.Add(parameters);

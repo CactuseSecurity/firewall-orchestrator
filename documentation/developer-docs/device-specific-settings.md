@@ -37,8 +37,8 @@ remains effective and is shown as a dormant override that can be cleared there.
 | ownerIdCustomFieldName | string | OwnerId | Global, device type, manager | Global to manager |
 | changeIdCustomFieldName | string | ChangeId | Global, device type, manager | Global to manager |
 | importerHostName | string | empty (every importer is responsible) | Global, device type, manager | Global to manager |
-| planImplementation | boolean | true | All | All |
-| planImplementationOverrideForRules | boolean | true | All | All |
+| autoPlanImplementation | boolean | true | All | All |
+| autoPlanImplementationForRules | boolean | false (fresh installations set true globally) | All | All |
 | modellingCreateAppZones | boolean | true | Global, device type, manager | Global to manager |
 | modellingImplementNetworkAreaObjects | boolean | false | Global, device type, manager | Global to manager |
 | modellingDynIpLabelsVisibleAsGroups | boolean | true | Global, device type, manager | Global to manager |
@@ -94,6 +94,22 @@ system is configured in the external ticket systems, former `TufinSc` levels rer
 it via `rerouteToExternalTicketSystem`; otherwise select the ticket system on those
 levels after upgrading. `ruleCategory` becomes `commonServiceSeparation` (`common_service`
 is `true`, `app` is `false`).
+
+### Automatic creation of implementation tasks (since 9.8.2)
+
+`autoPlanImplementation` and `autoPlanImplementationForRules` (formerly `planImplementation` and
+`planImplementationOverrideForRules`, renamed by the 9.8.2 upgrade with their values) decide which implementation
+tasks the state action "Create implementation tasks" creates; nothing else creates them automatically, and the
+planning phase plays no role for it. Rule tasks (access, rule_modify, rule_delete) need both settings, every other
+task type `autoPlanImplementation`. The action resolves the values of the gateway (access and rule changes) or the
+target management (object tasks) along the hierarchy above; without gateway the global values apply.
+
+The 9.8.2 upgrade translates the former workflow option `reqAutoCreateImplTasks` together with the planning phases:
+`autoPlanImplementationForRules` becomes `true` globally if access tasks were created automatically (option not
+`never`, planning phase of access tasks inactive), and `autoPlanImplementation` becomes `false` globally if every
+task type had an active planning phase. Levels that the 9.7.4 upgrade set to `planImplementation = false` (former
+mode `None`) are planned manually afterwards. The action has to be attached to a state, e.g. "approved", by an
+administrator after the upgrade.
 
 The upgrade moves `management.importer_hostname` into `importerHostName` and then drops
 the column. The most common non-empty host name becomes the global value (unless a global

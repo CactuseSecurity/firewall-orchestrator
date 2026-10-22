@@ -502,7 +502,7 @@ namespace FWO.Services.Workflow
         private bool RequestTaskNeedsInitialImplTasks(WfReqTask reqTask)
         {
             return stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? matrix)
-                && reqTask.StateId >= matrix.MinImplTasksCreatable
+                && reqTask.StateId >= matrix.MinImplTasksNeeded
                 && reqTask.StateId < matrix.MinTicketCompleted;
         }
 

@@ -39,20 +39,6 @@ namespace FWO.Services.Workflow
         public Dictionary<WorkflowPhases, bool> PhaseActive = [];
         public bool IsLastActivePhase = true;
         public int MinImplTasksNeeded;
-
-        /// <summary>
-        /// Lowest input state of the planning phase; 0 when unknown.
-        /// </summary>
-        public int MinPlanningInputState;
-
-        /// <summary>
-        /// Lowest state from which implementation tasks are created automatically: the input state of the planning
-        /// phase if it is active, so that the planner finds them, else the input state of the implementation phase.
-        /// </summary>
-        public int MinImplTasksCreatable =>
-            PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningActive) && planningActive && MinPlanningInputState > 0
-                ? MinPlanningInputState
-                : MinImplTasksNeeded;
         public int MinTicketCompleted;
         public int ApprovalLowestEndState;
 
@@ -88,8 +74,6 @@ namespace FWO.Services.Workflow
                 }
             }
             MinImplTasksNeeded = glbStateMatrix.GlobalMatrix[WorkflowPhases.implementation].LowestInputState;
-            MinPlanningInputState = glbStateMatrix.GlobalMatrix.TryGetValue(WorkflowPhases.planning, out StateMatrix? planning)
-                ? planning.LowestInputState : 0;
             WorkflowPhases lastActivePhase = PhaseActive
                 .Where(entry => entry.Value)
                 .Select(entry => entry.Key)

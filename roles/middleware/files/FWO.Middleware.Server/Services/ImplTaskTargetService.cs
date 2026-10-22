@@ -1,6 +1,5 @@
 using FWO.Api.Client;
 using FWO.Data;
-using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -61,72 +60,6 @@ public sealed class ImplTaskTargetService
             .Skip(options.Offset ?? 0)
             .Take(pageSize + 1)];
         return ListPage<ImplTaskTargetResponse>.FromLookahead(pageWithLookahead, pageSize);
-    }
-
-    /// <summary>
-    /// Returns one page of the effective auto plan settings of the global level and of every requested management and
-    /// gateway.
-    /// </summary>
-    /// <remarks>
-    /// Every requested id gets an entry, so the answer does not tell whether an id exists: an unknown id, and an id
-    /// not visible to the caller, get the global settings. Only ids and two flags are returned, no names. The settings
-    /// are inherited along the device specific settings hierarchy, so the page cannot be cut in the GraphQL query; it
-    /// is cut here after the filter is applied. Order: global first, then managements and gateways, each by id.
-    /// </remarks>
-    /// <param name="deviceIds">Gateways to resolve.</param>
-    /// <param name="managementIds">Managements to resolve.</param>
-    /// <param name="options">Filter and paging options of the request.</param>
-    /// <param name="visibleDeviceIds">Gateways visible to the caller, or null when the caller sees every gateway.</param>
-    /// <param name="visibleManagementIds">Managements visible to the caller, or null when the caller sees every
-    /// management.</param>
-    /// <returns>The matching settings of the requested page.</returns>
-    public async Task<ListPage<AutoPlanSettingResponse>> GetAutoPlanSettingsAsync(List<int> deviceIds, List<int> managementIds,
-        GetAutoPlanSettingsOptions options, IReadOnlySet<int>? visibleDeviceIds = null, IReadOnlySet<int>? visibleManagementIds = null)
-    {
-        List<int> requestedDeviceIds = [.. deviceIds.Distinct().Order()];
-        List<int> requestedManagementIds = [.. managementIds.Distinct().Order()];
-        List<int> resolvableDeviceIds = [.. requestedDeviceIds.Where(id => visibleDeviceIds == null || visibleDeviceIds.Contains(id))];
-        List<int> resolvableManagementIds = [.. requestedManagementIds.Where(id => visibleManagementIds == null || visibleManagementIds.Contains(id))];
-        List<AutoPlanScopeSettings> resolved = await new ImplTaskAutoPlanResolver(apiConnection).Resolve(resolvableDeviceIds, resolvableManagementIds);
-        AutoPlanScopeSettings global = resolved.First(setting => setting.ScopeType == AutoPlanScopeTypes.kGlobal);
-
-        List<AutoPlanSettingResponse> settings = [ToResponse(global, AutoPlanScopeTypes.kGlobal, null)];
-        settings.AddRange(requestedManagementIds.Select(id => ToResponse(FindOrGlobal(resolved, AutoPlanScopeTypes.kManagement, id, global),
-            AutoPlanScopeTypes.kManagement, id)));
-        settings.AddRange(requestedDeviceIds.Select(id => ToResponse(FindOrGlobal(resolved, AutoPlanScopeTypes.kGateway, id, global),
-            AutoPlanScopeTypes.kGateway, id)));
-
-        int pageSize = options.Limit ?? GetAutoPlanSettingsOptions.kMaxLimit;
-        List<AutoPlanSettingResponse> pageWithLookahead = [.. settings
-            .Where(setting => MatchesFilter(setting, options.Filter))
-            .Skip(options.Offset ?? 0)
-            .Take(pageSize + 1)];
-        return ListPage<AutoPlanSettingResponse>.FromLookahead(pageWithLookahead, pageSize);
-    }
-
-    private static AutoPlanScopeSettings FindOrGlobal(List<AutoPlanScopeSettings> resolved, string scopeType, int id, AutoPlanScopeSettings global)
-    {
-        return resolved.FirstOrDefault(setting => setting.ScopeType == scopeType && setting.Id == id) ?? global;
-    }
-
-    private static AutoPlanSettingResponse ToResponse(AutoPlanScopeSettings settings, string scopeType, int? id)
-    {
-        return new AutoPlanSettingResponse
-        {
-            ScopeType = scopeType,
-            Id = id,
-            AutoPlanImplementation = settings.AutoPlanImplementation,
-            AutoPlanImplementationForRules = settings.AutoPlanImplementationForRules
-        };
-    }
-
-    private static bool MatchesFilter(AutoPlanSettingResponse setting, AutoPlanSettingsFilter? filter)
-    {
-        return filter == null
-            || ((filter.ScopeType == null || filter.ScopeType == setting.ScopeType)
-                && (filter.Id == null || filter.Id == setting.Id)
-                && (filter.AutoPlanImplementation == null || filter.AutoPlanImplementation == setting.AutoPlanImplementation)
-                && (filter.AutoPlanImplementationForRules == null || filter.AutoPlanImplementationForRules == setting.AutoPlanImplementationForRules));
     }
 
     private static bool MatchesFilter(ImplTaskTargetResponse target, ImplTaskTargetFilter? filter)

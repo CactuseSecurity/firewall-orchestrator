@@ -3,7 +3,6 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
-using FWO.Data.Middleware;
 
 namespace FWO.Services.Workflow
 {
@@ -12,8 +11,8 @@ namespace FWO.Services.Workflow
     /// and managements along the device specific settings hierarchy.
     /// </summary>
     /// <remarks>
-    /// Reads the device specific settings tables, which only the middleware server may read. The ui therefore asks the
-    /// middleware, which uses this resolver.
+    /// Reads the device specific settings tables, which the workflow roles may not read. It runs in the state action
+    /// "Create implementation tasks", which is executed in the middleware with the rights of the middleware server.
     /// </remarks>
     public class ImplTaskAutoPlanResolver(ApiConnection apiConnection)
     {

@@ -28,7 +28,6 @@ namespace FWO.Test
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetServiceGroups)),
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetTimeObjects)),
             (typeof(WorkflowImplTaskTargetController), nameof(WorkflowImplTaskTargetController.GetImplTaskTargets)),
-            (typeof(WorkflowImplTaskTargetController), nameof(WorkflowImplTaskTargetController.GetAutoPlanSettings)),
             (typeof(WorkflowTicketController), nameof(WorkflowTicketController.CreateTicket)),
             (typeof(PathAnalysisController), nameof(PathAnalysisController.ResolvePathDevices))
         ];

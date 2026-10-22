@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace FWO.Middleware.Server.Controllers;
 
 /// <summary>
-/// Provides the target managements of workflow object tasks and the auto plan settings of the implementation tasks.
+/// Provides the target managements of workflow object tasks.
 /// </summary>
 [Authorize]
 [ApiController]
@@ -21,7 +21,6 @@ namespace FWO.Middleware.Server.Controllers;
 public class WorkflowImplTaskTargetController : ControllerBase
 {
     private const string kVisibleManagementsClaim = "x-hasura-visible-managements";
-    private const string kVisibleDevicesClaim = "x-hasura-visible-devices";
     private readonly ImplTaskTargetService implTaskTargetService;
 
     /// <summary>
@@ -92,61 +91,6 @@ public class WorkflowImplTaskTargetController : ControllerBase
             Log.WriteError("Get Implementation Task Targets", $"Error while resolving the target managements of management {managementId}.", exception);
             return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
         }
-    }
-
-    /// <summary>
-    /// Returns the effective auto plan device specific settings (autoPlanImplementation,
-    /// autoPlanImplementationForRules) of the global level and of the requested managements and gateways.
-    /// </summary>
-    /// <remarks>
-    /// The workflow uses them to decide which implementation tasks it creates automatically. The settings are
-    /// resolved along the device specific settings hierarchy with the rights of the middleware server, which the
-    /// workflow roles lack. Every requested id gets an entry, so the answer does not tell whether an id exists: unknown
-    /// ids get the global settings, and so do managements and gateways not visible to a caller other than admin (JWT
-    /// claims x-hasura-visible-managements and x-hasura-visible-devices). Only ids and the two flags are returned, no
-    /// names.
-    /// <para>
-    /// The global settings come first, then the managements and then the gateways, each ordered by id, so
-    /// <c>options.limit</c> and <c>options.offset</c> page the result deterministically. Without a limit a page of
-    /// at most <see cref="GetAutoPlanSettingsOptions.kMaxLimit"/> settings is returned, and the <c>X-Has-More</c>
-    /// response header tells whether further settings follow. Every call resolves the settings again, so the
-    /// endpoint carries the expensive rate-limit policy.
-    /// </para>
-    /// </remarks>
-    [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Modeller}")]
-    [HttpPost("getAutoPlanSettings")]
-    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
-    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
-    [ProducesResponseType(typeof(GetAutoPlanSettingsResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<GetAutoPlanSettingsResponse>> GetAutoPlanSettings([FromBody] GetAutoPlanSettingsRequest request)
-    {
-        RequestValidationErrorResponse validationErrors = GetAutoPlanSettingsRequestValidator.Validate(request);
-        if (validationErrors.Errors.Count > 0)
-        {
-            return BadRequest(validationErrors);
-        }
-        try
-        {
-            ListPage<AutoPlanSettingResponse> page = await implTaskTargetService.GetAutoPlanSettingsAsync(request.DeviceIds,
-                request.ManagementIds, request.Options, GetVisibleDeviceIds(), GetVisibleManagementIds());
-            ListPaging.SetHasMoreHeader(HttpContext, page.HasMore);
-            return Ok(new GetAutoPlanSettingsResponse { Settings = page.Items });
-        }
-        catch (Exception exception)
-        {
-            Log.WriteError("Get Auto Plan Settings", "Error while resolving the auto plan settings.", exception);
-            return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
-        }
-    }
-
-    /// <summary>
-    /// Returns the gateways visible to the caller, or null for the admin, who sees every gateway.
-    /// </summary>
-    private HashSet<int>? GetVisibleDeviceIds()
-    {
-        return User.IsInRole(Roles.Admin) ? null : WorkflowController.GetClaimIds(User, kVisibleDevicesClaim);
     }
 
     /// <summary>

@@ -221,43 +221,28 @@ namespace FWO.Services.Workflow
         /// <see cref="kMaxImplTaskTargetPages"/> pages.</exception>
         private async Task<List<Management>> GetObjectTargetsFromMiddleware(int managementId, ObjectTaskKind kind)
         {
-            return await ReadAllMiddlewarePages(offset => MiddlewareClient!.GetImplTaskTargets(new ImplTaskTargetParameters
-            {
-                ManagementId = managementId,
-                IsServiceObject = kind == ObjectTaskKind.Service,
-                IsTimeObject = kind == ObjectTaskKind.Time,
-                Options = new ImplTaskTargetPaging { Offset = offset }
-            }), result => result.Targets, "target managements");
-        }
-
-        /// <summary>
-        /// Reads every page of a paged middleware lookup, following its X-Has-More response header.
-        /// </summary>
-        /// <param name="fetchPage">Requests the page starting at the given offset, i.e. the number of items received.</param>
-        /// <param name="itemsOf">Returns the items of one page.</param>
-        /// <param name="itemName">Name of the items for the error message.</param>
-        /// <exception cref="InvalidOperationException">The middleware fails or announces more than
-        /// <see cref="kMaxImplTaskTargetPages"/> pages.</exception>
-        private static async Task<List<TItem>> ReadAllMiddlewarePages<TResult, TItem>(Func<int, Task<RestResponse<TResult>>> fetchPage,
-            Func<TResult, List<TItem>> itemsOf, string itemName)
-        {
-            List<TItem> items = [];
+            List<Management> targets = [];
             for (int page = 0; page < kMaxImplTaskTargetPages; page++)
             {
-                RestResponse<TResult> response = await fetchPage(items.Count);
+                RestResponse<ImplTaskTargetResult> response = await MiddlewareClient!.GetImplTaskTargets(new ImplTaskTargetParameters
+                {
+                    ManagementId = managementId,
+                    IsServiceObject = kind == ObjectTaskKind.Service,
+                    IsTimeObject = kind == ObjectTaskKind.Time,
+                    Options = new ImplTaskTargetPaging { Offset = targets.Count }
+                });
                 if (!response.IsSuccessful || response.Data == null)
                 {
                     throw new InvalidOperationException($"Middleware answered {(int)response.StatusCode} {response.StatusDescription}. " +
                         (response.ErrorMessage ?? response.Content ?? ""));
                 }
-                List<TItem> pageItems = itemsOf(response.Data);
-                items.AddRange(pageItems);
-                if (pageItems.Count == 0 || !HasMoreTargets(response))
+                targets.AddRange(response.Data.Targets);
+                if (response.Data.Targets.Count == 0 || !HasMoreTargets(response))
                 {
-                    return items;
+                    return targets;
                 }
             }
-            throw new InvalidOperationException($"Middleware announced more than {kMaxImplTaskTargetPages} pages of {itemName}.");
+            throw new InvalidOperationException($"Middleware announced more than {kMaxImplTaskTargetPages} pages of target managements.");
         }
 
         private static bool HasMoreTargets(RestResponse response)

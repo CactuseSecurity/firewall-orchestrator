@@ -1,14 +1,10 @@
+using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
-using FWO.Data.Middleware;
 using FWO.Data.Workflow;
-using FWO.Middleware.Client;
 using FWO.Services.Workflow;
 using NUnit.Framework;
-using RestSharp;
-using System.Net;
 using System.Reflection;
-using System.Security.Claims;
 
 namespace FWO.Test
 {
@@ -342,25 +338,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task UiHandler_TakesSettingsFromMiddleware()
+        public async Task SettingsThatCannotBeRead_CreateTasksAutomatically()
         {
-            AutoPlanMiddlewareClient client = new(CreateApi());
-            WfHandler handler = CreateUiHandler(client);
-            WfReqTask reqTask = CreateAccessTask(kBothGateways);
-
-            await InvokeAutoCreateImplTasks(handler, reqTask);
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(reqTask.ImplementationTasks, Is.Empty, "rules are planned manually by default");
-                Assert.That(client.Calls.Single().DeviceIds, Is.EqualTo(kBothGateways));
-            });
-        }
-
-        [Test]
-        public async Task UiHandler_FailingMiddleware_CreatesTasksAutomatically()
-        {
-            WfHandler handler = CreateUiHandler(new AutoPlanMiddlewareClient(CreateApi()) { Fail = true });
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.FailingQuery = DeviceSpecificSettingsQueries.getNodesByNaturalKeys;
+            WfHandler handler = CreateHandler(api);
             WfReqTask reqTask = CreateAccessTask(kBothGateways);
 
             await InvokeAutoCreateImplTasks(handler, reqTask);
@@ -420,57 +402,6 @@ namespace FWO.Test
         public void IsRuleTaskType_RecognizesRuleTasks(string taskType, bool expected)
         {
             Assert.That(WfHandler.IsRuleTaskType(taskType), Is.EqualTo(expected));
-        }
-
-        [TestCase(true, 50, 50)]
-        [TestCase(false, 50, 99)]
-        [TestCase(true, 0, 99)]
-        public void MinImplTasksCreatable_StartsWithPlanningPhaseIfActive(bool planningActive, int planningInputState, int expected)
-        {
-            StateMatrix matrix = new() { MinImplTasksNeeded = 99, MinPlanningInputState = planningInputState };
-            matrix.PhaseActive[WorkflowPhases.planning] = planningActive;
-
-            Assert.That(matrix.MinImplTasksCreatable, Is.EqualTo(expected));
-        }
-
-        private static WfHandler CreateUiHandler(MiddlewareClient middlewareClient)
-        {
-            return new WfHandler((_, _, _, _) => { }, new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask },
-                new ClaimsPrincipal(), new SimulatedApiConnection(), middlewareClient, WorkflowPhases.planning)
-            {
-                Devices = CreateDevices()
-            };
-        }
-
-        /// <summary>
-        /// Plays the middleware endpoint getAutoPlanSettings with the middleware's view of the settings.
-        /// </summary>
-        private sealed class AutoPlanMiddlewareClient(InMemoryDeviceSpecificSettingsApiConnection middlewareApi) : MiddlewareClient("http://localhost/")
-        {
-            public List<AutoPlanSettingsParameters> Calls { get; } = [];
-            public bool Fail { get; init; }
-
-            public override async Task<RestResponse<AutoPlanSettingsResult>> GetAutoPlanSettings(AutoPlanSettingsParameters parameters)
-            {
-                Calls.Add(parameters);
-                if (Fail)
-                {
-                    return new RestResponse<AutoPlanSettingsResult>(new RestRequest())
-                    {
-                        StatusCode = HttpStatusCode.InternalServerError,
-                        ResponseStatus = ResponseStatus.Completed,
-                        IsSuccessStatusCode = false
-                    };
-                }
-                List<AutoPlanScopeSettings> settings = await new ImplTaskAutoPlanResolver(middlewareApi).Resolve(parameters.DeviceIds, parameters.ManagementIds);
-                return new RestResponse<AutoPlanSettingsResult>(new RestRequest())
-                {
-                    StatusCode = HttpStatusCode.OK,
-                    ResponseStatus = ResponseStatus.Completed,
-                    IsSuccessStatusCode = true,
-                    Data = new AutoPlanSettingsResult { Settings = settings }
-                };
-            }
         }
     }
 }

@@ -1,5 +1,5 @@
 using FWO.Data;
-using FWO.Data.Middleware;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Services.PathAnalysis;
@@ -243,35 +243,18 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Resolves the settings with the rights of the middleware server: in the ui through the middleware, in the
-        /// middleware directly.
+        /// Resolves the settings through the own api connection. Implementation tasks are created by the state action
+        /// "Create implementation tasks", which runs in the middleware with the rights of the middleware server; the
+        /// monitoring of an admin may read the settings as well.
         /// </summary>
-        /// <returns>The settings, or null when they cannot be resolved here.</returns>
+        /// <returns>The settings, or null without api connection.</returns>
         private async Task<List<AutoPlanScopeSettings>?> ResolveAutoPlanSettings(List<int> deviceIds, List<int> managementIds)
         {
-            if (MiddlewareClient != null)
+            if (apiConnection == null)
             {
-                return await GetAutoPlanSettingsFromMiddleware(deviceIds, managementIds);
+                return null;
             }
-            if (apiConnection != null)
-            {
-                return await new ImplTaskAutoPlanResolver(apiConnection).Resolve(deviceIds, managementIds);
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// Reads every page of the settings from the middleware.
-        /// </summary>
-        /// <exception cref="InvalidOperationException">The middleware fails or announces too many pages.</exception>
-        private async Task<List<AutoPlanScopeSettings>> GetAutoPlanSettingsFromMiddleware(List<int> deviceIds, List<int> managementIds)
-        {
-            return await ReadAllMiddlewarePages(offset => MiddlewareClient!.GetAutoPlanSettings(new AutoPlanSettingsParameters
-            {
-                DeviceIds = deviceIds,
-                ManagementIds = managementIds,
-                Options = new ImplTaskTargetPaging { Offset = offset }
-            }), result => result.Settings, "auto plan settings");
+            return await new ImplTaskAutoPlanResolver(apiConnection).Resolve(deviceIds, managementIds);
         }
     }
 }

@@ -290,18 +290,6 @@ namespace FWO.Middleware.Client
         }
 
         /// <summary>
-        /// Resolves the effective auto plan settings of gateways and managements with the rights of the middleware server.
-        /// </summary>
-        /// <param name="parameters">Gateways and managements to resolve; the global settings are always returned.</param>
-        /// <returns>The REST response containing the effective settings.</returns>
-        public virtual async Task<RestResponse<AutoPlanSettingsResult>> GetAutoPlanSettings(AutoPlanSettingsParameters parameters)
-        {
-            RestRequest request = new("workflow/getAutoPlanSettings", Method.Post);
-            request.AddJsonBody(parameters);
-            return await restClient.ExecuteAsync<AutoPlanSettingsResult>(request);
-        }
-
-        /// <summary>
         /// Processes the configured immediate notification for an interface request.
         /// </summary>
         /// <param name="connectionId">Database ID of the requested modelling connection.</param>

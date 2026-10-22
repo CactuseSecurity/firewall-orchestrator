@@ -3261,6 +3261,8 @@ INSERT INTO txt VALUES ('allowServerInConn',    'German', 	'Server in Verbindung
 INSERT INTO txt VALUES ('allowServerInConn',    'English', 	'Allow Servers in Connection');
 INSERT INTO txt VALUES ('allowServiceInConn',   'German', 	'Einfache Dienste in Verbindung erlauben');
 INSERT INTO txt VALUES ('allowServiceInConn',   'English', 	'Allow Simple Services in Connection');
+INSERT INTO txt VALUES ('labelBasedModelling',  'German', 	'Modellierung mit Labels');
+INSERT INTO txt VALUES ('labelBasedModelling',  'English', 	'Label-based Modelling');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'German', 	'Max. Anzahl Zeilen in &Uuml;bersicht');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'English', 	'Max. Number of Rows in Overview');
 INSERT INTO txt VALUES ('reducedProtocolSet',   'German',   'Reduzierten Protokollset darstellen');
@@ -7642,6 +7644,8 @@ INSERT INTO txt VALUES ('H5603', 'German',  'Server in Verbindung erlauben: Steu
 INSERT INTO txt VALUES ('H5603', 'English', 'Allow Servers in Connection: Controls, if App Servers are offered in the Library besides the App Roles for direct use in the connections.');
 INSERT INTO txt VALUES ('H5604', 'German',  'Einfache Dienste in Verbindung erlauben: Steuert, ob in der Bibliothek neben den Servicegruppen auch einfache Services zur direkten Verwendung in den Verbindungen angeboten werden.');
 INSERT INTO txt VALUES ('H5604', 'English', 'Allow Simple Services in Connection: Controls, if simple Services are offered in the Library besides the Service Groups for direct use in the connections.');
+INSERT INTO txt VALUES ('H5604a', 'German',  'Modellierung mit Labels: Schaltet die Auswahl von Labels als Quelle und Ziel von Verbindungen, Schnittstellen und gemeinsamen Diensten ein (Standard: aus). Ist sie ausgeschaltet, wird nur diese Auswahl ausgeblendet: bereits zugeordnete Labels bleiben gespeichert und werden nur lesend angezeigt, Reports zeigen importierte Labels weiterhin. Welche Firewalls labelbasierte Konfigurationen erhalten, legt die ger&auml;tespezifische Einstellung Anlage Labels fest (Ignorieren schlie&szlig;t ein Management aus). AppRoles und AppZones bleiben Gruppen und werden bei der Provisionierung nach Guardicore zu dynamischen IP-Labels.');
+INSERT INTO txt VALUES ('H5604a', 'English', 'Label-based Modelling: Switches on the selection of labels as source and destination of connections, interfaces and common services (default: off). When it is off, only this selection is hidden: labels already assigned stay stored and are shown read-only, reports keep showing imported labels. Which firewalls get label-based configurations is set by the device specific setting Label creation (Ignore excludes a management). App roles and app zones stay groups and become dynamic IP labels during the provisioning towards Guardicore.');
 INSERT INTO txt VALUES ('H5605', 'German',  'Max. Anzahl Zeilen in &Uuml;bersicht: Definiert die Zeilenzahl innerhalb eines Eintrags in der &Uuml;bersichtstabelle der Verbindungen, ab der die Elemente eingeklappt dargestellt werden.
     Wird vom Administrator allgemein vorausgew&auml;hlt, kann aber vom Nutzer in den pers&ouml;nlichen Einstellungen &uuml;berschrieben werden.
 ');

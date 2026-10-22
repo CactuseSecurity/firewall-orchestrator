@@ -64,6 +64,10 @@
     app servers with the rules of the app data import (rejections are shown as warnings), and the App label of the
     owners is assigned once per owner after the upload; the whole upload shares one label change event The App key is rejected in
     the labels of imported app servers, and imported labels never close the App label
+- modelling: global setting labelBasedModelling ("Label-based Modelling" under Settings - Modelling, default off,
+  issue #5553). It switches the selection of labels as source and destination in modelling (#5552) on; when off,
+  labels already assigned to connections stay stored and are shown read-only, and reports keep showing imported
+  labels. Which firewalls get label-based configurations is set by the device specific setting labelCreation
 - api: modeller, recertifier, reporter and reporter-viewall may read labelling.rule_label, label_value, label_key
   (reporter and recertifier only for the rules they see) and id / import id / time of label_change_event
 - upgrade: db upgrade file adds the labelling schema, the rule label columns and the Guardicore

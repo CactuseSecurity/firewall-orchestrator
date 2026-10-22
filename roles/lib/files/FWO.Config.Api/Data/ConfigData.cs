@@ -52,6 +52,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("appLabelKey"), JsonPropertyName("appLabelKey")]
         public string AppLabelKey { get; set; } = "App";
 
+        [JsonProperty("labelBasedModelling"), JsonPropertyName("labelBasedModelling")]
+        public bool LabelBasedModelling { get; set; } = false;
+
         [JsonProperty("maxInitialFetchesRightSidebar"), JsonPropertyName("maxInitialFetchesRightSidebar")]
         public int MaxInitialFetchesRightSidebar { get; set; } = 10;
 

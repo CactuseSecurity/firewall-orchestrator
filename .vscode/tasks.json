@@ -103,7 +103,11 @@
                 "--filter",
                 "FullyQualifiedName~AuthenticationTokenIntegrationTest",
                 "--settings",
-                "${workspaceFolder}/FWO.local.runsettings"
+                "${workspaceFolder}/FWO.local.runsettings",
+                "--blame-hang-timeout",
+                "5m",
+                "--blame-hang-dump-type",
+                "none"
             ],
             "problemMatcher": "$msCompile"
         }

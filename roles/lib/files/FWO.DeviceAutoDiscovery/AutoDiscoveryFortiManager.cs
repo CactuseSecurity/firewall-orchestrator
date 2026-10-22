@@ -65,7 +65,7 @@ namespace FWO.DeviceAutoDiscovery
             if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
             {
                 string sessionId = sessionResponse.Data.SessionId;
-                Log.WriteDebug(Autodiscovery, $"successful FortiManager login, got SessionID: {sessionId}");
+                Log.WriteDebug(Autodiscovery, $"successful FortiManager login");
                 // need to use @ verbatim identifier for special chars in sessionId
 
                 try

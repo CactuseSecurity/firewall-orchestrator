@@ -461,7 +461,7 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        if (WorkInProgress)
+        if (WorkInProgress || !CanShowConfiguredActionButton(action))
         {
             return;
         }
@@ -523,7 +523,7 @@
     private bool CanShowConfiguredActionButton(WfStateAction action)
     {
         bool inChangingMode = WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode;
-        return (inChangingMode && !WfHandler.ReadOnlyMode) || WfStateAction.IsReadonlyType(action.ActionType);
+        return (inChangingMode && WfHandler.CanPerformActionOnActTicket(action)) || WfStateAction.IsReadonlyType(action.ActionType);
     }
 
     private bool IsRequestTaskReadOnly()

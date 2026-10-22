@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Labelling;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Data.Enums;
@@ -41,6 +42,12 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("elementsPerFetch"), JsonPropertyName("elementsPerFetch"), UserConfigData]
         public int ElementsPerFetch { get; set; } = 100;
+
+        [JsonProperty("ruleLabelDisplayMode"), JsonPropertyName("ruleLabelDisplayMode")]
+        public RuleLabelDisplayMode RuleLabelDisplayMode { get; set; } = RuleLabelDisplayMode.LabelColumns;
+
+        [JsonProperty("showRuleLevelLabels"), JsonPropertyName("showRuleLevelLabels")]
+        public bool ShowRuleLevelLabels { get; set; } = true;
 
         [JsonProperty("maxInitialFetchesRightSidebar"), JsonPropertyName("maxInitialFetchesRightSidebar")]
         public int MaxInitialFetchesRightSidebar { get; set; } = 10;

@@ -22,6 +22,7 @@ namespace FWO.Report
         {
             StringBuilder report = new();
             NatRuleDisplayHtml ruleDisplay = new(userConfig);
+            ruleDisplay.SetLabelPresence(RuleDisplayBase.RulesOf(ReportData.ManagementData));
             int chapterNumber = 0;
 
             foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
@@ -37,7 +38,7 @@ namespace FWO.Report
                         : [];
                     if (deviceNatRules.Length > 0)
                     {
-                        AppendNatRuleHeadlineHtml(ref report, device.Name);
+                        AppendNatRuleHeadlineHtml(ref report, device.Name, ruleDisplay);
 
                         report.AppendLine(ExportSingleRulebaseToHtml(deviceNatRules, ruleDisplay, chapterNumber));
 
@@ -64,17 +65,28 @@ namespace FWO.Report
             return report.ToString();
         }
 
-        private void AppendNatRuleHeadlineHtml(ref StringBuilder report, string? deviceName)
+        private void AppendNatRuleHeadlineHtml(ref StringBuilder report, string? deviceName, RuleDisplayHtml labelDisplay)
         {
             report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{HtmlOutputEncoder.EncodeText(deviceName)}</h4>");
             report.AppendLine("<table>");
             report.AppendLine("<tr>");
             foreach (string headerKey in HeaderKeys)
             {
-                report.AppendLine($"<th>{userConfig.GetText(headerKey)}</th>");
+                report.AppendLine($"<th>{userConfig.GetText(headerKey)}</th>{GetLabelsHeader(labelDisplay, headerKey)}");
             }
             report.AppendLine("</tr>");
 
+        }
+
+        private static string GetLabelsHeader(RuleDisplayHtml labelDisplay, string headerKey)
+        {
+            return headerKey switch
+            {
+                "name" => labelDisplay.DisplayRuleLabelsHeader(),
+                "source" => labelDisplay.DisplaySourceLabelsHeader(),
+                "destination" => labelDisplay.DisplayDestinationLabelsHeader(),
+                _ => ""
+            };
         }
 
         private void AppendNatRuleForDeviceHtml(ref StringBuilder report, int chapterNumber, Rule rule, NatRuleDisplayHtml ruleDisplay)
@@ -83,11 +95,11 @@ namespace FWO.Report
             {
                 report.AppendLine("<tr>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayHierarchicalNumber(rule)}</td>");
-                report.AppendLine($"<td>{RuleDisplayHtml.DisplayName(rule)}</td>");
+                report.AppendLine($"<td>{RuleDisplayHtml.DisplayName(rule)}</td>{ruleDisplay.DisplayRuleLabelsCell(rule)}");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZones(rule)}</td>");
-                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>{ruleDisplay.DisplaySourceLabelsCell(rule)}");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZones(rule)}</td>");
-                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+                report.AppendLine($"<td>{ruleDisplay.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>{ruleDisplay.DisplayDestinationLabelsCell(rule)}");
                 report.AppendLine($"<td>{ruleDisplay.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedSource(rule, OutputLocation.export, chapterNumber)}</td>");
                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export, chapterNumber)}</td>");
@@ -100,7 +112,7 @@ namespace FWO.Report
             else
             {
                 report.AppendLine("<tr>");
-                report.AppendLine($"<td class=\"bg-gray\" colspan=\"{HeaderKeys.Length}\">{HtmlOutputEncoder.EncodeText(rule.SectionHeader)}</td>");
+                report.AppendLine($"<td class=\"bg-gray\" colspan=\"{HeaderKeys.Length + ruleDisplay.LabelColumnCount}\">{HtmlOutputEncoder.EncodeText(rule.SectionHeader)}</td>");
                 report.AppendLine("</tr>");
             }
         }

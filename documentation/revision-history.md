@@ -39,6 +39,16 @@
   changes of an import run share one label change event of the import control of the run, and a label change counts
   as change of the owner (changelog_owner)
 - scripts: the app data csv helpers read app server labels from csv columns named "label:<key>"
+- reporting: rule-based reports (rules, resolved / technical rules, unused rules, NAT rules, recertification, app rules
+  and all change reports) show the labels of the rules in html, pdf, csv, json and the UI (issue #5550). Global
+  settings under Settings - Reporting: display of source / destination labels (own columns as default, together with
+  the objects in one cell, or objects only) and showing the rule-level labels (labelling.rule_label, e.g. App).
+  Labels of a group are joined with ∩, groups with ∪ (csv: AND / OR), json keeps the group structure. Rule-level
+  labels are those active at the report time (via the import ids of their change events), in change reports those
+  before / after the change. Label columns and fields only appear if a rule of the report has such labels, so reports
+  without labels stay unchanged
+- api: modeller, recertifier, reporter and reporter-viewall may read labelling.rule_label, label_value, label_key
+  (reporter and recertifier only for the rules they see) and id / import id / time of label_change_event
 - upgrade: db upgrade file adds the labelling schema, the rule label columns and the Guardicore
   device types to existing installations
   

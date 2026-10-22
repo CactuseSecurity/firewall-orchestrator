@@ -19,6 +19,70 @@ namespace FWO.Ui.Display
             return $"\"{input ?? ""}\",";
         }
 
+        /// <summary>
+        /// Csv header field of the source labels, empty if csv contains no side labels.
+        /// </summary>
+        public string DisplaySourceLabelsCsvHeader()
+        {
+            return ShowSourceLabelField ? "\"source-labels\"," : "";
+        }
+
+        /// <summary>
+        /// Csv header field of the destination labels, empty if csv contains no side labels.
+        /// </summary>
+        public string DisplayDestinationLabelsCsvHeader()
+        {
+            return ShowDestinationLabelField ? "\"destination-labels\"," : "";
+        }
+
+        /// <summary>
+        /// Csv header field of the rule labels, empty if they are not shown.
+        /// </summary>
+        public string DisplayRuleLabelsCsvHeader()
+        {
+            return ShowRuleLevelLabels ? "\"rule-labels\"," : "";
+        }
+
+        /// <summary>
+        /// Csv field of the source labels with AND / OR, empty if csv contains no side labels.
+        /// </summary>
+        public string DisplaySourceLabelsCsv(Rule rule)
+        {
+            return ShowSourceLabelField ? EscapedCsv(FormatSideLabelsCsv(rule.SourceLabels)) : "";
+        }
+
+        /// <summary>
+        /// Csv field of the destination labels with AND / OR, empty if csv contains no side labels.
+        /// </summary>
+        public string DisplayDestinationLabelsCsv(Rule rule)
+        {
+            return ShowDestinationLabelField ? EscapedCsv(FormatSideLabelsCsv(rule.DestinationLabels)) : "";
+        }
+
+        /// <summary>
+        /// Csv field of the rule labels, empty if they are not shown.
+        /// </summary>
+        public string DisplayRuleLabelsCsv(Rule rule)
+        {
+            return ShowRuleLevelLabels ? EscapedCsv(RuleLabelFormatter.FormatRuleLabels(rule.RuleLabels)) : "";
+        }
+
+        /// <summary>
+        /// Formats the labels of a rule side with AND / OR.
+        /// </summary>
+        public static string FormatSideLabelsCsv(List<Dictionary<string, List<string>>>? labels)
+        {
+            return RuleLabelFormatter.FormatSideLabels(labels, RuleLabelFormatter.kCsvAnd, RuleLabelFormatter.kCsvOr);
+        }
+
+        /// <summary>
+        /// Csv field with doubled quotes, as imported labels may contain quotes.
+        /// </summary>
+        public static string EscapedCsv(string? input)
+        {
+            return $"\"{input?.Replace("\"", "\"\"") ?? ""}\",";
+        }
+
         public string DisplayNumberCsv(Rule rule)
         {
             return OutputCsv(rule.OrderNumber.ToString(CultureInfo.InvariantCulture));

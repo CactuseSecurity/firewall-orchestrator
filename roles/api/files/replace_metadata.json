@@ -3308,6 +3308,96 @@
               ],
               "select_permissions": [
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_id",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_id",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {
+                      "label_values": {
+                        "rule_labels": {
+                          "rule": {
+                            "_and": [
+                              {
+                                "mgm_id": {
+                                  "_in": "x-hasura-visible-managements"
+                                }
+                              },
+                              {
+                                "rule_relevant_for_tenant": {
+                                  "_eq": "true"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_id",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {
+                      "label_values": {
+                        "rule_labels": {
+                          "rule": {
+                            "_and": [
+                              {
+                                "mgm_id": {
+                                  "_in": "x-hasura-visible-managements"
+                                }
+                              },
+                              {
+                                "rule_relevant_for_tenant": {
+                                  "_eq": "true"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "allow_multiple_values",
+                      "key_id",
+                      "key_is_owner_scoped",
+                      "key_name",
+                      "key_source_internal"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -3520,6 +3610,88 @@
               ],
               "select_permissions": [
                 {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "label_id",
+                      "value"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "label_id",
+                      "value"
+                    ],
+                    "filter": {
+                      "rule_labels": {
+                        "rule": {
+                          "_and": [
+                            {
+                              "mgm_id": {
+                                "_in": "x-hasura-visible-managements"
+                              }
+                            },
+                            {
+                              "rule_relevant_for_tenant": {
+                                "_eq": "true"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "label_id",
+                      "value"
+                    ],
+                    "filter": {
+                      "rule_labels": {
+                        "rule": {
+                          "_and": [
+                            {
+                              "mgm_id": {
+                                "_in": "x-hasura-visible-managements"
+                              }
+                            },
+                            {
+                              "rule_relevant_for_tenant": {
+                                "_eq": "true"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "is_imported",
+                      "key_id",
+                      "label_id",
+                      "value"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "auditor",
                   "permission": {
                     "columns": [
@@ -3642,6 +3814,50 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "created_at",
+                      "id",
+                      "import_control_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "created_at",
+                      "id",
+                      "import_control_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "created_at",
+                      "id",
+                      "import_control_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "created_at",
+                      "id",
+                      "import_control_id"
+                    ],
+                    "filter": {}
+                  }
+                },
                 {
                   "role": "auditor",
                   "permission": {
@@ -4012,6 +4228,84 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {
+                      "rule": {
+                        "_and": [
+                          {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          },
+                          {
+                            "rule_relevant_for_tenant": {
+                              "_eq": "true"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {
+                      "rule": {
+                        "_and": [
+                          {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          },
+                          {
+                            "rule_relevant_for_tenant": {
+                              "_eq": "true"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "created_event_id",
+                      "label_id",
+                      "removed_event_id",
+                      "rule_id"
+                    ],
+                    "filter": {}
+                  }
+                },
                 {
                   "role": "auditor",
                   "permission": {

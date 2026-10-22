@@ -577,6 +577,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
     <li>Neues Importmodul f&uuml;r Akamai Guardicore Segmentation: Labels werden als Netzwerkobjektgruppen ihrer IP-Adressen (aus IP-Kriterien und den Assets mit dem Label) sowie als Labels importiert, UND-verkn&uuml;pfte Labels einer Regel als Gruppe der gemeinsamen IP-Adressen. Die Regeln werden je Abschnitt und Ruleset in verkettete Regelwerke aufgeteilt, deren alphabetische Reihenfolge der Guardicore-Abschnittsreihenfolge entspricht. Die Labels der Quelle und des Ziels einer Regel werden zudem an der Regel gespeichert.</li>
     <li>Der App-Daten-Import kann pro App-Server Labels importieren (Schl&uuml;ssel und Wert, z.B. Stage: Prod); unbekannte Labels werden automatisch angelegt. Die Labels importierter Regeln werden mit ihrer Historie pro Regelversion gespeichert, einschlie&szlig;lich der UND/ODER-Verkn&uuml;pfung der Labels einer Guardicore-Regelseite.</li>
+    <li>Regelbasierte Reports zeigen die Labels der Regeln in allen Formaten: Quell- und Ziel-Labels (in eigenen Spalten, zusammen mit den Objekten oder gar nicht, einstellbar unter Einstellungen - Reporting) sowie die Labels der Regel als Ganzes, z.B. das App-Label.</li>
     <li>F&uuml;r einzelne Rollen kann die Sichtbarkeit jedes Reporttyps auf sichtbar, nicht sichtbar oder geerbt (vom Standardverhalten) gesetzt werden.</li>
     <li>Die hierarchischen Provisionierungs-Einstellungen hei&szlig;en nun ger&auml;tespezifische Einstellungen, da sie z.B. auch f&uuml;r den Import genutzt werden. Sie enthalten nun Guardicore-Objektanlage, Modellierungslabels und Verbindungs-IDs, Importer-Host, externes Ticketsystem sowie &Uuml;berschreibungen f&uuml;r Regelumsetzung und Planung.</li>
     <li>Der Importer-Hostname wird nicht mehr pro Management, sondern in den ger&auml;tespezifischen Einstellungen (Global, Ger&auml;tetyp oder Manager) festgelegt. Ist er leer, importiert jeder Importer. Das Upgrade &uuml;bernimmt den h&auml;ufigsten Hostnamen als globalen Wert und abweichende als Manager-Werte.</li>
@@ -611,6 +612,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
     <li>New import module for Akamai Guardicore Segmentation: labels are imported as network object groups of their IP addresses (from IP criteria and from the assets carrying the label) and as labels, ANDed labels of a rule as a group of their common IP addresses. The rules are split into chained rulebases per section and ruleset, whose alphabetical order matches the Guardicore section order. The labels of the source and destination of a rule are also stored with the rule.</li>
     <li>The app data import can import labels per app server (key and value, e.g. Stage: Prod); unknown labels are created automatically. The labels of imported rules are stored with their history per rule version, keeping the AND/OR combination of the labels of a Guardicore rule side.</li>
+    <li>Rule-based reports show the labels of the rules in all formats: source and destination labels (in own columns, together with the objects or not at all, configurable under Settings - Reporting) and the labels of the rule as a whole, e.g. the App label.</li>
     <li>For individual roles, the visibility of each report type can be set to visible, not visible, or inherited (from the default behaviour).</li>
     <li>The hierarchical provisioning settings are renamed to device specific settings, as they are also used e.g. for importing. They now include Guardicore object creation, modelling labels and connection IDs, importer host and external ticket system, plus rule implementation and planning overrides.</li>
     <li>The importer host name is no longer set per management but in the device specific settings (Global, device type or manager). If it is empty, every importer imports. The upgrade takes the most common host name as global value and differing ones as manager values.</li>
@@ -971,6 +973,12 @@ INSERT INTO txt VALUES ('source_zone',		    'German', 	'Quellzone');
 INSERT INTO txt VALUES ('source_zone',		    'English', 	'Source Zone');
 INSERT INTO txt VALUES ('destination_zone',		'German', 	'Zielzone');
 INSERT INTO txt VALUES ('destination_zone',		'English', 	'Destination Zone');
+INSERT INTO txt VALUES ('source_labels',        'German',   'Quell-Labels');
+INSERT INTO txt VALUES ('source_labels',        'English',  'Source Labels');
+INSERT INTO txt VALUES ('destination_labels',   'German',   'Ziel-Labels');
+INSERT INTO txt VALUES ('destination_labels',   'English',  'Destination Labels');
+INSERT INTO txt VALUES ('rule_labels',          'German',   'Regel-Labels');
+INSERT INTO txt VALUES ('rule_labels',          'English',  'Rule Labels');
 INSERT INTO txt VALUES ('enabled',		        'German', 	'Aktiviert');
 INSERT INTO txt VALUES ('enabled',		        'English', 	'Enabled');
 INSERT INTO txt VALUES ('internal_work',        'German',   'Nur f&uuml;r den internen Workflow');
@@ -3673,6 +3681,16 @@ INSERT INTO txt VALUES ('varianceAnalysisStartAt','German', 'Soll-Ist-Abgleich-S
 INSERT INTO txt VALUES ('varianceAnalysisStartAt','English','Variance Analysis start at');
 INSERT INTO txt VALUES ('resolveNetworkAreas',  'German',   'Netzbereiche aufl&ouml;sen');
 INSERT INTO txt VALUES ('resolveNetworkAreas',  'English',  'Resolve Network Areas');
+INSERT INTO txt VALUES ('rule_label_display',   'German',   'Anzeige Quell- und Ziel-Labels');
+INSERT INTO txt VALUES ('rule_label_display',   'English',  'Display of source and destination labels');
+INSERT INTO txt VALUES ('rule_label_display_LabelColumns',      'German',   'Eigene Spalten');
+INSERT INTO txt VALUES ('rule_label_display_LabelColumns',      'English',  'Own columns');
+INSERT INTO txt VALUES ('rule_label_display_LabelsWithObjects', 'German',   'Mit den Objekten in einer Zelle');
+INSERT INTO txt VALUES ('rule_label_display_LabelsWithObjects', 'English',  'Together with the objects in one cell');
+INSERT INTO txt VALUES ('rule_label_display_ObjectsOnly',       'German',   'Nur Objekte');
+INSERT INTO txt VALUES ('rule_label_display_ObjectsOnly',       'English',  'Objects only');
+INSERT INTO txt VALUES ('show_rule_level_labels', 'German',   'Regel-Labels anzeigen');
+INSERT INTO txt VALUES ('show_rule_level_labels', 'English',  'Show rule labels');
 INSERT INTO txt VALUES ('complianceCheckSleepTime','German','Compliance-Check-Intervall (in Minuten)');
 INSERT INTO txt VALUES ('complianceCheckSleepTime','English','Compliance Check sleep time (in minutes)');
 INSERT INTO txt VALUES ('complianceCheckStartAt','German',  'Compliance-Check-Start');
@@ -7116,6 +7134,30 @@ INSERT INTO txt VALUES ('H5462', 'German',  'Regelt den Standardzustand der Klap
 INSERT INTO txt VALUES ('H5462', 'English', 'Sets the default state of the collapsible elements for the rule display in the Rules Report.');
 INSERT INTO txt VALUES ('H5463', 'German',  'Reporttyp-Sichtbarkeit je Rolle: F&uuml;r eine ausgew&auml;hlte Rolle kann je Reporttyp festgelegt werden, ob dieser sichtbar, nicht sichtbar oder geerbt (vom Standardverhalten der verf&uuml;gbaren Reporttypen) sein soll. Diese Einstellung schr&auml;nkt die Liste der verf&uuml;gbaren Reporttypen zus&auml;tzlich f&uuml;r Nutzer der jeweiligen Rolle ein bzw. erweitert sie.');
 INSERT INTO txt VALUES ('H5463', 'English', 'Report Type Visibility by Role: For a selected role, each report type can be set to visible, not visible or inherited (from the default behaviour of the available report types). This setting additionally restricts or extends the list of available report types for users of the respective role.');
+INSERT INTO txt VALUES ('H5464', 'German',  'Anzeige Quell- und Ziel-Labels: Legt fest, wie regelbasierte Reports (alle Formate) die Labels von Quelle und Ziel einer Regel zeigen.
+    Labels einer Gruppe werden mit &cap; verkn&uuml;pft (alle m&uuml;ssen zutreffen), mehrere Gruppen einer Seite mit &cup; (eine Gruppe muss zutreffen); im CSV-Export stattdessen mit AND und OR.
+    <ul>
+        <li>Eigene Spalten (Standard): Quell- und Ziel-Labels erscheinen in eigenen Spalten.</li>
+        <li>Mit den Objekten in einer Zelle: Die Labels erscheinen unter den Objekten von Quelle bzw. Ziel. CSV und JSON enthalten sie weiterhin als eigene Felder.</li>
+        <li>Nur Objekte: Die Labels werden nicht angezeigt, sondern nur die Objekte (z.B. die aus Guardicore-Labels gebildeten Gruppen).</li>
+    </ul>
+    Der JSON-Export enth&auml;lt die Labels in ihrer Gruppenstruktur. Label-Spalten und -Felder erscheinen nur, wenn mindestens eine Regel des Reports solche Labels hat;
+    Reports ohne Labels bleiben daher unver&auml;ndert.');
+INSERT INTO txt VALUES ('H5464', 'English', 'Display of source and destination labels: Defines how rule-based reports (all formats) show the labels of the source and destination of a rule.
+    Labels of a group are joined with &cap; (all have to match), several groups of a side with &cup; (one group has to match); in the csv export with AND and OR instead.
+    <ul>
+        <li>Own columns (default): source and destination labels are shown in own columns.</li>
+        <li>Together with the objects in one cell: the labels are shown below the objects of the source or destination. Csv and json still contain them as own fields.</li>
+        <li>Objects only: the labels are not shown, only the objects (e.g. the groups built from Guardicore labels).</li>
+    </ul>
+    The json export contains the labels in their group structure. Label columns and fields only appear if at least one rule of the report has such labels,
+    so reports without labels stay unchanged.');
+INSERT INTO txt VALUES ('H5465', 'German',  'Regel-Labels anzeigen: Zeigt in regelbasierten Reports eine Spalte mit den Labels der Regel als Ganzes (z.B. dem App-Label).
+    Es werden die zum Reportzeitpunkt aktiven Labels angezeigt, in &Auml;nderungsreports die vor bzw. nach der &Auml;nderung. Die Spalte erscheint nur, wenn mindestens eine Regel des Reports solche Labels hat.
+    Diese Einstellung gilt unabh&auml;ngig von der Anzeige der Quell- und Ziel-Labels.');
+INSERT INTO txt VALUES ('H5465', 'English', 'Show rule labels: Shows a column with the labels of the rule as a whole (e.g. the App label) in rule-based reports.
+    The labels active at the report time are shown, in change reports those before and after the change. The column only appears if at least one rule of the report has such labels.
+    This setting is independent of the display of source and destination labels.');
 INSERT INTO txt VALUES ('H5462a', 'German',  'FW Konfigurations&auml;nderungs-Intervall (in Sekunden): legt das Intervall fest, in dem die FW Konfigurations&auml;nderung durchgef&uuml;hrt werden sollen.');
 INSERT INTO txt VALUES ('H5462a', 'English', 'FW Config Change sleep time (in seconds): defines the interval in which the FW Config Changes should be performed.');
 INSERT INTO txt VALUES ('H5462b', 'German',  'Anzahl Wartezyklen: legt fest, wie viele Zyklen des Konfigurations&auml;nderungs-Intervalls bei bestimmten &auml;nderungen gewartet werden soll (z.B. nach Neuanlegen von Netzwerkobjekten).');

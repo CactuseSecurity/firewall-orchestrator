@@ -113,6 +113,41 @@ namespace FWO.Ui.Display
             }
         }
 
+        /// <summary>
+        /// Csv field of the source labels of a rule change, empty if csv contains no side labels.
+        /// </summary>
+        public string DisplaySourceLabelsCsv(RuleChange ruleChange)
+        {
+            return ShowSourceLabelField ? EscapedCsv(DisplayLabelChange(ruleChange, rule => FormatSideLabelsCsv(rule.SourceLabels))) : "";
+        }
+
+        /// <summary>
+        /// Csv field of the destination labels of a rule change, empty if csv contains no side labels.
+        /// </summary>
+        public string DisplayDestinationLabelsCsv(RuleChange ruleChange)
+        {
+            return ShowDestinationLabelField ? EscapedCsv(DisplayLabelChange(ruleChange, rule => FormatSideLabelsCsv(rule.DestinationLabels))) : "";
+        }
+
+        /// <summary>
+        /// Csv field of the rule labels of a rule change, empty if they are not shown.
+        /// </summary>
+        public string DisplayRuleLabelsCsv(RuleChange ruleChange)
+        {
+            return ShowRuleLevelLabels ? EscapedCsv(DisplayLabelChange(ruleChange, rule => RuleLabelFormatter.FormatRuleLabels(rule.RuleLabels))) : "";
+        }
+
+        private string DisplayLabelChange(RuleChange ruleChange, Func<Rule, string> displayLabels)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return displayLabels(ruleChange.OldRule);
+                case 'I': return displayLabels(ruleChange.NewRule);
+                case 'C': return DisplayDiff(displayLabels(ruleChange.OldRule), displayLabels(ruleChange.NewRule));
+                default: return "";
+            }
+        }
+
         public string DisplaySourceZone(RuleChange ruleChange)
         {
             switch (ruleChange.ChangeAction)

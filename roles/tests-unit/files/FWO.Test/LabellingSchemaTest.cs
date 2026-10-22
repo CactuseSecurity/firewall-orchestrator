@@ -51,6 +51,11 @@ namespace FWO.Test
         ];
         private static readonly List<string> kReadAndInsertKinds = ["select_permissions", "insert_permissions"];
         private const string kAndGroupColumn = "and_group";
+        private const string kRuleLabelTable = "rule_label";
+        private static readonly List<string> kReportRoles = ["modeller", "recertifier", "reporter", "reporter-viewall"];
+        private static readonly List<string> kTenantRestrictedReportRoles = ["recertifier", "reporter"];
+        private static readonly List<string> kRuleLabelReadTables = ["rule_label", "label_value", "label_key", "label_change_event"];
+        private static readonly List<string> kHiddenChangeEventColumns = ["actor", "request_id", "connection_id"];
         private static readonly List<string> kWriteKinds = ["insert_permissions", "update_permissions"];
         private static readonly List<JsonNode> kNoNodes = [];
         private static readonly List<string> kRemovedEventColumns = [kRemovedEventColumn];
@@ -210,6 +215,40 @@ namespace FWO.Test
                     }
                 }
             });
+        }
+
+        /// <summary>
+        /// Report roles read the labels of the rules they see: tenant restricted roles only through the rule filter they
+        /// have on firewall.rule, and the change events only as far as the time filter of the reports needs them.
+        /// </summary>
+        [Test]
+        public void Metadata_LetsReportRolesReadRuleLabelsOfTheirRules()
+        {
+            JsonNode rule = FindTable("rule", "firewall");
+            Assert.Multiple(() =>
+            {
+                foreach (string name in kRuleLabelReadTables)
+                {
+                    Assert.That(Roles(FindTable(name), "select_permissions"), Is.SupersetOf(kReportRoles), name);
+                }
+                foreach (string role in kTenantRestrictedReportRoles)
+                {
+                    JsonNode? ruleFilter = Permission(rule, "select_permissions", role)?["permission"]?["filter"];
+                    JsonNode? labelFilter = Permission(FindTable(kRuleLabelTable), "select_permissions", role)?["permission"]?["filter"];
+                    Assert.That(ruleFilter?.ToJsonString(), Is.Not.EqualTo("{}"), role);
+                    Assert.That(labelFilter?["rule"]?.ToJsonString(), Is.EqualTo(ruleFilter?.ToJsonString()), role);
+                }
+                foreach (string role in kReportRoles)
+                {
+                    List<string> eventColumns = Columns(Permission(FindTable(kChangeEventTable), "select_permissions", role));
+                    Assert.That(eventColumns.Intersect(kHiddenChangeEventColumns), Is.Empty, role);
+                }
+            });
+        }
+
+        private static JsonNode? Permission(JsonNode table, string kind, string role)
+        {
+            return Permissions(table, kind).FirstOrDefault(permission => permission["role"]?.GetValue<string>() == role);
         }
 
         /// <summary>

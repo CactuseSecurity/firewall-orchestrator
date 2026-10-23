@@ -167,22 +167,12 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RequestTicketsOverview_ResetFiltersToRequestersOwnTickets()
+        public async Task RequestTicketsOverview_ResetSwitchesToReadOnlyMode()
         {
+            // which tickets a requester gets is decided while the handler loads them, see WfHandlerRequestAccessTest
             await using BunitContext context = new();
             RequestCoverageUserConfig userConfig = CreateUserConfig(Roles.Requester);
-            WfTicket ownTicket = new()
-            {
-                Id = 1,
-                Requester = new UiUser { DbId = userConfig.User.DbId, Name = "Current" }
-            };
-            WfTicket foreignTicket = new()
-            {
-                Id = 2,
-                Requester = new UiUser { DbId = 12, Name = "Other" }
-            };
             WfHandler handler = CreateHandler(new ThrowingApiConnection(), userConfig, WorkflowPhases.request);
-            handler.TicketList = [ownTicket, foreignTicket];
 
             RequestTicketsOverview component = new();
             SetMember(component, "userConfig", userConfig);
@@ -190,12 +180,7 @@ namespace FWO.Test
 
             await InvokePrivateTask(typeof(RequestTicketsOverview), component, "Reset");
 
-            Assert.Multiple(() =>
-            {
-                Assert.That(handler.ReadOnlyMode, Is.True);
-                Assert.That(handler.TicketList, Has.Count.EqualTo(1));
-                Assert.That(handler.TicketList.Single().Id, Is.EqualTo(1));
-            });
+            Assert.That(handler.ReadOnlyMode, Is.True);
         }
 
         [Test]

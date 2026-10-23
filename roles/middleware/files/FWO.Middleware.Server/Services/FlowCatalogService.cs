@@ -477,8 +477,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
             Id = flowObject.Id,
             Name = flowObject.Name ?? string.Empty,
             Type = ResolveAddressType(flowObject),
-            IpStart = flowObject.IpStart ?? string.Empty,
-            IpEnd = flowObject.IpEnd ?? string.Empty,
+            IpRange = [flowObject.IpStart ?? string.Empty, flowObject.IpEnd ?? string.Empty],
             State = flowObject.State,
             ShowInRequest = flowObject.ShowInRequestModule
         };

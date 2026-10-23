@@ -83,6 +83,34 @@
 - upgrade: db upgrade file adds the labelling schema, the rule label columns and the Guardicore
   device types to existing installations
   
+## 9.8.1 - 20.10.2026
+- enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
+- autodiscovery: alerts and alert log lines no longer contain the import credential secret of the super management; the upgrade removes it from existing alerts. Rotate the credentials of super managements used with autodiscovery, and purge old middleware logs where possible
+- new REST endpoint `POST /api/pathAnalysis/resolvePathDevices` (roles admin, auditor): returns the firewall devices on the paths between every source and every destination, deduplicated and unordered, together with the algorithm and zone matrix actually used. This makes the network zone tree path analysis callable
+  - sources and destinations: 1 to 100 entries each, given as inclusive range (`ipStart`, `ipEnd`) or CIDR network (`ipNetwork`), IPv4 and IPv6; networks with host bits and IPv4 written as IPv6 are rejected
+  - options: `algorithm` (currently `networkZoneTree`), `matrixId` (only together with `networkZoneTree`) and a filter on device id and name; omitted options fall back to the configured algorithm and designated zone matrix
+  - 400 reports every invalid key at once, including a configured default that cannot be used (algorithm none, no designated matrix); 404 a requested matrix that does not exist or holds no configured zones; 500 an unusable designated matrix
+- the network zone tree analyzer rejects a zone matrix holding no configured zones instead of reporting no device since the auto calculated zones alone describe no path
+- new shared request building block for IP address blocks (`IpRangeOrNetworkRequest`) with the address rules of flow compliance, for reuse by further endpoints
+- UI report scheduling: help text and input tooltip for recipient email addresses now list all supported separators: comma ( , ), semicolon ( ; ) and vertical bar ( | )
+- Refresh-token rotation now behaves predictably under concurrent requests, and an unreachable API during authentication is reported as a retryable 503. Before, it came back as a 400 with the raw transport error.
+- dependencies: update NuGet packages (AngleSharp to 1.8.5, bunit to 2.12.5, PuppeteerSharp to 25.14.0, Quartz to 4.6.0)
+
+## 9.8.0 - 20.10.2026
+- main release of features from 9.7.2ff including bugfixing and security fixes
+
+## 9.7.7 - 19.10.2026
+- middleware REST API: unify address inputs for `getAddressObjectId`, `getFlowComplianceState`,
+  `resolveZonesForObjects` and `createTicket.addressObjects`. Each address now uses exactly one of
+  `ipHost`, `ipNetwork` or the two-entry `ipRange`; values follow the shared FWO IP parser and CIDRs
+  are normalized to inclusive bounds. Breaking change: the legacy request fields `ipStart` and
+  `ipEnd` were removed, so clients must migrate start/end pairs to one of the new representations.
+  Response payloads and persisted workflow start/end bounds are unchanged
+- First step towards replacing BlazorTable with FancyTable: the FancyTable based rules report from #5198 is added as a separate preview on a new Monitoring page that only shows up in Debug builds. The productive RulesReport.razor is unchanged.
+
+## 9.7.6 - 18.10.26
+- various sanitizing fixes for XSS (cross site scripting) in reporting, welcome message, and modelling
+
 ## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time
   - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)

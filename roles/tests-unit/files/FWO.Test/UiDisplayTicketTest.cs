@@ -95,6 +95,35 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task DisplayTicket_InitSaveTicketIgnoresTicketTheUserMayNotChange()
+        {
+            WfHandler handler = new()
+            {
+                RestrictToResponsibleRequests = true,
+                ActTicket = new WfTicket
+                {
+                    Id = 10,
+                    Title = "Ticket",
+                    Priority = 1,
+                    Editable = false,
+                    Tasks = [new WfReqTask { Id = 1, Title = "Task" }]
+                }
+            };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.request);
+            SetMember(component, "selectedPriority", new WfPriority { NumPrio = 2, Name = "High" });
+
+            bool canSave = InvokePrivateBool(component, "CanSaveActTicket");
+            await InvokePrivateTask(component, "InitSaveTicket");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(canSave, Is.False);
+                Assert.That(handler.ActTicket.Priority, Is.EqualTo(1));
+                Assert.That(handler.DisplaySaveTicketMode, Is.False);
+            });
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public async Task DisplayTicket_AddCommentIsDisabledForReadOnlyUsers(bool readOnly)

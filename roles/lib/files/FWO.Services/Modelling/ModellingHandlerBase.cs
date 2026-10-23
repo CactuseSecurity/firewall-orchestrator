@@ -514,31 +514,65 @@ namespace FWO.Services.Modelling
                 }
                 else
                 {
-                    string? username = authenticationStateTask.Result.User.Identity?.Name;
-                    bool usedClaimFallback = false;
-                    // Prefer ownerships already prepared during login; only fall back to claim parsing if needed.
-                    if (userConfig.User.Ownerships.Count == 0)
-                    {
-                        usedClaimFallback = true;
-                        UpdateOwnerships(authenticationStateTask, userConfig);
-                        if (userConfig.User.Ownerships.Count == 0)
-                        {
-                            // Mitigate timing issues where user config hydration lags behind page initialization.
-                            await Task.Delay(100);
-                            UpdateOwnerships(authenticationStateTask, userConfig);
-                        }
-                    }
-                    Log.WriteDebug("GetOwnApps", $"User={username ?? "unknown"}, usedClaimFallback={usedClaimFallback}, ownershipCount={userConfig.User.Ownerships.Count}, withConn={withConn}");
-
-                    string query = withConn ? OwnerQueries.getEditableOwnersWithConn : OwnerQueries.getEditableOwners;
-                    apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(query, new { appIds = userConfig.User.Ownerships.ToArray() });
-                    Log.WriteDebug("GetOwnApps", $"User={username ?? "unknown"}, editableAppsCount={apps.Count}, withConn={withConn}");
+                    apps = await LoadResponsibleApps(authenticationStateTask, userConfig, apiConnection, withConn);
                 }
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
             }
+            return apps;
+        }
+
+        /// <summary>
+        /// Gets the apps the user is responsible for. Unlike <see cref="GetOwnApps"/>, roles that may read all apps
+        /// (admin, auditor, reporter-viewall) do not widen the result, so it can decide whose tickets a user may change.
+        /// </summary>
+        public static async Task<List<FwoOwner>> GetResponsibleApps(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig,
+            ApiConnection apiConnection, Action<Exception?, string, string, bool> DisplayMessageInUi)
+        {
+            try
+            {
+                if (userConfig.User.Ownerships.Count == 0)
+                {
+                    // the login claims decide at once, so neither waiting nor querying helps users without apps
+                    UpdateOwnerships(authenticationStateTask, userConfig);
+                }
+                if (userConfig.User.Ownerships.Count == 0)
+                {
+                    return [];
+                }
+                return await LoadResponsibleApps(authenticationStateTask, userConfig, apiConnection, false);
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+            }
+            return [];
+        }
+
+        private static async Task<List<FwoOwner>> LoadResponsibleApps(Task<AuthenticationState> authenticationStateTask, UserConfig userConfig,
+            ApiConnection apiConnection, bool withConn)
+        {
+            string? username = authenticationStateTask.Result.User.Identity?.Name;
+            bool usedClaimFallback = false;
+            // Prefer ownerships already prepared during login; only fall back to claim parsing if needed.
+            if (userConfig.User.Ownerships.Count == 0)
+            {
+                usedClaimFallback = true;
+                UpdateOwnerships(authenticationStateTask, userConfig);
+                if (userConfig.User.Ownerships.Count == 0)
+                {
+                    // Mitigate timing issues where user config hydration lags behind page initialization.
+                    await Task.Delay(100);
+                    UpdateOwnerships(authenticationStateTask, userConfig);
+                }
+            }
+            Log.WriteDebug(nameof(LoadResponsibleApps), $"User={username ?? "unknown"}, usedClaimFallback={usedClaimFallback}, ownershipCount={userConfig.User.Ownerships.Count}, withConn={withConn}");
+
+            string query = withConn ? OwnerQueries.getEditableOwnersWithConn : OwnerQueries.getEditableOwners;
+            List<FwoOwner> apps = await apiConnection.SendQueryAsync<List<FwoOwner>>(query, new { appIds = userConfig.User.Ownerships.ToArray() });
+            Log.WriteDebug(nameof(LoadResponsibleApps), $"User={username ?? "unknown"}, editableAppsCount={apps.Count}, withConn={withConn}");
             return apps;
         }
 

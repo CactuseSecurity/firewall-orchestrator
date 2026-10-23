@@ -396,6 +396,19 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync(request);
         }
 
+        /// <summary>
+        /// Checks whether the session of the authenticated caller is still live, i.e. whether its refresh token has
+        /// neither expired nor been revoked.
+        /// </summary>
+        /// <param name="parameters">Refresh token of the session.</param>
+        /// <returns>True if the session is live, false if it has ended.</returns>
+        public virtual async Task<RestResponse<bool>> CheckSession(SessionCheckParameters parameters)
+        {
+            RestRequest request = new("AuthenticationToken/CheckSession", Method.Post);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<bool>(request);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposed) return;

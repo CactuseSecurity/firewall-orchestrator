@@ -182,8 +182,8 @@
                         }
                         else 
                         {
-                            <div class="@SrcClass()" ondragover="event.preventDefault();"
-                                    ondragstart="event.dataTransfer.setData('', event.target.id);" @ondrop="HandleSrcDrop">
+                            <div class="@SrcClass()" @ondragover:preventDefault="true"
+                                    @ondrop="HandleSrcDrop">
                                 <EditList ElementType="ModellingNetworkArea" Elements="ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.SourceAreas)"
                                         ElementsToAdd="ConnHandler.SrcAreasToAdd" ElementsToDelete="ConnHandler.SrcAreasToDelete" StdLayout="false" 
                                         AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
@@ -260,8 +260,8 @@
                         }
                         else 
                         {
-                            <div class="@dropzoneClass" ondragover="event.preventDefault();"
-                                    ondragstart="event.dataTransfer.setData('', event.target.id);" @ondrop="HandleSvcDrop">
+                            <div class="@dropzoneClass" @ondragover:preventDefault="true"
+                                    @ondrop="HandleSvcDrop">
                                 <EditList ElementType="ModellingServiceGroup" Elements="ModellingServiceGroupWrapper.Resolve(ConnHandler.ActConn.ServiceGroups)"
                                         ElementsToAdd="ConnHandler.SvcGrpToAdd" ElementsToDelete="ConnHandler.SvcGrpToDelete" StdLayout="false" 
                                         AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
@@ -338,8 +338,8 @@
                         }
                         else
                         {
-                            <div class="@DestClass()" ondragover="event.preventDefault();"
-                                    ondragstart="event.dataTransfer.setData('', event.target.id);" @ondrop="HandleDstDrop">
+                            <div class="@DestClass()" @ondragover:preventDefault="true"
+                                    @ondrop="HandleDstDrop">
                                 <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationOtherGroups)" 
                                         ElementsToAdd="ConnHandler.DstNwGroupsToAdd" ElementsToDelete="ConnHandler.DstNwGroupsToDelete" StdLayout="false"
                                         AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">

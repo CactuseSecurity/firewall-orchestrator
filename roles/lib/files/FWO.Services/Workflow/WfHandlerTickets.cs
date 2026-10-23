@@ -224,7 +224,7 @@ namespace FWO.Services.Workflow
 
         private async Task SynchronizeRequestTasks(int targetTicketStateId, string? approvalComment)
         {
-            await UpdateRequestTasksFromTicket(false, targetTicketStateId: targetTicketStateId, approvalComment: approvalComment);
+            await UpdateRequestTasksFromTicket(targetTicketStateId: targetTicketStateId, approvalComment: approvalComment);
             ActTicket.StateId = targetTicketStateId;
         }
 

@@ -24,6 +24,22 @@ namespace FWO.Test
     {
         private const string kNoneAlgorithmName = "None";
         private const string kNetworkZoneTreeAlgorithmName = "Network Zone Tree";
+        private static readonly List<string> kAlgorithmIdsInOrder =
+        [
+            GlobalConst.kPathAnalysisAlgorithmNone.ToString(),
+            GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString(),
+            GlobalConst.kPathAnalysisAlgorithmForEachDevice.ToString(),
+            GlobalConst.kPathAnalysisAlgorithmFirstDevice.ToString()
+        ];
+        private static readonly List<string> kAlgorithmTextKeysInOrder =
+        [
+            "path_algo_" + PathAnalysisAlgorithmNames.kNone,
+            "path_algo_" + PathAnalysisAlgorithmNames.kNetworkZoneTree,
+            "path_algo_" + PathAnalysisAlgorithmNames.kForEachDevice,
+            "path_algo_" + PathAnalysisAlgorithmNames.kFirstDevice
+        ];
+        private const long kUnknownAlgorithmId = 99;
+        private const string kUnknownAlgorithmName = "Custom <b>algorithm</b>";
         private static readonly object[] kNoArguments = [];
 
         private static MethodInfo GetPrivateMethod(Type type, string name)
@@ -237,8 +253,9 @@ namespace FWO.Test
             wrapper.WaitForAssertion(() =>
             {
                 List<AngleSharp.Dom.IElement> options = [.. wrapper.FindAll("#pathAnalysisAlgorithm option")];
-                Assert.That(options, Has.Count.EqualTo(2));
-                Assert.That(options[1].TextContent, Is.EqualTo(kNetworkZoneTreeAlgorithmName));
+                Assert.That(options.Select(option => option.GetAttribute("value")), Is.EqualTo(kAlgorithmIdsInOrder));
+                // the simulated user config returns the text key: the name is localized, not taken from the database
+                Assert.That(options.Select(option => option.TextContent), Is.EqualTo(kAlgorithmTextKeysInOrder));
                 Assert.That(wrapper.Find("#pathAnalysisAlgorithm").GetAttribute("value"),
                     Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()));
                 Assert.That(wrapper.FindAll(".text-warning"), Is.Empty);
@@ -246,38 +263,18 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SettingsCustomizing_AfterPathAnalysisWithoutAlgorithmWarnsButKeepsSaveEnabled()
-        {
-            await using BunitContext context = new();
-            SimulatedGlobalConfig globalConfig = new()
-            {
-                ReqAvailableTaskTypes = "[]",
-                ReqPriorities = "[]",
-                ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.afterPathAnalysis,
-                PathAnalysisAlgorithm = GlobalConst.kPathAnalysisAlgorithmNone
-            };
-            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderCustomizing(context, globalConfig);
-
-            wrapper.WaitForAssertion(() =>
-            {
-                Assert.That(wrapper.FindAll(".text-warning"), Is.Not.Empty);
-                Assert.That(wrapper.FindAll("button.btn-primary")[^1].HasAttribute("disabled"), Is.False);
-            });
-        }
-
-        [Test]
-        public async Task Save_PersistsAfterPathAnalysisWithoutAlgorithm()
+        public async Task Save_PersistsDeviceInput()
         {
             WorkflowCustomizingApiConn apiConnection = new();
             SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]", ReqPriorities = "[]" };
             ConfigData editableConfig = await globalConfig.GetEditableConfig();
-            editableConfig.ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.afterPathAnalysis;
-            editableConfig.PathAnalysisAlgorithm = GlobalConst.kPathAnalysisAlgorithmNone;
+            editableConfig.ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices;
             SettingsCustomizing component = CreateSavableComponent(apiConnection, globalConfig, editableConfig);
 
             await (Task)GetPrivateMethod(typeof(SettingsCustomizing), "Save").Invoke(component, kNoArguments)!;
 
-            Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+            ConfigItem deviceInputConfig = FindConfigItem(apiConnection.LastConfigItems, "reqDeviceInput");
+            Assert.That(deviceInputConfig.Value, Is.EqualTo(nameof(ReqDeviceInputOptions.oneTaskForAllDevices)));
         }
 
         [Test]
@@ -286,7 +283,6 @@ namespace FWO.Test
             WorkflowCustomizingApiConn apiConnection = new();
             SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]", ReqPriorities = "[]" };
             ConfigData editableConfig = await globalConfig.GetEditableConfig();
-            editableConfig.ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.afterPathAnalysis;
             editableConfig.PathAnalysisAlgorithm = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree;
             SettingsCustomizing component = CreateSavableComponent(apiConnection, globalConfig, editableConfig);
 
@@ -309,13 +305,31 @@ namespace FWO.Test
             return component;
         }
 
-        private static IRenderedComponent<CascadingAuthenticationState> RenderCustomizing(BunitContext context, SimulatedGlobalConfig globalConfig)
+        [Test]
+        public async Task SettingsCustomizing_AlgorithmWithoutApiName_KeepsStoredNameEncoded()
+        {
+            await using BunitContext context = new();
+            SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]", ReqPriorities = "[]" };
+            WorkflowCustomizingApiConn apiConnection = new();
+            apiConnection.PathAnalysisAlgorithms.Add(new PathAnalysisAlgorithm { Id = kUnknownAlgorithmId, Name = kUnknownAlgorithmName });
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderCustomizing(context, globalConfig, apiConnection);
+
+            wrapper.WaitForAssertion(() =>
+            {
+                AngleSharp.Dom.IElement option = wrapper.Find($"#pathAnalysisAlgorithm option[value='{kUnknownAlgorithmId}']");
+                Assert.That(option.TextContent, Is.EqualTo(kUnknownAlgorithmName));
+                Assert.That(option.Children, Is.Empty, "the stored name is rendered as text");
+            });
+        }
+
+        private static IRenderedComponent<CascadingAuthenticationState> RenderCustomizing(BunitContext context, SimulatedGlobalConfig globalConfig,
+            WorkflowCustomizingApiConn? apiConnection = null)
         {
             // ExecutionModeAuthorizeView also checks the roles of the user config; without them only the
             // always disabled save button of the NotAuthorized branch is rendered.
             SimulatedUserConfig userConfig = new();
             userConfig.User.Roles = [Roles.Admin];
-            context.Services.AddSingleton<ApiConnection>(new WorkflowCustomizingApiConn());
+            context.Services.AddSingleton<ApiConnection>(apiConnection ?? new WorkflowCustomizingApiConn());
             context.Services.AddSingleton<GlobalConfig>(globalConfig);
             context.Services.AddSingleton<UserConfig>(userConfig);
             context.Services.AddSingleton<DomEventService>();
@@ -1075,8 +1089,11 @@ namespace FWO.Test
             public bool ThrowOnUpsertConfig { get; set; } = false;
             public List<PathAnalysisAlgorithm> PathAnalysisAlgorithms { get; set; } = new List<PathAnalysisAlgorithm>
             {
+                // ordered by name like the query
+                new() { Id = GlobalConst.kPathAnalysisAlgorithmForEachDevice, Name = "For each device" },
+                new() { Id = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree, Name = kNetworkZoneTreeAlgorithmName },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmNone, Name = kNoneAlgorithmName },
-                new() { Id = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree, Name = kNetworkZoneTreeAlgorithmName }
+                new() { Id = GlobalConst.kPathAnalysisAlgorithmFirstDevice, Name = "Only if device available" }
             };
             public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } = new List<WorkflowConfiguration>
             {

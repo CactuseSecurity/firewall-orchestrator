@@ -1193,7 +1193,7 @@ namespace FWO.Test
             await using BunitContext context = new();
             context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig
             {
-                ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.enterInReqTask
+                ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask
             });
             IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, states, Roles.Requester);
 
@@ -1232,7 +1232,7 @@ namespace FWO.Test
             SetRequestTaskElementMember(component, "actDestinations", new List<NwObjectElement> { new("10.0.1.1", 1) });
             SetRequestTaskElementMember(component, "actServices", new List<NwServiceElement> { new() { FlowServiceObjectId = 201, Name = "Flow Service" } });
 
-        bool isValid = UiRequestCoverageTest.InvokePrivateBool(component, "RejectInvalidAccessTask");
+            bool isValid = UiRequestCoverageTest.InvokePrivateBool(component, "RejectInvalidAccessTask");
 
             Assert.That(isValid, Is.True);
         }
@@ -1265,7 +1265,7 @@ namespace FWO.Test
             SetRequestTaskElementMember(component, "actServices", new List<NwServiceElement> { new() { ProtoId = 50, Port = 0 } });
             SetMember(component, "selectedDevices", new List<Device> { new() { Id = 1, Name = "FW-1" } });
 
-        bool isValid = UiRequestCoverageTest.InvokePrivateBool(component, "RejectInvalidAccessTask");
+            bool isValid = UiRequestCoverageTest.InvokePrivateBool(component, "RejectInvalidAccessTask");
 
             Assert.That(isValid, Is.True);
         }
@@ -1298,7 +1298,7 @@ namespace FWO.Test
             SetRequestTaskElementMember(component, "actServices", new List<NwServiceElement> { new() { ProtoId = 6, Port = 0 } });
             SetMember(component, "selectedDevices", new List<Device> { new() { Id = 1, Name = "FW-1" } });
 
-        bool isValid = UiRequestCoverageTest.InvokePrivateBool(component, "RejectInvalidAccessTask");
+            bool isValid = UiRequestCoverageTest.InvokePrivateBool(component, "RejectInvalidAccessTask");
 
             Assert.That(isValid, Is.False);
         }
@@ -1319,7 +1319,7 @@ namespace FWO.Test
             SetMember(component, "userConfig", new RequestWorkflowUserConfig());
             SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((_, _, message, _) => messages.Add(message)));
 
-        bool valid = UiRequestCoverageTest.InvokePrivateBool(component, "RejectInvalidTargetDates");
+            bool valid = UiRequestCoverageTest.InvokePrivateBool(component, "RejectInvalidTargetDates");
 
             Assert.Multiple(() =>
             {

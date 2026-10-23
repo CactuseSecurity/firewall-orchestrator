@@ -47,12 +47,12 @@ internal sealed class UiSettingsDeviceSpecificTest
         InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
         await using BunitContext context = CreateContext(Roles.Admin, api);
         IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
-        string key = DeviceSpecificSettingKeys.PlanImplementation.DatabaseKey;
+        string key = DeviceSpecificSettingKeys.AutoPlanImplementation.DatabaseKey;
         page.Find($"#dss-override-{key}").Change(true);
         page.Find($"#dss-field-{key} select").Change(bool.FalseString);
         await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
-        Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.PlanImplementation)?.Type, Is.EqualTo(Newtonsoft.Json.Linq.JTokenType.Boolean));
-        Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.PlanImplementation)?.ToObject<bool>(), Is.False);
+        Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementation)?.Type, Is.EqualTo(Newtonsoft.Json.Linq.JTokenType.Boolean));
+        Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementation)?.ToObject<bool>(), Is.False);
     }
 
     /// <summary>Install-on targets are restricted to the two contract values.</summary>
@@ -246,6 +246,7 @@ internal sealed class UiSettingsDeviceSpecificTest
         context.Services.AddSingleton<AuthenticationStateProvider>(new RoleAuthStateProvider(role));
         context.Services.AddSingleton<FWO.Api.Client.ApiConnection>(api);
         context.Services.AddSingleton<UserConfig>(userConfig);
+        context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
         return context;
     }
 

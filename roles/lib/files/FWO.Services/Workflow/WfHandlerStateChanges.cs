@@ -65,7 +65,7 @@ namespace FWO.Services.Workflow
             bool emailBundleFlushAttempted = false;
             try
             {
-                if (!await PromoteTicket(ticket))
+                if (!CheckActTicketChangeable() || !await PromoteTicket(ticket))
                 {
                     return false;
                 }

@@ -1,6 +1,7 @@
 from fw_modules.azure2022ff import azure_getter, azure_normalizer
 from fw_modules.azure2022ff.azure_models import AzureConfig
 from fwo_base import write_native_config_to_file
+from fwo_const import IMPORT_SKIP_UNSUPPORTED_RULES_KEY
 from fwo_exceptions import FwoNativeConfigParseError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -40,11 +41,18 @@ def get_config(
 
     write_native_config_to_file(import_state.state, config_in.native_config)
 
-    normalized_config = azure_normalizer.normalize_config(native_config, devices, mgm_details.uid)
+    normalized_config = azure_normalizer.normalize_config(
+        native_config, devices, mgm_details.uid, skip_unsupported_rules(import_state)
+    )
     config_in.ManagerSet[0].configs = [normalized_config]
     config_in.ManagerSet[0].manager_uid = mgm_details.uid
 
     return 0, config_in
+
+
+def skip_unsupported_rules(import_state: ImportStateController) -> bool:
+    """Read the importer setting whether rules with unsupported features are skipped (default) or fail the import."""
+    return import_state.api_call.get_config_value(key=IMPORT_SKIP_UNSUPPORTED_RULES_KEY) != "False"
 
 
 def has_normalized_config(config_in: FwConfigManagerListController) -> bool:

@@ -19,7 +19,9 @@ if TYPE_CHECKING:
     from models.serviceobject import ServiceObject
 
 
-def normalize_config(native_config: AzureConfig, devices: list[AzureDevice], mgm_uid: str) -> FwConfigNormalized:
+def normalize_config(
+    native_config: AzureConfig, devices: list[AzureDevice], mgm_uid: str, skip_unsupported_rules: bool = True
+) -> FwConfigNormalized:
     """
     Normalize the native Azure configuration.
 
@@ -29,6 +31,7 @@ def normalize_config(native_config: AzureConfig, devices: list[AzureDevice], mgm
         native_config: The native Azure configuration.
         devices: The devices to import with their firewall policy names.
         mgm_uid: The uid of the management.
+        skip_unsupported_rules: Skip rules with unsupported features with a warning instead of failing.
 
     Returns:
         FwConfigNormalized: The normalized configuration.
@@ -37,7 +40,7 @@ def normalize_config(native_config: AzureConfig, devices: list[AzureDevice], mgm
     network_objects: dict[str, NetworkObject] = {}
     service_objects: dict[str, ServiceObject] = {}
     ip_groups = normalize_ip_groups(native_config.ip_groups, network_objects)
-    rule_normalizer = AzureRuleNormalizer(network_objects, service_objects, ip_groups)
+    rule_normalizer = AzureRuleNormalizer(network_objects, service_objects, ip_groups, skip_unsupported_rules)
 
     policies = {policy.name: policy for policy in native_config.firewall_policies}
     rulebases: list[Rulebase] = []

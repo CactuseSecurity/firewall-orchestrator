@@ -2,20 +2,22 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 import pytest
-from fw_modules.azure2022ff.azure_models import AzureConfig, AzureDevice, AzureIpGroup
+from fw_modules.azure2022ff.azure_models import AzureConfig, AzureDevice, AzureIpGroup, AzureRule
 from fw_modules.azure2022ff.azure_network import normalize_ip_groups, parse_address, resolve_ip_group
 from fw_modules.azure2022ff.azure_normalizer import normalize_config
 from fw_modules.azure2022ff.azure_service import get_rule_services, parse_port_range
 from fwo_exceptions import FwoImporterError
+from fwo_log import FWOLogger
 from models.rule import RuleAction
 from netaddr import IPNetwork
 
 if TYPE_CHECKING:
     from models.networkobject import NetworkObject
+    from pytest_mock import MockerFixture
 
 NATIVE_CONFIG_FILE = Path(__file__).parent / "data" / "azure2022ff_native_config.json"
 POLICY_NAME = "FirewallPolicy_AzureFirewall1"
@@ -38,6 +40,11 @@ TWO_PORTS = ["443", "80"]
 NO_PROTOCOLS: list[str] = []
 NO_PORTS: list[str] = []
 IP_GROUP_ADDRESSES = ["1.2.3.4", "10.0.0.0/24"]
+KUBE_SELECTOR_GROUP_ID = (
+    "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/FWORCH-TEST1/providers/"
+    "Microsoft.Network/firewallPolicies/FirewallPolicy_AzureFirewall1/kubeSelectorGroups/frontend-pods"
+)
+COUNTRY_CODES = ["US", "CA"]
 
 
 def load_native_config() -> AzureConfig:
@@ -235,3 +242,97 @@ class TestNormalizeConfig:
 
         with pytest.raises(FwoImporterError, match=r"rules/rule1.*no addresses"):
             normalize_config(native_config, DEVICES, "mgm-uid")
+
+
+def add_api_2026_rule(native_config: AzureConfig, rule_fields: dict[str, Any]) -> str:
+    """Append a network rule using fields introduced with api version 2026-01-01 to the first filter collection."""
+    rule_collection = native_config.firewall_policies[0].rule_collection_groups[1].properties.rule_collections[0]
+    rule_collection.rules.append(
+        AzureRule.model_validate(
+            {
+                "ruleType": "NetworkRule",
+                "name": "rule-2026",
+                "ipProtocols": ["TCP"],
+                "destinationAddresses": ["10.9.9.9"],
+                "destinationPorts": ["443"],
+                **rule_fields,
+            }
+        )
+    )
+    return rule_uid("RuleColl1", "rule-2026")
+
+
+class TestApiVersion2026:
+    def test_legacy_native_config_without_api_version_is_parsed(self) -> None:
+        native_config = load_native_config()
+
+        assert native_config.api_version is None
+        assert (
+            native_config.firewall_policies[0]
+            .rule_collection_groups[1]
+            .properties.rule_collections[0]
+            .rules[0]
+            .source_kube_selector_groups
+            == []
+        )
+
+    def test_api_version_is_kept_in_native_config(self) -> None:
+        native_config = AzureConfig.model_validate({"apiVersion": "2026-01-01"})
+
+        assert native_config.model_dump(by_alias=True)["apiVersion"] == "2026-01-01"
+
+    def test_kube_selector_groups_are_dynamic_sources(self) -> None:
+        native_config = load_native_config()
+        uid = add_api_2026_rule(
+            native_config,
+            {"sourceAddresses": ["10.1.0.0/16"], "sourceKubeSelectorGroups": [KUBE_SELECTOR_GROUP_ID.upper()]},
+        )
+
+        normalized = normalize_config(native_config, DEVICES, "mgm-uid")
+
+        rule = normalized.rulebases[0].rules[uid]
+        assert rule.rule_src == "10.1.0.0/16|FRONTEND-PODS"
+        assert rule.rule_src_refs == "10.1.0.0/16|" + KUBE_SELECTOR_GROUP_ID.lower()
+        kube_obj = normalized.network_objects[KUBE_SELECTOR_GROUP_ID.lower()]
+        assert kube_obj.obj_typ == "dynamic_net_obj"
+        assert kube_obj.obj_ip is None
+
+    def test_kube_selector_group_alone_is_a_valid_source(self) -> None:
+        native_config = load_native_config()
+        uid = add_api_2026_rule(native_config, {"sourceKubeSelectorGroups": [KUBE_SELECTOR_GROUP_ID]})
+
+        normalized = normalize_config(native_config, DEVICES, "mgm-uid")
+
+        assert normalized.rulebases[0].rules[uid].rule_src == "frontend-pods"
+
+    @pytest.mark.parametrize("geo_field", ["sourceGeoLocations", "destinationGeoLocations"])
+    def test_rules_with_geo_location_filters_are_skipped_with_warning(
+        self, geo_field: str, mocker: MockerFixture
+    ) -> None:
+        warning = mocker.patch.object(FWOLogger, "warning")
+        native_config = load_native_config()
+        uid = add_api_2026_rule(native_config, {"sourceAddresses": ["*"], geo_field: COUNTRY_CODES})
+
+        normalized = normalize_config(native_config, DEVICES, "mgm-uid")
+
+        rules = normalized.rulebases[0].rules
+        assert uid not in rules
+        assert len(rules) == 4
+        # objects of the skipped rule are not created
+        assert "10.9.9.9" not in normalized.network_objects
+        warning.assert_called_once()
+        assert uid in warning.call_args.args[0]
+        assert "geo-location" in warning.call_args.args[0]
+
+    @pytest.mark.parametrize("geo_field", ["sourceGeoLocations", "destinationGeoLocations"])
+    def test_rules_with_geo_location_filters_fail_if_skipping_is_disabled(self, geo_field: str) -> None:
+        native_config = load_native_config()
+        add_api_2026_rule(native_config, {"sourceAddresses": ["*"], geo_field: COUNTRY_CODES})
+
+        with pytest.raises(FwoImporterError, match=r"rules/rule-2026.*geo-location.*importer settings"):
+            normalize_config(native_config, DEVICES, "mgm-uid", skip_unsupported_rules=False)
+
+    def test_supported_rules_are_unaffected_if_skipping_is_disabled(self) -> None:
+        normalized = normalize_config(load_native_config(), DEVICES, "mgm-uid", skip_unsupported_rules=False)
+
+        assert len(normalized.rulebases[0].rules) == 4

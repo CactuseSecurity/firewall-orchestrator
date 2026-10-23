@@ -19,6 +19,9 @@ RULE_COLLECTION_GROUP: dict[str, Any] = {
     "properties": {"ruleCollections": []},
 }
 IP_GROUP: dict[str, Any] = {"id": "/subscriptions/sub-1/ipGroups/ig1", "name": "ig1", "properties": {"ipAddresses": []}}
+NEWEST_API_VERSION = "2026-01-01"
+FALLBACK_API_VERSION = "2024-05-01"
+UNSUPPORTED_API_VERSION: dict[str, Any] = {"error": {"code": "NoRegisteredProviderFound", "message": "no provider"}}
 
 
 def make_response(status_code: int, payload: dict[str, Any]) -> MagicMock:
@@ -123,8 +126,60 @@ class TestApiGet:
     def test_error_response(self, mocker: MockerFixture) -> None:
         mocker.patch("requests.get", return_value=make_response(403, {"error": "forbidden"}))
 
-        with pytest.raises(FwApiCallFailedError, match="403"):
+        with pytest.raises(FwApiCallFailedError, match="403") as exc_info:
             azure_getter.azure_api_get(LIST_URL, "tok")
+        assert not isinstance(exc_info.value, azure_getter.AzureApiVersionNotSupportedError)
+
+    def test_unsupported_api_version_response(self, mocker: MockerFixture) -> None:
+        mocker.patch("requests.get", return_value=make_response(400, UNSUPPORTED_API_VERSION))
+
+        with pytest.raises(azure_getter.AzureApiVersionNotSupportedError):
+            azure_getter.azure_api_get(LIST_URL, "tok")
+
+    def test_other_bad_request_is_no_version_error(self, mocker: MockerFixture) -> None:
+        response = make_response(400, {})
+        response.json.side_effect = ValueError("no json")
+        mocker.patch("requests.get", return_value=response)
+
+        with pytest.raises(FwApiCallFailedError, match="400") as exc_info:
+            azure_getter.azure_api_get(LIST_URL, "tok")
+        assert not isinstance(exc_info.value, azure_getter.AzureApiVersionNotSupportedError)
+
+
+class TestApiClient:
+    def test_uses_newest_api_version(self, mocker: MockerFixture) -> None:
+        api_get = mocker.patch.object(azure_getter, "azure_api_get", return_value=[IP_GROUP])
+        client = azure_getter.AzureApiClient(SUBSCRIPTION_ID, "tok")
+
+        assert client.list_items("providers/Microsoft.Network/ipGroups") == [IP_GROUP]
+        assert client.api_version == NEWEST_API_VERSION
+        assert api_get.call_args.args[0].endswith(f"ipGroups?api-version={NEWEST_API_VERSION}")
+
+    def test_falls_back_to_older_api_version_and_keeps_it(self, mocker: MockerFixture) -> None:
+        api_get = mocker.patch.object(
+            azure_getter,
+            "azure_api_get",
+            side_effect=[azure_getter.AzureApiVersionNotSupportedError("unsupported"), [IP_GROUP], []],
+        )
+        client = azure_getter.AzureApiClient(SUBSCRIPTION_ID, "tok")
+
+        client.list_items("providers/Microsoft.Network/ipGroups")
+        client.get_rule_collection_groups(RESOURCE_GROUP, "pol1")
+
+        urls = [call.args[0] for call in api_get.call_args_list]
+        assert urls[0].endswith(f"api-version={NEWEST_API_VERSION}")
+        assert urls[1].endswith(f"api-version={FALLBACK_API_VERSION}")
+        assert urls[2].endswith(f"ruleCollectionGroups?api-version={FALLBACK_API_VERSION}")
+        assert client.api_version == FALLBACK_API_VERSION
+
+    def test_no_supported_api_version_fails(self, mocker: MockerFixture) -> None:
+        mocker.patch.object(
+            azure_getter, "azure_api_get", side_effect=azure_getter.AzureApiVersionNotSupportedError("unsupported")
+        )
+        client = azure_getter.AzureApiClient(SUBSCRIPTION_ID, "tok")
+
+        with pytest.raises(FwApiCallFailedError, match="not supported"):
+            client.list_items("providers/Microsoft.Network/ipGroups")
 
 
 class TestGetNativeConfig:
@@ -135,7 +190,7 @@ class TestGetNativeConfig:
 
         def fake_get(url: str, access_token: str) -> list[dict[str, Any]]:
             assert access_token == "tok"  # noqa: S105
-            if url.endswith("ipGroups?api-version=" + azure_getter.AZURE_API_VERSION):
+            if url.endswith(f"ipGroups?api-version={NEWEST_API_VERSION}"):
                 return [IP_GROUP]
             return [RULE_COLLECTION_GROUP]
 
@@ -153,8 +208,9 @@ class TestGetNativeConfig:
         urls = [call.args[0] for call in api_get.call_args_list]
         assert urls[1] == (
             "https://management.azure.com/subscriptions/sub-1/resourceGroups/rg-1/providers/Microsoft.Network/"
-            f"firewallPolicies/pol1/ruleCollectionGroups?api-version={azure_getter.AZURE_API_VERSION}"
+            f"firewallPolicies/pol1/ruleCollectionGroups?api-version={NEWEST_API_VERSION}"
         )
+        assert native_config.api_version == NEWEST_API_VERSION
 
     def test_missing_cloud_settings_fail(self, azure_mgm: ManagementController) -> None:
         azure_mgm.cloud_subscription_id = None

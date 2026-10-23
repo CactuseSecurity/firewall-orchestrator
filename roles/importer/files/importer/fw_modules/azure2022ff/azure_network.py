@@ -116,6 +116,28 @@ def create_fqdn_object(fqdn: str) -> NetworkObject:
     )
 
 
+def create_kube_selector_group_object(kube_selector_group_id: str) -> NetworkObject:
+    """
+    Create a dynamic network object for a referenced Kubernetes selector group.
+
+    The group selects pods by labels, so its addresses are only known at runtime.
+
+    Args:
+        kube_selector_group_id: The resource id of the Kubernetes selector group.
+
+    Returns:
+        NetworkObject: The dynamic network object, its uid is the lowercased resource id.
+
+    """
+    return NetworkObject(
+        obj_uid=kube_selector_group_id.lower(),
+        obj_name=kube_selector_group_id.rstrip("/").rsplit("/", 1)[-1],
+        obj_typ="dynamic_net_obj",
+        obj_color=fwo_const.DEFAULT_COLOR,
+        obj_comment="Azure Kubernetes selector group",
+    )
+
+
 def add_network_object(network_objects: dict[str, NetworkObject], nw_obj: NetworkObject) -> NetworkObject:
     """Add a network object unless an object with the same uid exists, return the stored object."""
     return network_objects.setdefault(nw_obj.obj_uid, nw_obj)

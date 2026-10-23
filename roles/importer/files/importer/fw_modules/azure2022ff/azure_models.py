@@ -30,6 +30,10 @@ class AzureRule(AzureModel):
     destination_ip_groups: list[str] = Field(default_factory=list, alias="destinationIpGroups")
     destination_fqdns: list[str] = Field(default_factory=list, alias="destinationFqdns")
     destination_ports: list[str] = Field(default_factory=list, alias="destinationPorts")
+    # since api version 2025-09-01 / 2026-01-01
+    source_kube_selector_groups: list[str] = Field(default_factory=list, alias="sourceKubeSelectorGroups")
+    source_geo_locations: list[str] = Field(default_factory=list, alias="sourceGeoLocations")
+    destination_geo_locations: list[str] = Field(default_factory=list, alias="destinationGeoLocations")
 
 
 class AzureRuleCollectionAction(AzureModel):
@@ -65,6 +69,8 @@ class AzureFirewallPolicy(AzureModel):
 
 
 class AzureConfig(AzureModel):
+    # api version the config was fetched with, missing in configs fetched before it was recorded
+    api_version: str | None = Field(default=None, alias="apiVersion")
     ip_groups: list[AzureIpGroup] = Field(default_factory=list[AzureIpGroup], alias="ipGroups")
     firewall_policies: list[AzureFirewallPolicy] = Field(
         default_factory=list[AzureFirewallPolicy], alias="firewallPolicies"

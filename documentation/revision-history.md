@@ -1,5 +1,13 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.2 - 23.10.2026
+- Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs
+  - login with a service principal (client credentials flow); client id and secret are taken from the additional credential, otherwise from the import credential; tenant and subscription from the management's cloud settings, the resource group from the config path
+  - the firewall policy of a device is its local rulebase name, otherwise the device name; each policy becomes a rulebase, each device a gateway
+  - uses api version 2026-01-01 and falls back to 2024-05-01 for clouds that do not support it yet; the version used is stored in the native config
+  - imports network rules of filter rule collections incl. inline addresses, ranges, service tags, FQDNs, IP groups and Kubernetes selector groups; NAT and application rules are not imported yet
+- new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
+
 ## 9.8.1 - 20.10.2026
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
 - autodiscovery: alerts and alert log lines no longer contain the import credential secret of the super management; the upgrade removes it from existing alerts. Rotate the credentials of super managements used with autodiscovery, and purge old middleware logs where possible

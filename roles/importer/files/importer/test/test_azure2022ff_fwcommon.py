@@ -1,17 +1,20 @@
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 from fw_modules.azure2022ff import fwcommon
 from fw_modules.azure2022ff.azure_models import AzureConfig
 from fw_modules.azure2022ff.fwcommon import Azure2022ffCommon
-from fwo_exceptions import FwoNativeConfigParseError
+from fwo_exceptions import FwoImporterError, FwoNativeConfigParseError
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import ManagementController
 from models.fwconfig_normalized import FwConfigNormalized
 from pytest_mock import MockerFixture
+
+if TYPE_CHECKING:
+    from unittest.mock import MagicMock
 
 NATIVE_CONFIG_FILE = Path(__file__).parent / "data" / "azure2022ff_native_config.json"
 
@@ -111,3 +114,26 @@ def test_management_controller_reads_cloud_fields(management_controller: Managem
     assert management.cloud_subscription_id == "sub-1"
     assert management.domain_name == "rg-1"
     assert management_controller.cloud_tenant_id is None
+
+
+@pytest.mark.parametrize(("config_value", "expected"), [(None, True), ("True", True), ("False", False)])
+def test_skip_unsupported_rules_setting(
+    azure_import_state: ImportStateController, config_value: str | None, expected: bool
+) -> None:
+    get_config_value = cast("MagicMock", azure_import_state.api_call.get_config_value)
+    get_config_value.return_value = config_value
+
+    assert fwcommon.skip_unsupported_rules(azure_import_state) is expected
+    get_config_value.assert_called_with(key="importSkipUnsupportedRules")
+
+
+def test_geo_rule_fails_import_if_skipping_is_disabled(azure_import_state: ImportStateController) -> None:
+    cast("MagicMock", azure_import_state.api_call.get_config_value).return_value = "False"
+    native_config = json.loads(NATIVE_CONFIG_FILE.read_text())
+    rule = native_config["firewallPolicies"][0]["ruleCollectionGroups"][1]["properties"]["ruleCollections"][0]
+    rule["rules"][0]["sourceGeoLocations"] = ["US"]
+    config = FwConfigManagerListController.generate_empty_config()
+    config.native_config = native_config
+
+    with pytest.raises(FwoImporterError, match="geo-location"):
+        Azure2022ffCommon().get_config(config, azure_import_state)

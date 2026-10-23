@@ -4,7 +4,13 @@ from typing import TYPE_CHECKING
 
 import fwo_const
 from fw_modules.azure2022ff.azure_const import AZURE_ACTION_DENY, AZURE_FILTER_RULE_COLLECTION, AZURE_NETWORK_RULE
-from fw_modules.azure2022ff.azure_network import add_network_object, create_fqdn_object, parse_address, resolve_ip_group
+from fw_modules.azure2022ff.azure_network import (
+    add_network_object,
+    create_fqdn_object,
+    create_kube_selector_group_object,
+    parse_address,
+    resolve_ip_group,
+)
 from fw_modules.azure2022ff.azure_service import get_rule_services
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
@@ -31,10 +37,35 @@ class AzureRuleNormalizer:
         network_objects: dict[str, NetworkObject],
         service_objects: dict[str, ServiceObject],
         ip_groups: dict[str, NetworkObject],
+        skip_unsupported_rules: bool = True,
     ) -> None:
         self.network_objects = network_objects
         self.service_objects = service_objects
         self.ip_groups = ip_groups
+        self.skip_unsupported_rules = skip_unsupported_rules
+
+    def is_supported(self, rule: AzureRule, rule_uid: str) -> bool:
+        """
+        Check a rule for features the normalized model cannot represent.
+
+        Unsupported rules are skipped with a warning or fail the import, depending on the importer setting.
+
+        Args:
+            rule: The native Azure rule.
+            rule_uid: The uid of the rule.
+
+        Returns:
+            bool: True if the rule can be imported, False if it is skipped.
+
+        """
+        # geo-location filters restrict the matching addresses, importing the rule without them would broaden it
+        if not rule.source_geo_locations and not rule.destination_geo_locations:
+            return True
+        message = f"Azure rule '{rule_uid}' uses geo-location filters, which are not supported"
+        if not self.skip_unsupported_rules:
+            raise FwoImporterError(f"{message}. Enable skipping unsupported rules in the importer settings to skip it.")
+        FWOLogger.warning(f"{message} - skipping the rule")
+        return False
 
     def normalize_policy(self, policy: AzureFirewallPolicy, rule_installon: str) -> Generator[RuleNormalized]:
         """
@@ -71,6 +102,8 @@ class AzureRuleNormalizer:
                 continue
             # Azure rules have no id of their own, names are unique within their rule collection
             rule_uid = f"{rule_collection_group.id.lower()}/ruleCollections/{rule_collection.name}/rules/{rule.name}"
+            if not self.is_supported(rule, rule_uid):
+                continue
             try:
                 yield self.normalize_network_rule(rule, rule_uid, rule_action, rule_installon)
             except FwoImporterError as e:
@@ -79,10 +112,8 @@ class AzureRuleNormalizer:
     def normalize_network_rule(
         self, rule: AzureRule, rule_uid: str, rule_action: RuleAction, rule_installon: str
     ) -> RuleNormalized:
-        rule_src, rule_src_refs = self.get_address_refs(rule.source_addresses, rule.source_ip_groups, [])
-        rule_dst, rule_dst_refs = self.get_address_refs(
-            rule.destination_addresses, rule.destination_ip_groups, rule.destination_fqdns
-        )
+        rule_src, rule_src_refs = join_address_refs(self.get_source_objects(rule))
+        rule_dst, rule_dst_refs = join_address_refs(self.get_destination_objects(rule))
         services = [
             self.service_objects.setdefault(svc.svc_uid, svc)
             for svc in get_rule_services(rule.ip_protocols, rule.destination_ports)
@@ -109,24 +140,41 @@ class AzureRuleNormalizer:
             rule_track=RuleTrack.NONE,
         )
 
-    def get_address_refs(self, addresses: list[str], ip_group_ids: list[str], fqdns: list[str]) -> tuple[str, str]:
-        """
-        Collect the network objects of a rule side.
-
-        Args:
-            addresses: Inline addresses, prefixes, ranges, '*' or service tags.
-            ip_group_ids: Resource ids of referenced IP groups.
-            fqdns: Destination FQDNs.
-
-        Returns:
-            tuple[str, str]: Joined object names and joined object uids.
-
-        """
+    def get_address_objects(self, addresses: list[str], ip_group_ids: list[str]) -> list[NetworkObject]:
+        """Collect the objects of inline addresses ('*', IPs, prefixes, ranges, service tags) and IP groups."""
         nw_objects = [add_network_object(self.network_objects, parse_address(a)) for a in addresses]
         nw_objects += [resolve_ip_group(ip_group_id, self.ip_groups) for ip_group_id in ip_group_ids]
-        nw_objects += [add_network_object(self.network_objects, create_fqdn_object(fqdn)) for fqdn in fqdns]
-        if not nw_objects:
-            raise FwoImporterError("no addresses, IP groups or FQDNs defined.")
-        names = fwo_const.LIST_DELIMITER.join(nw_obj.obj_name for nw_obj in nw_objects)
-        refs = fwo_const.LIST_DELIMITER.join(nw_obj.obj_uid for nw_obj in nw_objects)
-        return names, refs
+        return nw_objects
+
+    def get_source_objects(self, rule: AzureRule) -> list[NetworkObject]:
+        nw_objects = self.get_address_objects(rule.source_addresses, rule.source_ip_groups)
+        nw_objects += [
+            add_network_object(self.network_objects, create_kube_selector_group_object(group_id))
+            for group_id in rule.source_kube_selector_groups
+        ]
+        return nw_objects
+
+    def get_destination_objects(self, rule: AzureRule) -> list[NetworkObject]:
+        nw_objects = self.get_address_objects(rule.destination_addresses, rule.destination_ip_groups)
+        nw_objects += [
+            add_network_object(self.network_objects, create_fqdn_object(fqdn)) for fqdn in rule.destination_fqdns
+        ]
+        return nw_objects
+
+
+def join_address_refs(nw_objects: list[NetworkObject]) -> tuple[str, str]:
+    """
+    Join the network objects of a rule side.
+
+    Args:
+        nw_objects: The network objects of the rule side.
+
+    Returns:
+        tuple[str, str]: Joined object names and joined object uids.
+
+    """
+    if not nw_objects:
+        raise FwoImporterError("no addresses, IP groups, Kubernetes selector groups or FQDNs defined.")
+    names = fwo_const.LIST_DELIMITER.join(nw_obj.obj_name for nw_obj in nw_objects)
+    refs = fwo_const.LIST_DELIMITER.join(nw_obj.obj_uid for nw_obj in nw_objects)
+    return names, refs

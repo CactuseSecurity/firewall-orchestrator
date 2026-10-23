@@ -1,4 +1,7 @@
-AZURE_API_VERSION = "2024-05-01"
+# api versions in order of preference; older ones are used if a cloud does not support the newer ones yet
+AZURE_API_VERSIONS: tuple[str, ...] = ("2026-01-01", "2024-05-01")
+# error codes of Azure Resource Manager for an api-version unknown to the resource provider
+AZURE_UNSUPPORTED_API_VERSION_ERROR_CODES = frozenset({"InvalidApiVersionParameter", "NoRegisteredProviderFound"})
 AZURE_MANAGEMENT_URL = "https://management.azure.com"
 AZURE_LOGIN_URL = "https://login.microsoftonline.com"
 AZURE_MANAGEMENT_SCOPE = "https://management.azure.com/.default"

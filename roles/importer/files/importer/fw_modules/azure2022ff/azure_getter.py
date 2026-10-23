@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import quote
 
 import requests
 from fw_modules.azure2022ff.azure_const import (
-    AZURE_API_VERSION,
+    AZURE_API_VERSIONS,
     AZURE_LOGIN_URL,
     AZURE_MANAGEMENT_SCOPE,
     AZURE_MANAGEMENT_URL,
     AZURE_MAX_PAGES,
+    AZURE_UNSUPPORTED_API_VERSION_ERROR_CODES,
 )
 from fw_modules.azure2022ff.azure_models import (
     AzureConfig,
@@ -26,6 +27,11 @@ if TYPE_CHECKING:
     from model_controllers.management_controller import ManagementController
 
 HTTP_OK = 200
+HTTP_BAD_REQUEST = 400
+
+
+class AzureApiVersionNotSupportedError(FwApiCallFailedError):
+    """Azure Resource Manager rejected the api-version of a call."""
 
 
 def get_policy_devices(mgm_details: ManagementController, force_import: bool = False) -> list[AzureDevice]:
@@ -153,6 +159,11 @@ def _azure_api_get_page(url: str, access_token: str) -> dict[str, Any]:
         headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
         timeout=FWO_HTTP_TIMEOUT,
     )
+    if (
+        response.status_code == HTTP_BAD_REQUEST
+        and _get_error_code(response) in AZURE_UNSUPPORTED_API_VERSION_ERROR_CODES
+    ):
+        raise AzureApiVersionNotSupportedError(f"api-version not supported for url '{url}': {response.text}")
     if response.status_code != HTTP_OK:
         raise FwApiCallFailedError(
             f"error while sending api_call to url '{url}', response code: {response.status_code}, "
@@ -162,21 +173,60 @@ def _azure_api_get_page(url: str, access_token: str) -> dict[str, Any]:
     return response.json()
 
 
-def build_subscription_url(subscription_id: str, path: str) -> str:
-    return (
-        f"{AZURE_MANAGEMENT_URL}/subscriptions/{quote(subscription_id, safe='')}/{path}?api-version={AZURE_API_VERSION}"
-    )
+def _get_error_code(response: requests.Response) -> str | None:
+    try:
+        error: Any = response.json().get("error")
+    except ValueError:
+        return None
+    if not isinstance(error, dict):
+        return None
+    error_details = cast("dict[str, Any]", error)
+    error_code = error_details.get("code")
+    return error_code if isinstance(error_code, str) else None
 
 
-def get_rule_collection_groups(
-    subscription_id: str, resource_group: str, policy_name: str, access_token: str
-) -> list[AzureRuleCollectionGroup]:
-    path = (
-        f"resourceGroups/{quote(resource_group, safe='')}/providers/Microsoft.Network/"
-        f"firewallPolicies/{quote(policy_name, safe='')}/ruleCollectionGroups"
-    )
-    items = azure_api_get(build_subscription_url(subscription_id, path), access_token)
-    return [AzureRuleCollectionGroup.model_validate(item) for item in items]
+def build_subscription_url(subscription_id: str, path: str, api_version: str) -> str:
+    return f"{AZURE_MANAGEMENT_URL}/subscriptions/{quote(subscription_id, safe='')}/{path}?api-version={api_version}"
+
+
+class AzureApiClient:
+    """Lists Azure Resource Manager resources of a subscription with the newest api version the cloud supports."""
+
+    def __init__(self, subscription_id: str, access_token: str) -> None:
+        self.subscription_id = subscription_id
+        self.access_token = access_token
+        # determined by the first successful call and used for all further calls
+        self.api_version: str | None = None
+
+    def list_items(self, path: str) -> list[dict[str, Any]]:
+        """
+        Get all items of a list call relative to the subscription.
+
+        Args:
+            path: The resource path below the subscription.
+
+        Returns:
+            list[dict[str, Any]]: The items of all pages.
+
+        """
+        api_versions = [self.api_version] if self.api_version else list(AZURE_API_VERSIONS)
+        for api_version in api_versions:
+            url = build_subscription_url(self.subscription_id, path, api_version)
+            try:
+                items = azure_api_get(url, self.access_token)
+            except AzureApiVersionNotSupportedError:
+                FWOLogger.info(f"Azure api version {api_version} not supported for '{path}', trying an older one")
+                continue
+            self.api_version = api_version
+            return items
+        raise FwApiCallFailedError(f"Azure api versions {', '.join(api_versions)} are not supported for '{path}'")
+
+    def get_rule_collection_groups(self, resource_group: str, policy_name: str) -> list[AzureRuleCollectionGroup]:
+        path = (
+            f"resourceGroups/{quote(resource_group, safe='')}/providers/Microsoft.Network/"
+            f"firewallPolicies/{quote(policy_name, safe='')}/ruleCollectionGroups"
+        )
+        return [AzureRuleCollectionGroup.model_validate(item) for item in self.list_items(path)]
 
 
 def get_native_config(mgm_details: ManagementController, devices: list[AzureDevice]) -> AzureConfig:
@@ -203,17 +253,17 @@ def get_native_config(mgm_details: ManagementController, devices: list[AzureDevi
     client_id, client_secret = get_client_credentials(mgm_details)
     access_token = get_access_token(tenant_id, client_id, client_secret)
 
+    api_client = AzureApiClient(subscription_id, access_token)
     native_config = AzureConfig()
     # IP groups are listed for the whole subscription as policies may reference groups of other resource groups
-    ip_group_items = azure_api_get(
-        build_subscription_url(subscription_id, "providers/Microsoft.Network/ipGroups"), access_token
-    )
+    ip_group_items = api_client.list_items("providers/Microsoft.Network/ipGroups")
     native_config.ip_groups = [AzureIpGroup.model_validate(item) for item in ip_group_items]
 
     policy_names = sorted({device.policy_name for device in devices})
     for policy_name in policy_names:
-        rule_collection_groups = get_rule_collection_groups(subscription_id, resource_group, policy_name, access_token)
+        rule_collection_groups = api_client.get_rule_collection_groups(resource_group, policy_name)
         native_config.firewall_policies.append(
             AzureFirewallPolicy(name=policy_name, ruleCollectionGroups=rule_collection_groups)
         )
+    native_config.api_version = api_client.api_version
     return native_config

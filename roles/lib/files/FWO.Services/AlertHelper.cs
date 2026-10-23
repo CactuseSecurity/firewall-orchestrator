@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
@@ -73,6 +74,7 @@ namespace FWO.Services
             AdditionalAlertData additionalAlertData)
         {
             long? alertId = null;
+            additionalAlertData.JsonData = RedactSecrets(additionalAlertData.JsonData);
             try
             {
                 List<Alert> openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
@@ -153,11 +155,25 @@ namespace FWO.Services
             return -1;
         }
 
+        /// <summary>
+        /// Masks secret-bearing properties in alert data given as JSON text, before it is stored or logged.
+        /// </summary>
+        /// <remarks>
+        /// Callers such as the autodiscovery pass serialized objects as text. Other data is returned unchanged;
+        /// <see cref="LogAlert"/> masks it again after serializing.
+        /// </remarks>
+        /// <param name="jsonData">The additional alert data.</param>
+        /// <returns>The alert data with secret values masked.</returns>
+        private static object? RedactSecrets(object? jsonData)
+        {
+            return jsonData is string jsonText ? JsonSecretRedactor.Redact(jsonText) : jsonData;
+        }
+
         private static void LogAlert(string title, string description, string source, AlertCode alertCode, int? mgmtId, object? jsonData, int? devId)
         {
             string? mgmtIdString = mgmtId?.ToString() ?? "";
             string? devIdString = devId?.ToString() ?? "";
-            string jsonString = jsonData != null ? JsonSerializer.Serialize(jsonData) : "";
+            string jsonString = jsonData != null ? JsonSecretRedactor.Redact(JsonSerializer.Serialize(jsonData)) : "";
             Log.WriteAlert($"source: \"{source}\"", $"userId: \"0\", title: \"{title}\", description: \"{description}\", " +
                 $"mgmId: \"{mgmtIdString}\", devId: \"{devIdString}\", jsonData: \"{jsonString}\", alertCode: \"{alertCode}\"");
         }

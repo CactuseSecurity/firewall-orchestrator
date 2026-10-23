@@ -296,7 +296,7 @@ namespace FWO.DeviceAutoDiscovery
             Management MgtVariables = new()
             {
                 Hostname = SuperManagement.Hostname,
-                ImportCredential = SuperManagement.ImportCredential,
+                ImportCredential = CreateCredentialReference(SuperManagement.ImportCredential),
                 DebugLevel = SuperManagement.DebugLevel,
                 Port = SuperManagement.Port,
                 ImportDisabled = false,
@@ -334,6 +334,25 @@ namespace FWO.DeviceAutoDiscovery
                     JsonData = JsonSerializer.Serialize(dev)
                 });
             }
+        }
+
+        /// <summary>
+        /// Returns a reference to the given credential without its secret.
+        /// </summary>
+        /// <remarks>
+        /// The action data of a new management is stored in the alert and written to the log, while the super
+        /// management holds the decrypted secret at this point. The autodiscovery dialog creates the management
+        /// with the credential id only, so the secret must never be part of the action data.
+        /// </remarks>
+        /// <param name="credential">The credential of the super management.</param>
+        /// <returns>A credential carrying only id and name.</returns>
+        private static Credential CreateCredentialReference(Credential credential)
+        {
+            return new Credential
+            {
+                Id = credential.Id,
+                Name = credential.Name
+            };
         }
 
         private void ChangeManagement(Management changedMgmt, List<ActionItem> actions, int counter)

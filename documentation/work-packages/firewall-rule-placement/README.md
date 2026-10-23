@@ -4,14 +4,14 @@
 
 This directory is the repository source of truth for firewall rule positioning work. Active planning documents override chat history and any material under `archive/`.
 
-Phase 1 is implemented and locally validated on the current `Cactus/develop` baseline. It remains open until the mandatory disposable-VM fresh-install and `9.8.0` to `9.8.1` upgrade checks pass. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 WP-01 through WP-06 are implemented and locally validated. WP-05 registers the graph-only calculation/persistence caller and removes the speculative renderer. WP-06 activates the caller from the approved implementation-task creation event. The implemented zone-input services are inactive for positioning until Phase 4, which is reserved for customer-document analysis and customer-specific recipes.
+Phase 1 is implemented and validated, including the mandatory disposable-VM fresh-install and sequential `9.8.0` to `9.8.1` upgrade acceptance at commit `c85931e0f`. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 WP-01 through WP-06 are implemented and locally validated. WP-05 registers the graph-only calculation/persistence caller and removes the speculative renderer. WP-06 activates the caller from the approved implementation-task creation event. The implemented zone-input services are inactive for positioning until Phase 4. Phase 4 is ready for WP-01 planning of the customer-document analysis and customer-specific recipes.
 
 | Phase | Status | Purpose |
 | --- | --- | --- |
-| Phase 1 | Implemented; VM validation pending | Build a calculation-only, cross-vendor positioning foundation and independent position persistence. |
+| Phase 1 | Implemented and validated | Build a calculation-only, cross-vendor positioning foundation and independent position persistence. |
 | Phase 2 | Implemented and locally validated | Build generic composition contracts, a reusable immutable structural graph, semantic positions, and structural blocks. |
 | Phase 3 | WP-01 through WP-06 implemented and locally validated | Complete a graph-only generic path that persists semantic positions, activate it from an approved workflow seam, remove the renderer, and leave zone input inactive. |
-| Phase 4 | Deferred until Phase 3 is complete | Analyze the customer document and extend the finished generic product with customer-only zone input, required blocks, recipes, and enum mappings. |
+| Phase 4 | Ready for WP-01 planning | Analyze the customer document and extend the finished generic product with customer-only zone input, required blocks, recipes, and enum mappings. |
 | Previous proposal | Archived | Historical context only; it is not an alternative active plan. |
 
 ## Reading order
@@ -124,7 +124,7 @@ Phase 3 WP-04 renderer
   `--> removed by Phase 3 WP-05
 ```
 
-WP-02 and WP-03 may proceed in parallel after WP-01 stabilizes. Phase 1 is not complete until all three packages and their combined acceptance checks pass.
+WP-02 and WP-03 proceeded in parallel after WP-01 stabilized. Phase 1 was completed after all three packages and their combined local and disposable-VM acceptance checks passed.
 
 ## Fixed assumptions
 
@@ -134,7 +134,7 @@ WP-02 and WP-03 may proceed in parallel after WP-01 stabilizes. Phase 1 is not c
 - Calculation and persistence are separate operations.
 - Production registration supports only Check Point gateway type `9` with `DefaultEndOfRulebase`; every other capability returns a safe not-implemented result.
 - Safe diagnostics contain neither credentials nor complete rule contents.
-- The schema migration is part of the open `9.8.1` upgrade and leaves `product_version` unchanged.
+- The schema migration was validated through the completed `9.8.1` upgrade and leaves `product_version` unchanged.
 - Phase 2 recipes are in-memory only and use one caller-supplied immutable snapshot.
 - The final Phase 2 snapshot is a vendor-neutral projection of normalized `Rulebase` and `RulebaseLink` structure; Check Point blocks interpret that graph.
 - Existing-rule semantics remain excluded until a concrete block needs them; structural rule identity and order remain available for anchors.

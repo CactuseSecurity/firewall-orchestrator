@@ -1,14 +1,14 @@
 # Session handoff
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Current status
 
-Phase 1 and Phase 2 remain implemented on the rebased `Cactus/develop` baseline. Phase 1 local validation passes, but the mandatory disposable-VM fresh-install and `9.8.0` to `9.8.1` upgrade gates remain pending. Phase 2 is implemented and locally validated.
+Phase 1 and Phase 2 are implemented. Phase 1 is fully validated: the accepted disposable-VM evidence for commit `c85931e0f6abaa30e3c31215c710c6cf20b9fd31` includes a fresh `9.8.0` installation followed by a sequential `9.8.1` upgrade on the same clean Debian 12 VM. Phase 2 is locally validated.
 
 Phase 3 WP-01 through WP-06 are implemented and locally validated. WP-05 adds and registers the independently callable graph-only calculation/persistence service, keeps zone input inactive, and removes the WP-04 renderer. WP-06 activates that service from the approved middleware implementation-task creation event while preserving bundle, replay, and best-effort failure semantics.
 
-Phase 4 remains reserved for the later customer-specific extension. The customer document `FWO_Regel_Platzierung_Regelwerk.md` was not inspected and must remain unopened throughout Phase 3.
+Phase 4 is ready for WP-01 planning of the customer-specific extension. The customer document `FWO_Regel_Platzierung_Regelwerk.md` has not been inspected and must remain unopened until that planning session begins.
 
 ## Implemented Phase 3 boundary
 
@@ -29,7 +29,11 @@ Phase 4 remains reserved for the later customer-specific extension. The customer
 
 - 2026-10-22 round-trip and installed-test packaging repair: 63 focused persistence tests passed; new parser/converters reached 100% line coverage and 87.5% to 100% branch coverage.
 - 2026-10-22 Debug solution build completed with zero warnings and zero errors; complete unit suite passed with 8,746 passed, 30 skipped, and zero failed.
-- The required disposable-VM fresh-install and `9.8.0` to `9.8.1` upgrade retest remains open because the FWO MCP installation tools were unavailable in the repair session.
+- 2026-10-23 accepted disposable-VM evidence: fresh `9.8.0` installation from baseline commit `2eec0d66aa84ddeb245448a13904f1249821750c` completed with Ansible exit 0 (`ok=910`, `changed=261`, `failed=0`); the sequential upgrade to tested commit `c85931e0f6abaa30e3c31215c710c6cf20b9fd31` completed with Ansible exit 0 (`ok=944`, `changed=155`, `failed=0`).
+- The upgrade log explicitly executed `database : install upgrade 9.8.1.sql`. C# tests, importer tests, and integration tests passed in both phases; the deployed product reported `9.8.1`, and all principal services were active.
+- Post-upgrade verification confirmed nullable `jsonb` column `request.impltask.rule_position`, the passing `9.8.1` schema integration test, and Hasura exposure of `request_impltask.rule_position`.
+- Persisted numeric algorithm data loaded successfully through `POST /api/workflow/getTicket` with HTTP 200. Two subsequent gateway-specific tasks in the same ticket deliberately failed positioning because of a management mismatch, yet both workflow calls returned success, retained null positions, recorded their state transitions, and reached a destination with a configured follow-on action. This validates ticket reload, same-ticket processing, and positioning-failure containment.
+- A deployed genuinely empty imported initial layer was not available. Repeating that scenario remains optional additional confidence, not an open defect or release gate, because the representative automated acceptance fixture already verifies `Bottom` for an existing empty initial layer.
 - Focused WP-06 selection: 395 tests passed.
 - Focused Coverlet results exceed 80% for every new production seam: activation 91.2% line / 94.4% branch, durable creation 90.5% / 92.9%, delegated parent resolution 100% / 94.4%, and applicability plus middleware marker methods 100% / 100%.
 - `dotnet format roles/FWO.sln --no-restore` completed successfully; unrelated formatter-only changes were removed.
@@ -39,8 +43,6 @@ Phase 4 remains reserved for the later customer-specific extension. The customer
 
 ## Next action
 
-Phase 3 is complete locally. Do not expand WP-06 into update-triggered recalculation, manual retry, schema/outbox work, UI, zone logic, rendering, or firewall execution. Do not inspect the customer document before Phase 4.
-
-Separately, execute the remaining Phase 1 VM acceptance gates when the approved FWO VM integration is available. Do not run installation manually.
+Begin Phase 4 WP-01 planning. Open and analyze `FWO_Regel_Platzierung_Regelwerk.md` only within that planning session, compare it with the completed generic product, and keep the implementation brief self-contained. Do not expand the completed Phase 3 work into update-triggered recalculation, manual retry, schema/outbox work, UI, rendering, or firewall execution without a newly proven requirement.
 
 All changes remain unstaged and uncommitted unless the user explicitly requests otherwise.

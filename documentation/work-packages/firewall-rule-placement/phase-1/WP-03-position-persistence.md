@@ -88,6 +88,12 @@ After unit/build/coverage checks:
 
 Do not run installation manually from the command line.
 
+### Completed validation evidence
+
+Accepted on 2026-10-23 for commit `c85931e0f6abaa30e3c31215c710c6cf20b9fd31`: a fresh `9.8.0` installation and the sequential `9.8.1` upgrade both completed with Ansible exit 0. The upgrade explicitly executed `database : install upgrade 9.8.1.sql`, and the installed C#, importer, and integration suites passed in both phases.
+
+After the upgrade, `request.impltask.rule_position` remained nullable `jsonb`, the dedicated `9.8.1` schema integration test passed, and Hasura exposed `request_impltask.rule_position`. A stored numeric-algorithm position loaded successfully through the ticket API with HTTP 200, and subsequent implementation tasks in the same ticket were processed successfully. This confirms that the migration survived the sequential upgrade and persisted positions load correctly.
+
 ## Acceptance criteria
 
 - Fresh installs and upgrades contain nullable `request.impltask.rule_position`.

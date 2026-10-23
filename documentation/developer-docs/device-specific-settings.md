@@ -104,11 +104,11 @@ planning phase plays no role for it. Rule tasks (access, rule_modify, rule_delet
 task type `autoPlanImplementation`. The action resolves the values of the gateway (access and rule changes) or the
 target management (object tasks) along the hierarchy above; without gateway the global values apply.
 
-The 9.8.2 upgrade translates the former workflow option `reqAutoCreateImplTasks` together with the planning phases:
-`autoPlanImplementationForRules` becomes `true` globally if access tasks were created automatically (option not
-`never`, planning phase of access tasks inactive), and `autoPlanImplementation` becomes `false`
-globally if every task type had an active planning phase. Levels that the 9.7.4 upgrade set to
-`planImplementation = false` (former mode `None`) are planned manually afterwards. Installation and upgrade provide
+The 9.8.2 upgrade translates the former workflow option `reqAutoCreateImplTasks` into `reqDeviceInput` and the path
+analysis algorithm only; it does not derive the auto plan settings from the planning phases. Stored values are kept
+under the new names, otherwise the defaults apply (`autoPlanImplementation` Yes, `autoPlanImplementationForRules`
+No), and an administrator sets them. Levels that the 9.7.4 upgrade set to `planImplementation = false` (former mode
+`None`) are planned manually afterwards. Installation and upgrade provide
 the action unless one of this type already exists, but do not attach it; an administrator attaches it to a state,
 e.g. "approved".
 

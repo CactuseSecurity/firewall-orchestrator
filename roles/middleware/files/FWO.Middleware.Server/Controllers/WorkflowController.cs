@@ -170,7 +170,7 @@ namespace FWO.Middleware.Server.Controllers
             WfObjectScopes scope, WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
         {
             // the injected config is loaded once at startup, the actions have to follow later customizing changes
-            using GlobalConfig currentGlobalConfig = globalConfig.WithCurrentConfigItems(actionApiConnection);
+            using GlobalConfig currentGlobalConfig = await globalConfig.WithCurrentConfigItemsAsync(actionApiConnection);
             using UserConfig userConfig = UserConfig.ForGlobalSettings(currentGlobalConfig, actionApiConnection, currentGlobalConfig.DefaultLanguage);
             WfHandler wfHandler = CreateWorkflowHandler(actionApiConnection, userConfig, phase, result);
             ApplyCallerIdentity(User, userConfig, wfHandler);

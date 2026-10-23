@@ -106,10 +106,11 @@ target management (object tasks) along the hierarchy above; without gateway the 
 
 The 9.8.2 upgrade translates the former workflow option `reqAutoCreateImplTasks` together with the planning phases:
 `autoPlanImplementationForRules` becomes `true` globally if access tasks were created automatically (option not
-`never`, planning phase of access tasks inactive), and `autoPlanImplementation` becomes `false` globally if every
-task type had an active planning phase. Levels that the 9.7.4 upgrade set to `planImplementation = false` (former
-mode `None`) are planned manually afterwards. The action has to be attached to a state, e.g. "approved", by an
-administrator after the upgrade.
+`never`, planning phase of access tasks inactive), and `autoPlanImplementation` becomes `false`
+globally if every task type had an active planning phase. Levels that the 9.7.4 upgrade set to
+`planImplementation = false` (former mode `None`) are planned manually afterwards. Installation and upgrade provide
+the action unless one of this type already exists, but do not attach it; an administrator attaches it to a state,
+e.g. "approved".
 
 The upgrade moves `management.importer_hostname` into `importerHostName` and then drops
 the column. The most common non-empty host name becomes the global value (unless a global

@@ -20,6 +20,11 @@ namespace FWO.Services.Workflow
         private readonly Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> autoPlanCache = [];
 
         /// <summary>
+        /// Whether resolving the settings failed in the current creation run; it is not retried for every further task.
+        /// </summary>
+        private bool autoPlanResolveFailed;
+
+        /// <summary>
         /// Replaces the path analyzer selected by the configuration; used by tests.
         /// </summary>
         internal IPathAnalyzer? PathAnalyzerOverride { get; set; }
@@ -43,6 +48,7 @@ namespace FWO.Services.Workflow
         private void ResetAutoPlanCache()
         {
             autoPlanCache.Clear();
+            autoPlanResolveFailed = false;
         }
 
         /// <summary>
@@ -200,6 +206,22 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
+        /// Lets unknown gateways and managements inherit the global settings, so they are not queried again in this run.
+        /// </summary>
+        private void CacheUnknownLevelsAsGlobal(List<int> deviceIds, List<int> managementIds)
+        {
+            GlobalDeviceSpecificSettings globalSettings = autoPlanCache[(DeviceSpecificScopeType.Global, null)];
+            foreach (int deviceId in deviceIds)
+            {
+                autoPlanCache.TryAdd((DeviceSpecificScopeType.Gateway, deviceId), globalSettings);
+            }
+            foreach (int managementId in managementIds)
+            {
+                autoPlanCache.TryAdd((DeviceSpecificScopeType.Management, managementId), globalSettings);
+            }
+        }
+
+        /// <summary>
         /// Resolves the settings of the given gateways and managements not resolved yet in this run, together with the
         /// global settings, through the own api connection: in the state action it runs in the middleware with the rights
         /// of the middleware server, in the monitoring of an admin with the admin's rights. A failure is logged; the
@@ -209,7 +231,8 @@ namespace FWO.Services.Workflow
         {
             List<int> missingDeviceIds = [.. deviceIds.Distinct().Where(id => !autoPlanCache.ContainsKey((DeviceSpecificScopeType.Gateway, id)))];
             List<int> missingManagementIds = [.. managementIds.Distinct().Where(id => !autoPlanCache.ContainsKey((DeviceSpecificScopeType.Management, id)))];
-            if (missingDeviceIds.Count == 0 && missingManagementIds.Count == 0 && autoPlanCache.ContainsKey((DeviceSpecificScopeType.Global, null)))
+            bool allResolved = missingDeviceIds.Count == 0 && missingManagementIds.Count == 0 && autoPlanCache.ContainsKey((DeviceSpecificScopeType.Global, null));
+            if (allResolved || autoPlanResolveFailed)
             {
                 return;
             }
@@ -220,15 +243,19 @@ namespace FWO.Services.Workflow
             }
             try
             {
+                await EnsureDevicesLoaded();
+                List<Device> missingGateways = [.. Devices.Where(device => missingDeviceIds.Contains(device.Id))];
                 Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> settings =
-                    await new ImplTaskAutoPlanResolver(apiConnection).Resolve(missingDeviceIds, missingManagementIds);
+                    await new ImplTaskAutoPlanResolver(apiConnection).Resolve(missingGateways, missingManagementIds);
                 foreach (KeyValuePair<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> setting in settings)
                 {
                     autoPlanCache[setting.Key] = setting.Value;
                 }
+                CacheUnknownLevelsAsGlobal(missingDeviceIds, missingManagementIds);
             }
             catch (Exception exception)
             {
+                autoPlanResolveFailed = true;
                 Log.WriteError(kAutoPlanLogTitle, "Could not resolve the auto plan settings; implementation tasks are created automatically.", exception);
             }
         }

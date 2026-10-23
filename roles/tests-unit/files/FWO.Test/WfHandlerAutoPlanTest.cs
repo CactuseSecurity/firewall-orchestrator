@@ -31,14 +31,16 @@ namespace FWO.Test
         private static readonly List<int> kFirstGateway = [kFirstGatewayId];
         private static readonly List<int> kSecondGateway = [kSecondGatewayId];
         private static readonly List<int> kBothGateways = [kFirstGatewayId, kSecondGatewayId];
+        private static readonly List<int> kUnknownGateway = [kUnknownGatewayId];
+        private static readonly List<int?> kUnknownGatewayTask = [kUnknownGatewayId];
         private static readonly List<int> kNoGateway = [];
         private static readonly List<int> kAllDevicesMarker = [WfReqTaskBase.kAllDevicesId];
         private static readonly List<int?> kFirstGatewayTask = [kFirstGatewayId];
         private static readonly List<int?> kBothGatewayTasks = [kFirstGatewayId, kSecondGatewayId];
         private static readonly List<int?> kTaskWithoutGateway = [null];
-        private static readonly List<int> kRequestedGateways = [kFirstGatewayId, kSecondGatewayId, kUnknownGatewayId];
         private static readonly List<int> kRequestedManagements = [kManagementId, kUnknownManagementId];
         private static readonly List<int> kNoIds = [];
+        private static readonly List<Device> kNoGateways = [];
         private static readonly List<(DeviceSpecificScopeType ScopeType, int? Id)> kExpectedResolvedLevels =
         [
             (DeviceSpecificScopeType.Global, null),
@@ -49,15 +51,10 @@ namespace FWO.Test
 
         private static InMemoryDeviceSpecificSettingsApiConnection CreateApi()
         {
-            DeviceType deviceType = new() { Id = kDeviceTypeId, Name = "Check Point", Version = "R8x" };
             InMemoryDeviceSpecificSettingsApiConnection api = new();
-            api.Managements.Add(new Management
-            {
-                Id = kManagementId,
-                Name = "mgm",
-                DeviceType = deviceType,
-                Devices = [new Device { Id = kFirstGatewayId, Name = "gw-1" }, new Device { Id = kSecondGatewayId, Name = "gw-2" }]
-            });
+            Management management = CreateManagement();
+            management.Devices = [.. CreateDevices()];
+            api.Managements.Add(management);
             api.AddNode(kGlobalNodeId, DeviceSpecificScopeType.Global, DeviceSpecificScopePath.GlobalObjectKey, displayName: "Global");
             api.AddNode(kDeviceTypeNodeId, DeviceSpecificScopeType.DeviceType, kDeviceTypeId.ToString(), kGlobalNodeId);
             api.AddNode(kManagementNodeId, DeviceSpecificScopeType.Management, kManagementId.ToString(), kDeviceTypeNodeId);
@@ -74,9 +71,42 @@ namespace FWO.Test
             };
         }
 
+        private static Management CreateManagement()
+        {
+            return new Management
+            {
+                Id = kManagementId,
+                Name = "mgm",
+                DeviceType = new DeviceType { Id = kDeviceTypeId, Name = "Check Point", Version = "R8x" }
+            };
+        }
+
+        /// <summary>
+        /// The gateways as loaded with the device details: with their management and its device type.
+        /// </summary>
         private static List<Device> CreateDevices()
         {
-            return [new Device { Id = kFirstGatewayId, Name = "gw-1" }, new Device { Id = kSecondGatewayId, Name = "gw-2" }];
+            Management management = CreateManagement();
+            return
+            [
+                new Device { Id = kFirstGatewayId, Name = "gw-1", Management = management },
+                new Device { Id = kSecondGatewayId, Name = "gw-2", Management = management }
+            ];
+        }
+
+        /// <summary>
+        /// The two known gateways and one without known management.
+        /// </summary>
+        private static List<Device> CreateRequestedGateways()
+        {
+            List<Device> gateways = CreateDevices();
+            gateways.Add(new Device { Id = kUnknownGatewayId, Name = "unknown" });
+            return gateways;
+        }
+
+        private static int SettingsQueryCount(InMemoryDeviceSpecificSettingsApiConnection api)
+        {
+            return api.Calls.Count(call => call.Query == DeviceSpecificSettingsQueries.getNodesByNaturalKeys);
         }
 
         private static WfReqTask CreateAccessTask(List<int> enteredDeviceIds)
@@ -363,11 +393,12 @@ namespace FWO.Test
             api.SetValue(kGatewayNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
 
             Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> settings =
-                await new ImplTaskAutoPlanResolver(api).Resolve(kRequestedGateways, kRequestedManagements);
+                await new ImplTaskAutoPlanResolver(api).Resolve(CreateRequestedGateways(), kRequestedManagements);
 
             Assert.Multiple(() =>
             {
                 Assert.That(settings.Keys, Is.EquivalentTo(kExpectedResolvedLevels));
+                Assert.That(SettingsQueryCount(api), Is.EqualTo(1), "all levels with one settings query");
                 Assert.That(settings[(DeviceSpecificScopeType.Global, null)].AutoPlanImplementation, Is.True);
                 Assert.That(settings[(DeviceSpecificScopeType.Management, kManagementId)].AutoPlanImplementation, Is.False);
                 Assert.That(settings[(DeviceSpecificScopeType.Gateway, kFirstGatewayId)].AutoPlanImplementation, Is.False, "inherited from the management");
@@ -380,9 +411,49 @@ namespace FWO.Test
         public async Task Resolver_WithoutIds_ReturnsGlobalSettingsOnly()
         {
             Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> settings =
-                await new ImplTaskAutoPlanResolver(CreateApi()).Resolve(kNoIds, kNoIds);
+                await new ImplTaskAutoPlanResolver(CreateApi()).Resolve(kNoGateways, kNoIds);
 
             Assert.That(settings.Keys.Single().ScopeType, Is.EqualTo(DeviceSpecificScopeType.Global));
+        }
+
+        [Test]
+        public async Task FailedResolve_IsNotRetriedWithinTheRun()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.FailingQuery = DeviceSpecificSettingsQueries.getNodesByNaturalKeys;
+            WfHandler handler = CreateHandler(api);
+            WfReqTask firstTask = CreateAccessTask(kFirstGateway);
+            WfReqTask secondTask = CreateAccessTask(kSecondGateway);
+            secondTask.Id = 10;
+
+            await InvokeAutoCreateImplTasks(handler, firstTask);
+            await InvokeAutoCreateImplTasks(handler, secondTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(SettingsQueryCount(api), Is.EqualTo(1));
+                Assert.That(DeviceIds(firstTask), Is.EqualTo(kFirstGatewayTask), "a failure counts as automatic");
+            });
+        }
+
+        [Test]
+        public async Task UnknownGateway_InheritsGlobalAndIsResolvedOnce()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateHandler(api);
+            WfReqTask firstTask = CreateAccessTask(kUnknownGateway);
+            WfReqTask secondTask = CreateAccessTask(kUnknownGateway);
+            secondTask.Id = 10;
+
+            await InvokeAutoCreateImplTasks(handler, firstTask);
+            await InvokeAutoCreateImplTasks(handler, secondTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(SettingsQueryCount(api), Is.EqualTo(1));
+                Assert.That(DeviceIds(firstTask), Is.EqualTo(kUnknownGatewayTask));
+            });
         }
 
         [TestCase(true, true, true, true)]

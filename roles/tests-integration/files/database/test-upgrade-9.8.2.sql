@@ -1,7 +1,8 @@
 -- Test of upgrade/9.8.2.sql on the installed database. The test task inserts the upgrade file at the two run-upgrade
 -- markers below, which also shows that the upgrade can be repeated. The transaction is rolled back.
 -- This probes the new path analysis algorithms, the rename of the planning settings, the translation of the former
--- option reqAutoCreateImplTasks (for each device, access planning phase inactive) and the repeat execution.
+-- option reqAutoCreateImplTasks (for each device, access planning phase inactive), the creation of the action
+-- "Create implementation tasks", which is not attached to any state, and the repeat execution.
 \set ON_ERROR_STOP 1
 BEGIN;
 DELETE FROM config WHERE config_key IN ('reqDeviceInput', 'reqAutoCreateImplTasks');
@@ -14,6 +15,8 @@ DELETE FROM device_specific_config_value WHERE node_id = (SELECT id FROM device_
     AND config_key IN ('autoPlanImplementation', 'autoPlanImplementationForRules', 'planImplementation', 'planImplementationOverrideForRules');
 INSERT INTO device_specific_config_value (node_id, config_key, config_value)
     SELECT id, 'planImplementation', 'false'::jsonb FROM device_specific_config_node WHERE node_type = 'global';
+-- the action is created by the upgrade, so the one of the installation is removed
+DELETE FROM request.action WHERE action_type = 'CreateImplTasks';
 -- the default workflow configuration has no active planning phase for access tasks
 UPDATE request.state_matrix_phase SET active = FALSE WHERE id IN (
     SELECT wp.phase_matrix_id FROM request.workflow_configuration c
@@ -51,6 +54,13 @@ BEGIN
         IS DISTINCT FROM 'true'::jsonb THEN
         RAISE EXCEPTION 'upgrade 9.8.2: automatically created access tasks must keep rules planned automatically';
     END IF;
+    IF (SELECT count(*) FROM request.action WHERE action_type = 'CreateImplTasks' AND scope = 'Ticket' AND event = 'OnSet') <> 1 THEN
+        RAISE EXCEPTION 'upgrade 9.8.2: the action creating implementation tasks must be provided';
+    END IF;
+    IF EXISTS (SELECT 1 FROM request.state_action sa JOIN request.action a ON a.id = sa.action_id
+        WHERE a.action_type = 'CreateImplTasks') THEN
+        RAISE EXCEPTION 'upgrade 9.8.2: the action creating implementation tasks must not be attached automatically';
+    END IF;
 END $$;
 
 CREATE TEMP TABLE config_after_first_run AS SELECT config_key, config_value, config_user FROM config;
@@ -70,6 +80,9 @@ BEGIN
         (SELECT * FROM values_after_first_run EXCEPT SELECT node_id, config_key, config_value FROM device_specific_config_value)
     ) THEN
         RAISE EXCEPTION 'upgrade 9.8.2: rerunning the migration changed the configuration';
+    END IF;
+    IF (SELECT count(*) FROM request.action WHERE action_type = 'CreateImplTasks') <> 1 THEN
+        RAISE EXCEPTION 'upgrade 9.8.2: rerunning the migration duplicated the action creating implementation tasks';
     END IF;
 END $$;
 ROLLBACK;

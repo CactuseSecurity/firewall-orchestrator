@@ -225,12 +225,12 @@ namespace FWO.Test
         }
 
         [Test]
-        public void WithCurrentConfigItems_ReadsChangedValuesAndKeepsLanguageData()
+        public async Task WithCurrentConfigItems_ReadsChangedValuesAndKeepsLanguageData()
         {
             using GlobalConfig startupConfig = new();
             using UserConfigApiConnection apiConnection = new(kChangedPathAnalysisItems);
 
-            using (GlobalConfig currentConfig = startupConfig.WithCurrentConfigItems(apiConnection))
+            using (GlobalConfig currentConfig = await startupConfig.WithCurrentConfigItemsAsync(apiConnection))
             {
                 Assert.Multiple(() =>
                 {

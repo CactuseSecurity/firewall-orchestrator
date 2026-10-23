@@ -17,44 +17,50 @@ namespace FWO.Services.Workflow
     public class ImplTaskAutoPlanResolver(ApiConnection apiConnection)
     {
         /// <summary>
-        /// Returns the effective settings of the global level and of every requested management and gateway that
-        /// exists, by scope type and id (null for the global level). Unknown ids are left out.
+        /// Returns the effective settings of the global level and of every given gateway and requested management that
+        /// exists, by scope type and id (null for the global level). All levels are resolved with one settings query;
+        /// unknown management ids are left out.
         /// </summary>
-        /// <param name="deviceIds">Gateways to resolve.</param>
+        /// <param name="gateways">Gateways to resolve, with their management and its device type, as loaded with the
+        /// device details.</param>
         /// <param name="managementIds">Managements to resolve.</param>
         public async Task<Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings>> Resolve(
-            IReadOnlyCollection<int> deviceIds, IReadOnlyCollection<int> managementIds)
+            IReadOnlyCollection<Device> gateways, IReadOnlyCollection<int> managementIds)
         {
-            DeviceSpecificSettingsManager settingsManager = new(apiConnection);
-            DeviceSpecificSettingsLevel<GlobalDeviceSpecificSettings> globalLevel =
-                await settingsManager.LoadLevelAsync<GlobalDeviceSpecificSettings>(DeviceSpecificScopePath.Global());
-            Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> settings = new()
+            List<(DeviceSpecificScopeType ScopeType, int? Id)> levels = [(DeviceSpecificScopeType.Global, null)];
+            List<DeviceSpecificScopePath> paths = [DeviceSpecificScopePath.Global()];
+            foreach (Management management in await LoadManagements(managementIds))
             {
-                [(DeviceSpecificScopeType.Global, null)] = globalLevel.Settings
-            };
-            if (deviceIds.Count == 0 && managementIds.Count == 0)
+                levels.Add((DeviceSpecificScopeType.Management, management.Id));
+                paths.Add(DeviceSpecificScopePath.ForManagement(management));
+            }
+            // a gateway without known management cannot be placed in the hierarchy and inherits the global settings
+            foreach (Device gateway in gateways.Where(gateway => gateway.Management.Id > 0).DistinctBy(gateway => gateway.Id))
             {
-                return settings;
+                levels.Add((DeviceSpecificScopeType.Gateway, gateway.Id));
+                paths.Add(DeviceSpecificScopePath.ForGateway(gateway.Management, gateway));
             }
 
-            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsForAutoPlan,
-                new { managementIds = managementIds.Distinct().ToList(), deviceIds = deviceIds.Distinct().ToList() }) ?? [];
-            foreach (Management management in managements)
+            List<GlobalDeviceSpecificSettings> settings = await new DeviceSpecificSettingsManager(apiConnection).LoadEffectiveSettingsAsync(paths);
+            Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> settingsByLevel = [];
+            for (int index = 0; index < levels.Count; index++)
             {
-                if (managementIds.Contains(management.Id))
-                {
-                    DeviceSpecificSettingsLevel<ManagementDeviceSpecificSettings> level =
-                        await settingsManager.LoadLevelAsync<ManagementDeviceSpecificSettings>(DeviceSpecificScopePath.ForManagement(management));
-                    settings[(DeviceSpecificScopeType.Management, management.Id)] = level.Settings;
-                }
-                foreach (Device device in management.Devices.Where(device => deviceIds.Contains(device.Id)))
-                {
-                    DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> level =
-                        await settingsManager.LoadLevelAsync<GatewayDeviceSpecificSettings>(DeviceSpecificScopePath.ForGateway(management, device));
-                    settings[(DeviceSpecificScopeType.Gateway, device.Id)] = level.Settings;
-                }
+                settingsByLevel[levels[index]] = settings[index];
             }
-            return settings;
+            return settingsByLevel;
+        }
+
+        /// <summary>
+        /// Loads the requested managements with their device type; no query without requested managements.
+        /// </summary>
+        private async Task<List<Management>> LoadManagements(IReadOnlyCollection<int> managementIds)
+        {
+            if (managementIds.Count == 0)
+            {
+                return [];
+            }
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementHierarchy) ?? [];
+            return [.. managements.Where(management => managementIds.Contains(management.Id))];
         }
     }
 }

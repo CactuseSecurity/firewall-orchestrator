@@ -95,10 +95,32 @@ namespace FWO.Config.Api
         /// otherwise apply settings changed after its start. The caller disposes the copy.
         /// </summary>
         /// <param name="apiConnection">Connection to read the config items with; not disposed with the copy.</param>
-        public GlobalConfig WithCurrentConfigItems(ApiConnection apiConnection)
+        public async Task<GlobalConfig> WithCurrentConfigItemsAsync(ApiConnection apiConnection)
         {
             ThrowIfDisposed();
-            return new GlobalConfig(apiConnection, ProductVersion, UiLanguages, LangDict, OverDict);
+            GlobalConfig currentConfig = new(ProductVersion, UiLanguages, LangDict, OverDict);
+            try
+            {
+                await currentConfig.InitWithUserId(apiConnection, 0);
+            }
+            catch
+            {
+                currentConfig.Dispose();
+                throw;
+            }
+            return currentConfig;
+        }
+
+        /// <summary>
+        /// Creates a config sharing the given language data, whose config items are loaded afterwards.
+        /// </summary>
+        private GlobalConfig(string productVersion, Language[] uiLanguages, Dictionary<string, Dictionary<string, string>> langDict,
+            Dictionary<string, Dictionary<string, string>> overDict) : base()
+        {
+            ProductVersion = productVersion;
+            UiLanguages = uiLanguages;
+            LangDict = langDict;
+            OverDict = overDict;
         }
 
         public override string GetText(string key)

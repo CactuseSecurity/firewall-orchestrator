@@ -118,7 +118,6 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
             _ when query == DeviceSpecificSettingsQueries.getAllNodes => Nodes.ToList(),
             _ when query == DeviceQueries.getManagementDetailsWithoutSecrets => Managements,
             _ when query == DeviceQueries.getManagementHierarchy => Managements,
-            _ when query == DeviceQueries.getManagementsForAutoPlan => GetManagementsForAutoPlan(variables),
             _ when query == DeviceSpecificSettingsQueries.upsertNode => UpsertNode(variables),
             _ when query == DeviceSpecificSettingsQueries.applyPatch => ApplyPatch(variables),
             _ when query == DeviceSpecificSettingsQueries.deleteOverrides => DeleteOverrides(variables),
@@ -126,16 +125,6 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
         };
 
         return (T)result;
-    }
-
-    private List<Management> GetManagementsForAutoPlan(object? variables)
-    {
-        object vars = RequiredVariables(variables);
-        List<int> managementIds = RequiredProperty<List<int>>(vars, "managementIds");
-        List<int> deviceIds = RequiredProperty<List<int>>(vars, "deviceIds");
-        return [.. Managements
-            .Where(management => managementIds.Contains(management.Id) || management.Devices.Any(device => deviceIds.Contains(device.Id)))
-            .Select(management => new Management(management) { Devices = [.. management.Devices.Where(device => deviceIds.Contains(device.Id))] })];
     }
 
     private List<DeviceSpecificConfigNodeData> GetNodeWithAncestors(object? variables)

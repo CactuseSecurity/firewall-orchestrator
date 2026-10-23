@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation and local validation are complete on the rebased `Cactus/develop` baseline. Phase 1 remains open until the disposable-VM fresh-install and `9.8.0` to `9.8.1` upgrade scenarios pass.
+Implementation and validation are complete. The disposable-VM fresh-install and sequential `9.8.0` to `9.8.1` upgrade scenarios passed for tested commit `c85931e0f6abaa30e3c31215c710c6cf20b9fd31`.
 
 ## Objective
 
@@ -72,6 +72,15 @@ Local evidence from 2026-10-15:
 - the Debug solution build succeeded with 0 warnings and 0 errors;
 - dedicated positioning production files reached 92.83% line coverage (1,126/1,213 executable lines); and
 - all changed C# files passed targeted `dotnet format`.
+
+Disposable-VM evidence accepted on 2026-10-23:
+
+- a fresh `9.8.0` installation completed with Ansible exit 0 (`ok=910`, `changed=261`, `failed=0`);
+- the sequential upgrade to `c85931e0f` completed with Ansible exit 0 (`ok=944`, `changed=155`, `failed=0`) and explicitly executed `9.8.1.sql`;
+- C# tests, importer tests, and integration tests passed in both installation phases;
+- the upgraded database and Hasura contract exposed nullable `request.impltask.rule_position` as `jsonb`;
+- a persisted position loaded through the ticket API, and later tasks in the same ticket completed their workflow transitions despite deliberately induced positioning failures; and
+- the deployed empty-initial-layer scenario remains optional additional confidence rather than a release gate because the automated acceptance fixture already verifies the expected `Bottom` result.
 
 ## Out of scope
 

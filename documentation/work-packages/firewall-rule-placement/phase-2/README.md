@@ -4,7 +4,7 @@
 
 Build a production-ready, type-safe block composition framework and a minimal structural Check Point block library. Recipes remain in memory and are not selected or invoked by production workflows in this phase.
 
-The customer document is deliberately outside this phase. Its analysis, customer-specific recipes, enum-to-recipe mapping, and production strategy wiring move to Phase 3.
+The customer document is deliberately outside this phase. Its analysis, customer-specific recipes, and customer enum-to-recipe mappings move to Phase 4 WP-01; generic production strategy wiring was completed in Phase 3.
 
 ## Work packages
 
@@ -22,7 +22,7 @@ WP-01 defines the reusable execution seam. WP-02 and WP-03 supplied the first Ch
 - Load no policy data from GraphQL or importer models yet.
 - Register and invoke no production `CheckPointRulePositioningStrategy`.
 - Add no settings, UI, database, Hasura, workflow, or vendor API request changes.
-- Do not inspect `FWO_Regel_Platzierung_Regelwerk.md`; that begins only in Phase 3.
-- Phase 1 remains open pending its previously required disposable-VM validation.
+- Do not inspect `FWO_Regel_Platzierung_Regelwerk.md`; that begins only in the Phase 4 WP-01 planning session.
+- Phase 1's previously required disposable-VM fresh-install and sequential upgrade validation passed and the phase is complete.
 - Do not expose existing-rule source, destination, service, action, zone, or other semantics until a concrete block requires them.
 - Keep production loading out of Phase 2; WP-04 accepts already-loaded normalized entities.

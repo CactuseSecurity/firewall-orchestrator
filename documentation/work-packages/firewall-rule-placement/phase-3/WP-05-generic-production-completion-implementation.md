@@ -212,7 +212,7 @@ Run, in order:
 5. `dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --no-build --configuration Debug`; and
 6. `git diff --check` plus searches proving renderer/client/zone exclusions.
 
-No new browser, deployed middleware, database-schema, installer, or disposable-VM test is introduced by WP-05. The outstanding Phase 1 disposable-VM fresh-install and `9.8.0` to `9.8.1` upgrade gates remain separately required through the approved installation-test workflow.
+No new browser, deployed middleware, database-schema, installer, or disposable-VM test was introduced by WP-05. The separate Phase 1 disposable-VM fresh-install and `9.8.0` to `9.8.1` upgrade gates subsequently passed through the approved installation-test workflow; their accepted evidence is recorded in the Phase 1 documentation and session handoff.
 
 ### Validation evidence
 
@@ -244,4 +244,4 @@ Validated locally on 2026-10-19:
 - Any replacement for the removed WP-04 renderer.
 - Check Point API execution, publish, or policy installation.
 - New settings, enums, schema fields, UI, UI help, audit events, or installer/version changes.
-- Resolving the separate Phase 1 VM validation debt.
+- The separate Phase 1 VM validation, which was completed after WP-05.

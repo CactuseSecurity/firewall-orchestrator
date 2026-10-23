@@ -86,6 +86,42 @@ namespace FWO.Test
                 Assert.That(notEditableHigh, Is.False);
             });
         }
+
+        [TestCase(false, false)]
+        [TestCase(true, true)]
+        public void DisplayTicketTable_CanEditTicketInPhase_HidesEditForTicketsTheUserMayNotChange(bool readOnly, bool expected)
+        {
+            DisplayTicketTable component = new();
+            SetMember(component, nameof(DisplayTicketTable.WfHandler), new WfHandler
+            {
+                MasterStateMatrix = CreateMatrix(lowestInputState: 2, lowestEndState: 7),
+                ReadOnlyMode = readOnly
+            });
+
+            WfTicket ticket = new() { StateId = 4, Editable = false };
+
+            bool editable = UiRequestCoverageTest.InvokePrivateBool(component, "CanEditTicketInPhase", ticket);
+
+            Assert.That(editable, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void DisplayTicketTable_CanEditTicketInPhase_KeepsEditForNotEditableTicketsAfterRequestPhase()
+        {
+            DisplayTicketTable component = new();
+            SetMember(component, nameof(DisplayTicketTable.Phase), WorkflowPhases.approval);
+            SetMember(component, nameof(DisplayTicketTable.WfHandler), new WfHandler
+            {
+                MasterStateMatrix = CreateMatrix(lowestInputState: 2, lowestEndState: 7)
+            });
+
+            WfTicket ticket = new() { StateId = 4, Editable = false };
+
+            bool editable = UiRequestCoverageTest.InvokePrivateBool(component, "CanEditTicketInPhase", ticket);
+
+            Assert.That(editable, Is.True);
+        }
+
         [Test]
         public async Task DisplayTicketTable_OpenAddEditAndDetailsActionsDelegateToHandler()
         {

@@ -52,7 +52,8 @@
 
     private bool CanShowAction(WfStateAction action)
     {
-        return AllowStateChangingActions || WfStateAction.IsReadonlyType(action.ActionType);
+        return WfStateAction.IsReadonlyType(action.ActionType)
+            || (AllowStateChangingActions && WfHandler.CanPerformActionOnActTicket(action));
     }
 
     private async Task PerformAction(WfStateAction action)

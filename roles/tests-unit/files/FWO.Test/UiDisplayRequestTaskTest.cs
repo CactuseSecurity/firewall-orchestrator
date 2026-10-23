@@ -81,6 +81,25 @@ namespace FWO.Test
             });
         }
 
+        [TestCase(StateActionTypes.AutoPromote, true, true)]
+        [TestCase(StateActionTypes.AutoPromote, false, false)]
+        [TestCase(StateActionTypes.TrafficPathAnalysis, false, true)]
+        public void ConfiguredTaskActions_CanShowAction_NeedsChangeRightOnTicket(StateActionTypes actionType, bool ticketEditable, bool expected)
+        {
+            ConfiguredTaskActions component = new();
+            SetPrivateField(component, nameof(ConfiguredTaskActions.WfHandler), new WfHandler
+            {
+                RestrictToResponsibleRequests = true,
+                ActTicket = new WfTicket { Editable = ticketEditable },
+                EditReqTaskMode = true
+            });
+            SetPrivateField(component, nameof(ConfiguredTaskActions.AllowStateChangingActions), true);
+
+            bool canShow = InvokePrivate<bool>(component, "CanShowAction", new WfStateAction { ActionType = actionType.ToString() });
+
+            Assert.That(canShow, Is.EqualTo(expected));
+        }
+
         [Test]
         public async Task AccessTaskFreeTextVisibility_DoesNotHideVisibleEndDate()
         {

@@ -158,7 +158,7 @@ namespace FWO.DeviceAutoDiscovery
                 else
                 {
                     sessionId = sessionResponse.Data.SessionId;
-                    Log.WriteDebug(Autodiscovery, $"successful CP Manager login, got SessionID: {sessionId}");
+                    Log.WriteDebug(Autodiscovery, $"successful CP Manager login");
                 }
             }
             else

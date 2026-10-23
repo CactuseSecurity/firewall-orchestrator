@@ -9,6 +9,9 @@
 - Workflow Customizing: the option "auto-create implementation tasks" is split up: the new setting reqDeviceInput (never, enter device in request, one task for all devices) and the new path analysis algorithms "For each device" and "Only if device available"; consider bundling and display bundled tasks as one are grouped as bundling options
 - path analysis REST endpoint resolvePathDevices: the device selections "for each device" and "only if device available" are no path analysis, so they can neither be requested nor serve as configured default (400 like none)
 - the upgrade translates reqAutoCreateImplTasks into reqDeviceInput and the path analysis algorithm and removes the old config key; the auto plan settings are not derived from the planning phases, an administrator sets them (default: auto plan Yes, for rules No)
+  - "after path analysis" ran the routing based path analysis independently of the configured algorithm; now the configured algorithm applies, which is "None" unless changed, so no gateway is found. Select "Network Zone Tree", or attach a path analysis action writing the found devices to the device list before "create implementation tasks" (devices in the request take precedence)
+  - "for each device" and "only for one device" replace the configured path analysis algorithm; a previously configured "Network Zone Tree" is then no longer the default of resolvePathDevices, so callers have to pass the algorithm
+  - if the auto plan settings cannot be read, the defaults apply (auto plan Yes, for rules No)
 
 ## 9.8.1 - 20.10.2026
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires

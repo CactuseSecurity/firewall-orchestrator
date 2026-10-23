@@ -3816,6 +3816,14 @@ INSERT INTO txt VALUES ('refreshtoken_lifetime','German',   'Refresh Token G&uum
 INSERT INTO txt VALUES ('refreshtoken_lifetime','English',  'Refresh Token Lifetime');
 INSERT INTO txt VALUES ('path_analysis_algorithm','German', 'Pfadanalyse Algorithmus');
 INSERT INTO txt VALUES ('path_analysis_algorithm','English','Path Analysis Algorithm');
+INSERT INTO txt VALUES ('path_algo_none',       'German',   'Keiner');
+INSERT INTO txt VALUES ('path_algo_none',       'English',  'None');
+INSERT INTO txt VALUES ('path_algo_networkZoneTree','German', 'Network Zone Tree');
+INSERT INTO txt VALUES ('path_algo_networkZoneTree','English','Network Zone Tree');
+INSERT INTO txt VALUES ('path_algo_forEachDevice','German', 'F&uuml;r jedes Ger&auml;t');
+INSERT INTO txt VALUES ('path_algo_forEachDevice','English','For each device');
+INSERT INTO txt VALUES ('path_algo_firstDevice','German',   'Nur eines wenn Ger&auml;t vorhanden');
+INSERT INTO txt VALUES ('path_algo_firstDevice','English',  'Only if device available');
 
 -- monitoring
 INSERT INTO txt VALUES ('system',               'German', 	'System');

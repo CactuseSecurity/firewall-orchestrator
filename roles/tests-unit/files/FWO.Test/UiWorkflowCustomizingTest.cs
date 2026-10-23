@@ -31,6 +31,15 @@ namespace FWO.Test
             GlobalConst.kPathAnalysisAlgorithmForEachDevice.ToString(),
             GlobalConst.kPathAnalysisAlgorithmFirstDevice.ToString()
         ];
+        private static readonly List<string> kAlgorithmTextKeysInOrder =
+        [
+            "path_algo_" + PathAnalysisAlgorithmNames.kNone,
+            "path_algo_" + PathAnalysisAlgorithmNames.kNetworkZoneTree,
+            "path_algo_" + PathAnalysisAlgorithmNames.kForEachDevice,
+            "path_algo_" + PathAnalysisAlgorithmNames.kFirstDevice
+        ];
+        private const long kUnknownAlgorithmId = 99;
+        private const string kUnknownAlgorithmName = "Custom <b>algorithm</b>";
         private static readonly object[] kNoArguments = [];
 
         private static MethodInfo GetPrivateMethod(Type type, string name)
@@ -245,7 +254,8 @@ namespace FWO.Test
             {
                 List<AngleSharp.Dom.IElement> options = [.. wrapper.FindAll("#pathAnalysisAlgorithm option")];
                 Assert.That(options.Select(option => option.GetAttribute("value")), Is.EqualTo(kAlgorithmIdsInOrder));
-                Assert.That(options[1].TextContent, Is.EqualTo(kNetworkZoneTreeAlgorithmName));
+                // the simulated user config returns the text key: the name is localized, not taken from the database
+                Assert.That(options.Select(option => option.TextContent), Is.EqualTo(kAlgorithmTextKeysInOrder));
                 Assert.That(wrapper.Find("#pathAnalysisAlgorithm").GetAttribute("value"),
                     Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()));
                 Assert.That(wrapper.FindAll(".text-warning"), Is.Empty);
@@ -295,13 +305,31 @@ namespace FWO.Test
             return component;
         }
 
-        private static IRenderedComponent<CascadingAuthenticationState> RenderCustomizing(BunitContext context, SimulatedGlobalConfig globalConfig)
+        [Test]
+        public async Task SettingsCustomizing_AlgorithmWithoutApiName_KeepsStoredNameEncoded()
+        {
+            await using BunitContext context = new();
+            SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]", ReqPriorities = "[]" };
+            WorkflowCustomizingApiConn apiConnection = new();
+            apiConnection.PathAnalysisAlgorithms.Add(new PathAnalysisAlgorithm { Id = kUnknownAlgorithmId, Name = kUnknownAlgorithmName });
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderCustomizing(context, globalConfig, apiConnection);
+
+            wrapper.WaitForAssertion(() =>
+            {
+                AngleSharp.Dom.IElement option = wrapper.Find($"#pathAnalysisAlgorithm option[value='{kUnknownAlgorithmId}']");
+                Assert.That(option.TextContent, Is.EqualTo(kUnknownAlgorithmName));
+                Assert.That(option.Children, Is.Empty, "the stored name is rendered as text");
+            });
+        }
+
+        private static IRenderedComponent<CascadingAuthenticationState> RenderCustomizing(BunitContext context, SimulatedGlobalConfig globalConfig,
+            WorkflowCustomizingApiConn? apiConnection = null)
         {
             // ExecutionModeAuthorizeView also checks the roles of the user config; without them only the
             // always disabled save button of the NotAuthorized branch is rendered.
             SimulatedUserConfig userConfig = new();
             userConfig.User.Roles = [Roles.Admin];
-            context.Services.AddSingleton<ApiConnection>(new WorkflowCustomizingApiConn());
+            context.Services.AddSingleton<ApiConnection>(apiConnection ?? new WorkflowCustomizingApiConn());
             context.Services.AddSingleton<GlobalConfig>(globalConfig);
             context.Services.AddSingleton<UserConfig>(userConfig);
             context.Services.AddSingleton<DomEventService>();

@@ -108,7 +108,14 @@ The 9.8.2 upgrade translates the former workflow option `reqAutoCreateImplTasks`
 analysis algorithm only; it does not derive the auto plan settings from the planning phases. Stored values are kept
 under the new names, otherwise the defaults apply (`autoPlanImplementation` Yes, `autoPlanImplementationForRules`
 No), and an administrator sets them. Levels that the 9.7.4 upgrade set to `planImplementation = false` (former mode
-`None`) are planned manually afterwards. Installation and upgrade provide
+`None`) are planned manually afterwards. If the action cannot read the settings, these defaults apply.
+
+The former option `afterPathAnalysis` ran `RoutingBasedPathAnalyzer` regardless of `pathAnalysisAlgorithm`. It becomes
+`reqDeviceInput = never` and keeps the configured algorithm, which is `None` (1) unless changed, so no gateway is
+found. Select `Network Zone Tree`, or attach a `PathAnalysis` action with `WriteToDeviceList` before "Create
+implementation tasks": devices in the request take precedence over the algorithm. `forEachDevice` and
+`onlyForOneDevice` overwrite `pathAnalysisAlgorithm` with 3 or 4; a configured `Network Zone Tree` then no longer serves
+as default of `resolvePathDevices`. Installation and upgrade provide
 the action unless one of this type already exists, but do not attach it; an administrator attaches it to a state,
 e.g. "approved".
 

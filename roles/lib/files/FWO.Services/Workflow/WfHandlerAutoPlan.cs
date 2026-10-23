@@ -30,9 +30,19 @@ namespace FWO.Services.Workflow
         internal IPathAnalyzer? PathAnalyzerOverride { get; set; }
 
         /// <summary>
+        /// Replaces the resolved auto plan settings of all levels; used by tests that check other parts of the creation.
+        /// </summary>
+        internal GlobalDeviceSpecificSettings? AutoPlanSettingsOverride { get; set; }
+
+        /// <summary>
         /// No gateways or managements to resolve, only the global settings.
         /// </summary>
         private static readonly List<int> kNoIds = [];
+
+        /// <summary>
+        /// Settings applied when no settings could be resolved: auto plan Yes, for rules No.
+        /// </summary>
+        private static readonly GlobalDeviceSpecificSettings kDefaultAutoPlanSettings = new();
 
         private static readonly List<string> kRuleTaskTypes =
             [WfTaskType.access.ToString(), WfTaskType.rule_modify.ToString(), WfTaskType.rule_delete.ToString()];
@@ -190,10 +200,15 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Returns whether implementation tasks are created automatically on a level. A level that was not resolved
-        /// inherits the global settings; without any resolved settings the creation stays automatic as before.
+        /// inherits the global settings; without any resolved settings the defaults apply, so rule tasks are not
+        /// created automatically against the settings of an administrator.
         /// </summary>
         private bool IsAutoPlanned(bool isRuleTask, DeviceSpecificScopeType scopeType, int? id)
         {
+            if (AutoPlanSettingsOverride != null)
+            {
+                return AutoPlanSettingsOverride.IsAutoPlanned(isRuleTask);
+            }
             if (id != null && autoPlanCache.TryGetValue((scopeType, id), out GlobalDeviceSpecificSettings? settings))
             {
                 return settings.IsAutoPlanned(isRuleTask);
@@ -202,7 +217,7 @@ namespace FWO.Services.Workflow
             {
                 return globalSettings.IsAutoPlanned(isRuleTask);
             }
-            return true;
+            return kDefaultAutoPlanSettings.IsAutoPlanned(isRuleTask);
         }
 
         /// <summary>
@@ -225,20 +240,20 @@ namespace FWO.Services.Workflow
         /// Resolves the settings of the given gateways and managements not resolved yet in this run, together with the
         /// global settings, through the own api connection: in the state action it runs in the middleware with the rights
         /// of the middleware server, in the monitoring of an admin with the admin's rights. A failure is logged; the
-        /// levels then count as automatic.
+        /// defaults then apply to all levels.
         /// </summary>
         private async Task EnsureAutoPlanSettings(List<int> deviceIds, List<int> managementIds)
         {
             List<int> missingDeviceIds = [.. deviceIds.Distinct().Where(id => !autoPlanCache.ContainsKey((DeviceSpecificScopeType.Gateway, id)))];
             List<int> missingManagementIds = [.. managementIds.Distinct().Where(id => !autoPlanCache.ContainsKey((DeviceSpecificScopeType.Management, id)))];
             bool allResolved = missingDeviceIds.Count == 0 && missingManagementIds.Count == 0 && autoPlanCache.ContainsKey((DeviceSpecificScopeType.Global, null));
-            if (allResolved || autoPlanResolveFailed)
+            if (allResolved || autoPlanResolveFailed || AutoPlanSettingsOverride != null)
             {
                 return;
             }
             if (apiConnection == null)
             {
-                Log.WriteWarning(kAutoPlanLogTitle, "Auto plan settings cannot be resolved without api connection; implementation tasks are created automatically.");
+                Log.WriteWarning(kAutoPlanLogTitle, "Auto plan settings cannot be resolved without api connection; the default auto plan settings apply.");
                 return;
             }
             try
@@ -256,7 +271,7 @@ namespace FWO.Services.Workflow
             catch (Exception exception)
             {
                 autoPlanResolveFailed = true;
-                Log.WriteError(kAutoPlanLogTitle, "Could not resolve the auto plan settings; implementation tasks are created automatically.", exception);
+                Log.WriteError(kAutoPlanLogTitle, "Could not resolve the auto plan settings; the default auto plan settings apply.", exception);
             }
         }
     }

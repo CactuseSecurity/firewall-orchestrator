@@ -373,16 +373,36 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SettingsThatCannotBeRead_CreateTasksAutomatically()
+        public async Task SettingsThatCannotBeRead_ApplyDefaults()
         {
             InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
             api.FailingQuery = DeviceSpecificSettingsQueries.getNodesByNaturalKeys;
+            WfReqTask accessTask = CreateAccessTask(kBothGateways);
+            WfReqTask genericTask = new() { Id = 6, TaskType = WfTaskType.generic.ToString(), StateId = kOpenStateId, Title = "Generic" };
+
+            await InvokeAutoCreateImplTasks(CreateHandler(api), accessTask);
+            await InvokeAutoCreateImplTasks(CreateHandler(api), genericTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(accessTask.ImplementationTasks, Is.Empty, "rules are planned manually by default");
+                Assert.That(genericTask.ImplementationTasks, Has.Count.EqualTo(1), "other task types are planned automatically by default");
+            });
+        }
+
+        [Test]
+        public async Task SettingsThatCannotBeRead_CreateNoFallbackForRuleTask()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            api.FailingQuery = DeviceSpecificSettingsQueries.getNodesByNaturalKeys;
             WfHandler handler = CreateHandler(api);
-            WfReqTask reqTask = CreateAccessTask(kBothGateways);
+            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kNoGateway);
+            WfReqTask reqTask = CreateAccessTask(kNoGateway);
 
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
-            Assert.That(DeviceIds(reqTask), Is.EqualTo(kBothGatewayTasks));
+            Assert.That(reqTask.ImplementationTasks, Is.Empty, "no fallback task without readable settings");
         }
 
         [Test]
@@ -432,7 +452,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(SettingsQueryCount(api), Is.EqualTo(1));
-                Assert.That(DeviceIds(firstTask), Is.EqualTo(kFirstGatewayTask), "a failure counts as automatic");
+                Assert.That(firstTask.ImplementationTasks, Is.Empty, "a failure applies the defaults, rules are planned manually");
             });
         }
 

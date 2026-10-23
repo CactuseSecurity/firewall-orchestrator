@@ -224,7 +224,7 @@
                 <select id="pathAnalysisAlgorithm" class="form-select form-select-sm" @bind="configData!.PathAnalysisAlgorithm">
                     @foreach (PathAnalysisAlgorithm algorithm in pathAnalysisAlgorithms)
                     {
-                        <option value="@algorithm.Id">@algorithm.Name</option>
+                        <option value="@algorithm.Id">@AlgorithmDisplayName(algorithm)</option>
                     }
                 </select>
             </div>
@@ -295,6 +295,7 @@ else
     private List<WfPriority> prioList = [];
     private int? selectedApiTicketInitialStateId;
     private List<PathAnalysisAlgorithm> pathAnalysisAlgorithms = [];
+    private const string kAlgorithmTextPrefix = "path_algo_";
 
     protected override async Task OnInitializedAsync()
     {
@@ -376,6 +377,16 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+    /// <summary>
+    /// Returns the localized name of a path analysis algorithm, derived from its API name. An algorithm without API
+    /// name, e.g. added to the database manually, keeps its stored name.
+    /// </summary>
+    private string AlgorithmDisplayName(PathAnalysisAlgorithm algorithm)
+    {
+        string? apiName = PathAnalysisAlgorithmNames.GetName(algorithm.Id);
+        return apiName == null ? algorithm.Name : userConfig.GetText(kAlgorithmTextPrefix + apiName);
     }
 
     private void ValidateApiTicketInitialStateSelection()

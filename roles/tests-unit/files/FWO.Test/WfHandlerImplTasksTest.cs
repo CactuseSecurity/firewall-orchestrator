@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using FWO.Services;
 using FWO.Services.Workflow;
@@ -12,6 +13,11 @@ namespace FWO.Test
     [TestFixture]
     internal class WfHandlerImplTasksTest
     {
+        /// <summary>
+        /// Plans every task type automatically, so the tests check the targets independently of the defaults.
+        /// </summary>
+        private static readonly GlobalDeviceSpecificSettings kAllAutoPlanned = new() { AutoPlanImplementationForRules = true };
+
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix? matrix = null)
         {
             FieldInfo? field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -360,7 +366,8 @@ namespace FWO.Test
             WfHandler handler = new()
             {
                 userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask },
-                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }],
+                AutoPlanSettingsOverride = kAllAutoPlanned
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
             reqTask.SetDeviceList([WfReqTaskBase.kAllDevicesId]);
@@ -376,7 +383,8 @@ namespace FWO.Test
             WfHandler handler = new()
             {
                 userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices },
-                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }],
+                AutoPlanSettingsOverride = kAllAutoPlanned
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
             reqTask.SetDeviceList([WfReqTaskBase.kAllDevicesId]);
@@ -393,7 +401,8 @@ namespace FWO.Test
             WfHandler handler = new()
             {
                 userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices },
-                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }],
+                AutoPlanSettingsOverride = kAllAutoPlanned
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
 
@@ -409,7 +418,8 @@ namespace FWO.Test
             WfHandler handler = new()
             {
                 userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices },
-                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }],
+                AutoPlanSettingsOverride = kAllAutoPlanned
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
             reqTask.SetDeviceList([new Device { Id = 3 }, new Device { Id = 5 }]);
@@ -786,6 +796,7 @@ namespace FWO.Test
                     ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices,
                     ReqConsiderBundling = considerBundling
                 },
+                AutoPlanSettingsOverride = kAllAutoPlanned,
                 MasterStateMatrix = new StateMatrix
                 {
                     LowestEndState = 3,

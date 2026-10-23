@@ -298,7 +298,7 @@ public sealed class DeviceSpecificSettingsManager
     /// Merges the values of the stored nodes of a requested chain, Global first. Levels without a stored node
     /// contribute no values.
     /// </summary>
-    private ResolvedSettings ResolveChain(List<DeviceSpecificSettingsScope> chain,
+    private static ResolvedSettings ResolveChain(List<DeviceSpecificSettingsScope> chain,
         Dictionary<(DeviceSpecificScopeType ScopeType, string ObjectKey), DeviceSpecificConfigNodeData> storedNodes)
     {
         DeviceSpecificSettingsScope requestedScope = chain[^1];

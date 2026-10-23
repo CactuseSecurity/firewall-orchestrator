@@ -195,8 +195,3 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZo
 INSERT INTO device_specific_config_node (node_type, object_key, display_name, sort_order)
 VALUES ('global', 'global', 'Global', 0)
 ON CONFLICT (node_type, object_key) DO NOTHING;
-
--- The default workflow has no active planning phase, so the implementation tasks of rules are created automatically.
-INSERT INTO device_specific_config_value (node_id, config_key, config_value)
-SELECT id, 'autoPlanImplementationForRules', 'true'::jsonb FROM device_specific_config_node WHERE node_type = 'global'
-ON CONFLICT (node_id, config_key) DO NOTHING;

@@ -809,9 +809,9 @@ def resolve_ref_from_object_dictionary(
                 uid = "unknown"
             FWOLogger.warning(f"object of type {field_name} with uid {uid} not found in object dictionary")
         return None
-    # there are some objects (at least CpmiVoipSipDomain) which are not API-gettable with show-objects (only with show-object "UID")
+    # there are some objects (e.g. VoIP domains) which are not API-gettable with show-objects (only with show-object "UID")
     # these must be added to the (network) objects tables
-    if matched_obj["type"] in ["CpmiVoipSipDomain", "CpmiVoipMgcpDomain", "gsn_handover_group"]:
+    if cp_const.is_object_dictionary_only_obj_type(matched_obj["type"]):
         FWOLogger.info(
             f"adding {matched_obj['type']} '{matched_obj['name']}' object manually, because it is not retrieved by show objects API command"
         )
@@ -1063,7 +1063,7 @@ def get_object_details_from_api(uid_missing_obj: str, sid: str = "", apiurl: str
         return handle_gateway_objects(obj)
     if obj_type == "Global":
         return handle_global_object(obj)
-    if obj_type in ["updatable-object", "CpmiVoipSipDomain", "CpmiVoipMgcpDomain", "gsn_handover_group"]:
+    if obj_type == "updatable-object" or cp_const.is_object_dictionary_only_obj_type(obj_type):
         return handle_updatable_objects(obj)
     if obj_type in ["Internet", "security-zone"]:
         return handle_network_zone_objects(obj)

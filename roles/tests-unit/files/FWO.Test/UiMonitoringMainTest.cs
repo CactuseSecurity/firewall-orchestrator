@@ -8,6 +8,7 @@ using FWO.Data.Middleware;
 using FWO.Middleware.Client;
 using FWO.Test.Mocks;
 using FWO.Ui.Pages.Monitoring;
+using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -101,6 +102,7 @@ namespace FWO.Test
             context.Services.AddSingleton(middlewareClient ?? new MiddlewareClient("http://localhost/"));
             SimulatedUserConfig userConfig = new();
             context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<UiSessionTracker>();
 
             IRenderedComponent<CascadingAuthenticationState> component = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<MonitoringMain>());

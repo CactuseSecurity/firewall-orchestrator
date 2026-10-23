@@ -633,6 +633,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Das Email-Protokoll kann nach Benachrichtigungs-ID, Benachrichtigungstyp, Status und Fehlertext gefiltert werden.</li>
     <li>LDAP: Eine Verbindung kann bis zu 10 Server (Replikate) eines Verzeichnisses enthalten, die der Reihe nach versucht werden. Aktive Verbindungen d&uuml;rfen keine gleichen Such- oder Schreibpfade haben; bisher als getrennte Verbindungen eingerichtete Replikate m&uuml;ssen zu einer Verbindung zusammengefasst werden. Lokale Nutzer werden an die unver&auml;nderliche Objekt-Id ihres Verzeichniseintrags gebunden, daher muss sich nach dem Upgrade jeder Nutzer einmal mit Passwort anmelden.</li>
     <li>Die Auftr&auml;ge &quot;Objekt anlegen&quot; und &quot;Objekt &auml;ndern&quot; unterst&uuml;tzen Zeitobjekte mit Name, Start- und Endzeit.</li>
+    <li>Neuer REST-Aufruf <code>resolvePathDevices</code>: ermittelt die Firewalls auf den Pfaden zwischen Quell- und Zieladressen (Bereiche oder Netze, je bis zu 100) mit dem Network-Zone-Tree-Algorithmus. Algorithmus und Zonenmatrix k&ouml;nnen angegeben werden, sonst gelten die Einstellungen. Die Antwort nennt jedes Ger&auml;t einmal sowie den verwendeten Algorithmus und die verwendete Matrix.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -664,6 +665,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>The email log can be filtered by notification ID, notification type, status and error text.</li>
     <li>LDAP: a connection can list up to 10 servers (replicas) of one directory, which are tried in order. Active connections must not share a search or write path; replicas configured as separate connections so far have to be combined into one connection. Local users are bound to the immutable object id of their directory entry, so every user has to log in with password once after the upgrade.</li>
     <li>The tasks &quot;create object&quot; and &quot;modify object&quot; support time objects with name, start and end time.</li>
+    <li>New REST call <code>resolvePathDevices</code>: determines the firewalls on the paths between source and destination addresses (ranges or networks, up to 100 each) using the network zone tree algorithm. Algorithm and zone matrix can be specified, otherwise the settings apply. The response lists each device once together with the algorithm and matrix used.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -4586,8 +4588,8 @@ INSERT INTO txt VALUES ('U5318', 'German',  'Sind sie sicher, dass sie die Einst
 INSERT INTO txt VALUES ('U5318', 'English', 'Are you sure you want to reset the settings? Changes on workflows get lost.');
 INSERT INTO txt VALUES ('U5319', 'German',  'Server f&uuml;r ausgehende Emails zur Benachrichtigung verwalten.');
 INSERT INTO txt VALUES ('U5319', 'English', 'Manage email server for outgoing user notifications.');
-INSERT INTO txt VALUES ('U5320', 'German',  'Mehrere Email-Adressen mit Komma trennen');
-INSERT INTO txt VALUES ('U5320', 'English', 'Multiple email addresses can be separated by using commas');
+INSERT INTO txt VALUES ('U5320', 'German',  'Mehrere Email-Adressen mit Komma, Semikolon oder senkrechtem Strich (|) trennen');
+INSERT INTO txt VALUES ('U5320', 'English', 'Multiple email addresses can be separated by using commas, semicolons or vertical bars (|)');
 INSERT INTO txt VALUES ('U5321', 'German',  'Anzeige und &Uuml;berschreiben aller dargestellten Texte');
 INSERT INTO txt VALUES ('U5321', 'English', 'Show and overwrite all shown texts');
 INSERT INTO txt VALUES ('U5322', 'German',  'Verwaltung der Voreinstellungen f&uuml;r die Netzwerk-Modellierung');
@@ -4868,6 +4870,8 @@ INSERT INTO txt VALUES ('E5112', 'German',  'Gateway konnte nicht angelegt werde
 INSERT INTO txt VALUES ('E5112', 'English', 'Gateway could not be created');
 INSERT INTO txt VALUES ('E5113', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten externen Ticket-Systemen verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
 INSERT INTO txt VALUES ('E5113', 'English', 'Deletion of credentials not allowed as they are in use by the external ticket systems named. Change the credentials of these ticket systems before deleting them.');
+INSERT INTO txt VALUES ('E5114', 'German',  'Der Antrag kann nur vom Antragsteller oder von Verantwortlichen der betroffenen Anwendungen ge&auml;ndert werden.');
+INSERT INTO txt VALUES ('E5114', 'English', 'The ticket can only be changed by its requester or by users responsible for the applications concerned.');
 INSERT INTO txt VALUES ('E5121', 'German',  'Bitte einen Namen f&uuml;r das benutzerdefinierte Flow-Objekt eingeben');
 INSERT INTO txt VALUES ('E5121', 'English', 'Please enter a name for the custom flow object');
 INSERT INTO txt VALUES ('E5122', 'German',  'Bitte mindestens einen Dienst ausw&auml;hlen');
@@ -5898,8 +5902,8 @@ INSERT INTO txt VALUES ('H2017', 'German',  'Eigent&uuml;mer: Ersteller dieses T
 INSERT INTO txt VALUES ('H2017', 'English', 'Owner: Creator of this schedule.');
 INSERT INTO txt VALUES ('H2018', 'German',  'Z&auml;hler: Z&auml;hlt, wie viele Reports mit diesem Terminauftrag bereits erstellt wurden.');
 INSERT INTO txt VALUES ('H2018', 'English', 'Count: Counts how many reports have already been created with this schedule.');
-INSERT INTO txt VALUES ('H2019', 'German',  'Empf&auml;nger-Email-Adressen f&uuml;r Benachrichtigungen: Komma-separierte Liste von Email-Adressen, an die die durch diesen Termin erzeugten Reports versendet werden. Default-Wert = "leer".');
-INSERT INTO txt VALUES ('H2019', 'English', 'Recipient email addresses for notification emails: A comma-separated list of email addresses to which the reports generated by this schedule will be sent. Default value = "empty".');
+INSERT INTO txt VALUES ('H2019', 'German',  'Empf&auml;nger-Email-Adressen f&uuml;r Benachrichtigungen: Eine Liste von Email-Adressen, getrennt durch Komma (,), Semikolon (;) oder senkrechten Strich (|), an die die durch diesen Termin erzeugten Reports versendet werden. Default-Wert = "leer".');
+INSERT INTO txt VALUES ('H2019', 'English', 'Recipient email addresses for notification emails: A list of email addresses separated by commas (,), semicolons (;) or vertical bars (|) to which the reports generated by this schedule will be sent. Default value = "empty".');
 INSERT INTO txt VALUES ('H2020', 'German',  'Titel der Benachrichtigung: Betreffzeile der Benachrichtigungs-Email f&uuml;r die durch diesen Termin erzeugten Reports. Default-Wert = "leer".');
 INSERT INTO txt VALUES ('H2020', 'English', 'Subject of notification emails: Subject line of the notification email for the reports generated by this schedule. Default value = "empty".');
 INSERT INTO txt VALUES ('H2021', 'German',  'Text der Benachrichtigung: Email-Text f&uuml;r die Benachrichtigung. Der Email werden die durch diesen Termin erzeugten Reports angeh&auml;ngt. Default-Wert = "leer".');
@@ -6902,9 +6906,11 @@ INSERT INTO txt VALUES ('H5261', 'English', 'Here all users known to the system 
 ');
 INSERT INTO txt VALUES ('H5271', 'German',  'Aktionen: Nutzer k&ouml;nnen geklont, ge&auml;ndert oder gel&ouml;scht werden.
     Ausserdem kann der Administrator das Passwort der Nutzer zur&uuml;cksetzen und ein neues setzen, welches den Vorgaben der <a href="/help/settings/passwordpolicy">Passworteinstellungen</a> gen&uuml;gen muss.
+    Das L&ouml;schen eines Nutzers beendet sofort alle seine Sitzungen.
 ');
 INSERT INTO txt VALUES ('H5271', 'English', 'Actions: Users can be cloned, edited or deleted.
     Additionally the administrator has the possibility to reset the password of the users and set a new password which has to comply with the <a href="/help/settings/passwordpolicy">Password Policy</a>.
+    Deleting a user ends all of the user''s sessions at once.
 ');
 INSERT INTO txt VALUES ('H5272', 'German',  'Name: Nutzername.');
 INSERT INTO txt VALUES ('H5272', 'English', 'Name: Name of the user.');
@@ -6954,10 +6960,10 @@ INSERT INTO txt VALUES ('H5302', 'German',  'Wenn Beispieldaten (definiert durch
 INSERT INTO txt VALUES ('H5302', 'English', 'If there are sample data (defined by the ending "_demo" of the group name), a button is displayed to delete them.
     The deletion is only possible, if there are no non-sample users (user name not ending with "_demo") assigned to the group.
 ');
-INSERT INTO txt VALUES ('H5311', 'German',  'Gruppenaktionen: Hier k&ouml;nnen selbstdefinierte Gruppen ge&auml;ndert (zur Zeit nur umbenannt) oder gel&ouml;scht werden.');
-INSERT INTO txt VALUES ('H5311', 'English', 'Group actions: Here is the possibility to edit (currently only rename) or delete self defined user groups.');
-INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) oder aus einem zu durchsuchenden Ldap der Gruppe zugeordnet bzw. von dieser entfernt werden.');
-INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) or searched from an Ldap can be assigned to resp. removed from the user groups.');
+INSERT INTO txt VALUES ('H5311', 'German',  'Gruppenaktionen: Hier k&ouml;nnen selbstdefinierte Gruppen ge&auml;ndert (zur Zeit nur umbenannt) oder gel&ouml;scht werden. Das L&ouml;schen einer Gruppe beendet sofort die Sitzungen ihrer Mitglieder; diese m&uuml;ssen sich neu anmelden.');
+INSERT INTO txt VALUES ('H5311', 'English', 'Group actions: Here is the possibility to edit (currently only rename) or delete self defined user groups. Deleting a group ends the sessions of its members at once; they have to log in again.');
+INSERT INTO txt VALUES ('H5312', 'German',  'Nutzeraktionen: Hier k&ouml;nnen dem System bekannte Nutzer (siehe <a href="/help/settings/users">Nutzereinstellungen</a>) oder aus einem zu durchsuchenden Ldap der Gruppe zugeordnet bzw. von dieser entfernt werden. Das Entfernen eines Nutzers aus einer Gruppe beendet sofort seine Sitzungen.');
+INSERT INTO txt VALUES ('H5312', 'English', 'User actions: Here users known to the system (see <a href="/help/settings/users">User settings</a>) or searched from an Ldap can be assigned to resp. removed from the user groups. Removing a user from a group ends the user''s sessions at once.');
 INSERT INTO txt VALUES ('H5313', 'German',  'Name: Name der Nutzergruppe.');
 INSERT INTO txt VALUES ('H5313', 'English', 'Name: Name of the user group.');
 INSERT INTO txt VALUES ('H5314', 'German',  'Nutzer: Liste der der Gruppe zugeordneten Nutzer.');
@@ -6974,10 +6980,12 @@ INSERT INTO txt VALUES ('H5332', 'German',  'Die verf&uuml;gbaren Rollen k&ouml;
 INSERT INTO txt VALUES ('H5332', 'English', 'The provided roles can be divided into several categories:');
 INSERT INTO txt VALUES ('H5341', 'German',  'Aktionen: Der Admin hat die M&ouml;glichkeit, Nutzer den Rollen zuzuordnen oder sie von ihnen zu entfernen,
     ausser f&uuml;r "anonymous" oder "middleware-server", welche nur intern genutzt werden kann.
+    Das Entfernen eines Nutzers oder einer Gruppe aus einer Rolle beendet sofort die Sitzungen der betroffenen Nutzer; diese m&uuml;ssen sich neu anmelden.
     Das Hinzuf&uuml;gen der Nutzer kann auf drei Arten erfolgen:
 ');
 INSERT INTO txt VALUES ('H5341', 'English', 'Actions: The admin can add or delete users from the roles,
     except for "anonymous" or "middleware-server" which can only be used internally.
+    Removing a user or group from a role ends the sessions of the affected users at once; they have to log in again.
     For adding users there are three possibilities:
 ');
 INSERT INTO txt VALUES ('H5342', 'German',  'Name: Rollenname');
@@ -9064,22 +9072,24 @@ INSERT INTO txt VALUES ('H8302', 'English', 'The auditor sees all processing sta
     The auditor cannot change anything though: saving, state changes, comments, assignments and deletion stay disabled, and opening changes neither state nor handler.
 ');
 INSERT INTO txt VALUES ('H8311', 'German',  'Ticket-Liste (Rolle: requester, admin, auditor):
-    Dem Antragsteller steht eine &Uuml;bersicht &uuml;ber alle von ihm selbst angelegten Tickets aller Bearbeitungsstufen zur Verf&uuml;gung. Admin und Auditor k&ouml;nnen hier alle Tickets sehen.
+    Dem Antragsteller steht eine &Uuml;bersicht &uuml;ber alle von ihm selbst angelegten Tickets aller Bearbeitungsstufen zur Verf&uuml;gung, dazu die Tickets der Anwendungen, f&uuml;r die er verantwortlich ist (als beantragte oder bei Schnittstellenantr&auml;gen als beantragende Anwendung). Admin und Auditor k&ouml;nnen hier alle Tickets sehen.
     &Auml;nderungen an den Tickets sind in dieser Ansicht nicht m&ouml;glich.
 ');
 INSERT INTO txt VALUES ('H8311', 'English', 'Ticket List (Role: requester, admin, auditor):
-    The requester gets an overview of all tickets in all processing states created by himself. Admin and auditor have view on all tickets.
+    The requester gets an overview of all tickets in all processing states created by himself, plus the tickets of the applications he is responsible for (as requested application or, for interface requests, as requesting application). Admin and auditor have view on all tickets.
     Changes on the tickets are not possible in this view.
 ');
 INSERT INTO txt VALUES ('H8312', 'German',  'Antrag stellen (Rolle: requester), voreingestellt:
-    Antr&auml;ge k&ouml;nnen nur von Nutzern mit entsprechenden Rechten gestellt werden, definiert durch die Rolle (weitere Einschr&auml;nkungen auf die Eigent&uuml;merschaft ist in sp&auml;teren Versionen vorgesehen).
+    Antr&auml;ge k&ouml;nnen nur von Nutzern mit entsprechenden Rechten gestellt werden, definiert durch die Rolle.
+    Ein Antragsteller sieht und &auml;ndert nur eigene Tickets und Tickets der Anwendungen, f&uuml;r die er verantwortlich ist. Bei Schnittstellenantr&auml;gen gilt das f&uuml;r die beantragte und die beantragende Anwendung. Der Admin sieht und &auml;ndert alle Tickets, der Auditor sieht alle Tickets ohne sie &auml;ndern zu k&ouml;nnen.
     Solange noch kein Status des Ausgangsbereichs erreicht wurde, k&ouml;nnen Tickets beliebig ge&auml;ndert und fachliche Auftr&auml;ge angeh&auml;ngt, ge&auml;ndert oder gel&ouml;scht werden.
     Um Inkonsistenzen zu vermeiden, werden angelegte Auftr&auml;ge erst beim ersten Speichern des Tickets mit erzeugt. Vorher sind sie nur lokal vorhanden und gehen beim Abbruch der Antragstellung verloren.
     Von automatischen Schnittstellen erzeugte Tickets k&ouml;nnen gesperrt sein. Die Sperre sch&uuml;tzt dann die fachlichen Auftr&auml;ge und deren Struktur, w&auml;hrend Kopfdaten des Tickets wie Titel, Priorit&auml;t, Deadline und Grund weiterhin korrigiert werden k&ouml;nnen.
     In sp&auml;teren Phasen sind keine inhaltlichen &Auml;nderungen an Ticket und fachlichen Auftr&auml;gen mehr m&ouml;glich, lediglich an Metadaten wie Status, Start und Stop sowie Kommentierungen.
 ');
 INSERT INTO txt VALUES ('H8312', 'English', 'Create ticket (Role: requester), preselected:
-    Requests can only be created by users with according rights, defined by the roles (further restrictions on ownership are envisaged for later releases).
+    Requests can only be created by users with according rights, defined by the roles.
+    A requester only sees and changes his own tickets and the tickets of the applications he is responsible for. For interface requests this applies to the requested and to the requesting application. The admin sees and changes all tickets, the auditor sees all tickets without being able to change them.
     As long as no state in the exit range is reached, tickets can be changed arbitrarily, and request task can be added, changed or deleted.
     To avoid inconsistencies, already built request tasks are created with the first saving of the ticket. Before, they exist only locally and get lost on cancellation of ticket creation.
     Tickets created by automatic interfaces can be locked. This lock protects request tasks and their structure, while ticket header data such as title, priority, deadline, and reason can still be corrected.

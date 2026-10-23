@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:6e4b20ec-96a6-49af-922c-1fa7a8bdcdfc",
+  "serialNumber": "urn:uuid:9ce3d036-59b9-47bb-8703-36a0e66c2856",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-10-14T12:00:25Z",
+    "timestamp": "2026-10-20T08:45:10Z",
     "tools": {
       "components": [
         {
@@ -35,20 +35,20 @@
   "components": [
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp@1.8.4",
+      "bom-ref": "pkg:nuget/AngleSharp@1.8.5",
       "authors": [
         {
           "name": "AngleSharp"
         }
       ],
       "name": "AngleSharp",
-      "version": "1.8.4",
+      "version": "1.8.5",
       "description": "AngleSharp is the ultimate angle brackets parser library. It parses HTML5, CSS3, and XML to construct a DOM based on the official W3C specification.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "D9107D2E275C02631D25483845C9770DBC09D7F581450AC02B95BD245122742BFAF996E78AAAA1DFBAC6ACFA5C1C219F09865E2E050FA6D1A4B82C280D69268E"
+          "content": "6C4A3D04294506D724867E879802F293D4C03EA9CF3373941D50513F793768C6E2EF0E728A956C061D9B09B57F7B8299676F7470669885A19B2642D39D564DAA"
         }
       ],
       "licenses": [
@@ -59,7 +59,7 @@
         }
       ],
       "copyright": "Copyright 2013-2026, AngleSharp.",
-      "purl": "pkg:nuget/AngleSharp@1.8.4",
+      "purl": "pkg:nuget/AngleSharp@1.8.5",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -73,20 +73,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp.Css@1.1.2",
+      "bom-ref": "pkg:nuget/AngleSharp.Css@1.1.3",
       "authors": [
         {
           "name": "AngleSharp.Css"
         }
       ],
       "name": "AngleSharp.Css",
-      "version": "1.1.2",
+      "version": "1.1.3",
       "description": "Extends the CSSOM from the core AngleSharp library.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "60CC5EC1FFCA9754413020586CBCA278851C641D45C5D3DC4DC9F21B6B2E1F01DB51CF51C49FFCD1B93F69B14909673161BD2EC6A60C1813BF138F181AABC6BD"
+          "content": "DA1D07C680D95B34EF47835FC7B7A307746278B4F396320877155ACD5DF299A27726EBC65349D4B1CC59895D86F1608367F2866DB2437E9C1E534807E2C2E961"
         }
       ],
       "licenses": [
@@ -96,7 +96,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/AngleSharp.Css@1.1.2",
+      "purl": "pkg:nuget/AngleSharp.Css@1.1.3",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -223,20 +223,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/bunit@2.11.3",
+      "bom-ref": "pkg:nuget/bunit@2.12.5",
       "authors": [
         {
           "name": "Egil Hansen"
         }
       ],
       "name": "bunit",
-      "version": "2.11.3",
+      "version": "2.12.5",
       "description": "bUnit is a testing library for Blazor components.\n\n\t\t\tYou can easily define components under test in C# or Razor syntax and verify outcome\n\t\t\tusing semantic HTML diffing/comparison logic.\n\t\t\tYou can interact with and inspect the component under test, trigger event handlers,\n\t\t\tprovide cascading values, and inject services.\n\n\t\t\tbUnit also includes a complete fake implementation of Blazor\u0027s authentication and\n\t\t\tauthorization logic, navigation manager, and\n\t\t\tJSInterop.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "C33B78F6D009ECD3FEA8A60B594464754669D7A202C324DDA3D2A3F1C432E68991C334C239BCA78AE49D9FF0F6EE0094BBAD9C0E9247F11D49DC67F5A900BF05"
+          "content": "308772C10D2D22E6383F57E544F8E7817586DB16322F4C654C3AD2A6D184EB256B998838E633C84D9FCECE06DE3BA2185B7E472DFC5CBF96457ED3A49271B846"
         }
       ],
       "licenses": [
@@ -247,7 +247,7 @@
         }
       ],
       "copyright": "Egil Hansen",
-      "purl": "pkg:nuget/bunit@2.11.3",
+      "purl": "pkg:nuget/bunit@2.12.5",
       "externalReferences": [
         {
           "url": "https://bunit.egilhansen.com/",
@@ -1010,20 +1010,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.10",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Components.Authorization",
-      "version": "10.0.10",
-      "description": "Authentication and authorization support for Blazor applications.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "version": "10.0.13",
+      "description": "Authentication and authorization support for Blazor applications.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "1F93BF58B3E3D4625F4DA5236DC55D4098BC3BEEEC390F9D73B3DC64C5D8CD5B0BFFCA229BF4BACF87E3E20EA822944B2B13589F397B98307F8D99C09B5F88A8"
+          "content": "3571E8109897468C5FE728E0EA00683520B81DCAB761BC40199F77B78424FABCE03862C45A1D6B888DBFA6D6AB1ACE9391DF346DDB8F8B8634294D09B7AE04F1"
         }
       ],
       "licenses": [
@@ -1034,7 +1034,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.10",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.13",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1048,20 +1048,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.Forms@10.0.10",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.Forms@10.0.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Components.Forms",
-      "version": "10.0.10",
-      "description": "Forms and validation support for Blazor applications.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "version": "10.0.13",
+      "description": "Forms and validation support for Blazor applications.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "FD961899D28E6CB37C591FE14F598F7D9834C1977AC04FDE6812D05DD23C1D939D46663705F80E269D29F1BF513F1E3DC600E92DAAD8B5FE18F2C585FFC9396E"
+          "content": "73D34817CB8478A00AD0164A97144878F171348C3F428DCF4506C067693EA26D428B4A9C49DA3D9C51B78B2F4B1FE52934A02BD34BE2CCF68BA4D27F33C423EA"
         }
       ],
       "licenses": [
@@ -1072,7 +1072,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.Forms@10.0.10",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.Forms@10.0.13",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1086,20 +1086,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.10",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Components.Web",
-      "version": "10.0.10",
-      "description": "Support for rendering ASP.NET Core components for browsers.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "version": "10.0.13",
+      "description": "Support for rendering ASP.NET Core components for browsers.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "527992E5CC65CF4B70A905748F72FFB791C721EA9FCEF942BBE0B6AE0176529C11FB051E1F337ABA2BC3AF08F9CDE7138E1E5A5840BA1C2C227D6348C97F3A1B"
+          "content": "E070E9C9C47E6F20FCF49F7DF7FAEFA731102EDB2CDC77C1466F97E7C7C28BE314B8179EAA4BB0BC49CBB3CBC91399AF579AB8E623F8744DAD1AB85237EA10B2"
         }
       ],
       "licenses": [
@@ -1110,7 +1110,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.10",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.13",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1124,20 +1124,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.10",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Components.WebAssembly",
-      "version": "10.0.10",
-      "description": "Build client-side single-page applications (SPAs) with Blazor running under WebAssembly.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "version": "10.0.13",
+      "description": "Build client-side single-page applications (SPAs) with Blazor running under WebAssembly.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "2231EBC378AA334DB5AC5D93E90795B23EB29C1255D8B872ACC74750D9373C16E2FAC05B32D5C3A1B659F6D0B0BE5082871EAFA208277E081BC48F8697DFE8E3"
+          "content": "9673E56D2B9828EBA23298DF0483B8933E3BCA5622449C05A9C0D1AF0966CFD852D6A5579F1348711FA39F78B2B07E835D9FE09C5B78CAA6042E314E994E7AEB"
         }
       ],
       "licenses": [
@@ -1148,7 +1148,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.10",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.13",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1162,20 +1162,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.Authentication@10.0.10",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.Authentication@10.0.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Components.WebAssembly.Authentication",
-      "version": "10.0.10",
-      "description": "Build client-side authentication for single-page applications (SPAs).\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "version": "10.0.13",
+      "description": "Build client-side authentication for single-page applications (SPAs).\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "2EAC72AA574763270210658E61F26C6CBB8B85F288324188807BA15CE684365F9792739BF2A0E6FC5F1E02EB34AA9B7BCD8D951E4DA95B6CB6C1A8581E75C935"
+          "content": "F0F5B474C4A2AAED4EA583AE44004AA10040F24BADDFD86B5AD4477BCD4BC74987029303E76947EB8A7A1817ABCFAA85B4F1CFB9A1B625F17F1729BA5114330B"
         }
       ],
       "licenses": [
@@ -1186,7 +1186,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.Authentication@10.0.10",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.Authentication@10.0.13",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1622,20 +1622,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Caching.Abstractions@10.0.10",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Caching.Abstractions@10.0.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Caching.Abstractions",
-      "version": "10.0.10",
+      "version": "10.0.13",
       "description": "Caching abstractions for in-memory cache and distributed cache.\n\nCommonly Used Types:\nMicrosoft.Extensions.Caching.Distributed.IDistributedCache\nMicrosoft.Extensions.Caching.Memory.IMemoryCache",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "02858A6F1E814D2FCBA5506A1E5E1BC125186FE76E89235D073B0DCA84C62802E6680E6C13AD8AC07AC5B6358A0691CF473C80122C062A7AC8AE557D7A5A7A5B"
+          "content": "F7ACBB5B681D6B8EE104EB34B610DA0B98E38B8BB73CB8FD1FA183A889A0C7E7C67923A1E06C3EED04F2AC95826500E135250671F3F650BBCA995AC58EA3FBA1"
         }
       ],
       "licenses": [
@@ -1646,7 +1646,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Caching.Abstractions@10.0.10",
+      "purl": "pkg:nuget/Microsoft.Extensions.Caching.Abstractions@10.0.13",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -1660,20 +1660,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Caching.Memory@10.0.10",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Caching.Memory@10.0.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Caching.Memory",
-      "version": "10.0.10",
+      "version": "10.0.13",
       "description": "In-memory cache implementation of Microsoft.Extensions.Caching.Memory.IMemoryCache.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "DDBBEC0D9A6C493F5BEAE10A1446E24664A17F9A8E5B694C6CFD315EE8C3F19490AC51F5ABBB624BD51FD14CDA381D515BCFF7F1A4D3AAEF06F589EA8FA7EDF4"
+          "content": "8B74205EEFF93D28C693230AB202050D1F392B25F5EB7A538E480742788AAB0DCF6B60926CA06C4B3D0227EBC1DFFA663B33264A8DB9D409C729FA9C642EBB02"
         }
       ],
       "licenses": [
@@ -1684,7 +1684,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Caching.Memory@10.0.10",
+      "purl": "pkg:nuget/Microsoft.Extensions.Caching.Memory@10.0.13",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2610,20 +2610,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.10",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Localization.Abstractions",
-      "version": "10.0.10",
-      "description": "Abstractions of application localization services.\nCommonly used types:\nMicrosoft.Extensions.Localization.IStringLocalizer\nMicrosoft.Extensions.Localization.IStringLocalizer\u003CT\u003E\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "version": "10.0.13",
+      "description": "Abstractions of application localization services.\nCommonly used types:\nMicrosoft.Extensions.Localization.IStringLocalizer\nMicrosoft.Extensions.Localization.IStringLocalizer\u003CT\u003E\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "6A26443007FF4F0ECE3C94D016A32927B6EF0870D9164DF3C85C14A9BB914702C5A9A7AA70712B06E09FFE7AA57F5D84217AC3C142F83738A771C85F8872C118"
+          "content": "630D2CF751E1E632A3FF4DEFE8E1CC8CB00351DA1E8D30075554992BC0A380FB1FDBF884FB9D41E498597707E65E5F3BB89D5562EEAC8E9BB1F5585F6AC85468"
         }
       ],
       "licenses": [
@@ -2634,7 +2634,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.10",
+      "purl": "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.13",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -3218,20 +3218,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Validation@10.0.10",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Validation@10.0.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Validation",
-      "version": "10.0.10",
-      "description": "Common validation abstractions and validation infrastructure for .NET applications.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "version": "10.0.13",
+      "description": "Common validation abstractions and validation infrastructure for .NET applications.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "A684B7DEF8BB89CF5BC6ED35691A6A594928E308704977A3BA1B2B7A622728C1DEE1C686DD8CC77DB6A564BA00619A38F9B7C19861A8D504DD854FDC0DB5894A"
+          "content": "91CDE36535568858423355DBF7D5D12F02432E19BDC0BC05D098185DFA85ADE2ABFAE363AA8FE75607F65B3E3CA69A3EC3AFFF9A075C0440B9E03782D04FC00D"
         }
       ],
       "licenses": [
@@ -3242,7 +3242,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Validation@10.0.10",
+      "purl": "pkg:nuget/Microsoft.Extensions.Validation@10.0.13",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -3522,20 +3522,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.JSInterop@10.0.10",
+      "bom-ref": "pkg:nuget/Microsoft.JSInterop@10.0.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.JSInterop",
-      "version": "10.0.10",
-      "description": "Abstractions and features for interop between .NET and JavaScript code.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "version": "10.0.13",
+      "description": "Abstractions and features for interop between .NET and JavaScript code.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "BB1F2D5B35747CC611ED9B5E4DF06B645132F908462EF9B6DD21D2CAEE742DEEE043F0E163F5626F6F00B0F5440F8C4A3FF4CEE5B5F0716783E1F6CF2174538B"
+          "content": "4F7BC95CD5C5068AC11144C3AAD35A865388691318387CC6D4D969640BDCEB5C4FE554DB76F59ACC66C3C021319B53AD809AF4E85E089EDE4EA5EA1A064F4CC8"
         }
       ],
       "licenses": [
@@ -3546,7 +3546,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.JSInterop@10.0.10",
+      "purl": "pkg:nuget/Microsoft.JSInterop@10.0.13",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -3560,20 +3560,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.JSInterop.WebAssembly@10.0.10",
+      "bom-ref": "pkg:nuget/Microsoft.JSInterop.WebAssembly@10.0.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.JSInterop.WebAssembly",
-      "version": "10.0.10",
-      "description": "Abstractions and features for interop between .NET WebAssembly and JavaScript code.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "version": "10.0.13",
+      "description": "Abstractions and features for interop between .NET WebAssembly and JavaScript code.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "25D1B88823B13052CE534CB31E97D152632A45DB9F6D3C83CC2AD898F2E5BC5FDF88C5B5DFBD263A1EF9E8D20E9AD579BD00FD513551ED02115501CDF49DDC98"
+          "content": "32B1878D7011B279F7135E79DF9DA214261B7D46340395304BCCF6DF90F655066531CB581DE9B3216DE3B8CF5FBE6262829A0ED1D0402A05E78BF9B218E1D5D7"
         }
       ],
       "licenses": [
@@ -3584,7 +3584,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.JSInterop.WebAssembly@10.0.10",
+      "purl": "pkg:nuget/Microsoft.JSInterop.WebAssembly@10.0.13",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -4354,20 +4354,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/PuppeteerSharp@25.13.1",
+      "bom-ref": "pkg:nuget/PuppeteerSharp@25.14.0",
       "authors": [
         {
           "name": "Dar\u00EDo Kondratiuk"
         }
       ],
       "name": "PuppeteerSharp",
-      "version": "25.13.1",
+      "version": "25.14.0",
       "description": "Headless Browser .NET API",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "E07B4045FD8321FC683F51B982AB7A3EA59AFB80EE7DDB13768D50E3D16472C6B0FD3926AB00B821E0680BEE34ED5E0C2726B5B3833C9F296C834219A9718A6B"
+          "content": "E75A1CCABEB9FAF9CE12ABC8DF168413BE58C08168CA301D5EF72ECE465DF83885B92F6FEA31DD33F4AC01648B0EEDE9BB54BC81F6FA462E5EDB77B5C8184C8B"
         }
       ],
       "licenses": [
@@ -4377,7 +4377,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/PuppeteerSharp@25.13.1",
+      "purl": "pkg:nuget/PuppeteerSharp@25.14.0",
       "externalReferences": [
         {
           "url": "https://github.com/hardkoded/puppeteer-sharp",
@@ -4391,20 +4391,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Quartz@4.5.0",
+      "bom-ref": "pkg:nuget/Quartz@4.6.0",
       "authors": [
         {
           "name": "Marko Lahma, Quartz.NET"
         }
       ],
       "name": "Quartz",
-      "version": "4.5.0",
+      "version": "4.6.0",
       "description": "Quartz.NET job scheduler - cron, calendar and interval triggers, clustering over a persistent job store, and Microsoft.Extensions hosting, logging, options and dependency injection throughout. The core package: everything else builds on this one.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "B68C7BA0A9235A9340885C07F08313F98FEE2335B9F68FFACA0663EEFFDF035B84C727217CEB31FEA42C59278BD27A5179541CF91112AB21A19634B9A57841B1"
+          "content": "2B1F56F911852A19EF7E364C0D71D51E4048A6978D674678708C5886851A2D4E6E81F6606E85F55297E20E3A730C265CDE6EB44EC98E324BE7FE4C6FFE030727"
         }
       ],
       "licenses": [
@@ -4415,7 +4415,7 @@
         }
       ],
       "copyright": "Copyright Marko Lahma",
-      "purl": "pkg:nuget/Quartz@4.5.0",
+      "purl": "pkg:nuget/Quartz@4.6.0",
       "externalReferences": [
         {
           "url": "https://www.quartz-scheduler.net/",
@@ -4573,6 +4573,43 @@
         },
         {
           "url": "https://github.com/scalar/scalar",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/SoPro.FancyTable@1.0.8",
+      "authors": [
+        {
+          "name": "SolidProgramming"
+        }
+      ],
+      "name": "SoPro.FancyTable",
+      "version": "1.0.8",
+      "description": "Reusable Blazor table components with sorting, search, column visibility, and tree table support.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "BEAA7AEEB1A8E6F07F935BDD1016D8D4B9FE746F96C9FDCD98108AE0507EEBF8A0C2E6D098B76FB74D1041A8B26C84157672750C97F577528993A063F79D3476"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:nuget/SoPro.FancyTable@1.0.8",
+      "externalReferences": [
+        {
+          "url": "https://github.com/SolidProgramming/SoPro.FancyTable",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/SolidProgramming/SoPro.FancyTable",
           "type": "vcs"
         }
       ]
@@ -4825,18 +4862,19 @@
         "pkg:nuget/MailKit@4.18.1",
         "pkg:nuget/Microsoft.AspNetCore.Http@2.3.13",
         "pkg:nuget/MimeKit@4.18.1",
-        "pkg:nuget/PuppeteerSharp@25.13.1",
+        "pkg:nuget/PuppeteerSharp@25.14.0",
         "pkg:nuget/System.Security.Cryptography.Pkcs@10.0.13",
         "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.13",
         "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.13",
         "pkg:nuget/Microsoft.OpenApi@2.12.2",
         "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
-        "pkg:nuget/Quartz@4.5.0",
+        "pkg:nuget/Quartz@4.6.0",
         "pkg:nuget/Scalar.AspNetCore@2.18.0",
         "pkg:nuget/BlazorTable@1.17.0",
         "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.13",
-        "pkg:nuget/AngleSharp@1.8.4",
-        "pkg:nuget/bunit@2.11.3",
+        "pkg:nuget/SoPro.FancyTable@1.0.8",
+        "pkg:nuget/AngleSharp@1.8.5",
+        "pkg:nuget/bunit@2.12.5",
         "pkg:nuget/coverlet.collector@10.1.0",
         "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.13",
         "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.0",
@@ -4848,20 +4886,20 @@
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp.Css@1.1.2",
+      "ref": "pkg:nuget/AngleSharp.Css@1.1.3",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.4"
+        "pkg:nuget/AngleSharp@1.8.5"
       ]
     },
     {
       "ref": "pkg:nuget/AngleSharp.Diffing@1.1.1",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.4",
-        "pkg:nuget/AngleSharp.Css@1.1.2"
+        "pkg:nuget/AngleSharp@1.8.5",
+        "pkg:nuget/AngleSharp.Css@1.1.3"
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp@1.8.4",
+      "ref": "pkg:nuget/AngleSharp@1.8.5",
       "dependsOn": []
     },
     {
@@ -4875,18 +4913,18 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/bunit@2.11.3",
+      "ref": "pkg:nuget/bunit@2.12.5",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.4",
-        "pkg:nuget/AngleSharp.Css@1.1.2",
+        "pkg:nuget/AngleSharp@1.8.5",
+        "pkg:nuget/AngleSharp.Css@1.1.3",
         "pkg:nuget/AngleSharp.Diffing@1.1.1",
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.13",
-        "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.10",
-        "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.10",
-        "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.10",
-        "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.Authentication@10.0.10",
-        "pkg:nuget/Microsoft.Extensions.Caching.Memory@10.0.10",
-        "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.10",
+        "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.Authentication@10.0.13",
+        "pkg:nuget/Microsoft.Extensions.Caching.Memory@10.0.13",
+        "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13"
       ]
@@ -4992,44 +5030,44 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.10",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.13",
       "dependsOn": [
         "pkg:nuget/Microsoft.AspNetCore.Authorization@10.0.13",
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.13"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Forms@10.0.10",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Forms@10.0.13",
       "dependsOn": [
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Validation@10.0.10"
+        "pkg:nuget/Microsoft.Extensions.Validation@10.0.13"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.10",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.13",
       "dependsOn": [
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.13",
-        "pkg:nuget/Microsoft.AspNetCore.Components.Forms@10.0.10",
+        "pkg:nuget/Microsoft.AspNetCore.Components.Forms@10.0.13",
         "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13",
-        "pkg:nuget/Microsoft.JSInterop@10.0.10"
+        "pkg:nuget/Microsoft.JSInterop@10.0.13"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.Authentication@10.0.10",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.Authentication@10.0.13",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.10",
-        "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.10"
+        "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.13"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.10",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.13",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.10",
+        "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
-        "pkg:nuget/Microsoft.JSInterop.WebAssembly@10.0.10"
+        "pkg:nuget/Microsoft.JSInterop.WebAssembly@10.0.13"
       ]
     },
     {
@@ -5102,15 +5140,15 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Caching.Abstractions@10.0.10",
+      "ref": "pkg:nuget/Microsoft.Extensions.Caching.Abstractions@10.0.13",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Caching.Memory@10.0.10",
+      "ref": "pkg:nuget/Microsoft.Extensions.Caching.Memory@10.0.13",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Caching.Abstractions@10.0.10",
+        "pkg:nuget/Microsoft.Extensions.Caching.Abstractions@10.0.13",
         "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Options@10.0.13",
@@ -5291,14 +5329,14 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.10",
+      "ref": "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.13",
       "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Localization@3.1.18",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.10",
+        "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Options@10.0.13"
       ]
@@ -5419,7 +5457,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Validation@10.0.10",
+      "ref": "pkg:nuget/Microsoft.Extensions.Validation@10.0.13",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Options@10.0.13"
@@ -5467,13 +5505,13 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.JSInterop.WebAssembly@10.0.10",
+      "ref": "pkg:nuget/Microsoft.JSInterop.WebAssembly@10.0.13",
       "dependsOn": [
-        "pkg:nuget/Microsoft.JSInterop@10.0.10"
+        "pkg:nuget/Microsoft.JSInterop@10.0.13"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.JSInterop@10.0.10",
+      "ref": "pkg:nuget/Microsoft.JSInterop@10.0.13",
       "dependsOn": []
     },
     {
@@ -5593,7 +5631,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/PuppeteerSharp@25.13.1",
+      "ref": "pkg:nuget/PuppeteerSharp@25.14.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Logging@8.0.0",
         "pkg:nuget/Microsoft.IO.RecyclableMemoryStream@3.0.1",
@@ -5602,7 +5640,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Quartz@4.5.0",
+      "ref": "pkg:nuget/Quartz@4.6.0",
       "dependsOn": []
     },
     {
@@ -5622,6 +5660,10 @@
     },
     {
       "ref": "pkg:nuget/Scalar.AspNetCore@2.18.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:nuget/SoPro.FancyTable@1.0.8",
       "dependsOn": []
     },
     {

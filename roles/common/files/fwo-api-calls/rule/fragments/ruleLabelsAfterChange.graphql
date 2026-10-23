@@ -1,0 +1,20 @@
+# labels of a rule: source / destination labels (copy of the rule version) and the labels of the rule as a whole,
+# as far as they were active at the given import (import_id_new - import_id_new)
+fragment ruleLabelsAfterChange on firewall_rule {
+  rule_src_labels
+  rule_dst_labels
+  rule_labels(where: {
+    created_event: { import_control_id: { _lte: $import_id_new } }
+    _or: [
+      { removed_event_id: { _is_null: true } }
+      { removed_event: { import_control_id: { _gt: $import_id_new } } }
+    ]
+  }) {
+    label_value {
+      value
+      label_key {
+        key_name
+      }
+    }
+  }
+}

@@ -2,6 +2,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
 using FWO.Report.Filter;
+using FWO.Data.Labelling;
 
 namespace FWO.Ui.Display
 {
@@ -110,6 +111,41 @@ namespace FWO.Ui.Display
                 case 'I': return OutputCsv(DisplayName(userChange.NewUser));
                 case 'C': return OutputCsv(DisplayDiff(DisplayName(userChange.OldUser), DisplayName(userChange.NewUser)));
                 default: return ",";
+            }
+        }
+
+        /// <summary>
+        /// Csv field of the source labels of a rule change, empty if csv contains no side labels.
+        /// </summary>
+        public string DisplaySourceLabelsCsv(RuleChange ruleChange)
+        {
+            return ShowSourceLabelField ? EscapedCsv(DisplayLabelChange(ruleChange, rule => FormatSideLabelsCsv(rule.SourceLabels))) : "";
+        }
+
+        /// <summary>
+        /// Csv field of the destination labels of a rule change, empty if csv contains no side labels.
+        /// </summary>
+        public string DisplayDestinationLabelsCsv(RuleChange ruleChange)
+        {
+            return ShowDestinationLabelField ? EscapedCsv(DisplayLabelChange(ruleChange, rule => FormatSideLabelsCsv(rule.DestinationLabels))) : "";
+        }
+
+        /// <summary>
+        /// Csv field of the rule labels of a rule change, empty if they are not shown.
+        /// </summary>
+        public string DisplayRuleLabelsCsv(RuleChange ruleChange)
+        {
+            return ShowRuleLevelLabels ? EscapedCsv(DisplayLabelChange(ruleChange, rule => RuleLabelFormatter.FormatRuleLabels(rule.RuleLabels))) : "";
+        }
+
+        private string DisplayLabelChange(RuleChange ruleChange, Func<Rule, string> displayLabels)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return displayLabels(ruleChange.OldRule);
+                case 'I': return displayLabels(ruleChange.NewRule);
+                case 'C': return DisplayDiff(displayLabels(ruleChange.OldRule), displayLabels(ruleChange.NewRule));
+                default: return "";
             }
         }
 

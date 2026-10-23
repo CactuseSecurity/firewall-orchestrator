@@ -1,0 +1,5 @@
+query getGuardicoreGatewayType {
+  stm_dev_typ(where: {dev_typ_name: {_eq: "Guardicore Gateway"}, dev_typ_version: {_eq: "REST"}}) {
+    dev_typ_id
+  }
+}

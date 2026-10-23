@@ -22,22 +22,38 @@
         {
             "app_id_external": "APP-1",
             "name": "Owner1",
-            "main_user": "CN=user12345,OU=users,DC=COMPANY1,DC=DE",
-            "modellers": [
-                "CN=user23456,OU=users,DC=COMPANY1,DC=DE"
-            ],
-            "modeller_groups": [
-            ],
+            "main_user": "user12345",
+            "responsibles": {
+                "1": [
+                    "CN=user23456,OU=users,DC=COMPANY1,DC=DE"
+                ],
+                "2": [
+                    "group-app-1"
+                ]
+            },
             "criticality": "high",
+            "owner_lifecycle_state": "Active",
+            "additional_information": {
+                "costCenter": "1234"
+            },
             "import_source": "SourceSystem1",
+            "recert_active": true,
+            "recert_period_days": 365,
             "app_servers": [
                 {
                     "name": "AppServer1",
-                    "ip": "1.0.0.1"
+                    "ip": "10.0.0.1"
                 },
                 {
-                    "name": "AppServer2",
-                    "ip": "10.1.0.117"
+                    "name": "AppNet1",
+                    "ip": "10.1.0.0",
+                    "ip_end": "10.1.0.255",
+                    "labels": [
+                        {
+                            "label_key": "Stage",
+                            "label_value": "Prod"
+                        }
+                    ]
                 }
             ]
         },
@@ -45,16 +61,12 @@
             "app_id_external": "APP-2",
             "name": "Owner2",
             "main_user": null,
-            "modellers": [
-                "CN=user23456,OU=users,DC=COMPANY1,DC=DE",
-                "CN=user34567,OU=users,DC=COMPANY1,DC=DE",
-                "CN=user45678,OU=users,DC=COMPANY1,DC=DE"
-            ],
             "import_source": "SourceSystem1",
             "app_servers": [
                 {
                     "name": "AppServer3",
-                    "ip": "10.12.66.213"
+                    "ip": "10.12.66.213",
+                    "labels": []
                 }
             ]
         }

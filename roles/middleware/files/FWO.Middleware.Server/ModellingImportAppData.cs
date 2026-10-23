@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FWO.Data.Labelling;
 using FWO.Data.Modelling;
 using Newtonsoft.Json;
 
@@ -128,6 +129,12 @@ namespace FWO.Middleware.Server
         /// </summary>
         [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
         public string IpEnd { get; set; } = "";
+
+        /// <summary>
+        /// Labels of the App Server; null leaves the existing labels untouched, an empty list removes them
+        /// </summary>
+        [JsonProperty("labels"), JsonPropertyName("labels")]
+        public List<ModellingImportLabel>? Labels { get; set; }
 
         /// <summary>
         /// Conversion to ModellingAppServer

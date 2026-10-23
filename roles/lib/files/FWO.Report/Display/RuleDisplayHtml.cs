@@ -3,6 +3,7 @@ using FWO.Data;
 using FWO.Config.Api;
 using System.Text;
 using FWO.Report;
+using FWO.Data.Labelling;
 
 namespace FWO.Ui.Display
 {
@@ -93,6 +94,78 @@ namespace FWO.Ui.Display
         public static new string DisplayComment(Rule rule)
         {
             return HtmlOutputEncoder.EncodeText(RuleDisplayBase.DisplayComment(rule));
+        }
+
+        /// <summary>
+        /// Encoded source labels of a rule, e.g. "(AppRole: AR1 ∩ Stage: Prod) ∪ (AppRole: AR2)".
+        /// </summary>
+        public static string DisplaySourceLabels(Rule rule)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleLabelFormatter.FormatSideLabels(rule.SourceLabels, RuleLabelFormatter.kHtmlAnd, RuleLabelFormatter.kHtmlOr));
+        }
+
+        /// <summary>
+        /// Encoded destination labels of a rule.
+        /// </summary>
+        public static string DisplayDestinationLabels(Rule rule)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleLabelFormatter.FormatSideLabels(rule.DestinationLabels, RuleLabelFormatter.kHtmlAnd, RuleLabelFormatter.kHtmlOr));
+        }
+
+        /// <summary>
+        /// Encoded labels of a rule as a whole, e.g. "App: APP-1".
+        /// </summary>
+        public static string DisplayRuleLabels(Rule rule)
+        {
+            return HtmlOutputEncoder.EncodeText(RuleLabelFormatter.FormatRuleLabels(rule.RuleLabels));
+        }
+
+        /// <summary>
+        /// Header cell of the source labels column, empty if the column is not shown.
+        /// </summary>
+        public string DisplaySourceLabelsHeader()
+        {
+            return ShowSourceLabelColumn ? $"<th>{userConfig.GetText("source_labels")}</th>" : "";
+        }
+
+        /// <summary>
+        /// Header cell of the destination labels column, empty if the column is not shown.
+        /// </summary>
+        public string DisplayDestinationLabelsHeader()
+        {
+            return ShowDestinationLabelColumn ? $"<th>{userConfig.GetText("destination_labels")}</th>" : "";
+        }
+
+        /// <summary>
+        /// Header cell of the rule labels column, empty if the column is not shown.
+        /// </summary>
+        public string DisplayRuleLabelsHeader()
+        {
+            return ShowRuleLevelLabels ? $"<th>{userConfig.GetText("rule_labels")}</th>" : "";
+        }
+
+        /// <summary>
+        /// Cell of the source labels column, empty if the column is not shown.
+        /// </summary>
+        public string DisplaySourceLabelsCell(Rule rule)
+        {
+            return ShowSourceLabelColumn ? $"<td>{DisplaySourceLabels(rule)}</td>" : "";
+        }
+
+        /// <summary>
+        /// Cell of the destination labels column, empty if the column is not shown.
+        /// </summary>
+        public string DisplayDestinationLabelsCell(Rule rule)
+        {
+            return ShowDestinationLabelColumn ? $"<td>{DisplayDestinationLabels(rule)}</td>" : "";
+        }
+
+        /// <summary>
+        /// Cell of the rule labels column, empty if the column is not shown.
+        /// </summary>
+        public string DisplayRuleLabelsCell(Rule rule)
+        {
+            return ShowRuleLevelLabels ? $"<td>{DisplayRuleLabels(rule)}</td>" : "";
         }
 
         public string DisplaySource(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "", bool overwriteIsResolvedReport = false)
@@ -238,8 +311,17 @@ namespace FWO.Ui.Display
             {
                 result.Append(DisplayAppRuleSourceOrDestination(rule, chapterNumber, location, reportType, style, highlightedStyle, isSource));
             }
+            AppendLabelsToObjects(result, isSource ? DisplaySourceLabels(rule) : DisplayDestinationLabels(rule));
 
             return result.ToString();
+        }
+
+        private void AppendLabelsToObjects(StringBuilder result, string labels)
+        {
+            if (ShowSideLabelsWithObjects && labels.Length > 0)
+            {
+                result.Append(result.Length > 0 ? "<br>" : "").Append(labels);
+            }
         }
 
         private string DisplayAppRuleSourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, string highlightedStyle, bool isSource)

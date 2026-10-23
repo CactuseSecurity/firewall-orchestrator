@@ -166,6 +166,10 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
     VALUES (31, 'Generic Firewall Gateway', '1.0', null, '', false, false, false);
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (32,'OPNsense standalone','25ff','Deciso','',false,true,false) ON CONFLICT DO NOTHING;
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
+    VALUES (33,'Guardicore Management','REST','Akamai','',false,true,false) ON CONFLICT DO NOTHING;
+insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
+    VALUES (34,'Guardicore Gateway','REST','Akamai','',false,false,false) ON CONFLICT DO NOTHING;
 
 -- SET statement_timeout = 0;
 -- SET client_encoding = 'UTF8';

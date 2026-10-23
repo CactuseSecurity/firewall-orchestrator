@@ -6,6 +6,7 @@
 @using FWO.Middleware.Client
 @using FWO.Ui.Services
 @using FWO.Basics
+@using FWO.Data.Labelling
 
 @page "/settings/reportgeneral"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -78,6 +79,24 @@
             <label for="cbx_resolveNAs" class="col-form-label col-sm-4">@(userConfig.GetText("resolveNetworkAreas"))*:</label>
             <div class="col-sm-1">
                 <input id="cbx_resolveNAs" type="checkbox" class="w-100" @bind="configData!.ResolveNetworkAreas">
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5464"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("rule_label_display")):</label>
+            <div class="col-sm-4">
+                <Dropdown ElementType="RuleLabelDisplayMode" @bind-SelectedElement="configData!.RuleLabelDisplayMode"
+                        ElementToString="@(mode => userConfig.GetText("rule_label_display_" + mode.ToString()))"
+                        Elements="Enum.GetValues(typeof(RuleLabelDisplayMode)).Cast<RuleLabelDisplayMode>()">
+                    <ElementTemplate Context="mode">
+                        @(userConfig.GetText("rule_label_display_" + mode.ToString()))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5465"))">
+            <label for="cbx_showRuleLevelLabels" class="col-form-label col-sm-4">@(userConfig.GetText("show_rule_level_labels")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_showRuleLevelLabels" type="checkbox" class="w-100" @bind="configData!.ShowRuleLevelLabels">
             </div>
         </div>
         <hr />

@@ -145,7 +145,7 @@ namespace FWO.Services.Workflow
             }
             return new PathAnalyzerFactory(apiConnection, userConfig.GlobalConfig).Create();
         }
-
+ 
         /// <summary>
         /// Creates the single implementation task of a request task that needs no gateway determination: rule_modify and
         /// rule_delete with the gateway of the rule, every other non-access and non-object task type without gateway.

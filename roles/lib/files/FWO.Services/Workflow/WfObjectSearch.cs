@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Data.Workflow;
 using NetTools;
@@ -169,7 +170,7 @@ namespace FWO.Services.Workflow
             }
             if (memberCount(group) > WfObjectTaskHelper.kGroupMemberLimit)
             {
-                throw new InvalidOperationException("The selected group has too many members to edit.");
+                throw new CollectionLimitExceededException(WfObjectTaskHelper.kGroupMemberLimit);
             }
             return group;
         }

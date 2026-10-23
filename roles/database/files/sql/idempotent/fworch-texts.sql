@@ -4898,6 +4898,8 @@ INSERT INTO txt VALUES ('E5128', 'German', 'Zugangsdaten werden von anderen Zuga
 INSERT INTO txt VALUES ('E5128', 'English', 'Credential is used by other credentials');
 INSERT INTO txt VALUES ('E5129', 'German',  'Auf diesem Management werden keine Zeitobjekte angelegt (ger&auml;tespezifische Einstellung &quot;Anlage Zeitobjekte&quot;).');
 INSERT INTO txt VALUES ('E5129', 'English', 'No time objects are created on this management (device specific setting &quot;Time object creation&quot;).');
+INSERT INTO txt VALUES ('E5130', 'German',  'Die ausgew&auml;hlte Gruppe enth&auml;lt zu viele Mitglieder und kann nicht bearbeitet werden.');
+INSERT INTO txt VALUES ('E5130', 'English', 'The selected group has too many members to edit.');
 INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten Managements verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by the managements named. Change the credentials of these managements before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');

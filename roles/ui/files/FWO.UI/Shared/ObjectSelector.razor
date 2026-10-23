@@ -1,6 +1,7 @@
 @using BlazorTable
 @using FWO.Data
 @using FWO.Data.Workflow
+@using FWO.Basics.Exceptions
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -160,6 +161,7 @@ else
     private List<TimeObject> foundTimeObjects = [];
     private bool limitReached;
     private CancellationTokenSource? searchCancellation;
+    private long groupSelectionGeneration;
 
     private async Task Search(string newSearchText)
     {
@@ -248,19 +250,33 @@ else
     {
         if (GroupMode && authenticationStateTask != null)
         {
+            long selectionGeneration = ++groupSelectionGeneration;
+            int selectionManagementId = ManagementId;
+            ObjectTaskKind selectionKind = Kind;
             try
             {
                 WfObjectSearch search = new(apiConnection, (await authenticationStateTask).User);
-                NetworkObject? loadedGroup = await search.LoadNetworkGroupMembers(ManagementId, networkObject.Id);
-                if (loadedGroup is null)
+                NetworkObject? loadedGroup = await search.LoadNetworkGroupMembers(selectionManagementId, networkObject.Id);
+                if (loadedGroup is null || !IsCurrentGroupSelection(selectionGeneration, selectionManagementId, selectionKind))
                 {
                     return;
                 }
                 networkObject = loadedGroup;
             }
+            catch (CollectionLimitExceededException)
+            {
+                if (IsCurrentGroupSelection(selectionGeneration, selectionManagementId, selectionKind))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("search_object"), userConfig.GetText("E5130"), true);
+                }
+                return;
+            }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("search_object"), "", true);
+                if (IsCurrentGroupSelection(selectionGeneration, selectionManagementId, selectionKind))
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("search_object"), "", true);
+                }
                 return;
             }
         }
@@ -272,24 +288,46 @@ else
     {
         if (GroupMode && authenticationStateTask != null)
         {
+            long selectionGeneration = ++groupSelectionGeneration;
+            int selectionManagementId = ManagementId;
+            ObjectTaskKind selectionKind = Kind;
             try
             {
                 WfObjectSearch search = new(apiConnection, (await authenticationStateTask).User);
-                NetworkService? loadedGroup = await search.LoadServiceGroupMembers(ManagementId, service.Id);
-                if (loadedGroup is null)
+                NetworkService? loadedGroup = await search.LoadServiceGroupMembers(selectionManagementId, service.Id);
+                if (loadedGroup is null || !IsCurrentGroupSelection(selectionGeneration, selectionManagementId, selectionKind))
                 {
                     return;
                 }
                 service = loadedGroup;
             }
+            catch (CollectionLimitExceededException)
+            {
+                if (IsCurrentGroupSelection(selectionGeneration, selectionManagementId, selectionKind))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("search_object"), userConfig.GetText("E5130"), true);
+                }
+                return;
+            }
             catch (Exception exception)
             {
-                DisplayMessageInUi(exception, userConfig.GetText("search_object"), "", true);
+                if (IsCurrentGroupSelection(selectionGeneration, selectionManagementId, selectionKind))
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("search_object"), "", true);
+                }
                 return;
             }
         }
         SelectedService = service;
         await SelectedServiceChanged.InvokeAsync(service);
+    }
+
+    private bool IsCurrentGroupSelection(long selectionGeneration, int selectionManagementId, ObjectTaskKind selectionKind)
+    {
+        return selectionGeneration == groupSelectionGeneration
+            && ManagementId == selectionManagementId
+            && Kind == selectionKind
+            && GroupMode;
     }
 
     private async Task SelectTimeObject(TimeObject timeObject)
@@ -307,6 +345,7 @@ else
 
     public void Dispose()
     {
+        groupSelectionGeneration++;
         searchCancellation?.Cancel();
         searchCancellation?.Dispose();
         GC.SuppressFinalize(this);

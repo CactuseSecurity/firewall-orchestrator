@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
@@ -97,12 +98,13 @@ namespace FWO.Test
                 .ToArray();
             RecordingApiConnection apiConnection = new() { Result = new List<NetworkObject> { group } };
 
-            InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            CollectionLimitExceededException exception = Assert.ThrowsAsync<CollectionLimitExceededException>(async () =>
                 await new WfObjectSearch(apiConnection, new ClaimsPrincipal()).LoadNetworkGroupMembers(kManagementId, group.Id))!;
 
             Assert.Multiple(() =>
             {
-                Assert.That(exception.Message, Does.Contain("too many members"));
+                Assert.That(exception.Message, Does.Not.Contain("too many members"));
+                Assert.That(exception.Limit, Is.EqualTo(WfObjectTaskHelper.kGroupMemberLimit));
                 Assert.That(apiConnection.LastQuery, Is.EqualTo(ObjectQueries.getNetworkGroupMembersForRequest));
                 Assert.That(apiConnection.LastVariables.GetProperty("memberLimit").GetInt32(),
                     Is.EqualTo(WfObjectTaskHelper.kGroupMemberLimit + 1));

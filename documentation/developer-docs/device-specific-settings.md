@@ -38,7 +38,7 @@ remains effective and is shown as a dormant override that can be cleared there.
 | changeIdCustomFieldName | string | ChangeId | Global, device type, manager | Global to manager |
 | importerHostName | string | empty (every importer is responsible) | Global, device type, manager | Global to manager |
 | autoPlanImplementation | boolean | true | All | All |
-| autoPlanImplementationForRules | boolean | false (fresh installations set true globally) | All | All |
+| autoPlanImplementationForRules | boolean | false | All | All |
 | modellingCreateAppZones | boolean | true | Global, device type, manager | Global to manager |
 | modellingImplementNetworkAreaObjects | boolean | false | Global, device type, manager | Global to manager |
 | modellingDynIpLabelsVisibleAsGroups | boolean | true | Global, device type, manager | Global to manager |

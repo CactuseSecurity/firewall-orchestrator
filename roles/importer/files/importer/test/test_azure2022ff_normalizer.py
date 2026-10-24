@@ -6,9 +6,16 @@ from typing import TYPE_CHECKING, Any
 
 import fwo_const
 import pytest
-from fw_modules.azure2022ff.azure_models import AzureConfig, AzureDevice, AzureIpGroup, AzureRule
+from fw_modules.azure2022ff.azure_models import (
+    AzureConfig,
+    AzureDevice,
+    AzureFirewallPolicy,
+    AzureIpGroup,
+    AzureRule,
+    AzureSubResource,
+)
 from fw_modules.azure2022ff.azure_network import normalize_ip_groups, parse_address, resolve_ip_group
-from fw_modules.azure2022ff.azure_normalizer import normalize_config
+from fw_modules.azure2022ff.azure_normalizer import AzurePolicyIndex, normalize_config
 from fw_modules.azure2022ff.azure_rule import priority_sort_key
 from fw_modules.azure2022ff.azure_service import get_rule_services, parse_port_range
 from fwo_exceptions import FwoImporterError
@@ -269,6 +276,108 @@ class TestNormalizeConfig:
         rule.source_addresses = []
 
         with pytest.raises(FwoImporterError, match=r"rules/rule1.*no addresses"):
+            normalize_config(native_config, DEVICES, "mgm-uid")
+
+
+CHILD_POLICY_ID = (
+    "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/FWORCH-TEST1/providers/"
+    "Microsoft.Network/firewallPolicies/FirewallPolicy_AzureFirewall1"
+)
+PARENT_POLICY_NAME = "ParentPolicy"
+PARENT_POLICY_ID = (
+    "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/HUB-RG/providers/"
+    "Microsoft.Network/firewallPolicies/ParentPolicy"
+)
+PARENT_RCG_ID = f"{PARENT_POLICY_ID}/ruleCollectionGroups/ParentGroup"
+
+
+def add_parent_policy(native_config: AzureConfig) -> AzureFirewallPolicy:
+    """Make the policy of the native config the child of a new parent policy holding a copy of its deny rules."""
+    child_policy = native_config.firewall_policies[0]
+    child_policy.id = CHILD_POLICY_ID
+    # resource ids are case-insensitive, the reference may differ in casing
+    child_policy.base_policy = AzureSubResource(id=PARENT_POLICY_ID.upper())
+    parent_group = child_policy.rule_collection_groups[1].model_copy(deep=True, update={"id": PARENT_RCG_ID})
+    parent_group.properties.rule_collections = parent_group.properties.rule_collections[:1]
+    parent_policy = AzureFirewallPolicy(
+        id=PARENT_POLICY_ID, name=PARENT_POLICY_NAME, ruleCollectionGroups=[parent_group]
+    )
+    native_config.firewall_policies.append(parent_policy)
+    return parent_policy
+
+
+class TestPolicyHierarchy:
+    def test_parent_policy_rulebase_precedes_child_rulebase(self) -> None:
+        native_config = load_native_config()
+        add_parent_policy(native_config)
+
+        normalized = normalize_config(native_config, DEVICES, "mgm-uid")
+
+        assert [rulebase.uid for rulebase in normalized.rulebases] == [POLICY_NAME, PARENT_POLICY_NAME]
+        parent_rulebase = normalized.rulebases[1]
+        assert list(parent_rulebase.rules) == [
+            f"{PARENT_RCG_ID.lower()}/ruleCollections/RuleColl1/rules/rule1",
+            f"{PARENT_RCG_ID.lower()}/ruleCollections/RuleColl1/rules/secondrule",
+        ]
+        assert all(rule.rule_installon == DEVICE.name for rule in parent_rulebase.rules.values())
+        initial_link, section_link = normalized.gateways[0].RulebaseLinks
+        assert initial_link.to_rulebase_uid == PARENT_POLICY_NAME
+        assert initial_link.is_initial
+        assert initial_link.link_type == "ordered"
+        assert section_link.from_rulebase_uid == PARENT_POLICY_NAME
+        assert section_link.to_rulebase_uid == POLICY_NAME
+        assert section_link.link_type == "concatenated"
+        assert section_link.is_section
+        assert not section_link.is_initial
+
+    def test_parent_rules_are_enforced_on_gateways_of_all_children(self) -> None:
+        native_config = load_native_config()
+        add_parent_policy(native_config)
+        parent_device = AzureDevice(uid="azfw2-uid", name="AzureFirewall2", policy_name=PARENT_POLICY_NAME)
+
+        normalized = normalize_config(native_config, [DEVICE, parent_device], "mgm-uid")
+
+        rulebases = {rulebase.uid: rulebase for rulebase in normalized.rulebases}
+        parent_rule = next(iter(rulebases[PARENT_POLICY_NAME].rules.values()))
+        child_rule = next(iter(rulebases[POLICY_NAME].rules.values()))
+        assert parent_rule.rule_installon == "AzureFirewall1|AzureFirewall2"
+        assert child_rule.rule_installon == "AzureFirewall1"
+        parent_gateway_links = normalized.gateways[1].RulebaseLinks
+        assert [link.to_rulebase_uid for link in parent_gateway_links] == [PARENT_POLICY_NAME]
+
+    def test_policy_chain_lists_topmost_parent_first(self) -> None:
+        native_config = load_native_config()
+        parent_policy = add_parent_policy(native_config)
+        root_policy_id = PARENT_POLICY_ID.replace("ParentPolicy", "RootPolicy")
+        parent_policy.base_policy = AzureSubResource(id=root_policy_id)
+        native_config.firewall_policies.append(AzureFirewallPolicy(id=root_policy_id, name="RootPolicy"))
+
+        policy_chain = AzurePolicyIndex(native_config.firewall_policies).get_policy_chain(POLICY_NAME)
+
+        assert [policy.name for policy in policy_chain] == ["RootPolicy", PARENT_POLICY_NAME, POLICY_NAME]
+
+    def test_missing_parent_policy_fails(self) -> None:
+        native_config = load_native_config()
+        add_parent_policy(native_config)
+        native_config.firewall_policies.pop()
+
+        with pytest.raises(FwoImporterError, match=r"Parent policy .* not found"):
+            normalize_config(native_config, DEVICES, "mgm-uid")
+
+    def test_cyclic_parent_policies_fail(self) -> None:
+        native_config = load_native_config()
+        parent_policy = add_parent_policy(native_config)
+        parent_policy.base_policy = AzureSubResource(id=CHILD_POLICY_ID)
+
+        with pytest.raises(FwoImporterError, match="cyclic"):
+            normalize_config(native_config, DEVICES, "mgm-uid")
+
+    def test_policies_with_the_same_name_fail(self) -> None:
+        native_config = load_native_config()
+        parent_policy = add_parent_policy(native_config)
+        parent_policy.name = POLICY_NAME
+
+        with pytest.raises(FwoImporterError, match="used by several policies"):
             normalize_config(native_config, DEVICES, "mgm-uid")
 
 

@@ -61,8 +61,27 @@ class AzureRuleCollectionGroup(AzureModel):
     properties: AzureRuleCollectionGroupProperties = Field(default_factory=AzureRuleCollectionGroupProperties)
 
 
-class AzureFirewallPolicy(AzureModel):
+class AzureSubResource(AzureModel):
+    id: str
+
+
+class AzureFirewallPolicyProperties(AzureModel):
+    base_policy: AzureSubResource | None = Field(default=None, alias="basePolicy")
+
+
+class AzureFirewallPolicyResource(AzureModel):
+    """A firewall policy resource as returned by Azure Resource Manager, without its rule collection groups."""
+
+    id: str
     name: str
+    properties: AzureFirewallPolicyProperties = Field(default_factory=AzureFirewallPolicyProperties)
+
+
+class AzureFirewallPolicy(AzureModel):
+    # resource id and parent policy, missing in native configs fetched before parent policies were supported
+    id: str | None = None
+    name: str
+    base_policy: AzureSubResource | None = Field(default=None, alias="basePolicy")
     rule_collection_groups: list[AzureRuleCollectionGroup] = Field(
         default_factory=list[AzureRuleCollectionGroup], alias="ruleCollectionGroups"
     )

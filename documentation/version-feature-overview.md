@@ -242,5 +242,6 @@ For a feature-centric, thematically grouped view see
 
 ### 9.8.2 — 23.10.2026 (DEVELOP)
 - Azure Firewall import module fetches firewall policies (network rules) and IP groups directly via the Azure Resource Manager API (api version 2026-01-01 with fallback to 2024-05-01).
+- Azure parent policies (policy hierarchy) are imported; their rules precede the rules of the child policy.
 - Azure gateway autodiscovery: finds the Azure Firewalls of the subscription and maps each to its firewall policy.
 - New importer setting "Skip unsupported rules": rules that cannot be represented (currently Azure geo-location filters) are skipped with a warning or fail the import.

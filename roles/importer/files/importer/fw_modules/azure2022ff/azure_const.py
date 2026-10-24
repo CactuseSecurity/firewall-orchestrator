@@ -7,6 +7,8 @@ AZURE_LOGIN_URL = "https://login.microsoftonline.com"
 AZURE_MANAGEMENT_SCOPE = "https://management.azure.com/.default"
 # upper bound for following nextLink pages of a single list call
 AZURE_MAX_PAGES = 100
+# upper bound for the levels of a firewall policy hierarchy (policy, parent policy, its parent, ...)
+AZURE_MAX_POLICY_DEPTH = 10
 
 AZURE_ANY = "*"
 AZURE_FILTER_RULE_COLLECTION = "FirewallPolicyFilterRuleCollection"

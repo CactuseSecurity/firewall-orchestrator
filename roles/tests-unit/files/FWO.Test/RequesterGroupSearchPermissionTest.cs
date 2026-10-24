@@ -1,5 +1,4 @@
 using System.Text.Json;
-using FWO.Data.Workflow;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -13,7 +12,6 @@ namespace FWO.Test
         private const string kMetadataFile = "replace_metadata.json";
         private const string kRequesterRole = "requester";
         private const string kVisibleManagements = "x-hasura-visible-managements";
-        private const int kGroupMemberLookupLimit = WfObjectTaskHelper.kGroupMemberLimit + 1;
         private const string kNetworkGroupFilter =
             "{\"_and\":[{\"object\":{\"mgm_id\":{\"_in\":\"x-hasura-visible-managements\"}}},{\"active\":{\"_eq\":true}},{\"removed\":{\"_is_null\":true}}]}";
         private const string kServiceGroupFilter =
@@ -53,7 +51,7 @@ namespace FWO.Test
                 Assert.That(HasRelationship(memberTable, "object_relationships", "object"), Is.True);
                 Assert.That(HasRelationship(memberTable, "object_relationships", "objectByObjgrpMemberId"), Is.True);
                 Assert.That(Columns(memberPermission), Is.EquivalentTo(kNetworkGroupColumns));
-                Assert.That(memberPermission.GetProperty("limit").GetInt32(), Is.EqualTo(kGroupMemberLookupLimit));
+                Assert.That(memberPermission.TryGetProperty("limit", out _), Is.False);
                 Assert.That(JsonSerializer.Serialize(memberPermission.GetProperty("filter")),
                     Is.EqualTo(kNetworkGroupFilter));
             });
@@ -86,7 +84,7 @@ namespace FWO.Test
                 Assert.That(HasRelationship(memberTable, "object_relationships", "service"), Is.True);
                 Assert.That(HasRelationship(memberTable, "object_relationships", "serviceBySvcgrpMemberId"), Is.True);
                 Assert.That(Columns(memberPermission), Is.EquivalentTo(kServiceGroupColumns));
-                Assert.That(memberPermission.GetProperty("limit").GetInt32(), Is.EqualTo(kGroupMemberLookupLimit));
+                Assert.That(memberPermission.TryGetProperty("limit", out _), Is.False);
                 Assert.That(JsonSerializer.Serialize(memberPermission.GetProperty("filter")),
                     Is.EqualTo(kServiceGroupFilter));
             });

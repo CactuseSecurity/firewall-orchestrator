@@ -45,8 +45,19 @@ namespace FWO.Data
             { 12, 10},  // FortiManager 5ff-> FortiGate 5ff
             { 13, 9 },   // Check Point MDS R8x-> Check Point R8x (?)
             { 9, 9 },   // Check Point R8x Mgr-> Check Point R8x Mgr
-            { 14, 16}   // Cisco Firepower
+            { 14, 16},  // Cisco Firepower
+            { kAzureManagementTypeId, kAzureFirewallTypeId }   // Azure 2022ff -> Azure Firewall 2022ff
         };
+
+        /// <summary>
+        /// Device type id of an Azure management (subscription with firewall policies).
+        /// </summary>
+        public const int kAzureManagementTypeId = 19;
+
+        /// <summary>
+        /// Device type id of an Azure Firewall gateway.
+        /// </summary>
+        public const int kAzureFirewallTypeId = 20;
 
         public static readonly IReadOnlyList<int> CheckPointManagerTypeIds =
         [
@@ -102,9 +113,16 @@ namespace FWO.Data
             return SupermanagerMap.ContainsValue(Id);
         }
 
+        /// <summary>
+        /// Whether the gateways (or sub-managements) of the management can be discovered automatically.
+        /// </summary>
+        /// <param name="mgmt">The management to check.</param>
+        /// <returns>True for super managements, stand-alone Check Point managements and Azure managements.</returns>
         public bool CanBeAutodiscovered(Management mgmt)
         {
-            return !IsUri(mgmt.Hostname) && (SupermanagerMap.ContainsValue(Id) || (IsCheckPointManagerTypeId(Id) && mgmt.SuperManagerId == null));
+            return !IsUri(mgmt.Hostname) && (SupermanagerMap.ContainsValue(Id)
+                || (IsCheckPointManagerTypeId(Id) && mgmt.SuperManagerId == null)
+                || Id == kAzureManagementTypeId);
         }
 
         public static bool IsCheckPointManagerTypeId(int deviceTypeId)

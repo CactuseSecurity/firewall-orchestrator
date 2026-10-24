@@ -89,6 +89,13 @@ namespace FWO.Config.Api.Data
         [JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
         public int FwApiElementsPerFetch { get; set; } = 150;
 
+        /// <summary>
+        /// Whether the importer skips rules using features it cannot represent (e.g. Azure geo-location filters)
+        /// with a warning instead of failing the import.
+        /// </summary>
+        [JsonProperty("importSkipUnsupportedRules"), JsonPropertyName("importSkipUnsupportedRules")]
+        public bool ImportSkipUnsupportedRules { get; set; } = true;
+
         [Obsolete("Use notification entries with NotificationClient.ImportChange instead.")]
         [JsonProperty("impChangeNotifyRecipients"), JsonPropertyName("impChangeNotifyRecipients")]
         public string ImpChangeNotifyRecipients { get; set; } = "";

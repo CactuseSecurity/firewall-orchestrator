@@ -623,6 +623,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Neuinstallationen legen keine Demo-Daten (Beispiel-Benutzer, -Eigent&uuml;mer und -Ger&auml;te mit &ouml;ffentlich bekannten Passw&ouml;rtern) mehr an, au&szlig;er mit <code>testkeys=yes</code> oder explizit mit <code>add_demo_data=yes</code>. Ein Upgrade l&auml;sst vorhandene Demo-Daten bestehen; sie k&ouml;nnen &uuml;ber die Schaltfl&auml;chen "Beispieldaten l&ouml;schen" in den Einstellungen entfernt werden, der Daily Check meldet sie bis dahin.</li>
     <li>LDAP-Anmeldung: Die Anmeldung erfolgt nur noch mit dem Kontonamen (sAMAccountName bei Active Directory, uid bei OpenLDAP). Benutzer, die sich bisher mit cn, userPrincipalName oder Email-Adresse angemeldet haben, m&uuml;ssen nun ihren Kontonamen verwenden. Anmeldeversuche werden je Client und Benutzer begrenzt; die Grenzwerte k&ouml;nnen in fworch.json eingestellt werden.</li>
     <li>Der Cisco ASA-Import &uuml;bernimmt Access-List-Eintr&auml;ge nicht mehr mit erweiterter Bedeutung (z.B. als "any"), wenn er sie nicht vollst&auml;ndig versteht, sondern bricht mit Zeilennummer und nicht unterst&uuml;tztem Konstrukt ab. Neu unterst&uuml;tzt werden u.a. any6, IPv6-Adressen, lt/gt-Ports, ICMP-Typen und time-range. Eintr&auml;ge mit ge&auml;nderter Bedeutung erhalten neue Regel-UIDs.</li>
+    <li>Azure Firewall: Der Import liest die Netzwerkregeln der Firewall-Richtlinien und die IP-Gruppen nun direkt &uuml;ber die Azure Resource Manager API (Service Principal mit Leserechten). Die Ressourcengruppe wird als Konfigurationspfad angegeben, die Richtlinie &uuml;ber den Ger&auml;tenamen oder den lokalen Regelwerksnamen des Ger&auml;ts zugeordnet. Genutzt wird die API-Version 2026-01-01, bei Clouds ohne diese Version automatisch 2024-05-01. Kubernetes-Selektorgruppen werden als dynamische Quellobjekte importiert. &Uuml;bergeordnete Richtlinien (Richtlinienhierarchie) werden mit importiert und ihre Regeln vor denen der untergeordneten Richtlinie angezeigt. Die Autodiscovery findet die Azure Firewalls als Gateways und ordnet ihnen ihre Richtlinie zu. NAT- und Applikationsregeln werden noch nicht importiert. Regeln mit Geo-Location-Filtern werden mit einer Warnung &uuml;bersprungen; mit der neuen Import-Einstellung &quot;Nicht unterst&uuml;tzte Regeln &uuml;berspringen&quot; kann stattdessen ein Abbruch des Imports eingestellt werden.</li>
     <li>Die Mandanten-Sichtbarkeit von Regelquellen und -zielen h&auml;ngt nicht mehr von fremden Ger&auml;ten ab: eine Regel ist vollst&auml;ndig sichtbar, wenn der Mandant ihr Management oder eines der Gateways, auf denen sie wirkt, sehen darf. Einzelne Netzwerkobjekte in Regeln werden nun ebenfalls mit den Mandanten-Netzen abgeglichen.</li>
     <li>Weitere Sicherheitsverbesserungen: der Compliance-Report-API-Aufruf ist auf Admin und Auditor im eigenen Sichtbereich beschr&auml;nkt, externe Antr&auml;ge eines Tickets k&ouml;nnen nur f&uuml;r eigene Tickets und nur einmal gleichzeitig gestartet werden, und der direkte Import von Konfigurationsdateien per URL oder lokaler Datei ist in Gr&ouml;&szlig;e und Dauer begrenzt und folgt keinen Weiterleitungen mehr.</li>
     <li>Importierte Logdaten zeigen f&uuml;r Quell- und Zieladressen die zugeh&ouml;rigen externen App-IDs, Netzwerk-Areas und Reverse-DNS-Namen. DNS-Ergebnisse werden wiederverwendet; neue Lookups k&ouml;nnen unter Einstellungen - Logging deaktiviert werden.</li>
@@ -655,6 +656,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>Fresh installations no longer create demo data (sample users, owners and devices with publicly known passwords), unless <code>testkeys=yes</code> is set or <code>add_demo_data=yes</code> is requested explicitly. Upgrades keep existing demo data; remove it with the "Remove Sample Data" buttons in the settings, until then the daily check reports it.</li>
     <li>LDAP login: users now log in with their account name only (sAMAccountName for Active Directory, uid for OpenLDAP). Users who logged in with their cn, userPrincipalName or email address so far have to use their account name now. Login attempts are limited per client and user; the limits can be set in fworch.json.</li>
     <li>The Cisco ASA importer no longer imports access-list entries it does not fully understand with a broader meaning (e.g. as "any"); it fails with the line number and the unsupported construct instead. Newly supported are, among others, any6, IPv6 addresses, lt/gt ports, icmp types and time-range. Entries whose meaning changed get new rule uids.</li>
+    <li>Azure Firewall: the importer now reads the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API (service principal with reader role). The resource group is entered as config path, the policy is mapped via the device name or the device''s local rulebase name. API version 2026-01-01 is used, falling back to 2024-05-01 automatically for clouds without it. Kubernetes selector groups are imported as dynamic source objects. Parent policies (policy hierarchy) are imported as well, their rules are shown before the rules of the child policy. The autodiscovery finds the Azure Firewalls as gateways and maps them to their policy. NAT and application rules are not imported yet. Rules with geo-location filters are skipped with a warning; the new importer setting &quot;Skip unsupported rules&quot; lets the import fail instead.</li>
     <li>The tenant visibility of rule sources and destinations no longer depends on unrelated devices: a rule is fully visible if the tenant may see its management or one of the gateways it is enforced on. Plain network objects used in rules are now matched against the tenant networks as well.</li>
     <li>Further security improvements: the compliance report api is limited to admin and auditor within their own scope, the external requests of a ticket can only be started for own tickets and only once at a time, and the direct import of config files from a URL or local file is limited in size and duration and no longer follows redirects.</li>
     <li>Imported log data shows matching external application IDs, network areas, and reverse-DNS names for source and destination addresses. DNS results are reused; new lookups can be disabled under Settings - Logging.</li>
@@ -2829,6 +2831,8 @@ INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'German', 	'Ze
 INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'English', 	'Suppress certificate warnings');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','German', 	'FW API - Pro Abruf geholte Elemente');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','English', 	'FW API - Elements per fetch');
+INSERT INTO txt VALUES ('importSkipUnsupportedRules','German', 	'Nicht unterst&uuml;tzte Regeln &uuml;berspringen');
+INSERT INTO txt VALUES ('importSkipUnsupportedRules','English', 	'Skip unsupported rules');
 INSERT INTO txt VALUES ('impChangeNotifyRecipients','German', 	'Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen');
 INSERT INTO txt VALUES ('impChangeNotifyRecipients','English', 	'Recipient email addresses for change notifications');
 INSERT INTO txt VALUES ('impChangeNotifySubject',   'German', 	'Titel der &Auml;nderungsbenachrichtigung');
@@ -6532,10 +6536,12 @@ INSERT INTO txt VALUES ('H5115', 'English', 'Port*: Port number of the host.<br>
     If the target any other platform Firewall Orchestrator needs ssh-based access. The default port number here is 22.
 ');
 INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten f&uuml;r den Import-Nutzer des Managements.<br>
-    Hier kann ein Satz <a href="/help/settings/credentials">Zugangsdaten</a> ausgew&auml;hlt werden, der zum Login auf dem Management dient.
+    Hier kann ein Satz <a href="/help/settings/credentials">Zugangsdaten</a> ausgew&auml;hlt werden, der zum Login auf dem Management dient.<br>
+    F&uuml;r Azure: Client ID und Secret eines Service Principals mit Leserechten auf das Abonnement, entweder als zus&auml;tzliche Zugangsdaten oder direkt als Benutzer und Passwort.
 ');
 INSERT INTO txt VALUES ('H5116', 'English', 'Import Credentials*: User/Password combination for logging into the management.<br>
-    Choose a set of <a href="/help/settings/credentials">credentials</a> which will be used to get the management''s configuration.
+    Choose a set of <a href="/help/settings/credentials">credentials</a> which will be used to get the management''s configuration.<br>
+    For Azure: client id and secret of a service principal with reader role on the subscription, either as additional credentials or directly as user and password.
 ');
 INSERT INTO txt VALUES ('H5117', 'German',  'Login-Daten: Zugangsdaten f&uuml;r den Export-Nutzer des Managements.<br>
     Hier kann ein Satz <a href="/help/settings/credentials">Zugangsdaten</a> ausgew&auml;hlt werden, der zum Schreiben auf das Management dient.
@@ -6544,10 +6550,12 @@ INSERT INTO txt VALUES ('H5117', 'English', 'Export Credentials: User/Password c
     Choose a set of <a href="/help/settings/credentials">credentials</a> which will be used to write on the management.
 ');
 INSERT INTO txt VALUES ('H5119', 'German',  'Domain: Firewall Domain Name <br>
-    f&uuml;r Check Point R8x MDS / Fortimanager Installationen, andernfall leer lassen.
+    f&uuml;r Check Point R8x MDS / Fortimanager Installationen, andernfall leer lassen.<br>
+    F&uuml;r Azure: Name der Ressourcengruppe der Firewall-Richtlinien. &Uuml;bergeordnete Richtlinien d&uuml;rfen in anderen Ressourcengruppen oder Abonnements liegen; der Service Principal braucht dort ebenfalls Leserechte.
 ');
 INSERT INTO txt VALUES ('H5119', 'English', 'Domain: Firewall Domain Name<br>
-    Empty except for Check Point R8x MDS / Fortimanager installations.
+    Empty except for Check Point R8x MDS / Fortimanager installations.<br>
+    For Azure: name of the resource group of the firewall policies. Parent policies may lie in other resource groups or subscriptions; the service principal needs reader rights there as well.
 ');
 INSERT INTO txt VALUES ('H5120', 'German',  'Importer Hostname: wird in den ger&auml;tespezifischen Einstellungen auf den Ebenen Global, Ger&auml;tetyp oder Manager festgelegt.');
 INSERT INTO txt VALUES ('H5120', 'English', 'Importer host name: is set in the device specific settings on the levels Global, device type or manager.');
@@ -6637,8 +6645,8 @@ INSERT INTO txt VALUES ('H5141', 'English', 'Admins can create and administrate 
     The clone button helps defining new gateways by copying the data from existing ones.
     Before saving at least one of the parameters Device Type, Management or Rulebase has to be different from the existing gateways if the Import Disabled flag is not set.
 ');
-INSERT INTO txt VALUES ('H5150', 'German',  'UID*: Eindeutige ID des Gateways.');
-INSERT INTO txt VALUES ('H5150', 'English', 'UID*: Unique ID of the Gateway.');
+INSERT INTO txt VALUES ('H5150', 'German',  'UID*: Eindeutige ID des Gateways. F&uuml;r Azure: die Ressourcen-ID der Azure Firewall, wie sie die Autodiscovery eintr&auml;gt; ohne UID bricht der Import ab.');
+INSERT INTO txt VALUES ('H5150', 'English', 'UID*: Unique ID of the Gateway. For Azure: the resource id of the Azure Firewall, as entered by the autodiscovery; the import fails without a UID.');
 INSERT INTO txt VALUES ('H5151', 'German',  'Name*: Name des Gateways. F&uuml;r Legacy Fortinet (ssh) muss dies der reale Name des Firewallgateways sein wie in der Config definiert.');
 INSERT INTO txt VALUES ('H5151', 'English', 'Name*: Name of the Gateway. For legacy Fortinet (ssh) this must be the real name of the firewall gateway as defined in the config.');
 INSERT INTO txt VALUES ('H5152', 'German',  'Kommentar: Optionaler Kommentar zu diesem Gateway.');
@@ -7313,6 +7321,8 @@ INSERT INTO txt VALUES ('H5498', 'German',  'Zertifikatswarnungen unterdr&uuml;c
 INSERT INTO txt VALUES ('H5498', 'English', 'Suppress certificate warnings: Shall warnings about invalid certificates be written to import log? Default value = "inactive".');
 INSERT INTO txt VALUES ('H5499', 'German',  'FW API - Pro Abruf geholte Elemente: Wie viele Objekte sollen beim Import per Firewall-API Call auf einmal geholt werden? Default-Wert = 150.');
 INSERT INTO txt VALUES ('H5499', 'English', 'FW API - Elements per fetch: How many objects/rules shall be fetched per API call from a firewall management? Default value = 150.');
+INSERT INTO txt VALUES ('H5499a', 'German',  'Nicht unterst&uuml;tzte Regeln &uuml;berspringen: Regeln mit Funktionen, die Firewall Orchestrator nicht abbilden kann (derzeit Azure-Netzwerkregeln mit Geo-Location-Filtern), werden mit einer Warnung im Import-Log &uuml;bersprungen. Ist die Option deaktiviert, bricht der Import des Managements bei einer solchen Regel ab. Default-Wert = "aktiv".');
+INSERT INTO txt VALUES ('H5499a', 'English', 'Skip unsupported rules: Rules using features Firewall Orchestrator cannot represent (currently Azure network rules with geo-location filters) are skipped with a warning in the import log. If deactivated, the import of the management fails on such a rule. Default value = "active".');
 INSERT INTO txt VALUES ('H5501', 'German',  'Aktionen m&uuml;ssen zuerst in den Einstellungen definiert werden und k&ouml;nnen dann den jeweiligen Status zugeordnet werden.
     Die Aktion wird dann bei Eintreffen der hier definierten Bedingungen angeboten bzw. ausgef&uuml;hrt.
 ');
@@ -8693,14 +8703,18 @@ INSERT INTO txt VALUES ('H7201', 'German', 'Hier werden die Ergebnisse der autom
     Angegebene Management-Ids und -Namen beziehen sich auf den jeweiligen Multi Domain Manager.
     Die gegebenenfalls erforderlichen Anpassungen der Konfiguration im Firewall Orchestrator werden &uuml;ber die <a href="/help/monitoring/open_alerts">Offenen Alarme</a> (bei der automatischen Autodiscovery)
     oder den Dialog in den <a href="/help/settings/managements">Management-Einstellungen</a> (bei der manuell angestossenen Autodiscovery) abgewickelt.
-    Startzeit und Zeitabstand der automatischen Autodiscovery-L&auml;ufe k&ouml;nnen (vom Administrator) in den <a href="/help/settings/defaults">Standardeinstellungen</a> festgelegt werden.
+    Startzeit und Zeitabstand der automatischen Autodiscovery-L&auml;ufe k&ouml;nnen (vom Administrator) in den <a href="/help/settings/defaults">Standardeinstellungen</a> festgelegt werden.<br>
+    Bei Azure-Managements werden die Azure Firewalls des Abonnements als Gateways gefunden, deren Firewall-Richtlinie in der Ressourcengruppe (Konfigurationspfad) liegt; der Name der Richtlinie wird als lokaler Regelwerksname &uuml;bernommen. Firewalls mit klassischen Regeln (ohne Firewall-Richtlinie) werden nicht ber&uuml;cksichtigt.
+    Vorhandene Gateways werden &uuml;ber die UID (Ressourcen-ID, ohne Beachtung der Gro&szlig;-/Kleinschreibung) zugeordnet, sonst &uuml;ber den Namen; eine Zuordnung nur &uuml;ber den Namen wird als Warnung protokolliert.
 ');
 INSERT INTO txt VALUES ('H7201', 'English', 'Results of the automatic and the manual Autodiscovery are recorded here.
     For each run, number of found changes resp. error messages are displayed.
     Management Ids and Names refer to the respective Multi Domain Manager.
     The required changes in the configuration of the Firewall Orchestrator are handled in <a href="/help/monitoring/open_alerts">Open Alerts</a> (for the automatic Autodiscovery)
     or in the Dialogue of the <a href="/help/settings/managements">Management settings</a> (in case of the manually initialized Autodiscovery).
-    Start time and time interval of the automatic Autodiscovery can be defined in the <a href="/help/settings/defaults">Default settings</a> (by the administrator).
+    Start time and time interval of the automatic Autodiscovery can be defined in the <a href="/help/settings/defaults">Default settings</a> (by the administrator).<br>
+    For Azure managements the Azure Firewalls of the subscription whose firewall policy lies in the resource group (config path) are discovered as gateways; the policy name is taken over as local rulebase name. Firewalls with classic rules (without firewall policy) are not considered.
+    Existing gateways are matched by their UID (resource id, ignoring case), otherwise by name; a match by name only is logged as a warning.
 ');
 INSERT INTO txt VALUES ('H7251', 'German', 'In den T&auml;glichen Checks werden allgemeine Parameter des Firewall Orchestrator-Systems gepr&uuml;ft.
     Der t&auml;gliche Startzeitpunkt kann (vom Administrator) in den <a href="/help/settings/defaults">Standardeinstellungen</a> festgelegt werden.

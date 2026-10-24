@@ -237,3 +237,11 @@ For a feature-centric, thematically grouped view see
 ### 9.6.1 — 01.10.2026 (DEVELOP)
 - The Rules report can show management rulebases instead of gateways: start rulebases are selected per management, including rulebases without a gateway link, and reported together with the layers and sections following them.
 - Configurable default rules report view (gateway rules or management rulebases), globally and personally. Personal settings override the global gateway-based default; saved report templates retain their view.
+
+## 9.8.x
+
+### 9.8.2 — 23.10.2026 (DEVELOP)
+- Azure Firewall import module fetches firewall policies (network rules) and IP groups directly via the Azure Resource Manager API (api version 2026-01-01 with fallback to 2024-05-01).
+- Azure parent policies (policy hierarchy) are imported; their rules precede the rules of the child policy.
+- Azure gateway autodiscovery: finds the Azure Firewalls of the subscription and maps each to its firewall policy.
+- New importer setting "Skip unsupported rules": rules that cannot be represented (currently Azure geo-location filters) are skipped with a warning or fail the import.

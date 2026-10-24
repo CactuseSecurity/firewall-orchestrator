@@ -11,6 +11,7 @@ insert into config (config_key, config_value, config_user) VALUES ('importSleepT
 insert into config (config_key, config_value, config_user) VALUES ('importCheckCertificates', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSuppressCertificateWarnings', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('fwApiElementsPerFetch', '150', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importSkipUnsupportedRules', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recertificationPeriod', '365', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recertificationNoticePeriod', '30', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recertificationDisplayPeriod', '30', 0);

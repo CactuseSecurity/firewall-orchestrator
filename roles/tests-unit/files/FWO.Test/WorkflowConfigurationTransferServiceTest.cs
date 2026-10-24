@@ -642,6 +642,13 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Validate_AcceptsPackageWithExistingStates()
+        {
+            Assert.DoesNotThrow(() => WorkflowConfigurationTransferService.Validate(
+                Package(), "Imported", [], States()));
+        }
+
+        [Test]
         public async Task Import_CreatesTransitionGroupWithoutVisibilityDataOrTransitions()
         {
             RecordingWorkflowApiConnection api = EmptyImportApi();

@@ -81,6 +81,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SuggestedImportName_UsesLocalizedFallbackForBlankPackageName()
+        {
+            SimulatedUserConfig userConfig = new();
+            string fallbackName = userConfig.GetText("imported_configuration");
+            TransferWorkflowConfiguration component = new();
+            SetProperty(component, "userConfig", userConfig);
+            SetProperty(component, "ExistingConfigurations", new List<WorkflowConfiguration>
+            {
+                new() { Name = fallbackName }
+            });
+
+            Assert.That(Invoke(component, "SuggestedImportName", "   "),
+                Is.EqualTo($"{fallbackName}-2"));
+        }
+
+        [Test]
         public void FileName_ReplacesInvalidCharactersAndUsesPackageSuffix()
         {
             MethodInfo method = typeof(TransferWorkflowConfiguration).GetMethod("FileName", BindingFlags.NonPublic | BindingFlags.Static)
@@ -271,6 +287,53 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task OnAfterRender_SkipsPhaseLoadingInImportMode()
+        {
+            RecordingWorkflowApiConnection api = new();
+            TransferWorkflowConfiguration component = new();
+            SetProperty(component, "apiConnection", api);
+            SetProperty(component, "Display", true);
+            SetProperty(component, "ImportMode", true);
+            SetProperty(component, "SelectedConfigurationId", 5);
+            SetProperty(component, "ExistingConfigurations", new List<WorkflowConfiguration> { new() { Id = 5, Name = "Shared" } });
+
+            await InvokeAsync(component, "OnAfterRenderAsync", true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetField<bool>(component, "exportOptionsLoaded"), Is.False);
+                Assert.That(api.Calls, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void ImportDialog_RendersPackageDetailsAndConfigurationTargets()
+        {
+            using BunitContext context = CreateRenderContext(new RecordingWorkflowApiConnection());
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<TransferWorkflowConfiguration>(component => component
+                    .Add(parameter => parameter.Display, true)
+                    .Add(parameter => parameter.ImportMode, true)
+                    .Add(parameter => parameter.ExistingConfigurations, new List<WorkflowConfiguration>
+                    {
+                        new() { Id = 5, Name = "Shared" }
+                    })));
+            IRenderedComponent<TransferWorkflowConfiguration> component = wrapper.FindComponent<TransferWorkflowConfiguration>();
+
+            SetField(component.Instance, "importPackage", ImportPackageWithoutGroups());
+            component.Render();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Find("#workflow-configuration-file"), Is.Not.Null);
+                Assert.That(component.Markup, Does.Contain("Shared"));
+                Assert.That(component.Markup, Does.Contain("import_as_new_configuration"));
+                Assert.That(component.FindAll("select option"), Has.Count.EqualTo(2));
+                Assert.That(component.Find("input.form-control"), Is.Not.Null);
+            });
+        }
+
+        [Test]
         public async Task LoadImportFile_DeserializesValidPackageAndSuggestsName()
         {
             TransferWorkflowConfiguration component = new();
@@ -307,6 +370,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task LoadImportFile_ReportsEmptyPackage()
+        {
+            TransferWorkflowConfiguration component = new();
+            Exception? reportedException = null;
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, _, _, _) => reportedException = exception));
+
+            await InvokeAsync(component, "LoadImportFile", CreateInputFileChangeEventArgs("workflow.json", Encoding.UTF8.GetBytes("null")));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetFieldValue(component, "importPackage"), Is.Null);
+                Assert.That(reportedException, Is.TypeOf<InvalidDataException>());
+            });
+        }
+
+        [Test]
         public async Task Export_SerializesPackageAndDownloadsIt()
         {
             RecordingWorkflowApiConnection api = new();
@@ -337,9 +417,9 @@ namespace FWO.Test
             SetProperty(component, "apiConnection", api);
             SetProperty(component, "jsRuntime", jsRuntime);
             SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "Display", true);
             SetProperty(component, "ExistingConfigurations", new List<WorkflowConfiguration> { new() { Id = 5, Name = "Shared" } });
             SetProperty(component, "SelectedConfigurationId", 5);
-            SetProperty(component, "Display", true);
             SetField(component, "exportOptionsLoaded", true);
             SetField(component, "exportPhases", new List<WorkflowConfigurationPhase>
             {
@@ -354,6 +434,30 @@ namespace FWO.Test
                 Assert.That(component.Display, Is.False);
                 Assert.That(jsRuntime.Identifier, Is.EqualTo("DownloadFile"));
                 Assert.That(jsRuntime.Arguments?[0]?.ToString(), Is.EqualTo("Shared.fwo-workflow.json"));
+            });
+        }
+
+        [Test]
+        public async Task Export_ReportsApiErrorsAndResetsWorkingState()
+        {
+            TransferWorkflowConfiguration component = new();
+            Exception? reportedException = null;
+            SetProperty(component, "apiConnection", new RecordingWorkflowApiConnection());
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "Display", true);
+            SetProperty(component, "ExistingConfigurations", new List<WorkflowConfiguration> { new() { Id = 5, Name = "Shared" } });
+            SetProperty(component, "SelectedConfigurationId", 5);
+            SetField(component, "exportOptionsLoaded", true);
+            SetField(component, "selectedPhaseKeys", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "master:request" });
+            SetProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, _, _, _) => reportedException = exception));
+
+            await InvokeAsync(component, "Export");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Display, Is.True);
+                Assert.That(reportedException, Is.Not.Null);
+                Assert.That(GetField<bool>(component, "working"), Is.False);
             });
         }
 
@@ -387,6 +491,28 @@ namespace FWO.Test
                 Assert.That(component.Display, Is.False);
                 Assert.That(message, Does.Contain("added_phases"));
                 Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createWorkflowConfiguration), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task Import_ReportsApiErrorsAndKeepsDialogOpen()
+        {
+            TransferWorkflowConfiguration component = new();
+            Exception? reportedException = null;
+            SetProperty(component, "apiConnection", new RecordingWorkflowApiConnection());
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "Display", true);
+            SetField(component, "importPackage", ImportPackageWithoutGroups());
+            SetField(component, "importName", "Imported");
+            SetProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, _, _, _) => reportedException = exception));
+
+            await InvokeAsync(component, "Import");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Display, Is.True);
+                Assert.That(reportedException, Is.Not.Null);
+                Assert.That(GetField<bool>(component, "working"), Is.False);
             });
         }
 

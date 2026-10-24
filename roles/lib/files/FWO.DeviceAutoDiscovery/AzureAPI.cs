@@ -118,12 +118,14 @@ namespace FWO.DeviceAutoDiscovery
         {
             List<T> items = [];
             string? nextUrl = url;
-            for (int pageCount = 0; nextUrl != null; pageCount++)
+            int pageCount = 0;
+            while (nextUrl != null)
             {
                 if (pageCount >= kMaxPages)
                 {
                     throw new InvalidOperationException($"Azure api call to '{url}' exceeded the maximum of {kMaxPages} pages");
                 }
+                pageCount++;
                 // the bearer token must only ever be sent to Azure Resource Manager
                 if (!nextUrl.StartsWith(kManagementUrl + "/", StringComparison.Ordinal))
                 {

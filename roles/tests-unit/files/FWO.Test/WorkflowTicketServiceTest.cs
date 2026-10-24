@@ -3167,6 +3167,8 @@ internal class WorkflowTicketServiceTest
         public bool ThrowOnConfigSubscriptionInit { get; set; }
         private long nextId = 99;
         private Action<ConfigItem[]>? configSubscriptionUpdateHandler;
+        // Owned by the service under test, which disposes it; the tests assert on that.
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Owned and disposed by the service under test.")]
         private TrackingConfigSubscription? configSubscription;
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -3353,6 +3355,7 @@ internal class WorkflowTicketServiceTest
 
         protected override void Dispose(bool disposing)
         {
+            base.Dispose(disposing);
         }
 
         public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)

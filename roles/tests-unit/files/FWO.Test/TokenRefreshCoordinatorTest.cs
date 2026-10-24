@@ -155,6 +155,45 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Dispose_WhenCalledTwice_StopsTheRunnerOnlyOnce()
+        {
+            TrackingPeriodicTaskRunnerFactory runnerFactory = new();
+            TokenRefreshCoordinator coordinator = CreateCoordinator(new MockProtectedSessionStorage(), runnerFactory);
+
+            await coordinator.StartAsync();
+            coordinator.Dispose();
+
+            Assert.DoesNotThrow(coordinator.Dispose);
+            Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task DisposeAsync_WhenCalledTwice_StopsTheRunnerOnlyOnce()
+        {
+            TrackingPeriodicTaskRunnerFactory runnerFactory = new();
+            TokenRefreshCoordinator coordinator = CreateCoordinator(new MockProtectedSessionStorage(), runnerFactory);
+
+            await coordinator.StartAsync();
+            await coordinator.DisposeAsync();
+
+            Assert.DoesNotThrowAsync(async () => await coordinator.DisposeAsync());
+            Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task StopAsync_AfterDispose_DoesNothing()
+        {
+            TrackingPeriodicTaskRunnerFactory runnerFactory = new();
+            TokenRefreshCoordinator coordinator = CreateCoordinator(new MockProtectedSessionStorage(), runnerFactory);
+
+            await coordinator.StartAsync();
+            coordinator.Dispose();
+
+            Assert.DoesNotThrowAsync(coordinator.StopAsync);
+            Assert.That(runnerFactory.DisposeCallCount, Is.EqualTo(1));
+        }
+
+        [Test]
         public async Task Dispose_WhileStopAsyncShutsTheRunnerDown_DoesNotWaitForIt()
         {
             BlockingPeriodicTaskRunnerFactory runnerFactory = new();

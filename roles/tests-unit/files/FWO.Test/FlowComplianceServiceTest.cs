@@ -563,6 +563,7 @@ internal class FlowComplianceServiceTest
 
         protected override void Dispose(bool disposing)
         {
+            base.Dispose(disposing);
         }
 
         public override void DisposeSubscriptions<T>()

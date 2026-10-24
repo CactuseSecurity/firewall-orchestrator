@@ -216,7 +216,13 @@ namespace FWO.Test
 
             protected override void Dispose(bool disposing)
             {
+                if (IsDisposed)
+                {
+                    return;
+                }
+
                 DisposeCount++;
+                base.Dispose(disposing);
             }
 
             public int RebindCount { get; private set; }
@@ -237,6 +243,7 @@ namespace FWO.Test
             protected override void Dispose(bool disposing)
             {
                 DisposeCount++;
+                base.Dispose(disposing);
             }
 
             public int RebindCount { get; private set; }
@@ -254,7 +261,13 @@ namespace FWO.Test
 
             protected override void Dispose(bool disposing)
             {
+                if (IsDisposed)
+                {
+                    return;
+                }
+
                 DisposeCount++;
+                base.Dispose(disposing);
             }
         }
 
@@ -270,7 +283,13 @@ namespace FWO.Test
 
             protected override void Dispose(bool disposing)
             {
+                if (IsDisposed)
+                {
+                    return;
+                }
+
                 DisposeCount++;
+                base.Dispose(disposing);
             }
         }
     }

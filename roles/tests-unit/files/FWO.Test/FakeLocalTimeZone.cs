@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace FWO.Test
 {
-    public class FakeLocalTimeZone : IDisposable
+    public sealed class FakeLocalTimeZone : IDisposable
     {
         private readonly TimeZoneInfo _actualLocalTimeZoneInfo;
 

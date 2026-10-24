@@ -865,6 +865,7 @@ namespace FWO.Middleware.Server
             {
                 if (disposing)
                 {
+                    wfHandler.Dispose();
                     // UserConfig is caller-owned and can be reused across multiple request handling steps.
                     // Disposing it here breaks subsequent handler instances that receive the same config.
                 }

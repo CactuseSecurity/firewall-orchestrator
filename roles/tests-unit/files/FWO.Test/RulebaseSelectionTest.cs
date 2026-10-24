@@ -24,6 +24,20 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// Releases the simulated user config together with the bUnit context.
+        /// </summary>
+        /// <param name="disposing">True when called from Dispose.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                userConfig.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        /// <summary>
         /// The select all / clear all button is rendered via DisplayService.DisplayButton and therefore follows the iconify setting.
         /// </summary>
         [TestCase(true, false)]

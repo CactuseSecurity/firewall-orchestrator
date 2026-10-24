@@ -15,7 +15,7 @@ namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal class ExtTicketHandlerTest
+    internal sealed class ExtTicketHandlerTest : IDisposable
     {
         private static readonly ExternalCertificateChecks CertificateChecks = new(FirewallConnections: true, TicketSystems: true);
         internal readonly static ExternalTicketSystem ticketSystem = new()
@@ -885,6 +885,13 @@ namespace FWO.Test
                 }
                 return base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
             }
+        }
+
+        public void Dispose()
+        {
+            apiConnection.Dispose();
+            userConfig.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

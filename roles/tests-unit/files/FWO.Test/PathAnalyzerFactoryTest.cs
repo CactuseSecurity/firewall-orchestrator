@@ -207,6 +207,7 @@ namespace FWO.Test
 
             protected override void Dispose(bool disposing)
             {
+                base.Dispose(disposing);
             }
         }
     }

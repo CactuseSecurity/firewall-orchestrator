@@ -579,6 +579,7 @@ internal class FlowCatalogServiceTest
         {
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].Name, Is.EqualTo("HostA"));
+            Assert.That(result[0].IpRange, Is.EqualTo(["10.0.0.1", "10.0.0.1"]));
             Assert.That(result[0].ShowInRequest, Is.True);
         });
     }

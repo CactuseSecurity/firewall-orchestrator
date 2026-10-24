@@ -17,29 +17,8 @@
   failed_when: false
   when: internalca_existing_apache_configuration is defined
 
-# Block scalars keep backslashes verbatim, so these patterns use single
-# backslashes. Doubling them would silently never match and fall through to the
-# legacy defaults below.
 - name: Determine existing Apache certificate paths
-  set_fact:
-    internalca_existing_apache_certificate: >-
-      {{
-        (internalca_existing_apache_configuration_content.content | default('') | b64decode
-        | regex_findall('(?m)^\s*SSLCertificateFile\s+([^\s]+)') | first)
-        | default(internalca_legacy_apache_certificate, true)
-      }}
-    internalca_existing_apache_private_key: >-
-      {{
-        (internalca_existing_apache_configuration_content.content | default('') | b64decode
-        | regex_findall('(?m)^\s*SSLCertificateKeyFile\s+([^\s]+)') | first)
-        | default(internalca_legacy_apache_private_key, true)
-      }}
-    internalca_existing_peer_ca_intermediate_certificates: >-
-      {{
-        (internalca_existing_apache_configuration_content.content | default('') | b64decode
-        | regex_findall('(?m)^\s*SSLCertificateChainFile\s+([^\s]+)') | first)
-        | default('', true)
-      }}
+  include_tasks: select-existing-apache-identity.yml
   when: internalca_existing_apache_configuration is defined
 
 - name: Check existing Apache certificate and private key
@@ -214,25 +193,12 @@
     retained_certificate_path: "{{ internalca_existing_apache_certificate }}"
     retained_certificate_info: "{{ internalca_existing_apache_certificate_info }}"
     retained_certificate_required_names: "{{ internalca_endpoint_host_names }}"
-    # One folded scalar per remedy, and neither names the missing entries: that count is
-    # only known inside the include, and a Jinja literal broken across lines inside a
-    # folded scalar would keep its newline and indentation in the operator's message.
-    single_host_remedy: >-
-      Set fwo_endpoint_hostname in {{ fworch_conf_dir }}/fwo-install-settings.yml to a name
-      the certificate covers, or have the certificate reissued for the names listed above.
-    # fwo_endpoint_hostname names all three endpoints at once, but roles/common refuses it
-    # on an inventory holding more than one host - which is exactly where the endpoints were
-    # named individually and so exactly where this failure is most likely. Naming it there
-    # would send the operator into a second, different failure.
-    multi_host_remedy: >-
-      This inventory spreads {{ product_name }} over {{ fworch_inventory_hosts | length }}
-      hosts, so fwo_endpoint_hostname is refused here. Set
-      api_network_listening_ip_address, middleware_hostname and ui_hostname individually in
-      {{ fworch_conf_dir }}/fwo-install-settings.yml to names the certificate covers, or have
-      the certificate reissued for the names listed above.
-    retained_certificate_remedy: >-
-      {{ single_host_remedy if fworch_inventory_hosts | default([]) | length <= 1 else multi_host_remedy }}
-  when: internalca_preserve_apache_certificate | default(false) | bool
+    retained_certificate_remedy: "{{ internalca_apache_endpoint_names_remedy }}"
+  # An identity the operator configured was already checked in main.yml, on both
+  # installation modes, before detection ran.
+  when:
+    - internalca_preserve_apache_certificate | default(false) | bool
+    - not (internalca_operator_apache_identity | bool)
 
 - name: Check existing LDAP certificate and private key
   stat:

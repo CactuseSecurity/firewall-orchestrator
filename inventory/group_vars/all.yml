@@ -201,9 +201,15 @@ fworch_importer_memory_max: "{{ 'infinity' if fworch_importer_memory_max_percent
 # to it with username/password to obtain their JWT.
 graphql_api_requires_client_certificate: true
 
+# Where FWO issues its own Apache identity. Kept apart from the two paths below because
+# those are an operator input as well: with internalca_issue_apache_certificate set to
+# false, naming a different pair there is how an administrator-managed certificate is
+# configured, and roles/internalCA can only tell that request apart by comparing with these.
+internalca_fwo_apache_certificate: "{{ fworch_secrets_dir }}/apache/server.crt"
+internalca_fwo_apache_private_key: "{{ fworch_secrets_dir }}/apache/server.key"
 # read by roles/api, roles/middleware and roles/ui apache templates
-internalca_apache_certificate: "{{ fworch_secrets_dir }}/apache/server.crt"
-internalca_apache_private_key: "{{ fworch_secrets_dir }}/apache/server.key"
+internalca_apache_certificate: "{{ internalca_fwo_apache_certificate }}"
+internalca_apache_private_key: "{{ internalca_fwo_apache_private_key }}"
 # Optional PEM bundle containing the intermediate CA certificates Apache must
 # send after a customer-managed leaf certificate. Keep the issuing root in
 # internalca_peer_ca_certificate; roots are trust anchors and are not part of
@@ -212,7 +218,8 @@ internalca_apache_private_key: "{{ fworch_secrets_dir }}/apache/server.key"
 internalca_peer_ca_intermediate_certificates: ""
 # The intermediates this host's Apache actually serves, resolved per host by
 # roles/internalCA. It carries internalca_peer_ca_intermediate_certificates only on a
-# host that keeps a customer-managed certificate; a host serving an FWO-issued leaf
+# host that keeps a customer-managed certificate or serves one the operator configured
+# with internalca_issue_apache_certificate set to false; a host serving an FWO-issued leaf
 # keeps it empty, because that leaf must neither present a customer chain nor be
 # validated against a customer root. It is a separate name because
 # internalca_peer_ca_intermediate_certificates may be passed with --extra-vars, and

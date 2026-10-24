@@ -215,6 +215,51 @@
     retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
     retained_chain_remedy: unused in the positive case
 
+# Apache sends SSLCertificateChainFile after the certificate file, so for Apache the
+# intermediate usually sits in a file of its own rather than behind the leaf.
+- name: Verify the preflight accepts a leaf served with a separate intermediates file
+  include_tasks: "{{ retained_chain_preflight }}"
+  vars:
+    retained_chain_subject: Apache
+    retained_chain_certificate: "{{ test_retained_chain_directory.path }}/deep-leaf.crt"
+    retained_chain_intermediates: "{{ test_retained_chain_directory.path }}/intermediate.crt"
+    retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+    retained_chain_remedy: unused in the positive case
+
+# The Apache caller names the certificate and the consequence itself: a pair configured
+# on this run is not "kept", and the OpenLDAP consequence (logins) is the wrong one there.
+- name: Verify the preflight reports a configured Apache leaf without its intermediate in the caller's words
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: Apache
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/deep-leaf.crt"
+        retained_chain_intermediates: ""
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+        retained_chain_lead: The Apache certificate configured for the test host
+        retained_chain_consequence: the test endpoints would be rejected
+        retained_chain_remedy: Serve the intermediate.
+    - set_fact:
+        test_retained_chain_apache_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_apache_rejected: true
+        test_retained_chain_apache_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert the configured Apache leaf was rejected with the caller's lead and consequence
+  assert:
+    that:
+      - test_retained_chain_apache_rejected | bool
+      - "test_retained_chain_apache_message is match('The Apache certificate configured for the test host cannot be built to any anchor')"
+      - "'the test endpoints would be rejected' in test_retained_chain_apache_message"
+      - "'Serve the intermediate.' in test_retained_chain_apache_message"
+      - "'kept on' not in test_retained_chain_apache_message"
+      - "'logins may still be working' not in test_retained_chain_apache_message"
+    fail_msg: >-
+      The retained chain preflight did not report a configured Apache leaf without its
+      intermediate in the caller's words:
+      {{ test_retained_chain_apache_message | default('it did not fail at all') }}
+
 # The case that used to pass the gate and then fail at every LDAP call: the certificate
 # file holds the leaf alone, so nothing bridges it to the configured root.
 - name: Verify the preflight rejects a leaf whose intermediate is missing

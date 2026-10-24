@@ -70,6 +70,31 @@ internalca_placeholder_host_names:
 internalca_legacy_apache_certificate: "{{ apache_ssl_dir }}/server.crt"
 internalca_legacy_apache_private_key: "{{ apache_ssl_dir }}/server.key"
 
+# The advice for an administrator-managed Apache certificate that does not cover every FWO
+# endpoint name, shared by the retained and the operator-configured pair. One folded scalar
+# per remedy, and neither names the missing entries: that count is only known inside
+# validate-retained-certificate.yml, and a Jinja literal broken across lines inside a
+# folded scalar would keep its newline and indentation in the operator's message.
+internalca_apache_single_host_names_remedy: >-
+  Set fwo_endpoint_hostname in {{ fworch_conf_dir }}/fwo-install-settings.yml to a name
+  the certificate covers, or have the certificate reissued for the names listed above.
+# fwo_endpoint_hostname names all three endpoints at once, but roles/common refuses it
+# on an inventory holding more than one host - which is exactly where the endpoints were
+# named individually and so exactly where this failure is most likely. Naming it there
+# would send the operator into a second, different failure.
+internalca_apache_multi_host_names_remedy: >-
+  This inventory spreads {{ product_name }} over {{ fworch_inventory_hosts | length }}
+  hosts, so fwo_endpoint_hostname is refused here. Set
+  api_network_listening_ip_address, middleware_hostname and ui_hostname individually in
+  {{ fworch_conf_dir }}/fwo-install-settings.yml to names the certificate covers, or have
+  the certificate reissued for the names listed above.
+internalca_apache_endpoint_names_remedy: >-
+  {{
+    internalca_apache_single_host_names_remedy
+    if fworch_inventory_hosts | default([]) | length <= 1
+    else internalca_apache_multi_host_names_remedy
+  }}
+
 # OpenLDAP runs alongside the middleware but uses a separate key because its
 # daemon cannot read the Apache private key. These paths must stay in step with
 # openldap_server_cert_path in roles/openldap-server/defaults/main.yml.

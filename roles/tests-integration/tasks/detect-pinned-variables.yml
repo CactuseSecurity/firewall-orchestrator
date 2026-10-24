@@ -1,0 +1,21 @@
+---
+# scripts/run-playbook-with-sudo.sh hands fwo-install-settings.yml to ansible-playbook as
+# extra variables, and those outrank every set_fact and include parameter. A fixture case that
+# feeds a production task file its inputs through either cannot change a variable the
+# operator's settings name - and neither can the production task it exercises, which is
+# exactly what the operator asked for. Such a case can then only fail, for reasons that say
+# nothing about the code under test.
+#
+# Include parameters are outranked by extra variables alone, so every name listed in
+# test_pinned_variable_names has to be passed in as an include parameter set to
+# test_pinned_variable_probe. Whichever does not come back with that value is pinned.
+- name: Record the variables extra variables pin for this run
+  set_fact:
+    test_pinned_variables: >-
+      {{
+        test_pinned_variable_names
+        | zip(query('vars', *test_pinned_variable_names))
+        | rejectattr('1', 'equalto', test_pinned_variable_probe)
+        | map('first')
+        | list
+      }}

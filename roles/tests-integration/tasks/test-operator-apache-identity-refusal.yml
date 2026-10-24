@@ -1,0 +1,31 @@
+---
+# One refusal case of test-operator-apache-identity.yml: the configured pair must be
+# refused before any vhost names it, with a message that says why.
+- name: Verify the operator Apache identity is refused for a {{ test_operator_identity_case.name }}
+  block:
+    - include_tasks: "{{ role_path }}/../internalCA/tasks/validate-operator-apache-identity.yml"
+      vars:
+        operator_apache_certificate: "{{ test_operator_identity_directory.path }}/operator.crt"
+        operator_apache_private_key: >-
+          {{ test_operator_identity_directory.path }}/{{ test_operator_identity_case.private_key }}
+        operator_apache_required_names: "{{ test_operator_identity_case.required_names }}"
+        operator_apache_names_remedy: Have the certificate reissued.
+    - set_fact:
+        test_operator_identity_refused: false
+  rescue:
+    - set_fact:
+        test_operator_identity_refused: true
+        test_operator_identity_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert the operator Apache identity was refused for a {{ test_operator_identity_case.name }}
+  assert:
+    that:
+      - test_operator_identity_refused | bool
+      - test_operator_identity_case.expected in test_operator_identity_message
+      # A configured pair is not a retained one; the message must not call it that.
+      - "'kept on' not in test_operator_identity_message"
+    fail_msg: >-
+      The Apache identity the operator configured was not refused for a
+      {{ test_operator_identity_case.name }} with a message containing
+      "{{ test_operator_identity_case.expected }}":
+      {{ test_operator_identity_message | default('it was accepted') }}

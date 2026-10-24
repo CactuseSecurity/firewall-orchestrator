@@ -29,6 +29,18 @@
   are normalized to inclusive bounds. Breaking change: the legacy request fields `ipStart` and
   `ipEnd` were removed, so clients must migrate start/end pairs to one of the new representations.
   Response payloads and persisted workflow start/end bounds are unchanged
+- installer: an administrator-managed Apache certificate named in `fwo-install-settings.yml`
+  (`internalca_issue_apache_certificate: false` with `internalca_apache_certificate` and
+  `internalca_apache_private_key`) is now applied to every FWO vhost. Before, the run that switched
+  away from an FWO-issued certificate kept the paths of the installed vhost, and a new installation
+  served the pair without `internalca_peer_ca_intermediate_certificates`. Before any vhost names the
+  pair, on new installations and upgrades alike, the installer now checks that both files exist, that the
+  key belongs to the certificate and loads without a passphrase, and that the certificate covers every
+  FWO endpoint name
+- installer: a retained or administrator-managed Apache certificate must chain to the FWO trust bundle,
+  including the intermediates Apache serves; a missing intermediate or a root other than the configured
+  `internalca_peer_ca_certificate` now stops the run before the database and the services are upgraded instead of
+  failing in the integration tests
 - First step towards replacing BlazorTable with FancyTable: the FancyTable based rules report from #5198 is added as a separate preview on a new Monitoring page that only shows up in Debug builds. The productive RulesReport.razor is unchanged.
 
 ## 9.7.6 - 18.10.26

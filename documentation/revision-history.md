@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.2 - 24.10.2026
+- workflow configuration transfer: export selected phases with a custom file name; import as a new configuration or merge into an existing one
+- workflow configuration packages include referenced state names and `automatic_only` semantics; missing states are created, equivalent existing states are reused, and conflicting state IDs are rejected before import changes are made
+
 ## 9.8.1 - 20.10.2026
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
 - autodiscovery: alerts and alert log lines no longer contain the import credential secret of the super management; the upgrade removes it from existing alerts. Rotate the credentials of super managements used with autodiscovery, and purge old middleware logs where possible

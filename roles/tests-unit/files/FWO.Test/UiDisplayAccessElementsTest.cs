@@ -741,6 +741,49 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task IpSelector_ReadonlyCanIgnoreTheGroupName()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+            NwObjectElement address = new() { GroupName = "parent_group", Name = "member_object", IpString = "192.0.2.10" };
+
+            IRenderedComponent<IpSelector> component = context.Render<IpSelector>(parameters => parameters
+                .Add(p => p.IpAddresses, new List<NwObjectElement> { address })
+                .Add(p => p.Readonly, true)
+                .Add(p => p.WithLabel, false));
+            Assert.That(component.Markup, Does.Contain("parent_group"));
+
+            component.Render(parameters => parameters.Add(p => p.IgnoreGroupName, true));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("member_object"));
+                Assert.That(component.Markup, Does.Not.Contain("parent_group"));
+            });
+        }
+
+        [Test]
+        public async Task IpSelector_AddsAValidAddressRange()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+            List<NwObjectElement> addressesToAdd = [];
+            IRenderedComponent<IpSelector> component = context.Render<IpSelector>(parameters => parameters
+                .Add(p => p.IpsToAdd, addressesToAdd)
+                .Add(p => p.WithLabel, false));
+
+            SetMember(component.Instance, "ipRangeToAdd", NetTools.IPAddressRange.Parse("192.0.2.0/24"));
+            component.Find("#addIpAddress").Click();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(addressesToAdd, Has.Count.EqualTo(1));
+                Assert.That(addressesToAdd[0].IpString, Is.EqualTo("192.0.2.0/32"));
+                Assert.That(addressesToAdd[0].IpEndString, Is.EqualTo("192.0.2.255/32"));
+            });
+        }
+
+        [Test]
         public async Task ServiceSelector_DisplaysServiceReferenceNamesInMixedList()
         {
             await using BunitContext context = new();
@@ -764,6 +807,30 @@ namespace FWO.Test
                 Assert.That(component.Markup, Does.Contain("443"));
                 Assert.That(component.Markup, Does.Contain("Flow Service"));
                 Assert.That(component.Markup, Does.Contain("Classic Service"));
+            });
+        }
+
+        [Test]
+        public async Task ServiceSelector_ReadonlyCanIgnoreTheGroupName()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig());
+            context.Services.AddSingleton<DomEventService>();
+            NwServiceElement service = new() { GroupName = "parent_group", Name = "member_service", ProtoId = 6, Port = 443 };
+
+            IRenderedComponent<ServiceSelector> component = context.Render<ServiceSelector>(parameters => parameters
+                .Add(p => p.Services, new List<NwServiceElement> { service })
+                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
+                .Add(p => p.Readonly, true)
+                .Add(p => p.WithLabel, false));
+            Assert.That(component.Markup, Does.Contain("parent_group"));
+
+            component.Render(parameters => parameters.Add(p => p.IgnoreGroupName, true));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("member_service"));
+                Assert.That(component.Markup, Does.Not.Contain("parent_group"));
             });
         }
 

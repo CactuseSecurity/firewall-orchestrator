@@ -1,5 +1,10 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.2 - 24.10.2026
+- workflow API: `createTicket` now creates object-create request tasks for submitted new network objects, services and time objects
+- workflow UI: network and service group modification tasks provide management-aware selectors for existing groups,
+  member add/remove editing, and read-only display of the requested changes
+
 ## 9.8.1 - 20.10.2026
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
 - autodiscovery: alerts and alert log lines no longer contain the import credential secret of the super management; the upgrade removes it from existing alerts. Rotate the credentials of super managements used with autodiscovery, and purge old middleware logs where possible

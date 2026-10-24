@@ -634,6 +634,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>LDAP: Eine Verbindung kann bis zu 10 Server (Replikate) eines Verzeichnisses enthalten, die der Reihe nach versucht werden. Aktive Verbindungen d&uuml;rfen keine gleichen Such- oder Schreibpfade haben; bisher als getrennte Verbindungen eingerichtete Replikate m&uuml;ssen zu einer Verbindung zusammengefasst werden. Lokale Nutzer werden an die unver&auml;nderliche Objekt-Id ihres Verzeichniseintrags gebunden, daher muss sich nach dem Upgrade jeder Nutzer einmal mit Passwort anmelden.</li>
     <li>Die Auftr&auml;ge &quot;Objekt anlegen&quot; und &quot;Objekt &auml;ndern&quot; unterst&uuml;tzen Zeitobjekte mit Name, Start- und Endzeit.</li>
     <li>Neuer REST-Aufruf <code>resolvePathDevices</code>: ermittelt die Firewalls auf den Pfaden zwischen Quell- und Zieladressen (Bereiche oder Netze, je bis zu 100) mit dem Network-Zone-Tree-Algorithmus. Algorithmus und Zonenmatrix k&ouml;nnen angegeben werden, sonst gelten die Einstellungen. Die Antwort nennt jedes Ger&auml;t einmal sowie den verwendeten Algorithmus und die verwendete Matrix.</li>
+    <li>Auftr&auml;ge vom Typ &quot;Gruppe &auml;ndern&quot; k&ouml;nnen bestehende Netzwerk- und Dienstgruppen suchen und bearbeiten. Mitglieder werden vorbef&uuml;llt, k&ouml;nnen zum Entfernen markiert und durch neue Netzwerkobjekte oder Dienste erg&auml;nzt werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -666,6 +667,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>LDAP: a connection can list up to 10 servers (replicas) of one directory, which are tried in order. Active connections must not share a search or write path; replicas configured as separate connections so far have to be combined into one connection. Local users are bound to the immutable object id of their directory entry, so every user has to log in with password once after the upgrade.</li>
     <li>The tasks &quot;create object&quot; and &quot;modify object&quot; support time objects with name, start and end time.</li>
     <li>New REST call <code>resolvePathDevices</code>: determines the firewalls on the paths between source and destination addresses (ranges or networks, up to 100 each) using the network zone tree algorithm. Algorithm and zone matrix can be specified, otherwise the settings apply. The response lists each device once together with the algorithm and matrix used.</li>
+    <li>&quot;Modify group&quot; tasks can search for and edit existing network and service groups. Members are prefilled, can be marked for removal, and can be supplemented with new network objects or services.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2127,6 +2129,12 @@ INSERT INTO txt VALUES ('members_to_add',       'German',   'Hinzuzuf&uuml;gende
 INSERT INTO txt VALUES ('members_to_add',       'English',  'Members to add');
 INSERT INTO txt VALUES ('members_to_remove',    'German',   'Zu entfernende Mitglieder');
 INSERT INTO txt VALUES ('members_to_remove',    'English',  'Members to remove');
+INSERT INTO txt VALUES ('unchanged',            'German',   'Unver&auml;ndert');
+INSERT INTO txt VALUES ('unchanged',            'English',  'Unchanged');
+INSERT INTO txt VALUES ('add_member',           'German',   'Mitglied hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_member',           'English',  'Add Member');
+INSERT INTO txt VALUES ('remove_member',        'German',   'Mitglied entfernen');
+INSERT INTO txt VALUES ('remove_member',        'English',  'Remove Member');
 INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');
@@ -4890,6 +4898,8 @@ INSERT INTO txt VALUES ('E5128', 'German', 'Zugangsdaten werden von anderen Zuga
 INSERT INTO txt VALUES ('E5128', 'English', 'Credential is used by other credentials');
 INSERT INTO txt VALUES ('E5129', 'German',  'Auf diesem Management werden keine Zeitobjekte angelegt (ger&auml;tespezifische Einstellung &quot;Anlage Zeitobjekte&quot;).');
 INSERT INTO txt VALUES ('E5129', 'English', 'No time objects are created on this management (device specific setting &quot;Time object creation&quot;).');
+INSERT INTO txt VALUES ('E5130', 'German',  'Die ausgew&auml;hlte Gruppe enth&auml;lt zu viele Mitglieder und kann nicht bearbeitet werden.');
+INSERT INTO txt VALUES ('E5130', 'English', 'The selected group has too many members to edit.');
 INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten Managements verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by the managements named. Change the credentials of these managements before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
@@ -9025,8 +9035,8 @@ INSERT INTO txt VALUES ('H8212', 'English', 'Access: Several fields are offered,
     In case of the respective configuration (no planning phase, "Enter device in request" in <a href="/help/settings/workflowcustomizing">Customizing</a>) also the affected devices have to be selected.
     Additionally there are optional specifications like validity range and reason.
 ');
-INSERT INTO txt VALUES ('H8213', 'German',  'Die weiteren vorgesehenen Tasktypen "Gruppe &auml;ndern" und "Gruppe l&ouml;schen" k&ouml;nnen zwar aktiviert und genutzt werden, sind aber noch nicht mit spezifischen Feldern versehen.');
-INSERT INTO txt VALUES ('H8213', 'English', 'Further task types "modify group" and "delete group" can be activated and used, but are not equipped with specific fields yet.');
+INSERT INTO txt VALUES ('H8213', 'German',  'Der Tasktyp "Gruppe l&ouml;schen" kann aktiviert und genutzt werden, ist aber noch nicht mit spezifischen Feldern versehen.');
+INSERT INTO txt VALUES ('H8213', 'English', 'The task type "delete group" can be activated and used, but is not equipped with specific fields yet.');
 INSERT INTO txt VALUES ('H8214', 'German',  'Regel l&ouml;schen: Hier muss zwingend das Gateway und die Uid der zu l&ouml;schenden Regel eingegeben werden.
     Diese wird gegen die tats&auml;chlich auf dem Gateway vorhandenen Uids gepr&uuml;ft.<br>
     Dieser Auftragstyp wird auch bei der automatischen Erzeugung aus dem Unbenutzte-Regel-Report bzw. bei der Dezertifizierung verwendet.
@@ -9057,6 +9067,8 @@ INSERT INTO txt VALUES ('H8218', 'German',  'Objekt &auml;ndern: &Auml;ndert ein
 INSERT INTO txt VALUES ('H8218', 'English', 'Modify object: Changes an existing, imported network object, service or time object. After choosing the management the object is selected through the search (from 3 characters, name or ip address, time objects by name);
     the fields are prefilled with the current values. The task stores the previous and the new state and shows both. A task without changed values is rejected.
     Both object task types are not yet passed to external ticket systems. If a ticket with external integration contains object tasks besides rule tasks, the tasks after the first object task are no longer passed on. Object tasks should therefore be requested in tickets of their own.');
+INSERT INTO txt VALUES ('H8219', 'German',  'Gruppe &auml;ndern: &Auml;ndert eine bestehende Netzwerk- oder Dienstgruppe. Nach Auswahl des Managements wird die Gruppe &uuml;ber die Suche ausgew&auml;hlt und ihre Mitglieder werden vorbef&uuml;llt. Mitglieder k&ouml;nnen zum Entfernen markiert und neue Netzwerkobjekte bzw. Dienste hinzugef&uuml;gt werden. Der Gruppenname bleibt unver&auml;ndert.');
+INSERT INTO txt VALUES ('H8219', 'English', 'Modify group: Changes an existing network or service group. After choosing the management, select the group through the search; its members are prefilled. Members can be marked for removal and new network objects or services can be added. The group name remains unchanged.');
 INSERT INTO txt VALUES ('H8301', 'German',  'Jeder Verarbeitungsschritt kann nur von Nutzern mit entsprechenden <a href="/help/settings/roles">Rollen</a> get&auml;tigt werden.
     Dabei k&ouml;nnen einzelnen Nutzern auch mehrere Rollen zufallen. Die Rollen k&ouml;nnen individuell oder &uuml;ber <a href="/help/settings/groups">Gruppenzugeh&ouml;rigkeit</a> zugewiesen werden.
     Hinzu kommt die Rolle des admin, welche einen Komplettzugriff erlaubt. Je nach Rolle des Bearbeiters sind nur die f&uuml;r ihn relevanten Teile der folgenden Rubriken sichtbar.

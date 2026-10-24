@@ -10,8 +10,8 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from fwo_encrypt import (
     AUTHENTICATED_PREFIX,
-    AUTHENTICATION_KEY_LABEL,
     ENCRYPTION_KEY_LABEL,
+    MAC_KEY_LABEL,
     TAG_LENGTH,
     decrypt,
     decrypt_aes_ciphertext,
@@ -32,12 +32,12 @@ def encrypt_authenticated(plaintext: str, main_key: str, iv: bytes) -> str:
     """Encrypt like FWO.Encryption.AesEnc.Encrypt (C#), which writes all stored secrets."""
     key = main_key.encode()
     encryption_key = hmac.new(key, ENCRYPTION_KEY_LABEL, hashlib.sha256).digest()
-    authentication_key = hmac.new(key, AUTHENTICATION_KEY_LABEL, hashlib.sha256).digest()
+    mac_key = hmac.new(key, MAC_KEY_LABEL, hashlib.sha256).digest()
     padder = padding.PKCS7(128).padder()
     padded = padder.update(plaintext.encode()) + padder.finalize()
     encryptor = Cipher(algorithms.AES(encryption_key), modes.CBC(iv)).encryptor()
     authenticated_data = iv + encryptor.update(padded) + encryptor.finalize()
-    tag = hmac.new(authentication_key, authenticated_data, hashlib.sha256).digest()
+    tag = hmac.new(mac_key, authenticated_data, hashlib.sha256).digest()
     return AUTHENTICATED_PREFIX + base64.b64encode(authenticated_data + tag).decode()
 
 

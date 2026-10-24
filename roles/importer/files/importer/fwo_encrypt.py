@@ -19,7 +19,7 @@ IV_LENGTH = 16
 BLOCK_LENGTH = 16
 TAG_LENGTH = 32
 ENCRYPTION_KEY_LABEL = b"fwo-secret-encryption-v2"
-AUTHENTICATION_KEY_LABEL = b"fwo-secret-authentication-v2"
+MAC_KEY_LABEL = b"fwo-secret-authentication-v2"
 VALID_MAIN_KEY_LENGTHS = (16, 24, 32)
 
 
@@ -55,7 +55,7 @@ def decrypt_authenticated_ciphertext(base64_payload: str, passphrase: str) -> st
 
     # verify the tag before decrypting anything: a wrong main key or modified data fails here
     authenticated_data = payload[: IV_LENGTH + ciphertext_length]
-    expected_tag = hmac.new(derive_key(main_key, AUTHENTICATION_KEY_LABEL), authenticated_data, hashlib.sha256).digest()
+    expected_tag = hmac.new(derive_key(main_key, MAC_KEY_LABEL), authenticated_data, hashlib.sha256).digest()
     if not hmac.compare_digest(expected_tag, payload[IV_LENGTH + ciphertext_length :]):
         raise ValueError("AES decryption failed: authentication tag mismatch")
 

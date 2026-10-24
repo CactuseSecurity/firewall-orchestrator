@@ -25,7 +25,7 @@ namespace FWO.Encryption
         private const int kBlockSize = 16;
         private const int kTagSize = 32;
         private static readonly byte[] kEncryptionKeyLabel = Encoding.UTF8.GetBytes("fwo-secret-encryption-v2");
-        private static readonly byte[] kAuthenticationKeyLabel = Encoding.UTF8.GetBytes("fwo-secret-authentication-v2");
+        private static readonly byte[] kMacKeyLabel = Encoding.UTF8.GetBytes("fwo-secret-authentication-v2");
         private static readonly List<int> kValidMainKeySizes = [16, 24, 32];
 
         /// <summary>
@@ -182,7 +182,7 @@ namespace FWO.Encryption
             byte[] payload = new byte[authenticatedLength + kTagSize];
             iv.CopyTo(payload, 0);
             ciphertext.CopyTo(payload, kIvSize);
-            HMACSHA256.HashData(DeriveKey(mainKey, kAuthenticationKeyLabel), payload.AsSpan(0, authenticatedLength), payload.AsSpan(authenticatedLength));
+            HMACSHA256.HashData(DeriveKey(mainKey, kMacKeyLabel), payload.AsSpan(0, authenticatedLength), payload.AsSpan(authenticatedLength));
 
             return kAuthenticatedPrefix + Convert.ToBase64String(payload);
         }
@@ -236,7 +236,7 @@ namespace FWO.Encryption
 
             // verify the tag before decrypting anything: a wrong main key or modified data fails here
             int authenticatedLength = kIvSize + ciphertextLength;
-            byte[] expectedTag = HMACSHA256.HashData(DeriveKey(mainKey, kAuthenticationKeyLabel), payload.AsSpan(0, authenticatedLength));
+            byte[] expectedTag = HMACSHA256.HashData(DeriveKey(mainKey, kMacKeyLabel), payload.AsSpan(0, authenticatedLength));
             if (!CryptographicOperations.FixedTimeEquals(expectedTag, payload.AsSpan(authenticatedLength)))
             {
                 return null;

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import fwo_const
 from models.serviceobject import ServiceObject
+from services.port_range import parse_transport_ports
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -33,36 +34,6 @@ def normalize_app_service_objects(native_config: FortiOSConfig) -> Generator[Ser
         )
 
 
-def parse_ports(ports: str) -> list[tuple[int | None, int | None]]:
-    """
-    Parse ports string into a list of port ranges. Possible formats:
-    - "80"
-    - "80-90"
-    - "80 90 100-110"
-    - "513:512-514" (destination:source) -> only destination ports are considered
-
-    Args:
-        ports (str): The ports string.
-
-    Returns:
-        list[tuple[int | None, int | None]]: List of port ranges as tuples (start, end).
-
-    """
-    port_ranges: list[tuple[int | None, int | None]] = []
-    for part in ports.split():
-        port_str = part
-        if ":" in port_str:
-            dest_port, _ = port_str.split(":", 1)
-            port_str = dest_port
-        if "-" in port_str:
-            start_str, end_str = port_str.split("-", 1)
-            port_ranges.append((int(start_str), int(end_str)))
-        else:
-            port = int(port_str)
-            port_ranges.append((port, port))
-    return port_ranges
-
-
 def get_svcobjs_from_portrange(
     portrange: str, base_name: str, comment: str | None, ip_proto: int, members: list[str]
 ) -> Generator[ServiceObject]:
@@ -81,13 +52,15 @@ def get_svcobjs_from_portrange(
         ServiceObject: The generated service object.
 
     """
-    port_ranges = parse_ports(portrange)
-    for svc_port, svc_port_end in port_ranges:
+    port_ranges = [parse_transport_ports(part) for part in portrange.split()]
+    for svc_port, svc_port_end, source_port, source_port_end in port_ranges:
         name = base_name
         if len(port_ranges) > 1:
             name += f"_{svc_port}"
             if svc_port != svc_port_end:
                 name += f"-{svc_port_end}"
+            if source_port is not None:
+                name += f"_src{source_port}-{source_port_end}"
         members.append(name)
         yield ServiceObject(
             svc_name=name,
@@ -96,6 +69,8 @@ def get_svcobjs_from_portrange(
             ip_proto=ip_proto,
             svc_port=svc_port,
             svc_port_end=svc_port_end,
+            svc_source_port=source_port,
+            svc_source_port_end=source_port_end,
             svc_color=fwo_const.DEFAULT_COLOR,
             svc_comment=comment if len(port_ranges) == 1 else None,  # only assign comment if single object
         )

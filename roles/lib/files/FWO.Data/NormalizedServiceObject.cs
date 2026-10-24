@@ -17,6 +17,12 @@ namespace FWO.Data
         [JsonProperty("svc_port_end"), JsonPropertyName("svc_port_end")]
         public int? SvcPortEnd { get; set; }
 
+        [JsonProperty("svc_source_port"), JsonPropertyName("svc_source_port")]
+        public int? SvcSourcePort { get; set; }
+
+        [JsonProperty("svc_source_port_end"), JsonPropertyName("svc_source_port_end")]
+        public int? SvcSourcePortEnd { get; set; }
+
         [JsonProperty("svc_color"), JsonPropertyName("svc_color")]
         public string SvcColor { get; set; } = "";
 
@@ -41,6 +47,9 @@ namespace FWO.Data
         [JsonProperty("rpc_nr"), JsonPropertyName("rpc_nr")]
         public string? RpcNumber { get; set; }
 
+        /// <summary>
+        /// Converts an imported service into the normalized export contract, preserving both port pairs.
+        /// </summary>
         public static NormalizedServiceObject FromNetworkService(NetworkService networkService)
         {
             return new NormalizedServiceObject
@@ -49,6 +58,8 @@ namespace FWO.Data
                 SvcName = networkService.Name,
                 SvcPort = networkService.DestinationPort,
                 SvcPortEnd = networkService.DestinationPortEnd,
+                SvcSourcePort = networkService.SourcePort,
+                SvcSourcePortEnd = networkService.SourcePortEnd,
                 SvcColor = networkService.Color?.Name ?? "",
                 SvcType = networkService.Type.Name,
                 IpProtocol = networkService.ProtoId,

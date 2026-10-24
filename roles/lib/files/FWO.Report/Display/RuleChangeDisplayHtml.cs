@@ -423,9 +423,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(DisplayBase.DisplayPort(serviceChange.OldService.DestinationPort, serviceChange.OldService.DestinationPortEnd, true));
-                case 'I': return OutputHtmlAdded(DisplayBase.DisplayPort(serviceChange.NewService.DestinationPort, serviceChange.NewService.DestinationPortEnd, true));
-                case 'C': return DisplayDiff(DisplayBase.DisplayPort(serviceChange.OldService.DestinationPort, serviceChange.OldService.DestinationPortEnd, true), (DisplayBase.DisplayPort(serviceChange.NewService.DestinationPort, serviceChange.NewService.DestinationPortEnd, true)));
+                case 'D': return OutputHtmlDeleted(DisplayBase.DisplayServicePorts(serviceChange.OldService, true));
+                case 'I': return OutputHtmlAdded(DisplayBase.DisplayServicePorts(serviceChange.NewService, true));
+                case 'C': return DisplayDiff(DisplayBase.DisplayServicePorts(serviceChange.OldService, true), (DisplayBase.DisplayServicePorts(serviceChange.NewService, true)));
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }

@@ -100,7 +100,8 @@ def normalize_all_service_objects(native_config: Config) -> dict[str, ServiceObj
 
     """
     # Start with individual service objects
-    service_objects = normalize_service_objects(native_config.service_objects)
+    group_names = frozenset(group.name for group in native_config.service_object_groups)
+    service_objects = normalize_service_objects(native_config.service_objects, group_names)
 
     # Add default 'any' protocol service objects
     create_protocol_any_service_objects(service_objects)

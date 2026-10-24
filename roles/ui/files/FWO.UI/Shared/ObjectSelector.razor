@@ -248,8 +248,7 @@ else
     private string DisplayServicePorts(NetworkService service)
     {
         string? protocolName = IpProtos.FirstOrDefault(protocol => protocol.Id == service.ProtoId)?.Name;
-        string ports = DisplayBase.DisplayPort(service.DestinationPort, service.DestinationPortEnd, false, protocolName);
-        return string.IsNullOrWhiteSpace(ports) ? protocolName ?? "" : ports;
+        return DisplayBase.DisplayServicePortsWithProtocol(service, protocolName);
     }
 
     public void Dispose()

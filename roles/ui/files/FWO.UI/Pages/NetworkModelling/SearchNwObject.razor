@@ -12,7 +12,7 @@
         {
             <div class="form-group row col-sm-12">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("object_type")):</label>
-                @if(singleType || CommonAreaMode || SpecUserMode || UpdObjMode)
+                @if(singleType || SettingsMode)
                 {
                     <label class="col-form-label text-primary col-sm-8">@userConfig.GetText(selectedType.ToString())</label>
                 }
@@ -47,7 +47,7 @@
         <div class="btn-group">
             @if(selectedObject != null)
             {
-                <ExecutionModeAuthorizeView Roles="@(CommonAreaMode || SpecUserMode || UpdObjMode ? Roles.Admin : Roles.Modeller)">
+                <ExecutionModeAuthorizeView Roles="@(SettingsMode ? Roles.Admin : Roles.Modeller)">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-success" @onclick="AddObject">@(DisplayService.DisplayButton(userConfig, "select", Icons.Select))</button>
                     </Authorized>
@@ -100,6 +100,11 @@
     [Parameter]
     public bool UpdObjMode { get; set; } = false;
 
+    [Parameter]
+    public bool ComSvcExcludedMode { get; set; } = false;
+
+    private bool SettingsMode => CommonAreaMode || SpecUserMode || UpdObjMode || ComSvcExcludedMode;
+
     private List<ModellingTypes.ModObjectType> availableTypes = new(){ ModellingTypes.ModObjectType.NetworkArea };
     private ModellingTypes.ModObjectType selectedType = ModellingTypes.ModObjectType.NetworkArea;
     private bool singleType = false;
@@ -137,7 +142,7 @@
                 grpType = (int)selectedType
             };
             List<ModellingNwGroup> allNwObjects = await apiConnection.SendQueryAsync<List<ModellingNwGroup>>(ModellingQueries.getNwGroupObjects, Variables);
-            if(!SpecUserMode && !UpdObjMode && userConfig.ModCommonAreas != "")
+            if(!SpecUserMode && !UpdObjMode && !ComSvcExcludedMode && userConfig.ModCommonAreas != "")
             {
                 List<long> commonAreaIds = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModCommonAreas)?.ConvertAll(x => x.AreaId) ?? new();
                 allNwObjects = allNwObjects.Where(o => !commonAreaIds.Contains(o.Id)).ToList();
@@ -167,7 +172,7 @@
         {
             if(selectedObject != null)
             {
-                if(!CommonAreaMode && !SpecUserMode && !UpdObjMode)
+                if(!SettingsMode)
                 {
                     var Variables = new
                     {

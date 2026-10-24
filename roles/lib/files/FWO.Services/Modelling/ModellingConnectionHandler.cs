@@ -303,6 +303,12 @@ namespace FWO.Services.Modelling
                 return false;
             }
 
+            if (ComSvcContainsExcludedArea())
+            {
+                DisplayMessageInUi(default, userConfig.GetText("edit_common_service"), userConfig.GetText(ComSvcExcludedAreaMessage), true);
+                return false;
+            }
+
             try
             {
                 if (ActConn.Sanitize())

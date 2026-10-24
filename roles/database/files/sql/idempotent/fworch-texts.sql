@@ -634,6 +634,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>LDAP: Eine Verbindung kann bis zu 10 Server (Replikate) eines Verzeichnisses enthalten, die der Reihe nach versucht werden. Aktive Verbindungen d&uuml;rfen keine gleichen Such- oder Schreibpfade haben; bisher als getrennte Verbindungen eingerichtete Replikate m&uuml;ssen zu einer Verbindung zusammengefasst werden. Lokale Nutzer werden an die unver&auml;nderliche Objekt-Id ihres Verzeichniseintrags gebunden, daher muss sich nach dem Upgrade jeder Nutzer einmal mit Passwort anmelden.</li>
     <li>Die Auftr&auml;ge &quot;Objekt anlegen&quot; und &quot;Objekt &auml;ndern&quot; unterst&uuml;tzen Zeitobjekte mit Name, Start- und Endzeit.</li>
     <li>Neuer REST-Aufruf <code>resolvePathDevices</code>: ermittelt die Firewalls auf den Pfaden zwischen Quell- und Zieladressen (Bereiche oder Netze, je bis zu 100) mit dem Network-Zone-Tree-Algorithmus. Algorithmus und Zonenmatrix k&ouml;nnen angegeben werden, sonst gelten die Einstellungen. Die Antwort nennt jedes Ger&auml;t einmal sowie den verwendeten Algorithmus und die verwendete Matrix.</li>
+    <li>Modellierung: In den Modellierungs-Einstellungen k&ouml;nnen Netzwerkareas festgelegt werden, die nicht in Common Services verwendet werden d&uuml;rfen. Sie werden bei der Bearbeitung von Common Services nicht zur Auswahl angeboten.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -666,6 +667,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>LDAP: a connection can list up to 10 servers (replicas) of one directory, which are tried in order. Active connections must not share a search or write path; replicas configured as separate connections so far have to be combined into one connection. Local users are bound to the immutable object id of their directory entry, so every user has to log in with password once after the upgrade.</li>
     <li>The tasks &quot;create object&quot; and &quot;modify object&quot; support time objects with name, start and end time.</li>
     <li>New REST call <code>resolvePathDevices</code>: determines the firewalls on the paths between source and destination addresses (ranges or networks, up to 100 each) using the network zone tree algorithm. Algorithm and zone matrix can be specified, otherwise the settings apply. The response lists each device once together with the algorithm and matrix used.</li>
+    <li>Modelling: network areas which must not be used in common services can be defined in the modelling settings. They are not offered for selection when editing common services.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -1987,6 +1989,8 @@ INSERT INTO txt VALUES ('special_user_areas',   'German', 	'Netzwerkareas f&uuml
 INSERT INTO txt VALUES ('special_user_areas',   'English', 	'Network Areas for Users');
 INSERT INTO txt VALUES ('updatable_obj_areas', 'German', 	'Netzwerkareas f&uuml;r Updatable Objects');
 INSERT INTO txt VALUES ('updatable_obj_areas', 'English', 	'Network Areas for Updatable Objects');
+INSERT INTO txt VALUES ('com_svc_excluded_areas', 'German', 	'Netzwerkareas nicht in Common Services');
+INSERT INTO txt VALUES ('com_svc_excluded_areas', 'English', 	'Network Areas excluded from Common Services');
 INSERT INTO txt VALUES ('search_interface',     'German', 	'Schnittstelle suchen');
 INSERT INTO txt VALUES ('search_interface',     'English', 	'Search Interface');
 INSERT INTO txt VALUES ('used_interface',       'German', 	'Genutzte Schnittstelle');
@@ -4774,6 +4778,8 @@ INSERT INTO txt VALUES ('U9044', 'German',  'Benachrichtigungen an App-Verantwor
 INSERT INTO txt VALUES ('U9044', 'English', 'Notifications were sent to App responsibles.');
 INSERT INTO txt VALUES ('U9045', 'German',  'Die Regel-Eigent&uuml;mer-Zuordnung ist gerade nicht verwendbar. Der Soll-Ist-Abgleich kann deshalb l&auml;nger dauern als gewohnt.');
 INSERT INTO txt VALUES ('U9045', 'English', 'The rule owner mapping cannot be used right now. The variance analysis may therefore take longer than usual.');
+INSERT INTO txt VALUES ('U9046', 'German',  'Dieser Netzbereich darf nicht in Common Services verwendet werden.');
+INSERT INTO txt VALUES ('U9046', 'English', 'This network area must not be used in common services.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -7732,6 +7738,8 @@ INSERT INTO txt VALUES ('H5708', 'German', 'Logdaten-Zeitraum: Die &Uuml;berschr
 INSERT INTO txt VALUES ('H5708', 'English', 'Log data period: The heading describes only displayed rows sharing an aggregation period and import time. When values differ or are unknown, the period and import time are shown per row. Old data without a stored period remains unknown until reimported.');
 INSERT INTO txt VALUES ('H5709', 'German', 'Uhrzeit des Imports in der &Uuml;berschrift anzeigen: Zeigt in der &Uuml;berschrift der Logdaten-Tabelle neben dem Importdatum, mit dem der Aggregationszeitraum endet, auch die Uhrzeit im Format der Benutzersprache an. Standardm&auml;&szlig;ig deaktiviert, sodass nur das Datum angezeigt wird.');
 INSERT INTO txt VALUES ('H5709', 'English', 'Show time of the import in the heading: Includes the time next to the import date, at which the aggregation period ends, in the log data table heading, using the format of the user language. Disabled by default, so only the date is displayed.');
+INSERT INTO txt VALUES ('H5710', 'German',  'Netzwerkareas nicht in Common Services: Vom Administrator vorgegebene Netzwerkareas, welche weder in der Quelle noch im Ziel von Common Services genutzt werden d&uuml;rfen. In normalen Verbindungen bleiben sie nutzbar. Bereits bestehende Common Services mit einer dieser Netzwerkareas k&ouml;nnen erst wieder gespeichert werden, wenn die Netzwerkarea entfernt wurde.');
+INSERT INTO txt VALUES ('H5710', 'English', 'Network Areas excluded from Common Services: Network areas defined by the administrator, which must not be used in source or destination of common services. They remain usable in regular connections. Existing common services containing one of these network areas can only be saved again after the network area has been removed.');
 INSERT INTO txt VALUES ('H5692', 'German', 'Vorhandene Logdaten importierter Applikationen ersetzen: L&ouml;scht beim Import einer JSON-Datei alle vorhandenen Logeintr&auml;ge f&uuml;r jede darin enthaltene, bekannte externe Applikations-ID und ersetzt sie atomar durch die neuen Eintr&auml;ge. Unbekannte Applikations-IDs werden ignoriert.');
 INSERT INTO txt VALUES ('H5692', 'English', 'Replace existing log data of imported applications: When importing a JSON file, deletes all existing log entries for every known external application ID contained in it and atomically replaces them with the new entries. Unknown application IDs are ignored.');
 INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.

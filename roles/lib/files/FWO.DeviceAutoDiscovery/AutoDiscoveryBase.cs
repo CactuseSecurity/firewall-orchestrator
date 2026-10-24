@@ -55,6 +55,7 @@ namespace FWO.DeviceAutoDiscovery
             try
             {
                 List<Management> existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+                AdoptExistingIdentities(discoveredManagements, existingManagements);
 
                 bool compareManagementsByUid = SuperManagement.DeviceType.Name == "FortiManager";
                 foreach (Management discoveredMgmt in discoveredManagements.Where(x => x.ConfigPath != "global"))
@@ -78,6 +79,15 @@ namespace FWO.DeviceAutoDiscovery
             }
             return deltaManagements;
         }
+
+        /// <summary>
+        /// Lets a discovery take over the identity of stored objects that the exact name and uid comparison
+        /// would not recognize, so they are not reported as deleted and added again.
+        /// </summary>
+        /// <param name="discoveredManagements">The discovered managements, changed in place.</param>
+        /// <param name="existingManagements">The managements stored in FWO.</param>
+        protected virtual void AdoptExistingIdentities(List<Management> discoveredManagements, List<Management> existingManagements)
+        { }
 
         private static void DiscoverManagementDetails(
             Management discoveredMgmt,

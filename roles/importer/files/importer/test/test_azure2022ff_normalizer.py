@@ -9,6 +9,7 @@ import pytest
 from fw_modules.azure2022ff.azure_models import AzureConfig, AzureDevice, AzureIpGroup, AzureRule
 from fw_modules.azure2022ff.azure_network import normalize_ip_groups, parse_address, resolve_ip_group
 from fw_modules.azure2022ff.azure_normalizer import normalize_config
+from fw_modules.azure2022ff.azure_rule import priority_sort_key
 from fw_modules.azure2022ff.azure_service import get_rule_services, parse_port_range
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
@@ -181,6 +182,33 @@ class TestNormalizeConfig:
             rule_uid("AllowColl", "allow-any"),
             rule_uid("AllowColl", "allow-icmp-range"),
         ]
+
+    def test_rules_are_ordered_by_group_and_collection_priority(self) -> None:
+        native_config = load_native_config()
+        rule_collection_groups = native_config.firewall_policies[0].rule_collection_groups
+        group = rule_collection_groups[1]
+        # list the collections against their priorities: AllowColl (9999), RuleColl1DNAT, RuleColl1 (2100)
+        group.properties.rule_collections.reverse()
+        # a group listed last, which the firewall processes first due to its lower priority
+        first_group = group.model_copy(deep=True, update={"id": f"{group.id}-first"})
+        first_group.properties.priority = 1000
+        first_group.properties.rule_collections = first_group.properties.rule_collections[:1]
+        rule_collection_groups.append(first_group)
+
+        rules = normalize_config(native_config, DEVICES, "mgm-uid").rulebases[0].rules
+
+        first_group_rule_prefix = f"{RCG_UID}-first/ruleCollections/AllowColl/rules/"
+        assert list(rules) == [
+            first_group_rule_prefix + "allow-any",
+            first_group_rule_prefix + "allow-icmp-range",
+            rule_uid("RuleColl1", "rule1"),
+            rule_uid("RuleColl1", "secondrule"),
+            rule_uid("AllowColl", "allow-any"),
+            rule_uid("AllowColl", "allow-icmp-range"),
+        ]
+
+    def test_missing_priority_sorts_last(self) -> None:
+        assert sorted([None, 65000, 100], key=priority_sort_key) == [100, 65000, None]
 
     def test_rule_fields(self) -> None:
         rules = normalize_config(load_native_config(), DEVICES, "mgm-uid").rulebases[0].rules

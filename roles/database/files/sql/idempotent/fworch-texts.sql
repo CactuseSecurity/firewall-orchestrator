@@ -6645,8 +6645,8 @@ INSERT INTO txt VALUES ('H5141', 'English', 'Admins can create and administrate 
     The clone button helps defining new gateways by copying the data from existing ones.
     Before saving at least one of the parameters Device Type, Management or Rulebase has to be different from the existing gateways if the Import Disabled flag is not set.
 ');
-INSERT INTO txt VALUES ('H5150', 'German',  'UID*: Eindeutige ID des Gateways.');
-INSERT INTO txt VALUES ('H5150', 'English', 'UID*: Unique ID of the Gateway.');
+INSERT INTO txt VALUES ('H5150', 'German',  'UID*: Eindeutige ID des Gateways. F&uuml;r Azure: die Ressourcen-ID der Azure Firewall, wie sie die Autodiscovery eintr&auml;gt; ohne UID bricht der Import ab.');
+INSERT INTO txt VALUES ('H5150', 'English', 'UID*: Unique ID of the Gateway. For Azure: the resource id of the Azure Firewall, as entered by the autodiscovery; the import fails without a UID.');
 INSERT INTO txt VALUES ('H5151', 'German',  'Name*: Name des Gateways. F&uuml;r Legacy Fortinet (ssh) muss dies der reale Name des Firewallgateways sein wie in der Config definiert.');
 INSERT INTO txt VALUES ('H5151', 'English', 'Name*: Name of the Gateway. For legacy Fortinet (ssh) this must be the real name of the firewall gateway as defined in the config.');
 INSERT INTO txt VALUES ('H5152', 'German',  'Kommentar: Optionaler Kommentar zu diesem Gateway.');
@@ -8705,6 +8705,7 @@ INSERT INTO txt VALUES ('H7201', 'German', 'Hier werden die Ergebnisse der autom
     oder den Dialog in den <a href="/help/settings/managements">Management-Einstellungen</a> (bei der manuell angestossenen Autodiscovery) abgewickelt.
     Startzeit und Zeitabstand der automatischen Autodiscovery-L&auml;ufe k&ouml;nnen (vom Administrator) in den <a href="/help/settings/defaults">Standardeinstellungen</a> festgelegt werden.<br>
     Bei Azure-Managements werden die Azure Firewalls des Abonnements als Gateways gefunden, deren Firewall-Richtlinie in der Ressourcengruppe (Konfigurationspfad) liegt; der Name der Richtlinie wird als lokaler Regelwerksname &uuml;bernommen. Firewalls mit klassischen Regeln (ohne Firewall-Richtlinie) werden nicht ber&uuml;cksichtigt.
+    Vorhandene Gateways werden &uuml;ber die UID (Ressourcen-ID, ohne Beachtung der Gro&szlig;-/Kleinschreibung) zugeordnet, sonst &uuml;ber den Namen; eine Zuordnung nur &uuml;ber den Namen wird als Warnung protokolliert.
 ');
 INSERT INTO txt VALUES ('H7201', 'English', 'Results of the automatic and the manual Autodiscovery are recorded here.
     For each run, number of found changes resp. error messages are displayed.
@@ -8713,6 +8714,7 @@ INSERT INTO txt VALUES ('H7201', 'English', 'Results of the automatic and the ma
     or in the Dialogue of the <a href="/help/settings/managements">Management settings</a> (in case of the manually initialized Autodiscovery).
     Start time and time interval of the automatic Autodiscovery can be defined in the <a href="/help/settings/defaults">Default settings</a> (by the administrator).<br>
     For Azure managements the Azure Firewalls of the subscription whose firewall policy lies in the resource group (config path) are discovered as gateways; the policy name is taken over as local rulebase name. Firewalls with classic rules (without firewall policy) are not considered.
+    Existing gateways are matched by their UID (resource id, ignoring case), otherwise by name; a match by name only is logged as a warning.
 ');
 INSERT INTO txt VALUES ('H7251', 'German', 'In den T&auml;glichen Checks werden allgemeine Parameter des Firewall Orchestrator-Systems gepr&uuml;ft.
     Der t&auml;gliche Startzeitpunkt kann (vom Administrator) in den <a href="/help/settings/defaults">Standardeinstellungen</a> festgelegt werden.

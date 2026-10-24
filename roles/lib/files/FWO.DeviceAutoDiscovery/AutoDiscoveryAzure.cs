@@ -107,6 +107,65 @@ namespace FWO.DeviceAutoDiscovery
             return devices;
         }
 
+        /// <inheritdoc />
+        protected override void AdoptExistingIdentities(List<Management> discoveredManagements, List<Management> existingManagements)
+        {
+            Management? storedManagement = existingManagements.FirstOrDefault(mgmt => mgmt.Id == SuperManagement.Id);
+            if (storedManagement == null)
+            {
+                return;
+            }
+            foreach (Management discoveredManagement in discoveredManagements)
+            {
+                AdoptStoredDeviceIdentities(discoveredManagement.Devices, storedManagement.Devices);
+            }
+        }
+
+        /// <summary>
+        /// Gives discovered firewalls the name and uid of the stored gateways they correspond to.
+        /// </summary>
+        /// <remarks>
+        /// Gateways created before the autodiscovery may carry the resource id in its original casing, another uid or
+        /// none at all. A stored gateway matches a discovered firewall by uid ignoring case, otherwise by name ignoring
+        /// case if its uid matches no discovered firewall. Without this, such gateways would be proposed for deletion
+        /// and the same firewalls for addition.
+        /// </remarks>
+        /// <param name="discoveredDevices">The discovered firewalls, changed in place.</param>
+        /// <param name="storedDevices">The gateways of the stored Azure management.</param>
+        public static void AdoptStoredDeviceIdentities(IEnumerable<Device> discoveredDevices, IEnumerable<Device> storedDevices)
+        {
+            List<Device> unmatchedStoredDevices = [.. storedDevices];
+            List<Device> unmatchedDiscoveredDevices = [];
+            foreach (Device discoveredDevice in discoveredDevices)
+            {
+                Device? storedDevice = unmatchedStoredDevices.FirstOrDefault(device => string.Equals(device.Uid, discoveredDevice.Uid, StringComparison.OrdinalIgnoreCase));
+                if (storedDevice == null)
+                {
+                    unmatchedDiscoveredDevices.Add(discoveredDevice);
+                    continue;
+                }
+                AdoptStoredDeviceIdentity(discoveredDevice, storedDevice, unmatchedStoredDevices);
+            }
+            foreach (Device discoveredDevice in unmatchedDiscoveredDevices)
+            {
+                Device? storedDevice = unmatchedStoredDevices.FirstOrDefault(device => !string.IsNullOrEmpty(device.Name)
+                    && string.Equals(device.Name, discoveredDevice.Name, StringComparison.OrdinalIgnoreCase));
+                if (storedDevice != null)
+                {
+                    Log.WriteWarning(kAutodiscovery, $"Azure gateway '{storedDevice.Name}' (id={storedDevice.Id}) matches the Azure Firewall " +
+                        $"by name only. Set its uid to the firewall's resource id '{discoveredDevice.Uid}' to match it by uid.");
+                    AdoptStoredDeviceIdentity(discoveredDevice, storedDevice, unmatchedStoredDevices);
+                }
+            }
+        }
+
+        private static void AdoptStoredDeviceIdentity(Device discoveredDevice, Device storedDevice, List<Device> unmatchedStoredDevices)
+        {
+            discoveredDevice.Name = storedDevice.Name;
+            discoveredDevice.Uid = storedDevice.Uid;
+            unmatchedStoredDevices.Remove(storedDevice);
+        }
+
         /// <summary>
         /// Gets the resource group of an Azure resource id.
         /// </summary>

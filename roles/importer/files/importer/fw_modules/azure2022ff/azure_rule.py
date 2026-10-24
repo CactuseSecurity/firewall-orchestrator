@@ -72,17 +72,26 @@ class AzureRuleNormalizer:
         Normalize all network rules of filter rule collections of a firewall policy.
 
         NAT rule collections and application rules are not imported.
+        Azure lists rule collection groups and rule collections in no particular order, the firewall processes them
+        by ascending priority, first of the groups, then of the collections within a group.
 
         Args:
             policy: The native Azure firewall policy.
             rule_installon: The gateways the policy is enforced on.
 
         Yields:
-            RuleNormalized: The normalized access rules in policy order.
+            RuleNormalized: The normalized access rules in processing order.
 
         """
-        for rule_collection_group in policy.rule_collection_groups:
-            for rule_collection in rule_collection_group.properties.rule_collections:
+        rule_collection_groups = sorted(
+            policy.rule_collection_groups, key=lambda group: priority_sort_key(group.properties.priority)
+        )
+        for rule_collection_group in rule_collection_groups:
+            rule_collections = sorted(
+                rule_collection_group.properties.rule_collections,
+                key=lambda collection: priority_sort_key(collection.priority),
+            )
+            for rule_collection in rule_collections:
                 if rule_collection.rule_collection_type != AZURE_FILTER_RULE_COLLECTION:
                     FWOLogger.debug(f"Skipping Azure rule collection '{rule_collection.name}' of unsupported type")
                     continue
@@ -160,6 +169,20 @@ class AzureRuleNormalizer:
             add_network_object(self.network_objects, create_fqdn_object(fqdn)) for fqdn in rule.destination_fqdns
         ]
         return nw_objects
+
+
+def priority_sort_key(priority: int | None) -> tuple[bool, int]:
+    """
+    Sort key for Azure priorities: ascending, entries without priority (only in hand-made native configs) last.
+
+    Args:
+        priority: The priority of a rule collection group or rule collection.
+
+    Returns:
+        tuple[bool, int]: The sort key.
+
+    """
+    return priority is None, priority or 0
 
 
 def join_address_refs(nw_objects: list[NetworkObject]) -> tuple[str, str]:

@@ -1,13 +1,17 @@
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
 import pytest
 from fw_modules.azure2022ff import azure_getter
 from fw_modules.azure2022ff.azure_models import AzureDevice
 from fwo_exceptions import FwApiCallFailedError, FwLoginFailedError, FwoImporterError
-from model_controllers.management_controller import ManagementController
 from models.credential import AdditionalCredential
-from pytest_mock import MockerFixture
+
+if TYPE_CHECKING:
+    from model_controllers.management_controller import ManagementController
+    from pytest_mock import MockerFixture
 
 TENANT_ID = "tenant-1"
 SUBSCRIPTION_ID = "sub-1"
@@ -39,7 +43,7 @@ def azure_mgm(management_controller: ManagementController) -> ManagementControll
     management_controller.domain_name = RESOURCE_GROUP
     management_controller.devices = [
         {"name": "fw1", "uid": "fw1-uid", "importDisabled": False, "local_rulebase_name": "pol1"},
-        {"name": "pol2", "uid": None, "importDisabled": False, "local_rulebase_name": None},
+        {"name": "pol2", "uid": "pol2-uid", "importDisabled": False, "local_rulebase_name": None},
         {"name": "fw3", "uid": "fw3-uid", "importDisabled": True, "local_rulebase_name": None},
     ]
     return management_controller
@@ -53,11 +57,22 @@ class TestPolicyDevices:
 
         assert devices == [
             AzureDevice(uid="fw1-uid", name="fw1", policy_name="pol1"),
-            AzureDevice(uid="pol2", name="pol2", policy_name="pol2"),
+            AzureDevice(uid="pol2-uid", name="pol2", policy_name="pol2"),
         ]
 
     def test_force_import_includes_disabled_devices(self, azure_mgm: ManagementController) -> None:
         assert len(azure_getter.get_policy_devices(azure_mgm, force_import=True)) == 3
+
+    @pytest.mark.parametrize("uid", [None, ""])
+    def test_device_without_uid_fails(self, azure_mgm: ManagementController, uid: str | None) -> None:
+        # the gateway uid must match the FWO device uid, a fallback to the name would fail later with a vague error
+        azure_mgm.devices[1]["uid"] = uid
+        with pytest.raises(FwoImporterError, match="'pol2' has no uid"):
+            azure_getter.get_policy_devices(azure_mgm)
+
+    def test_disabled_device_without_uid_is_ignored(self, azure_mgm: ManagementController) -> None:
+        azure_mgm.devices[2]["uid"] = None
+        assert len(azure_getter.get_policy_devices(azure_mgm)) == 2
 
     def test_no_devices_fails(self, azure_mgm: ManagementController) -> None:
         azure_mgm.devices = []

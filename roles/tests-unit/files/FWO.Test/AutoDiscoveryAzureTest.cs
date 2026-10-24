@@ -300,6 +300,63 @@ namespace FWO.Test
             Assert.That(deltas, Is.Empty);
         }
 
+        [TestCase("AzureFirewall1", kFirewallId)]
+        [TestCase("azurefirewall1", "")]
+        [TestCase("AZUREFIREWALL1", null)]
+        [TestCase("AzureFirewall1", "manually-entered-uid")]
+        public async Task Run_FindsNoChangesForGatewayCreatedBeforeAutodiscovery(string storedName, string? storedUid)
+        {
+            FakeAzureClient client = new();
+            client.Pages[kFirewallsUrlStart + kNewestApiVersion] = FirewallPage(null, CreateFirewall("AzureFirewall1", kFirewallId, kPolicyId));
+            Management storedManagement = CreateAzureManagement();
+            storedManagement.Devices = [new Device { Id = 11, Name = storedName, Uid = storedUid, LocalRulebase = kPolicyName }];
+            AzureDiscoveryTestApiConn apiConnection = new() { ExistingManagements = [storedManagement] };
+            AutoDiscoveryAzure discovery = new(CreateAzureManagement(), apiConnection, true, client);
+
+            List<Management> deltas = await discovery.Run();
+
+            Assert.That(deltas, Is.Empty);
+        }
+
+        [Test]
+        public void AdoptStoredDeviceIdentities_PrefersUidOverNameMatch()
+        {
+            Device firstFirewall = new() { Name = "fw1", Uid = "/subscriptions/x/azurefirewalls/fw1" };
+            Device secondFirewall = new() { Name = "fw2", Uid = "/subscriptions/x/azurefirewalls/fw2" };
+            // stored under the name of the first firewall, but with the resource id of the second one
+            Device storedGateway = new() { Id = 11, Name = "fw1", Uid = "/subscriptions/X/azureFirewalls/fw2" };
+            List<Device> discoveredDevices = [firstFirewall, secondFirewall];
+            List<Device> storedDevices = [storedGateway];
+
+            AutoDiscoveryAzure.AdoptStoredDeviceIdentities(discoveredDevices, storedDevices);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(secondFirewall.Uid, Is.EqualTo(storedGateway.Uid));
+                Assert.That(secondFirewall.Name, Is.EqualTo(storedGateway.Name));
+                Assert.That(firstFirewall.Uid, Is.EqualTo("/subscriptions/x/azurefirewalls/fw1"), "a stored gateway is matched once only");
+            });
+        }
+
+        [Test]
+        public async Task Run_ProposesAdditionForFirewallMatchingNoStoredGateway()
+        {
+            FakeAzureClient client = new();
+            client.Pages[kFirewallsUrlStart + kNewestApiVersion] = FirewallPage(null, CreateFirewall("AzureFirewall1", kFirewallId, kPolicyId));
+            Management storedManagement = CreateAzureManagement();
+            storedManagement.Devices = [new Device { Id = 11, Name = "OtherFirewall", Uid = "" }];
+            AzureDiscoveryTestApiConn apiConnection = new() { ExistingManagements = [storedManagement] };
+            AutoDiscoveryAzure discovery = new(CreateAzureManagement(), apiConnection, true, client);
+
+            List<ActionItem> actions = discovery.ConvertToActions(await discovery.Run());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(actions.Count(action => action.ActionType == ActionCode.AddGatewayToExistingManagement.ToString()), Is.EqualTo(1));
+                Assert.That(actions.Count(action => action.ActionType == ActionCode.DeleteGateway.ToString() && action.DeviceId == 11), Is.EqualTo(1));
+            });
+        }
+
         [Test]
         public void AutoDiscoveryBase_DispatchesAzureManagements()
         {

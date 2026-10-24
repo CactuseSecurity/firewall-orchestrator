@@ -39,6 +39,7 @@ def get_policy_devices(mgm_details: ManagementController, force_import: bool = F
     Collect the devices to import together with the firewall policy enforced on each of them.
 
     The policy name is taken from the device's local rulebase name and defaults to the device name.
+    The device uid becomes the gateway uid, which the import maps to the FWO device, so it is required.
 
     Args:
         mgm_details: The management details object.
@@ -53,9 +54,15 @@ def get_policy_devices(mgm_details: ManagementController, force_import: bool = F
         if device.get("importDisabled") and not force_import:
             continue
         name = device["name"]
+        uid = device.get("uid")
+        if not uid:
+            raise FwoImporterError(
+                f"Azure device '{name}' has no uid. Set its uid to the resource id of the Azure firewall "
+                "or add the device with the autodiscovery."
+            )
         devices.append(
             AzureDevice(
-                uid=device.get("uid") or name,
+                uid=uid,
                 name=name,
                 policy_name=device.get("local_rulebase_name") or name,
             )

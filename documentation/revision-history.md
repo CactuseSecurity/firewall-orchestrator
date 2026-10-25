@@ -1,6 +1,9 @@
 # Firewall Orchestrator Revision History
 
 ## 9.8.2 - 24.10.2026
+- workflow API: `createTicket` now creates object-create request tasks for submitted new network objects, services and time objects
+- workflow UI: network and service group modification tasks provide management-aware selectors for existing groups,
+  member add/remove editing, and read-only display of the requested changes
 - workflow configuration transfer: export selected phases with a custom file name; import as a new configuration or merge into an existing one
 - workflow configuration packages include referenced state names and `automatic_only` semantics; missing states are created, equivalent existing states are reused, and conflicting state IDs are rejected before import changes are made
 - stored secrets (import credentials, LDAP and email passwords) are now encrypted with authentication (AES-256-CBC with HMAC-SHA256, encrypt-then-MAC) in the new format `fwo-v2:...` (#5476). Before, a wrong main key was only detected by an invalid padding, so about 1 in 250 decryptions with a wrong key (e.g. after a restore with another main key) returned a garbage secret that was then sent to LDAP, mail or ticket servers instead of failing with "Could not decrypt secret"

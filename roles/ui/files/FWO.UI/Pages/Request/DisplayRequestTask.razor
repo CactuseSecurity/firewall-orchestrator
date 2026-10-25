@@ -16,61 +16,12 @@
         @if (WfHandler.DisplayReqTaskMode)
         {
             <form>
-                <div class="form-group row">
-                    <div class="col-sm-2">
-                        <div class="form-group row">
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("req_task_id")):</label>
-                            <div class="col-sm-6">
-                                <label class="col-sm-12 border bg-secondary">@WfHandler.ActReqTask.Id</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-10">
-                        <div class="form-group row">
-                            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
-                            <div class="col-sm-11">
-                                <input type="text" class="form-control form-control-sm" readonly="@(!CanEditReqTaskField(WorkflowEditableFieldKeys.Title))" @bind="WfHandler.ActReqTask.Title" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group row mt-2">
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
-                            <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@States.GetName(WfHandler.ActReqTask.StateId)</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("handler")):</label>
-                            <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.ActReqTask.CurrentHandler?.Name</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("assigned")):</label>
-                            <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@(new DistName(WfHandler.ActReqTask.AssignedGroup).UserName)</label>
-                            </div>
-                        </div>
-                    </div>
-                    @if (GetBundledTaskCount() > 1)
-                    {
-                        <div class="col-sm-3">
-                            <div class="form-group row">
-                                <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("bundled_tasks")):</label>
-                                <div class="col-sm-6">
-                                    <label class="col-sm-12 h-100 border bg-secondary">@GetBundledTaskCount()</label>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                </div>
+                <TaskHeader IdLabelKey="req_task_id" HandlerLabelKey="handler" TaskId="@WfHandler.ActReqTask.Id"
+                    @bind-Title="WfHandler.ActReqTask.Title" StateName="@States.GetName(WfHandler.ActReqTask.StateId)"
+                    HandlerName="@WfHandler.ActReqTask.CurrentHandler?.Name"
+                    AssignedGroup="@WfHandler.ActReqTask.AssignedGroup"
+                    CanEditTitle="CanEditReqTaskField(WorkflowEditableFieldKeys.Title)"
+                    BundledTaskCount="GetBundledTaskCount()" />
                 <RequestTaskMetadataEditor @ref="metadataEditor" WfHandler="WfHandler"
                     AvailableTaskTypes="availableTaskTypes" Managements="managements"
                     TaskType="actTaskType" CanEditField="CanEditReqTaskField" TaskTypeChanged="OnMetadataTaskTypeChanged"
@@ -150,7 +101,7 @@
                     CanEditField="CanEditReqTaskField" DisplayIpProtos="displayIpProtos"
                     SelectableIpProtos="selectableIpProtos" RuleDevice="actRuleDevice"
                     ManagementId="@(actManagement?.Id ?? WfHandler.ActReqTask.ManagementId)"
-                    DisplayTask="GetBundledDisplayTask()" />
+                    DisplayTask="@(WfHandler.EditReqTaskMode && actTaskType == WfTaskType.group_modify ? null : GetBundledDisplayTask())" />
 
                 <hr />
                 @if(!WfHandler.EditReqTaskMode && (actTaskType != WfTaskType.access || AccessTaskVisibility.ShowComments))
@@ -193,13 +144,12 @@
                         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="ShowApprovals">
                             @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
                     }
-                    @foreach(var action in offeredActions)
-                    {
-                        @if(CanShowConfiguredActionButton(action))
-                        {
-                            <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
-                        }
-                    }
+                    <ConfiguredTaskActions WfHandler="WfHandler" OfferedActions="offeredActions"
+                        AllowStateChangingActions="@(!WfHandler.ReadOnlyMode && (WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode))"
+                        Target="WfHandler.ActReqTask"
+                        Scope="WfObjectScopes.RequestTask" Owner="@(metadataEditor?.CurrentOwner ?? actOwner)"
+                        TicketId="WfHandler.ActReqTask.TicketId" AfterAction="AfterConfiguredAction"
+                        @bind-WorkInProgress="WorkInProgress" />
                 </div>
             </div>
             <div class="d-flex flex-fill justify-content-end">
@@ -397,7 +347,12 @@
 
     private void OnMetadataManagementChanged(Management? management)
     {
+        bool managementChanged = (actManagement?.Id ?? -1) != (management?.Id ?? -1);
         actManagement = management;
+        if (managementChanged)
+        {
+            elementEditor?.ClearSelectedGroup();
+        }
     }
 
     private WfTaskType GetDefaultTaskType()
@@ -415,7 +370,7 @@
         actRuleDevice = metadataEditor.CurrentRuleDevice;
         actOwner = metadataEditor.CurrentOwner;
         actRequestingOwner = metadataEditor.CurrentRequestingOwner;
-        actGrpName = metadataEditor.CurrentGroupName;
+        actGrpName = elementEditor?.CurrentGroupName;
         selectedDevices = metadataEditor.CurrentSelectedDevices;
     }
 
@@ -459,46 +414,20 @@
         WfHandler.DisplayPathAnalysisMode = false;
     } *@
 
-    private async Task PerformAction(WfStateAction action)
+    private async Task AfterConfiguredAction()
     {
-        if (WorkInProgress || !CanShowConfiguredActionButton(action))
+        if (await WfHandler.ReloadActReqTask())
         {
-            return;
+            elementEditor?.InitializeElements();
+            await InitComments();
         }
-        WorkInProgress = true;
-        try
-        {
-            if(WfHandler.ActionHandler != null)
-            {
-                await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActReqTask, WfObjectScopes.RequestTask,
-                    metadataEditor?.CurrentOwner ?? actOwner, WfHandler.ActReqTask.TicketId);
-            }
-            if (await WfHandler.ReloadActReqTask())
-            {
-                elementEditor?.InitializeElements();
-                await InitComments();
-            }
-            await Reset();
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("action"), "", true);
-        }
-        finally
-        {
-            WorkInProgress = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        await Reset();
+        await InvokeAsync(StateHasChanged);
     }
 
     private void InitPromoteReqTask()
     {
         WfHandler.SetReqTaskPopUpOpt(ObjAction.displayPromote);
-    }
-
-    private async Task ConfPromoteReqTask(WfStatefulObject reqtask)
-    {
-        await WfHandler.PromoteReqTask(reqtask);
     }
 
     private async Task InitApproveTask()
@@ -514,16 +443,13 @@
 
     private bool CanShowApprovalsButton()
     {
-        return WfHandler.StateMatrix(WfHandler.ActReqTask.TaskType).PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalPhaseActive) && approvalPhaseActive;
+        return WfHandler.ActReqTask.Approvals.Count > 0
+            || (WfHandler.StateMatrix(WfHandler.ActReqTask.TaskType).PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalPhaseActive) && approvalPhaseActive);
     }
 
-    /// <summary>
-    /// Checks whether a configured action is offered: read-only users only get actions that do not change anything.
-    /// </summary>
-    private bool CanShowConfiguredActionButton(WfStateAction action)
+    private async Task ConfPromoteReqTask(WfStatefulObject reqtask)
     {
-        bool inChangingMode = WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode;
-        return (inChangingMode && WfHandler.CanPerformActionOnActTicket(action)) || WfStateAction.IsReadonlyType(action.ActionType);
+        await WfHandler.PromoteReqTask(reqtask);
     }
 
     private bool IsRequestTaskReadOnly()
@@ -719,11 +645,11 @@
         }
         ApplyTaskTypeSpecificValues();
 
-        elementEditor?.ApplyChanges(actRuleDevice);
         if (!await CheckTaskValues())
         {
             return false;
         }
+        elementEditor?.ApplyChanges(actRuleDevice);
 
         WfHandler.ActReqTask.SetDeviceList(selectedDevices.Any(dev => dev.Id == WfReqTaskBase.kAllDevicesId)
             ? [WfReqTaskBase.kAllDevicesId]
@@ -768,7 +694,8 @@
                 WfHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
                 break;
             case WfTaskType.group_create:
-                WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, actGrpName ?? "");
+            case WfTaskType.group_modify:
+                WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, elementEditor?.CurrentGroupName ?? actGrpName ?? "");
                 break;
             case WfTaskType.object_create:
                 WfHandler.ActReqTask.RequestAction = RequestAction.create.ToString();
@@ -889,6 +816,24 @@
 
         return true;
     }
+
+    private bool RejectInvalidGroupModifyTask()
+    {
+        string? groupName = elementEditor?.CurrentGroupName;
+        if (string.IsNullOrWhiteSpace(groupName))
+        {
+            groupName = actGrpName;
+        }
+
+        if (string.IsNullOrWhiteSpace(groupName) || elementEditor is null
+            || (elementEditor.SourceCount == 0 && elementEditor.ServiceCount == 0))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
+            return false;
+        }
+
+        return true;
+    }
     
     private async Task<bool> RejectInvalidObjectTask()
     {
@@ -926,6 +871,7 @@
             case WfTaskType.access when !RejectInvalidAccessTask():
             case WfTaskType.rule_delete when !(await RejectInvalidRuleDeleteTask()):
             case WfTaskType.group_create when !RejectInvalidGroupCreateTask():
+            case WfTaskType.group_modify when !RejectInvalidGroupModifyTask():
             case WfTaskType.object_create or WfTaskType.object_modify when !(await RejectInvalidObjectTask()):
                 return false;
             default:

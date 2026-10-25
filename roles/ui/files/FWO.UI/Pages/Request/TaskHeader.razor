@@ -1,0 +1,94 @@
+@inject UserConfig userConfig
+
+<div class="form-group row">
+    <div class="col-sm-2">
+        <div class="form-group row">
+            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText(IdLabelKey)):</label>
+            <div class="col-sm-6">
+                <label class="col-sm-12 border bg-secondary">@TaskId</label>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-10">
+        <div class="form-group row">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
+            <div class="col-sm-11">
+                <input type="text" class="form-control form-control-sm" readonly="@(!CanEditTitle)" value="@Title" @onchange="OnTitleChanged" />
+            </div>
+        </div>
+    </div>
+</div>
+<div class="form-group row mt-2">
+    <div class="col-sm-3">
+        <div class="form-group row">
+            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
+            <div class="col-sm-8">
+                <label class="col-sm-12 h-100 border bg-secondary">@StateName</label>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="form-group row">
+            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText(HandlerLabelKey)):</label>
+            <div class="col-sm-8">
+                <label class="col-sm-12 h-100 border bg-secondary">@HandlerName</label>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="form-group row">
+            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("assigned")):</label>
+            <div class="col-sm-8">
+                <label class="col-sm-12 h-100 border bg-secondary">@(new DistName(AssignedGroup).UserName)</label>
+            </div>
+        </div>
+    </div>
+    @if (BundledTaskCount > 1)
+    {
+        <div class="col-sm-3">
+            <div class="form-group row">
+                <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("bundled_tasks")):</label>
+                <div class="col-sm-6">
+                    <label class="col-sm-12 h-100 border bg-secondary">@BundledTaskCount</label>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string IdLabelKey { get; set; } = "";
+
+    [Parameter]
+    public string HandlerLabelKey { get; set; } = "";
+
+    [Parameter]
+    public long TaskId { get; set; }
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> TitleChanged { get; set; }
+
+    [Parameter]
+    public string StateName { get; set; } = "";
+
+    [Parameter]
+    public string? HandlerName { get; set; }
+
+    [Parameter]
+    public string? AssignedGroup { get; set; }
+
+    [Parameter]
+    public bool CanEditTitle { get; set; }
+
+    [Parameter]
+    public int BundledTaskCount { get; set; }
+
+    private async Task OnTitleChanged(ChangeEventArgs args)
+    {
+        await TitleChanged.InvokeAsync(args.Value?.ToString());
+    }
+}

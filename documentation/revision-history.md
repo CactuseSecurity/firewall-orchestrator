@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.8.2 - 23.10.2026
+## 9.9.0 - 24.10.2026
 - Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs
   - login with a service principal (client credentials flow); client id and secret are taken from the additional credential, otherwise from the import credential; tenant and subscription from the management's cloud settings, the resource group from the config path
   - the firewall policy of a device is its local rulebase name, otherwise the device name; each policy becomes a rulebase, each device a gateway
@@ -11,6 +11,12 @@
   - rules are ordered by rule collection group and rule collection priority
 - Azure gateway autodiscovery: Azure managements can now be autodiscovered (scheduled and manually); the Azure Firewalls of the subscription whose firewall policy lies in the configured resource group are proposed as gateways with the policy name as local rulebase; firewalls with classic rules are skipped
 - new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
+
+## 9.8.2 - 24.10.2026
+- stored secrets (import credentials, LDAP and email passwords) are now encrypted with authentication (AES-256-CBC with HMAC-SHA256, encrypt-then-MAC) in the new format `fwo-v2:...` (#5476). Before, a wrong main key was only detected by an invalid padding, so about 1 in 250 decryptions with a wrong key (e.g. after a restore with another main key) returned a garbage secret that was then sent to LDAP, mail or ticket servers instead of failing with "Could not decrypt secret"
+  - the UI, middleware, importer and database read both formats; the installer (install and upgrade) re-encrypts all secrets stored in the old format, the UI re-encrypts a secret in the old format when it is saved
+  - the importer no longer uses the stored ciphertext as password when a secret in the new format cannot be decrypted, the import fails instead
+  - versions before 9.8.2 cannot read the new format, so a downgrade requires re-entering the secrets
 
 ## 9.8.1 - 20.10.2026
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires

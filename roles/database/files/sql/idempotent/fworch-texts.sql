@@ -6551,11 +6551,11 @@ INSERT INTO txt VALUES ('H5117', 'English', 'Export Credentials: User/Password c
 ');
 INSERT INTO txt VALUES ('H5119', 'German',  'Domain: Firewall Domain Name <br>
     f&uuml;r Check Point R8x MDS / Fortimanager Installationen, andernfall leer lassen.<br>
-    F&uuml;r Azure: Name der Ressourcengruppe der Firewall-Richtlinien. &Uuml;bergeordnete Richtlinien d&uuml;rfen in anderen Ressourcengruppen oder Abonnements liegen; der Service Principal braucht dort ebenfalls Leserechte.
+    F&uuml;r Azure: Name der Ressourcengruppe der Firewall-Richtlinien. &Uuml;bergeordnete Richtlinien d&uuml;rfen in anderen Ressourcengruppen oder Abonnements liegen; der Service Principal braucht dort ebenfalls Leserechte. IP-Gruppen anderer Abonnements werden einzeln gelesen, daf&uuml;r gen&uuml;gen Leserechte auf die verwendeten IP-Gruppen.
 ');
 INSERT INTO txt VALUES ('H5119', 'English', 'Domain: Firewall Domain Name<br>
     Empty except for Check Point R8x MDS / Fortimanager installations.<br>
-    For Azure: name of the resource group of the firewall policies. Parent policies may lie in other resource groups or subscriptions; the service principal needs reader rights there as well.
+    For Azure: name of the resource group of the firewall policies. Parent policies may lie in other resource groups or subscriptions; the service principal needs reader rights there as well. IP groups of other subscriptions are read one by one, reader rights on the IP groups in use are sufficient for that.
 ');
 INSERT INTO txt VALUES ('H5120', 'German',  'Importer Hostname: wird in den ger&auml;tespezifischen Einstellungen auf den Ebenen Global, Ger&auml;tetyp oder Manager festgelegt.');
 INSERT INTO txt VALUES ('H5120', 'English', 'Importer host name: is set in the device specific settings on the levels Global, device type or manager.');

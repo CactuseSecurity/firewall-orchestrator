@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 from fw_modules.azure2022ff import azure_getter
 from fw_modules.azure2022ff.azure_models import AzureDevice
+from fw_modules.azure2022ff.azure_normalizer import normalize_config
 from fwo_exceptions import FwApiCallFailedError, FwLoginFailedError, FwoImporterError
 from models.credential import AdditionalCredential
 
@@ -27,6 +28,8 @@ POLICY2_ID = "/subscriptions/sub-1/resourceGroups/rg-1/providers/Microsoft.Netwo
 PARENT_POLICY_ID = "/subscriptions/sub-1/resourceGroups/hub-rg/providers/Microsoft.Network/firewallPolicies/parent"
 ROOT_POLICY_ID = "/subscriptions/sub-2/resourceGroups/global-rg/providers/Microsoft.Network/firewallPolicies/root"
 IP_GROUP: dict[str, Any] = {"id": "/subscriptions/sub-1/ipGroups/ig1", "name": "ig1", "properties": {"ipAddresses": []}}
+HUB_IP_GROUP_ID = "/subscriptions/sub-2/resourceGroups/global-rg/providers/Microsoft.Network/ipGroups/hub-ig"
+HUB_IP_GROUP: dict[str, Any] = {"id": HUB_IP_GROUP_ID, "name": "hub-ig", "properties": {"ipAddresses": ["10.1.0.0/16"]}}
 NEWEST_API_VERSION = "2026-01-01"
 FALLBACK_API_VERSION = "2024-05-01"
 UNSUPPORTED_API_VERSION: dict[str, Any] = {"error": {"code": "NoRegisteredProviderFound", "message": "no provider"}}
@@ -200,6 +203,27 @@ class TestFirewallPolicyId:
             azure_getter.check_firewall_policy_id(policy_id)
 
 
+class TestIpGroupId:
+    @pytest.mark.parametrize("ip_group_id", [HUB_IP_GROUP_ID, HUB_IP_GROUP_ID.lower()])
+    def test_valid_ip_group_id(self, ip_group_id: str) -> None:
+        assert azure_getter.check_ip_group_id(ip_group_id) == ip_group_id
+
+    @pytest.mark.parametrize(
+        "ip_group_id",
+        [
+            "/subscriptions/s/resourceGroups/rg/providers/Microsoft.Network/ipGroups/..",
+            f"{HUB_IP_GROUP_ID}/x",
+            f"{HUB_IP_GROUP_ID}?api-version=1",
+            POLICY1_ID,
+            "https://evil.example/subscriptions/s/resourceGroups/rg/providers/Microsoft.Network/ipGroups/g",
+            "",
+        ],
+    )
+    def test_invalid_ip_group_id_is_refused(self, ip_group_id: str) -> None:
+        with pytest.raises(FwApiCallFailedError, match="Invalid Azure IP group id"):
+            azure_getter.check_ip_group_id(ip_group_id)
+
+
 class TestApiClient:
     def test_uses_newest_api_version(self, mocker: MockerFixture) -> None:
         api_get = mocker.patch.object(azure_getter, "azure_api_get", return_value=[IP_GROUP])
@@ -237,24 +261,36 @@ class TestApiClient:
 
 
 class FakeAzureApi:
-    """Serves firewall policies and their rule collection groups like Azure Resource Manager."""
+    """Serves firewall policies, their rule collection groups and IP groups like Azure Resource Manager."""
 
-    def __init__(self, policies: list[dict[str, Any]]) -> None:
-        self.policies = {policy["id"].lower(): policy for policy in policies}
+    def __init__(self, resources: list[dict[str, Any]]) -> None:
+        # firewall policies and IP groups by resource id
+        self.resources = {resource["id"].lower(): resource for resource in resources}
+        # rule collections of a policy by policy id, other policies get a group without rule collections
+        self.rule_collections: dict[str, list[dict[str, Any]]] = {}
         self.requested_paths: list[str] = []
 
     def get_page(self, url: str, access_token: str) -> dict[str, Any]:
         assert access_token == "tok"  # noqa: S105
         path = self.record(url)
-        return self.policies[path.lower()]
+        return self.resources[path.lower()]
 
     def list_items(self, url: str, access_token: str) -> list[dict[str, Any]]:
         assert access_token == "tok"  # noqa: S105
         path = self.record(url)
         if path.endswith("/ipGroups"):
             return [IP_GROUP]
-        policy_name = path.removesuffix("/ruleCollectionGroups").rsplit("/", 1)[-1]
-        return [{**RULE_COLLECTION_GROUP, "id": f"{path}/{policy_name}-rcg", "name": f"{policy_name}-rcg"}]
+        policy_id = path.removesuffix("/ruleCollectionGroups")
+        policy_name = policy_id.rsplit("/", 1)[-1]
+        rule_collections = self.rule_collections.get(policy_id.lower(), [])
+        return [
+            {
+                **RULE_COLLECTION_GROUP,
+                "id": f"{path}/{policy_name}-rcg",
+                "name": f"{policy_name}-rcg",
+                "properties": {"priority": 100, "ruleCollections": rule_collections},
+            }
+        ]
 
     def record(self, url: str) -> str:
         assert url.startswith("https://management.azure.com/subscriptions/")
@@ -270,8 +306,32 @@ def make_policy(policy_id: str, base_policy_id: str | None = None) -> dict[str, 
     return {"id": policy_id, "name": policy_id.rsplit("/", 1)[-1], "properties": properties}
 
 
-def mock_azure_api(mocker: MockerFixture, policies: list[dict[str, Any]]) -> FakeAzureApi:
-    fake_api = FakeAzureApi(policies)
+def make_network_rule(
+    name: str, source_ip_groups: list[str], destination_ip_groups: list[str] | None = None
+) -> dict[str, Any]:
+    return {
+        "name": name,
+        "ruleType": "NetworkRule",
+        "ipProtocols": ["TCP"],
+        "sourceIpGroups": source_ip_groups,
+        "destinationIpGroups": destination_ip_groups or [],
+        "destinationAddresses": [] if destination_ip_groups else ["*"],
+        "destinationPorts": ["443"],
+    }
+
+
+def make_filter_rule_collection(rules: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "name": "coll",
+        "ruleCollectionType": "FirewallPolicyFilterRuleCollection",
+        "priority": 100,
+        "action": {"type": "Allow"},
+        "rules": rules,
+    }
+
+
+def mock_azure_api(mocker: MockerFixture, resources: list[dict[str, Any]]) -> FakeAzureApi:
+    fake_api = FakeAzureApi(resources)
     mocker.patch.object(azure_getter, "get_access_token", return_value="tok")
     mocker.patch.object(azure_getter, "_azure_api_get_page", side_effect=fake_api.get_page)
     mocker.patch.object(azure_getter, "azure_api_get", side_effect=fake_api.list_items)
@@ -370,6 +430,67 @@ class TestGetNativeConfig:
         native_config = azure_getter.get_native_config(azure_mgm, [AzureDevice(uid="a", name="a", policy_name="pol1")])
 
         assert [policy.name for policy in native_config.firewall_policies] == ["pol1", "parent"]
+
+    def test_ip_groups_of_parent_policy_in_other_subscription_are_fetched_by_id(
+        self, mocker: MockerFixture, azure_mgm: ManagementController
+    ) -> None:
+        fake_api = mock_azure_api(
+            mocker,
+            [make_policy(POLICY1_ID, base_policy_id=ROOT_POLICY_ID), make_policy(ROOT_POLICY_ID), HUB_IP_GROUP],
+        )
+        fake_api.rule_collections[ROOT_POLICY_ID.lower()] = [
+            make_filter_rule_collection(
+                [
+                    make_network_rule("r1", source_ip_groups=[HUB_IP_GROUP_ID]),
+                    # the same group with other casing and a group of the management's subscription
+                    make_network_rule(
+                        "r2", source_ip_groups=[IP_GROUP["id"]], destination_ip_groups=[HUB_IP_GROUP_ID.upper()]
+                    ),
+                ]
+            )
+        ]
+        devices = [AzureDevice(uid="fw-uid", name="fw", policy_name="pol1")]
+
+        native_config = azure_getter.get_native_config(azure_mgm, devices)
+
+        assert [ip_group.name for ip_group in native_config.ip_groups] == ["ig1", "hub-ig"]
+        assert fake_api.requested_paths.count(HUB_IP_GROUP_ID) == 1
+        assert fake_api.requested_paths[-1] == HUB_IP_GROUP_ID
+        normalized = normalize_config(native_config, devices, "mgm-uid", skip_unsupported_rules=True)
+        root_rules = next(rulebase for rulebase in normalized.rulebases if rulebase.uid == "root").rules
+        assert [rule.rule_src for rule in root_rules.values()] == ["hub-ig", "ig1"]
+
+    def test_ip_groups_of_rules_that_are_not_imported_are_not_fetched(
+        self, mocker: MockerFixture, azure_mgm: ManagementController
+    ) -> None:
+        fake_api = mock_azure_api(mocker, [make_policy(POLICY1_ID)])
+        fake_api.rule_collections[POLICY1_ID.lower()] = [
+            make_filter_rule_collection(
+                [{"name": "app", "ruleType": "ApplicationRule", "sourceIpGroups": [HUB_IP_GROUP_ID]}]
+            ),
+            {
+                "name": "nat",
+                "ruleCollectionType": "FirewallPolicyNatRuleCollection",
+                "rules": [make_network_rule("dnat", source_ip_groups=[HUB_IP_GROUP_ID])],
+            },
+        ]
+
+        azure_getter.get_native_config(azure_mgm, [AzureDevice(uid="a", name="a", policy_name="pol1")])
+
+        assert HUB_IP_GROUP_ID not in fake_api.requested_paths
+
+    def test_ip_group_id_of_other_resource_type_is_refused(
+        self, mocker: MockerFixture, azure_mgm: ManagementController
+    ) -> None:
+        foreign_id = "/subscriptions/sub-2/resourceGroups/hub-rg/providers/Microsoft.KeyVault/vaults/secrets"
+        fake_api = mock_azure_api(mocker, [make_policy(POLICY1_ID)])
+        fake_api.rule_collections[POLICY1_ID.lower()] = [
+            make_filter_rule_collection([make_network_rule("r1", source_ip_groups=[foreign_id])])
+        ]
+
+        with pytest.raises(FwApiCallFailedError, match="Invalid Azure IP group id"):
+            azure_getter.get_native_config(azure_mgm, [AzureDevice(uid="a", name="a", policy_name="pol1")])
+        assert all("KeyVault" not in path for path in fake_api.requested_paths)
 
     def test_missing_cloud_settings_fail(self, azure_mgm: ManagementController) -> None:
         azure_mgm.cloud_subscription_id = None

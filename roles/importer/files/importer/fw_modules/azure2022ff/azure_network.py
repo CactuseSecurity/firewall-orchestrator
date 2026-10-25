@@ -178,5 +178,5 @@ def resolve_ip_group(ip_group_id: str, ip_groups: dict[str, NetworkObject]) -> N
     """Look up a referenced IP group by its resource id, failing the import for unknown groups."""
     ip_group = ip_groups.get(ip_group_id.lower())
     if ip_group is None:
-        raise FwoImporterError(f"Referenced Azure IP group '{ip_group_id}' not found in subscription.")
+        raise FwoImporterError(f"Referenced Azure IP group '{ip_group_id}' not found in native config.")
     return ip_group

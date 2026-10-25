@@ -7,11 +7,13 @@ from urllib.parse import quote
 import requests
 from fw_modules.azure2022ff.azure_const import (
     AZURE_API_VERSIONS,
+    AZURE_FILTER_RULE_COLLECTION,
     AZURE_LOGIN_URL,
     AZURE_MANAGEMENT_SCOPE,
     AZURE_MANAGEMENT_URL,
     AZURE_MAX_PAGES,
     AZURE_MAX_POLICY_DEPTH,
+    AZURE_NETWORK_RULE,
     AZURE_UNSUPPORTED_API_VERSION_ERROR_CODES,
 )
 from fw_modules.azure2022ff.azure_models import (
@@ -20,6 +22,7 @@ from fw_modules.azure2022ff.azure_models import (
     AzureFirewallPolicy,
     AzureFirewallPolicyResource,
     AzureIpGroup,
+    AzureRule,
     AzureRuleCollectionGroup,
 )
 from fwo_const import FWO_HTTP_TIMEOUT
@@ -27,19 +30,18 @@ from fwo_exceptions import FwApiCallFailedError, FwLoginFailedError, FwoImporter
 from fwo_log import FWOLogger
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator
 
     from model_controllers.management_controller import ManagementController
 
 HTTP_OK = 200
 HTTP_BAD_REQUEST = 400
-# resource id of a firewall policy, the only kind of resource id read from Azure that is used to build urls
-# a single path segment, '.' and '..' excluded
+# resource ids of firewall policies and IP groups, the only kinds of resource ids read from Azure that are used to
+# build urls; each part is a single path segment, '.' and '..' excluded
 _SEGMENT = r"(?!\.\.?(?:/|$))[^/?#]+"
-AZURE_FIREWALL_POLICY_ID_PATTERN = re.compile(
-    rf"/subscriptions/{_SEGMENT}/resourceGroups/{_SEGMENT}/providers/Microsoft\.Network/firewallPolicies/{_SEGMENT}",
-    re.IGNORECASE,
-)
+_NETWORK_PROVIDER_PATH = rf"/subscriptions/{_SEGMENT}/resourceGroups/{_SEGMENT}/providers/Microsoft\.Network"
+AZURE_FIREWALL_POLICY_ID_PATTERN = re.compile(rf"{_NETWORK_PROVIDER_PATH}/firewallPolicies/{_SEGMENT}", re.IGNORECASE)
+AZURE_IP_GROUP_ID_PATTERN = re.compile(rf"{_NETWORK_PROVIDER_PATH}/ipGroups/{_SEGMENT}", re.IGNORECASE)
 
 T = TypeVar("T")
 
@@ -236,6 +238,24 @@ def check_firewall_policy_id(policy_id: str) -> str:
     return policy_id
 
 
+def check_ip_group_id(ip_group_id: str) -> str:
+    """
+    Check that a resource id read from Azure (an IP group reference of a rule) denotes an IP group.
+
+    Only such ids are appended to the management url, so a reference can never select another kind of resource.
+
+    Args:
+        ip_group_id: The resource id of the IP group.
+
+    Returns:
+        str: The unchanged resource id.
+
+    """
+    if not AZURE_IP_GROUP_ID_PATTERN.fullmatch(ip_group_id):
+        raise FwApiCallFailedError(f"Invalid Azure IP group id '{ip_group_id}'")
+    return ip_group_id
+
+
 class AzureApiClient:
     """Reads Azure Resource Manager resources with the newest api version the cloud supports."""
 
@@ -290,6 +310,10 @@ class AzureApiClient:
     def get_firewall_policy(self, policy_id: str) -> AzureFirewallPolicyResource:
         resource = self.call_with_api_version(policy_id, lambda url: _azure_api_get_page(url, self.access_token))
         return AzureFirewallPolicyResource.model_validate(resource)
+
+    def get_ip_group(self, ip_group_id: str) -> AzureIpGroup:
+        resource = self.call_with_api_version(ip_group_id, lambda url: _azure_api_get_page(url, self.access_token))
+        return AzureIpGroup.model_validate(resource)
 
     def get_rule_collection_groups(self, policy_id: str) -> list[AzureRuleCollectionGroup]:
         items = self.call_with_api_version(
@@ -369,11 +393,72 @@ def get_native_config(mgm_details: ManagementController, devices: list[AzureDevi
     native_config = AzureConfig()
     # IP groups are listed for the whole subscription as policies may reference groups of other resource groups
     ip_group_items = api_client.list_items("providers/Microsoft.Network/ipGroups")
-    native_config.ip_groups = [AzureIpGroup.model_validate(item) for item in ip_group_items]
+    ip_groups = [AzureIpGroup.model_validate(item) for item in ip_group_items]
 
     policy_collector = AzureFirewallPolicyCollector(api_client)
     for policy_name in sorted({device.policy_name for device in devices}):
         policy_collector.add_policy_hierarchy(build_firewall_policy_id(subscription_id, resource_group, policy_name))
     native_config.firewall_policies = policy_collector.policies
+    native_config.ip_groups = ip_groups + get_missing_ip_groups(api_client, policy_collector.policies, ip_groups)
     native_config.api_version = api_client.api_version
     return native_config
+
+
+def get_missing_ip_groups(
+    api_client: AzureApiClient, policies: list[AzureFirewallPolicy], known_ip_groups: list[AzureIpGroup]
+) -> list[AzureIpGroup]:
+    """
+    Fetch the referenced IP groups that are not in the subscription, typically those of parent policies.
+
+    They are fetched one by one by their resource id, so only read access on the groups themselves is needed,
+    not on their whole subscription.
+
+    Args:
+        api_client: The client of the management's subscription.
+        policies: The firewall policies whose rules reference the IP groups.
+        known_ip_groups: The IP groups already listed for the subscription.
+
+    Returns:
+        list[AzureIpGroup]: The fetched IP groups.
+
+    """
+    known_ip_group_ids = {ip_group.id.lower() for ip_group in known_ip_groups}
+    missing_ip_groups: list[AzureIpGroup] = []
+    for ip_group_id in get_referenced_ip_group_ids(policies):
+        if ip_group_id.lower() in known_ip_group_ids:
+            continue
+        FWOLogger.debug(f"Fetching Azure IP group '{ip_group_id}' from outside the subscription")
+        missing_ip_groups.append(api_client.get_ip_group(check_ip_group_id(ip_group_id)))
+        known_ip_group_ids.add(ip_group_id.lower())
+    return missing_ip_groups
+
+
+def get_referenced_ip_group_ids(policies: list[AzureFirewallPolicy]) -> list[str]:
+    """
+    Collect the IP groups referenced by the imported rules (network rules of filter rule collections).
+
+    Args:
+        policies: The firewall policies.
+
+    Returns:
+        list[str]: The resource ids, each once regardless of its casing, in order of first reference.
+
+    """
+    ip_group_ids: dict[str, str] = {}
+    for rule in get_imported_rules(policies):
+        for ip_group_id in rule.source_ip_groups + rule.destination_ip_groups:
+            ip_group_ids.setdefault(ip_group_id.lower(), ip_group_id)
+    return list(ip_group_ids.values())
+
+
+def get_imported_rules(policies: list[AzureFirewallPolicy]) -> Iterator[AzureRule]:
+    """Yield the rules the normalizer imports: the network rules of filter rule collections."""
+    for policy in policies:
+        for rule_collection_group in policy.rule_collection_groups:
+            filter_rule_collections = [
+                rule_collection
+                for rule_collection in rule_collection_group.properties.rule_collections
+                if rule_collection.rule_collection_type == AZURE_FILTER_RULE_COLLECTION
+            ]
+            for rule_collection in filter_rule_collections:
+                yield from (rule for rule in rule_collection.rules if rule.rule_type == AZURE_NETWORK_RULE)

@@ -8,6 +8,7 @@ using FWO.Logging;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers
@@ -53,6 +54,8 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>List of all locally known users</returns>
         [HttpGet]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<UserGetReturnParameters>>> Get([FromQuery] PagingParameters paging)
         {
@@ -86,6 +89,8 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>List of users</returns>
         [HttpPost("Get")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<LdapUserGetReturnParameters>>> Get([FromBody] LdapUserGetParameters parameters)
         {

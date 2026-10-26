@@ -35,6 +35,8 @@ namespace FWO.Basics
         public const int kMaxImportScriptTimeoutMinutes = int.MaxValue / kMinutesToMilliseconds;
         // page size of the REST list endpoints, configurable as maxRestResponseObjectLimit
         public const int kDefaultMaxRestResponseObjectLimit = 10000;
+        // lowest configurable page size, so clients reading a whole list (e.g. the UI) need few requests per list
+        public const int kMinRestResponseObjectLimit = 100;
         // highest configurable page size, so the setting cannot lift the result cap of the REST list endpoints
         public const int kMaxRestResponseObjectLimitCeiling = 100000;
         public const int kOwnerResponsibleTypeMain = 1;

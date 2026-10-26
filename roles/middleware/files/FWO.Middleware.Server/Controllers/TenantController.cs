@@ -8,6 +8,7 @@ using FWO.Logging;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -48,6 +49,8 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>List of tenants</returns>
         [HttpGet]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<TenantGetReturnParameters>>> Get([FromQuery] PagingParameters paging)
         {

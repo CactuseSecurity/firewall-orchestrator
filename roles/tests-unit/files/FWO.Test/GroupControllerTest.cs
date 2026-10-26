@@ -100,11 +100,11 @@ namespace FWO.Test
         [Test]
         public async Task ListEndpoints_RejectALimitAboveTheConfiguredMaximum()
         {
-            SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = 1 };
+            SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = GlobalConst.kMinRestResponseObjectLimit };
             GroupController controller = CreatePagingController(CreateMembersClient(), globalConfig);
 
-            ActionResult<List<GroupGetReturnParameters>> groups = await controller.Get(new PagingParameters { Limit = 2 });
-            ActionResult<List<string>> members = await controller.GetMembers(new GroupMemberGetParameters { GroupDn = kGroupDn, Limit = 2 });
+            ActionResult<List<GroupGetReturnParameters>> groups = await controller.Get(new PagingParameters { Limit = GlobalConst.kMinRestResponseObjectLimit + 1 });
+            ActionResult<List<string>> members = await controller.GetMembers(new GroupMemberGetParameters { GroupDn = kGroupDn, Limit = GlobalConst.kMinRestResponseObjectLimit + 1 });
             ActionResult<List<string>> memberships = await controller.GetMemberships(new GroupMembershipGetParameters { UserDn = kUserDn, Offset = -1 });
             ActionResult<List<string>> resolved = await controller.ResolveMembers(new GroupResolveParameters { Dns = new List<string> { kDirectUserDn }, Limit = 0 });
 
@@ -114,7 +114,7 @@ namespace FWO.Test
                 Assert.That(members.Result, Is.TypeOf<BadRequestObjectResult>());
                 Assert.That(memberships.Result, Is.TypeOf<BadRequestObjectResult>());
                 Assert.That(resolved.Result, Is.TypeOf<BadRequestObjectResult>());
-                Assert.That(((ValidationProblemDetails)((BadRequestObjectResult)members.Result!).Value!).Errors["limit"][0], Does.Contain("between 1 and 1"));
+                Assert.That(((ValidationProblemDetails)((BadRequestObjectResult)members.Result!).Value!).Errors["limit"][0], Does.Contain($"between 1 and {GlobalConst.kMinRestResponseObjectLimit}"));
             });
         }
 

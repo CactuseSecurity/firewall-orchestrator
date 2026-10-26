@@ -3,7 +3,7 @@
 ## 9.8.4 - 26.10.2026
 - middleware REST API: every list endpoint is paged with one central page size (#5561)
   - new setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`, Settings - Defaults,
-    default 10000, at most 100000) is the maximum and default `limit` of all list endpoints. It replaces the fixed
+    default 10000, at least 100, at most 100000) is the maximum and default `limit` of all list endpoints. It replaces the fixed
     limits (`getIpDataForOwners` 10000, Flow catalog object lists 1000, group lists 250, `getImplTaskTargets` 1000)
     and is read at request time
   - new paging (`limit`, `offset`, deterministic order, response header `X-Has-More`, 400 for a limit outside 1 to
@@ -15,9 +15,12 @@
     objects per request; clients getting fewer objects see no difference. Flow catalog group lists now return up
     to 10000 groups per page instead of 250. LDAP member, membership and user lists and the user, tenant and
     group lists are now ordered (by dn resp. id)
-  - `Rule/GetRulesByFilter`, `owners/get`, `getAuditProofCriticalChanges` and `designatedZoneMatrix/zones` now use
-    the rate limit policy for expensive requests (at most 2 concurrent requests per user)
-  - the UI reads every page of the user, tenant and LDAP group lists, so it shows complete lists as before
+  - `Rule/GetRulesByFilter`, `owners/get`, `getAuditProofCriticalChanges`, `designatedZoneMatrix/zones` and the
+    user, tenant and LDAP lists (`GET User`, `User/Get`, `GET Tenant`, `GET Group`, `Group/Get`, `Members`,
+    `Memberships`, `Resolve`) now use the rate limit policy for expensive requests (at most 2 concurrent requests per
+    user)
+  - the UI reads every page of the user, tenant and LDAP group lists, so it shows complete lists as before; a list
+    that still has further pages after 1000 pages is reported as an error instead of being shown incomplete
 
 ## 9.8.2 - 24.10.2026
 - middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`

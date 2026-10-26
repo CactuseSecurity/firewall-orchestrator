@@ -222,9 +222,9 @@ internal class WorkflowImplTaskTargetControllerTest
     }
 
     [Test]
-    public async Task GetImplTaskTargetsTakesTheDefaultPageSizeAndTheMaximumFromTheConfiguration()
+    public async Task GetImplTaskTargetsTakesTheMaximumPageSizeFromTheConfiguration()
     {
-        SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = 1 };
+        SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = GlobalConst.kMinRestResponseObjectLimit };
         WorkflowImplTaskTargetController defaultPageController = CreateController(CreateApi(), Principal(kPlannerRole, kWholeHierarchyVisible), globalConfig);
         WorkflowImplTaskTargetController tooLargeController = CreateController(CreateApi(), Principal(kPlannerRole, kWholeHierarchyVisible), globalConfig);
 
@@ -233,16 +233,16 @@ internal class WorkflowImplTaskTargetControllerTest
         ActionResult<GetImplTaskTargetsResponse> tooLarge = await tooLargeController.GetImplTaskTargets(new GetImplTaskTargetsRequest
         {
             ManagementId = kSuperManagementId,
-            Options = new GetImplTaskTargetsOptions { Limit = 2 }
+            Options = new GetImplTaskTargetsOptions { Limit = GlobalConst.kMinRestResponseObjectLimit + 1 }
         });
 
         RequestValidationErrorResponse errors = (RequestValidationErrorResponse)((BadRequestObjectResult)tooLarge.Result!).Value!;
         Assert.Multiple(() =>
         {
-            Assert.That(OkResponse(defaultPage).Targets.Select(target => target.Id), Is.EqualTo(kFirstSubManagementOnly));
-            Assert.That(HasMoreHeader(defaultPageController), Is.EqualTo("true"));
+            Assert.That(OkResponse(defaultPage).Targets.Select(target => target.Id), Is.EqualTo(kBothSubManagements));
+            Assert.That(HasMoreHeader(defaultPageController), Is.EqualTo("false"));
             Assert.That(errors.Errors.Single().Path, Is.EqualTo("options.limit"));
-            Assert.That(errors.Errors.Single().Message, Does.Contain("between 1 and 1"));
+            Assert.That(errors.Errors.Single().Message, Does.Contain($"between 1 and {GlobalConst.kMinRestResponseObjectLimit}"));
         });
     }
 

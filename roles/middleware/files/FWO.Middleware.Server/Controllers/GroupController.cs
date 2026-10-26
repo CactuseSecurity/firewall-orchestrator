@@ -7,6 +7,7 @@ using FWO.Logging;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Novell.Directory.Ldap;
 using System;
 using System.Collections.Concurrent;
@@ -54,6 +55,8 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>List of groups</returns>
         [HttpGet]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<GroupGetReturnParameters>>> Get([FromQuery] PagingParameters paging)
         {
@@ -245,6 +248,8 @@ namespace FWO.Middleware.Server.Controllers
         /// <response code="400">LdapId does not name a connected LDAP, or limit or offset is out of range.</response>
         [HttpPost("Get")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<string>>> Get([FromBody] GroupGetParameters parameters)
         {
@@ -277,6 +282,8 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>List of member dns</returns>
         [HttpPost("Members")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<string>>> GetMembers([FromBody] GroupMemberGetParameters parameters)
         {
@@ -318,6 +325,8 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>List of group dns</returns>
         [HttpPost("Memberships")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<string>>> GetMemberships([FromBody] GroupMembershipGetParameters parameters)
         {
@@ -380,6 +389,8 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>List of user dns</returns>
         [HttpPost("Resolve")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<string>>> ResolveMembers([FromBody] GroupResolveParameters parameters)
         {

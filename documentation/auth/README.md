@@ -188,9 +188,11 @@ is refilled at least every 10 seconds (below 60 per minute: one request every 60
 that cannot be refilled exactly within such a period is rounded by at most 3 requests per minute. Endpoints
 whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwners`, the Flow catalog lists
 `getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects`, and
-`getImplTaskTargets`, `getAuditProofCriticalChanges`, `Rule/GetRulesByFilter`, `owners/get` and
-`Compliance/designatedZoneMatrix/zones`) additionally run at most 2 requests of one user at the same time; up to 4 further requests wait, the rest are rejected. Their
-request bodies are limited to 1 MiB (`413` above). Rejected requests get `429` with `Retry-After: 60`.
+`getImplTaskTargets`, `getAuditProofCriticalChanges`, `Rule/GetRulesByFilter`, `owners/get`,
+`Compliance/designatedZoneMatrix/zones` and the user, tenant and LDAP lists `GET User`, `User/Get`, `GET Tenant`,
+`GET Group`, `Group/Get`, `Group/Members`, `Group/Memberships`, `Group/Resolve`) additionally run at most 2 requests
+of one user at the same time; up to 4 further requests wait, the rest are rejected. Their request bodies are limited
+to 1 MiB (`413` above). Rejected requests get `429` with `Retry-After: 60`.
 
 Service identities (`importer`, `middleware-server`), anonymous login tokens and unauthenticated requests are not
 counted here; logins are limited as described above.
@@ -207,7 +209,7 @@ type are ignored like the login limits:
 
 Every REST endpoint returning a list returns one page per request. The maximum page size, which is also the
 default when no limit is sent, is the setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`,
-Settings - Defaults, default 10000, at most 100000). The middleware reads it at request time, so a change applies
+Settings - Defaults, default 10000, at least 100, at most 100000). The middleware reads it at request time, so a change applies
 without restart. Page with `limit` and `offset` until the response header `X-Has-More` is `false`; a `limit`
 outside 1 to the maximum or a negative `offset` is answered with `400`. Where the keys are sent and how the items
 are ordered:
@@ -226,5 +228,7 @@ are ordered:
 | `GET Compliance/designatedZoneMatrix/zones` | query parameters `limit`, `offset` | zone id |
 
 Callers that receive fewer items than the maximum see no difference. The UI reads every page of the user, tenant
-and LDAP group lists it uses. `getFlowComplianceState` accepts at most 100 entries in each of `source`,
+and LDAP group lists it uses, at most 1000 pages per list; a list with further pages after that is reported as an
+error instead of being shown incomplete. The LDAP lists are read completely from the directory for every page and
+cut in the middleware. `getFlowComplianceState` accepts at most 100 entries in each of `source`,
 `destination` and `service`, and at most 100 `policies`.

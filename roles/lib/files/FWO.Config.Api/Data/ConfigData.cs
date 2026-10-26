@@ -273,8 +273,10 @@ namespace FWO.Config.Api.Data
 
         /// <summary>
         /// Returns the usable page size of the REST list endpoints for a configured maxRestResponseObjectLimit:
-        /// a value below 1 selects the default, a value above <see cref="GlobalConst.kMaxRestResponseObjectLimitCeiling"/>
-        /// the ceiling, so the setting can neither disable nor lift the result cap.
+        /// a value below 1 selects the default, a value from 1 to below <see cref="GlobalConst.kMinRestResponseObjectLimit"/>
+        /// the minimum and a value above <see cref="GlobalConst.kMaxRestResponseObjectLimitCeiling"/> the ceiling, so the
+        /// setting can neither disable nor lift the result cap, nor make clients reading whole lists send one request per
+        /// few items.
         /// </summary>
         /// <param name="configuredLimit">Configured maximum page size.</param>
         public static int GetUsableMaxRestResponseObjectLimit(int configuredLimit)
@@ -283,7 +285,7 @@ namespace FWO.Config.Api.Data
             {
                 return GlobalConst.kDefaultMaxRestResponseObjectLimit;
             }
-            return Math.Min(configuredLimit, GlobalConst.kMaxRestResponseObjectLimitCeiling);
+            return Math.Clamp(configuredLimit, GlobalConst.kMinRestResponseObjectLimit, GlobalConst.kMaxRestResponseObjectLimitCeiling);
         }
 
         [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]

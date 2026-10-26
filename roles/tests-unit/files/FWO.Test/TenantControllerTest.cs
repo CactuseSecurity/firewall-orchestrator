@@ -33,10 +33,10 @@ namespace FWO.Test
                     new Tenant { Id = 2, Name = "tenant-2" }
                 ]
             };
-            TenantController firstPageController = CreatePagingController(apiConnection, new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 1 });
+            TenantController firstPageController = CreatePagingController(apiConnection, new SimulatedGlobalConfig());
             TenantController lastPageController = CreatePagingController(apiConnection, new SimulatedGlobalConfig());
 
-            List<TenantGetReturnParameters> firstPage = (await firstPageController.Get(new PagingParameters())).Value!;
+            List<TenantGetReturnParameters> firstPage = (await firstPageController.Get(new PagingParameters { Limit = 1 })).Value!;
             List<TenantGetReturnParameters> lastPage = (await lastPageController.Get(new PagingParameters { Offset = 1 })).Value!;
 
             Assert.Multiple(() =>
@@ -52,9 +52,9 @@ namespace FWO.Test
         public async Task Get_RejectsALimitAboveTheConfiguredMaximumWithoutQueryingTheApi()
         {
             TenantControllerTestApiConnection apiConnection = new();
-            TenantController controller = CreatePagingController(apiConnection, new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 1 });
+            TenantController controller = CreatePagingController(apiConnection, new SimulatedGlobalConfig { MaxRestResponseObjectLimit = GlobalConst.kMinRestResponseObjectLimit });
 
-            ActionResult<List<TenantGetReturnParameters>> result = await controller.Get(new PagingParameters { Limit = 2, Offset = -1 });
+            ActionResult<List<TenantGetReturnParameters>> result = await controller.Get(new PagingParameters { Limit = GlobalConst.kMinRestResponseObjectLimit + 1, Offset = -1 });
 
             ValidationProblemDetails problem = (ValidationProblemDetails)((BadRequestObjectResult)result.Result!).Value!;
             Assert.Multiple(() =>

@@ -204,7 +204,9 @@ namespace FWO.Test
         }
 
         [TestCase(500, 500)]
-        [TestCase(1, 1)]
+        [TestCase(GlobalConst.kMinRestResponseObjectLimit, GlobalConst.kMinRestResponseObjectLimit)]
+        [TestCase(1, GlobalConst.kMinRestResponseObjectLimit)]
+        [TestCase(GlobalConst.kMinRestResponseObjectLimit - 1, GlobalConst.kMinRestResponseObjectLimit)]
         [TestCase(0, GlobalConst.kDefaultMaxRestResponseObjectLimit)]
         [TestCase(-5, GlobalConst.kDefaultMaxRestResponseObjectLimit)]
         [TestCase(GlobalConst.kMaxRestResponseObjectLimitCeiling, GlobalConst.kMaxRestResponseObjectLimitCeiling)]

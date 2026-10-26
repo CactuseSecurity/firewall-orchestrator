@@ -112,6 +112,7 @@ namespace FWO.Test
         }
 
         [TestCase(250, 250)]
+        [TestCase(10, GlobalConst.kMinRestResponseObjectLimit)]
         [TestCase(0, GlobalConst.kDefaultMaxRestResponseObjectLimit)]
         [TestCase(GlobalConst.kMaxRestResponseObjectLimitCeiling + 1, GlobalConst.kMaxRestResponseObjectLimitCeiling)]
         public async Task SettingsDefaults_SaveStoresTheUsableRestResponseObjectLimit(int enteredLimit, int storedLimit)

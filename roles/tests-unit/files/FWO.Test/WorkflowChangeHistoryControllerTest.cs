@@ -226,21 +226,22 @@ internal class WorkflowChangeHistoryControllerTest
     [Test]
     public async Task GetAuditProofCriticalChangesTakesTheMaximumPageSizeFromTheConfiguration()
     {
-        SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = 1 };
+        SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = GlobalConst.kMinRestResponseObjectLimit };
         WorkflowChangeHistoryController defaultPageController = CreatePagingController(globalConfig);
         WorkflowChangeHistoryController tooLargeController = CreatePagingController(globalConfig);
 
         ActionResult<GetAuditProofCriticalChangesResponse> defaultPage = await defaultPageController.GetAuditProofCriticalChanges(
             new GetAuditProofCriticalChangesRequest { TicketId = 1234 });
         ActionResult<GetAuditProofCriticalChangesResponse> tooLarge = await tooLargeController.GetAuditProofCriticalChanges(
-            new GetAuditProofCriticalChangesRequest { TicketId = 1234, Options = new GetAuditProofCriticalChangesOptions { Limit = 2 } });
+            new GetAuditProofCriticalChangesRequest { TicketId = 1234, Options = new GetAuditProofCriticalChangesOptions { Limit = GlobalConst.kMinRestResponseObjectLimit + 1 } });
 
         RequestValidationErrorResponse errors = (RequestValidationErrorResponse)((BadRequestObjectResult)tooLarge.Result!).Value!;
         Assert.Multiple(() =>
         {
-            Assert.That(OkResponse(defaultPage).Changes, Has.Count.EqualTo(1));
-            Assert.That(HasMoreHeader(defaultPageController), Is.EqualTo("true"));
+            Assert.That(OkResponse(defaultPage).Changes, Has.Count.EqualTo(2));
+            Assert.That(HasMoreHeader(defaultPageController), Is.EqualTo("false"));
             Assert.That(errors.Errors.Single().Path, Is.EqualTo("options.limit"));
+            Assert.That(errors.Errors.Single().Message, Does.Contain($"between 1 and {GlobalConst.kMinRestResponseObjectLimit}"));
         });
     }
 

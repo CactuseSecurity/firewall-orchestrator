@@ -23,6 +23,7 @@ namespace FWO.Test
         private static readonly string[] kExpectedZeroMinPrefixRuleNames = ["Source", "AnySource"];
         private static readonly string[] kFirstPageRuleNames = ["Source"];
         private static readonly string[] kSecondPageRuleNames = ["Destination"];
+        private static readonly string[] kBothPageRuleNames = ["Source", "Destination"];
 
         [Test]
         public async Task GetRulesByFilter_ShouldWorkWithOwnerId()
@@ -400,17 +401,22 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task GetRulesByFilter_TakesTheDefaultPageSizeFromTheConfiguration()
+        public async Task GetRulesByFilter_TakesTheMaximumPageSizeFromTheConfiguration()
         {
-            RuleController controller = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-config",
-                new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 1 });
+            SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = GlobalConst.kMinRestResponseObjectLimit };
+            RuleController controller = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-config", globalConfig);
+            RuleController tooLargeController = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-config", globalConfig);
 
             RulesByFilterResponse response = ExtractResponse(await controller.GetRulesByFilter(BuildBothFieldsRequest(null, null), "req-config"));
+            ActionResult<RulesByFilterResponse> tooLarge = await tooLargeController.GetRulesByFilter(
+                BuildBothFieldsRequest(GlobalConst.kMinRestResponseObjectLimit + 1, null), "req-config");
 
             Assert.Multiple(() =>
             {
-                Assert.That(response.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kFirstPageRuleNames));
-                Assert.That(HasMoreHeader(controller), Is.EqualTo("true"));
+                Assert.That(response.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kBothPageRuleNames));
+                Assert.That(HasMoreHeader(controller), Is.EqualTo("false"));
+                Assert.That(((BadRequestObjectResult)tooLarge.Result!).Value?.ToString(),
+                    Does.Contain($"between 1 and {GlobalConst.kMinRestResponseObjectLimit}"));
             });
         }
 

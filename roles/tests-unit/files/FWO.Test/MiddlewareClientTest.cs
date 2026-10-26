@@ -123,6 +123,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AListWithFurtherItemsAfterThePageLimitIsReturnedAsErrorInsteadOfIncomplete()
+        {
+            int maxPagesPerList = (int)typeof(MiddlewareClient)
+                .GetField("kMaxPagesPerList", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+            await using LocalMiddlewareServer server = new();
+            using MiddlewareClient client = new(server.BaseUrl);
+            for (int page = 0; page < maxPagesPerList; page++)
+            {
+                server.EnqueueResponse(JsonSerializer.Serialize(kSecondMemberPage), hasMore: true);
+            }
+
+            RestResponse<List<string>> response = await client.GetGroupMembers(new GroupMemberGetParameters { GroupDn = "cn=group" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.IsSuccessful, Is.False);
+                Assert.That(response.Data, Is.Null);
+                Assert.That(response.ErrorMessage, Does.Contain($"{maxPagesPerList} pages"));
+                Assert.That(server.ReceivedRequests, Has.Count.EqualTo(maxPagesPerList));
+            });
+        }
+
+        [Test]
         public async Task AnEmptyPageEndsThePagingEvenWhenTheServerAnnouncesMore()
         {
             await using LocalMiddlewareServer server = new();

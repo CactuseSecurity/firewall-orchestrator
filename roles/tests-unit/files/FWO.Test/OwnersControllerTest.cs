@@ -425,24 +425,24 @@ namespace FWO.Test
         public async Task GetWithoutLimitRequestsAPageOfTheConfiguredMaximum()
         {
             OwnersApiConnection apiConnection = new() { Owners = [new FwoOwner { Id = 1, Name = "a" }] };
-            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin), new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 50 });
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin), new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 150 });
 
             await controller.Get(new GetOwnersRequest());
 
             Assert.Multiple(() =>
             {
-                Assert.That(SerializeVariables(apiConnection.Variables), Does.Contain("\"limit\":51"));
+                Assert.That(SerializeVariables(apiConnection.Variables), Does.Contain("\"limit\":151"));
                 Assert.That(controller.HttpContext.Response.Headers["X-Has-More"].ToString(), Is.EqualTo("false"));
             });
         }
 
         [TestCase(0, null)]
-        [TestCase(51, null)]
+        [TestCase(151, null)]
         [TestCase(null, -1)]
         public async Task GetRejectsPagingOutOfRangeWithoutQueryingTheApi(int? limit, int? offset)
         {
             OwnersApiConnection apiConnection = new();
-            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin), new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 50 });
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin), new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 150 });
 
             ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { Limit = limit, Offset = offset });
 

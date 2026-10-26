@@ -57,7 +57,8 @@ namespace FWO.Test
             Assert.That(new ConfigData().MaxRestResponseObjectLimit, Is.EqualTo(10000));
         }
 
-        [TestCase(1, 1)]
+        [TestCase(1, GlobalConst.kMinRestResponseObjectLimit)]
+        [TestCase(GlobalConst.kMinRestResponseObjectLimit, GlobalConst.kMinRestResponseObjectLimit)]
         [TestCase(0, GlobalConst.kDefaultMaxRestResponseObjectLimit)]
         [TestCase(GlobalConst.kMaxRestResponseObjectLimitCeiling + 1, GlobalConst.kMaxRestResponseObjectLimitCeiling)]
         public void UsableLimitStaysWithinItsBounds(int configuredLimit, int expectedLimit)

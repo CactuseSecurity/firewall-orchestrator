@@ -415,19 +415,19 @@ internal class ApplicationAddressesControllerTest
     public async Task GetTakesTheDefaultPageSizeAndTheMaximumFromTheConfiguration()
     {
         ApplicationAddressesApiConnection apiConnection = new();
-        SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = 25 };
+        SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = 150 };
         ApplicationAddressesController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin), globalConfig);
         ApplicationAddressesController tooLargeController = CreateController(new ApplicationAddressesApiConnection(), PrincipalWithRoles(Roles.Admin), globalConfig);
 
         await controller.Get(new GetApplicationAddressesRequest());
         ActionResult<List<ApplicationAddressResponse>> tooLarge = await tooLargeController.Get(
-            new GetApplicationAddressesRequest { Options = new() { Limit = 26 } });
+            new GetApplicationAddressesRequest { Options = new() { Limit = 151 } });
 
         ValidationProblemDetails validationProblem = (ValidationProblemDetails)((ObjectResult)tooLarge.Result!).Value!;
         Assert.Multiple(() =>
         {
-            Assert.That(SerializeVariables(apiConnection.LastApplicationVariables), Does.Contain("\"limit\":26"));
-            Assert.That(validationProblem.Errors["options.limit"][0], Does.Contain("between 1 and 25"));
+            Assert.That(SerializeVariables(apiConnection.LastApplicationVariables), Does.Contain("\"limit\":151"));
+            Assert.That(validationProblem.Errors["options.limit"][0], Does.Contain("between 1 and 150"));
         });
     }
 

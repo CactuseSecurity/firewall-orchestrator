@@ -260,10 +260,10 @@ namespace FWO.Test
         [Test]
         public async Task GetDesignatedZoneMatrixZones_PagesTheZonesOrderedById()
         {
-            ComplianceZoneController firstPageController = CreatePagingZoneController(new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 2 });
+            ComplianceZoneController firstPageController = CreatePagingZoneController(new SimulatedGlobalConfig());
             ComplianceZoneController lastPageController = CreatePagingZoneController(new SimulatedGlobalConfig());
 
-            ActionResult<List<ComplianceDesignatedZoneResponse>> firstPage = await firstPageController.GetDesignatedZoneMatrixZones();
+            ActionResult<List<ComplianceDesignatedZoneResponse>> firstPage = await firstPageController.GetDesignatedZoneMatrixZones(limit: 2);
             ActionResult<List<ComplianceDesignatedZoneResponse>> lastPage = await lastPageController.GetDesignatedZoneMatrixZones(limit: 2, offset: 2);
 
             Assert.Multiple(() =>
@@ -276,11 +276,11 @@ namespace FWO.Test
         }
 
         [TestCase(0, null)]
-        [TestCase(3, null)]
+        [TestCase(GlobalConst.kMinRestResponseObjectLimit + 1, null)]
         [TestCase(null, -1)]
         public async Task GetDesignatedZoneMatrixZones_RejectsPagingOutOfRange(int? limit, int? offset)
         {
-            ComplianceZoneController controller = CreatePagingZoneController(new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 2 });
+            ComplianceZoneController controller = CreatePagingZoneController(new SimulatedGlobalConfig { MaxRestResponseObjectLimit = GlobalConst.kMinRestResponseObjectLimit });
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones(limit, offset);
 

@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Logging;
 using RestSharp;
 
 namespace FWO.Middleware.Client
@@ -459,8 +460,8 @@ namespace FWO.Middleware.Client
         /// announces further items, at most <see cref="kMaxPagesPerList"/> pages.
         /// </summary>
         /// <param name="buildPageRequest">Builds the request of the page starting at the given offset.</param>
-        /// <returns>The response of the last read page holding the items of every read page, or the first
-        /// unsuccessful response.</returns>
+        /// <returns>The response of the last read page holding the items of every read page, the first
+        /// unsuccessful response, or an error response without items if further pages follow the last readable one.</returns>
         private async Task<RestResponse<List<T>>> ExecuteAllPagesAsync<T>(Func<int, RestRequest> buildPageRequest)
         {
             List<T> allItems = [];
@@ -480,7 +481,29 @@ namespace FWO.Middleware.Client
             }
             while (HasMorePages(response) && response.Data.Count > 0 && pageCount < kMaxPagesPerList);
 
+            if (pageCount >= kMaxPagesPerList && HasMorePages(response) && response.Data.Count > 0)
+            {
+                return MarkAsIncomplete(response, offset);
+            }
             response.Data = allItems;
+            return response;
+        }
+
+        /// <summary>
+        /// Turns the response of the last readable page into an error, so a caller cannot take the read items for
+        /// the complete list.
+        /// </summary>
+        /// <param name="response">Response of the last read page, announcing further items.</param>
+        /// <param name="readItemCount">Number of items read before the page limit was reached.</param>
+        /// <returns>The response without items, marked as failed.</returns>
+        private static RestResponse<List<T>> MarkAsIncomplete<T>(RestResponse<List<T>> response, int readItemCount)
+        {
+            string resource = response.Request?.Resource ?? "";
+            string message = $"List {resource} has more than {readItemCount} items in {kMaxPagesPerList} pages; it is not returned incomplete.";
+            Log.WriteWarning("Middleware Client", message);
+            response.Data = null;
+            response.ResponseStatus = ResponseStatus.Error;
+            response.ErrorMessage = message;
             return response;
         }
 

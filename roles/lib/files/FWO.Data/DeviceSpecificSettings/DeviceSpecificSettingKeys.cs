@@ -68,11 +68,13 @@ public static class DeviceSpecificSettingKeys
     public static readonly DeviceSpecificSettingKey<string> ImporterHostName =
         new("importerHostName", ManagerScopeTypes);
 
-    public static readonly DeviceSpecificSettingKey<bool> PlanImplementation =
-        new("planImplementation", AllScopeTypes);
+    /// <summary>Automatic creation of implementation tasks for every task type.</summary>
+    public static readonly DeviceSpecificSettingKey<bool> AutoPlanImplementation =
+        new("autoPlanImplementation", AllScopeTypes);
 
-    public static readonly DeviceSpecificSettingKey<bool> PlanImplementationOverrideForRules =
-        new("planImplementationOverrideForRules", AllScopeTypes);
+    /// <summary>Automatic creation of implementation tasks for rule tasks, only together with AutoPlanImplementation.</summary>
+    public static readonly DeviceSpecificSettingKey<bool> AutoPlanImplementationForRules =
+        new("autoPlanImplementationForRules", AllScopeTypes);
 
     public static readonly DeviceSpecificSettingKey<bool> ModellingCreateAppZones =
         new("modellingCreateAppZones", ManagerScopeTypes);
@@ -112,8 +114,8 @@ public static class DeviceSpecificSettingKeys
         OwnerIdCustomFieldName,
         ChangeIdCustomFieldName,
         ImporterHostName,
-        PlanImplementation,
-        PlanImplementationOverrideForRules,
+        AutoPlanImplementation,
+        AutoPlanImplementationForRules,
         ModellingCreateAppZones,
         ModellingImplementNetworkAreaObjects,
         ModellingDynIpLabelsVisibleAsGroups,

@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using FWO.Basics;
+using NetTools;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -48,6 +50,35 @@ namespace FWO.Data.Workflow
         public bool IsCurrentMember()
         {
             return !IsMemberToAdd() && !IsMemberToRemove();
+        }
+
+        /// <summary>
+        /// Returns the address range of the element, IPv4 or IPv6: from <see cref="WfElementBase.IpString"/> and
+        /// <see cref="WfElementBase.IpEnd"/>, or from <see cref="Cidr"/> and <see cref="CidrEnd"/> when only those are set.
+        /// Null for an element without address, e.g. referencing a network object only, and for an unusable address:
+        /// unparsable, reversed, or mixing IPv4 and IPv6.
+        /// </summary>
+        public IPAddressRange? GetIpRange()
+        {
+            if (IpOperations.TryParseIPRange(IpString, IpEnd, out IPAddressRange? range))
+            {
+                return range;
+            }
+            return IpOperations.TryParseIPRange(Cidr?.CidrString, CidrEnd?.CidrString, out range) ? range : null;
+        }
+
+        /// <summary>
+        /// Returns the address ranges of the elements of one field (e.g. source or destination); elements without
+        /// usable address are skipped.
+        /// </summary>
+        /// <param name="elements">Elements of a request task.</param>
+        /// <param name="field">Field whose elements are converted.</param>
+        public static List<IPAddressRange> GetIpRanges(IEnumerable<WfReqElement> elements, ElemFieldType field)
+        {
+            return [.. elements
+                .Where(element => element.Field == field.ToString())
+                .Select(element => element.GetIpRange())
+                .OfType<IPAddressRange>()];
         }
     }
 }

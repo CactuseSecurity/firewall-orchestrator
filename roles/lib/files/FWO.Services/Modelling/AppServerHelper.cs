@@ -64,6 +64,21 @@ namespace FWO.Services.Modelling
             return char.IsLetter(appServer.Name[0]) ? appServer.Name : GetPrefix(appServer, namingConvention) + appServer.Name;
         }
 
+        /// <summary>
+        /// Constructs the name of the app server stored for an ip address or range assigned to an owner.
+        /// A given name is kept, otherwise the name is built from the ip data following the naming convention.
+        /// </summary>
+        public static string ConstructOwnedIpName(string? name, string ip, string? ipEnd, ModellingNamingConvention namingConvention)
+        {
+            ModellingAppServer appServer = new()
+            {
+                Name = name ?? "",
+                Ip = ip,
+                IpEnd = string.IsNullOrEmpty(ipEnd) ? ip : ipEnd
+            };
+            return ConstructAppServerName(appServer, namingConvention);
+        }
+
         public static async Task AdjustAppServerNames(ApiConnection apiConnection, UserConfig userConfig, CancellationToken cancellationToken = default)
         {
             Log.WriteDebug($"Start adjusting App Server Names", "");

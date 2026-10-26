@@ -177,16 +177,10 @@ INSERT INTO txt VALUES ('Approval',			    'German', 	'Genehmigung');
 INSERT INTO txt VALUES ('Approval',			    'English', 	'Approval');
 INSERT INTO txt VALUES ('never', 			    'German', 	'Niemals');
 INSERT INTO txt VALUES ('never', 			    'English', 	'Never');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'German', 	'Nur eines wenn Ger&auml;t vorhanden');
-INSERT INTO txt VALUES ('onlyForOneDevice', 	'English', 	'Only one if device available');
-INSERT INTO txt VALUES ('forEachDevice', 		'German', 	'F&uuml;r jedes Ger&auml;t');
-INSERT INTO txt VALUES ('forEachDevice', 		'English', 	'For each device');
 INSERT INTO txt VALUES ('enterInReqTask',       'German', 	'Ger&auml;t im Antrag eingeben');
 INSERT INTO txt VALUES ('enterInReqTask',       'English', 	'Enter device in request');
 INSERT INTO txt VALUES ('oneTaskForAllDevices', 'German', 	'Ein Auftrag f&uuml;r alle Ger&auml;te');
 INSERT INTO txt VALUES ('oneTaskForAllDevices', 'English', 	'One task for all devices');
-INSERT INTO txt VALUES ('afterPathAnalysis',    'German', 	'Nach Pfadanalyse');
-INSERT INTO txt VALUES ('afterPathAnalysis',    'English', 	'After path analysis');
 INSERT INTO txt VALUES ('WriteToDeviceList',    'German', 	'In Ger&auml;teliste eintragen');
 INSERT INTO txt VALUES ('WriteToDeviceList',    'English', 	'Write to device list');
 INSERT INTO txt VALUES ('DisplayFoundDevices',  'German', 	'Gefundene Ger&auml;te darstellen');
@@ -634,6 +628,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Das Email-Protokoll kann nach Benachrichtigungs-ID, Benachrichtigungstyp, Status und Fehlertext gefiltert werden.</li>
     <li>LDAP: Eine Verbindung kann bis zu 10 Server (Replikate) eines Verzeichnisses enthalten, die der Reihe nach versucht werden. Aktive Verbindungen d&uuml;rfen keine gleichen Such- oder Schreibpfade haben; bisher als getrennte Verbindungen eingerichtete Replikate m&uuml;ssen zu einer Verbindung zusammengefasst werden. Lokale Nutzer werden an die unver&auml;nderliche Objekt-Id ihres Verzeichniseintrags gebunden, daher muss sich nach dem Upgrade jeder Nutzer einmal mit Passwort anmelden.</li>
     <li>Die Auftr&auml;ge &quot;Objekt anlegen&quot; und &quot;Objekt &auml;ndern&quot; unterst&uuml;tzen Zeitobjekte mit Name, Start- und Endzeit.</li>
+    <li>Implementierungs-Auftr&auml;ge entstehen nur noch &uuml;ber die Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot;, die z.B. beim Status &quot;genehmigt&quot; eingeh&auml;ngt wird. Installation und Upgrade legen sie an, h&auml;ngen sie aber nicht ein: das muss ein Administrator tun, sonst entstehen keine Implementierungs-Auftr&auml;ge automatisch. Welche Auftr&auml;ge sie anlegt, legen die ger&auml;tespezifischen Einstellungen &quot;Umsetzung automatisch planen&quot; und &quot;Umsetzung f&uuml;r Regeln automatisch planen&quot; fest, unabh&auml;ngig von der Planungsphase; das Upgrade leitet sie nicht aus den Planungsphasen ab, bitte pr&uuml;fen (Standard f&uuml;r Regeln: Nein). Im Antrag angegebene Ger&auml;te haben Vorrang vor dem Pfadanalyse-Algorithmus, der nun auch &quot;F&uuml;r jedes Ger&auml;t&quot; und &quot;Erstes Ger&auml;t (falls vorhanden)&quot; bietet. Findet die Aktion kein Ziel, entsteht ein Implementierungs-Auftrag ohne Gateway. Die Workflow-Anpassungen fassen die B&uuml;ndelungsoptionen zusammen.</li>
     <li>Neuer REST-Aufruf <code>resolvePathDevices</code>: ermittelt die Firewalls auf den Pfaden zwischen Quell- und Zieladressen (Bereiche oder Netze, je bis zu 100) mit dem Network-Zone-Tree-Algorithmus. Algorithmus und Zonenmatrix k&ouml;nnen angegeben werden, sonst gelten die Einstellungen. Die Antwort nennt jedes Ger&auml;t einmal sowie den verwendeten Algorithmus und die verwendete Matrix.</li>
     <li>Auftr&auml;ge vom Typ &quot;Gruppe &auml;ndern&quot; k&ouml;nnen bestehende Netzwerk- und Dienstgruppen suchen und bearbeiten. Mitglieder werden vorbef&uuml;llt, k&ouml;nnen zum Entfernen markiert und durch neue Netzwerkobjekte oder Dienste erg&auml;nzt werden.</li>
     <li>Workflow-Konfigurationen k&ouml;nnen mit frei w&auml;hlbarem Dateinamen und ausgew&auml;hlten Phasen exportiert werden. Beim Import kann eine neue Konfiguration angelegt oder eine bestehende erweitert werden. Verwendete Status werden mit Namen und Automatik-Eigenschaft &uuml;bertragen; vorhandene Status und Gruppen werden nicht unbemerkt &uuml;berschrieben.</li>
@@ -669,6 +664,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>The email log can be filtered by notification ID, notification type, status and error text.</li>
     <li>LDAP: a connection can list up to 10 servers (replicas) of one directory, which are tried in order. Active connections must not share a search or write path; replicas configured as separate connections so far have to be combined into one connection. Local users are bound to the immutable object id of their directory entry, so every user has to log in with password once after the upgrade.</li>
     <li>The tasks &quot;create object&quot; and &quot;modify object&quot; support time objects with name, start and end time.</li>
+    <li>Implementation tasks are only created by the action &quot;Create implementation tasks&quot;, attached e.g. to the state &quot;approved&quot;. Installation and upgrade provide it but do not attach it: an administrator has to, otherwise no implementation tasks are created automatically. Which tasks it creates is defined by the device specific settings &quot;Auto plan implementation&quot; and &quot;Auto plan implementation for rules&quot;, independently of the planning phase; the upgrade does not derive them from the planning phases, so please check them (default for rules: No). Devices entered in the request take precedence over the path analysis algorithm, which now also offers &quot;For each device&quot; and &quot;First device (if available)&quot;. If the action finds no target, one implementation task without gateway is created. Workflow Customizing groups the bundling options.</li>
     <li>New REST call <code>resolvePathDevices</code>: determines the firewalls on the paths between source and destination addresses (ranges or networks, up to 100 each) using the network zone tree algorithm. Algorithm and zone matrix can be specified, otherwise the settings apply. The response lists each device once together with the algorithm and matrix used.</li>
     <li>&quot;Modify group&quot; tasks can search for and edit existing network and service groups. Members are prefilled, can be marked for removal, and can be supplemented with new network objects or services.</li>
     <li>Workflow configurations can be exported with a custom file name and selected phases. During import, a new configuration can be created or an existing one can be extended. Referenced states are transferred with their names and automatic-only property; existing states and groups are not silently overwritten.</li>
@@ -2969,8 +2965,10 @@ INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
 INSERT INTO txt VALUES ('reqPriorities',        'English', 	'Priorities');
 INSERT INTO txt VALUES ('reqCreateRequestTaskSortConfig', 'German',  'Sortierpriorit&auml;ten f&uuml;r Antragsaufgaben');
 INSERT INTO txt VALUES ('reqCreateRequestTaskSortConfig', 'English', 'Request task sort priorities');
-INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');
-INSERT INTO txt VALUES ('reqAutoCreateImplTasks','English', 'Auto-create implementation tasks');
+INSERT INTO txt VALUES ('reqDeviceInput',     'German', 	'Ger&auml;te im Antrag');
+INSERT INTO txt VALUES ('reqDeviceInput',     'English', 'Devices in request');
+INSERT INTO txt VALUES ('reqBundlingOptions', 'German', 	'B&uuml;ndelungsoptionen');
+INSERT INTO txt VALUES ('reqBundlingOptions', 'English', 'Bundling options');
 INSERT INTO txt VALUES ('reqConsiderBundling',  'German', 	'B&uuml;ndelung ber&uuml;cksichtigen');
 INSERT INTO txt VALUES ('reqConsiderBundling',  'English',  'Consider bundling');
 INSERT INTO txt VALUES ('reqDisplayBundledTasksAsOne', 'German',  'Geb&uuml;ndelte Aufgaben als eine Aufgabe anzeigen');
@@ -3539,10 +3537,12 @@ INSERT INTO txt VALUES ('dss_owner_id_custom_field_name', 'German', 'Benutzerdef
 INSERT INTO txt VALUES ('dss_owner_id_custom_field_name', 'English', 'Owner ID custom field');
 INSERT INTO txt VALUES ('dss_change_id_custom_field_name', 'German', 'Benutzerdefiniertes Feld f&uuml;r &Auml;nderungs-ID');
 INSERT INTO txt VALUES ('dss_change_id_custom_field_name', 'English', 'Change ID custom field');
-INSERT INTO txt VALUES ('dss_plan_implementation', 'German', 'Umsetzung planen');
-INSERT INTO txt VALUES ('dss_plan_implementation', 'English', 'Plan implementation');
-INSERT INTO txt VALUES ('dss_plan_implementation_override_for_rules', 'German', 'Umsetzungsplanung f&uuml;r Regeln');
-INSERT INTO txt VALUES ('dss_plan_implementation_override_for_rules', 'English', 'Plan implementation override for rules');
+INSERT INTO txt VALUES ('dss_auto_plan_implementation', 'German', 'Umsetzung automatisch planen');
+INSERT INTO txt VALUES ('dss_auto_plan_implementation', 'English', 'Auto plan implementation');
+INSERT INTO txt VALUES ('dss_auto_plan_implementation_for_rules', 'German', 'Umsetzung f&uuml;r Regeln automatisch planen');
+INSERT INTO txt VALUES ('dss_auto_plan_implementation_for_rules', 'English', 'Auto plan implementation for rules');
+INSERT INTO txt VALUES ('dss_auto_plan_rules_hint', 'German', 'Wirkt nur, wenn &quot;Umsetzung automatisch planen&quot; auf Ja steht.');
+INSERT INTO txt VALUES ('dss_auto_plan_rules_hint', 'English', 'Only effective if &quot;Auto plan implementation&quot; is set to Yes.');
 INSERT INTO txt VALUES ('dss_importer_host_name', 'German', 'Importer-Hostname');
 INSERT INTO txt VALUES ('dss_importer_host_name', 'English', 'Importer host name');
 INSERT INTO txt VALUES ('dss_modelling_create_app_zones', 'German', 'Modellierte App-Zonen anlegen');
@@ -3830,6 +3830,14 @@ INSERT INTO txt VALUES ('refreshtoken_lifetime','German',   'Refresh Token G&uum
 INSERT INTO txt VALUES ('refreshtoken_lifetime','English',  'Refresh Token Lifetime');
 INSERT INTO txt VALUES ('path_analysis_algorithm','German', 'Pfadanalyse Algorithmus');
 INSERT INTO txt VALUES ('path_analysis_algorithm','English','Path Analysis Algorithm');
+INSERT INTO txt VALUES ('path_algo_none',       'German',   'Keiner');
+INSERT INTO txt VALUES ('path_algo_none',       'English',  'None');
+INSERT INTO txt VALUES ('path_algo_networkZoneTree','German', 'Network Zone Tree');
+INSERT INTO txt VALUES ('path_algo_networkZoneTree','English','Network Zone Tree');
+INSERT INTO txt VALUES ('path_algo_forEachDevice','German', 'F&uuml;r jedes Ger&auml;t');
+INSERT INTO txt VALUES ('path_algo_forEachDevice','English','For each device');
+INSERT INTO txt VALUES ('path_algo_firstDevice','German',   'Erstes Ger&auml;t (falls vorhanden)');
+INSERT INTO txt VALUES ('path_algo_firstDevice','English',  'First device (if available)');
 
 -- monitoring
 INSERT INTO txt VALUES ('system',               'German', 	'System');
@@ -4672,8 +4680,10 @@ INSERT INTO txt VALUES ('U5502', 'German',  'Sind sie sicher, dass sie folgende 
 INSERT INTO txt VALUES ('U5502', 'English', 'Are you sure you want to delete action: ');
 INSERT INTO txt VALUES ('U5503', 'German',  'Eigent&uuml;merzuordnung neu berechnet.');
 INSERT INTO txt VALUES ('U5503', 'English', 'Owner mapping recalculated.');
-INSERT INTO txt VALUES ('U5504', 'German',  'Bei &quot;Nach Pfadanalyse&quot; sollte ein Pfadanalyse-Algorithmus gew&auml;hlt sein.');
-INSERT INTO txt VALUES ('U5504', 'English', 'With &quot;After path analysis&quot; a path analysis algorithm should be selected.');
+INSERT INTO txt VALUES ('U5504', 'German',  'Auf mindestens einer Ebene der ger&auml;tespezifischen Einstellungen wird die Umsetzung von Regeln automatisch geplant, aber in den Workflow-Anpassungen ist kein Pfadanalyse-Algorithmus gew&auml;hlt. Regel-Auftr&auml;ge ohne im Antrag angegebene Ger&auml;te erhalten dann einen Implementierungs-Auftrag ohne Gateway.');
+INSERT INTO txt VALUES ('U5504', 'English', 'On at least one level of the device specific settings the implementation of rules is planned automatically, but no path analysis algorithm is selected in Workflow Customizing. Rule tasks without devices entered in the request then get one implementation task without gateway.');
+INSERT INTO txt VALUES ('U5505', 'German',  'Auf mindestens einer Ebene der ger&auml;tespezifischen Einstellungen wird die Umsetzung manuell geplant, aber die Planungsphase ist f&uuml;r folgende Auftragstypen nicht aktiv, deren Tickets erhalten dann keine Implementierungs-Auftr&auml;ge:');
+INSERT INTO txt VALUES ('U5505', 'English', 'On at least one level of the device specific settings the implementation is planned manually, but the planning phase is not active for the following task types, so their tickets get no implementation tasks:');
 
 INSERT INTO txt VALUES ('U5601', 'German',  'Sind sie sicher, dass sie das letzte Senden f&uuml;r folgende Benachrichtigung zur&uuml;cksetzen wollen: ');
 INSERT INTO txt VALUES ('U5601', 'English', 'Are you sure you want to reset the last sending for following notification: ');
@@ -6805,10 +6815,10 @@ INSERT INTO txt VALUES ('H5199e', 'German', 'Name des Manager-Feldes f&uuml;r di
 INSERT INTO txt VALUES ('H5199e', 'English', 'Name of the manager custom field for the change ID. Default: ChangeId. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5199f', 'German', 'Externes Ticketsystem f&uuml;r Umleitung: eines der konfigurierten externen Ticketsysteme, an das die Umsetzung umgeleitet wird. Standard: nicht definiert.');
 INSERT INTO txt VALUES ('H5199f', 'English', 'Reroute to external ticket system: one of the configured external ticket systems implementation is rerouted to. Default: undefined.');
-INSERT INTO txt VALUES ('H5199g', 'German', 'Ob die Umsetzung geplant wird. Standard: Ja.');
-INSERT INTO txt VALUES ('H5199g', 'English', 'Whether implementation is planned. Default: Yes.');
-INSERT INTO txt VALUES ('H5199h', 'German', '&Uuml;berschreibt die Umsetzungsplanung f&uuml;r Regeln. Standard: Ja.');
-INSERT INTO txt VALUES ('H5199h', 'English', 'Overrides implementation planning for rules. Default: Yes.');
+INSERT INTO txt VALUES ('H5199g', 'German',  'Umsetzung automatisch planen: Ja = die Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; legt die Implementierungs-Auftr&auml;ge eines Antrags-Auftrags an, Nein = ein Planer legt sie an. Gilt f&uuml;r alle Auftragstypen; f&uuml;r Regel-Auftr&auml;ge (Zugriff, Regel &auml;ndern, Regel l&ouml;schen) muss zus&auml;tzlich &quot;Umsetzung f&uuml;r Regeln automatisch planen&quot; auf Ja stehen. Die Einstellung ist unabh&auml;ngig von der Planungsphase: wird manuell geplant, muss die Planungsphase des Auftragstyps aktiv sein. Kann kein Gateway bzw. Management bestimmt werden, wird ein Implementierungs-Auftrag ohne Gateway angelegt. Standard: Ja.');
+INSERT INTO txt VALUES ('H5199g', 'English', 'Auto plan implementation: Yes = the action &quot;Create implementation tasks&quot; creates the implementation tasks of a request task, No = a planner creates them. Applies to all task types; rule tasks (access, modify rule, delete rule) additionally need &quot;Auto plan implementation for rules&quot; set to Yes. The setting is independent of the planning phase: if planned manually, the planning phase of the task type must be active. If no gateway or management can be determined, one implementation task without gateway is created. Default: Yes.');
+INSERT INTO txt VALUES ('H5199h', 'German',  'Umsetzung f&uuml;r Regeln automatisch planen: Ja = die Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; legt die Implementierungs-Auftr&auml;ge von Regel-Auftr&auml;gen (Zugriff, Regel &auml;ndern, Regel l&ouml;schen) an, Nein = ein Planer legt sie an. Wirkt nur, wenn &quot;Umsetzung automatisch planen&quot; auf Ja steht. Die Gateways kommen aus dem Antrag oder, falls dort keine angegeben sind, aus dem Pfadanalyse-Algorithmus der Workflow-Anpassungen; kann kein Gateway bestimmt werden, wird ein Implementierungs-Auftrag ohne Gateway angelegt. Standard: Nein.');
+INSERT INTO txt VALUES ('H5199h', 'English', 'Auto plan implementation for rules: Yes = the action &quot;Create implementation tasks&quot; creates the implementation tasks of rule tasks (access, modify rule, delete rule), No = a planner creates them. Only effective if &quot;Auto plan implementation&quot; is set to Yes. The gateways are taken from the request or, if none are entered there, from the path analysis algorithm of Workflow Customizing; if no gateway can be determined, one implementation task without gateway is created. Default: No.');
 INSERT INTO txt VALUES ('H5199i', 'German', 'Ob App-Zonen in den Manager geschrieben werden. Standard: Ja. Global, Ger&auml;tetyp und Manager.');
 INSERT INTO txt VALUES ('H5199i', 'English', 'Whether app-zone objects are written to the manager. Default: Yes. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5199j', 'German', 'Ob Netzwerk-Area-Objekte in den Manager geschrieben werden. Standard: Nein. Global, Ger&auml;tetyp und Manager.');
@@ -7365,8 +7375,8 @@ INSERT INTO txt VALUES ('H5501', 'German',  'Aktionen m&uuml;ssen zuerst in den 
 INSERT INTO txt VALUES ('H5501', 'English', 'Actions have to be defined first in the customizing settings before they can be assigned to the desired states.
     The action is offered resp. performed when the defined conditions are met.
 ');
-INSERT INTO txt VALUES ('H5502', 'German',  'Implementierungs-Auftr&auml;ge erzeugen: Erzeugt f&uuml;r alle offenen Antrags-Auftr&auml;ge des Tickets die noch fehlenden Implementierungs-Auftr&auml;ge, mit derselben Logik wie die automatische Erzeugung in den Anpassungen. So entstehen Implementierungs-Auftr&auml;ge auch bei aktiver Planungsphase, automatisch beim Setzen eines Status oder &uuml;ber eine Schaltfl&auml;che. Vorhandene Implementierungs-Auftr&auml;ge bleiben erhalten, ein Gateway oder Management mit vorhandenem Auftrag wird &uuml;bersprungen, es wird nie gel&ouml;scht. Sollen Zugriffs-Auftr&auml;ge vorher geb&uuml;ndelt werden, muss die Aktion &quot;Aufgaben b&uuml;ndeln&quot; im selben Status eine kleinere Reihenfolge haben.');
-INSERT INTO txt VALUES ('H5502', 'English', 'Create implementation tasks: Creates the implementation tasks still missing for all open request tasks of the ticket, using the same logic as the automatic creation in the customizing settings. This way implementation tasks are also created with an active planning phase, automatically when a state is set or via a button. Existing implementation tasks are kept, a gateway or management that already has one is skipped, nothing is ever deleted. If access tasks should be bundled first, the action &quot;Bundle tasks&quot; has to have a lower sort order in the same state.');
+INSERT INTO txt VALUES ('H5502', 'German',  'Implementierungs-Auftr&auml;ge erzeugen: Erzeugt f&uuml;r alle offenen Antrags-Auftr&auml;ge des Tickets die noch fehlenden Implementierungs-Auftr&auml;ge. Nur diese Aktion legt Implementierungs-Auftr&auml;ge automatisch an. Sie wird bei dem Status eingeh&auml;ngt, mit dem die Tickets in die Umsetzung gehen: typischerweise &quot;genehmigt&quot;, ohne Genehmigungsphase der Status am Ende der Antragsphase. Sie legt nur Auftr&auml;ge f&uuml;r Antrags-Auftr&auml;ge an, deren Auftragstyp in diesem Status bereits Implementierungs-Auftr&auml;ge vorsieht. Mit Bereich Ticket l&auml;uft sie erst, wenn alle Antrags-Auftr&auml;ge des Tickets die Genehmigung durchlaufen haben, abgelehnte werden &uuml;bersprungen; mit Bereich Antrags-Auftrag l&auml;uft sie bei jedem genehmigten Antrags-Auftrag und legt die fehlenden Auftr&auml;ge an. Sie folgt den ger&auml;tespezifischen Einstellungen &quot;Umsetzung automatisch planen&quot;: f&uuml;r manuell geplante Gateways und Managements legt sie nichts an. Regel-Auftr&auml;ge (Zugriff, Regel &auml;ndern, Regel l&ouml;schen) brauchen zus&auml;tzlich &quot;Umsetzung f&uuml;r Regeln automatisch planen&quot; = Ja, Standard ist Nein. Im Antrag angegebene Ger&auml;te haben Vorrang vor dem Pfadanalyse-Algorithmus; wird kein Ziel gefunden, entsteht ein Auftrag ohne Gateway. Vorhandene Implementierungs-Auftr&auml;ge bleiben erhalten, ein Gateway oder Management mit vorhandenem Auftrag wird &uuml;bersprungen, es wird nie gel&ouml;scht. Sollen Zugriffs-Auftr&auml;ge vorher geb&uuml;ndelt werden, muss die Aktion &quot;Aufgaben b&uuml;ndeln&quot; im selben Status eine kleinere Reihenfolge haben.');
+INSERT INTO txt VALUES ('H5502', 'English', 'Create implementation tasks: Creates the implementation tasks still missing for all open request tasks of the ticket. Only this action creates implementation tasks automatically. Attach it to the state in which tickets enter the implementation: typically &quot;approved&quot;, without approval phase the state ending the request phase. It only creates tasks for request tasks whose task type already needs implementation tasks in that state. With scope ticket it runs once all request tasks of the ticket have passed the approval, rejected ones are skipped; with scope request task it runs at every approved request task and creates the missing tasks. It follows the device specific settings &quot;Auto plan implementation&quot;: it creates nothing for gateways and managements planned manually. Rule tasks (access, modify rule, delete rule) additionally need &quot;Auto plan implementation for rules&quot; = Yes, the default is No. Devices entered in the request take precedence over the path analysis algorithm; if no target is found, one task without gateway is created. Existing implementation tasks are kept, a gateway or management that already has one is skipped, nothing is ever deleted. If access tasks should be bundled first, the action &quot;Bundle tasks&quot; has to have a lower sort order in the same state.');
 INSERT INTO txt VALUES ('H5511', 'German',  'Allgemeine Parameter f&uuml;r alle Aktionstypen: Hier wird definiert, unter welchen Bedingungen eine Aktion ausgel&ouml;st werden soll.');
 INSERT INTO txt VALUES ('H5511', 'English', 'General parameters for all action types: Here it can be defined, under which conditions an action should be performed.');
 INSERT INTO txt VALUES ('H5512', 'German',  'Name: Der Name, unter dem die Aktion den Status zugeordnet wird (da intern eine Id verarbeitet wird, sind auch doppelt vergebene Namen m&ouml;glich).');
@@ -7539,12 +7549,10 @@ INSERT INTO txt VALUES ('H5564', 'German', 'Flow DB verwenden: Aktiviert die Nut
 INSERT INTO txt VALUES ('H5564', 'English','Use Flow DB: Enables use of the Flow DB in the workflow module. Flow integration defines whether objects, services, and time objects are selected from the Flow DB, manually, or from both sources. The precision for time objects can also be configured.');
 INSERT INTO txt VALUES ('H5565', 'German',  'Manuelle Eigent&uuml;merverwaltung erlauben: Es wird das manuelle Anlegen und Verwalten von Eigent&uuml;mern durch den Administrator gestattet.');
 INSERT INTO txt VALUES ('H5565', 'English', 'Allow manual owner administration: The manual creation and administration of owners can be permitted.');
-INSERT INTO txt VALUES ('H5566', 'German',  'Autom. Erzeugen von Implementierungs-Auftr&auml;gen: Ist die Planungs-Phase nicht aktiviert, so m&uuml;ssen aus den vorhandenen fachlichen Auftr&auml;gen automatisch jeweils ein oder mehrere Implementierungs-Auftr&auml;ge erzeugt werden.
-    Daf&uuml;r kann zwischen folgenden Optionen gew&auml;hlt werden (gilt nur f&uuml;r Auftragstyp "Zugriff"):
-');
-INSERT INTO txt VALUES ('H5566', 'English', 'Auto-create implementation tasks: If the planning phase is not activated, one or more implementation tasks have to be created automatically from the request task.
-    Therefore the following options can be selected (only valid for Task Type "access"):
-');
+INSERT INTO txt VALUES ('H5566', 'German',  'B&uuml;ndelungsoptionen: Legen fest, wie Antrags-Auftr&auml;ge mit derselben Flow-B&uuml;ndel-ID beim Anlegen der Implementierungs-Auftr&auml;ge und in der Anzeige behandelt werden. Ob Implementierungs-Auftr&auml;ge automatisch angelegt werden, legen die ger&auml;tespezifischen Einstellungen &quot;Umsetzung automatisch planen&quot; fest.');
+INSERT INTO txt VALUES ('H5566', 'English', 'Bundling options: Define how request tasks with the same flow bundle id are handled when the implementation tasks are created and when they are displayed. Whether implementation tasks are created automatically is defined by the device specific settings &quot;Auto plan implementation&quot;.');
+INSERT INTO txt VALUES ('H5566a', 'German',  'Ger&auml;te im Antrag: Legt fest, ob der Antragsteller die betroffenen Ger&auml;te eines Zugriff-Auftrags bereits im Antrag angibt. Angegebene Ger&auml;te haben beim automatischen Anlegen der Implementierungs-Auftr&auml;ge Vorrang vor dem Pfadanalyse-Algorithmus; ob automatisch angelegt wird, legen die ger&auml;tespezifischen Einstellungen &quot;Umsetzung automatisch planen&quot; fest. Folgende Optionen stehen zur Wahl:');
+INSERT INTO txt VALUES ('H5566a', 'English', 'Devices in request: Defines whether the requester already enters the affected devices of an access task in the request. When the implementation tasks are created automatically, entered devices take precedence over the path analysis algorithm; whether they are created automatically is defined by the device specific settings &quot;Auto plan implementation&quot;. The following options can be selected:');
 INSERT INTO txt VALUES ('H5567', 'German',  'Pfadanalyse aktivieren: Dem Planer werden Werkzeuge zur automatischen Pfadanalyse (Pr&uuml;fung, Erzeugen von Implementierungsauftr&auml;gen, Bereinigung) zur Verf&uuml;gung gestellt.');
 INSERT INTO txt VALUES ('H5567', 'English', 'Activate Path Analysis: The planner gets access to tools for automatic path analysis (check, creation of implementation tasks, cleanup).');
 INSERT INTO txt VALUES ('H5568', 'German',  'Eigent&uuml;merbasiert: Darstellung der Antr&auml;ge erfolgt nach Eigent&uuml;mern. Diese k&ouml;nnen gegenseitig zugewiesen werden.');
@@ -7553,24 +7561,16 @@ INSERT INTO txt VALUES ('H5569', 'German',  'Compliance-Modul anzeigen: Das Comp
 INSERT INTO txt VALUES ('H5569', 'English', 'Show Compliance Module: The Compliance module is also displayed for users in the workflow roles (requester, approver, planner, implementer, reviewer).');
 INSERT INTO txt VALUES ('H5570', 'German',  'Eingeschr&auml;nkte Darstellung: Die Auswahlm&ouml;glichkeiten werden f&uuml;r den Nutzer auf ein Minimum reduziert (z.B. keine Ticketdarstellung in der Implementierungsphase).');
 INSERT INTO txt VALUES ('H5570', 'English', 'Reduced view: Selection possibilities for users are reuduced to minimum (e.g. no ticket display in Implementation Phase).');
-INSERT INTO txt VALUES ('H5571', 'German',  'Niemals: Es wird kein Implementierungs-Auftrag erzeugt (nur sinnvoll, falls Implementierung und folgende Phasen nicht ben&ouml;tigt werden).');
-INSERT INTO txt VALUES ('H5571', 'English', 'Never: No implementation task is created (only reasonable, if implementation and following phases are not needed).');
-INSERT INTO txt VALUES ('H5572', 'German',  'Nur eines wenn Ger&auml;t vorhanden: Bei mindestens einem vorhandenen Ger&auml;t wird das erste der Liste eingetragen
-    (kann z.B. verwendet werden, wenn es nicht auf das Ger&auml;t ankommt, bzw. wenn dies erst sp&auml;ter festgelegt werden soll).
-');
-INSERT INTO txt VALUES ('H5572', 'English', 'Only one if device available: The first device from the list is taken, if there is any at all
-    (can e.g. be used, if the device choice is not important at this stage or can only be determined later).
-');
-INSERT INTO txt VALUES ('H5573', 'German',  'F&uuml;r jedes Ger&auml;t: F&uuml;r jedes der bekannten Ger&auml;te wird ein eigener Implementierungs-Auftrag angelegt (Vorsicht bei grosser Anzahl angeschlossener Ger&auml;te).');
-INSERT INTO txt VALUES ('H5573', 'English', 'For each device: For each of the known devices an own implementation task is created (Take care in case of a big number of connected devices).');
-INSERT INTO txt VALUES ('H5574', 'German',  'Ger&auml;t im Antrag eingeben: Bereits bei Antragstellung wird ein Pflichtfeld zur Auswahl der betroffenen Ger&auml;te eingeblendet,
-    falls vom Tasktypen ben&ouml;tigt (hier wird also schon dem Antragsteller technisches Wissen abverlangt). F&uuml;r jedes ausgew&auml;hlte Ger&auml;t wird ein eigener Implementierungs-Auftrag angelegt; bei Auswahl von Alle also f&uuml;r jedes vorhandene Ger&auml;t.
-');
-INSERT INTO txt VALUES ('H5574', 'English', 'Enter device in request: A mandatory field to select the affected devices is already displayed during request task creation,
-    if needed in the task type (in this case some technical know-how is presumed from the requester). One implementation task is created for each selected device; if all is selected, one task is created for every existing device.
-');
-INSERT INTO txt VALUES ('H5575', 'German',  'Nach Pfadanalyse: F&uuml;r jedes bei der automatischen Pfadanalyse gefundene Ger&auml;t wird ein eigener Implementierungs-Auftrag angelegt. Der Algorithmus wird unter Pfadanalyse-Algorithmus gew&auml;hlt.');
-INSERT INTO txt VALUES ('H5575', 'English', 'After path analysis: For each device found in the automatic path analysis an own implementation task is created. The algorithm is selected under path analysis algorithm.');
+INSERT INTO txt VALUES ('H5571', 'German',  'Niemals: Im Antrag werden keine Ger&auml;te erfasst; die Gateways eines Zugriff-Auftrags ermittelt der Pfadanalyse-Algorithmus.');
+INSERT INTO txt VALUES ('H5571', 'English', 'Never: No devices are entered in the request; the path analysis algorithm determines the gateways of an access task.');
+INSERT INTO txt VALUES ('H5572', 'German',  'Erstes Ger&auml;t, falls vorhanden (Pfadanalyse-Algorithmus): Bei mindestens einem vorhandenen Ger&auml;t wird das erste der Liste eingetragen (kann z.B. verwendet werden, wenn es nicht auf das Ger&auml;t ankommt, bzw. wenn dies erst sp&auml;ter festgelegt werden soll).');
+INSERT INTO txt VALUES ('H5572', 'English', 'First device, if available (path analysis algorithm): The first device from the list is taken, if there is any at all (can e.g. be used, if the device choice is not important at this stage or can only be determined later).');
+INSERT INTO txt VALUES ('H5573', 'German',  'F&uuml;r jedes Ger&auml;t (Pfadanalyse-Algorithmus): F&uuml;r jedes der bekannten Ger&auml;te wird ein eigener Implementierungs-Auftrag angelegt (Vorsicht bei grosser Anzahl angeschlossener Ger&auml;te).');
+INSERT INTO txt VALUES ('H5573', 'English', 'For each device (path analysis algorithm): For each of the known devices an own implementation task is created (Take care in case of a big number of connected devices).');
+INSERT INTO txt VALUES ('H5574', 'German',  'Ger&auml;t im Antrag eingeben: Bereits bei Antragstellung wird bei Zugriff-Auftr&auml;gen ein Pflichtfeld zur Auswahl der betroffenen Ger&auml;te eingeblendet (hier wird also schon dem Antragsteller technisches Wissen abverlangt). F&uuml;r jedes ausgew&auml;hlte Ger&auml;t wird ein eigener Implementierungs-Auftrag angelegt; bei Auswahl von Alle also f&uuml;r jedes vorhandene Ger&auml;t. Im Antrag angegebene Ger&auml;te haben Vorrang vor dem Pfadanalyse-Algorithmus.');
+INSERT INTO txt VALUES ('H5574', 'English', 'Enter device in request: A mandatory field to select the affected devices is already displayed during the creation of access tasks (in this case some technical know-how is presumed from the requester). One implementation task is created for each selected device; if all is selected, one task is created for every existing device. Devices entered in the request take precedence over the path analysis algorithm.');
+INSERT INTO txt VALUES ('H5575', 'German',  'Network Zone Tree (Pfadanalyse-Algorithmus): F&uuml;r jedes Gateway auf den Pfaden zwischen den Quellen und Zielen des Antrags wird ein eigener Implementierungs-Auftrag angelegt. Ben&ouml;tigt eine festgelegte Zonen-Matrix.');
+INSERT INTO txt VALUES ('H5575', 'English', 'Network Zone Tree (path analysis algorithm): For each gateway on the paths between the sources and destinations of the request an own implementation task is created. Needs a designated zone matrix.');
 INSERT INTO txt VALUES ('H5576', 'German',  'Erlaubte &Auml;nderungen durch Genehmiger: Hier wird festgelegt, welche Ticket- und Auftragsfelder ein Genehmiger in der Genehmigungsphase bearbeiten darf. Felder, die bereits in Implementierungsauftr&auml;ge kopiert wurden, k&ouml;nnen danach nicht mehr ge&auml;ndert werden.');
 INSERT INTO txt VALUES ('H5576', 'English', 'Allowed changes by approver: Defines which ticket and task fields an approver may edit during the approval phase. Fields already copied to implementation tasks can no longer be changed afterwards.');
 INSERT INTO txt VALUES ('H5577', 'German',  'Ein Auftrag f&uuml;r alle Ger&auml;te: Wie bei Ger&auml;t im Antrag eingeben wird die Ger&auml;teauswahl bereits im Antrag gepflegt. Der Unterschied ist nur: Falls dort Alle gew&auml;hlt ist, wird genau ein Implementierungs-Auftrag angelegt statt eines pro vorhandenem Ger&auml;t.');
@@ -7589,8 +7589,8 @@ INSERT INTO txt VALUES ('H5579c', 'German',  'Geb&uuml;ndelte Auftr&auml;ge als 
 INSERT INTO txt VALUES ('H5579c', 'English', 'Display bundled tasks as one task: When enabled in Workflow Customizing, bundled access tasks with the same flow bundle ID and state are shown as one task in task views. Different states remain separate; their sources, destinations, and services are merged and duplicates are removed.');
 INSERT INTO txt VALUES ('H5579d', 'German',  'Flow-Details und Herkunft: In schreibgesch&uuml;tzten Aufgaben k&ouml;nnen die Details von Netzwerk- und Service-Objekten &uuml;ber die Flow DB angezeigt werden. Falls ein Objekt dort nicht vorhanden ist, werden die Daten aus parallelen Gruppen- oder Objekt-Auftr&auml;gen desselben Tickets verwendet. Die Herkunft eines Elements wird als Tooltip angezeigt.');
 INSERT INTO txt VALUES ('H5579d', 'English', 'Flow details and origin: In read-only tasks, details of network and service objects can be viewed from the Flow DB. If an object is not available there, data from parallel group or object tasks of the same ticket is used. The origin of an element is shown as a tooltip.');
-INSERT INTO txt VALUES ('H5580', 'German',  'Pfadanalyse-Algorithmus: Legt fest, mit welchem Algorithmus die Pfadanalyse die betroffenen Gateways ermittelt. Ist &quot;Nach Pfadanalyse&quot; gew&auml;hlt, sollte hier nicht &quot;None&quot; stehen; ein Hinweis weist darauf hin, das Speichern bleibt m&ouml;glich. Der Algorithmus &quot;Network Zone Tree&quot; ben&ouml;tigt eine festgelegte Zonen-Matrix. Die Auswahl wird wirksam, sobald der Workflow die Gateways &uuml;ber diesen Algorithmus ermittelt; bis dahin verwendet er die routing-basierte Pfadanalyse.');
-INSERT INTO txt VALUES ('H5580', 'English', 'Path analysis algorithm: Defines the algorithm the path analysis uses to determine the affected gateways. If &quot;After path analysis&quot; is selected, this should not be &quot;None&quot;; a hint points this out, saving remains possible. The algorithm &quot;Network Zone Tree&quot; needs a designated zone matrix. The selection takes effect once the workflow determines the gateways with this algorithm; until then it uses the routing based path analysis.');
+INSERT INTO txt VALUES ('H5580', 'German',  'Pfadanalyse-Algorithmus: Legt fest, wie die Gateways eines Zugriff-Auftrags beim automatischen Anlegen der Implementierungs-Auftr&auml;ge bestimmt werden, wenn im Antrag keine Ger&auml;te angegeben sind. Bei &quot;None&quot; wird kein Gateway bestimmt, es entsteht ein Implementierungs-Auftrag ohne Gateway. Dasselbe gilt, wenn der Algorithmus kein Gateway findet oder fehlschl&auml;gt. Ob automatisch angelegt wird, legen die ger&auml;tespezifischen Einstellungen &quot;Umsetzung automatisch planen&quot; fest.');
+INSERT INTO txt VALUES ('H5580', 'English', 'Path analysis algorithm: Defines how the gateways of an access task are determined when the implementation tasks are created automatically and no devices are entered in the request. With &quot;None&quot; no gateway is determined and one implementation task without gateway is created. The same applies if the algorithm finds no gateway or fails. Whether implementation tasks are created automatically is defined by the device specific settings &quot;Auto plan implementation&quot;.');
 INSERT INTO txt VALUES ('H5581', 'German',  'In diesem Abschnitt k&ouml;nnen die vorhandenen Eigent&uuml;mer eingesehen und administriert (falls in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert) werden.
     Die Eigent&uuml;merschaft muss Nutzern entweder direkt oder &uuml;ber Eigent&uuml;mergruppen zugeordnet werden.
     Es ist geplant, die Eigent&uuml;merschaft mit der Zust&auml;ndigkeit bei der Antragsstellung zu verkn&uuml;pfen.
@@ -9075,12 +9075,12 @@ INSERT INTO txt VALUES ('H8211', 'German',  'Generisch: Eine einfache Variante, 
 INSERT INTO txt VALUES ('H8211', 'English', 'Generic: A basic variant, where the requested activity is described in a free text field.');
 INSERT INTO txt VALUES ('H8212', 'German',  'Zugriff: Es wird eine Reihe von Feldern angeboten, die f&uuml;r einen Antrag auf Netzwerkzugriff n&ouml;tig sind.
     Dazu geh&ouml;ren zwingend Angaben zu Quelle, Ziel und Dienst, Aktion, Regel-Aktion, Logging.
-    Bei entsprechender Konfiguration (keine Planungsphase, "Ger&auml;t im Antrag eingeben" in <a href="/help/settings/workflowcustomizing">Einstellungen</a>) m&uuml;ssen auch die betroffenen Gateways selektiert werden.
+    Bei entsprechender Konfiguration ("Ger&auml;t im Antrag eingeben" oder "Ein Auftrag f&uuml;r alle Ger&auml;te" unter "Ger&auml;te im Antrag" in <a href="/help/settings/workflowcustomizing">Einstellungen</a>) m&uuml;ssen auch die betroffenen Gateways selektiert werden.
     Hinzu kommen optionale Angaben wie G&uuml;ltigkeitszeitraum und Grund.
 ');
 INSERT INTO txt VALUES ('H8212', 'English', 'Access: Several fields are offered, which are necessary to handle a request on network access.
     That includes mandatory specifications of source, destination and service, as well as action, rule action and logging.
-    In case of the respective configuration (no planning phase, "Enter device in request" in <a href="/help/settings/workflowcustomizing">Customizing</a>) also the affected devices have to be selected.
+    In case of the respective configuration ("Enter device in request" or "One task for all devices" under "Devices in request" in <a href="/help/settings/workflowcustomizing">Customizing</a>) also the affected devices have to be selected.
     Additionally there are optional specifications like validity range and reason.
 ');
 INSERT INTO txt VALUES ('H8213', 'German',  'Der Tasktyp "Gruppe l&ouml;schen" kann aktiviert und genutzt werden, ist aber noch nicht mit spezifischen Feldern versehen.');
@@ -9173,8 +9173,8 @@ INSERT INTO txt VALUES ('H8313', 'English', 'Approvals (Role: approver), presele
 ');
 INSERT INTO txt VALUES ('H8314', 'German',  'Planungen (Rolle: planner), optional:
     Im Workflow kann vorgesehen werden, dass die Implementierungs-Auftr&auml;ge aus den fachlichen Auftr&auml;gen manuell von einem Planer erzeugt werden.
-    Ist diese Phase aktiviert, greift die automatische Erzeugung der Implementierungs-Auftr&auml;ge nicht (<a href="/help/settings/workflowcustomizing">Einstellungen</a>).
-    Stattdessen kann der Planer beliebige Implementierungs-Auftr&auml;ge erzeugen, editieren und l&ouml;schen.
+    Welche Implementierungs-Auftr&auml;ge die Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; bereits angelegt hat, legen die <a href="/help/settings/devicespecificsettings">ger&auml;tespezifischen Einstellungen</a> (Umsetzung automatisch planen) fest; die Planungsphase spielt daf&uuml;r keine Rolle.
+    Der Planer pr&uuml;ft die vorhandenen Implementierungs-Auftr&auml;ge und erg&auml;nzt die manuell zu planenden. Er kann beliebige Implementierungs-Auftr&auml;ge erzeugen, editieren und l&ouml;schen.
     Dabei werden die Felder aus den analogen Feldern des fachlichen Auftrags zwar weitgehend vorbelegt, k&ouml;nnen aber beliebig den Erfordernissen entsprechend abge&auml;ndert werden.
     F&uuml;r die Bearbeitung von Zugriffsauftr&auml;gen stehen ihm zus&auml;tzliche Funktionen zur Pfadanalyse zur Verf&uuml;gung (soweit in den <a href="/help/settings/workflowcustomizing">Einstellungen</a> aktiviert):
     Zum &Uuml;berpr&uuml;fen, f&uuml;r welche der bei der Pfadanalyse gefundenen Ger&auml;te bereits Implementierungs-Auftr&auml;ge angelegt sind,
@@ -9186,8 +9186,8 @@ INSERT INTO txt VALUES ('H8314', 'German',  'Planungen (Rolle: planner), optiona
 ');
 INSERT INTO txt VALUES ('H8314', 'English', 'Plannings (Role: planner), optional:
     The workflow can be designed to create implementation tasks from the request tasks manually by a planner.
-    In case this phase is active, the automatic creation of implementation tasks is deactivated (<a href="/help/settings/workflowcustomizing">Customizing</a>).
-    Instead, the planner can create, edit or delete arbitrarily implementation tasks.
+    Which implementation tasks the action &quot;Create implementation tasks&quot; has already created is defined by the <a href="/help/settings/devicespecificsettings">device specific settings</a> (auto plan implementation); the planning phase plays no role for that.
+    The planner checks the existing implementation tasks and adds the ones planned manually. The planner can create, edit or delete arbitrarily implementation tasks.
     When creating, the fields are largely prefilled by the corresponding fields in the request task, but can be changed according to the needs.
     For the handling of access requests further path analysis functions are offered (if activated in <a href="/help/settings/workflowcustomizing">Customizing</a>):
     To check, for which of the found devices of the path analysis there are already implementation tasks existing,
@@ -9294,7 +9294,9 @@ INSERT INTO txt VALUES ('H8601', 'German',  'Zum Aufsetzen eines Workflows empfi
         <li><a href="/help/settings/stateactions">Aktionen</a>: Definition der Aktionen falls n&ouml;tig</li>
         <li><a href="/help/settings/statedefinitions">Status-Definitionen</a>: Zuordnung Aktionen zu Status</li>
         <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Festlegen der Priorit&auml;ten und Deadlines</li>
-        <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Ausw&auml;hlen der Option zum "Autom. Erzeugen von Implementierungs-Auftr&auml;gen", falls Planungsphase deaktiviert</li>
+        <li><a href="/help/settings/workflowcustomizing">Einstellungen</a>: Festlegen der Ger&auml;te im Antrag und des Pfadanalyse-Algorithmus</li>
+        <li><a href="/help/settings/statedefinitions">Status-Definitionen</a>: Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; einh&auml;ngen, z.B. beim Status &quot;genehmigt&quot; (nur sie legt Implementierungs-Auftr&auml;ge automatisch an)</li>
+        <li><a href="/help/settings/devicespecificsettings">Ger&auml;tespezifische Einstellungen</a>: Festlegen, welche Implementierungs-Auftr&auml;ge die Aktion anlegt (Umsetzung automatisch planen); bei manueller Planung muss die Planungsphase aktiv sein</li>
         <li><a href="/help/settings/groups">Gruppen</a>: Nutzergruppen einrichten und Nutzer zuweisen</li>
         <li><a href="/help/settings/roles">Rollen</a>: Rollenzuweisungen zu den Nutzern/Gruppen</li>
     </ul>
@@ -9308,7 +9310,9 @@ INSERT INTO txt VALUES ('H8601', 'English', 'For the setup of a workflow it is s
         <li><a href="/help/settings/stateactions">Actions</a>: Definition of the actions if needed</li>
         <li><a href="/help/settings/statedefinitions">State Definitions</a>: Assignment of actions to states</li>
         <li><a href="/help/settings/workflowcustomizing">Customizing</a>: Define the priority levels and deadlines</li>
-        <li><a href="/help/settings/workflowcustomizing">Customizing</a>: Select option for "Auto-create implementation tasks", if planning phase deactivated</li>
+        <li><a href="/help/settings/workflowcustomizing">Customizing</a>: Define the devices in request and the path analysis algorithm</li>
+        <li><a href="/help/settings/statedefinitions">State Definitions</a>: Attach the action &quot;Create implementation tasks&quot;, e.g. to the state &quot;approved&quot; (only it creates implementation tasks automatically)</li>
+        <li><a href="/help/settings/devicespecificsettings">Device Specific Settings</a>: Define which implementation tasks the action creates (auto plan implementation); if planned manually, the planning phase must be active</li>
         <li><a href="/help/settings/groups">Groups</a>: Set up user groups and assign users</li>
         <li><a href="/help/settings/roles">Roles</a>: Assign roles to users/groups</li>
     </ul>
@@ -9614,7 +9618,7 @@ INSERT INTO txt VALUES ('H8716', 'English', '<H4>6) Action Add Approval as butto
 ');
 INSERT INTO txt VALUES ('H8717', 'German',  '<H4>7) Aktivieren Planungsphase</H4>
     F&uuml;r Zugriffsauftr&auml;ge soll die Planungsphase wie vorinstalliert aktiviert werden
-    (Implementierungsauftr&auml;ge werden dann nicht mehr automatisch erzeugt, sondern m&uuml;ssen vom Planer erstellt werden):
+    (welche Implementierungsauftr&auml;ge automatisch erzeugt werden, legen weiterhin die ger&auml;tespezifischen Einstellungen fest; die &uuml;brigen erstellt der Planer):
     <ul>
         <li>Einstellungen -&amp;gt; Statusmatrix -&amp;gt; Typ ausw&auml;hlen: Master
             <ul>
@@ -9638,7 +9642,7 @@ INSERT INTO txt VALUES ('H8717', 'German',  '<H4>7) Aktivieren Planungsphase</H4
 ');
 INSERT INTO txt VALUES ('H8717', 'English', '<H4>7) Activate Planning phase</H4>
     For access tasks the Planning phase will be activated as preinstalled
-    (Implementation tasks will not be created automatically but have to be defined by the planner):
+    (which implementation tasks are created automatically is still defined by the device specific settings; the planner defines the others):
     <ul>
         <li>Settings -&amp;gt; State Matrix -&amp;gt; Select Type: Master
             <ul>

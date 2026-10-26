@@ -186,6 +186,28 @@ internal class ResolvePathDevicesRequestValidatorTest
         });
     }
 
+    /// <summary>
+    /// Verifies a configured device selection of the workflow is no usable default either, as it ignores the addresses.
+    /// </summary>
+    [TestCase(GlobalConst.kPathAnalysisAlgorithmForEachDevice)]
+    [TestCase(GlobalConst.kPathAnalysisAlgorithmFirstDevice)]
+    public void Validate_WithoutAlgorithmAndDeviceSelectionDefault_ReportsMissingDefault(long configuredAlgorithmId)
+    {
+        RequestValidationErrorResponse result = Validate(Request(), configuredAlgorithmId);
+
+        Assert.That(MessageAt(result, "options.algorithm"), Does.StartWith("No default path analysis algorithm is configured."));
+    }
+
+    /// <summary>Verifies a device selection cannot be requested explicitly.</summary>
+    [TestCase(PathAnalysisAlgorithmNames.kForEachDevice)]
+    [TestCase(PathAnalysisAlgorithmNames.kFirstDevice)]
+    public void Validate_WithDeviceSelectionAlgorithm_ReportsUnsupportedValue(string algorithm)
+    {
+        RequestValidationErrorResponse result = Validate(WithOptions("{\"algorithm\":\"" + algorithm + "\"}"));
+
+        Assert.That(MessageAt(result, "options.algorithm"), Does.Contain($"unsupported value '{algorithm}'"));
+    }
+
     /// <summary>Verifies a configured default of none does not matter when the request names an algorithm.</summary>
     [Test]
     public void Validate_WithAlgorithmAndDefaultNone_HasNoErrors()

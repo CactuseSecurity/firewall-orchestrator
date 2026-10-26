@@ -6,6 +6,7 @@
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject GlobalConfig globalConfig
 @inject IJSRuntime JsRuntime
 
 <div class="input-group">
@@ -32,6 +33,14 @@ else
         </div>
 
         <div class="col-sm-9">
+            @if (autoPlanCheck?.RulesAutomaticWithoutAlgorithm == true)
+            {
+                <div class="alert alert-warning-override small"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5504"))</div>
+            }
+            @if (autoPlanCheck?.ManualWithoutPlanningPhase.Count > 0)
+            {
+                <div class="alert alert-warning-override small"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5505")) @(string.Join(", ", autoPlanCheck.ManualWithoutPlanningPhase.Select(taskType => userConfig.GetText(taskType))))</div>
+            }
             @if (form != null)
             {
                 <div class="d-flex align-items-center gap-2 mb-3">
@@ -91,6 +100,10 @@ else
                                 <div class="mt-2">
                                     @RenderEditor(state.Field, state.DisplayedValue, !state.IsLocal || !CanEdit || saving, v => SetLocalValue(state, v))
                                 </div>
+                                @if (state.Field.Key == DeviceSpecificSettingKeys.AutoPlanImplementationForRules)
+                                {
+                                    <div class="text-muted small mt-1">@(userConfig.GetText("dss_auto_plan_rules_hint"))</div>
+                                }
 
                                 @if (!state.IsLocal)
                                 {
@@ -151,6 +164,7 @@ else
     private readonly HashSet<string> expandedNodeIds = [];
     private string? pendingHighlightFieldId;
     private bool saving;
+    private AutoPlanSettingsCheckResult? autoPlanCheck;
 
     protected override async Task OnInitializedAsync()
     {
@@ -160,6 +174,7 @@ else
             List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
             root = await service.LoadHierarchyAsync(managements);
             await SelectNode(root);
+            await RefreshAutoPlanCheck();
         }
         catch (Exception exception)
         {
@@ -241,6 +256,7 @@ else
         {
             await service.SaveAsync(formToSave);
             form = await service.LoadFormAsync(nodeToReload);
+            await RefreshAutoPlanCheck();
         }
         catch (Exception exception)
         {
@@ -249,6 +265,27 @@ else
         finally
         {
             saving = false;
+        }
+    }
+
+    /// <summary>
+    /// Checks the auto plan settings of all levels against the path analysis algorithm and the planning phases. A
+    /// failure only hides the hints, the settings stay editable.
+    /// </summary>
+    private async Task RefreshAutoPlanCheck()
+    {
+        if (root == null)
+        {
+            return;
+        }
+        try
+        {
+            autoPlanCheck = await AutoPlanSettingsCheck.LoadAndCheck(apiConnection, root, globalConfig.PathAnalysisAlgorithm);
+        }
+        catch (Exception exception)
+        {
+            autoPlanCheck = null;
+            Log.WriteError("Auto Plan Settings Check", "Could not check the auto plan settings.", exception);
         }
     }
 

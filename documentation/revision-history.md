@@ -4,6 +4,18 @@
 
 - modelling: new setting "Network Areas excluded from Common Services" - network areas listed there are not offered for selection in common services and cannot be added to them; existing common services containing such an area can only be saved after removing it (#5406)
 - modelling: fix destination area check using the "in Source" flag of common network areas instead of "in Destination"
+- request workflow: the device specific settings autoPlanImplementation and autoPlanImplementationForRules (renamed from planImplementation and planImplementationOverrideForRules) decide which implementation tasks are created automatically, independently of the planning phase
+  - rule tasks (access, rule_modify, rule_delete) need both settings, all other task types autoPlanImplementation; the default of autoPlanImplementationForRules is false
+  - devices entered in the request take precedence over the path analysis algorithm; if the action finds no target, one implementation task without gateway is created
+  - breaking: implementation tasks are only created by the state action "create implementation tasks", no longer when a ticket leaves the approval phase; the action follows the auto plan settings. installation and upgrade provide the action unless one of this type already exists, but do not attach it: an administrator has to attach it to the state in which tickets enter the implementation (e.g. "approved", without approval phase the state ending the request phase), otherwise no implementation tasks are created automatically. With scope ticket it runs once all request tasks have passed the approval, with scope request task at every approved request task
+  - the device specific settings page warns if rules are planned automatically without path analysis algorithm or manually without active planning phase
+  - interface requests from modelling still get their implementation task when they are created, independently of the action and the auto plan settings
+- Workflow Customizing: the option "auto-create implementation tasks" is split up: the new setting reqDeviceInput (never, enter device in request, one task for all devices) and the new path analysis algorithms "For each device" and "First device (if available)"; consider bundling and display bundled tasks as one are grouped as bundling options
+- path analysis REST endpoint resolvePathDevices: the device selections "for each device" and "first device (if available)" are no path analysis, so they can neither be requested nor serve as configured default (400 like none)
+- the upgrade translates reqAutoCreateImplTasks into reqDeviceInput and the path analysis algorithm and removes the old config key; with an active planning phase of access tasks reqDeviceInput becomes "never", as the device field was hidden there before (if the planning phase is switched off later, set "Devices in request" in Workflow Customizing); the auto plan settings are not derived from the planning phases, an administrator sets them (default: auto plan Yes, for rules No)
+  - "after path analysis" ran the routing based path analysis independently of the configured algorithm; now the configured algorithm applies, which is "None" unless changed, so no gateway is found. Select "Network Zone Tree", or attach a path analysis action writing the found devices to the device list before "create implementation tasks" (devices in the request take precedence)
+  - "for each device" and "only for one device" replace the configured path analysis algorithm; a previously configured "Network Zone Tree" is then no longer the default of resolvePathDevices, so callers have to pass the algorithm
+  - if the auto plan settings cannot be read, the defaults apply (auto plan Yes, for rules No)
 
 ## 9.8.2 - 24.10.2026
 

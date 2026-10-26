@@ -13,6 +13,9 @@
   - "after path analysis" ran the routing based path analysis independently of the configured algorithm; now the configured algorithm applies, which is "None" unless changed, so no gateway is found. Select "Network Zone Tree", or attach a path analysis action writing the found devices to the device list before "create implementation tasks" (devices in the request take precedence)
   - "for each device" and "only for one device" replace the configured path analysis algorithm; a previously configured "Network Zone Tree" is then no longer the default of resolvePathDevices, so callers have to pass the algorithm
   - if the auto plan settings cannot be read, the defaults apply (auto plan Yes, for rules No)
+- middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`
+  now return each inclusive address range as the two-entry `ipRange` instead of separate `ipStart`
+  and `ipEnd` fields; `getAddressObjects` returns an empty range for non-IP objects such as FQDNs
 - workflow API: `createTicket` now creates object-create request tasks for submitted new network objects, services and time objects
 - workflow UI: network and service group modification tasks provide management-aware selectors for existing groups,
   member add/remove editing, and read-only display of the requested changes

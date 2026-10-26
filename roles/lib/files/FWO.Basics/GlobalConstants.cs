@@ -85,6 +85,8 @@ namespace FWO.Basics
         public const string kComplianceCheck = "complianceCheck";
         public const long kPathAnalysisAlgorithmNone = 1;
         public const long kPathAnalysisAlgorithmNetworkZoneTree = 2;
+        public const long kPathAnalysisAlgorithmForEachDevice = 3;
+        public const long kPathAnalysisAlgorithmFirstDevice = 4;
 
         public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
         public const int kLdapInternalId = 1;

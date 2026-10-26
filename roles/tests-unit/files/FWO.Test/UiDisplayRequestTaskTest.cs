@@ -1358,7 +1358,7 @@ namespace FWO.Test
             await using BunitContext context = new();
             context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig
             {
-                ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.enterInReqTask
+                ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask
             });
             IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, states, Roles.Requester);
 

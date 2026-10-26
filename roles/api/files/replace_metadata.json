@@ -16105,6 +16105,7 @@
                       "obj_ip",
                       "obj_ip_end",
                       "obj_name",
+                      "obj_member_names",
                       "obj_typ_id",
                       "removed"
                     ],
@@ -16129,8 +16130,10 @@
                           "obj_typ_id": {
                             "_in": [
                               1,
+                              2,
                               3,
                               4,
+                              11,
                               12
                             ]
                           }
@@ -16312,6 +16315,39 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "objgrp_id",
+                      "objgrp_member_id",
+                      "removed",
+                      "active"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "object": {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          }
+                        },
+                        {
+                          "active": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "recertifier",
@@ -25741,6 +25777,7 @@
                       "mgm_id",
                       "removed",
                       "svc_id",
+                      "svc_member_names",
                       "svc_name",
                       "svc_port",
                       "svc_port_end",
@@ -25765,7 +25802,10 @@
                         },
                         {
                           "svc_typ_id": {
-                            "_eq": 1
+                            "_in": [
+                              1,
+                              2
+                            ]
                           }
                         }
                       ]
@@ -27528,6 +27568,39 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "svcgrp_id",
+                      "svcgrp_member_id",
+                      "removed",
+                      "active"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "service": {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          }
+                        },
+                        {
+                          "active": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "recertifier",

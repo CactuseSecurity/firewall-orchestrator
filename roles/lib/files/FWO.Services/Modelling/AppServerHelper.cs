@@ -12,6 +12,8 @@ namespace FWO.Services.Modelling
 {
     public static class AppServerHelper
     {
+        private const string kIpSuffixSeparator = "_";
+
         public static async Task<string> ConstructAppServerNameFromDns(ModellingAppServer appServer, ModellingNamingConvention namingConvention,
             bool overwriteExistingNames = false, bool logUnresolvable = false)
         {
@@ -42,6 +44,16 @@ namespace FWO.Services.Modelling
         {
             bool shortened = false;
             return ConstructAppServerName(appServer, namingConvention, overwriteExistingNames).SanitizeJsonFieldMand(ref shortened);
+        }
+
+        /// <summary>
+        /// Constructs the name of an app server with its ip appended, e.g. "server.example.com_10.1.2.3".
+        /// Used if the regular name is already taken by an existing object with another ip, which must not be changed
+        /// as it may be used in further rules or groups.
+        /// </summary>
+        public static string ConstructIpSuffixedAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
+        {
+            return ConstructAppServerName(appServer, namingConvention) + kIpSuffixSeparator + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd);
         }
 
         public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames = false)

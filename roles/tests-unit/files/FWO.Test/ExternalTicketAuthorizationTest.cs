@@ -15,8 +15,8 @@ namespace FWO.Test
     {
         private const string kMainKey = "0123456789ABCDEF0123456789ABCDEF";
         private const string kOtherKey = "FEDCBA9876543210FEDCBA9876543210";
-        // kPassword encrypted with kOtherKey and a fixed IV. A freshly encrypted secret gets a random IV, and about one
-        // in 250 of those decrypts with kMainKey to a valid padding, so the wrong key goes unnoticed and the test flakes.
+        // kPassword encrypted with kOtherKey in the legacy format (no authentication tag) and a fixed IV. A legacy secret
+        // with a random IV decrypts with kMainKey to a valid padding about once in 250, so the wrong key goes unnoticed.
         // This ciphertext decrypts with kMainKey to a last byte of 220, which is never a valid padding.
         private const string kPasswordEncryptedWithOtherKey = "AAECAwQFBgcICQoLDA0ODxFcDA027hBvCxTC/0FVQ/M=";
         private const string kUsername = "probe_user";
@@ -62,6 +62,15 @@ namespace FWO.Test
                 Assert.That(AesEnc.Decrypt(kPasswordEncryptedWithOtherKey, kOtherKey), Is.EqualTo(kPassword));
                 Assert.That(exception?.Message, Does.Contain("probe").And.Not.Contain(kPassword));
             });
+        }
+
+        [Test]
+        public void BuildHeader_ThrowsWhenAuthenticatedSecretWasEncryptedWithOtherKey()
+        {
+            // the authentication tag rejects every wrong key, so a random IV per run is fine (#5476)
+            Credential credential = new() { Name = "probe", ImportUser = kUsername, Secret = AesEnc.Encrypt(kPassword, kOtherKey) };
+
+            Assert.Throws<InvalidOperationException>(() => ExternalTicketAuthorization.BuildHeader(credential, kMainKey));
         }
 
         [Test]

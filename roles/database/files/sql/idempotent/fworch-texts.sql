@@ -623,37 +623,6 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>Every rule and every app server gets the App label of its owner (the app id from the CMDB) - rules via the rule owner mapping, app servers with the app data import or when they are saved. The key of the App label is set under Settings - App Data Import.</li>
     <li>Label-based modelling (to be switched on in the modelling settings): source and destination of connections, interfaces and common services can contain labels besides or instead of objects, combined in AND-groups (e.g. (Stage: Prod &cap; OS: Linux) &cup; (Stage: Test)).</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
-</ul>
-');
-INSERT INTO txt VALUES ('getting_started',	    'German', 	'Einstiegshilfe');
-INSERT INTO txt VALUES ('getting_started',	    'English', 	'Quick start');
-INSERT INTO txt VALUES ('getting_started_facts',	    'German', 	'
-Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur Verf&uuml;gung:<ul>
-    <li><a href="/report/generation">Reporting</a>: Erlaubt das einmalige Generieren verschiedener Reports sowie eine regelm&auml;&szlig;ige Generierung</li>
-    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketsystem zur Beantragung von &Auml;nderungen</li>
-    <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
-    <li><a href="/networkmodelling">Modellierung</a>: Erlaubt die verteilte Modellierung von Kommunikationsverbindungen (Soll-Zustand)</li>
-    <li><a href="/network_analysis">Netzanalyse</a>: Pfadanalyse - welche Firewalls liegen zwischen zwei IP-Adressen?</li>
-    <li><a href="/compliance/matrix">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>
-    <li><a href="/monitoring">Monitoring</a>: Alarmierung, Log-Files, Import-Status, ...</li>
-    <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
-    <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
-        das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme</a>.<br>
-        N.B. Stellen Sie sicher, dass Sie alle Demo-Daten (insbesondere die Demo-User) l&ouml;schen (mit Hilfe der "Beispieldaten l&ouml;schen" Option in den Einstellungen),
-        bevor Sie in den produktiven Betrieb &uuml;bergehen, da andernfalls ggf. Ihre Daten mit Default-Logins angezeigt werden k&ouml;nnten.</li>
-    <li><a href="/logout">Abmelden</a>: Firewall Orchestrator verlassen</li>
-</ul>
-');
-INSERT INTO txt VALUES ('getting_started_facts',	    'English', 	'
-The following top-level menu items are available (depending on role memberships):
-<ul>
-    <li><a href="/report/generation">Reporting</a>: Ad-hoc generation and scheduling of reports</li>
-    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketing system for requesting and processing firewall changes</li>
-    <li><a href="/certification">Recertification</a>: Rulebase sanitization by continuously cleaning up existing rules</li>
-    <li><a href="/networkmodelling">Modelling</a>: Allows for distributed modelling of network connections (target state)</li>
-    <li><a href="/network_analysis">Network Analysis</a>: Path analysis - which firewall is crossed when routing between two IP addresses?</li>
-    <li><a href="/compliance/matrix">Compliance</a>: Defining zone matrix and access compliance</li>
-    <li><a href="/monitoring">Monitoring</a>: Alarms, log files, import status, ...</li>
     <li><a href="/help" target="_blank">Help</a>: Manual pages</li>
     <li><a href="/settings">Settings</a>: All settings like e.g. language of the user interface or
         integration of <a href="/settings/managements">your own firewalls</a>.<br>
@@ -2089,6 +2058,12 @@ INSERT INTO txt VALUES ('members_to_add',       'German',   'Hinzuzuf&uuml;gende
 INSERT INTO txt VALUES ('members_to_add',       'English',  'Members to add');
 INSERT INTO txt VALUES ('members_to_remove',    'German',   'Zu entfernende Mitglieder');
 INSERT INTO txt VALUES ('members_to_remove',    'English',  'Members to remove');
+INSERT INTO txt VALUES ('unchanged',            'German',   'Unver&auml;ndert');
+INSERT INTO txt VALUES ('unchanged',            'English',  'Unchanged');
+INSERT INTO txt VALUES ('add_member',           'German',   'Mitglied hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('add_member',           'English',  'Add Member');
+INSERT INTO txt VALUES ('remove_member',        'German',   'Mitglied entfernen');
+INSERT INTO txt VALUES ('remove_member',        'English',  'Remove Member');
 INSERT INTO txt VALUES ('add_members',          'German',   ': Mitglieder hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_members',          'English',  ': Add Members');
 INSERT INTO txt VALUES ('remove_members',       'German',   ': Mitglieder entfernen');
@@ -4294,6 +4269,30 @@ INSERT INTO txt VALUES ('imported_configuration','German',   'Importierte Konfig
 INSERT INTO txt VALUES ('imported_configuration','English',  'Imported configuration');
 INSERT INTO txt VALUES ('include_visibility_groups','German','Sichtbarkeitsgruppen und Mitglieder einschliessen');
 INSERT INTO txt VALUES ('include_visibility_groups','English','Include visibility groups and members');
+INSERT INTO txt VALUES ('export_phases',           'German',   'Zu exportierende Phasen');
+INSERT INTO txt VALUES ('export_phases',           'English',  'Phases to export');
+INSERT INTO txt VALUES ('export_file_name',        'German',   'Name der Exportdatei');
+INSERT INTO txt VALUES ('export_file_name',        'English',  'Export file name');
+INSERT INTO txt VALUES ('unselect_all',            'German',   'Alle abwählen');
+INSERT INTO txt VALUES ('unselect_all',            'English',  'Unselect all');
+INSERT INTO txt VALUES ('import_as_new_configuration', 'German',  'Als neue Konfiguration importieren');
+INSERT INTO txt VALUES ('import_as_new_configuration', 'English', 'Import as new configuration');
+INSERT INTO txt VALUES ('add_to_configuration',    'German',   'Zu Konfiguration hinzufügen');
+INSERT INTO txt VALUES ('add_to_configuration',    'English',  'Add to configuration');
+INSERT INTO txt VALUES ('imported_states',         'German',   'Importierte Status');
+INSERT INTO txt VALUES ('imported_states',         'English',  'Imported states');
+INSERT INTO txt VALUES ('created_transition_groups', 'German',  'Erstellte Übergangsgruppen');
+INSERT INTO txt VALUES ('created_transition_groups', 'English', 'Created transition groups');
+INSERT INTO txt VALUES ('created_visibility_groups', 'German',  'Erstellte Sichtbarkeitsgruppen');
+INSERT INTO txt VALUES ('created_visibility_groups', 'English', 'Created visibility groups');
+INSERT INTO txt VALUES ('added_phases',             'German',   'Hinzugefügte Phasen');
+INSERT INTO txt VALUES ('added_phases',             'English',  'Added phases');
+INSERT INTO txt VALUES ('merged_phases',            'German',   'Zusammengeführte Phasen');
+INSERT INTO txt VALUES ('merged_phases',            'English',  'Merged phases');
+INSERT INTO txt VALUES ('added_derived_states',     'German',   'Hinzugefügte abgeleitete Status');
+INSERT INTO txt VALUES ('added_derived_states',     'English',  'Added derived states');
+INSERT INTO txt VALUES ('added_transition_group_links', 'German', 'Hinzugefügte Übergangsgruppen-Verknüpfungen');
+INSERT INTO txt VALUES ('added_transition_group_links', 'English', 'Added transition-group links');
 INSERT INTO txt VALUES ('phases',                'German',   'Phasen');
 INSERT INTO txt VALUES ('phases',                'English',  'Phases');
 INSERT INTO txt VALUES ('visibility_groups',     'German',   'Sichtbarkeitsgruppen');
@@ -4876,6 +4875,8 @@ INSERT INTO txt VALUES ('E5128', 'German', 'Zugangsdaten werden von anderen Zuga
 INSERT INTO txt VALUES ('E5128', 'English', 'Credential is used by other credentials');
 INSERT INTO txt VALUES ('E5129', 'German',  'Auf diesem Management werden keine Zeitobjekte angelegt (ger&auml;tespezifische Einstellung &quot;Anlage Zeitobjekte&quot;).');
 INSERT INTO txt VALUES ('E5129', 'English', 'No time objects are created on this management (device specific setting &quot;Time object creation&quot;).');
+INSERT INTO txt VALUES ('E5130', 'German',  'Die ausgew&auml;hlte Gruppe enth&auml;lt zu viele Mitglieder und kann nicht bearbeitet werden.');
+INSERT INTO txt VALUES ('E5130', 'English', 'The selected group has too many members to edit.');
 INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten Managements verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by the managements named. Change the credentials of these managements before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
@@ -7438,7 +7439,8 @@ INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die ver
     Oberhalb der Konfigurationsauswahl k&ouml;nnen Sichtbarkeitsgruppen und &Uuml;bergangsgruppen bearbeitet sowie neue leere Konfigurationen oder Kopien einer ausgew&auml;hlten Konfiguration angelegt werden. Nur inaktive Konfigurationen k&ouml;nnen gel&ouml;scht werden; nicht mehr verwendete Phasenmatrizen werden dabei ebenfalls entfernt. Mitglieder von Sichtbarkeitsgruppen k&ouml;nnen als DN eingegeben oder &uuml;ber die Benutzer- und Gruppensuche ausgew&auml;hlt werden. Beim L&ouml;schen einer Sichtbarkeitsgruppe wird ihre Zuordnung zu &Uuml;bergangsgruppen entfernt. Beim L&ouml;schen einer &Uuml;bergangsgruppe werden auch ihre &Uuml;berg&auml;nge und Phasenzuordnungen gel&ouml;scht. Genau eine Konfiguration ist aktiv und wird zur Laufzeit verwendet.
     In der Installation sind diese Matrizen bereits vorbelegt, sie k&ouml;nnen aber nahezu beliebig &uuml;berschrieben werden.
     Die "Speichern"-Schaltfl&auml;che erscheint nur bei ungespeicherten &Auml;nderungen an Phasen, Sonderstatus oder abgeleiteten Status. Vor dem Wechsel der Konfiguration, des Tasktyps oder der Seite wird vor dem Verwerfen solcher &Auml;nderungen gewarnt. &Uuml;bergangsgruppen werden separat und sofort gespeichert.
-    Konfigurationen k&ouml;nnen als versionsbehaftete JSON-Pakete exportiert und als neue inaktive Konfigurationen importiert werden. Das Paket enth&auml;lt alle Phasenmatrizen und verwendeten &Uuml;bergangsgruppen. Sichtbarkeitsgruppen einschliesslich ihrer Mitglied-DNs sind optional und standardm&auml;ssig nicht enthalten; dann werden auch ihre Zuordnungen und Exklusivkennzeichen aus den exportierten &Uuml;bergangsgruppen entfernt. Beim Import werden gleichnamige Gruppen nur wiederverwendet, wenn ihre Definition vollst&auml;ndig &uuml;bereinstimmt; abweichende Definitionen brechen den Import ab. Die im Paket verwendeten Status-IDs m&uuml;ssen im Zielsystem vorhanden sein.
+    Beim Export k&ouml;nnen einzelne Phasen und ein eigener Dateiname ausgew&auml;hlt werden. Das Paket enth&auml;lt die verwendeten Status mit ID, Namen und Automatik-Eigenschaft; fehlende Status werden beim Import angelegt, vorhandene Status nicht &uuml;berschrieben. Der Import kann eine neue Konfiguration anlegen oder eine bestehende erweitern.
+    Konfigurationen k&ouml;nnen als versionsbehaftete JSON-Pakete exportiert und als neue inaktive Konfigurationen importiert werden. Das Paket enth&auml;lt alle ausgew&auml;hlten Phasenmatrizen, verwendeten &Uuml;bergangsgruppen sowie die verwendeten Status mit ID, Namen und Automatik-Eigenschaft. Fehlende Status werden im Zielsystem angelegt, vorhandene Status werden nicht &uuml;berschrieben. Sichtbarkeitsgruppen einschliesslich ihrer Mitglied-DNs sind optional und standardm&auml;&szlig;ig nicht enthalten; dann werden auch ihre Zuordnungen und Exklusivkennzeichen aus den exportierten &Uuml;bergangsgruppen entfernt. Beim Import werden gleichnamige Gruppen nur wiederverwendet, wenn ihre Definition vollst&auml;ndig &uuml;bereinstimmt; abweichende Definitionen brechen den Import ab.
     Alle Status werden zur eindeutigen Identifikation mit ihrer ID in Klammern angezeigt.
     W&auml;hrend die bereits vorhandenen Matrizen bei Software-Upgrades nicht ber&uuml;hrt werden, kann der mitgelieferte Installationsvorschlag aktualisiert werden.
 ');
@@ -7447,7 +7449,8 @@ INSERT INTO txt VALUES ('H5541', 'English', 'In the state matrix the usable stat
     Above the configuration selector, visibility groups and transition groups can be edited and new empty configurations or copies of a selected configuration can be created. Only inactive configurations can be deleted; phase matrices that are no longer used are removed as well. Visibility-group members can be entered as DNs or selected through the user and group lookup. Deleting a visibility group removes its assignment from transition groups. Deleting a transition group also deletes its transitions and phase assignments. Exactly one configuration is active and used at runtime.
     During installation these matrices are already initialized, but they can be overwritten almost arbitrarily.
     The "Save" button appears only for unsaved changes to phases, special states, or derived states. Before changing the configuration, task type, or page, a warning is shown before such changes are discarded. Transition groups are saved separately and immediately.
-    Configurations can be exported as versioned JSON packages and imported as new inactive configurations. The package contains all phase matrices and referenced transition groups. Visibility groups, including their member DNs, are optional and excluded by default; their assignments and exclusive flags are then removed from the exported transition groups as well. During import, groups with matching names are reused only when their complete definitions match; conflicting definitions stop the import. Every state ID referenced by the package must exist on the target system.
+    During export, individual phases and a custom file name can be selected. The package contains referenced states with their IDs, names, and automatic-only property; missing states are created during import, while existing states are not overwritten. Import can create a new configuration or extend an existing one.
+    Configurations can be exported as versioned JSON packages and imported as new inactive configurations. The package contains all selected phase matrices, referenced transition groups, and the referenced states with their IDs, names, and automatic-only property. Missing states are created on the target system; existing states are not overwritten. Visibility groups, including their member DNs, are optional and excluded by default; their assignments and exclusive flags are then removed from the exported transition groups as well. During import, groups with matching names are reused only when their complete definitions match; conflicting definitions stop the import.
     All states are displayed with their ID in brackets for unambiguous identification.
     Existing matrices are not touched by software upgrades, but the supplied installation proposal may be updated.
 ');
@@ -7483,6 +7486,8 @@ INSERT INTO txt VALUES ('H5545', 'German',  'Spezielle Status: F&uuml;r jede Pha
 INSERT INTO txt VALUES ('H5545', 'English', 'Special states: For each phase there are three different ranges to be distinguished: Input, started, exit. They are indicated by special states:');
 INSERT INTO txt VALUES ('H5546', 'German',  'API-Tickets: Hier wird der optionale Anfangsstatus f&uuml;r &uuml;ber die API erzeugte Tickets festgelegt. Ausw&auml;hlbar sind nur Status, die genau einer aktiven Workflow-Phase zugeordnet sind. Ist kein Status gesetzt, wird weiterhin der Standard-Startstatus verwendet.');
 INSERT INTO txt VALUES ('H5546', 'English', 'API tickets: Here the optional initial state for tickets created via the API is defined. Only states that belong to exactly one active workflow phase can be selected. If no state is set, the default start state is still used.');
+INSERT INTO txt VALUES ('H5547', 'German',  'Workflow-Konfigurationen &uuml;bertragen: Konfigurationen k&ouml;nnen mit frei w&auml;hlbarem Dateinamen und ausgew&auml;hlten Phasen exportiert werden. Beim Import kann eine neue Konfiguration angelegt oder eine bestehende erweitert werden. Verwendete Status werden mit Namen und Automatik-Eigenschaft &uuml;bertragen; vorhandene Status und Gruppen werden nicht unbemerkt &uuml;berschrieben.');
+INSERT INTO txt VALUES ('H5547', 'English', 'Transfer workflow configurations: Configurations can be exported with a custom file name and selected phases. During import, a new configuration can be created or an existing one can be extended. Referenced states are transferred with their names and automatic-only property; existing states and groups are not silently overwritten.');
 INSERT INTO txt VALUES ('H5551', 'German',  '"Niedrigster Eingangsstatus": Ab diesem Status wird der Auftrag f&uuml;r den Bearbeiter dieser Phase sichtbar.');
 INSERT INTO txt VALUES ('H5551', 'English', '"Lowest input state": From this state on the ticket is visible for the actor in the current phase');
 INSERT INTO txt VALUES ('H5552', 'German',  '"Niedrigster Bearbeitungsstatus": Ab diesem Status gilt der Auftrag als in dieser Phase in Bearbeitung. Phasenspezifische &Auml;nderungen k&ouml;nnen ausgef&uuml;hrt werden.');
@@ -7899,11 +7904,15 @@ INSERT INTO txt VALUES ('H5650', 'German',  'Regelerkennungs-Optionen: Legt fest
     M&ouml;gliche Kriterien sind - jeweils f&uuml;r Netzwerkobjekte und Dienste - Name, IP-Adresse bzw Port/Protokoll, Gruppennname.
     Ausserdem muss festgelegt werden, ob Gruppen aufgel&ouml;st werden sollen; dann werden die einzelnen Objekte unabh&auml;ngig von der Gruppenzugeh&ouml;rigkeit erkannt.
     Wenn der IP-Adressvergleich aktiv ist, entsprechen importierte Identit&auml;tsobjekte wie Check Point Updatable Objects, Access Roles und Domain-Objekte nicht direkt modellierten App Servern &uuml;ber ihre Platzhalter-IP-Felder. In der Soll-Ist-Analyse werden konfigurierte Platzhalter-Areas f&uuml;r Sonderkonfigurationen mit diesen importierten Objekten nach Objekttyp und Name abgeglichen.
+    Bei separater Gruppenanalyse werden die Mitglieder der App-Rollen nach denselben Kriterien verglichen: nur nach IP-Adresse, wenn nur diese gew&auml;hlt ist, nach Name und IP-Adresse, wenn beide gew&auml;hlt sind, sonst nach Name.
+    Hat sich die IP-Adresse eines Mitglieds ge&auml;ndert, wird ein neues Objekt beantragt und das alte Mitglied aus der Gruppe entfernt. Das bestehende Objekt selbst wird nicht ge&auml;ndert, da es in weiteren Regeln verwendet sein kann. Ist sein Name bereits durch ein Objekt mit anderer IP-Adresse belegt, erh&auml;lt das neue Objekt die IP-Adresse als Namenszusatz (z.B. server_10.1.2.3).
 ');
 INSERT INTO txt VALUES ('H5650', 'English', 'Rule Recognition Options: Defines, when implemented rules are regarded as identical to the modelled connections.
     Possible criteria are - separated for network objects and services - Name, IP address resp. Port/Protocol, Group Name.
     Additionally it has to be defined, if groups are resolved; then single objects are identified independently from their group membership.
     When IP address comparison is active, imported identity objects such as Check Point updatable objects, access roles and domain objects do not directly match modelled app servers through their placeholder IP fields. In variance analysis, configured placeholder areas for special configurations are reconciled with these imported objects by object type and name.
+    With separate group analysis, the members of app roles are compared using the same criteria: by IP address only if only this is selected, by name and IP address if both are selected, otherwise by name.
+    If the IP address of a member has changed, a new object is requested and the old member is removed from the group. The existing object itself is not changed, as it may be used in further rules. If its name is already taken by an object with another IP address, the new object gets the IP address appended to its name (e.g. server_10.1.2.3).
 ');
 INSERT INTO txt VALUES ('H5651', 'German',  'Synchroner Soll-Ist-Abgleich: Wenn aktiviert, werden die Status der Verbindungen sofort bei Initialisierung der Seite berechnet.
     Da dies bei gr&ouml;sseren Systemen zu erheblichem Rechenaufwand f&uuml;hrt, kann dies zu einer verz&ouml;gerten Darstellung f&uuml;hren.
@@ -9081,8 +9090,8 @@ INSERT INTO txt VALUES ('H8212', 'English', 'Access: Several fields are offered,
     In case of the respective configuration (no planning phase, "Enter device in request" in <a href="/help/settings/workflowcustomizing">Customizing</a>) also the affected devices have to be selected.
     Additionally there are optional specifications like validity range and reason.
 ');
-INSERT INTO txt VALUES ('H8213', 'German',  'Die weiteren vorgesehenen Tasktypen "Gruppe &auml;ndern" und "Gruppe l&ouml;schen" k&ouml;nnen zwar aktiviert und genutzt werden, sind aber noch nicht mit spezifischen Feldern versehen.');
-INSERT INTO txt VALUES ('H8213', 'English', 'Further task types "modify group" and "delete group" can be activated and used, but are not equipped with specific fields yet.');
+INSERT INTO txt VALUES ('H8213', 'German',  'Der Tasktyp "Gruppe l&ouml;schen" kann aktiviert und genutzt werden, ist aber noch nicht mit spezifischen Feldern versehen.');
+INSERT INTO txt VALUES ('H8213', 'English', 'The task type "delete group" can be activated and used, but is not equipped with specific fields yet.');
 INSERT INTO txt VALUES ('H8214', 'German',  'Regel l&ouml;schen: Hier muss zwingend das Gateway und die Uid der zu l&ouml;schenden Regel eingegeben werden.
     Diese wird gegen die tats&auml;chlich auf dem Gateway vorhandenen Uids gepr&uuml;ft.<br>
     Dieser Auftragstyp wird auch bei der automatischen Erzeugung aus dem Unbenutzte-Regel-Report bzw. bei der Dezertifizierung verwendet.
@@ -9113,6 +9122,8 @@ INSERT INTO txt VALUES ('H8218', 'German',  'Objekt &auml;ndern: &Auml;ndert ein
 INSERT INTO txt VALUES ('H8218', 'English', 'Modify object: Changes an existing, imported network object, service or time object. After choosing the management the object is selected through the search (from 3 characters, name or ip address, time objects by name);
     the fields are prefilled with the current values. The task stores the previous and the new state and shows both. A task without changed values is rejected.
     Both object task types are not yet passed to external ticket systems. If a ticket with external integration contains object tasks besides rule tasks, the tasks after the first object task are no longer passed on. Object tasks should therefore be requested in tickets of their own.');
+INSERT INTO txt VALUES ('H8219', 'German',  'Gruppe &auml;ndern: &Auml;ndert eine bestehende Netzwerk- oder Dienstgruppe. Nach Auswahl des Managements wird die Gruppe &uuml;ber die Suche ausgew&auml;hlt und ihre Mitglieder werden vorbef&uuml;llt. Mitglieder k&ouml;nnen zum Entfernen markiert und neue Netzwerkobjekte bzw. Dienste hinzugef&uuml;gt werden. Der Gruppenname bleibt unver&auml;ndert.');
+INSERT INTO txt VALUES ('H8219', 'English', 'Modify group: Changes an existing network or service group. After choosing the management, select the group through the search; its members are prefilled. Members can be marked for removal and new network objects or services can be added. The group name remains unchanged.');
 INSERT INTO txt VALUES ('H8301', 'German',  'Jeder Verarbeitungsschritt kann nur von Nutzern mit entsprechenden <a href="/help/settings/roles">Rollen</a> get&auml;tigt werden.
     Dabei k&ouml;nnen einzelnen Nutzern auch mehrere Rollen zufallen. Die Rollen k&ouml;nnen individuell oder &uuml;ber <a href="/help/settings/groups">Gruppenzugeh&ouml;rigkeit</a> zugewiesen werden.
     Hinzu kommt die Rolle des admin, welche einen Komplettzugriff erlaubt. Je nach Rolle des Bearbeiters sind nur die f&uuml;r ihn relevanten Teile der folgenden Rubriken sichtbar.

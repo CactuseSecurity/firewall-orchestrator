@@ -692,5 +692,44 @@ namespace FWO.Test
         {
             Assert.That(IpOperations.SelectReverseLookupNames(responseCode, kPtrNames), Is.Null);
         }
+
+        [TestCase("10.0.0.1", null, "10.0.0.1", "10.0.0.1")]
+        [TestCase("10.0.2.0/24", null, "10.0.2.0", "10.0.2.255")]
+        [TestCase("10.0.1.1", "10.0.1.9", "10.0.1.1", "10.0.1.9")]
+        [TestCase("10.0.0.1/32", "10.0.0.5/32", "10.0.0.1", "10.0.0.5")]
+        [TestCase("2001:db8::1", null, "2001:db8::1", "2001:db8::1")]
+        [TestCase("2001:db8::/64", null, "2001:db8::", "2001:db8::ffff:ffff:ffff:ffff")]
+        [TestCase("2001:db8::1/128", "2001:db8::5/128", "2001:db8::1", "2001:db8::5")]
+        [TestCase("10.0.0.0/24", "10.0.0.0/24", "10.0.0.0", "10.0.0.255")]
+        [TestCase("10.0.0.0/24", "10.0.0.255/24", "10.0.0.0", "10.0.0.255")]
+        [TestCase("2001:db8::/64", "2001:db8::/64", "2001:db8::", "2001:db8::ffff:ffff:ffff:ffff")]
+        public void TryParseIPRange_ParsesIpv4AndIpv6IncludingStoredNetmasks(string start, string? end, string expectedBegin, string expectedEnd)
+        {
+            bool parsed = IpOperations.TryParseIPRange(start, end, out IPAddressRange? range);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed, Is.True);
+                Assert.That(range?.Begin.ToString(), Is.EqualTo(expectedBegin));
+                Assert.That(range?.End.ToString(), Is.EqualTo(expectedEnd));
+            });
+        }
+
+        [TestCase(null, null)]
+        [TestCase(" ", null)]
+        [TestCase("no address", null)]
+        [TestCase("10.0.0.9", "10.0.0.1")]
+        [TestCase("10.0.0.1", "::1")]
+        [TestCase("10.0.0.1", "garbage")]
+        public void TryParseIPRange_FailsForMissingOrUnusableAddress(string? start, string? end)
+        {
+            bool parsed = IpOperations.TryParseIPRange(start, end, out IPAddressRange? range);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed, Is.False);
+                Assert.That(range, Is.Null);
+            });
+        }
     }
 }

@@ -477,7 +477,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
         {
             Id = flowObject.Id,
             Name = flowObject.Name ?? string.Empty,
-            Type = ResolveAddressType(flowObject, ipRange),
+            Type = ResolveAddressType(ipRange),
             IpRange = ipRange,
             State = flowObject.State,
             ShowInRequest = flowObject.ShowInRequestModule
@@ -509,7 +509,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <summary>
     /// Resolves the address object type from its IP range.
     /// </summary>
-    private static string ResolveAddressType(FlowNwObject flowObject, IReadOnlyList<string> ipRange)
+    private static string ResolveAddressType(List<string> ipRange)
     {
         if (ipRange.Count == 0)
         {
@@ -520,7 +520,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
             || !IPAddress.TryParse(ipRange[1], out IPAddress? ipEnd)
             || ipStart.AddressFamily != ipEnd.AddressFamily)
         {
-            Log.WriteWarning("FlowCatalogService", "ResolveAddressType - Invalid IP range: {flowObject.IpStart} - {flowObject.IpEnd}");
+            Log.WriteWarning("FlowCatalogService", $"ResolveAddressType - Invalid IP range: {ipRange[0]} - {ipRange[1]}");
             return "range";
         }
 

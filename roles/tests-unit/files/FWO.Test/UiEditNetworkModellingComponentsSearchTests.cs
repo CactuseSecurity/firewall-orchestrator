@@ -85,6 +85,46 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SearchNwObject_ComSvcExcludedMode_OffersCommonAreasAndDoesNotStoreSelection()
+        {
+            await using BunitContext context = CreateContext(out RecordingApiConnection apiConn, out SimulatedUserConfig userConfig);
+            ModellingNwGroup commonArea = new() { Id = 511, Name = "common", IdString = "NA511" };
+            ModellingNwGroup alreadyExcludedArea = new() { Id = 512, Name = "excluded", IdString = "NA512" };
+            apiConn.NwGroupObjects = [commonArea, alreadyExcludedArea];
+            userConfig.ModCommonAreas = JsonSerializer.Serialize(new List<CommonAreaConfig> { new() { AreaId = commonArea.Id } });
+            List<ModellingNwGroupWrapper> objectList = [new ModellingNwGroupWrapper { Content = alreadyExcludedArea }];
+            List<ModellingNwGroup> addedAreas = [];
+
+            IRenderedComponent<SearchNwObject> component = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<SearchNwObject>(search => search
+                    .Add(p => p.Display, true)
+                    .Add(p => p.ObjectList, objectList)
+                    .Add(p => p.Add, area =>
+                    {
+                        addedAreas.Add(area);
+                        return true;
+                    })
+                    .Add(p => p.ComSvcExcludedMode, true)))
+                .FindComponent<SearchNwObject>();
+
+            component.WaitForAssertion(() =>
+            {
+                List<ModellingNwGroup> remaining = GetPrivateField<List<ModellingNwGroup>>(component.Instance, "remainingNwObjects");
+                Assert.That(remaining.Select(o => o.Id), Is.EqualTo(new List<long> { commonArea.Id }));
+            });
+
+            SetPrivateField(component.Instance, "selectedObject", commonArea);
+            await (Task)GetPrivateMethod(typeof(SearchNwObject), "AddObject").Invoke(component.Instance, null)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.AddSelectedNwGroupObjectCalls, Is.EqualTo(0));
+                Assert.That(addedAreas, Is.EqualTo(new List<ModellingNwGroup> { commonArea }));
+                Assert.That(component.Instance.Display, Is.False);
+            });
+        }
+
+        [Test]
         public async Task SearchInterface_OnParametersSetAsync_LoadsSelectableInterfaces_AndSelectInterfaceCloses()
         {
             await using BunitContext context = CreateContext(out RecordingApiConnection apiConn, out SimulatedUserConfig userConfig);

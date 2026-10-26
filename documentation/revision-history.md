@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.8.2 - 24.10.2026
+## 9.8.3 - 26.10.2026
 - request workflow: the device specific settings autoPlanImplementation and autoPlanImplementationForRules (renamed from planImplementation and planImplementationOverrideForRules) decide which implementation tasks are created automatically, independently of the planning phase
   - rule tasks (access, rule_modify, rule_delete) need both settings, all other task types autoPlanImplementation; the default of autoPlanImplementationForRules is false
   - devices entered in the request take precedence over the path analysis algorithm; if the action finds no target, one implementation task without gateway is created
@@ -13,6 +13,8 @@
   - "after path analysis" ran the routing based path analysis independently of the configured algorithm; now the configured algorithm applies, which is "None" unless changed, so no gateway is found. Select "Network Zone Tree", or attach a path analysis action writing the found devices to the device list before "create implementation tasks" (devices in the request take precedence)
   - "for each device" and "only for one device" replace the configured path analysis algorithm; a previously configured "Network Zone Tree" is then no longer the default of resolvePathDevices, so callers have to pass the algorithm
   - if the auto plan settings cannot be read, the defaults apply (auto plan Yes, for rules No)
+
+## 9.8.2 - 24.10.2026
 - middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`
   now return each inclusive address range as the two-entry `ipRange` instead of separate `ipStart`
   and `ipEnd` fields; `getAddressObjects` returns an empty range for non-IP objects such as FQDNs

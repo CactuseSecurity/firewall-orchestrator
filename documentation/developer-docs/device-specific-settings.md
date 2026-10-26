@@ -95,16 +95,16 @@ it via `rerouteToExternalTicketSystem`; otherwise select the ticket system on th
 levels after upgrading. `ruleCategory` becomes `commonServiceSeparation` (`common_service`
 is `true`, `app` is `false`).
 
-### Automatic creation of implementation tasks (since 9.8.2)
+### Automatic creation of implementation tasks (since 9.8.3)
 
 `autoPlanImplementation` and `autoPlanImplementationForRules` (formerly `planImplementation` and
-`planImplementationOverrideForRules`, renamed by the 9.8.2 upgrade with their values) decide which implementation
+`planImplementationOverrideForRules`, renamed by the 9.8.3 upgrade with their values) decide which implementation
 tasks the state action "Create implementation tasks" creates; nothing else creates them automatically, and the
 planning phase plays no role for it. Rule tasks (access, rule_modify, rule_delete) need both settings, every other
 task type `autoPlanImplementation`. The action resolves the values of the gateway (access and rule changes) or the
 target management (object tasks) along the hierarchy above; without gateway the global values apply.
 
-The 9.8.2 upgrade translates the former workflow option `reqAutoCreateImplTasks` into `reqDeviceInput` and the path
+The 9.8.3 upgrade translates the former workflow option `reqAutoCreateImplTasks` into `reqDeviceInput` and the path
 analysis algorithm only (`reqDeviceInput` becomes `never` where the planning phase of access tasks is active, as the
 request form hid the device field there); it does not derive the auto plan settings from the planning phases. Stored values are kept
 under the new names, otherwise the defaults apply (`autoPlanImplementation` Yes, `autoPlanImplementationForRules`

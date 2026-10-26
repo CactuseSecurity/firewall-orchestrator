@@ -120,8 +120,8 @@ namespace FWO.Services.Workflow
             {
                 PathAnalysisRequest request = new()
                 {
-                    Sources = ReqElementIpRanges.ToRanges(reqTask.Elements, ElemFieldType.source),
-                    Destinations = ReqElementIpRanges.ToRanges(reqTask.Elements, ElemFieldType.destination)
+                    Sources = WfReqElement.GetIpRanges(reqTask.Elements, ElemFieldType.source),
+                    Destinations = WfReqElement.GetIpRanges(reqTask.Elements, ElemFieldType.destination)
                 };
                 PathAnalysisResult result = await analyzer.AnalyzeAsync(request);
                 return [.. result.Devices.Select(device => device.Id).Distinct()];
@@ -145,7 +145,7 @@ namespace FWO.Services.Workflow
             }
             return new PathAnalyzerFactory(apiConnection, userConfig.GlobalConfig).Create();
         }
- 
+
         /// <summary>
         /// Creates the single implementation task of a request task that needs no gateway determination: rule_modify and
         /// rule_delete with the gateway of the rule, every other non-access and non-object task type without gateway.

@@ -242,3 +242,4 @@ For a feature-centric, thematically grouped view see
 
 ### 9.8.2 — 24.10.2026
 - Workflow configuration transfer supports selected-phase exports, custom file names, imports into existing configurations, and safe state-definition validation.
+- Implementation tasks are created by the state action "Create implementation tasks"; the device specific settings "Auto plan implementation" and "Auto plan implementation for rules" decide per gateway and management which tasks it creates. Workflow Customizing offers the device input in the request and the path analysis algorithms "For each device" and "First device (if available)".

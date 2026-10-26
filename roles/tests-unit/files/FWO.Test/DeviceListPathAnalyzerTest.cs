@@ -2,16 +2,13 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
-using FWO.Data.Workflow;
 using FWO.Services.PathAnalysis;
-using NetTools;
 using NUnit.Framework;
 
 namespace FWO.Test
 {
     /// <summary>
-    /// Tests the device list path analyzers (for each device, only if device available) and the conversion of request
-    /// elements into the address ranges of a path analysis.
+    /// Tests the device list path analyzers (for each device, first device (if available)).
     /// </summary>
     [TestFixture]
     [Parallelizable]
@@ -55,44 +52,6 @@ namespace FWO.Test
                 .AnalyzeAsync(new PathAnalysisRequest());
 
             Assert.That(result.Devices, Is.Empty);
-        }
-
-        [Test]
-        public void ToRanges_ConvertsSingleAddressesRangesAndNetworksOfTheField()
-        {
-            List<WfReqElement> elements =
-            [
-                new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "10.0.0.1" },
-                new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "10.0.1.1", IpEnd = "10.0.1.9" },
-                new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "10.0.2.0/24" },
-                new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "192.168.0.1" }
-            ];
-
-            List<IPAddressRange> sources = ReqElementIpRanges.ToRanges(elements, ElemFieldType.source);
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(sources, Has.Count.EqualTo(3));
-                Assert.That(sources[0].ToString(), Is.EqualTo("10.0.0.1"));
-                Assert.That(sources[1].End.ToString(), Is.EqualTo("10.0.1.9"));
-                Assert.That(sources[2].Begin.ToString(), Is.EqualTo("10.0.2.0"));
-                Assert.That(ReqElementIpRanges.ToRanges(elements, ElemFieldType.destination), Has.Count.EqualTo(1));
-            });
-        }
-
-        [Test]
-        public void ToRanges_SkipsElementsWithoutOrWithInvalidAddress()
-        {
-            List<WfReqElement> elements =
-            [
-                new WfReqElement { Field = ElemFieldType.source.ToString(), NetworkId = 4 },
-                new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "no address" },
-                new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "10.0.0.9", IpEnd = "10.0.0.1" },
-                new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "10.0.0.1", IpEnd = "::1" },
-                new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "10.0.0.1", IpEnd = "garbage" }
-            ];
-
-            Assert.That(ReqElementIpRanges.ToRanges(elements, ElemFieldType.source), Is.Empty);
         }
 
         private static List<Device> CreateDevices()

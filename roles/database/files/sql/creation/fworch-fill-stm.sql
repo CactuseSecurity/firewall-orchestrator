@@ -6,7 +6,7 @@ INSERT INTO path_analysis_algorithm ("id", "name") VALUES
     (1,'None'),
     (2, 'Network Zone Tree'),
     (3, 'For each device'),
-    (4, 'Only if device available');
+    (4, 'First device (if available)');
 
 insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'default');
 

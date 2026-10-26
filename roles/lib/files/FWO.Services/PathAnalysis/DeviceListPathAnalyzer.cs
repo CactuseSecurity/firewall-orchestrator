@@ -8,7 +8,7 @@ namespace FWO.Services.PathAnalysis
 {
     /// <summary>
     /// Selects devices without analysing the path: every known gateway (for each device), or only the first one
-    /// (only if device available). Sources and destinations of the request are ignored.
+    /// (first device (if available)). Sources and destinations of the request are ignored.
     /// </summary>
     public sealed class DeviceListPathAnalyzer(ApiConnection apiConnection, bool onlyFirstDevice) : IPathAnalyzer
     {

@@ -536,6 +536,20 @@ namespace FWO.Services.Workflow
             }
         }
 
+        /// <summary>
+        /// Creates the implementation task of a new interface request task unless it already has one: one task without
+        /// gateway, which the interface workflow promotes when the interface is created or rejected. It is no firewall
+        /// implementation, so it is created at once and independently of the auto plan device specific settings.
+        /// </summary>
+        /// <param name="reqTask">New interface request task; other task types are ignored.</param>
+        public async Task CreateNewInterfaceImplTask(WfReqTask reqTask)
+        {
+            if (reqTask.TaskType == WfTaskType.new_interface.ToString() && reqTask.ImplementationTasks.Count == 0)
+            {
+                await CreateGenericImplTask(reqTask);
+            }
+        }
+
         private async Task CreateGenericImplTask(WfReqTask reqTask)
         {
             WfImplTask newImplTask = new(reqTask) { TaskNumber = reqTask.HighestImplTaskNumber() + 1, StateId = reqTask.StateId };

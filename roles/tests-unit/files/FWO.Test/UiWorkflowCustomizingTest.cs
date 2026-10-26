@@ -1093,7 +1093,7 @@ namespace FWO.Test
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmForEachDevice, Name = "For each device" },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree, Name = kNetworkZoneTreeAlgorithmName },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmNone, Name = kNoneAlgorithmName },
-                new() { Id = GlobalConst.kPathAnalysisAlgorithmFirstDevice, Name = "Only if device available" }
+                new() { Id = GlobalConst.kPathAnalysisAlgorithmFirstDevice, Name = "First device (if available)" }
             };
             public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } = new List<WorkflowConfiguration>
             {

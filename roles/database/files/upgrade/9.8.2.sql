@@ -5,7 +5,7 @@
 
 INSERT INTO path_analysis_algorithm (id, name) VALUES
     (3, 'For each device'),
-    (4, 'Only if device available')
+    (4, 'First device (if available)')
 ON CONFLICT DO NOTHING;
 
 -- The planning settings are renamed after their new meaning. An already stored new key is kept.
@@ -24,14 +24,25 @@ DELETE FROM device_specific_config_value WHERE config_key IN ('planImplementatio
 DO $$
 DECLARE
     t_old_option varchar;
+    b_access_planning boolean;
 BEGIN
     SELECT config_value INTO t_old_option FROM config WHERE config_key = 'reqAutoCreateImplTasks' AND config_user = 0;
     IF t_old_option IS NULL THEN
         RETURN;
     END IF;
 
+    -- The request form showed the device field only without planning phase of access tasks; with an active planning
+    -- phase the former option had no effect on the form, so the device input stays hidden there.
+    SELECT COALESCE(bool_or(p.active), FALSE) INTO b_access_planning
+    FROM request.workflow_configuration c
+    JOIN request.workflow_configuration_phase wp ON wp.configuration_id = c.id
+    JOIN request.state_matrix_phase p ON p.id = wp.phase_matrix_id
+    WHERE c.is_active AND wp.phase = 'planning' AND wp.task_type = 'access';
+
     INSERT INTO config (config_key, config_value, config_user)
-    SELECT 'reqDeviceInput', CASE WHEN config_value IN ('enterInReqTask', 'oneTaskForAllDevices') THEN config_value ELSE 'never' END, config_user
+    SELECT 'reqDeviceInput',
+           CASE WHEN NOT b_access_planning AND config_value IN ('enterInReqTask', 'oneTaskForAllDevices') THEN config_value ELSE 'never' END,
+           config_user
     FROM config WHERE config_key = 'reqAutoCreateImplTasks'
     ON CONFLICT (config_key, config_user) DO NOTHING;
 

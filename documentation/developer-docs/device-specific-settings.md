@@ -105,7 +105,8 @@ task type `autoPlanImplementation`. The action resolves the values of the gatewa
 target management (object tasks) along the hierarchy above; without gateway the global values apply.
 
 The 9.8.2 upgrade translates the former workflow option `reqAutoCreateImplTasks` into `reqDeviceInput` and the path
-analysis algorithm only; it does not derive the auto plan settings from the planning phases. Stored values are kept
+analysis algorithm only (`reqDeviceInput` becomes `never` where the planning phase of access tasks is active, as the
+request form hid the device field there); it does not derive the auto plan settings from the planning phases. Stored values are kept
 under the new names, otherwise the defaults apply (`autoPlanImplementation` Yes, `autoPlanImplementationForRules`
 No), and an administrator sets them. Levels that the 9.7.4 upgrade set to `planImplementation = false` (former mode
 `None`) are planned manually afterwards. If the action cannot read the settings, these defaults apply.

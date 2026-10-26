@@ -88,6 +88,7 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | External state handling | 8.3 (8.3.1) |
 | `automatic_only` workflow states | 9.0.18 |
 | Configurable execution order for actions assigned to states | 9.1.1 |
+| Workflow configuration transfer with selected-phase export, custom file names, merge support, and state-definition validation | 9.8.2 |
 
 ## Recertification
 

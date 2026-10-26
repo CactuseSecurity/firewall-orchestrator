@@ -27,3 +27,6 @@ roles/test/** -linguist-detectable
 # Git canonical EOL policy
 * text=auto eol=lf
 
+######################## merge strategies ###################
+documentation/revision-history.md merge=union
+#############################################################

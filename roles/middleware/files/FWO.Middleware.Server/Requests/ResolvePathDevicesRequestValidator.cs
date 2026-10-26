@@ -38,7 +38,7 @@ public static class ResolvePathDevicesRequestValidator
                 ResolvePathDevicesRequestValidationSchema.DescribeKeys(ResolvePathDevicesRequestValidationSchema.RootKeys)));
             return result;
         }
-        
+
         ValidateIpInputs(request, result);
         ValidateOptions(request.Options, configuredAlgorithmId, designatedZoneMatrixId, result);
         ValidateFilter(request.Options.Filter, result);
@@ -80,14 +80,15 @@ public static class ResolvePathDevicesRequestValidator
     }
 
     /// <summary>
-    /// Rejects an unsupported algorithm name, and a missing one when the configured default is none.
+    /// Rejects an unsupported algorithm name, and a missing one when the configured default analyses no path, i.e. is
+    /// none or one of the device selections of the workflow.
     /// </summary>
     private static void ValidateAlgorithm(string? algorithm, long configuredAlgorithmId, RequestValidationErrorResponse result)
     {
         string path = ResolvePathDevicesRequestValidationSchema.kAlgorithmPath;
         string allowedNames = string.Join(", ", PathAnalysisAlgorithmNames.Requestable.Select(name => $"'{name}'"));
 
-        if (algorithm == null && configuredAlgorithmId == GlobalConst.kPathAnalysisAlgorithmNone)
+        if (algorithm == null && !PathAnalysisAlgorithmNames.AnalysesPath(configuredAlgorithmId))
         {
             result.Errors.Add(AggregatedRequestKeyValidation.BuildError(path,
                 $"No default path analysis algorithm is configured. Specify '{path}' with one of: {allowedNames}."));

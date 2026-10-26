@@ -231,9 +231,9 @@
     public IEnumerable<FwoOwner> RequestingOwnerOptions => userConfig.CanUseAnyRole(Roles.Admin)
         ? NewInterfaceOwnerOptions
         : NewInterfaceOwnerOptions.Where(owner => userConfig.User.Ownerships.Contains(owner.Id));
-    public bool NeedsManualDeviceSelection => !IsPlanningPhaseActive()
-        && (userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask
-            || userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.oneTaskForAllDevices);
+    // The device field is offered whenever configured; entered devices take precedence over the path analysis
+    // when the implementation tasks are created, independently of the planning phase.
+    public bool NeedsManualDeviceSelection => userConfig.ReqDeviceInput != ReqDeviceInputOptions.never;
     public IEnumerable<Device> SelectableDevices => selectableDevices;
 
     protected override void OnParametersSet()
@@ -323,11 +323,6 @@
         selectableDevices.Clear();
         selectableDevices.Add(allDevicesOption);
         selectableDevices.AddRange(WfHandler.Devices);
-    }
-
-    private bool IsPlanningPhaseActive()
-    {
-        return WfHandler.ActStateMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool isActive) && isActive;
     }
 
     private Task OnTaskTypeChanged(WfTaskType value)

@@ -137,21 +137,22 @@ internal class UiRequestTaskMetadataEditorTest
     }
 
     [Test]
-    public void NeedsManualDeviceSelection_ReflectsPlanningPhaseAndConfiguration()
+    public void NeedsManualDeviceSelection_FollowsDeviceInputIndependentlyOfPlanningPhase()
     {
         RequestTaskMetadataEditor inactivePlanning = CreateComponent(new WfHandler
         {
             ActStateMatrix = new StateMatrix { PhaseActive = { [WorkflowPhases.planning] = false } }
-        }, new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.enterInReqTask });
+        }, new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask });
         RequestTaskMetadataEditor activePlanning = CreateComponent(new WfHandler
         {
             ActStateMatrix = new StateMatrix { PhaseActive = { [WorkflowPhases.planning] = true } }
-        }, new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices });
+        }, new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices });
 
         Assert.Multiple(() =>
         {
             Assert.That(inactivePlanning.NeedsManualDeviceSelection, Is.True);
-            Assert.That(activePlanning.NeedsManualDeviceSelection, Is.False);
+            Assert.That(activePlanning.NeedsManualDeviceSelection, Is.True);
+            Assert.That(CreateComponent(new WfHandler(), new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.never }).NeedsManualDeviceSelection, Is.False);
         });
     }
 
@@ -201,7 +202,7 @@ internal class UiRequestTaskMetadataEditorTest
         };
         SimulatedUserConfig userConfig = new()
         {
-            ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.enterInReqTask
+            ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask
         };
 
         await using BunitContext context = new();

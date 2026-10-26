@@ -296,28 +296,19 @@ namespace FWO.Services.Workflow
             return dbAcc != null && taskCount > 0 ? await dbAcc.LoadPreviousTicket(reqTask.TicketId) : null;
         }
 
-        private async Task AutoCreateOrUpdateImplTasks()
+        /// <summary>
+        /// Lets the existing implementation tasks follow their request tasks when the ticket leaves the approval phase
+        /// without planning phase. Implementation tasks are not created here: only the state action
+        /// "Create implementation tasks" creates them.
+        /// </summary>
+        private async Task SyncImplTaskStatesAfterApproval()
         {
             if (Phase <= WorkflowPhases.approval && !IsPlanningPhaseActive(MasterStateMatrix)
                 && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
             {
-                List<WfReqTask> requestTasksNeedingInitialImplTasks = [];
-                foreach (var reqTask in ActTicket.Tasks)
+                foreach (WfReqTask reqTask in ActTicket.Tasks)
                 {
-                    // Todo: further analysis how many impl tasks currently have to be there and create or update where needed
-                    if (reqTask.ImplementationTasks.Count == 0
-                        && RequestTaskNeedsInitialImplTasks(reqTask))
-                    {
-                        requestTasksNeedingInitialImplTasks.Add(reqTask);
-                    }
-                    else
-                    {
-                        await UpgradeImplTaskStatesToReqTask(reqTask);
-                    }
-                }
-                foreach (WfReqTask reqTask in await RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
-                {
-                    await AutoCreateImplTasks(reqTask);
+                    await UpgradeImplTaskStatesToReqTask(reqTask);
                 }
             }
         }
@@ -330,6 +321,7 @@ namespace FWO.Services.Workflow
         {
             // every implementation task creation run starts here
             ResetObjectTargetCache();
+            ResetAutoPlanCache();
             List<WfReqTask> requestTasksWithDetails = [];
             foreach (WfReqTask reqTask in requestTasks)
             {
@@ -436,12 +428,13 @@ namespace FWO.Services.Workflow
             };
         }
 
+        /// <summary>
+        /// Returns whether initial implementation tasks may be created for a request task: it has none yet and is
+        /// between approval and completion. Which ones are created decides the auto plan device specific settings.
+        /// </summary>
         public bool CanAutoCreateInitialImplTasks(WfReqTask reqTask)
         {
             return reqTask.ImplementationTasks.Count == 0
-                && (reqTask.TaskType != WfTaskType.access.ToString() || userConfig.ReqAutoCreateImplTasks != AutoCreateImplTaskOptions.never)
-                && stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? matrix)
-                && !IsPlanningPhaseActive(matrix)
                 && RequestTaskNeedsInitialImplTasks(reqTask);
         }
 
@@ -513,6 +506,11 @@ namespace FWO.Services.Workflow
                 && reqTask.StateId < matrix.MinTicketCompleted;
         }
 
+        /// <summary>
+        /// Creates the implementation tasks of a request task by task type, following the auto plan device specific
+        /// settings.
+        /// </summary>
+        /// <param name="reqTask">Request task to create the implementation tasks for.</param>
         private async Task AutoCreateImplTasks(WfReqTask reqTask)
         {
             if (reqTask.TaskType == WfTaskType.access.ToString())
@@ -526,55 +524,7 @@ namespace FWO.Services.Workflow
                 await AutoCreateObjectImplTasks(reqTask);
                 return;
             }
-            if (reqTask.ImplementationTasks.Count == 0)
-            {
-                await CreateGenericImplTask(reqTask);
-            }
-        }
-
-        private async Task AutoCreateAccessImplTasks(WfReqTask reqTask)
-        {
-            switch (userConfig.ReqAutoCreateImplTasks)
-            {
-                case AutoCreateImplTaskOptions.never:
-                    return;
-                case AutoCreateImplTaskOptions.onlyForOneDevice:
-                    await CreateImplTaskForFirstDevice(reqTask);
-                    return;
-                case AutoCreateImplTaskOptions.forEachDevice:
-                    await CreateImplTasksForDevices(reqTask, [.. Devices.Select(device => device.Id)]);
-                    return;
-                case AutoCreateImplTaskOptions.enterInReqTask:
-                    await CreateImplTasksForDevices(reqTask, reqTask.GetResolvedDeviceList(Devices));
-                    return;
-                case AutoCreateImplTaskOptions.oneTaskForAllDevices:
-                    await CreateImplTasksForCombinedOrSelectedDevices(reqTask);
-                    return;
-                case AutoCreateImplTaskOptions.afterPathAnalysis:
-                    await CreateAccessImplTasksFromPathAnalysis(reqTask);
-                    return;
-                default:
-                    return;
-            }
-        }
-
-        private async Task CreateImplTaskForFirstDevice(WfReqTask reqTask)
-        {
-            if (Devices.Count > 0)
-            {
-                await CreateAccessImplTask(reqTask, Devices[0].Id, false);
-            }
-        }
-
-        private async Task CreateImplTasksForCombinedOrSelectedDevices(WfReqTask reqTask)
-        {
-            List<int> deviceIds = reqTask.GetDeviceList();
-            if (deviceIds.Count == 0 || reqTask.HasAllDevicesSelected())
-            {
-                await CreateAccessImplTask(reqTask, null, false);
-                return;
-            }
-            await CreateImplTasksForDevices(reqTask, deviceIds);
+            await AutoCreateSingleImplTask(reqTask);
         }
 
         private async Task CreateImplTasksForDevices(WfReqTask reqTask, List<int> deviceIds)
@@ -583,6 +533,20 @@ namespace FWO.Services.Workflow
             foreach (int deviceId in deviceIds)
             {
                 await CreateAccessImplTask(reqTask, deviceId, true, storedTicket);
+            }
+        }
+
+        /// <summary>
+        /// Creates the implementation task of a new interface request task unless it already has one: one task without
+        /// gateway, which the interface workflow promotes when the interface is created or rejected. It is no firewall
+        /// implementation, so it is created at once and independently of the auto plan device specific settings.
+        /// </summary>
+        /// <param name="reqTask">New interface request task; other task types are ignored.</param>
+        public async Task CreateNewInterfaceImplTask(WfReqTask reqTask)
+        {
+            if (reqTask.TaskType == WfTaskType.new_interface.ToString() && reqTask.ImplementationTasks.Count == 0)
+            {
+                await CreateGenericImplTask(reqTask);
             }
         }
 

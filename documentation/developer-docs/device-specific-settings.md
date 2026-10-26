@@ -37,8 +37,8 @@ remains effective and is shown as a dormant override that can be cleared there.
 | ownerIdCustomFieldName | string | OwnerId | Global, device type, manager | Global to manager |
 | changeIdCustomFieldName | string | ChangeId | Global, device type, manager | Global to manager |
 | importerHostName | string | empty (every importer is responsible) | Global, device type, manager | Global to manager |
-| planImplementation | boolean | true | All | All |
-| planImplementationOverrideForRules | boolean | true | All | All |
+| autoPlanImplementation | boolean | true | All | All |
+| autoPlanImplementationForRules | boolean | false | All | All |
 | modellingCreateAppZones | boolean | true | Global, device type, manager | Global to manager |
 | modellingImplementNetworkAreaObjects | boolean | false | Global, device type, manager | Global to manager |
 | modellingDynIpLabelsVisibleAsGroups | boolean | true | Global, device type, manager | Global to manager |
@@ -94,6 +94,31 @@ system is configured in the external ticket systems, former `TufinSc` levels rer
 it via `rerouteToExternalTicketSystem`; otherwise select the ticket system on those
 levels after upgrading. `ruleCategory` becomes `commonServiceSeparation` (`common_service`
 is `true`, `app` is `false`).
+
+### Automatic creation of implementation tasks (since 9.8.3)
+
+`autoPlanImplementation` and `autoPlanImplementationForRules` (formerly `planImplementation` and
+`planImplementationOverrideForRules`, renamed by the 9.8.3 upgrade with their values) decide which implementation
+tasks the state action "Create implementation tasks" creates; nothing else creates them automatically, and the
+planning phase plays no role for it. Rule tasks (access, rule_modify, rule_delete) need both settings, every other
+task type `autoPlanImplementation`. The action resolves the values of the gateway (access and rule changes) or the
+target management (object tasks) along the hierarchy above; without gateway the global values apply.
+
+The 9.8.3 upgrade translates the former workflow option `reqAutoCreateImplTasks` into `reqDeviceInput` and the path
+analysis algorithm only (`reqDeviceInput` becomes `never` where the planning phase of access tasks is active, as the
+request form hid the device field there); it does not derive the auto plan settings from the planning phases. Stored values are kept
+under the new names, otherwise the defaults apply (`autoPlanImplementation` Yes, `autoPlanImplementationForRules`
+No), and an administrator sets them. Levels that the 9.7.4 upgrade set to `planImplementation = false` (former mode
+`None`) are planned manually afterwards. If the action cannot read the settings, these defaults apply.
+
+The former option `afterPathAnalysis` ran `RoutingBasedPathAnalyzer` regardless of `pathAnalysisAlgorithm`. It becomes
+`reqDeviceInput = never` and keeps the configured algorithm, which is `None` (1) unless changed, so no gateway is
+found. Select `Network Zone Tree`, or attach a `PathAnalysis` action with `WriteToDeviceList` before "Create
+implementation tasks": devices in the request take precedence over the algorithm. `forEachDevice` and
+`onlyForOneDevice` overwrite `pathAnalysisAlgorithm` with 3 or 4; a configured `Network Zone Tree` then no longer serves
+as default of `resolvePathDevices`. Installation and upgrade provide
+the action unless one of this type already exists, but do not attach it; an administrator attaches it to a state,
+e.g. "approved".
 
 The upgrade moves `management.importer_hostname` into `importerHostName` and then drops
 the column. The most common non-empty host name becomes the global value (unless a global

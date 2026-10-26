@@ -10,6 +10,9 @@
   - the UI, middleware, importer and database read both formats; the installer (install and upgrade) re-encrypts all secrets stored in the old format, the UI re-encrypts a secret in the old format when it is saved
   - the importer no longer uses the stored ciphertext as password when a secret in the new format cannot be decrypted, the import fails instead
   - versions before 9.8.2 cannot read the new format, so a downgrade requires re-entering the secrets
+- fix owner recertification failing with "Object reference not set to an instance of an object" when an owner's app roles contain app servers without a name (#5572)
+  - ip addresses added to an owner in the owner settings and the demo owner data are now stored with a name built from the app server naming convention; the upgrade names existing app servers without a name the same way
+  - report links to app roles, groups and network areas whose names share a prefix now point to the right object
 
 ## 9.8.1 - 20.10.2026
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires

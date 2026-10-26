@@ -21,6 +21,7 @@
     user)
   - the UI reads every page of the user, tenant and LDAP group lists, so it shows complete lists as before; a list
     that still has further pages after 1000 pages is reported as an error instead of being shown incomplete
+
 ## 9.8.3 - 26.10.2026
 - request workflow: the device specific settings autoPlanImplementation and autoPlanImplementationForRules (renamed from planImplementation and planImplementationOverrideForRules) decide which implementation tasks are created automatically, independently of the planning phase
   - rule tasks (access, rule_modify, rule_delete) need both settings, all other task types autoPlanImplementation; the default of autoPlanImplementationForRules is false

@@ -13,6 +13,9 @@
 - new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
 
 ## 9.8.2 - 24.10.2026
+- middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`
+  now return each inclusive address range as the two-entry `ipRange` instead of separate `ipStart`
+  and `ipEnd` fields; `getAddressObjects` returns an empty range for non-IP objects such as FQDNs
 - workflow API: `createTicket` now creates object-create request tasks for submitted new network objects, services and time objects
 - workflow UI: network and service group modification tasks provide management-aware selectors for existing groups,
   member add/remove editing, and read-only display of the requested changes

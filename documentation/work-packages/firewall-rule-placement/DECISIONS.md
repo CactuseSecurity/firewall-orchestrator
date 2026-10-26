@@ -319,3 +319,27 @@ Rationale: the creation event is the first shared post-persistence seam for manu
 One shared lookup is built from the enum field names and `EnumMemberAttribute` values and is reused by known- and unknown-position readers. Unrecognized values still cause known position validation to fail, while unknown position types remain loadable with their raw payload. The converter is property-local: `ProvisioningPositioningAlgorithm` and device-specific-settings serialization are unchanged globally.
 
 Rationale: persisted JSON must survive GraphQL serializer naming policies and later middleware loading, while already stored uppercase documents and forward-compatible unknown position types must not require a data migration.
+
+## 2026-10-23 - D-046 - Preserve existing blocks and add customer matching behavior
+
+Phase 4 customer matching extends the working structural block library without changing the semantics of its existing exact ordinal layer and Section selectors. The customer-required trimmed, invariant-uppercase Section-name behavior may use a separate block or an explicit selector mode, provided the existing behavior remains unchanged and covered by regression tests.
+
+The customer block accepts an explicit parent-layer scope. It must not search all layers, choose the first inline layer, or silently fall back to the initial layer when the functional target is missing or ambiguous.
+
+Rationale: the generic behavior is implemented and validated, while the customer convention has different matching semantics and an unresolved functional-target source. Additive behavior isolates that risk and preserves existing callers.
+
+## 2026-10-23 - D-047 - Build customer calculation before selection and activation
+
+Phase 4 first implements the customer-specific calculation primitives and activation-neutral recipe construction as directly testable, side-effect-free behavior. It does not yet map that behavior to an existing `ProvisioningPositioningAlgorithm`, register the zone-capable Check Point strategy, or invoke customer positioning from the production workflow.
+
+A separate later plan will define how customer behavior is selected and triggered. The existing graph-only `DefaultEndOfRulebase` registration, workflow activation, and persistence path remain unchanged.
+
+Rationale: calculation semantics can be built and validated independently, while the product selection model is intentionally being designed separately and must not be guessed from existing enum names.
+
+## 2026-10-25 - D-048 - Require complete single persisted zones for customer calculation
+
+The customer calculation proceeds only when both source and destination have `Complete` coverage and each resolves to exactly one distinct persisted zone from the configured designated zone matrix. Missing or empty sides, `Partial` or `None` coverage, zero matches, and multiple distinct matches fail without selecting the first result or falling back.
+
+A persisted designated-matrix zone is eligible, including the persisted automatic Internet zone when present. `SyntheticInternetFallback` is ineligible because it is not a persisted designated-matrix zone. Identical source and destination zones are valid. Multiple input objects or ranges remain valid when their combined ranges resolve completely to the same one zone. Whether a customer exception permits multiple distinct source zones remains an explicit expert question; until amended, it fails under the strict baseline.
+
+Rationale: the customer guarantees an exact source/destination zone result. Preserving and validating the resolver's richer cardinality and coverage data makes violations explicit instead of hiding ambiguity or uncovered address space.

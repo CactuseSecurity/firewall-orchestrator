@@ -26,9 +26,11 @@ This file tracks unresolved review, validation, and product-boundary work. An it
 
 ## Phase 4 customer-extension checks
 
-- [ ] Open `FWO_Regel_Platzierung_Regelwerk.md` only in Phase 4 WP-01 planning.
+- [x] Open `FWO_Regel_Platzierung_Regelwerk.md` only in Phase 4 WP-01 planning.
+- [ ] Complete the remaining multiple-source-zone, functional-target, and pre-catalog same-ticket Flow-group answers in `phase-4/EXPERT-QUESTIONS.md` before activating the affected customer behavior. The strict complete/single-persisted-zone baseline is settled.
 - [ ] Audit `CreationRuleZoneResolver` for duplicated workflow-element filtering, Flow-group lookup, address validation, range deduplication, zone validation/cloning, and coverage classification before customer activation. Retain existing `GetNwObjectElements`, `ComplianceCheck.ParseIpRange`, `ComplianceZoneResolver`, and `IFlowGroupResolver` ownership.
 - [ ] Confirm whether Flow groups created by another task in the same ticket must resolve before they become available in the Flow catalog.
 - [ ] Compare every customer requirement with existing generic blocks before adding another block.
 - [ ] Add existing-rule semantic data only if a concrete customer rule requires comparison with existing rule contents.
 - [ ] Preserve generic activation and persistence; customer work should extend the catalog rather than replace the production path.
+- [ ] Plan customer enum mapping, strategy registration, and workflow selection separately after the customer calculation behavior is implemented and the triggering model is ready.

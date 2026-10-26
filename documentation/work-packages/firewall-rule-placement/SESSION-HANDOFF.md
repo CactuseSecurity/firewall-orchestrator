@@ -1,6 +1,6 @@
 # Session handoff
 
-Last updated: 2026-10-23
+Last updated: 2026-10-25
 
 ## Current status
 
@@ -8,7 +8,9 @@ Phase 1 and Phase 2 are implemented. Phase 1 is fully validated: the accepted di
 
 Phase 3 WP-01 through WP-06 are implemented and locally validated. WP-05 adds and registers the independently callable graph-only calculation/persistence service, keeps zone input inactive, and removes the WP-04 renderer. WP-06 activates that service from the approved middleware implementation-task creation event while preserving bundle, replay, and best-effort failure semantics.
 
-Phase 4 is ready for WP-01 planning of the customer-specific extension. The customer document `FWO_Regel_Platzierung_Regelwerk.md` has not been inspected and must remain unopened until that planning session begins.
+Phase 4 WP-01 planning is in progress. The customer document `FWO_Regel_Platzierung_Regelwerk.md` has now been opened and analyzed in the authorized Phase 4 planning session.
+
+D-046 preserves existing exact-match blocks and requires customer normalized Section matching to be additive. D-047 separates isolated customer calculation work from a later enum-selection and production-activation plan. D-048 settles the strict complete/single-persisted-zone baseline and excludes synthetic Internet fallback. Remaining domain questions are consolidated in `phase-4/EXPERT-QUESTIONS.md`.
 
 ## Implemented Phase 3 boundary
 
@@ -43,6 +45,6 @@ Phase 4 is ready for WP-01 planning of the customer-specific extension. The cust
 
 ## Next action
 
-Begin Phase 4 WP-01 planning. Open and analyze `FWO_Regel_Platzierung_Regelwerk.md` only within that planning session, compare it with the completed generic product, and keep the implementation brief self-contained. Do not expand the completed Phase 3 work into update-triggered recalculation, manual retry, schema/outbox work, UI, rendering, or firewall execution without a newly proven requirement.
+Continue Phase 4 WP-01 planning by specifying activation-neutral customer calculation blocks and recipe construction. Apply D-048 and keep the possible multiple-distinct-source exception, functional-target selection, and pre-catalog same-ticket Flow-group behavior explicit pending `phase-4/EXPERT-QUESTIONS.md`. Do not map enums, register the customer strategy, or expand into update-triggered recalculation, manual retry, schema/outbox work, UI, rendering, or firewall execution.
 
 All changes remain unstaged and uncommitted unless the user explicitly requests otherwise.

@@ -56,7 +56,7 @@ The implementer applies only that package, adds its tests and documentation, run
 
 Do not inspect or analyze `FWO_Regel_Platzierung_Regelwerk.md` anywhere in Phase 3.
 
-The document is opened for the first time in the Phase 4 WP-01 planning session. That planner compares the customer behavior with the finished generic product and adds only the missing blocks, recipes, enum mappings, exceptional cases, and acceptance examples.
+The document is opened for the first time in the Phase 4 WP-01 planning session. That planner compares the customer behavior with the finished generic product and adds only the missing calculation blocks, activation-neutral recipe construction, exceptional cases, and acceptance examples. D-047 defers enum mapping and production activation to a later plan.
 
 Do not infer customer behavior or enum mappings from enum names, the archived proposal, or Phase 2's structural examples.
 
@@ -85,7 +85,7 @@ WP-01 production snapshot reader
          `--> WP-06 workflow activation hook
 
 WP-02 zone input + zone-capable WP-03 orchestration
-  `--> inactive until Phase 4 customer-specific recipes
+  `--> inactive until a later customer selection/activation package
 
 WP-04 renderer
   `--> removed by WP-05

@@ -4,14 +4,14 @@
 
 This directory is the repository source of truth for firewall rule positioning work. Active planning documents override chat history and any material under `archive/`.
 
-Phase 1 is implemented and validated, including the mandatory disposable-VM fresh-install and sequential `9.8.0` to `9.8.1` upgrade acceptance at commit `c85931e0f`. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 WP-01 through WP-06 are implemented and locally validated. WP-05 registers the graph-only calculation/persistence caller and removes the speculative renderer. WP-06 activates the caller from the approved implementation-task creation event. The implemented zone-input services are inactive for positioning until Phase 4. Phase 4 is ready for WP-01 planning of the customer-document analysis and customer-specific recipes.
+Phase 1 is implemented and validated, including the mandatory disposable-VM fresh-install and sequential `9.8.0` to `9.8.1` upgrade acceptance at commit `c85931e0f`. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 WP-01 through WP-06 are implemented and locally validated. WP-05 registers the graph-only calculation/persistence caller and removes the speculative renderer. WP-06 activates the caller from the approved implementation-task creation event. Phase 4 WP-01 planning is in progress and has analyzed the customer document. It first builds isolated customer calculation behavior; selection and production activation are deferred under D-047.
 
 | Phase | Status | Purpose |
 | --- | --- | --- |
 | Phase 1 | Implemented and validated | Build a calculation-only, cross-vendor positioning foundation and independent position persistence. |
 | Phase 2 | Implemented and locally validated | Build generic composition contracts, a reusable immutable structural graph, semantic positions, and structural blocks. |
 | Phase 3 | WP-01 through WP-06 implemented and locally validated | Complete a graph-only generic path that persists semantic positions, activate it from an approved workflow seam, remove the renderer, and leave zone input inactive. |
-| Phase 4 | Ready for WP-01 planning | Analyze the customer document and extend the finished generic product with customer-only zone input, required blocks, recipes, and enum mappings. |
+| Phase 4 | WP-01 planning in progress | Add isolated customer calculation behavior while deferring enum mapping and production activation to a later plan. |
 | Previous proposal | Archived | Historical context only; it is not an alternative active plan. |
 
 ## Reading order
@@ -91,7 +91,7 @@ Phase 2 does not add a strategy, policy loader, dependency-injection registratio
 | [Phase 3 WP-04](phase-3/WP-04-semantic-position-rendering-planning.md) | Historical experiment; its renderer was removed by WP-05 under D-036. |
 | [Phase 3 WP-05](phase-3/WP-05-generic-production-completion-planning.md) | Implemented graph-only generic calculation and persistence, kept zone input inactive, and removed the renderer. |
 | [Phase 3 WP-06](phase-3/WP-06-workflow-activation-planning.md) | Completed activation of the WP-05 caller from the approved server-side workflow trigger. |
-| [Phase 4 WP-01](phase-4/WP-01-customer-specific-recipes-planning.md) | Analyze the customer document and add customer-only zone usage plus the required blocks, recipes, and enum mappings. |
+| [Phase 4 WP-01](phase-4/WP-01-customer-specific-recipes-planning.md) | Analyze the customer document and add isolated customer blocks plus activation-neutral recipe construction. |
 
 ## Dependency graph
 
@@ -118,7 +118,7 @@ Phase 2 including WP-04
                 `--> Phase 3 WP-06 workflow activation
 
 Phase 3 WP-02 zone input + zone-capable portion of WP-03
-  `--> inactive until Phase 4 WP-01 customer extension
+  `--> inactive until a later customer selection/activation package
 
 Phase 3 WP-04 renderer
   `--> removed by Phase 3 WP-05
@@ -146,7 +146,7 @@ WP-02 and WP-03 proceeded in parallel after WP-01 stabilized. Phase 1 was comple
 - Generic recipes use the imported rulebase graph only and never load zone input.
 - Phase 3 WP-05 confirmed and implemented one genuinely generic existing enum mapping without inferring semantics from an enum name.
 - Phase 3 WP-05 registered the workflow caller; Phase 3 WP-06 completed its separately planned activation hook.
-- Customer-specific enum mappings and blocks are deferred to Phase 4 WP-01.
+- Customer-specific calculation blocks are deferred to Phase 4 WP-01; enum mapping and production selection are deferred to a later plan under D-047.
 
 ## Session protocol
 

@@ -652,7 +652,7 @@ namespace FWO.Services.Modelling
             List<NetworkObject>? objByMgt = await GetObjects(mgtId, [1, 3, 12]);
             if (objByMgt != null)
             {
-                if (!allExistingAppServers.TryGetValue(mgtId, out Dictionary<ModellingAppServer, long>? appServers))
+                if (!allExistingAppServers.TryGetValue(mgtId, out Dictionary<ModellingAppServer, ModellingAppServer>? appServers))
                 {
                     appServers = new(appServerComparer);
                     allExistingAppServers.Add(mgtId, appServers);
@@ -660,7 +660,7 @@ namespace FWO.Services.Modelling
                 foreach (NetworkObject obj in objByMgt)
                 {
                     ModellingAppServer appServer = new(obj);
-                    appServers.TryAdd(appServer, appServer.Id);
+                    appServers.TryAdd(appServer, appServer);
                     aSCount++;
                 }
             }

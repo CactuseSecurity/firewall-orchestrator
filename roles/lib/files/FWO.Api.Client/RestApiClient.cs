@@ -3,6 +3,7 @@ using RestSharp;
 using RestSharp.Authenticators;
 using RestSharp.Serializers;
 using RestSharp.Serializers.NewtonsoftJson;
+using System.Net;
 using System.Net.Security;
 
 namespace FWO.Api.Client
@@ -10,6 +11,9 @@ namespace FWO.Api.Client
     public abstract class RestApiClient
     {
         private const string kTlsLogCategory = "REST TLS";
+        // RestSharp decodes every method by default. Brotli is left out, so a response from a
+        // remote system never reaches the Brotli decoder (CVE-2026-111497); servers fall back to gzip.
+        internal const DecompressionMethods kAllowedDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
         private static readonly HashSet<string> uncheckedEndpointsWarned = [];
         private static readonly object uncheckedEndpointLock = new();
 
@@ -75,7 +79,11 @@ namespace FWO.Api.Client
 
         private RestClient CreateRestClient(IAuthenticator? authenticator)
         {
-            RestClientOptions restClientOptions = new() { Timeout = ResponseTimeout };
+            RestClientOptions restClientOptions = new()
+            {
+                Timeout = ResponseTimeout,
+                AutomaticDecompression = kAllowedDecompression
+            };
             // Assigned, not combined: a multicast validation callback only ever returns the
             // result of its last delegate, which silently discards a rejection made earlier.
             restClientOptions.RemoteCertificateValidationCallback = (requestMessage, cert, chain, sslErrors) =>

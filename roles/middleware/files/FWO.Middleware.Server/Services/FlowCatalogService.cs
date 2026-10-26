@@ -472,31 +472,52 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
 
     private static AddressObjectResponse ToAddressObjectResponse(FlowNwObject flowObject)
     {
+        List<string> ipRange = ResolveIpRange(flowObject);
         return new AddressObjectResponse
         {
             Id = flowObject.Id,
             Name = flowObject.Name ?? string.Empty,
-            Type = ResolveAddressType(flowObject),
-            IpRange = [flowObject.IpStart ?? string.Empty, flowObject.IpEnd ?? string.Empty],
+            Type = ResolveAddressType(flowObject, ipRange),
+            IpRange = ipRange,
             State = flowObject.State,
             ShowInRequest = flowObject.ShowInRequestModule
         };
     }
 
     /// <summary>
-    /// Resolves the address object type from its IP range.
+    /// Resolves the maskless first and last address of an address object.
     /// </summary>
-    private static string ResolveAddressType(FlowNwObject flowObject)
+    private static List<string> ResolveIpRange(FlowNwObject flowObject)
     {
         if (string.IsNullOrWhiteSpace(flowObject.IpStart) || string.IsNullOrWhiteSpace(flowObject.IpEnd))
+        {
+            return [];
+        }
+
+        return [NormalizeIpAddress(flowObject.IpStart), NormalizeIpAddress(flowObject.IpEnd)];
+    }
+
+    /// <summary>
+    /// Removes an optional prefix and formats a valid IP address consistently.
+    /// </summary>
+    private static string NormalizeIpAddress(string value)
+    {
+        string masklessValue = value.Split('/', 2)[0];
+        return IPAddress.TryParse(masklessValue, out IPAddress? address) ? address.ToString() : masklessValue;
+    }
+
+    /// <summary>
+    /// Resolves the address object type from its IP range.
+    /// </summary>
+    private static string ResolveAddressType(FlowNwObject flowObject, IReadOnlyList<string> ipRange)
+    {
+        if (ipRange.Count == 0)
         {
             return "fqdn";
         }
 
-        string ipStartValue = flowObject.IpStart.Split('/', 2)[0];
-        string ipEndValue = flowObject.IpEnd.Split('/', 2)[0];
-        if (!IPAddress.TryParse(ipStartValue, out IPAddress? ipStart)
-            || !IPAddress.TryParse(ipEndValue, out IPAddress? ipEnd)
+        if (!IPAddress.TryParse(ipRange[0], out IPAddress? ipStart)
+            || !IPAddress.TryParse(ipRange[1], out IPAddress? ipEnd)
             || ipStart.AddressFamily != ipEnd.AddressFamily)
         {
             Log.WriteWarning("FlowCatalogService", "ResolveAddressType - Invalid IP range: {flowObject.IpStart} - {flowObject.IpEnd}");

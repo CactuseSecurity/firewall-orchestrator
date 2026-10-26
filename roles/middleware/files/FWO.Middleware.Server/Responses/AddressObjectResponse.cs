@@ -26,7 +26,8 @@ public sealed class AddressObjectResponse
     public string Type { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets the inclusive IP range as its first and last address.
+    /// Gets the inclusive IP range as its first and last maskless address, or an empty list for
+    /// non-IP objects such as FQDNs.
     /// </summary>
     [JsonPropertyName("ipRange")]
     public List<string> IpRange { get; set; } = [];

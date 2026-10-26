@@ -1,6 +1,9 @@
 # Firewall Orchestrator Revision History
 
 ## 9.8.2 - 24.10.2026
+- middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`
+  now return each inclusive address range as the two-entry `ipRange` instead of separate `ipStart`
+  and `ipEnd` fields; `getAddressObjects` returns an empty range for non-IP objects such as FQDNs
 - workflow API: `createTicket` now creates object-create request tasks for submitted new network objects, services and time objects
 - workflow UI: network and service group modification tasks provide management-aware selectors for existing groups,
   member add/remove editing, and read-only display of the requested changes
@@ -12,9 +15,6 @@
   - versions before 9.8.2 cannot read the new format, so a downgrade requires re-entering the secrets
 
 ## 9.8.1 - 20.10.2026
-- middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`
-  now return each inclusive address range as the two-entry `ipRange` instead of separate `ipStart`
-  and `ipEnd` fields
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
 - autodiscovery: alerts and alert log lines no longer contain the import credential secret of the super management; the upgrade removes it from existing alerts. Rotate the credentials of super managements used with autodiscovery, and purge old middleware logs where possible
 - new REST endpoint `POST /api/pathAnalysis/resolvePathDevices` (roles admin, auditor): returns the firewall devices on the paths between every source and every destination, deduplicated and unordered, together with the algorithm and zone matrix actually used. This makes the network zone tree path analysis callable

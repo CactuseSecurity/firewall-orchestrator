@@ -1,11 +1,27 @@
 # Firewall Orchestrator Revision History
-
 ## 9.8.2 - 21.10.2026
 - modelling: new setting "Network Areas excluded from Common Services" - network areas listed there are not offered for selection in common services and cannot be added to them; existing common services containing such an area can only be saved after removing it (#5406)
 - modelling: fix destination area check using the "in Source" flag of common network areas instead of "in Destination"
+- modelling: new setting "Network Areas excluded from Common Services" - network areas listed there are not offered for selection in common services and cannot be added to them; existing common services containing such an area can only be saved after removing it (#5406)
+- modelling: fix destination area check using the "in Source" flag of common network areas instead of "in Destination"
+
+## 9.8.2 - 24.10.2026
+- middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`
+  now return each inclusive address range as the two-entry `ipRange` instead of separate `ipStart`
+  and `ipEnd` fields; `getAddressObjects` returns an empty range for non-IP objects such as FQDNs
+- workflow API: `createTicket` now creates object-create request tasks for submitted new network objects, services and time objects
+- workflow UI: network and service group modification tasks provide management-aware selectors for existing groups,
+  member add/remove editing, and read-only display of the requested changes
+- workflow configuration transfer: export selected phases with a custom file name; import as a new configuration or merge into an existing one
+- workflow configuration packages include referenced state names and `automatic_only` semantics; missing states are created, equivalent existing states are reused, and conflicting state IDs are rejected before import changes are made
+- stored secrets (import credentials, LDAP and email passwords) are now encrypted with authentication (AES-256-CBC with HMAC-SHA256, encrypt-then-MAC) in the new format `fwo-v2:...` (#5476). Before, a wrong main key was only detected by an invalid padding, so about 1 in 250 decryptions with a wrong key (e.g. after a restore with another main key) returned a garbage secret that was then sent to LDAP, mail or ticket servers instead of failing with "Could not decrypt secret"
+  - the UI, middleware, importer and database read both formats; the installer (install and upgrade) re-encrypts all secrets stored in the old format, the UI re-encrypts a secret in the old format when it is saved
+  - the importer no longer uses the stored ciphertext as password when a secret in the new format cannot be decrypted, the import fails instead
+  - versions before 9.8.2 cannot read the new format, so a downgrade requires re-entering the secrets
 
 ## 9.8.1 - 20.10.2026
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
+- autodiscovery: alerts and alert log lines no longer contain the import credential secret of the super management; the upgrade removes it from existing alerts. Rotate the credentials of super managements used with autodiscovery, and purge old middleware logs where possible
 - new REST endpoint `POST /api/pathAnalysis/resolvePathDevices` (roles admin, auditor): returns the firewall devices on the paths between every source and every destination, deduplicated and unordered, together with the algorithm and zone matrix actually used. This makes the network zone tree path analysis callable
   - sources and destinations: 1 to 100 entries each, given as inclusive range (`ipStart`, `ipEnd`) or CIDR network (`ipNetwork`), IPv4 and IPv6; networks with host bits and IPv4 written as IPv6 are rejected
   - options: `algorithm` (currently `networkZoneTree`), `matrixId` (only together with `networkZoneTree`) and a filter on device id and name; omitted options fall back to the configured algorithm and designated zone matrix

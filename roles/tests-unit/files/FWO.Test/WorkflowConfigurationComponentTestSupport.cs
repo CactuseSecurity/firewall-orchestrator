@@ -90,8 +90,17 @@ namespace FWO.Test
     internal sealed class RecordingWorkflowApiConnection : SimulatedApiConnection
     {
         private readonly Dictionary<string, object> responses = [];
+        private readonly Dictionary<string, int> failures = [];
 
         public List<(string Query, object? Variables, Type ResponseType)> Calls { get; } = [];
+
+        /// <summary>
+        /// Makes one exact query invocation fail, which is useful for rollback tests.
+        /// </summary>
+        public void FailOnCall(string query, int callNumber)
+        {
+            failures[query] = callNumber;
+        }
 
         /// <summary>
         /// Registers the result returned for an exact GraphQL query string.
@@ -102,6 +111,11 @@ namespace FWO.Test
             QueryChunkingOptions? chunkingOptions = null)
         {
             Calls.Add((query, variables, typeof(T)));
+            int queryCallNumber = Calls.Count(call => call.Query == query);
+            if (failures.TryGetValue(query, out int failureCallNumber) && queryCallNumber == failureCallNumber)
+            {
+                throw new InvalidOperationException($"Forced test failure for query {query}.");
+            }
             if (responses.TryGetValue(query, out object? response))
             {
                 return Task.FromResult((T)response);

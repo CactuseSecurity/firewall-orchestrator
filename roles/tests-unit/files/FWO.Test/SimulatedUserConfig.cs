@@ -758,6 +758,7 @@ namespace FWO.Test
             {"login_secret","Login secret"},
             {"additional_credential","Additional credential"},
             {"E5128","Credential is used by other credentials"},
+            {"E5130","The selected group has too many members to edit."},
             {"fetch_credentials","Fetch credentials"},
             {"save_credential","Save credential"},
             {"delete_credential","Delete credential"},

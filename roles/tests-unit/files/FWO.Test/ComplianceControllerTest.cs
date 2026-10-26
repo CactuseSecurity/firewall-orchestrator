@@ -26,6 +26,7 @@ namespace FWO.Test
     {
         private static readonly List<int> kSingleManagement = [1];
         private static readonly List<Ldap> kNoLdaps = [];
+        private static readonly List<string> kDmzIpRange = ["10.0.0.0", "10.0.0.255"];
 
         [Test]
         public async Task StartInitialComplianceCheck_ReturnsAcceptedAndMarksJobSucceeded()
@@ -248,8 +249,7 @@ namespace FWO.Test
             Assert.That(zones[0].Name, Is.EqualTo("DMZ"));
             Assert.That(zones[0].Description, Is.EqualTo("Demilitarized zone"));
             Assert.That(zones[0].IpRanges, Has.Count.EqualTo(1));
-            Assert.That(zones[0].IpRanges[0].IpStart, Is.EqualTo("10.0.0.0"));
-            Assert.That(zones[0].IpRanges[0].IpEnd, Is.EqualTo("10.0.0.255"));
+            Assert.That(zones[0].IpRanges[0].IpRange, Is.EqualTo(kDmzIpRange));
             Assert.That(apiConnection.LastMatrixQuery, Is.EqualTo(ComplianceQueries.getMatrixById));
             Assert.That(GetAnonymousProperty<int>(apiConnection.LastMatrixQueryVariables, "criterionId"), Is.EqualTo(12));
             Assert.That(apiConnection.MatrixQueryCount, Is.EqualTo(1));

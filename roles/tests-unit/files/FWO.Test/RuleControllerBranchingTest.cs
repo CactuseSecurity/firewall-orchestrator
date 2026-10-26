@@ -21,6 +21,8 @@ namespace FWO.Test
     {
         private static readonly string[] kExpectedBothRuleNames = ["Source", "Destination"];
         private static readonly string[] kExpectedZeroMinPrefixRuleNames = ["Source", "AnySource"];
+        private static readonly string[] kFirstPageRuleNames = ["Source"];
+        private static readonly string[] kSecondPageRuleNames = ["Destination"];
 
         [Test]
         public async Task GetRulesByFilter_ShouldWorkWithOwnerId()
@@ -378,9 +380,115 @@ namespace FWO.Test
             AssertRelationFiltersActiveAndRemoved(RuleQueries.getActiveRulesByOwner, "rule_services");
         }
 
-        private static RuleController CreateController(ApiConnection apiConnection, string requestId)
+        [Test]
+        public async Task GetRulesByFilter_PagesTheIpMatchesOrderedByRuleId()
         {
-            RuleController controller = new(apiConnection);
+            RuleController firstPageController = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-page-1");
+            RuleController secondPageController = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-page-2");
+
+            RulesByFilterResponse firstPage = ExtractResponse(await firstPageController.GetRulesByFilter(BuildBothFieldsRequest(1, null), "req-page-1"));
+            RulesByFilterResponse secondPage = ExtractResponse(await secondPageController.GetRulesByFilter(BuildBothFieldsRequest(1, 1), "req-page-2"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstPage.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kFirstPageRuleNames));
+                Assert.That(firstPage.Result.Count, Is.EqualTo(1));
+                Assert.That(HasMoreHeader(firstPageController), Is.EqualTo("true"));
+                Assert.That(secondPage.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kSecondPageRuleNames));
+                Assert.That(HasMoreHeader(secondPageController), Is.EqualTo("false"));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_TakesTheDefaultPageSizeFromTheConfiguration()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-config",
+                new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 1 });
+
+            RulesByFilterResponse response = ExtractResponse(await controller.GetRulesByFilter(BuildBothFieldsRequest(null, null), "req-config"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kFirstPageRuleNames));
+                Assert.That(HasMoreHeader(controller), Is.EqualTo("true"));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_PagesTheOwnerRuleIdsBeforeFetchingDetails()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-owner-page");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    Query = new RulesByFilterQuery { OwnerId = 42 },
+                    Options = new RulesByFilterOptions { Offset = 1 }
+                }, "req-owner-page");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.Result.Count, Is.EqualTo(0));
+                Assert.That(response.Result.Rules, Is.Empty);
+                Assert.That(HasMoreHeader(controller), Is.EqualTo("false"));
+            });
+        }
+
+        [TestCase(0, null)]
+        [TestCase(GlobalConst.kDefaultMaxRestResponseObjectLimit + 1, null)]
+        [TestCase(null, -1)]
+        public async Task GetRulesByFilter_RejectsPagingOutOfRange(int? limit, int? offset)
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-invalid-paging");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(BuildBothFieldsRequest(limit, offset), "req-invalid-paging");
+
+            BadRequestObjectResult badRequest = actionResult.Result as BadRequestObjectResult
+                ?? throw new AssertionException("Expected a bad request.");
+            Assert.That(badRequest.Value?.ToString(), Does.StartWith("Invalid paging"));
+        }
+
+        [Test]
+        public void GetRulesByFilter_RequestDefaultsTheOptionsToAnEmptyObject()
+        {
+            RulesByFilterRequest request = JsonSerializer.Deserialize<RulesByFilterRequest>("{\"query\":{\"ownerId\":1}}", kWebJsonOptions)!;
+            RulesByFilterRequest pagedRequest = JsonSerializer.Deserialize<RulesByFilterRequest>("{\"options\":{\"limit\":3,\"offset\":6}}", kWebJsonOptions)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(request.Options, Is.Not.Null);
+                Assert.That(request.Options!.Limit, Is.Null);
+                Assert.That(request.Options.Offset, Is.Null);
+                Assert.That(pagedRequest.Options!.Limit, Is.EqualTo(3));
+                Assert.That(pagedRequest.Options.Offset, Is.EqualTo(6));
+            });
+        }
+
+        private static readonly JsonSerializerOptions kWebJsonOptions = new(JsonSerializerDefaults.Web);
+
+        private static RulesByFilterRequest BuildBothFieldsRequest(int? limit, int? offset)
+        {
+            return new RulesByFilterRequest
+            {
+                RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                Query = new RulesByFilterQuery
+                {
+                    IpAddress = "10.1.2.3",
+                    Filter = new RuleFilter { Action = "any", MinPrefixLength = 24, InField = "both" }
+                },
+                Options = new RulesByFilterOptions { Limit = limit, Offset = offset }
+            };
+        }
+
+        private static string HasMoreHeader(ControllerBase controller)
+        {
+            return controller.HttpContext.Response.Headers["X-Has-More"].ToString();
+        }
+
+        private static RuleController CreateController(ApiConnection apiConnection, string requestId, SimulatedGlobalConfig? globalConfig = null)
+        {
+            RuleController controller = new(apiConnection, globalConfig ?? new SimulatedGlobalConfig());
             controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext()

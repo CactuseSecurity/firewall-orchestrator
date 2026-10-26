@@ -1,8 +1,10 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
+using FWO.Basics;
 using FWO.Data.Middleware;
 using FWO.Middleware.Server.Controllers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
 using MiddlewareLdap = FWO.Middleware.Server.Ldap;
@@ -16,6 +18,59 @@ namespace FWO.Test
         private static readonly string kSearchUser = "cn=search,dc=fworch,dc=internal";
         private static readonly string kSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
         private static readonly string kWriteUser = "cn=write,dc=fworch,dc=internal";
+        private static readonly List<int> kFirstTenantId = [2];
+        private static readonly List<int> kLastTenantId = [7];
+        private static readonly List<string> kLimitAndOffsetKeys = ["limit", "offset"];
+
+        [Test]
+        public async Task Get_PagesTheTenantsOrderedByIdAndSetsTheHasMoreHeader()
+        {
+            TenantControllerTestApiConnection apiConnection = new()
+            {
+                Tenants =
+                [
+                    new Tenant { Id = 7, Name = "tenant-7" },
+                    new Tenant { Id = 2, Name = "tenant-2" }
+                ]
+            };
+            TenantController firstPageController = CreatePagingController(apiConnection, new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 1 });
+            TenantController lastPageController = CreatePagingController(apiConnection, new SimulatedGlobalConfig());
+
+            List<TenantGetReturnParameters> firstPage = (await firstPageController.Get(new PagingParameters())).Value!;
+            List<TenantGetReturnParameters> lastPage = (await lastPageController.Get(new PagingParameters { Offset = 1 })).Value!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstPage.Select(tenant => tenant.Id), Is.EqualTo(kFirstTenantId));
+                Assert.That(firstPageController.HttpContext.Response.Headers["X-Has-More"].ToString(), Is.EqualTo("true"));
+                Assert.That(lastPage.Select(tenant => tenant.Id), Is.EqualTo(kLastTenantId));
+                Assert.That(lastPageController.HttpContext.Response.Headers["X-Has-More"].ToString(), Is.EqualTo("false"));
+            });
+        }
+
+        [Test]
+        public async Task Get_RejectsALimitAboveTheConfiguredMaximumWithoutQueryingTheApi()
+        {
+            TenantControllerTestApiConnection apiConnection = new();
+            TenantController controller = CreatePagingController(apiConnection, new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 1 });
+
+            ActionResult<List<TenantGetReturnParameters>> result = await controller.Get(new PagingParameters { Limit = 2, Offset = -1 });
+
+            ValidationProblemDetails problem = (ValidationProblemDetails)((BadRequestObjectResult)result.Result!).Value!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(problem.Errors.Keys, Is.EquivalentTo(kLimitAndOffsetKeys));
+                Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
+            });
+        }
+
+        private static TenantController CreatePagingController(ApiConnection apiConnection, SimulatedGlobalConfig globalConfig)
+        {
+            return new TenantController(new List<MiddlewareLdap>(), apiConnection, globalConfig)
+            {
+                ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+            };
+        }
 
         [Test]
         public async Task Get_ReturnsConvertedTenants()
@@ -34,9 +89,9 @@ namespace FWO.Test
                     }
                 ]
             };
-            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection);
+            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection, new SimulatedGlobalConfig());
 
-            List<TenantGetReturnParameters> result = await controller.Get();
+            List<TenantGetReturnParameters> result = (await controller.Get(new PagingParameters())).Value!;
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].Id, Is.EqualTo(7));
@@ -52,7 +107,7 @@ namespace FWO.Test
         public async Task Post_ReturnsZeroWithoutWritableLdap()
         {
             TenantControllerTestApiConnection apiConnection = new();
-            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection);
+            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection, new SimulatedGlobalConfig());
 
             int result = await controller.Post(new TenantAddParameters
             {
@@ -76,7 +131,7 @@ namespace FWO.Test
                     ReturnIds = new ReturnId[] { new() { NewId = 77 } }
                 }
             };
-            TenantController controller = new(new List<MiddlewareLdap> { ldap }, apiConnection);
+            TenantController controller = new(new List<MiddlewareLdap> { ldap }, apiConnection, new SimulatedGlobalConfig());
 
             int result = await controller.Post(new TenantAddParameters
             {
@@ -101,7 +156,7 @@ namespace FWO.Test
             {
                 ThrowOnAddTenant = true
             };
-            TenantController controller = new(new List<MiddlewareLdap> { ldap }, apiConnection);
+            TenantController controller = new(new List<MiddlewareLdap> { ldap }, apiConnection, new SimulatedGlobalConfig());
 
             int result = await controller.Post(new TenantAddParameters
             {
@@ -121,7 +176,7 @@ namespace FWO.Test
             {
                 UpdateResult = new ReturnId { UpdatedId = 7 }
             };
-            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection);
+            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection, new SimulatedGlobalConfig());
 
             bool result = await controller.Change(new TenantEditParameters
             {
@@ -143,7 +198,7 @@ namespace FWO.Test
             {
                 UpdateResult = new ReturnId { UpdatedId = 6 }
             };
-            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection);
+            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection, new SimulatedGlobalConfig());
 
             bool result = await controller.Change(new TenantEditParameters
             {
@@ -164,7 +219,7 @@ namespace FWO.Test
             {
                 DeleteResult = new ReturnId { DeletedId = 7 }
             };
-            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection);
+            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection, new SimulatedGlobalConfig());
 
             bool result = await controller.Delete(new TenantDeleteParameters
             {
@@ -184,7 +239,7 @@ namespace FWO.Test
             {
                 DeleteResult = new ReturnId { DeletedId = 6 }
             };
-            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection);
+            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection, new SimulatedGlobalConfig());
 
             bool result = await controller.Delete(new TenantDeleteParameters
             {

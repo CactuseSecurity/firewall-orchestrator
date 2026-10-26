@@ -14,6 +14,7 @@ using FWO.Services.Workflow;
 using GraphQL;
 using GraphQL.Client.Serializer.Newtonsoft;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -29,6 +30,7 @@ namespace FWO.Test;
 internal class WorkflowChangeHistoryControllerTest
 {
     private static readonly List<string> kControllerRoutes = new() { "api/workflow" };
+    internal const int kMaxLimit = GlobalConst.kDefaultMaxRestResponseObjectLimit;
     // Unspecified on purpose: change_history.change_time is a timezone-naive column, so this is the
     // kind Newtonsoft produces for a stored row. Building fixtures as Utc hid the mismatch of F3.
     private static readonly DateTime kFirstChangeTime = new(2026, 9, 11, 8, 11, 0, DateTimeKind.Unspecified);
@@ -104,7 +106,7 @@ internal class WorkflowChangeHistoryControllerTest
     [Test]
     public void ValidationAcceptsTheDocumentedRequest()
     {
-        RequestValidationErrorResponse errors = GetAuditProofCriticalChangesRequestValidator.Validate(
+        RequestValidationErrorResponse errors = ValidateRequest(
             Deserialize("{\"ticketId\":1234,\"options\":{\"filter\":{\"changeUserName\":\"abc\"}}}"));
 
         Assert.That(errors.Errors, Is.Empty);
@@ -113,13 +115,13 @@ internal class WorkflowChangeHistoryControllerTest
     [Test]
     public void ValidationReportsEveryErrorOfOneRequestTogether()
     {
-        RequestValidationErrorResponse errors = GetAuditProofCriticalChangesRequestValidator.Validate(
-            Deserialize("{\"ticketId\":0,\"ticket_id\":1,\"options\":{\"limit\":5,\"filter\":{\"changer\":\"abc\"}}}"));
+        RequestValidationErrorResponse errors = ValidateRequest(
+            Deserialize("{\"ticketId\":0,\"ticket_id\":1,\"options\":{\"limit\":0,\"offset\":-1,\"sortBy\":5,\"filter\":{\"changer\":\"abc\"}}}"));
 
         List<string> paths = errors.Errors.Select(error => error.Path).ToList();
         Assert.Multiple(() =>
         {
-            Assert.That(paths, Is.EquivalentTo(new List<string> { "ticketId", "ticket_id", "options.limit", "options.filter.changer" }));
+            Assert.That(paths, Is.EquivalentTo(new List<string> { "ticketId", "ticket_id", "options.limit", "options.offset", "options.sortBy", "options.filter.changer" }));
             Assert.That(errors.Errors.Single(error => error.Path == "ticketId").Message,
                 Does.Contain("must be greater than 0"));
             Assert.That(errors.Errors.Single(error => error.Path == "options.filter.changer").Message,
@@ -130,7 +132,7 @@ internal class WorkflowChangeHistoryControllerTest
     [Test]
     public void AnOmittedTicketIdIsReportedByTheAggregatingValidator()
     {
-        RequestValidationErrorResponse errors = GetAuditProofCriticalChangesRequestValidator.Validate(
+        RequestValidationErrorResponse errors = ValidateRequest(
             Deserialize("{\"options\":{\"filter\":{\"changer\":\"abc\"}}}"));
 
         Assert.Multiple(() =>
@@ -154,9 +156,9 @@ internal class WorkflowChangeHistoryControllerTest
         {
             Assert.That(omitted.TicketId, Is.Null);
             Assert.That(supplied.TicketId, Is.EqualTo(0));
-            Assert.That(GetAuditProofCriticalChangesRequestValidator.Validate(omitted).Errors
+            Assert.That(ValidateRequest(omitted).Errors
                 .Single(error => error.Path == "ticketId").Message, Does.Contain("is required"));
-            Assert.That(GetAuditProofCriticalChangesRequestValidator.Validate(supplied).Errors
+            Assert.That(ValidateRequest(supplied).Errors
                 .Single(error => error.Path == "ticketId").Message, Does.Contain("must be greater than 0"));
         });
     }
@@ -164,7 +166,7 @@ internal class WorkflowChangeHistoryControllerTest
     [Test]
     public void ValidationRejectsAMissingRequestBody()
     {
-        RequestValidationErrorResponse errors = GetAuditProofCriticalChangesRequestValidator.Validate(null);
+        RequestValidationErrorResponse errors = ValidateRequest(null);
 
         Assert.Multiple(() =>
         {
@@ -178,7 +180,7 @@ internal class WorkflowChangeHistoryControllerTest
     public async Task GetAuditProofCriticalChangesReturnsTheRecordedChangesNewestFirst()
     {
         AuditProofCriticalChangesApiConnection apiConnection = CreateApiConnection();
-        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection));
+        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection), new SimulatedGlobalConfig());
 
         ActionResult<GetAuditProofCriticalChangesResponse> result = await controller.GetAuditProofCriticalChanges(new GetAuditProofCriticalChangesRequest { TicketId = 1234 });
 
@@ -202,10 +204,66 @@ internal class WorkflowChangeHistoryControllerTest
     }
 
     [Test]
+    public async Task GetAuditProofCriticalChangesPagesTheChangesNewestFirst()
+    {
+        WorkflowChangeHistoryController firstPageController = CreatePagingController();
+        WorkflowChangeHistoryController secondPageController = CreatePagingController();
+
+        ActionResult<GetAuditProofCriticalChangesResponse> firstPage = await firstPageController.GetAuditProofCriticalChanges(
+            new GetAuditProofCriticalChangesRequest { TicketId = 1234, Options = new GetAuditProofCriticalChangesOptions { Limit = 1 } });
+        ActionResult<GetAuditProofCriticalChangesResponse> secondPage = await secondPageController.GetAuditProofCriticalChanges(
+            new GetAuditProofCriticalChangesRequest { TicketId = 1234, Options = new GetAuditProofCriticalChangesOptions { Limit = 1, Offset = 1 } });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(OkResponse(firstPage).Changes.Single().ChangeTime, Is.EqualTo(kSecondChangeTime));
+            Assert.That(HasMoreHeader(firstPageController), Is.EqualTo("true"));
+            Assert.That(OkResponse(secondPage).Changes.Single().ChangeTime, Is.EqualTo(kFirstChangeTime));
+            Assert.That(HasMoreHeader(secondPageController), Is.EqualTo("false"));
+        });
+    }
+
+    [Test]
+    public async Task GetAuditProofCriticalChangesTakesTheMaximumPageSizeFromTheConfiguration()
+    {
+        SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = 1 };
+        WorkflowChangeHistoryController defaultPageController = CreatePagingController(globalConfig);
+        WorkflowChangeHistoryController tooLargeController = CreatePagingController(globalConfig);
+
+        ActionResult<GetAuditProofCriticalChangesResponse> defaultPage = await defaultPageController.GetAuditProofCriticalChanges(
+            new GetAuditProofCriticalChangesRequest { TicketId = 1234 });
+        ActionResult<GetAuditProofCriticalChangesResponse> tooLarge = await tooLargeController.GetAuditProofCriticalChanges(
+            new GetAuditProofCriticalChangesRequest { TicketId = 1234, Options = new GetAuditProofCriticalChangesOptions { Limit = 2 } });
+
+        RequestValidationErrorResponse errors = (RequestValidationErrorResponse)((BadRequestObjectResult)tooLarge.Result!).Value!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(OkResponse(defaultPage).Changes, Has.Count.EqualTo(1));
+            Assert.That(HasMoreHeader(defaultPageController), Is.EqualTo("true"));
+            Assert.That(errors.Errors.Single().Path, Is.EqualTo("options.limit"));
+        });
+    }
+
+    [Test]
+    public async Task AnOffsetBehindTheLastChangeReturnsAnEmptyPageWithoutTaskDiff()
+    {
+        (GetAuditProofCriticalChangesResponse Response, bool HasMore)? page = await new WorkflowChangeHistoryService(CreateApiConnection())
+            .GetAuditProofCriticalChangesAsync(1234, null, kMaxLimit, 5);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(page, Is.Not.Null);
+            Assert.That(page!.Value.Response.Changes, Is.Empty);
+            Assert.That(page.Value.Response.TaskDiff, Is.Null);
+            Assert.That(page.Value.HasMore, Is.False);
+        });
+    }
+
+    [Test]
     public async Task GetAuditProofCriticalChangesReturnsAnEmptyListForATicketWithoutChanges()
     {
         AuditProofCriticalChangesApiConnection apiConnection = new();
-        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection));
+        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection), new SimulatedGlobalConfig());
 
         ActionResult<GetAuditProofCriticalChangesResponse> result = await controller.GetAuditProofCriticalChanges(new GetAuditProofCriticalChangesRequest { TicketId = 4321 });
 
@@ -401,7 +459,7 @@ internal class WorkflowChangeHistoryControllerTest
     public async Task AnUnknownTicketIdIsReportedAsNotFoundInsteadOfAnEmptyList()
     {
         AuditProofCriticalChangesApiConnection apiConnection = new() { ExistingTicketIds = [] };
-        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection));
+        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection), new SimulatedGlobalConfig());
 
         ActionResult<GetAuditProofCriticalChangesResponse> result = await controller.GetAuditProofCriticalChanges(new GetAuditProofCriticalChangesRequest { TicketId = 999 });
 
@@ -431,7 +489,7 @@ internal class WorkflowChangeHistoryControllerTest
     public async Task TaskHistoryIsLoadedWhenTheTicketReturnedChanges()
     {
         AuditProofCriticalChangesApiConnection apiConnection = CreateApiConnection();
-        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection));
+        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection), new SimulatedGlobalConfig());
 
         await controller.GetAuditProofCriticalChanges(new GetAuditProofCriticalChangesRequest { TicketId = 1234 });
 
@@ -449,7 +507,7 @@ internal class WorkflowChangeHistoryControllerTest
     public async Task AFilterThatExcludesEveryChangeStaysAnEmptyResultNotANotFound()
     {
         AuditProofCriticalChangesApiConnection apiConnection = CreateApiConnection();
-        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection));
+        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection), new SimulatedGlobalConfig());
 
         ActionResult<GetAuditProofCriticalChangesResponse> result = await controller.GetAuditProofCriticalChanges(new GetAuditProofCriticalChangesRequest
         {
@@ -530,7 +588,7 @@ internal class WorkflowChangeHistoryControllerTest
     public async Task InvalidRequestsAreRejectedBeforeTheApiIsQueried()
     {
         AuditProofCriticalChangesApiConnection apiConnection = CreateApiConnection();
-        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection));
+        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection), new SimulatedGlobalConfig());
 
         ActionResult<GetAuditProofCriticalChangesResponse> result = await controller.GetAuditProofCriticalChanges(new GetAuditProofCriticalChangesRequest { TicketId = 0 });
 
@@ -546,7 +604,7 @@ internal class WorkflowChangeHistoryControllerTest
     [Test]
     public async Task ApiFailuresAreReportedAsAnInternalServerError()
     {
-        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(new FailingApiConnection()));
+        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(new FailingApiConnection()), new SimulatedGlobalConfig());
 
         ActionResult<GetAuditProofCriticalChangesResponse> result = await controller.GetAuditProofCriticalChanges(new GetAuditProofCriticalChangesRequest { TicketId = 1234 });
 
@@ -817,6 +875,11 @@ internal class WorkflowChangeHistoryControllerTest
         return typeof(WorkflowChangeHistoryController).GetMethod(nameof(WorkflowChangeHistoryController.GetAuditProofCriticalChanges))!;
     }
 
+    private static RequestValidationErrorResponse ValidateRequest(GetAuditProofCriticalChangesRequest? request)
+    {
+        return GetAuditProofCriticalChangesRequestValidator.Validate(request, kMaxLimit);
+    }
+
     private static GetAuditProofCriticalChangesRequest Deserialize(string json)
     {
         return JsonSerializer.Deserialize<GetAuditProofCriticalChangesRequest>(json)!;
@@ -913,5 +976,30 @@ internal class WorkflowChangeHistoryControllerTest
         {
             throw new InvalidOperationException("Api unavailable.");
         }
+    }
+    private static WorkflowChangeHistoryController CreatePagingController(SimulatedGlobalConfig? globalConfig = null)
+    {
+        return new WorkflowChangeHistoryController(new WorkflowChangeHistoryService(CreateApiConnection()), globalConfig ?? new SimulatedGlobalConfig())
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+    }
+
+    private static string HasMoreHeader(ControllerBase controller)
+    {
+        return controller.HttpContext.Response.Headers[ListPaging.kHasMoreHeader].ToString();
+    }
+
+}
+
+/// <summary>
+/// Reads the whole first page of the audit proof critical changes, as the tests written before paging expect.
+/// </summary>
+internal static class WorkflowChangeHistoryServiceTestExtensions
+{
+    internal static async Task<GetAuditProofCriticalChangesResponse?> GetAuditProofCriticalChangesAsync(this WorkflowChangeHistoryService service,
+        long ticketId, AuditProofCriticalChangeFilter? filter)
+    {
+        return (await service.GetAuditProofCriticalChangesAsync(ticketId, filter, WorkflowChangeHistoryControllerTest.kMaxLimit, null))?.Response;
     }
 }

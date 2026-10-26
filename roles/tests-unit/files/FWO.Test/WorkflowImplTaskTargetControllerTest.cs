@@ -24,6 +24,7 @@ namespace FWO.Test;
 [TestFixture]
 internal class WorkflowImplTaskTargetControllerTest
 {
+    private const int kMaxLimit = GlobalConst.kDefaultMaxRestResponseObjectLimit;
     private const int kSuperManagementId = 20;
     private const int kFirstSubManagementId = 21;
     private const int kSecondSubManagementId = 22;
@@ -160,7 +161,7 @@ internal class WorkflowImplTaskTargetControllerTest
     {
         GetImplTaskTargetsRequest request = new() { ManagementId = kSuperManagementId, IsServiceObject = true, IsTimeObject = true };
 
-        List<string> paths = [.. GetImplTaskTargetsRequestValidator.Validate(request).Errors.Select(error => error.Path)];
+        List<string> paths = [.. GetImplTaskTargetsRequestValidator.Validate(request, kMaxLimit).Errors.Select(error => error.Path)];
 
         Assert.That(paths, Is.EqualTo(kTimeObjectPathOnly));
     }
@@ -221,6 +222,31 @@ internal class WorkflowImplTaskTargetControllerTest
     }
 
     [Test]
+    public async Task GetImplTaskTargetsTakesTheDefaultPageSizeAndTheMaximumFromTheConfiguration()
+    {
+        SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = 1 };
+        WorkflowImplTaskTargetController defaultPageController = CreateController(CreateApi(), Principal(kPlannerRole, kWholeHierarchyVisible), globalConfig);
+        WorkflowImplTaskTargetController tooLargeController = CreateController(CreateApi(), Principal(kPlannerRole, kWholeHierarchyVisible), globalConfig);
+
+        ActionResult<GetImplTaskTargetsResponse> defaultPage = await defaultPageController.GetImplTaskTargets(
+            new GetImplTaskTargetsRequest { ManagementId = kSuperManagementId });
+        ActionResult<GetImplTaskTargetsResponse> tooLarge = await tooLargeController.GetImplTaskTargets(new GetImplTaskTargetsRequest
+        {
+            ManagementId = kSuperManagementId,
+            Options = new GetImplTaskTargetsOptions { Limit = 2 }
+        });
+
+        RequestValidationErrorResponse errors = (RequestValidationErrorResponse)((BadRequestObjectResult)tooLarge.Result!).Value!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(OkResponse(defaultPage).Targets.Select(target => target.Id), Is.EqualTo(kFirstSubManagementOnly));
+            Assert.That(HasMoreHeader(defaultPageController), Is.EqualTo("true"));
+            Assert.That(errors.Errors.Single().Path, Is.EqualTo("options.limit"));
+            Assert.That(errors.Errors.Single().Message, Does.Contain("between 1 and 1"));
+        });
+    }
+
+    [Test]
     public async Task GetImplTaskTargetsOrdersTargetsWithoutNameLastSoTheOrderDoesNotRevealHiddenNames()
     {
         InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
@@ -261,9 +287,9 @@ internal class WorkflowImplTaskTargetControllerTest
             Assert.That(request.IsTimeObject, Is.False);
             Assert.That(request.Options, Is.Not.Null);
             Assert.That(request.Options.Filter, Is.Null);
-            Assert.That(request.Options.Limit, Is.EqualTo(GetImplTaskTargetsOptions.kMaxLimit));
+            Assert.That(request.Options.Limit, Is.Null);
             Assert.That(request.Options.Offset, Is.Null);
-            Assert.That(GetImplTaskTargetsRequestValidator.Validate(request).Errors, Is.Empty);
+            Assert.That(GetImplTaskTargetsRequestValidator.Validate(request, kMaxLimit).Errors, Is.Empty);
         });
     }
 
@@ -281,10 +307,10 @@ internal class WorkflowImplTaskTargetControllerTest
     }
 
     [TestCase(1, 0, true)]
-    [TestCase(GetImplTaskTargetsOptions.kMaxLimit, 0, true)]
+    [TestCase(kMaxLimit, 0, true)]
     [TestCase(null, null, true)]
     [TestCase(0, 0, false)]
-    [TestCase(GetImplTaskTargetsOptions.kMaxLimit + 1, 0, false)]
+    [TestCase(kMaxLimit + 1, 0, false)]
     [TestCase(1, -1, false)]
     public void ValidationChecksTheLimitAndOffsetBounds(int? limit, int? offset, bool isValid)
     {
@@ -294,7 +320,7 @@ internal class WorkflowImplTaskTargetControllerTest
             Options = new GetImplTaskTargetsOptions { Limit = limit, Offset = offset }
         };
 
-        Assert.That(GetImplTaskTargetsRequestValidator.Validate(request).Errors, isValid ? Is.Empty : Is.Not.Empty);
+        Assert.That(GetImplTaskTargetsRequestValidator.Validate(request, kMaxLimit).Errors, isValid ? Is.Empty : Is.Not.Empty);
     }
 
     [Test]
@@ -318,16 +344,16 @@ internal class WorkflowImplTaskTargetControllerTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(GetImplTaskTargetsRequestValidator.Validate(request).Errors.Select(error => error.Path), Is.EquivalentTo(kAllPagingAndLengthErrorPaths));
-            Assert.That(GetImplTaskTargetsRequestValidator.Validate(longestValidName).Errors, Is.Empty);
+            Assert.That(GetImplTaskTargetsRequestValidator.Validate(request, kMaxLimit).Errors.Select(error => error.Path), Is.EquivalentTo(kAllPagingAndLengthErrorPaths));
+            Assert.That(GetImplTaskTargetsRequestValidator.Validate(longestValidName, kMaxLimit).Errors, Is.Empty);
         });
     }
 
     [Test]
     public void ValidationRejectsANonPositiveManagementIdAndAMissingBody()
     {
-        RequestValidationErrorResponse zeroErrors = GetImplTaskTargetsRequestValidator.Validate(new GetImplTaskTargetsRequest { ManagementId = 0 });
-        RequestValidationErrorResponse bodyErrors = GetImplTaskTargetsRequestValidator.Validate(null);
+        RequestValidationErrorResponse zeroErrors = GetImplTaskTargetsRequestValidator.Validate(new GetImplTaskTargetsRequest { ManagementId = 0 }, kMaxLimit);
+        RequestValidationErrorResponse bodyErrors = GetImplTaskTargetsRequestValidator.Validate(null, kMaxLimit);
 
         Assert.Multiple(() =>
         {
@@ -361,8 +387,8 @@ internal class WorkflowImplTaskTargetControllerTest
             Assert.That(serverRequest.IsTimeObject, Is.False);
             Assert.That(serverRequest.AdditionalData, Is.Null);
             Assert.That(serverRequest.Options.Offset, Is.EqualTo(1));
-            Assert.That(serverRequest.Options.Limit, Is.EqualTo(GetImplTaskTargetsOptions.kMaxLimit));
-            Assert.That(GetImplTaskTargetsRequestValidator.Validate(serverRequest).Errors, Is.Empty);
+            Assert.That(serverRequest.Options.Limit, Is.Null);
+            Assert.That(GetImplTaskTargetsRequestValidator.Validate(serverRequest, kMaxLimit).Errors, Is.Empty);
             Assert.That(ImplTaskTargetPaging.kHasMoreHeader, Is.EqualTo(ListPaging.kHasMoreHeader));
             Assert.That(clientResult.Targets.Single().Id, Is.EqualTo(kFirstSubManagementId));
             Assert.That(clientResult.Targets.Single().Name, Is.EqualTo(kFirstSubName));
@@ -384,7 +410,13 @@ internal class WorkflowImplTaskTargetControllerTest
 
     private static WorkflowImplTaskTargetController CreateController(InMemoryDeviceSpecificSettingsApiConnection api, ClaimsPrincipal user)
     {
-        return new WorkflowImplTaskTargetController(new ImplTaskTargetService(api))
+        return CreateController(api, user, new SimulatedGlobalConfig());
+    }
+
+    private static WorkflowImplTaskTargetController CreateController(InMemoryDeviceSpecificSettingsApiConnection api, ClaimsPrincipal user,
+        SimulatedGlobalConfig globalConfig)
+    {
+        return new WorkflowImplTaskTargetController(new ImplTaskTargetService(api), globalConfig)
         {
             ControllerContext = new ControllerContext
             {

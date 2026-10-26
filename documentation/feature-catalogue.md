@@ -179,6 +179,7 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Endpoint for getting rules | 8.8 |
 | `rule_owner` table for REST API | 9.0.1 |
 | JWT refresh token | 9.1.0 |
+| Paging of all REST list endpoints with configurable maximum page size (`maxRestResponseObjectLimit`) | 9.8.4 |
 
 ## User interface
 

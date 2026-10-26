@@ -1,4 +1,5 @@
 using FWO.Middleware.Server.Responses;
+using FWO.Middleware.Server.Services;
 
 namespace FWO.Middleware.Server.Requests;
 
@@ -12,8 +13,9 @@ public static class GetImplTaskTargetsRequestValidator
     /// Validates the whole request without stopping at the first error.
     /// </summary>
     /// <param name="request">Request to validate, or null when no body was supplied.</param>
+    /// <param name="maxLimit">Maximum page size.</param>
     /// <returns>All detected errors; empty when the request is valid.</returns>
-    public static RequestValidationErrorResponse Validate(GetImplTaskTargetsRequest? request)
+    public static RequestValidationErrorResponse Validate(GetImplTaskTargetsRequest? request, int maxLimit)
     {
         RequestValidationErrorResponse result = new();
         if (request == null)
@@ -26,7 +28,7 @@ public static class GetImplTaskTargetsRequestValidator
 
         ValidateManagementId(request, result);
         ValidateObjectKind(request, result);
-        ValidatePaging(request.Options, result);
+        ValidatePaging(request.Options, maxLimit, result);
         ValidateFilterName(request.Options.Filter, result);
         AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.AdditionalData, GetImplTaskTargetsValidationSchema.kRootPath,
             GetImplTaskTargetsValidationSchema.RootKeys, result);
@@ -60,17 +62,17 @@ public static class GetImplTaskTargetsRequestValidator
         }
     }
 
-    private static void ValidatePaging(GetImplTaskTargetsOptions options, RequestValidationErrorResponse result)
+    private static void ValidatePaging(GetImplTaskTargetsOptions options, int maxLimit, RequestValidationErrorResponse result)
     {
-        if (options.Limit is < 1 or > GetImplTaskTargetsOptions.kMaxLimit)
+        if (!ListPaging.IsValidLimit(options.Limit, maxLimit))
         {
             result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kLimitPath,
-                $"'{GetImplTaskTargetsValidationSchema.kLimitPath}' must be between 1 and {GetImplTaskTargetsOptions.kMaxLimit} when supplied."));
+                ListPaging.BuildLimitError(GetImplTaskTargetsValidationSchema.kLimitPath, maxLimit)));
         }
-        if (options.Offset is < 0)
+        if (!ListPaging.IsValidOffset(options.Offset))
         {
             result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kOffsetPath,
-                $"'{GetImplTaskTargetsValidationSchema.kOffsetPath}' must not be negative when supplied."));
+                ListPaging.BuildOffsetError(GetImplTaskTargetsValidationSchema.kOffsetPath)));
         }
     }
 

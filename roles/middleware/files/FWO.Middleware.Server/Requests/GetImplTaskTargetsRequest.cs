@@ -68,13 +68,6 @@ public sealed class GetImplTaskTargetsRequest : IRequestWithRootAdditionalData
 public sealed class GetImplTaskTargetsOptions : IRequestWithAdditionalData
 {
     /// <summary>
-    /// Maximum and default number of target managements returned per request. It is high because a target is
-    /// small, so a client that does not page still receives every sub-management of all but very large
-    /// super-managements in one page.
-    /// </summary>
-    public const int kMaxLimit = 1000;
-
-    /// <summary>
     /// Gets or sets the optional response filter. When omitted or <c>null</c> no response field restricts the
     /// result.
     /// </summary>
@@ -82,13 +75,13 @@ public sealed class GetImplTaskTargetsOptions : IRequestWithAdditionalData
     public ImplTaskTargetFilter? Filter { get; set; }
 
     /// <summary>
-    /// Gets or sets the maximum number of target managements to return, between 1 and <see cref="kMaxLimit"/>.
-    /// When omitted or <c>null</c>, a page of <see cref="kMaxLimit"/> targets is returned. Together with
-    /// <see cref="Offset"/> it pages the ordered result; the <c>X-Has-More</c> response header tells whether
-    /// further targets follow.
+    /// Gets or sets the maximum number of target managements to return, between 1 and the configured
+    /// <c>maxRestResponseObjectLimit</c> (default 10000). When omitted or <c>null</c>, a page of that size is
+    /// returned. Together with <see cref="Offset"/> it pages the ordered result; the <c>X-Has-More</c> response
+    /// header tells whether further targets follow.
     /// </summary>
     [JsonPropertyName("limit")]
-    public int? Limit { get; set; } = kMaxLimit;
+    public int? Limit { get; set; }
 
     /// <summary>
     /// Gets or sets the optional number of target managements to skip before the first returned one. Must not be

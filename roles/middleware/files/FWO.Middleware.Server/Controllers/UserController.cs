@@ -1,9 +1,11 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -22,16 +24,18 @@ namespace FWO.Middleware.Server.Controllers
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
         private readonly UserSessionRevocation sessionRevocation;
+        private readonly GlobalConfig globalConfig;
         private readonly string WrongUserId = "Wrong UserId";
         private const string kWrongLdapId = "The LDAP connection does not belong to the user.";
 
         /// <summary>
-        /// Constructor needing ldap list and connection
+        /// Constructor needing ldap list, connection and the global configuration holding the maximum page size
         /// </summary>
-        public UserController(List<Ldap> ldaps, ApiConnection apiConnection)
+        public UserController(List<Ldap> ldaps, ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.ldaps = ldaps;
             this.apiConnection = apiConnection;
+            this.globalConfig = globalConfig;
             sessionRevocation = new UserSessionRevocation(apiConnection, ldaps);
         }
 
@@ -39,21 +43,31 @@ namespace FWO.Middleware.Server.Controllers
         /// <summary>
         /// Get all locally known users.
         /// </summary>
+        /// <remarks>
+        /// Results are ordered by user id, so <c>limit</c> and <c>offset</c> page them deterministically. Without a limit a
+        /// page of at most the configured <c>maxRestResponseObjectLimit</c> users (default 10000) is returned, and the
+        /// <c>X-Has-More</c> response header tells whether further users follow.
+        /// The query parameters <c>limit</c> and <c>offset</c> select the page.
+        /// </remarks>
+        /// <param name="paging">Optional query parameters <c>limit</c> and <c>offset</c>.</param>
         /// <returns>List of all locally known users</returns>
         [HttpGet]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
-        public async Task<List<UserGetReturnParameters>> Get()
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<List<UserGetReturnParameters>>> Get([FromQuery] PagingParameters paging)
         {
-            List<UiUser> users = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUsers)).ToList();
-            List<UserGetReturnParameters> userList = [];
-            foreach (UiUser user in users)
+            int maxLimit = ListPaging.GetMaxObjectLimit(globalConfig);
+            if (!ListPaging.TryValidate(paging, maxLimit, out ActionResult? pagingError))
             {
-                if (user.DbId != 0)
-                {
-                    userList.Add(user.ToApiParams());
-                }
+                return pagingError!;
             }
-            return userList;
+
+            List<UiUser> users = (await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUsers)).ToList();
+            IEnumerable<UserGetReturnParameters> orderedUsers = users
+                .Where(user => user.DbId != 0)
+                .OrderBy(user => user.DbId)
+                .Select(user => user.ToApiParams());
+            return ListPaging.TakePage(HttpContext, orderedUsers, paging, maxLimit);
         }
 
         // GET api/<ValuesController>/5
@@ -63,13 +77,24 @@ namespace FWO.Middleware.Server.Controllers
         /// <remarks>
         /// LdapId (required) &#xA;
         /// SearchPattern (optional) &#xA;
+        /// Limit (optional), Offset (optional) &#xA;
+        /// Results are ordered by user dn, so <c>limit</c> and <c>offset</c> page them deterministically. Without a limit a
+        /// page of at most the configured <c>maxRestResponseObjectLimit</c> users (default 10000) is returned, and the
+        /// <c>X-Has-More</c> response header tells whether further users follow.
         /// </remarks>
         /// <param name="parameters">LdapUserGetParameters</param>
         /// <returns>List of users</returns>
         [HttpPost("Get")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
-        public async Task<List<LdapUserGetReturnParameters>> Get([FromBody] LdapUserGetParameters parameters)
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<List<LdapUserGetReturnParameters>>> Get([FromBody] LdapUserGetParameters parameters)
         {
+            int maxLimit = ListPaging.GetMaxObjectLimit(globalConfig);
+            if (!ListPaging.TryValidate(parameters, maxLimit, out ActionResult? pagingError))
+            {
+                return pagingError!;
+            }
+
             List<LdapUserGetReturnParameters> allUsers = [];
 
             foreach (Ldap currentLdap in ldaps)
@@ -85,7 +110,10 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             // Return status and result
-            return allUsers;
+            IEnumerable<LdapUserGetReturnParameters> orderedUsers = allUsers
+                .OrderBy(user => user.UserDn, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(user => user.UserDn, StringComparer.Ordinal);
+            return ListPaging.TakePage(HttpContext, orderedUsers, parameters, maxLimit);
         }
 
         // POST api/<ValuesController>

@@ -268,6 +268,24 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importScriptTimeout"), JsonPropertyName("importScriptTimeout")]
         public int ImportScriptTimeout { get; set; } = 60;
 
+        [JsonProperty("maxRestResponseObjectLimit"), JsonPropertyName("maxRestResponseObjectLimit")]
+        public int MaxRestResponseObjectLimit { get; set; } = GlobalConst.kDefaultMaxRestResponseObjectLimit;
+
+        /// <summary>
+        /// Returns the usable page size of the REST list endpoints for a configured maxRestResponseObjectLimit:
+        /// a value below 1 selects the default, a value above <see cref="GlobalConst.kMaxRestResponseObjectLimitCeiling"/>
+        /// the ceiling, so the setting can neither disable nor lift the result cap.
+        /// </summary>
+        /// <param name="configuredLimit">Configured maximum page size.</param>
+        public static int GetUsableMaxRestResponseObjectLimit(int configuredLimit)
+        {
+            if (configuredLimit < 1)
+            {
+                return GlobalConst.kDefaultMaxRestResponseObjectLimit;
+            }
+            return Math.Min(configuredLimit, GlobalConst.kMaxRestResponseObjectLimitCeiling);
+        }
+
         [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
         public string ReqAvailableTaskTypes { get; set; } = "";
 

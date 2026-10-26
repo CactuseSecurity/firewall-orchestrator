@@ -1,9 +1,11 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,32 +22,46 @@ namespace FWO.Middleware.Server.Controllers
     {
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
+        private readonly GlobalConfig globalConfig;
 
         /// <summary>
-        /// Constructor needing ldap list and connection
+        /// Constructor needing ldap list, connection and the global configuration holding the maximum page size
         /// </summary>
-        public TenantController(List<Ldap> ldaps, ApiConnection apiConnection)
+        public TenantController(List<Ldap> ldaps, ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.ldaps = ldaps;
             this.apiConnection = apiConnection;
+            this.globalConfig = globalConfig;
         }
 
         // GET: api/<TenantController>
         /// <summary>
         /// Get all tenants
         /// </summary>
+        /// <remarks>
+        /// Results are ordered by tenant id, so <c>limit</c> and <c>offset</c> page them deterministically. Without a limit a
+        /// page of at most the configured <c>maxRestResponseObjectLimit</c> tenants (default 10000) is returned, and the
+        /// <c>X-Has-More</c> response header tells whether further tenants follow.
+        /// The query parameters <c>limit</c> and <c>offset</c> select the page.
+        /// </remarks>
+        /// <param name="paging">Optional query parameters <c>limit</c> and <c>offset</c>.</param>
         /// <returns>List of tenants</returns>
         [HttpGet]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
-        public async Task<List<TenantGetReturnParameters>> Get()
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<List<TenantGetReturnParameters>>> Get([FromQuery] PagingParameters paging)
         {
-            Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenants);
-            List<TenantGetReturnParameters> tenantList = [];
-            foreach (Tenant tenant in tenants)
+            int maxLimit = ListPaging.GetMaxObjectLimit(globalConfig);
+            if (!ListPaging.TryValidate(paging, maxLimit, out ActionResult? pagingError))
             {
-                tenantList.Add(tenant.ToApiParams());
+                return pagingError!;
             }
-            return tenantList;
+
+            Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenants);
+            IEnumerable<TenantGetReturnParameters> orderedTenants = tenants
+                .OrderBy(tenant => tenant.Id)
+                .Select(tenant => tenant.ToApiParams());
+            return ListPaging.TakePage(HttpContext, orderedTenants, paging, maxLimit);
         }
 
         // POST api/<TenantController>

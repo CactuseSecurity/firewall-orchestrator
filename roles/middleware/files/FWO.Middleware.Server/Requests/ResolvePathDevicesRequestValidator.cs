@@ -38,7 +38,7 @@ public static class ResolvePathDevicesRequestValidator
                 ResolvePathDevicesRequestValidationSchema.DescribeKeys(ResolvePathDevicesRequestValidationSchema.RootKeys)));
             return result;
         }
-        
+
         ValidateIpInputs(request, result);
         ValidateOptions(request.Options, configuredAlgorithmId, designatedZoneMatrixId, result);
         ValidateFilter(request.Options.Filter, result);

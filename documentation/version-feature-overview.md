@@ -240,5 +240,8 @@ For a feature-centric, thematically grouped view see
 
 ## 9.8.x
 
+### 9.8.4 — 26.10.2026
+- Every list endpoint of the middleware REST API is paged (`limit`, `offset`, `X-Has-More`) with one central page size, the new setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`, default 10000).
+
 ### 9.8.2 — 24.10.2026
 - Workflow configuration transfer supports selected-phase exports, custom file names, imports into existing configurations, and safe state-definition validation.

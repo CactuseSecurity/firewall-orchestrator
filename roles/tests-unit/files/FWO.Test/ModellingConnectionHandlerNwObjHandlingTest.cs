@@ -33,8 +33,10 @@ namespace FWO.Test
         private const long kExcludedAreaId = 5;
         private static readonly List<ModellingNetworkArea> kExcludedArea = [new ModellingNetworkArea { Id = kExcludedAreaId }];
         private static readonly List<ModellingNetworkArea> kDstOnlyArea = [new ModellingNetworkArea { Id = 3, Name = "AreaDstOnly", IdString = "NA3" }];
-        private static readonly List<string> kExpectedExcludedAreaMessages = [kExpectedExcludedAreaMessage];
-        private const string kExpectedExcludedAreaMessage = "Edit Common Service:Area excluded from common services";
+        private static readonly List<string> kExpectedExcludedAreaSaveMessages = ["Edit Common Service:Excluded areas in common service: AreaExcluded"];
+        private static readonly List<string> kExpectedExcludedAreasSaveMessages = ["Edit Common Service:Excluded areas in common service: AreaExcluded, AreaExcluded2"];
+        private const string kExcludedAreaSaveMessagePrefix = "Edit Common Service:Excluded areas in common service";
+        private const long kSecondExcludedAreaId = 8;
 
         [Test]
         public void RefreshSelectableNwObjects_IncludesCommonSelectedRolesAndServers()
@@ -789,7 +791,31 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result, Is.False);
-                Assert.That(messages, Is.EqualTo(kExpectedExcludedAreaMessages));
+                Assert.That(messages, Is.EqualTo(kExpectedExcludedAreaSaveMessages));
+            });
+        }
+
+        [Test]
+        public async Task Save_NamesEachRemainingExcludedAreaOnce()
+        {
+            List<string> messages = [];
+            ModellingConnection connection = new()
+            {
+                Id = 38,
+                IsCommonService = true,
+                SourceAreas = [WrapArea(kExcludedAreaId, "AreaExcluded"), WrapArea(6, "AreaAllowed")],
+                DestinationAreas = [WrapArea(kExcludedAreaId, "AreaExcluded")]
+            };
+            ModellingConnectionHandler handler = CreateHandlerCollectingMessages(connection, messages);
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId, kSecondExcludedAreaId];
+            handler.DstAreasToAdd.Add(new ModellingNetworkArea { Id = kSecondExcludedAreaId, Name = "AreaExcluded2", IdString = "NA8" });
+
+            bool result = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False);
+                Assert.That(messages, Is.EqualTo(kExpectedExcludedAreasSaveMessages));
             });
         }
 
@@ -810,7 +836,7 @@ namespace FWO.Test
 
             await handler.Save();
 
-            Assert.That(messages, Does.Not.Contain(kExpectedExcludedAreaMessage));
+            Assert.That(messages, Has.None.StartsWith(kExcludedAreaSaveMessagePrefix));
         }
 
         [Test]

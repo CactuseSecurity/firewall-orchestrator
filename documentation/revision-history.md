@@ -1,7 +1,6 @@
 # Firewall Orchestrator Revision History
 
 ## 9.8.3 - 26.10.2026
-
 - modelling: new setting "Network Areas excluded from Common Services" - network areas listed there are not offered for selection in common services and cannot be added to them; existing common services containing such an area can only be saved after removing it (#5406)
 - modelling: fix destination area check using the "in Source" flag of common network areas instead of "in Destination"
 - request workflow: the device specific settings autoPlanImplementation and autoPlanImplementationForRules (renamed from planImplementation and planImplementationOverrideForRules) decide which implementation tasks are created automatically, independently of the planning phase
@@ -18,7 +17,6 @@
   - if the auto plan settings cannot be read, the defaults apply (auto plan Yes, for rules No)
 
 ## 9.8.2 - 24.10.2026
-
 - middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`
   now return each inclusive address range as the two-entry `ipRange` instead of separate `ipStart`
   and `ipEnd` fields; `getAddressObjects` returns an empty range for non-IP objects such as FQDNs
@@ -36,7 +34,6 @@
   - report links to app roles, groups and network areas whose names share a prefix now point to the right object
 
 ## 9.8.1 - 20.10.2026
-
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
 - autodiscovery: alerts and alert log lines no longer contain the import credential secret of the super management; the upgrade removes it from existing alerts. Rotate the credentials of super managements used with autodiscovery, and purge old middleware logs where possible
 - new REST endpoint `POST /api/pathAnalysis/resolvePathDevices` (roles admin, auditor): returns the firewall devices on the paths between every source and every destination, deduplicated and unordered, together with the algorithm and zone matrix actually used. This makes the network zone tree path analysis callable
@@ -50,11 +47,9 @@
 - dependencies: update NuGet packages (AngleSharp to 1.8.5, bunit to 2.12.5, PuppeteerSharp to 25.14.0, Quartz to 4.6.0)
 
 ## 9.8.0 - 20.10.2026
-
 - main release of features from 9.7.2ff including bugfixing and security fixes
 
 ## 9.7.7 - 19.10.2026
-
 - middleware REST API: unify address inputs for `getAddressObjectId`, `getFlowComplianceState`,
   `resolveZonesForObjects` and `createTicket.addressObjects`. Each address now uses exactly one of
   `ipHost`, `ipNetwork` or the two-entry `ipRange`; values follow the shared FWO IP parser and CIDRs
@@ -64,11 +59,9 @@
 - First step towards replacing BlazorTable with FancyTable: the FancyTable based rules report from #5198 is added as a separate preview on a new Monitoring page that only shows up in Debug builds. The productive RulesReport.razor is unchanged.
 
 ## 9.7.6 - 18.10.26
-
 - various sanitizing fixes for XSS (cross site scripting) in reporting, welcome message, and modelling
 
 ## 9.7.5 - 16.10.2026
-
 - request workflow: the task types create object and modify object support time objects with name, start and end time
   - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)
   - modify object searches the imported time objects of the management by name; the requester role may read them
@@ -77,7 +70,6 @@
 - request workflow: new setting "create objects separately (planned)" under Workflow Customizing, currently without effect
 
 ## 9.7.4 - 14.10.2026
-
 - rename the hierarchical provisioning settings to device specific settings, as they are also used e.g. for importing: UI page (now settings/devicespecificsettings), help page, code and the tables provisioning_config_* (now device_specific_config_*)
 - extend the device specific settings for Guardicore: object creation, common service separation, external ticket system, importer host, app-zone and network-area switches, dynamic IP labels, connection IDs, rule implementation and planning overrides
 - migrate setting key names and option values; privately back up old overrides before enforcing the revised scope restrictions (see developer documentation on device specific settings)
@@ -85,7 +77,6 @@
 - replace management.importer_hostname with the device specific setting importerHostName (Global, device type, manager; empty means every importer imports); the upgrade moves the most common host to Global and differing hosts to manager overrides, backs up and drops the column; the importer role may read only this setting
 
 ## 9.7.3 - 14.10.2026
-
 - replace cloud client fields with selectable additional credentials; migrate existing values into encrypted credential secrets (#3766)
 - the Cisco ASA importer decrypts the selected additional credential for enable mode
 - modelling: auditors and admins can open the add and edit dialog of app roles again to try it out (closes #4968)
@@ -101,7 +92,6 @@
 - pin System.Security.Cryptography.Pkcs to 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
 
 ## 9.7.2 - 12.10.2026
-
 - security (GHSA-695m-f6mv-9g72): a dn no longer identifies a subject across LDAP connections
   - every dn belongs to exactly one active LDAP connection, the one whose search or write paths contain it (the most
     specific path wins). Roles, groups, owner responsibles, workflow visibility groups and workflow assignments
@@ -146,7 +136,6 @@
   and id with the targets without name last, and limits the name filter to 256 characters; the ui reads every page
 
 ## 9.7.1 - 09.10.2026
-
 - installer: show a summary of elapsed task time per role at the end of the playbook, longest first;
   repeated executions of the same role are combined, including handlers
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
@@ -367,7 +356,6 @@
 - importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
 
 ## 9.7.0 - 07.10.2026
-
 - resolve reverse DNS asynchronously with shutdown cancellation; reuse stored names and empty
   results across imports and allow disabling new lookups in Settings - Logging. A lookup without
   definitive answer (DNS server unreachable, server failure, refused) is repeated by the next import;
@@ -425,7 +413,6 @@
   types; both task types stay unavailable until an admin adds them to the available task types
 
 ## 9.6.1 - 05.10.2026
-
 - add a management rulebases view to the rules report: select start rulebases per management instead of
   gateways (including rulebases without a gateway link); each selected rulebase is reported with the
   rulebases linked from it for the gateways using it
@@ -445,7 +432,6 @@
   ADOM already matches the management by UID
 
 ## 9.6.0 - 30.09.2026
-
 - middleware: upgrade of the job scheduler Quartz.NET from 3.21 to 4.1 (Quartz.Extensions.Hosting and
   Quartz.Serialization.Json are no longer separate packages), together with updated NuGet packages for
   MailKit/MimeKit, PuppeteerSharp, Scalar, IdentityModel and the test tooling; SBOM regenerated
@@ -458,7 +444,6 @@
   180 seconds (TimeoutStopSec) before killing the process
 
 ## 9.5.10 - 29.09.2026
-
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration
 - add UI page Settings - Provisioning settings (settings/fwconfigprovisioning) to view (auditor) and edit (admin)
@@ -504,7 +489,6 @@
   routes that do not exist
 
 ## 9.5.9 - 28.09.2026
-
 - security fix (SEC-11): a local user was identified by its dn alone, although a dn is unique only
   inside the directory that holds it. The same dn in two connected LDAPs therefore resolved to one
   local user: the login of the second directory's user took over the row of the first one,
@@ -547,7 +531,6 @@
   comment author, or the owner of a report, who belongs to another tenant
 
 ## 9.5.8 - 28.09.2026
-
 - REST workflow request creation accepts a `preWorkflowTicketReference` and stores it on the created
   ticket so integrations can retain the reference to the preceding workflow ticket
 - Harden the versioning workflow: a product version is now sealed by its `vX.Y.Z-dev` or `vX.Y.Z` tag, and the new "Version gate" GitHub action blocks pull requests that would merge onto a sealed version or open a new version before the previous one was sealed
@@ -555,7 +538,6 @@
 - The "Version gate" also checks the database upgrade scripts a pull request touches: a script named above `product_version` is never selected by the upgrade play, and one named for a version the base branch has already passed is skipped by every installation that has taken that version, so both are refused. Upgrade scripts must carry a plain `major.minor.patch` name without zero-padded components, scripts of older versions must not be modified, and no script at or below the current version may be deleted
 
 ## 9.5.7 - 28.09.2026
-
 - security fix (SEC-01): the auditor role could update the columns of its own uiuser row that define
   who the account is - uuid, uiuser_username, tenant_id, ldap_connection_id and the password flags.
   A login and a token refresh derive the roles of a user by resolving uiuser.uuid against LDAP, so
@@ -604,7 +586,6 @@
   and exported documents carry the extra policy element
 
 ## 9.5.6 - 24.09.2026
-
 - variance analysis: the rule_owner prefilter is no longer blocked by every pending import. A rule import
   without policy changes cannot have changed a marker and is ignored, and where somebody is waiting for the
   result the analysis waits briefly for the mapping run instead of falling back to the much slower marker
@@ -618,20 +599,17 @@
   to the user once per analysis, so the remaining cases can be found without debug logging
 
 ## 9.5.5 - 23.09.2026
-
 - workflow phase visibility can be configured per phase as `AnyTask` (the backward-compatible default) or `TicketState` (based on the ticket state).
 - REST endpoint workflow/getAuditProofCriticalChanges now also returns a taskDiff for a ticket with audit proof critical changes: for each request task whose content differs from what was originally requested, the original and the current snapshot (a deleted task has no current snapshot; start, stop, additional info and the order of owners and elements do not count as a difference), and the manual audit proof critical implementation task changes with change time, user, change text and the snapshots before and after. The request filter applies to the implementation task changes; the request task comparison describes the ticket as a whole and is not filtered.
 - new REST endpoint workflow/getTicket returns a workflow ticket with all its details in JSON: ticket header data, the request tasks with their elements, approvals, implementation tasks, owners and comments, and the ticket comments. It is available to admins and auditors. Besides the workflow state ids and names, the ticket carries the same status that flow/getRequestStatus reports. The optional options.filter restricts the returned request tasks by any of their scalar fields; the ticket itself is always returned when it exists, so a filter that excludes every task yields an empty task list, while a ticketId that names no ticket is answered with 404. All validation errors of a request are reported together.
 
 ## 9.5.4 - 23.09.2026
-
 - rework modelling notifications and move interface-request notifications to centralized notification entries
 - interface-request notifications now support separate request and reminder bodies plus optional CC to the requester
 - UI: the log data shown with a modelling connection now fills the browser window. The table takes as many rows per page as the window allows instead of a fixed 25 and follows a window resize, so a maximised window no longer shows a quarter-filled table with a pager below it. A new page size reaches the table only while the first page is shown, so it never moves the user to a different part of the log.
 - UI: auditors can now open the modelling forms of every application - connections, provided interfaces and common services - and read the log data shown in them. Saving, deleting and requesting firewall changes remain with the responsible owners holding the modeller role.
 
 ## 9.5.3 - 17.09.2026
-
 - rule owner mapping: an owner import no longer collides with the unique index on rule_owner and no longer
   blocks the incremental processing; a failed run is no longer reported as a successful one
 - rule owner mapping: a failing import no longer holds up the imports behind it and raises an alert
@@ -656,7 +634,6 @@
 - rule owner mapping: new AlertCode RuleOwnerMapping (52) for every alert of this area
 
 ## 9.5.2 - 21.09.2026
-
 - centralize modelling and workflow change history in the public schema. The modelling change history table moves from modelling.change_history to public.change_history, so the GraphQL root field is renamed from modelling_change_history to change_history. Scripts and external integrations querying the old field name have to be adapted. Existing entries are migrated, the modelling history views are unaffected and continue to show modelling changes only.
 - changes to workflow tickets are recorded in the same table after ticket creation, with the workflow phase and the previous and new values. Content changes made in the user interface by a user other than the requester are marked as audit proof critical. The recording is available to auditors via the API and is not shown in the user interface.
 - change_history entries carry a module column naming the subsystem that wrote them, currently modelling or workflow. It selects which enum the object_type column uses and limits the modelling roles to modelling entries. Existing entries are migrated as modelling.
@@ -665,7 +642,6 @@
 - matrix import now stores the network zone tree paths it already validated: for every subnet of a zone, the firewalls on its path to root and to the internet are written to network_zone.device_ip_range_root and network_zone.device_ip_range_internet, in the order the import file lists them. An import replaces all paths of the matrix it imports. A subnet listed twice within one zone is now rejected instead of imported.
 
 ## 9.5.1 - 12.09.2026
-
 - installer: the one-shot `internalca_reset_certificates` upgrade switch rotates the internal
   CA and every FWO-managed client and server identity, including the self-signed identities
   from versions before 9.5.0, while preserving customer-managed certificate/key pairs. The
@@ -696,7 +672,6 @@
 - validation checks for matrix import
 
 ## 9.5.0 - 09.09.2026
-
 - introducing
   - an internal CA and certificate checks for all internal communication
   - client certificates for graphql API access to prevent unauthorized access
@@ -745,7 +720,6 @@
   schema changes silently
 
 ## 9.4.7 - 07.09.2026
-
 - enforce host-address masks for flow network-object range endpoints
 - require both endpoints of a flow network-object range to be of the same address family
 - store the range endpoints of flow network objects created from a request in CIDR notation
@@ -756,7 +730,6 @@
 - stop the upgrade and name the affected flow network objects when their endpoints mix address families
 
 ## 9.4.5 - 01.09.2026
-
 - FortiManager: keep service groups (and RPC and split multi-protocol services) normalized with ip_proto_id=null instead of protocol 0/HOPOPT; upgrade corrects previously imported data to match
 - add an optional compliance-diff filter for rules with existing violations
 - Insert missing src/dst/svc references to flow.access entries created by workflow module
@@ -764,7 +737,6 @@
 - Flow time objects created by the request module before 9.4.5 stored their start and end time shifted by the UTC offset of the middleware server. The hash recalculation takes the stored times as they are, so these time objects keep the shifted period and get a new hash, which also changes the hash of every flow access using them. They are not repaired automatically: check time restrictions of flows created before 9.4.5 and request them again if the period is wrong.
 
 ## 9.4.4 - 27.08.2026
-
 - Import protocol-agnostic `ANY` services with new ip_proto_id=-1 across supported importers and automatically create and map the corresponding flow service objects.
 - Keep the canonical ANY flow service object implemented and protect it from removal.
 - Return `null` service port bounds for protocol-only flow catalog objects instead of 0
@@ -773,58 +745,47 @@
 - OPNsense: a `tcp/udp` rule with no destination port now creates and references two separate service objects (`Any/tcp` and `Any/udp`) instead of one combined object.
 
 ## 9.4.3 - 26.08.2026
-
 - normalize and import fqdn and dynamic ip network objects with ip=null instead of 0.0.0.0/0
 - IP-based tenant filtering excludes rules whose source or destination contains only addressless network objects
 - add 'add auto calculated internet zone' button to compliance matrix ui
 
 ## 9.4.2 - 25.08.2026
-
 - add setting and guard for full rollback: the deletion of all import data of a management is now gated behind the new "allowFullRollback" setting, which defaults to disabled so existing installations keep the safe behaviour after upgrade.
 
 ## 9.4.1 - 17.08.2026
-
 - add nat import for checkpoint and forti firewall managements
 - fix checkpoint import policy install detection
 - fix nat rules report
 
 ## 9.4.0 - 13.08.2026
-
 - add logging schema for imported traffic log entries with their owner and count
 - make replacement of existing log entries for applications contained in an import file configurable
 - increase of unit-tests
 - Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects, access roles and domain objects. When IP based rule recognition is active, configured placeholder areas for special configurations are reconciled with these imported objects by object type and name instead of placeholder IP fields.
 
 ## 9.3.4 - 11.08.2026
-
 - fix a bug in reporting ui where users with role modeller and reporter could not fetch rsb data for app rule reports
 
 ## 9.3.3 - 10.08.2026
-
 - fix a bug in provisioning where network objects were always created with mask 255.255.255.255
 
 ## 9.3.2 - 06.08.2026
-
 - fix upgrade failure when migrating workflow state matrices with non-JSON configuration values
 
 ## 9.3.1 - 03.08.2026
-
 - make rule change-ID custom field names configurable in compliance settings
 - ! breaking change: old hard-coded default value "Datum-Regelpruefung" is dropped and replaced, so existing installations using this feature be impacted!
 - changed workflow email CSV/JSON output and firewall request popup to separate current, added and removed group members
 - various memory leakage fixes in UI
 
 ## 9.3 - 31.07.2026
-
 - new import module for OPNsense firewalls
 
 ## 9.2.5 - 29.07.2026
-
 - update flow time object hashing to be timezone invariant
 - ! resets the flow timeobject and access tables
 
 ## 9.2.4 - 28.07.2026
-
 - fix startup behaviour of fworch services on redhat/rocky
 - close some test gaps in middleware server
 - fix legacy sonar findings
@@ -833,7 +794,6 @@
 - feat new REST API endpoint: time object ID lookup
 
 ## 9.2.3 - 17.07.2026
-
 - speed up standard rules reports by scoping flat rule paging to selected rulebases
 - add database index for standard rules report paging
 - increase of unit-tests
@@ -846,18 +806,14 @@
 - Fix/installer pip config redhat
 
 ## 9.2.2 - 15.07.2026
-
 - add generic firewall import
 - enable azure2022ff for normalized config import
 
 ## 9.2.1 - 12.07.2026
-
 - migrate firewall tables to firewall schema
 
 ## 9.2.0 - 10.07.2026 MAIN
-
 This release makes FWO compatible with the following operating systems:
-
 - Ubuntu 22.04 and 24.04
 - Debian 11 & 12
 - Red Hat 9 (new - tested with v9.8)
@@ -866,12 +822,10 @@ This release makes FWO compatible with the following operating systems:
 - Debian 13 (new)
 
 Not supported any longer are:
-
 - Ubuntu <  22.04
 - Debian <  11
 
 ## 9.1.17 - 08.07.2026
-
 - credentials field in management for writing on Firewalls
 - migrate old Tufin template to list entry
 - Support for writing firewall configurations via templates
@@ -879,48 +833,38 @@ Not supported any longer are:
 - FW config change external workflow is only active after explicit assignment per management and change category in the settings
 
 ## 9.1.16 - 06.07.2026
-
 - move workflow state matrices to own database tables
 
 ## 9.1.15 - 06.07.2026
-
 - make offered protocols configurable
 
 ## 9.1.14 - 01.07.2026
-
 - remove deprecated, unused rule.rule_num column (rule ordering is handled by rule_num_numeric)
 - remove deprecated, unused direct rule zone columns (rule_from_zone, rule_to_zone); rule zones remain available through the rule_from_zone and rule_to_zone link tables
 
 ## 9.1.13 - 29.06.2026 MAIN
-
 - fix: handle gateway without rule when generating reports
 
 ## 9.1.12 - 26.06.2026 MAIN
-
 - fix missing recertifier permission for owner recertification in hasura metadata
 
 ## 9.1.11 - 24.06.2026 MAIN
-
 - fix: rule_owner_mapping - standardize constraint name
 
 ## 9.1.10 - 22.06.2026
-
 - change internal logic to handle src/dst zones as security-relevant
 - backfill existing rule source and destination zone text fields from rule zone links
 
 ## 9.1.9 - 18.06.2026
-
 - request workflow: add locked tickets and request tasks for automatically created change requests
 - further integration flow into workflow
 
 ## 9.1.8 - 16.06.2026
-
 - flow db: access flows now include time objects and allow/deny flag in their functional definition
 - flow sync: add hash consistency check
 - this update resets the flow db!
 
 ## 9.1.7 - 08.06.2026
-
 security patch
 
 This PR hardens FWO installation and security-sensitive workflows. It restricts app data import file/script paths, reduces installer secret exposure, tightens Hasura config permissions, improves LDAP/install test idempotency, removes the obsolete webhook role, and fixes related installer/test reliability issues. It also includes targeted documentation and version updates.
@@ -941,11 +885,9 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - The shared confirm dialogs now raise DisplayChanged(false) after a successful action, so the parent's bound visibility state no longer remains stale.
 
 ## 9.1.6 - 08.06.2026
-
 - remove obsolete database last_seen fields
 
 ## 9.1.5 - 05.06.2026
-
 - remove old jwt token lifetime config values
 - asynchronous initial JWT bootstrap in the UI
 - subscription-aware reconnect logic after JWT refresh
@@ -954,32 +896,25 @@ This PR hardens FWO installation and security-sensitive workflows. It restricts 
 - a small cleanup of exception logging for subscription errors
 
 ## 9.1.4 - 03.06.2026
-
 - remove legacy ownerLdapGroupNames owner mapping fallback
 
 ## 9.1.3 - 27.05.2026
-
 - add optional workflow flow merging for Flow DB creation
 
 ## 9.1.2 - 26.05.2026 MAIN
-
 - database: fix flow foreign key duplication on fresh install plus upgrade path
 
 ## 9.1.1 - 21.05.2026
-
 - Workflow: add configurable execution order for actions assigned to states.
 
 ## 9.1.0 - 20.05.2026
-
 - JWT refresh token
 - introduce flow schema
 
 ## 9.0.24 - 27.04.2026
-
 - introduce new modelling integration mode WorkflowNotifications
 
 ## 9.0.23 - 27.04.2026
-
 - enhance notifications by bcc
 - add display-only workflow label report column option
 - add default template for workflow tickets approved last week
@@ -989,104 +924,82 @@ Removed deprecated configuration keys:
 These settings are no longer used due to the full automation of UpdateRuleOwner.
 
 ## 9.0.22 - 26.04.2026 MAIN
-
 - fixes missing source or destination in rule expiry notification report
 - fixes time zone issues with checkpoint time objects
 - fixes python tests failing on python 3.10
 - fixes owner import from custom file
 
 ## 9.0.21 - 21.04.2026 MAIN
-
 - fix ldap users with special chars not being processed correctly in role handling
 - fix empty mail being sent for orphaned rule report
 - update dependencies (notably closing mailkit and pytest vuln)
 - fix time zone issues in importer
 
 ## 9.0.20 - 11.04.2026
-
 - extend notification handling
 
 ## 9.0.19 - 09.04.2026
-
 - add owner additional_info jsonb field including owner edit UI support
 
 ## 9.0.18 - 03.04.2026
-
 - add new column automatic_only to workflow states
 
 ## 9.0.16 - 31.03.2026
-
 - remove not needed stm_owner_mapping_source
 - add Full re-initialize of RuleOwner mapping for IP-based rules
 - add matched_objects field in rule_owner table for track matched objects - IpBased
 
 ## 9.0.16 - 26.03.2026 MAIN
-
 - bug fixing
 - moving from docker to podman
 
 ## 9.0.15 - 19.03.2026
-
 - rename OwnerSourceCustomFieldKey to CustomFieldOwnerKey in config
 
 ## 9.0.14 - 17.03.2026
-
 - prepare owner decommission notification
 
 ## 9.0.13 - 12.03.2026
-
 - mark lifecycle states as active
 
 ## 9.0.12 - 12.03.2026
-
 - new config values for rule expiry notification
 
 ## 9.0.11 - 04.03.2026
-
 - new config value for requesting only own objects
 
 ## 9.0.10 - 28.02.2026
-
 - new config value for User synchronization in owner data import
 
 ## 9.0.9 - 25.02.2026
-
 - remove stale v8 code
 
 ## 9.0.8 - 25.02.2026
-
 - new config value for removed App Server handling
 
 ## 9.0.7 - 25.02.2026
-
 - add import of time objects
 - create changelog_owner table
 
 ## 9.0.6 - 20.02.2026
-
 - add import of time objects
 
 ## 9.0.5 - 18.02.2026
-
 - update rule_owner table for REST api
 - update import_control to allow flexible tracking of different import types
 - create rule_owner mapping for custom_field via button and service/job
 - update import_control to allow flexible tracking of different import types
 
 ## 9.0.4 - 13.02.2026 MAIN
-
 - maintenance release with explicit 9.0.4 upgrade step
 
 ## 9.0.3 - 12.02.2026
-
 - introduce interface permissions
 
 ## 9.0.2 - 10.02.2026
-
 - importer: call api chunked where needed
 
 **Breaking changes**
-
 - Due to introduction of venv for all imports, the following steps have to be taken to manually import a config:
 
 ```shell
@@ -1095,56 +1008,44 @@ These settings are no longer used due to the full automation of UpdateRuleOwner.
   source importer-venv/bin/activate
   python3 ./import_mgm.py -m xy -fs -d1
 ```
-
   As we now need support for pip, in installations behind url filter, make sure that all sub-domains of "pythonhosted.org" are also allowed.
 
 - Limiting database listener to localhost for security reasons
 
 ## 9.0.1 - 07.02.2026 MAIN
-
 - generalized owner responsibles with configurable responsible types
 - add allow_write_access to responsible types to control modelling and recertification
 
 ## 9.0 - 24.01.2026 MAIN
-
 A complete 80K lines rework of FWO, including
-
 - database changes to deduplicate rules (rule to gateway mapping now 1:n by introducing rulebase and rulebase_link tables)
 - migrating import module from mixed python/pgsql to pure python
 
 ## 8.9.6 - 05.01.2026 MAIN
-
 - new parameters for notifications
 
 ## 8.9.5 - 10.12.2025 MAIN
-
 - bugfix release: modelling - change planning showed duplicate NA elements for rule delete requests
 
 ## 8.9.4 - 09.12.2025 MAIN
-
 - bugfix release: common service connection not editable
 - new custom scripts for iiq and cmdb import
 
 ## 8.9.3 - 05.11.2025 MAIN
-
 - hotfix missing permissions for app data import in certain constellations
 
 ## 8.9.2 - 17.10.2025 MAIN
-
 - add ownerLifeCycleState
 - add manageable ownerLifeCycleState menu
 - fix two modelling ui glitches
 
 ## 8.9.1 - 02.10.2025 MAIN
-
 - owner-recertification
 
 ## 8.8.10 - 07.09.2025
-
 - new report type owner-recertification
 
 ## 8.8.9 - 27.08.2025
-
 - prepare tables + settings for owner recert + first throw recert popup
 - notification service
 - decommissioning of interfaces
@@ -1152,7 +1053,6 @@ A complete 80K lines rework of FWO, including
 - fix overwrite of objects with interface
 
 ## 8.8.8 - 23.08.2025 MAIN
-
 - add read-only db user fwo_ro
 - hadening changes
   - apache config (information leakage)
@@ -1160,14 +1060,11 @@ A complete 80K lines rework of FWO, including
   - log santisation
 
 ## 8.8.8 - 21.08.2025
-
 - add read-only db user fwo_ro
 - also reducing db listener to localhost and other hardening changes
 
 ## 8.8.6 - 22.07.2025 MAIN
-
 hotfix release
-
 - CP importer new
   - stm_track: "extended log" and "detailed log"
   - fixing services-other ip proto import
@@ -1175,88 +1072,78 @@ hotfix release
 - various fixes in modelling module
 
 ## 8.8.6 - 08.07.2025
-
 - hotfix CP importer new stm_track: "extended log" and "detailed log"
 
 ## 8.8.5 - 17.06.2025
-
 - new enum values for Request Element Field Types
 - hotfix change recognition: separate rule changes and "all changes" to make object version handling work properly
 
 ## 8.8.4 - 02.06.2025
-
 - hotfix for Check Point importer suppor for DLP actions (ask, inform)
 
 ## 8.8.3 - 15.05.2025
-
 - deactivation of connections
 
 ## 8.8.2 - 07.05.2025
-
 - displayed state via variance analysis
 
 ## 8.8 - 17.04.2025 MAIN
-
-- fix stm_action by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/2844>
-- add missing rulebase_link constraints by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/2845>
-- fix rule_metadata creation by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/2865>
-- remove dev_id fk constraint from rule_metadata by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/2909>
-- fix missing rule_metadata.rulebase_id by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/2911>
-- fix warnings and rule normalize bug by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/2912>
-- fix missing upgrade scripts from pre 9 by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/2938>
-- Cactus develop fix importer main level bug by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3009>
-- Endpoint for getting rules by @abarz722 in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3027>
-- ExtRequest - increase logging by @abarz722 in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3029>
-- Nuget Updates by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3038>
-- Nuget Updates by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3042>
-- fix(ui): ip filtering in app report by @Y4nnikH in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3040>
-- Preventing use of NA objects in connections by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3043>
-- fix(ui rsb): ui crash likely caused by duplicates in query result by @Y4nnikH in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3046>
-- LDAP Nuget Update changes by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3056>
-- Defer AZ creation until second button click by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/2856>
-- Removing minor py-re deprecation warnings  by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3053>
-- feat(ui): rsb enhancements by @Y4nnikH in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3073>
-- User UI glitch by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3089>
-- Modelling new AR drop down strange initial value by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3091>
-- Verify modelled services for empty groups by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3087>
-- adding app servers fails without name by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3088>
-- Modelling - no NA should be usable for selected interfaces by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3086>
-- new customized app data import script by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3101>
-- adding csv appdata import stats by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3103>
-- reformatting app server ip struct by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3105>
-- css cache changes by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3108>
-- show more clearly if everything is (horizontally) displayed by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3096>
-- Fixed connection object duplication by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3118>
-- Modelling csv import improvements by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3113>
-- IP check improvements by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3133>
-- Nuget Updates by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3136>
-- Some report generation improvements by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3117>
-- Config change subscribe add "autoReplaceAppServer"  #3138 by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3148>
-- Nuget Updates by @SolidProgramming in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3143>
-- External ticket timout fix by @NilsPur in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3151>
-- feat(ui): ip filter line observes negation in rules by @Y4nnikH in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3164>
-- allow for flexible ldap group name templating, fix #3114 by @tpurschke in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3165>
-- Variance Report First Throw by @abarz722 in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3080>
-- feat(ui rsb): show ip/port of flat members by @Y4nnikH in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3172>
-- fix(ui report): ip filter on negated rule to/from by @Y4nnikH in <https://github.com/CactuseSecurity/firewall-orchestrator/pull/3173>
+* fix stm_action by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2844
+* add missing rulebase_link constraints by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2845
+* fix rule_metadata creation by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2865
+* remove dev_id fk constraint from rule_metadata by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2909
+* fix missing rule_metadata.rulebase_id by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2911
+* fix warnings and rule normalize bug by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2912
+* fix missing upgrade scripts from pre 9 by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2938
+* Cactus develop fix importer main level bug by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3009
+* Endpoint for getting rules by @abarz722 in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3027
+* ExtRequest - increase logging by @abarz722 in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3029
+* Nuget Updates by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3038
+* Nuget Updates by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3042
+* fix(ui): ip filtering in app report by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3040
+* Preventing use of NA objects in connections by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3043
+* fix(ui rsb): ui crash likely caused by duplicates in query result by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3046
+* LDAP Nuget Update changes by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3056
+* Defer AZ creation until second button click by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/2856
+* Removing minor py-re deprecation warnings  by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3053
+* feat(ui): rsb enhancements by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3073
+* User UI glitch by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3089
+* Modelling new AR drop down strange initial value by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3091
+* Verify modelled services for empty groups by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3087
+* adding app servers fails without name by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3088
+* Modelling - no NA should be usable for selected interfaces by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3086
+* new customized app data import script by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3101
+* adding csv appdata import stats by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3103
+* reformatting app server ip struct by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3105
+* css cache changes by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3108
+* show more clearly if everything is (horizontally) displayed by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3096
+* Fixed connection object duplication by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3118
+* Modelling csv import improvements by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3113
+* IP check improvements by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3133
+* Nuget Updates by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3136
+* Some report generation improvements by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3117
+* Config change subscribe add "autoReplaceAppServer"  #3138 by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3148
+* Nuget Updates by @SolidProgramming in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3143
+* External ticket timout fix by @NilsPur in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3151
+* feat(ui): ip filter line observes negation in rules by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3164
+* allow for flexible ldap group name templating, fix #3114 by @tpurschke in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3165
+* Variance Report First Throw by @abarz722 in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3080
+* feat(ui rsb): show ip/port of flat members by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3172
+* fix(ui report): ip filter on negated rule to/from by @Y4nnikH in https://github.com/CactuseSecurity/firewall-orchestrator/pull/3173
 
 ## 8.7.2 - 20.03.2025
-
 - new config values
 - external request: attempt counter
 
 ## 8.7.1 - 07.03.2025 MAIN
-
 - fix modelling select existing interfac
 - fix modelling settings ldap selection
 - fix workflow ticket close spinner
 
 ## 8.7.1 - 05.03.2025
-
 - ldap writepath for groups
 
 ## 8.7 - 03.03.2025 MAIN
-
 - General UI
   - pop-up unification and clean-up
   - removing unnecessary scroll-bars
@@ -1269,19 +1156,14 @@ hotfix release
 - Workflow: some performance improvements
 
 ## 8.6.3 - 20.02.2025
-
 - dns lookup for app server names
 
 ## 8.6.2 - 03.01.2025 MAIN
-
 Hotfix for network modelling:
-
 - fix: when visiting the library for the second time, app servers were missing due to uninitialized area data.
 
 ## 8.6.1 - 17.12.2024 MAIN
-
 Fixes network modelling
-
 - lock external requests to avoid multiple external tickets
 - fix missing comments
 - wait cycles for access request after group changes
@@ -1299,13 +1181,10 @@ Fixes network modelling
 Upgrade Hasura API to v2.45.1
 
 ## 8.6.1 - 12.12.2024
-
 - external request: introduce locks
 
 ## 8.6 - 11.12.2024 MAIN
-
 Features
-
 - Modelling
   - Create Application Zones
   - Add monitoring for external requests for admins
@@ -1325,30 +1204,24 @@ Fixes
   - SECURITY: updating System.Text.Encodings.Web v4.5.0 --> v8.0.0
 
 ## 8.5.4 - 04.12.2024
-
 - external request: introduce wait cycles
 
 ## 8.5.3 - 27.11.2024
-
 - owner import - make ldap selectable (internal/external)
 - small fixes regarding missing config data for two schedulers (daily, app data import)
 
 ## 8.5.2 - 27.11.2024
-
 - some check point importer fixes
   - 4 new colors
   - added Internet object
   - added voip one more object
 
 ## 8.5.1 - 18.11.2024
-
 - reporting - fixing PDF generation on various platforms
 - modelling - fixing AR editing: strict prevention of all area mixing
 
 ## 8.5 - 13.11.24 MAIN
-
 Network Modelling feature update
-
 - modelling can be requested as firewall change via external ticketing tool
 - includes all approle handling
 - simple form of rule change request (always request all connections as rules)
@@ -1358,13 +1231,10 @@ Fixes
 - importer (CP: handle None objects)
 
 ## 8.4.3 - 05.11.2024
-
 - extra parameters in modelling connection
 
 ## 8.4.1 - 30.10.24 MAIN
-
 Network Modelling feature update
-
 - import of app server IP addresses via CSV upload
 - import of multiple sources for area IP data
 - new option email notification: fall-back to main owner if group is empty
@@ -1376,17 +1246,13 @@ Fixes
   - fortinet - add hit counts and install on information
 
 ## 8.4.2 - 17.10.2024
-
 - external request
 
 ## 8.4.1 - 15.10.24
-
 - Add missing FK connection.proposed_app_id #2591
 
 ## 8.4 - 30.09.24 MAIN
-
 Stability release
-
 - various small bug fixes
   - installer (redundant code deleting test user)
   - importer (switching from full details to standard, re-adding VSX gateway support, voip domain handling in cp parser)
@@ -1404,25 +1270,19 @@ Stability release
   - various security upgrades dotnet (restsharp, jwt, ...)
 
 ## 8.3.2 - 09.09.2024
-
 - Added welcome message and settings
 
 ## 8.3.1 - 14.08.24 MAIN
-
 Hotfix:
-
 - in CheckPoint importer: fix missing group members
 
 ## 8.3.1 - 08.07.2024
-
 - workflow: external state handling
 - fix config value
 - remove uniqueness of owner names
 
 ## 8.3 - 25.06.2024 MAIN
-
 Maintenance release
-
 - fix misleading login error message when authorisation is missing
 - fix email credential decryption
 - start of Tufin SecureChange integration
@@ -1432,26 +1292,21 @@ Maintenance release
 - owner-import custom script improvements#
 
 ## 8.2.4 - 19.06.2024
-
 - owner-filtering for new report type
 - new setting for email recipients
 
 ## 8.2.3 - 26.05.2024
-
 - remove cascading delete for used interfaces
 - new properties field in connections
 
 ## 8.2.2 - 14.05.2024
-
 - fix email credential decryption
 - start of Tufin SecureChange integration
 
 ## 8.2.1 - 03.05.2024
-
 - fix misleading login error message when authorisation is missing
 
 ## 8.2 - 30.04.2024 MAIN
-
 - new workflow for modelling: interface request
   - adding all imported modelling users to local db (uiuser) - to enable email notification
 - new features for modelling
@@ -1463,18 +1318,15 @@ Maintenance release
   - demo managements (change import from deactivated to activated - does not affect test managements)
 
 ## 8.1.2 - 22.04.2024
-
 - encrypt emailPassword in config
 - fix demo managements (change import from deactivated to activated - does not affect test managements)
 - upgrade to dotnet 8.0
 - adding all imported modelling users to uiuser
 
 ## 8.1.1 - 15.04.2024
-
 - interface request workflow first version
 
 ## 8.1 - 10.04.2024 MAIN
-
 - UI: iconifying modelling UI buttons (can now use icons instead of text buttons - configurable per user)
 - Importer: first version of VMware NSX import module
 - API: adding customizing script for bulk configs via API
@@ -1483,7 +1335,6 @@ Maintenance release
 - Importer fix: remove log locking from importer due to stalling importer stops
 
 ## 8.0.3 - 08.04.2024
-
 - add maintenance page during upgrade
 - sample customizing py script with sample data, closes  Installer customizable config (settings) #2275
 - remove log locking from importer due to stalling importer stops
@@ -1495,16 +1346,13 @@ Maintenance release
   - user-defined fields are not part of reports yet
 
 ## 8.0.2 - 11.03.2024
-
 - first version of NSX import module
 
 ## 8.0.1 - 20.02.2024
-
 - iconify modelling
 - add missing config values
 
 ## 8.0 - 19.02.2024 MAIN
-
 - Introducing new Network Modelling module
   - allows your organisation to define the target state of all network connection on a per-application basis (or other distributed ownerships)
 - Backend
@@ -1514,7 +1362,7 @@ Maintenance release
   - New look and feel: Moving to vanilla bootstrap css v5.3.2 (allowing for future up to date css usage)
   - ip based tenant filtering: introducing unfiltered_managements and devices and adding extended tenant to device mapping settings
 - Installer (breaking change!)
-  - introducing venv for newer ansible versions and thereby removing annoying ansible version handling in installer (see <https://github.com/CactuseSecurity/firewall-orchestrator/blob/main/documentation/installer/basic-installation.md> for details)
+  - introducing venv for newer ansible versions and thereby removing annoying ansible version handling in installer (see https://github.com/CactuseSecurity/firewall-orchestrator/blob/main/documentation/installer/basic-installation.md for details)
 - bugfixes for
   - import log locking
   - integration tests with credentials when installing without demo data

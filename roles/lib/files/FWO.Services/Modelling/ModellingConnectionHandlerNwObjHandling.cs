@@ -21,6 +21,7 @@ namespace FWO.Services.Modelling
         public ModellingAppServerHandler? AppServerHandler { get; set; }
         private readonly string InsertForbidden = "insert_forbidden";
         private const string ComSvcExcludedAreaMessage = "U9046";
+        private const string ComSvcExcludedAreaSaveMessage = "U9047";
         private const string ChangeAppRoleForbidden = "change_app_role_forbidden";
         private const string ChangeAppRoleForbiddenMessage = "E9030";
         private ModellingAppRole actAppRole = new();
@@ -401,19 +402,29 @@ namespace FWO.Services.Modelling
         }
 
         /// <summary>
-        /// Checks if a common service would contain a network area excluded from common services after saving,
+        /// Gets the network areas excluded from common services which a common service would still contain after saving,
         /// e.g. because the area was used before it has been excluded.
         /// </summary>
-        /// <returns>True if an excluded network area remains in source or destination.</returns>
-        private bool ComSvcContainsExcludedArea()
+        /// <returns>The excluded network areas remaining in source or destination, each listed once.</returns>
+        private List<ModellingNetworkArea> GetRemainingComSvcExcludedAreas()
         {
             HashSet<long> srcAreasToDeleteIds = [.. SrcAreasToDelete.Select(d => d.Id)];
             HashSet<long> dstAreasToDeleteIds = [.. DstAreasToDelete.Select(d => d.Id)];
-            IEnumerable<long> remainingAreaIds = ActConn.SourceAreas.Select(a => a.Content.Id).Where(id => !srcAreasToDeleteIds.Contains(id))
-                .Concat(SrcAreasToAdd.Select(a => a.Id))
-                .Concat(ActConn.DestinationAreas.Select(a => a.Content.Id).Where(id => !dstAreasToDeleteIds.Contains(id)))
-                .Concat(DstAreasToAdd.Select(a => a.Id));
-            return remainingAreaIds.Any(IsExcludedFromComSvc);
+            IEnumerable<ModellingNetworkArea> remainingAreas = ActConn.SourceAreas.Select(a => a.Content).Where(a => !srcAreasToDeleteIds.Contains(a.Id))
+                .Concat(SrcAreasToAdd)
+                .Concat(ActConn.DestinationAreas.Select(a => a.Content).Where(a => !dstAreasToDeleteIds.Contains(a.Id)))
+                .Concat(DstAreasToAdd);
+            return [.. remainingAreas.Where(a => IsExcludedFromComSvc(a.Id)).DistinctBy(a => a.Id)];
+        }
+
+        /// <summary>
+        /// Builds the message blocking the save of a common service, naming the excluded network areas it still contains.
+        /// </summary>
+        /// <param name="excludedAreas">The excluded network areas remaining in the common service.</param>
+        /// <returns>The localized message.</returns>
+        private string GetComSvcExcludedAreaSaveMessage(List<ModellingNetworkArea> excludedAreas)
+        {
+            return userConfig.GetText(ComSvcExcludedAreaSaveMessage).Replace(Placeholder.OBJECTNAME, string.Join(", ", excludedAreas.Select(a => a.Name)));
         }
 
 

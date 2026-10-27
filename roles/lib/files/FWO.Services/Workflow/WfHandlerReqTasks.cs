@@ -28,7 +28,7 @@ namespace FWO.Services.Workflow
                     return false;
                 }
 
-                WfTicket? refreshedTicket = await dbAcc.FetchTicket(ActReqTask.TicketId, GetOwnerIdsForFiltering(), GetVisibilityTicketFilter());
+                WfTicket? refreshedTicket = await dbAcc.FetchTicket(ActReqTask.TicketId, GetOwnerIdsForFiltering(), GetTicketFilter());
                 if (refreshedTicket != null)
                 {
                     int ticketIndex = TicketList.FindIndex(ticket => ticket.Id == refreshedTicket.Id);
@@ -91,7 +91,7 @@ namespace FWO.Services.Workflow
 
             try
             {
-                WfTicket? ticket = await dbAcc.FetchTicket(reqTask.TicketId, GetOwnerIdsForFiltering(), GetVisibilityTicketFilter());
+                WfTicket? ticket = await dbAcc.FetchTicket(reqTask.TicketId, GetOwnerIdsForFiltering(), GetTicketFilter());
                 if (ticket != null)
                 {
                     int ticketIndex = TicketList.FindIndex(existingTicket => existingTicket.Id == ticket.Id);
@@ -298,9 +298,14 @@ namespace FWO.Services.Workflow
 
         public async Task AddReqTask()
         {
-            if (ActTicket.Locked)
+            if (ActTicket.Locked || !CheckActTicketChangeable())
             {
                 return;
+            }
+
+            if (ActReqTask.Approvals.Count == 0)
+            {
+                await AddApproval();
             }
 
             if (ActTicket.Id > 0) // ticket already created -> write directly to db
@@ -308,7 +313,19 @@ namespace FWO.Services.Workflow
                 ActReqTask.TicketId = ActTicket.Id;
                 if (dbAcc != null)
                 {
-                    ActReqTask.Id = await dbAcc.AddReqTaskToDb(ActReqTask);
+                    long newTaskId = await dbAcc.AddReqTaskToDb(ActReqTask);
+                    if (newTaskId <= 0)
+                    {
+                        return;
+                    }
+
+                    // The insert creates the task's elements and approvals in separate API calls.
+                    // Reload the ticket so the task table uses the complete persisted task graph.
+                    if (!await ReloadActTicket() || !ActTicket.Tasks.Any(task => task.Id == ActReqTask.Id))
+                    {
+                        ActTicket.Tasks.Add(ActReqTask);
+                    }
+                    return;
                 }
             }
             ActTicket.Tasks.Add(ActReqTask);
@@ -320,7 +337,7 @@ namespace FWO.Services.Workflow
         /// <param name="allowLockedApprovalUpdate">Allows the explicitly permitted approval-phase field update on a locked task.</param>
         public async Task ChangeReqTask(bool allowLockedApprovalUpdate = false)
         {
-            if (ActReqTask.Locked && !allowLockedApprovalUpdate)
+            if ((ActReqTask.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
             {
                 return;
             }
@@ -334,7 +351,7 @@ namespace FWO.Services.Workflow
 
         public async Task ChangeOwner()
         {
-            if (ActReqTask.Locked)
+            if (ActReqTask.Locked || !CheckActTicketChangeable())
             {
                 return;
             }
@@ -348,7 +365,7 @@ namespace FWO.Services.Workflow
 
         public async Task ConfDeleteReqTask()
         {
-            if (ActTicket.Locked)
+            if (ActTicket.Locked || !CheckActTicketChangeable())
             {
                 DisplayDeleteReqTaskMode = false;
                 return;

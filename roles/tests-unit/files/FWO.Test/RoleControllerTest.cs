@@ -32,7 +32,7 @@ namespace FWO.Test
                         new LdapAttribute("uniqueMember", kRoleMembers)))
             };
             MiddlewareLdap ldap = CreateRoleLdap(client);
-            RoleController controller = new(new List<MiddlewareLdap> { ldap });
+            RoleController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection());
 
             List<RoleGetReturnParameters> result = await controller.Get();
 
@@ -50,7 +50,7 @@ namespace FWO.Test
                 ReadResult = LdapTestSupport.CreateEntry(kRoleDn)
             };
             MiddlewareLdap ldap = CreateWritableRoleLdap(client);
-            RoleController controller = new(new List<MiddlewareLdap> { ldap });
+            RoleController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection());
 
             bool result = await controller.AddUser(new RoleAddDeleteUserParameters
             {
@@ -72,7 +72,7 @@ namespace FWO.Test
                     new LdapAttribute("uniqueMember", kRoleMembers))
             };
             MiddlewareLdap ldap = CreateWritableRoleLdap(client);
-            RoleController controller = new(new List<MiddlewareLdap> { ldap });
+            RoleController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection());
 
             bool result = await controller.RemoveUser(new RoleAddDeleteUserParameters
             {
@@ -82,6 +82,36 @@ namespace FWO.Test
 
             Assert.That(result, Is.True);
             Assert.That(client.ModifyCalls, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task RemoveUser_EndsTheSessionsOfTheRemovedUser()
+        {
+            RecordingLdapClient client = new()
+            {
+                ReadResult = LdapTestSupport.CreateEntry(kRoleDn, new LdapAttribute("uniqueMember", kRoleMembers))
+            };
+            SessionRevocationApiConnection apiConnection = new();
+            apiConnection.LocalUsers.Add(new UiUser { DbId = 11, Dn = kRoleMemberDn });
+            RoleController controller = new(new List<MiddlewareLdap> { CreateWritableRoleLdap(client) }, apiConnection);
+
+            bool result = await controller.RemoveUser(new RoleAddDeleteUserParameters { UserDn = kRoleMemberDn, Role = kRoleDn });
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConnection.RevokedUserIds, Is.EqualTo(new List<List<int>> { new() { 11 } }));
+        }
+
+        [Test]
+        public async Task RemoveUser_KeepsTheSessionsWhenNothingWasRemoved()
+        {
+            SessionRevocationApiConnection apiConnection = new();
+            apiConnection.LocalUsers.Add(new UiUser { DbId = 11, Dn = kRoleMemberDn });
+            RoleController controller = new(new List<MiddlewareLdap> { CreateRoleLdap(new RecordingLdapClient()) }, apiConnection);
+
+            bool result = await controller.RemoveUser(new RoleAddDeleteUserParameters { UserDn = kRoleMemberDn, Role = kRoleDn });
+
+            Assert.That(result, Is.False);
+            Assert.That(apiConnection.RevokedUserIds, Is.Empty);
         }
 
         private static TestableLdap CreateRoleLdap(RecordingLdapClient client)

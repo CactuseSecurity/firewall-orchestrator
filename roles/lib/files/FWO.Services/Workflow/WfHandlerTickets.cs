@@ -21,7 +21,7 @@ namespace FWO.Services.Workflow
             WfTicket? ticket = null;
             if (dbAcc != null)
             {
-                ticket = await dbAcc.FetchTicket(ticketId, GetOwnerIdsForFiltering(), GetVisibilityTicketFilter());
+                ticket = await dbAcc.FetchTicket(ticketId, GetOwnerIdsForFiltering(), GetTicketFilter());
                 if (ticket != null)
                 {
                     SetTicketEnv(ticket);
@@ -94,7 +94,7 @@ namespace FWO.Services.Workflow
                 return null;
             }
 
-            WfTicket? refreshedTicket = await dbAcc.FetchTicket(ticket.Id, GetOwnerIdsForFiltering(), GetVisibilityTicketFilter());
+            WfTicket? refreshedTicket = await dbAcc.FetchTicket(ticket.Id, GetOwnerIdsForFiltering(), GetTicketFilter());
             if (refreshedTicket == null)
             {
                 return null;
@@ -177,7 +177,7 @@ namespace FWO.Services.Workflow
             LastSaveReloadFailed = false;
             try
             {
-                return dbAcc == null ? 0 : await SaveTicketToDb(ticket);
+                return dbAcc == null || !CheckActTicketChangeable() ? 0 : await SaveTicketToDb(ticket);
             }
             catch (Exception exception)
             {
@@ -224,7 +224,7 @@ namespace FWO.Services.Workflow
 
         private async Task SynchronizeRequestTasks(int targetTicketStateId, string? approvalComment)
         {
-            await UpdateRequestTasksFromTicket(false, targetTicketStateId: targetTicketStateId, approvalComment: approvalComment);
+            await UpdateRequestTasksFromTicket(targetTicketStateId: targetTicketStateId, approvalComment: approvalComment);
             ActTicket.StateId = targetTicketStateId;
         }
 
@@ -380,9 +380,18 @@ namespace FWO.Services.Workflow
             return ticketVisible || ticket.Tasks.Count > 0;
         }
 
+        /// <summary>
+        /// Gets the apps tickets are filtered by in owner based mode: the apps the handler was initialized with, so that
+        /// deep links and reloads apply the same scope as the ticket list. Only callers that do not scope the handler to
+        /// the apps of the user (modelling, monitoring, middleware) resolve tickets against all apps.
+        /// </summary>
         private List<int>? GetOwnerIdsForFiltering()
         {
-            return userConfig.ReqOwnerBased ? AllOwners.ConvertAll(owner => owner.Id) : null;
+            if (!userConfig.ReqOwnerBased)
+            {
+                return null;
+            }
+            return scopedOwnerIds ?? AllOwners.ConvertAll(owner => owner.Id);
         }
 
         private Func<WfTicket, bool>? GetVisibilityTicketFilter()

@@ -21,7 +21,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride",
         "implementationMode", "implementationModeOverrideForRules", "rerouteToExternalTicketSystem",
         "securityProfiles", "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName",
-        "planImplementation", "planImplementationOverrideForRules", "modellingCreateAppZones",
+        "autoPlanImplementation", "autoPlanImplementationForRules", "modellingCreateAppZones",
         "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
         "modellingConnectionIdField", "modellingConnectionIdTemplate", "templates"
     ];
@@ -115,8 +115,8 @@ internal class DeviceSpecificSettingsGuardicoreTest
             Assert.That(settings.OwnerIdCustomFieldName, Is.EqualTo("OwnerId"));
             Assert.That(settings.ChangeIdCustomFieldName, Is.EqualTo("ChangeId"));
             Assert.That(settings.ImporterHostName, Is.Empty);
-            Assert.That(settings.PlanImplementation, Is.True);
-            Assert.That(settings.PlanImplementationOverrideForRules, Is.True);
+            Assert.That(settings.AutoPlanImplementation, Is.True);
+            Assert.That(settings.AutoPlanImplementationForRules, Is.False);
             Assert.That(settings.ModellingCreateAppZones, Is.True);
             Assert.That(settings.ModellingImplementNetworkAreaObjects, Is.False);
             Assert.That(settings.ModellingDynIpLabelsVisibleAsGroups, Is.True);
@@ -194,8 +194,8 @@ internal class DeviceSpecificSettingsGuardicoreTest
     [Test]
     public void BooleansUseJsonBooleans()
     {
-        Assert.That(DeviceSpecificSettingValueSerializer.Serialize(DeviceSpecificSettingKeys.PlanImplementation, false), Is.EqualTo(new JValue(false)));
-        Assert.That(DeviceSpecificSettingValueSerializer.Deserialize(DeviceSpecificSettingKeys.PlanImplementation, new JValue(true)), Is.True);
+        Assert.That(DeviceSpecificSettingValueSerializer.Serialize(DeviceSpecificSettingKeys.AutoPlanImplementation, false), Is.EqualTo(new JValue(false)));
+        Assert.That(DeviceSpecificSettingValueSerializer.Deserialize(DeviceSpecificSettingKeys.AutoPlanImplementation, new JValue(true)), Is.True);
         Assert.Throws<InvalidOperationException>(() => DeviceSpecificSettingValueSerializer.Deserialize(
             DeviceSpecificSettingKeys.ModellingCreateAppZones, new JValue("Yes")));
     }

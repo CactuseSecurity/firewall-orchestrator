@@ -86,7 +86,7 @@ namespace FWO.Data.Modelling
             return new NetworkObject()
             {
                 Id = subnet.Id,
-                Name = subnet.Name,
+                Name = subnet.Name ?? "",
                 IP = subnet.Ip ?? "",
                 IpEnd = subnet.IpEnd ?? ""
             };

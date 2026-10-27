@@ -39,7 +39,7 @@ namespace FWO.Services.Modelling
         private List<ModellingAppRole> allModelledAppRoles = [];
 
         private readonly Dictionary<int, List<ModellingAppRole>> allProdAppRoles = [];
-        private readonly Dictionary<int, Dictionary<ModellingAppServer, long>> allExistingAppServers = [];
+        private readonly Dictionary<int, Dictionary<ModellingAppServer, ModellingAppServer>> allExistingAppServers = [];
         private readonly Dictionary<int, List<ModellingAppServer>> alreadyCreatedAppServers = [];
         private List<ModellingConnection> DeletedConns = [];
         private List<ModellingNetworkArea> AllAreas = [];
@@ -360,7 +360,7 @@ namespace FWO.Services.Modelling
                 ModellingAppRole changedAppRole = new(modelledAppRole) { ManagementName = mgt.Name, SurplusAppServers = deletedAppServers };
                 foreach (var appServer in changedAppRole.AppServers.Select(a => a.Content))
                 {
-                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => appServerComparer.Equals(a.Content, appServer)) != null;
+                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => IsSameGroupMember(a.Content, appServer)) != null;
                 }
                 varianceResult.DifferingAppRoles[mgt.Id].Add(changedAppRole);
             }

@@ -35,6 +35,16 @@ namespace FWO.Test
             Assert.That(analyzer, Is.InstanceOf<NetworkZoneTreePathAnalyzer>());
         }
 
+        /// <summary>Verifies the device list algorithms select the analyzer that does not analyse a path.</summary>
+        [TestCase(GlobalConst.kPathAnalysisAlgorithmForEachDevice)]
+        [TestCase(GlobalConst.kPathAnalysisAlgorithmFirstDevice)]
+        public void Create_WithDeviceListAlgorithm_ReturnsDeviceListPathAnalyzer(long algorithmId)
+        {
+            IPathAnalyzer analyzer = CreateFactory(algorithmId).Create();
+
+            Assert.That(analyzer, Is.InstanceOf<DeviceListPathAnalyzer>());
+        }
+
         /// <summary>
         /// Verifies an id that no analyzer implements falls back to the none analyzer instead of
         /// throwing. An id can reach the config through a seeded row that the factory does not map yet.
@@ -44,6 +54,50 @@ namespace FWO.Test
         public void Create_WithUnmappedAlgorithmId_FallsBackToNoPathAnalyzer(long algorithmId)
         {
             IPathAnalyzer analyzer = CreateFactory(algorithmId).Create();
+
+            Assert.That(analyzer, Is.InstanceOf<NoPathAnalyzer>());
+        }
+
+        /// <summary>Verifies a requested algorithm overrides the configured one.</summary>
+        [Test]
+        public void Create_WithRequestedAlgorithm_OverridesConfiguredAlgorithm()
+        {
+            PathAnalyzerFactory factory = CreateFactory(GlobalConst.kPathAnalysisAlgorithmNone);
+
+            IPathAnalyzer analyzer = factory.Create(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree);
+
+            Assert.That(analyzer, Is.InstanceOf<NetworkZoneTreePathAnalyzer>());
+        }
+
+        /// <summary>Verifies a requested none algorithm is honoured even when a searching one is configured.</summary>
+        [Test]
+        public void Create_WithRequestedNoneAlgorithm_ReturnsNoPathAnalyzer()
+        {
+            PathAnalyzerFactory factory = CreateFactory(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree);
+
+            IPathAnalyzer analyzer = factory.Create(GlobalConst.kPathAnalysisAlgorithmNone);
+
+            Assert.That(analyzer, Is.InstanceOf<NoPathAnalyzer>());
+        }
+
+        /// <summary>Verifies an explicit null falls back to the configured algorithm, like omitting the argument.</summary>
+        [Test]
+        public void Create_WithNullAlgorithm_UsesConfiguredAlgorithm()
+        {
+            PathAnalyzerFactory factory = CreateFactory(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree);
+
+            IPathAnalyzer analyzer = factory.Create(null);
+
+            Assert.That(analyzer, Is.InstanceOf<NetworkZoneTreePathAnalyzer>());
+        }
+
+        /// <summary>Verifies an unmapped requested id falls back to the none analyzer like an unmapped configured one.</summary>
+        [Test]
+        public void Create_WithUnmappedRequestedAlgorithm_FallsBackToNoPathAnalyzer()
+        {
+            PathAnalyzerFactory factory = CreateFactory(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree);
+
+            IPathAnalyzer analyzer = factory.Create(kUnknownAlgorithmId);
 
             Assert.That(analyzer, Is.InstanceOf<NoPathAnalyzer>());
         }

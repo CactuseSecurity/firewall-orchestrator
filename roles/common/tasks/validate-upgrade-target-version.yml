@@ -1,0 +1,10 @@
+---
+# development_product_version is the reserved, unreleased version used by the
+# PR version-allocation workflow. It intentionally sorts above released
+# versions so candidate migrations are exercised. It must never become a tag.
+- name: Refuse to downgrade from a released version
+  fail:
+    msg: "Refusing to downgrade: installed version {{ installed_version }} is newer than the version being installed ({{ upgrade_target_version }})."
+  when:
+    - installed_version is version(upgrade_target_version, '>')
+    - installed_version != development_product_version

@@ -26,6 +26,17 @@ namespace FWO.Test
         // share across the parallelizable tests below.
         private static readonly List<ModellingNetworkArea> kAreaIdOne = [new ModellingNetworkArea { Id = 1 }];
         private static readonly List<ModellingNetworkArea> kAreaIdTwo = [new ModellingNetworkArea { Id = 2 }];
+        private static readonly List<long> kOnlyAllowedAreaId = [6];
+        private static readonly List<long> kOnlySelectedAreaId = [7];
+        private static readonly List<long> kExcludedAndSelectedAreaIds = [kExcludedAreaId, 7];
+        private static readonly List<long> kExcludedAreaIds = [kExcludedAreaId];
+        private const long kExcludedAreaId = 5;
+        private static readonly List<ModellingNetworkArea> kExcludedArea = [new ModellingNetworkArea { Id = kExcludedAreaId }];
+        private static readonly List<ModellingNetworkArea> kDstOnlyArea = [new ModellingNetworkArea { Id = 3, Name = "AreaDstOnly", IdString = "NA3" }];
+        private static readonly List<string> kExpectedExcludedAreaSaveMessages = ["Edit Common Service:Excluded areas in common service: AreaExcluded"];
+        private static readonly List<string> kExpectedExcludedAreasSaveMessages = ["Edit Common Service:Excluded areas in common service: AreaExcluded, AreaExcluded2"];
+        private const string kExcludedAreaSaveMessagePrefix = "Edit Common Service:Excluded areas in common service";
+        private const long kSecondExcludedAreaId = 8;
 
         [Test]
         public void RefreshSelectableNwObjects_IncludesCommonSelectedRolesAndServers()
@@ -485,7 +496,7 @@ namespace FWO.Test
             };
             ModellingConnectionHandler handler = CreateHandler(connection);
             handler.DstReadOnly = false;
-            handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 3, UseInSrc = false }];
+            handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 3, UseInDst = false }];
 
             handler.AreasToDestination(
             [
@@ -681,6 +692,179 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void AreasToDestination_IgnoresSourceFlagOfCommonAreaConfig()
+        {
+            ModellingConnection connection = new() { Id = 30 };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.DstReadOnly = false;
+            handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 3, UseInSrc = false, UseInDst = true }];
+
+            handler.AreasToDestination(kDstOnlyArea);
+
+            ClassicAssert.AreEqual(1, handler.DstAreasToAdd.Count);
+        }
+
+        [Test]
+        public void NetworkAreaUseAllowed_BlocksExcludedAreaInCommonService()
+        {
+            ModellingConnection connection = new() { Id = 31, IsCommonService = true };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId];
+
+            bool result = handler.NetworkAreaUseAllowed(kExcludedArea, Direction.Source, out var reason);
+
+            ClassicAssert.IsFalse(result);
+            ClassicAssert.AreEqual("Edit Common Service", reason.Title);
+            ClassicAssert.AreEqual("Area excluded from common services", reason.Text);
+        }
+
+        [Test]
+        public void NetworkAreaUseAllowed_AllowsExcludedAreaOnNormalConnection()
+        {
+            ModellingConnection connection = new() { Id = 32 };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = kExcludedAreaId }];
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId];
+
+            bool result = handler.NetworkAreaUseAllowed(kExcludedArea, Direction.Source, out var reason);
+
+            ClassicAssert.IsTrue(result);
+            ClassicAssert.AreEqual("", reason.Text);
+        }
+
+        [Test]
+        public void AreasToSourceAndDestination_SkipExcludedAreaInCommonService()
+        {
+            ModellingConnection connection = new() { Id = 33, IsCommonService = true };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.SrcReadOnly = false;
+            handler.DstReadOnly = false;
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId];
+            List<ModellingNetworkArea> areas =
+            [
+                new ModellingNetworkArea { Id = kExcludedAreaId, Name = "AreaExcluded", IdString = "NA5" },
+                new ModellingNetworkArea { Id = 6, Name = "AreaAllowed", IdString = "NA6" }
+            ];
+
+            handler.AreasToSource(areas);
+            handler.AreasToDestination(areas);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.SrcAreasToAdd.Select(a => a.Id), Is.EqualTo(kOnlyAllowedAreaId));
+                Assert.That(handler.DstAreasToAdd.Select(a => a.Id), Is.EqualTo(kOnlyAllowedAreaId));
+            });
+        }
+
+        [Test]
+        public void RefreshSelectableNwObjects_HidesExcludedAreasOnlyInCommonService()
+        {
+            ModellingConnectionHandler comSvcHandler = CreateHandlerWithExcludedArea(new() { Id = 34, IsCommonService = true });
+            ModellingConnectionHandler connHandler = CreateHandlerWithExcludedArea(new() { Id = 35 });
+
+            comSvcHandler.RefreshSelectableNwObjects();
+            connHandler.RefreshSelectableNwObjects();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(comSvcHandler.AvailableNwElems.Select(e => e.Value), Is.EqualTo(kOnlySelectedAreaId));
+                Assert.That(connHandler.AvailableNwElems.Select(e => e.Value), Is.EquivalentTo(kExcludedAndSelectedAreaIds));
+            });
+        }
+
+        [Test]
+        public void ComSvcHiddenAreaIds_ContainExcludedAreasOnlyForCommonService()
+        {
+            ModellingConnectionHandler comSvcHandler = CreateHandlerWithExcludedArea(new() { Id = 39, IsCommonService = true });
+            ModellingConnectionHandler connHandler = CreateHandlerWithExcludedArea(new() { Id = 40 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(comSvcHandler.ComSvcHiddenAreaIds, Is.EquivalentTo(kExcludedAreaIds));
+                Assert.That(connHandler.ComSvcHiddenAreaIds, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task Save_BlocksCommonServiceStillContainingExcludedArea()
+        {
+            List<string> messages = [];
+            ModellingConnection connection = new()
+            {
+                Id = 36,
+                IsCommonService = true,
+                DestinationAreas = [WrapArea(kExcludedAreaId, "AreaExcluded")]
+            };
+            ModellingConnectionHandler handler = CreateHandlerCollectingMessages(connection, messages);
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId];
+
+            bool result = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False);
+                Assert.That(messages, Is.EqualTo(kExpectedExcludedAreaSaveMessages));
+            });
+        }
+
+        [Test]
+        public async Task Save_NamesEachRemainingExcludedAreaOnce()
+        {
+            List<string> messages = [];
+            ModellingConnection connection = new()
+            {
+                Id = 38,
+                IsCommonService = true,
+                SourceAreas = [WrapArea(kExcludedAreaId, "AreaExcluded"), WrapArea(6, "AreaAllowed")],
+                DestinationAreas = [WrapArea(kExcludedAreaId, "AreaExcluded")]
+            };
+            ModellingConnectionHandler handler = CreateHandlerCollectingMessages(connection, messages);
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId, kSecondExcludedAreaId];
+            handler.DstAreasToAdd.Add(new ModellingNetworkArea { Id = kSecondExcludedAreaId, Name = "AreaExcluded2", IdString = "NA8" });
+
+            bool result = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False);
+                Assert.That(messages, Is.EqualTo(kExpectedExcludedAreasSaveMessages));
+            });
+        }
+
+        [Test]
+        public async Task Save_PassesExcludedAreaCheckWhenAreaIsRemoved()
+        {
+            List<string> messages = [];
+            ModellingNetworkAreaWrapper excludedArea = WrapArea(kExcludedAreaId, "AreaExcluded");
+            ModellingConnection connection = new()
+            {
+                Id = 37,
+                IsCommonService = true,
+                SourceAreas = [excludedArea]
+            };
+            ModellingConnectionHandler handler = CreateHandlerCollectingMessages(connection, messages);
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId];
+            handler.SrcAreasToDelete.Add(excludedArea.Content);
+
+            await handler.Save();
+
+            Assert.That(messages, Has.None.StartsWith(kExcludedAreaSaveMessagePrefix));
+        }
+
+        [Test]
+        public async Task InitAvailableNWObjects_ReadsExcludedAreasFromConfig()
+        {
+            SimulatedUserConfig config = new() { ModComSvcExcludedAreas = "[{\"area_id\":5,\"use_in_src\":true,\"use_in_dst\":true}]" };
+            ModellingConnection connection = new() { Id = 38, IsCommonService = true };
+            ModellingConnectionHandler handler = new(new EmptyNwObjectsApiConn(), config, Application, [connection], connection, false, false,
+                DisplayMessageInUi, DefaultInit.DoNothing, true);
+
+            await handler.InitAvailableNWObjects();
+
+            Assert.That(handler.ComSvcExcludedAreaIds, Is.EquivalentTo(kExcludedAreaIds));
+        }
+
         /// <summary>
         /// Builds a connection handler using a network area naming convention with the given fixed part length.
         /// </summary>
@@ -738,6 +922,43 @@ namespace FWO.Test
         private static ModellingNwGroupWrapper WrapNwGroup(long id, string name)
         {
             return new ModellingNwGroupWrapper { Content = new ModellingNwGroup { Id = id, Name = name, IdString = $"GR{id}" } };
+        }
+
+        /// <summary>
+        /// Builds a connection handler offering the excluded area as common area and another area as selected object.
+        /// </summary>
+        /// <param name="connection">the connection to edit</param>
+        /// <returns>the prepared connection handler</returns>
+        private static ModellingConnectionHandler CreateHandlerWithExcludedArea(ModellingConnection connection)
+        {
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId];
+            handler.AvailableCommonAreas = [WrapArea(kExcludedAreaId, "AreaExcluded")];
+            handler.AvailableSelectedObjects = [new ModellingNwGroupWrapper { Content = new ModellingNwGroup { Id = 7, Name = "Area7", GroupType = (int)ModellingTypes.ModObjectType.NetworkArea } }];
+            return handler;
+        }
+
+        /// <summary>
+        /// Builds a connection handler recording every message as "title:text".
+        /// </summary>
+        /// <param name="connection">the connection to edit</param>
+        /// <param name="messages">receives the reported messages</param>
+        /// <returns>the connection handler</returns>
+        private static ModellingConnectionHandler CreateHandlerCollectingMessages(ModellingConnection connection, List<string> messages)
+        {
+            return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), userConfig, Application, [connection], connection, false, false,
+                (_, title, text, _) => messages.Add($"{title}:{text}"), DefaultInit.DoNothing, true);
+        }
+
+        /// <summary>
+        /// Answers all queries for available network objects with empty lists.
+        /// </summary>
+        private sealed class EmptyNwObjectsApiConn : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                return Task.FromResult(Activator.CreateInstance<QueryResponseType>());
+            }
         }
     }
 }

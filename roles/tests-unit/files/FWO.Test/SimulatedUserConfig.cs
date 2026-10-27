@@ -453,6 +453,8 @@ namespace FWO.Test
             {"U9022","Network areas on other side" },
             {"U9021","Interfaces cannot use areas" },
             {"U9023","Common areas not allowed" },
+            {"U9046","Area excluded from common services" },
+            {"U9047","Excluded areas in common service: @@OBJECTNAME@@" },
             {"E9015","Insert not allowed" },
             {"select","Select" },
             {"E9021","Interface permission required" },

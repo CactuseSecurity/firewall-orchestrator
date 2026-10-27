@@ -27,6 +27,8 @@ namespace FWO.Test
     internal class UiSettingsModellingTest
     {
         private static readonly object?[] RefreshEmptyArgs = [string.Empty];
+        private static readonly List<long> kComSvcExcludedAreaIds = [2];
+        private static readonly List<long> kComSvcKeptAreaIds = [1];
 
         private static SettingsModelling CreateComponent()
         {
@@ -431,6 +433,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public void PrepareConfigData_SerializesComSvcExcludedAreasWithoutDeletedOnes()
+        {
+            SettingsModelling component = CreateComponent();
+            ConfigData configData = new();
+            SetPrivateField(component, "configData", configData);
+            ModellingNwGroup keptArea = new() { Id = 1, Name = "Area 1" };
+            ModellingNwGroup deletedArea = new() { Id = 2, Name = "Area 2" };
+            component.AddComSvcExcludedArea(keptArea);
+            component.AddComSvcExcludedArea(deletedArea);
+            GetPrivateField<List<CommonArea>>(component, "ComSvcExcludedAreasToDelete").Add(new() { Area = new() { Content = deletedArea } });
+
+            InvokePrivate("PrepareConfigData", component);
+
+            List<CommonAreaConfig>? parsed = JsonSerializer.Deserialize<List<CommonAreaConfig>>(configData.ModComSvcExcludedAreas);
+            Assert.That(parsed?.Select(a => a.AreaId), Is.EqualTo(kComSvcKeptAreaIds));
+        }
+
+        [Test]
         public void RefreshAreas_ReturnsEmptyWhenConfigIsEmpty()
         {
             SettingsModelling component = CreateComponent();
@@ -528,6 +548,7 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<List<CommonArea>>(component, "CommonAreas"), Has.Count.EqualTo(1));
                 Assert.That(GetPrivateField<List<CommonArea>>(component, "SpecUserAreas"), Has.Count.EqualTo(1));
                 Assert.That(GetPrivateField<List<CommonArea>>(component, "UpdObjAreas"), Has.Count.EqualTo(1));
+                Assert.That(GetPrivateField<List<CommonArea>>(component, "ComSvcExcludedAreas").Select(a => a.Area.Content.Id), Is.EqualTo(kComSvcExcludedAreaIds));
                 Assert.That(GetPrivateField<bool>(component, "predefServices"), Is.True);
                 Assert.That(apiConnection.Queries, Does.Contain(StmQueries.getIpProtocols));
                 Assert.That(apiConnection.Queries, Does.Contain(ModellingQueries.getNwGroupObjects));
@@ -712,6 +733,10 @@ namespace FWO.Test
                 ModUpdatableObjAreas = JsonSerializer.Serialize(new List<CommonAreaConfig>
                 {
                     new() { AreaId = 1, UseInSrc = true, UseInDst = true }
+                }),
+                ModComSvcExcludedAreas = JsonSerializer.Serialize(new List<CommonAreaConfig>
+                {
+                    new() { AreaId = 2, UseInSrc = true, UseInDst = true }
                 }),
                 RuleRecognitionOption = JsonSerializer.Serialize(new RuleRecognitionOption
                 {

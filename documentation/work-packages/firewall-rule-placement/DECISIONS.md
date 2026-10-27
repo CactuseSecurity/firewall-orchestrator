@@ -343,3 +343,95 @@ The customer calculation proceeds only when both source and destination have `Co
 A persisted designated-matrix zone is eligible, including the persisted automatic Internet zone when present. `SyntheticInternetFallback` is ineligible because it is not a persisted designated-matrix zone. Identical source and destination zones are valid. Multiple input objects or ranges remain valid when their combined ranges resolve completely to the same one zone. Whether a customer exception permits multiple distinct source zones remains an explicit expert question; until amended, it fails under the strict baseline.
 
 Rationale: the customer guarantees an exact source/destination zone result. Preserving and validating the resolver's richer cardinality and coverage data makes violations explicit instead of hiding ambiguity or uncovered address space.
+
+## 2026-10-26 - D-049 - Select the functional Check Point layer by layer-guard coverage
+
+The KfW functional Check Point target is not derived from a layer naming convention. It is the unique layer whose source layer guard contains every normalized source IP of the requested rule and whose destination layer guard contains every normalized destination IP. Section matching occurs only inside that selected layer.
+
+Zero matching layers and multiple matching layers fail safely; neither case may choose the initial layer, the first inline layer, or a name-based fallback. A Section found in another layer does not override the functional target. This supersedes D-046 only where D-046 treated the functional parent scope as caller-supplied because its derivation was still unknown; D-046's additive normalized Section matching and preservation of existing exact selectors remain unchanged.
+
+The current structural graph snapshot carries only rule identity and order, so this requirement proves that customer calculation needs immutable layer-guard source/destination semantics in addition to topology. The planner must define the smallest historically consistent projection and its normalization/containment rules before implementation. No database schema change is implied by this decision.
+
+## 2026-10-26 - D-050 - Resolve same-ticket groups from workflow mock state
+
+KfW tickets order object tasks before rule tasks, and provisioning creates or changes the objects before writing rules. Rule positioning happens earlier, so a group created or modified in the same ticket must be resolved from the workflow's effective/mock object state rather than being rejected merely because it is not yet available in the Flow catalog.
+
+Existing catalogued groups may continue to use the Flow catalog. The Phase 4 planner must define an authoritative immutable projection for same-ticket object and group membership, including create/modify/delete effects and its precedence over catalog state, and pass it explicitly into calculation. Missing, ambiguous, cyclic, or otherwise unusable effective membership fails safely. Exact construction and ownership of that workflow projection remain a technical design task with the workflow/Flow expert; production activation remains deferred under D-047.
+
+## 2026-10-26 - D-051 - Reject multiple distinct zones on either side
+
+The KfW customer algorithm never accepts multiple distinct source zones or multiple distinct destination zones. Each side must have `Complete` coverage and resolve to exactly one distinct persisted designated-matrix zone. Multiple input objects or ranges are valid only when every range on that side is covered and the combined result is the same single zone.
+
+This closes the exception left open by D-048. Multiple distinct zones fail safely without selecting, prioritizing, merging, or otherwise reducing the zone set.
+
+## 2026-10-26 - D-052 - Exclude the main layer from the KfW algorithm
+
+The KfW customer algorithm considers only inline layers reached through layer-guard rules. The main or initial Check Point layer is never a valid target and is not a fallback when no inline-layer guard matches. Exactly one guarded inline layer must match the requested source and destination ranges; zero or multiple matches fail safely.
+
+This restriction applies only to the KfW algorithm. Generic FWO positioning may continue to target an initial layer through its separately configured behavior.
+
+## 2026-10-26 - D-053 - Treat the ticket's final group state as authoritative
+
+When a referenced group is created or changed in the same ticket, customer calculation uses the final intended group state after applying that ticket's ordered object and group tasks. This ticket-local state overrides the older Flow-catalog version. The protocol requires creators to define object and group changes before rules that consume them; a ticket that violates that protocol is not entitled to a guessed result and may fail positioning.
+
+Groups are resolved recursively to leaf address ranges, including nested groups. Missing or ambiguous references, cycles, or any other condition that prevents one complete final expansion fail safely. After expansion, calculation uses the leaf ranges for both functional layer-guard matching and designated-zone resolution; group identity has no further placement meaning.
+
+## 2026-10-26 - D-054 - Keep shared guard comparison address-family aware
+
+KfW does not use IPv6 in this customer algorithm, so its customer acceptance scenarios may use IPv4 guard and request data. The reusable FWO normalization and range-containment primitives must nevertheless remain address-family aware and must not hard-code IPv4 behavior. IPv4 and IPv6 ranges are compared only within their own address families; unsupported or mixed-family input fails explicitly rather than being ignored or coerced.
+
+## 2026-10-26 - D-055 - Apply normal rule-field semantics to KfW layer guards
+
+KfW layer guards use normal Check Point source and destination fields. `Any` is explicitly supported and commonly appears on one side; for the corresponding address family it contains every requested range on that side. Ordinary objects and groups use their normal imported rule-field meaning and must be normalized before containment is evaluated.
+
+KfW guarantees that each new rule handled by this algorithm is completely contained by exactly one layer guard. The calculator still validates that invariant and fails on zero, partial-only, or multiple complete matches. This guarantee is customer-specific: FWO must not generalize it to arbitrary Check Point inline rules, because rules may exist whose source or destination is only partially contained—or not contained at all—by their parent guard.
+
+Support for every object type stored in FWO is not implied. Object kinds without a stable, correctly imported address-set meaning require an explicit resolver or fail safely. The exact KfW exclusions remain an expert follow-up, particularly for dynamic/updatable objects, domains, access roles, exclusion groups, negation, and other special objects.
+
+## 2026-10-26 - D-056 - Trust the normalized fixed-import object model
+
+Customer positioning accepts every object represented by the historically consistent imported FWO snapshot and interprets it according to that normalized database representation. It does not maintain a separate KfW object-type allow-list and does not attempt to detect or repair importer mistakes. If an importer loses or misrepresents vendor semantics, that is an importer defect owned outside the positioning calculation.
+
+This supersedes D-055 only where it requested a KfW prohibition list as an implementation prerequisite. An object inventory may still define acceptance-test coverage, but the calculation boundary is capability-based: consume the normalized semantics the database actually provides, and never invent missing address meaning.
+
+## 2026-10-26 - D-057 - Use three-state guard containment for IP-less objects
+
+Each candidate guard side evaluates to `Contained`, `NotContained`, or `Indeterminate`. Known positive ranges or `Any` produce `Contained` when they already cover every requested range, even if the same side also contains an unresolved positive object. If known ranges leave requested space uncovered and an IP-less positive object could cover it, the result is `Indeterminate`. `NotContained` requires complete known semantics and at least one uncovered requested range.
+
+Negation, exclusion, or other subtractive semantics are `Indeterminate` whenever an unresolved term could change the answer. A layer is a definite match only when both sides are `Contained`. Selection succeeds only when exactly one layer definitely matches and every other candidate is definitely non-matching; any competing indeterminate candidate prevents proof of uniqueness and fails safely.
+
+An IP-less object in the new rule itself cannot satisfy the customer's complete single-zone prerequisite unless an earlier authoritative resolver supplies its concrete ranges. A future dynamic-object resolver may turn indeterminate input into ranges without changing this containment contract.
+
+## 2026-10-26 - D-058 - Limit Phase 4 WP-01 to Check Point
+
+Phase 4 WP-01 implements only the KfW Check Point `SECTION_NATIVE` calculation. The customer rulebook's Fortinet `SECTION_LABEL` branch is explicitly deferred to a separate future work package and is not planned for the current sprint or quarter.
+
+WP-01 therefore does not add a Fortinet semantic-position contract, policy-label snapshot, first-contiguous-label-block selector, recipe, strategy, registration, or tests. Deferral accounts for those customer statements without silently treating them as implemented.
+
+## 2026-10-27 - D-059 - Use one canonical effective rule-address input
+
+KfW zone resolution and layer-guard containment consume the same immutable normalized source and destination range input. A ticket-aware resolver constructs that input once from the access task and the ticket's ordered network object/group tasks. It resolves direct ranges, ticket-local effective objects and groups, and unchanged Flow-catalog groups before either placement decision runs. The two consumers must not independently expand workflow elements or groups.
+
+Ticket tasks are folded in ascending `TaskNumber`, then ascending positive task ID as the deterministic tie-breaker. A relevant object/group task ordered after the consuming access task is a protocol-order failure. Ticket-local create/modify/delete state overrides the catalog; group definitions use their canonical source-field members. Identity correlation prefers positive Flow IDs, then positive normalized-object IDs, and uses trimmed case-insensitive names only when exactly one candidate remains. Missing identity, conflicting final definitions, empty final groups, cycles, invalid actions, and incomplete leaf ranges are typed failures rather than guessed input.
+
+Rationale: both the zone pair and functional layer describe the same requested traffic. A shared immutable range projection prevents the rule from resolving to one meaning for zones and another for layer guards. It also isolates workflow mock-state behavior from the existing Flow persistence path.
+
+## 2026-10-27 - D-060 - Load guard semantics at the graph's fixed import
+
+`RulebaseGraphReadSuccess` exposes the positive import control ID selected by the existing structural reader. A separate Check Point layer-guard reader receives that ID and the immutable graph, selects only source rules of inline links, and loads their source/destination negation flags and normalized address terms using the same half-open historical interval. It returns a separate immutable guard snapshot keyed by guarded inline-layer ID; it does not add semantic fields to every structural graph rule and does not make the generic graph-only path perform extra queries.
+
+The guard projection represents each side as a rule-side negation flag plus immutable top-level address terms. A term retains known included ranges, known excluded ranges from normalized negated flat memberships, and separate unresolved inclusion/exclusion flags. This term boundary prevents one group's exclusion from being incorrectly subtracted from a separate positive object on the same rule side. Imported `Any` is represented by its normalized full-family range. Groups use the fixed-import flattened membership already stored by FWO. Blank IP data is unresolved; malformed nonblank ranges, scope/history mismatches, duplicate guards for one inline layer, missing inline guards, or unexpected returned rows invalidate the snapshot. No importer repair or customer object-type allow-list is added.
+
+Rationale: the import ID is the consistency token between topology and guard semantics. A separate projection keeps the Phase 3 structural graph small and preserves the generic path's current query cost and behavior.
+
+## 2026-10-27 - D-061 - Compose the KfW recipe from additive customer primitives
+
+The activation-neutral KfW recipe is:
+
+`EndOfBlock(CheckPointSectionScopeBlock(CheckPointLayerGuardScopeBlock(), NormalizedName(CheckPointSectionName.Build(destinationZone, sourceZone))))`
+
+`CheckPointLayerGuardScopeBlock` has no child, considers only inline links, applies three-state containment to both sides, and returns the existing Check Point scope value for the uniquely selected layer. More than one definite match is `ScopeAmbiguous`; a competing indeterminate candidate is `ScopeIndeterminate`; zero definite matches with no indeterminate candidate is `ScopeNotFound`. Invalid or cross-scope snapshots remain `InvalidSnapshot`.
+
+The existing Section block gains an explicit normalized-name selector mode. Its exact-name and UID modes remain ordinal and unchanged. The canonical builder emits `"[DESTINATION] < [SOURCE]"`; normalized comparison trims both complete names and applies invariant uppercase. Zero and multiple normalized matches use the existing `ScopeNotFound` and `ScopeAmbiguous` failures. The existing `EndOfBlock` produces the semantic end-of-Section anchor, including its already-defined empty-Section behavior.
+
+Recipe construction validates complete coverage, exactly one persisted zone on each side, and a nonblank canonical name. It is a direct factory, not an enum catalog mapping. WP-01 adds no production strategy registration, workflow caller change, persistence change, or activation fallback.

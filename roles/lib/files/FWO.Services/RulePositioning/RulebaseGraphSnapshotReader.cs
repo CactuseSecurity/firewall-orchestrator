@@ -111,7 +111,8 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
         try
         {
             return new RulebaseGraphReadSuccess(
-                new RulebaseGraphSnapshot(managementId, gatewayId, rulebases, links));
+                new RulebaseGraphSnapshot(managementId, gatewayId, rulebases, links),
+                importId);
         }
         catch (ArgumentException)
         {

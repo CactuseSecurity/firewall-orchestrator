@@ -2,15 +2,15 @@
 
 ## Status
 
-WP-01 planning is in progress. Phase 3 has produced and validated the generic semantic-positioning capability, Phase 3 WP-06 has activated it through the approved workflow seam, and the remaining Phase 1 disposable-VM acceptance gates have passed.
+WP-01 is implemented and locally validated. Phase 3 has produced and validated the generic semantic-positioning capability, Phase 3 WP-06 has activated it through the approved workflow seam, and the remaining Phase 1 disposable-VM acceptance gates have passed.
 
-Phase 4 first adds isolated customer-specific calculation behavior. Per D-047, enum mapping, production registration, zone-service activation for positioning, and workflow selection of the customer algorithm move to a separate later plan. Phase 4 does not own generic activation, persistence, request rendering, or firewall execution.
+Phase 4 first adds isolated KfW Check Point calculation behavior. Per D-047, enum mapping, production registration, zone-service activation for positioning, and workflow selection of the customer algorithm move to a separate later plan. Per D-058, Fortinet `SECTION_LABEL` is deferred beyond the current sprint and quarter. Phase 4 does not own generic activation, persistence, request rendering, or firewall execution.
 
 ## Work packages
 
 | Work package | Status | Planning brief | Implementation brief | Outcome |
 | --- | --- | --- | --- | --- |
-| WP-01 | Planning in progress | [Plan customer-specific calculation](WP-01-customer-specific-recipes-planning.md) | [Implement customer-specific calculation](WP-01-customer-specific-recipes-implementation.md) | Analyze the customer document and add isolated normalized Section-matching and activation-neutral recipe construction without production registration. |
+| WP-01 | Implemented and locally validated | [Plan customer-specific calculation](WP-01-customer-specific-recipes-planning.md) | [Implemented customer-specific calculation](WP-01-customer-specific-recipes-implementation.md) | Adds isolated KfW Check Point guard-derived functional-layer selection, normalized Section matching, same-ticket effective-group input, and activation-neutral recipe construction without production registration. |
 
 ## Pre-implemented Phase 4 foundation
 
@@ -22,7 +22,7 @@ Phase 4 first adds isolated customer-specific calculation behavior. Per D-047, e
 
 `FWO_Regel_Platzierung_Regelwerk.md` is opened for the first time in the Phase 4 WP-01 planning session. The planner converts every relevant customer statement into a decision, recipe, test, explicit failure, or exclusion. The implementation brief must be self-contained so the implementer does not reopen the source document.
 
-Open customer/domain questions are maintained in [EXPERT-QUESTIONS.md](EXPERT-QUESTIONS.md).
+Settled customer behavior and the completed technical-design reasoning are maintained in [EXPERT-QUESTIONS.md](EXPERT-QUESTIONS.md).
 
 ## Fixed boundaries
 
@@ -30,6 +30,9 @@ Open customer/domain questions are maintained in [EXPERT-QUESTIONS.md](EXPERT-QU
 - Use zone input only for customer algorithms that require it. The generic algorithm remains graph-only.
 - Do not activate the existing designated-zone and creation-rule zone services in WP-01. A later plan may activate them only through exact customer capabilities; they never become generic prerequisites.
 - Add only blocks and graph data proven necessary by customer behavior.
+- Implement Check Point `SECTION_NATIVE` only. Defer Fortinet `SECTION_LABEL` and its distinct semantic position and label-block behavior to a future work package.
+- Select the Check Point functional layer by complete source/destination IP containment in exactly one layer guard. Never infer it from layer names or Section location.
+- Resolve same-ticket created or modified groups from an explicit immutable workflow effective/mock projection; Flow-catalog absence alone is not a customer-valid failure.
 - Build activation-neutral customer calculation without enum or production-catalog mapping; never use vendor, algorithm, scope, or recipe fallback.
 - Keep the semantic-position-only terminal boundary.
 - The Phase 3 WP-04 renderer is removed. Do not recreate vendor request rendering or execute Check Point API, publish, or installation operations.

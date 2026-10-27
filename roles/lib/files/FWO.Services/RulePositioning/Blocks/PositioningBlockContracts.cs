@@ -50,6 +50,7 @@ public enum PositioningBlockFailureCategory
     InvalidSnapshot,
     ScopeNotFound,
     ScopeAmbiguous,
+    ScopeIndeterminate,
     NoInsertionPoint,
     UnexpectedExecutionFailure
 }
@@ -115,6 +116,7 @@ public sealed class PositioningBlockFailure<TOutput> : PositioningBlockResult<TO
             PositioningBlockFailureCategory.InvalidSnapshot => "The policy snapshot is invalid for this calculation.",
             PositioningBlockFailureCategory.ScopeNotFound => "The requested positioning scope was not found.",
             PositioningBlockFailureCategory.ScopeAmbiguous => "The requested positioning scope is ambiguous.",
+            PositioningBlockFailureCategory.ScopeIndeterminate => "The requested positioning scope cannot be determined safely.",
             PositioningBlockFailureCategory.NoInsertionPoint => "No valid insertion point exists in the requested scope.",
             PositioningBlockFailureCategory.UnexpectedExecutionFailure => "The positioning block could not be evaluated.",
             _ => "The positioning block could not be evaluated."

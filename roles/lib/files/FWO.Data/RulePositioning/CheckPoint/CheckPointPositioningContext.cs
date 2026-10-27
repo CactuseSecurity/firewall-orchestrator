@@ -5,4 +5,5 @@ namespace FWO.Data.RulePositioning.CheckPoint;
 /// </summary>
 public sealed record CheckPointPositioningContext(
     RulePositioningContext CalculationContext,
-    RulebaseGraphSnapshot Snapshot);
+    RulebaseGraphSnapshot Snapshot,
+    KfwCheckPointPositioningInput? KfwInput = null);

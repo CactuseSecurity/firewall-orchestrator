@@ -9,6 +9,7 @@ public class RulePositioningQueries : Queries
     public static readonly string getLatestSuccessfulRuleImport;
     public static readonly string getGatewayRulebaseLinksAtImport;
     public static readonly string getRulebasesAtImport;
+    public static readonly string getCheckPointLayerGuardsAtImport;
 
     static RulePositioningQueries()
     {
@@ -17,6 +18,7 @@ public class RulePositioningQueries : Queries
             getLatestSuccessfulRuleImport = GetQueryText("rulePositioning/getLatestSuccessfulRuleImport.graphql");
             getGatewayRulebaseLinksAtImport = GetQueryText("rulePositioning/getGatewayRulebaseLinksAtImport.graphql");
             getRulebasesAtImport = GetQueryText("rulePositioning/getRulebasesAtImport.graphql");
+            getCheckPointLayerGuardsAtImport = GetQueryText("rulePositioning/getCheckPointLayerGuardsAtImport.graphql");
         }
         catch (Exception exception) { FailInitialization(exception); }
     }

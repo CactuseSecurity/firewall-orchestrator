@@ -4,14 +4,14 @@
 
 This directory is the repository source of truth for firewall rule positioning work. Active planning documents override chat history and any material under `archive/`.
 
-Phase 1 is implemented and validated, including the mandatory disposable-VM fresh-install and sequential `9.8.0` to `9.8.1` upgrade acceptance at commit `c85931e0f`. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 WP-01 through WP-06 are implemented and locally validated. WP-05 registers the graph-only calculation/persistence caller and removes the speculative renderer. WP-06 activates the caller from the approved implementation-task creation event. Phase 4 WP-01 planning is in progress and has analyzed the customer document. It first builds isolated customer calculation behavior; selection and production activation are deferred under D-047.
+Phase 1 is implemented and validated, including the mandatory disposable-VM fresh-install and sequential `9.8.0` to `9.8.1` upgrade acceptance at commit `c85931e0f`. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 WP-01 through WP-06 are implemented and locally validated. WP-05 registers the graph-only calculation/persistence caller and removes the speculative renderer. WP-06 activates the caller from the approved implementation-task creation event. Phase 4 WP-01 is implemented and locally validated. The KfW calculation selects a unique Check Point layer by fixed-import layer-guard IP coverage, resolves same-ticket groups through one authoritative effective range input, and then performs normalized zone-pair Section matching. Selection and production activation are deferred under D-047; Fortinet is deferred under D-058.
 
 | Phase | Status | Purpose |
 | --- | --- | --- |
 | Phase 1 | Implemented and validated | Build a calculation-only, cross-vendor positioning foundation and independent position persistence. |
 | Phase 2 | Implemented and locally validated | Build generic composition contracts, a reusable immutable structural graph, semantic positions, and structural blocks. |
 | Phase 3 | WP-01 through WP-06 implemented and locally validated | Complete a graph-only generic path that persists semantic positions, activate it from an approved workflow seam, remove the renderer, and leave zone input inactive. |
-| Phase 4 | WP-01 planning in progress | Add isolated customer calculation behavior while deferring enum mapping and production activation to a later plan. |
+| Phase 4 | WP-01 implemented and locally validated | Add isolated customer calculation behavior while deferring enum mapping and production activation to a later plan. |
 | Previous proposal | Archived | Historical context only; it is not an alternative active plan. |
 
 ## Reading order

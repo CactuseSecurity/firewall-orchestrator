@@ -1,6 +1,6 @@
 # Session handoff
 
-Last updated: 2026-10-25
+Last updated: 2026-10-27
 
 ## Current status
 
@@ -8,9 +8,11 @@ Phase 1 and Phase 2 are implemented. Phase 1 is fully validated: the accepted di
 
 Phase 3 WP-01 through WP-06 are implemented and locally validated. WP-05 adds and registers the independently callable graph-only calculation/persistence service, keeps zone input inactive, and removes the WP-04 renderer. WP-06 activates that service from the approved middleware implementation-task creation event while preserving bundle, replay, and best-effort failure semantics.
 
-Phase 4 WP-01 planning is in progress. The customer document `FWO_Regel_Platzierung_Regelwerk.md` has now been opened and analyzed in the authorized Phase 4 planning session.
+Phase 4 WP-01 is implemented and locally validated. It adds the activation-neutral KfW Check Point calculation path, including authoritative ticket-effective source/destination ranges, fixed-import inline guard snapshots, three-state containment, strict single-layer selection, canonical normalized Section matching, and the existing semantic end-of-Section boundary. The customer document `FWO_Regel_Platzierung_Regelwerk.md` was opened and fully accounted for in the authorized Phase 4 planning session.
 
-D-046 preserves existing exact-match blocks and requires customer normalized Section matching to be additive. D-047 separates isolated customer calculation work from a later enum-selection and production-activation plan. D-048 settles the strict complete/single-persisted-zone baseline and excludes synthetic Internet fallback. Remaining domain questions are consolidated in `phase-4/EXPERT-QUESTIONS.md`.
+D-046 preserves existing exact-match blocks and requires customer normalized Section matching to be additive. D-047 separates isolated customer calculation work from a later enum-selection and production-activation plan. D-048 settles the strict complete/single-persisted-zone baseline and excludes synthetic Internet fallback. D-049 selects the functional Check Point layer through unique complete source/destination layer-guard coverage rather than naming. D-050 requires same-ticket groups to resolve from workflow effective/mock object state before they exist in the Flow catalog. D-051 closes the last zone-cardinality question: multiple distinct zones are never valid on either side. D-052 excludes the main layer from the KfW algorithm. D-053 makes the recursively resolved final ticket group state authoritative over older catalog membership. D-054 keeps shared range comparison address-family aware although KfW scenarios are IPv4. D-055 confirms normal guard-field semantics, required `Any` support, and the customer-only exact-one-guard guarantee. D-056 makes the normalized fixed-import database representation authoritative without a customer type allow-list. D-057 settles three-state containment for IP-less guard objects. D-058 limits WP-01 to Check Point and defers Fortinet beyond the current sprint and quarter. D-059 defines one canonical ticket-effective range input shared by zone and guard calculation. D-060 defines a separate guard projection tied to the structural graph's exact import ID. D-061 defines the additive guard block, normalized Section mode, failure precedence, and complete activation-neutral recipe. No customer or technical-design question remains open for WP-01.
+
+The ready brief is divided into four ordered slices: canonical effective rule-address input; fixed-import guard snapshot; three-state containment and guarded-layer selection; and canonical Section matching plus activation-neutral recipe construction. It names the exact production/test files, result categories, regression boundaries, and validation commands. `FlowDbCreator`/`FlowPayloadMerger` were evaluated and rejected as the authoritative projection seam because they serve Flow persistence/bundling and do not provide recursive final-state validation.
 
 ## Implemented Phase 3 boundary
 
@@ -42,9 +44,13 @@ D-046 preserves existing exact-match blocks and requires customer normalized Sec
 - `dotnet build --configuration Debug roles/FWO.sln` completed with zero warnings and zero errors.
 - Complete unit suite: 7,977 passed, 29 skipped, zero failed.
 - `git diff --check` passed, and exclusion searches found no zone, rendering, vendor execution, endpoint/UI, retry, schema, setting, audit, installer/version, or customer-specific additions in the activation path.
+- Phase 4 WP-01 combined calculation/regression filter passed with 250 tests and zero failures; the four new focused suites passed with 43 tests and zero failures.
+- Phase 4 WP-01 focused Coverlet line coverage exceeded 80% for every new production file (81.8% to 100%): effective-input resolver 86.4%, guard reader 82.1%, containment evaluator 94.2%, and recipe factory 91.8%.
+- Phase 4 WP-01 final Debug build completed with zero warnings and zero errors; the complete C# unit suite passed with 8,793 tests, 30 skipped, and zero failures.
+- Phase 4 WP-01 preserved the inactive boundary: no KfW factory, effective-input resolver, guard reader, customer strategy, enum mapping, workflow caller, or persistence registration was added.
 
 ## Next action
 
-Continue Phase 4 WP-01 planning by specifying activation-neutral customer calculation blocks and recipe construction. Apply D-048 and keep the possible multiple-distinct-source exception, functional-target selection, and pre-catalog same-ticket Flow-group behavior explicit pending `phase-4/EXPERT-QUESTIONS.md`. Do not map enums, register the customer strategy, or expand into update-triggered recalculation, manual retry, schema/outbox work, UI, rendering, or firewall execution.
+Plan the separate customer selection and production-activation package required by D-047. Do not infer enum semantics, register the WP-01 services, or alter the workflow caller/persistence path until that package is decision-complete. Fortinet remains deferred under D-058.
 
 All changes remain unstaged and uncommitted unless the user explicitly requests otherwise.

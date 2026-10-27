@@ -1,4 +1,5 @@
 using FWO.Data;
+using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using System.Collections.ObjectModel;
 
@@ -10,6 +11,12 @@ public interface ICreationRuleZoneResolver
     /// <summary>Resolves the source and destination zones for a new access rule.</summary>
     Task<CreationRuleZoneResolutionResult> ResolveAsync(
         WfReqTask requestTask,
+        IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+        CancellationToken cancellationToken);
+
+    /// <summary>Resolves already-normalized source and destination ranges to positioning zones.</summary>
+    Task<CreationRuleZoneResolutionResult> ResolveAsync(
+        CreationRuleNetworkInput networkInput,
         IReadOnlyCollection<ComplianceNetworkZone> networkZones,
         CancellationToken cancellationToken);
 }

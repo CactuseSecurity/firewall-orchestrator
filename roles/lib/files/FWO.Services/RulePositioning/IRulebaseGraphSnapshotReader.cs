@@ -20,14 +20,20 @@ public abstract class RulebaseGraphReadResult
 public sealed class RulebaseGraphReadSuccess : RulebaseGraphReadResult
 {
     public RulebaseGraphSnapshot Snapshot { get; }
+    public long ImportId { get; }
 
     /// <summary>
     /// Creates a successful result containing one immutable snapshot.
     /// </summary>
-    public RulebaseGraphReadSuccess(RulebaseGraphSnapshot snapshot)
+    public RulebaseGraphReadSuccess(RulebaseGraphSnapshot snapshot, long importId)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
+        if (importId <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(importId));
+        }
         Snapshot = snapshot;
+        ImportId = importId;
     }
 }
 

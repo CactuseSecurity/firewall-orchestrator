@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
@@ -109,7 +110,8 @@ public sealed class CheckPointLayerSelector
 public enum CheckPointSectionSelectionMode
 {
     ExactName,
-    Uid
+    Uid,
+    NormalizedName
 }
 
 /// <summary>
@@ -132,6 +134,10 @@ public sealed class CheckPointSectionSelector
     public static CheckPointSectionSelector ByUid(string uid) =>
         new(CheckPointSectionSelectionMode.Uid, RequireValue(uid, nameof(uid)));
 
+    public static CheckPointSectionSelector ByNormalizedName(string name) =>
+        new(CheckPointSectionSelectionMode.NormalizedName,
+            RequireValue(name, nameof(name)).Trim().ToUpperInvariant());
+
     /// <summary>
     /// Rejects an absent selector value without changing ordinal matching semantics.
     /// </summary>
@@ -143,6 +149,127 @@ public sealed class CheckPointSectionSelector
         }
         return value;
     }
+}
+
+/// <summary>Selects exactly one guarded inline layer by three-state address containment.</summary>
+public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPointPositioningContext, CheckPointBlockValue>
+{
+    public const string kKind = "check-point.layer-guard-scope";
+    private static readonly IReadOnlyList<IPositioningBlock<CheckPointPositioningContext, CheckPointBlockValue>> kNoChildren =
+        new ReadOnlyCollection<IPositioningBlock<CheckPointPositioningContext, CheckPointBlockValue>>([]);
+    private static readonly IReadOnlyList<PositioningBlockRole> kNoChildRoles =
+        new ReadOnlyCollection<PositioningBlockRole>([]);
+
+    public string Kind => kKind;
+    public PositioningBlockRole OutputRole => CheckPointBlockRoles.Scope;
+    public IReadOnlyList<IPositioningBlock<CheckPointPositioningContext, CheckPointBlockValue>> Children => kNoChildren;
+    public IReadOnlyList<PositioningBlockRole> RequiredChildRoles => kNoChildRoles;
+
+    /// <summary>Validates the paired snapshots and selects one definite guarded inline layer.</summary>
+    public Task<PositioningBlockResult<CheckPointBlockValue>> EvaluateAsync(
+        CheckPointPositioningContext context,
+        IReadOnlyList<CheckPointBlockValue> childValues,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        PositioningBlockFailure<CheckPointBlockValue>? contextFailure =
+            CheckPointBlockValidation.ValidateContext(context, Kind, out CheckPointGraphStructure? structure);
+        if (contextFailure != null)
+        {
+            return Task.FromResult<PositioningBlockResult<CheckPointBlockValue>>(contextFailure);
+        }
+        if (childValues.Count != 0)
+        {
+            return Result(PositioningBlockFailureCategory.InvalidRecipe);
+        }
+        if (context.KfwInput == null || !TryValidateSnapshot(context, structure!, out List<GuardCandidate> candidates))
+        {
+            return Result(PositioningBlockFailureCategory.InvalidSnapshot);
+        }
+
+        int definiteMatches = 0;
+        int indeterminateCandidates = 0;
+        CheckPointLayerStructure? selectedLayer = null;
+        foreach (GuardCandidate candidate in candidates)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckPointGuardContainmentResult source = CheckPointGuardContainmentEvaluator.Evaluate(
+                candidate.Guard.Source, context.KfwInput.NetworkInput.SourceRanges, cancellationToken);
+            CheckPointGuardContainmentResult destination = CheckPointGuardContainmentEvaluator.Evaluate(
+                candidate.Guard.Destination, context.KfwInput.NetworkInput.DestinationRanges, cancellationToken);
+            if (source == CheckPointGuardContainmentResult.Contained && destination == CheckPointGuardContainmentResult.Contained)
+            {
+                definiteMatches++;
+                selectedLayer = candidate.Layer;
+            }
+            else if (source != CheckPointGuardContainmentResult.NotContained &&
+                destination != CheckPointGuardContainmentResult.NotContained)
+            {
+                indeterminateCandidates++;
+            }
+        }
+
+        if (definiteMatches > 1)
+        {
+            return Result(PositioningBlockFailureCategory.ScopeAmbiguous);
+        }
+        if (indeterminateCandidates > 0)
+        {
+            return Result(PositioningBlockFailureCategory.ScopeIndeterminate);
+        }
+        if (definiteMatches == 0 || selectedLayer == null)
+        {
+            return Result(PositioningBlockFailureCategory.ScopeNotFound);
+        }
+        return Task.FromResult<PositioningBlockResult<CheckPointBlockValue>>(
+            new PositioningBlockSuccess<CheckPointBlockValue>(new CheckPointScopeValue(selectedLayer)));
+    }
+
+    /// <summary>Requires a one-to-one mapping between graph inline links and guard rows.</summary>
+    private static bool TryValidateSnapshot(
+        CheckPointPositioningContext context,
+        CheckPointGraphStructure structure,
+        out List<GuardCandidate> candidates)
+    {
+        candidates = [];
+        CheckPointLayerGuardSnapshot guards = context.KfwInput!.GuardSnapshot;
+        if (guards.ManagementId != context.Snapshot.ManagementId ||
+            guards.GatewayId != context.Snapshot.GatewayId || guards.ImportId <= 0)
+        {
+            return false;
+        }
+        List<RulebaseGraphLink> inlineLinks = [.. context.Snapshot.Links.Where(link =>
+            link.LinkType == RulebaseLinkTypes.Inline)];
+        if (inlineLinks.Count != guards.GuardsByTargetLayerId.Count ||
+            inlineLinks.Any(link => !link.SourceRuleId.HasValue || !link.SourceRulebaseId.HasValue) ||
+            inlineLinks.GroupBy(link => link.SourceRuleId).Any(group => group.Count() != 1) ||
+            inlineLinks.GroupBy(link => link.TargetRulebaseId).Any(group => group.Count() != 1))
+        {
+            return false;
+        }
+        foreach (RulebaseGraphLink link in inlineLinks)
+        {
+            CheckPointLayerStructure? layer = structure.Layers.SingleOrDefault(candidate =>
+                candidate.Node.Id == link.TargetRulebaseId);
+            if (layer == null || ReferenceEquals(layer, structure.InitialLayer) ||
+                !guards.GuardsByTargetLayerId.TryGetValue(link.TargetRulebaseId, out CheckPointLayerGuard? guard) ||
+                guard.SourceRuleId != link.SourceRuleId || guard.SourceRulebaseId != link.SourceRulebaseId ||
+                guard.TargetLayerId != link.TargetRulebaseId)
+            {
+                return false;
+            }
+            candidates.Add(new GuardCandidate(layer, guard));
+        }
+        return true;
+    }
+
+    /// <summary>Creates one typed failed result.</summary>
+    private static Task<PositioningBlockResult<CheckPointBlockValue>> Result(
+        PositioningBlockFailureCategory category) =>
+        Task.FromResult<PositioningBlockResult<CheckPointBlockValue>>(
+            CheckPointBlockValidation.Failure(category, kKind));
+
+    private sealed record GuardCandidate(CheckPointLayerStructure Layer, CheckPointLayerGuard Guard);
 }
 
 /// <summary>
@@ -290,6 +417,8 @@ public sealed class CheckPointSectionScopeBlock : IPositioningBlock<CheckPointPo
                 string.Equals(section.Node.Name, Selector.Value, StringComparison.Ordinal),
             CheckPointSectionSelectionMode.Uid =>
                 string.Equals(section.Node.Uid, Selector.Value, StringComparison.Ordinal),
+            CheckPointSectionSelectionMode.NormalizedName =>
+                string.Equals(section.Node.Name.Trim().ToUpperInvariant(), Selector.Value, StringComparison.Ordinal),
             _ => false
         };
     }

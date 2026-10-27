@@ -284,7 +284,7 @@ internal class CheckPointGraphPositioningTest
         public Exception? Exception { get; set; }
 
         public RecordingGraphReader(RulebaseGraphSnapshot snapshot)
-            : this(new RulebaseGraphReadSuccess(snapshot))
+            : this(new RulebaseGraphReadSuccess(snapshot, 1))
         { }
 
         public RecordingGraphReader(RulebaseGraphReadResult result)

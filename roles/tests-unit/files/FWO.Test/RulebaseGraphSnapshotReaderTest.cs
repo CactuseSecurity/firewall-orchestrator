@@ -84,6 +84,7 @@ public class RulebaseGraphSnapshotReaderTest
 
         Assert.Multiple(() =>
         {
+            Assert.That(result.ImportId, Is.EqualTo(kImportId));
             Assert.That(result.Snapshot.ManagementId, Is.EqualTo(kManagementId));
             Assert.That(result.Snapshot.GatewayId, Is.EqualTo(kGatewayId));
             Assert.That(result.Snapshot.Rulebases.Select(rulebase => rulebase.Id), Is.EqualTo(new long[] { 1, 2, 3, 4 }));
@@ -330,7 +331,7 @@ public class RulebaseGraphSnapshotReaderTest
     [Test]
     public void ResultContractsRejectNullAndUseSafeFallbackDiagnostic()
     {
-        Assert.Throws<ArgumentNullException>(() => new RulebaseGraphReadSuccess(null!));
+        Assert.Throws<ArgumentNullException>(() => new RulebaseGraphReadSuccess(null!, 1));
         RulebaseGraphReadFailure failure = new((RulebaseGraphReadFailureCategory)999);
         Assert.That(failure.Diagnostic, Is.EqualTo("The imported rulebase graph could not be loaded."));
     }

@@ -2,6 +2,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using NetTools;
@@ -67,6 +68,51 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
         catch (Exception)
         {
             return Failure(CreationRuleZoneResolutionFailureCategory.UnexpectedFailure);
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<CreationRuleZoneResolutionResult> ResolveAsync(
+        CreationRuleNetworkInput networkInput,
+        IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (networkInput == null)
+            {
+                return Task.FromResult<CreationRuleZoneResolutionResult>(
+                    Failure(CreationRuleZoneResolutionFailureCategory.InvalidInput));
+            }
+            List<ComplianceNetworkZone> validatedZones = ValidateZones(networkZones, cancellationToken);
+            SideResolution source = ResolveSide([.. networkInput.SourceRanges], validatedZones, cancellationToken);
+            SideResolution destination = ResolveSide([.. networkInput.DestinationRanges], validatedZones, cancellationToken);
+            return Task.FromResult<CreationRuleZoneResolutionResult>(new CreationRuleZoneResolutionSuccess(
+                new CreationRuleZoneInput(
+                    globalConfig.DesignatedZoneMatrixId,
+                    source.Zones,
+                    destination.Zones,
+                    source.Coverage,
+                    destination.Coverage)));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (ResolutionFailureException exception)
+        {
+            return Task.FromResult<CreationRuleZoneResolutionResult>(Failure(exception.Category));
+        }
+        catch (Exception exception) when (exception is FormatException or ArgumentException or OverflowException)
+        {
+            return Task.FromResult<CreationRuleZoneResolutionResult>(
+                Failure(CreationRuleZoneResolutionFailureCategory.InvalidAddress));
+        }
+        catch (Exception)
+        {
+            return Task.FromResult<CreationRuleZoneResolutionResult>(
+                Failure(CreationRuleZoneResolutionFailureCategory.UnexpectedFailure));
         }
     }
 

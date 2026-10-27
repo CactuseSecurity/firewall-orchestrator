@@ -1,0 +1,93 @@
+query getCheckPointLayerGuardsAtImport(
+  $managementId: Int!
+  $sourceRuleIds: [bigint!]!
+  $importId: bigint!
+) {
+  firewall_rule(
+    where: {
+      rule_id: { _in: $sourceRuleIds }
+      mgm_id: { _eq: $managementId }
+      rule_create: { _lte: $importId }
+      _or: [{ removed: { _is_null: true } }, { removed: { _gt: $importId } }]
+    }
+    order_by: { rule_id: asc }
+  ) {
+    rule_id
+    mgm_id
+    rulebase_id
+    rule_create
+    removed
+    rule_src_neg
+    rule_dst_neg
+    rule_froms(
+      where: {
+        rf_create: { _lte: $importId }
+        _or: [{ removed: { _is_null: true } }, { removed: { _gt: $importId } }]
+      }
+      order_by: [{ obj_id: asc }, { rf_create: asc }]
+    ) {
+      rule_id
+      obj_id
+      negated
+      rf_create
+      removed
+      object {
+        ...CheckPointGuardObject
+      }
+    }
+    rule_tos(
+      where: {
+        rt_create: { _lte: $importId }
+        _or: [{ removed: { _is_null: true } }, { removed: { _gt: $importId } }]
+      }
+      order_by: [{ obj_id: asc }, { rt_create: asc }]
+    ) {
+      rule_id
+      obj_id
+      negated
+      rt_create
+      removed
+      object {
+        ...CheckPointGuardObject
+      }
+    }
+  }
+}
+
+fragment CheckPointGuardObject on firewall_nw_object {
+  obj_id
+  obj_uid
+  obj_name
+  obj_ip
+  obj_ip_end
+  obj_create
+  removed
+  type: stm_obj_typ {
+    name: obj_typ_name
+  }
+  objgrp_flats(
+    where: {
+      import_created: { _lte: $importId }
+      _or: [{ removed: { _is_null: true } }, { removed: { _gt: $importId } }]
+    }
+    order_by: [{ objgrp_flat_member_id: asc }, { import_created: asc }]
+  ) {
+    objgrp_flat_id
+    objgrp_flat_member_id
+    negated
+    import_created
+    removed
+    object: objectByObjgrpFlatMemberId {
+      obj_id
+      obj_uid
+      obj_name
+      obj_ip
+      obj_ip_end
+      obj_create
+      removed
+      type: stm_obj_typ {
+        name: obj_typ_name
+      }
+    }
+  }
+}

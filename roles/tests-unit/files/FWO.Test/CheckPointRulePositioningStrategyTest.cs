@@ -476,6 +476,9 @@ internal class CheckPointRulePositioningStrategyTest
             Assert.That(source, Does.Contain("AddSingleton<ICreationRuleZoneResolver, CreationRuleZoneResolver>()"));
             Assert.That(source, Does.Not.Contain("CheckPointRulePositioningStrategy"));
             Assert.That(source, Does.Not.Contain("ICheckPointPositioningRecipeCatalog"));
+            Assert.That(source, Does.Not.Contain("KfwCheckPointPositioningRecipeFactory"));
+            Assert.That(source, Does.Not.Contain("CreationRuleNetworkInputResolver"));
+            Assert.That(source, Does.Not.Contain("CheckPointLayerGuardSnapshotReader"));
             Assert.That(source, Does.Contain("AddSingleton<ICheckPointGraphPositioningRecipeCatalog, CheckPointGraphPositioningRecipeCatalog>()"));
             Assert.That(source, Does.Contain("AddSingleton<IRulePositioningStrategy>"));
             Assert.That(source, Does.Contain("AddSingleton<RulePositioningManager>()"));
@@ -647,7 +650,7 @@ internal class CheckPointRulePositioningStrategyTest
 
         public RulebaseGraphSnapshot Snapshot
         {
-            set => Graph.Result = new RulebaseGraphReadSuccess(value);
+            set => Graph.Result = new RulebaseGraphReadSuccess(value, 1);
         }
 
         public List<ComplianceNetworkZone> Zones
@@ -664,7 +667,7 @@ internal class CheckPointRulePositioningStrategyTest
         {
             List<string> operationOrder = order ?? [];
             Graph = new RecordingGraphReader(
-                new RulebaseGraphReadSuccess(Snapshot(kManagementId, kGatewayId, "layer-default")), operationOrder);
+                new RulebaseGraphReadSuccess(Snapshot(kManagementId, kGatewayId, "layer-default"), 1), operationOrder);
             Matrix = new RecordingMatrixReader(new DesignatedZoneMatrixReadSuccess([]), operationOrder);
             Resolver = new RecordingZoneResolver(new CreationRuleZoneResolutionSuccess(ZoneInput()), operationOrder);
             Catalog = new RecordingCatalog(operationOrder) { Recipe = CreateDefaultRecipe() };
@@ -782,6 +785,11 @@ internal class CheckPointRulePositioningStrategyTest
             }
             return Result;
         }
+
+        public Task<CreationRuleZoneResolutionResult> ResolveAsync(
+            CreationRuleNetworkInput networkInput,
+            IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
     private sealed class RecordingCatalog(List<string>? order = null) : ICheckPointPositioningRecipeCatalog
@@ -888,7 +896,7 @@ internal class CheckPointRulePositioningStrategyTest
         {
             reads.Add((managementId, gatewayId));
             return Task.FromResult<RulebaseGraphReadResult>(new RulebaseGraphReadSuccess(
-                Snapshot(managementId, gatewayId, $"layer-{gatewayId}")));
+                Snapshot(managementId, gatewayId, $"layer-{gatewayId}"), 1));
         }
     }
 
@@ -905,5 +913,10 @@ internal class CheckPointRulePositioningStrategyTest
             return Task.FromResult<CreationRuleZoneResolutionResult>(
                 new CreationRuleZoneResolutionSuccess(ZoneInput()));
         }
+
+        public Task<CreationRuleZoneResolutionResult> ResolveAsync(
+            CreationRuleNetworkInput networkInput,
+            IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

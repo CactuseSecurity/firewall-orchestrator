@@ -2,6 +2,7 @@ using FWO.Compliance.RulePositioning;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using NetTools;
@@ -472,6 +473,29 @@ internal class CreationRuleZoneResolverTest
             Assert.That(input.SourceZones, Has.Count.EqualTo(1));
             Assert.That(failure.Diagnostic, Is.EqualTo("The creation-rule zones could not be resolved."));
             Assert.Throws<ArgumentNullException>(() => new CreationRuleZoneResolutionSuccess(null!));
+        });
+    }
+
+    [Test]
+    public async Task NormalizedInputOverload_ReusesExactRangesWithoutGroupLookup()
+    {
+        TestFlowGroupResolver groupResolver = new();
+        CreationRuleNetworkInput networkInput = new(
+            [new IPAddressRange(IPAddress.Parse("10.0.0.10"), IPAddress.Parse("10.0.0.20"))],
+            [new IPAddressRange(IPAddress.Parse("192.0.2.10"), IPAddress.Parse("192.0.2.20"))]);
+
+        CreationRuleZoneInput result = Success(await CreateResolver(groupResolver).ResolveAsync(
+            networkInput,
+            [Zone(1, "Source", "10.0.0.0", "10.0.0.255"), Zone(2, "Destination", "192.0.2.0", "192.0.2.255")],
+            CancellationToken.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.SourceZones.Single().Id, Is.EqualTo(1));
+            Assert.That(result.DestinationZones.Single().Id, Is.EqualTo(2));
+            Assert.That(result.SourceCoverage, Is.EqualTo(ZoneCoverage.Complete));
+            Assert.That(result.DestinationCoverage, Is.EqualTo(ZoneCoverage.Complete));
+            Assert.That(groupResolver.Requests, Is.Empty);
         });
     }
 

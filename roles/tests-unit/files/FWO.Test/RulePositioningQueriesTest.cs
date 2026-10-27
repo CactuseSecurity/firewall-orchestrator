@@ -75,6 +75,26 @@ public class RulePositioningQueriesTest
         Assert.That(forbiddenFields.Where(combined.Contains), Is.Empty);
     }
 
+    [Test]
+    public void CheckPointGuardQuery_UsesFixedImportAndDeterministicGuardCollections()
+    {
+        string query = RulePositioningQueries.getCheckPointLayerGuardsAtImport;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(query, Does.Contain("$sourceRuleIds: [bigint!]!"));
+            Assert.That(query, Does.Contain("rule_id: { _in: $sourceRuleIds }"));
+            Assert.That(query, Does.Contain("rule_create: { _lte: $importId }"));
+            Assert.That(query, Does.Contain("rf_create: { _lte: $importId }"));
+            Assert.That(query, Does.Contain("rt_create: { _lte: $importId }"));
+            Assert.That(query, Does.Contain("import_created: { _lte: $importId }"));
+            Assert.That(query, Does.Contain("order_by: { rule_id: asc }"));
+            Assert.That(query, Does.Contain("rule_src_neg"));
+            Assert.That(query, Does.Contain("rule_dst_neg"));
+            Assert.That(query, Does.Contain("objgrp_flats"));
+        });
+    }
+
     private static int Occurrences(string value, string fragment) =>
         value.Split(fragment, StringSplitOptions.None).Length - 1;
 }

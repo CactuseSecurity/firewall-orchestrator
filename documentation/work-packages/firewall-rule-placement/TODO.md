@@ -27,10 +27,22 @@ This file tracks unresolved review, validation, and product-boundary work. An it
 ## Phase 4 customer-extension checks
 
 - [x] Open `FWO_Regel_Platzierung_Regelwerk.md` only in Phase 4 WP-01 planning.
-- [ ] Complete the remaining multiple-source-zone, functional-target, and pre-catalog same-ticket Flow-group answers in `phase-4/EXPERT-QUESTIONS.md` before activating the affected customer behavior. The strict complete/single-persisted-zone baseline is settled.
-- [ ] Audit `CreationRuleZoneResolver` for duplicated workflow-element filtering, Flow-group lookup, address validation, range deduplication, zone validation/cloning, and coverage classification before customer activation. Retain existing `GetNwObjectElements`, `ComplianceCheck.ParseIpRange`, `ComplianceZoneResolver`, and `IFlowGroupResolver` ownership.
-- [ ] Confirm whether Flow groups created by another task in the same ticket must resolve before they become available in the Flow catalog.
-- [ ] Compare every customer requirement with existing generic blocks before adding another block.
-- [ ] Add existing-rule semantic data only if a concrete customer rule requires comparison with existing rule contents.
-- [ ] Preserve generic activation and persistence; customer work should extend the catalog rather than replace the production path.
+- [x] Confirm that multiple distinct source or destination zones are never valid. Multiple objects remain valid only when they resolve completely to the same single persisted zone (D-051).
+- [x] Confirm functional-target semantics: select the unique layer whose source and destination guards completely contain the corresponding requested IPs; zero or multiple matches fail (D-049).
+- [x] Confirm same-ticket Flow-group semantics: pre-catalog groups must resolve through workflow effective/mock objects; Flow-catalog absence alone must not fail them (D-050).
+- [x] Confirm that the KfW algorithm considers only guarded inline layers; the main layer is never a target or fallback (D-052).
+- [x] Confirm that the ticket's recursively resolved final intended group state overrides older Flow-catalog membership; protocol-order violations may fail (D-053).
+- [x] Confirm the address-family boundary: KfW scenarios are IPv4, while reusable FWO normalization and containment must remain IPv4/IPv6 aware (D-054).
+- [x] Confirm that KfW guards use normal source/destination fields, `Any` is common and required, and exactly one guard completely contains each new customer rule; do not generalize that guarantee (D-055).
+- [x] Set the guard-object trust boundary: consume every object through its normalized fixed-import FWO representation, without a KfW allow-list or positioning workaround for importer defects (D-056).
+- [x] Confirm the three-state containment result for IP-less imported objects: `Contained`, `NotContained`, or `Indeterminate`; an indeterminate competing guard prevents unique selection (D-057).
+- [x] Limit WP-01 to KfW Check Point `SECTION_NATIVE`; defer Fortinet `SECTION_LABEL` to a separate future work package beyond the current sprint and quarter (D-058).
+- [x] Define the smallest historically consistent immutable layer-guard projection, supported guard terms, containment rules, and typed zero/ambiguous/indeterminate failures (D-060/D-061).
+- [x] Define the authoritative workflow effective/mock object projection for same-ticket groups, including action folding, identity correlation, nesting/cycles, catalog precedence, and broader-ticket scope (D-059).
+- [x] Evaluate `FlowDbCreator.BuildFlowCreationPayloads` and `FlowPayloadMerger`. They are Flow-write/bundle projections and do not implement recursive authoritative final state; WP-01 uses a separate immutable resolver and invokes no Flow persistence.
+- [x] Audit `CreationRuleZoneResolver`. WP-01 introduces one canonical range input and a normalized-input zone overload while retaining `ComplianceCheck.ParseIpRange`, `ComplianceZoneResolver`, and `IFlowGroupResolver` ownership.
+- [x] Compare every customer requirement with existing generic blocks. Reuse `CheckPointSectionScopeBlock` through an additive normalized mode and reuse `EndOfBlock`; add only the proven guard scope block.
+- [x] Add existing-rule semantics only for inline parent guard rules through a separate fixed-import projection; no unrelated existing-rule fields enter the structural graph.
+- [x] Preserve generic activation and persistence. WP-01 is directly testable but adds no mapping, registration, workflow selection, or persistence change.
+- [x] Implement the decision-complete Phase 4 WP-01 brief in its four ordered slices and record validation evidence.
 - [ ] Plan customer enum mapping, strategy registration, and workflow selection separately after the customer calculation behavior is implemented and the triggering model is ready.

@@ -7,23 +7,40 @@ namespace FWO.ExternalSystems.FirewallWrite
 
     /// <summary>
     /// Endpoints and body templates shipped for every supported device type. They apply wherever the device specific
-    /// settings leave the endpoint or template of an operation empty, and are what "Reset to default" restores.
+    /// settings leave the endpoint or template of an operation empty, so a later release can correct them. Vendors that keep
+    /// IPv6 objects in separate tables (Fortinet) ship IPv6 variants of the network object operations.
     /// </summary>
     public static class FirewallWriteDefaults
     {
-        /// <summary>Returns the shipped default of an operation for a device type, or null if the device type does not support it.</summary>
-        public static FirewallWriteDefault? Get(int deviceTypeId, FirewallWriteOperation operation)
+        private static readonly IReadOnlyDictionary<FirewallWriteOperation, FirewallWriteDefault> NoIpv6Defaults =
+            new Dictionary<FirewallWriteOperation, FirewallWriteDefault>();
+
+        /// <summary>
+        /// Returns the shipped default of an operation for a device type, or null if the device type does not support it.
+        /// For IPv6 objects the IPv6 variant is returned where the vendor has one.
+        /// </summary>
+        public static FirewallWriteDefault? Get(int deviceTypeId, FirewallWriteOperation operation, bool isIpv6 = false)
         {
-            IReadOnlyDictionary<FirewallWriteOperation, FirewallWriteDefault>? defaults = FirewallVendors.FromDeviceTypeId(deviceTypeId) switch
+            (IReadOnlyDictionary<FirewallWriteOperation, FirewallWriteDefault> Defaults,
+                IReadOnlyDictionary<FirewallWriteOperation, FirewallWriteDefault> Ipv6Defaults)? vendorDefaults =
+                FirewallVendors.FromDeviceTypeId(deviceTypeId) switch
+                {
+                    FirewallVendor.CheckPoint => (CheckPointWriteDefaults.Operations, NoIpv6Defaults),
+                    FirewallVendor.FortiManager => (FortiManagerWriteDefaults.Operations, FortiManagerWriteDefaults.Ipv6Operations),
+                    FirewallVendor.FortiOs => (FortiOsWriteDefaults.Operations, FortiOsWriteDefaults.Ipv6Operations),
+                    FirewallVendor.OpnSense => (OpnSenseWriteDefaults.Operations, NoIpv6Defaults),
+                    FirewallVendor.Azure => (AzureWriteDefaults.Operations, NoIpv6Defaults),
+                    _ => null
+                };
+            if (vendorDefaults == null)
             {
-                FirewallVendor.CheckPoint => CheckPointWriteDefaults.Operations,
-                FirewallVendor.FortiManager => FortiManagerWriteDefaults.Operations,
-                FirewallVendor.FortiOs => FortiOsWriteDefaults.Operations,
-                FirewallVendor.OpnSense => OpnSenseWriteDefaults.Operations,
-                FirewallVendor.Azure => AzureWriteDefaults.Operations,
-                _ => null
-            };
-            return defaults?.GetValueOrDefault(operation);
+                return null;
+            }
+            if (isIpv6 && vendorDefaults.Value.Ipv6Defaults.TryGetValue(operation, out FirewallWriteDefault? ipv6Default))
+            {
+                return ipv6Default;
+            }
+            return vendorDefaults.Value.Defaults.GetValueOrDefault(operation);
         }
 
         /// <summary>Returns the shipped endpoint of an operation for a device type, or null.</summary>

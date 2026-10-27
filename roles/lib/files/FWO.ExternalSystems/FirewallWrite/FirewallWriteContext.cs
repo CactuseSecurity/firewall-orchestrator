@@ -15,28 +15,35 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         public required GlobalDeviceSpecificSettings Settings { get; init; }
 
+        /// <summary>Policy package and first access layer of the gateway from its imported rulebase links.</summary>
+        public FirewallGatewayRulebases Rulebases { get; init; } = FirewallGatewayRulebases.None;
+
         public int DeviceTypeId => Management.DeviceType.Id;
 
         public FirewallVendor Vendor => FirewallVendors.FromDeviceTypeId(DeviceTypeId);
 
         /// <summary>
-        /// Returns the endpoint setting of an operation: the configured value, or the default shipped for the device type.
-        /// Empty if neither exists, i.e. the device type does not support the operation.
+        /// Returns the endpoint setting of an operation: the configured value, or the default shipped for the device type
+        /// (the IPv6 default for IPv6 objects where the vendor has one). Empty if neither exists, i.e. the device type does
+        /// not support the operation.
         /// </summary>
-        public string GetEndpoint(FirewallWriteOperation operation)
+        public string GetEndpoint(FirewallWriteOperation operation, bool isIpv6 = false)
         {
             string configured = Settings.FwWriteEndpoints.GetValueOrDefault(operation, "");
             return string.IsNullOrWhiteSpace(configured)
-                ? FirewallWriteDefaults.GetEndpoint(DeviceTypeId, operation) ?? ""
+                ? FirewallWriteDefaults.Get(DeviceTypeId, operation, isIpv6)?.Endpoint ?? ""
                 : configured;
         }
 
-        /// <summary>Returns the body template of an operation: the configured value, or the default shipped for the device type.</summary>
-        public string GetTemplate(FirewallWriteOperation operation)
+        /// <summary>
+        /// Returns the body template of an operation: the configured value, or the default shipped for the device type
+        /// (the IPv6 default for IPv6 objects where the vendor has one).
+        /// </summary>
+        public string GetTemplate(FirewallWriteOperation operation, bool isIpv6 = false)
         {
             string configured = Settings.FwWriteTemplates.GetValueOrDefault(operation, "");
             return string.IsNullOrWhiteSpace(configured)
-                ? FirewallWriteDefaults.GetTemplate(DeviceTypeId, operation) ?? ""
+                ? FirewallWriteDefaults.Get(DeviceTypeId, operation, isIpv6)?.Template ?? ""
                 : configured;
         }
     }

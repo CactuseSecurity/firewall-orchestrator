@@ -90,6 +90,22 @@ namespace FWO.Test
             Assert.Throws<ConfigException>(() => FirewallTemplateRenderer.Render(HostStep("h"), endpoint, "{}"));
         }
 
+        /// <summary>A placeholder that has no value for the step stops rendering with its reason, in body and path.</summary>
+        [Test]
+        public void Render_FailsForPlaceholderWithoutValue()
+        {
+            FirewallWriteStep step = HostStep("h").SetMissing(FirewallWritePlaceholders.LayerName, "no layer known");
+            ConfigException? inBody = Assert.Throws<ConfigException>(() =>
+                FirewallTemplateRenderer.Render(step, "POST add-host", """{"layer":"@@LAYER_NAME@@"}"""));
+            ConfigException? inPath = Assert.Throws<ConfigException>(() => FirewallTemplateRenderer.Render(step, "DELETE /x/@@LAYER_NAME@@", ""));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(inBody?.Message, Does.Contain("No value for @@LAYER_NAME@@ (no layer known)"));
+                Assert.That(inPath?.Message, Does.Contain("No value for @@LAYER_NAME@@"));
+                Assert.DoesNotThrow(() => FirewallTemplateRenderer.Render(step, "POST add-host", """{"name":"@@OBJECT_NAME@@"}"""));
+            }
+        }
+
         [Test]
         public void Render_WithoutTemplateSendsNoBody()
         {
@@ -130,6 +146,7 @@ namespace FWO.Test
         [TestCase("post add-host", "POST", "add-host")]
         [TestCase("  DELETE   /api/v2/x  ", "DELETE", "/api/v2/x")]
         [TestCase("Patch /a?b=c", "PATCH", "/a?b=c")]
+        [TestCase("GET /api/v2/cmdb/firewall/address?filter=name==a:b", "GET", "/api/v2/cmdb/firewall/address?filter=name==a:b")]
         public void Endpoint_ParsesMethodAndPath(string value, string method, string path)
         {
             FirewallWriteEndpoint endpoint = FirewallWriteEndpoint.Parse(value);
@@ -145,6 +162,11 @@ namespace FWO.Test
         [TestCase("POST")]
         [TestCase("CONNECT x")]
         [TestCase("POST a b")]
+        [TestCase("POST https://other-host/add-host")]
+        [TestCase("PUT http://other-host:8080/api/v2/cmdb/firewall/address")]
+        [TestCase("POST HTTPS:other-host")]
+        [TestCase("POST //other-host/add-host")]
+        [TestCase("POST \\\\other-host\\add-host")]
         public void Endpoint_RejectsInvalidValues(string value)
         {
             Assert.Throws<ArgumentException>(() => FirewallWriteEndpoint.Parse(value));

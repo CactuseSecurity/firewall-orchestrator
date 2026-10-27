@@ -11,7 +11,9 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// <summary>
     /// Azure Resource Manager access with a service principal: client id (user) and client secret of the export credential,
     /// tenant of the management. Resolves the location of the resource group, merges IP group members, and merges rules
-    /// into their rule collection group, because ARM only replaces whole resources.
+    /// into their rule collection group, because ARM only replaces whole resources. Each of these writes is conditional on
+    /// the ETag that was read (If-Match), and a new rule collection group on its absence (If-None-Match), so a change made
+    /// on Azure in the meantime makes the call fail instead of being overwritten.
     /// </summary>
     public class AzureWriteClient : FirewallWriteClient
     {
@@ -21,10 +23,19 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const string kResourceGroupApiVersion = "2021-04-01";
         private const string kProperties = "properties";
         private const string kRuleCollections = "ruleCollections";
+        private const string kEtag = "etag";
+        private const string kIfMatch = "If-Match";
+        private const string kIfNoneMatch = "If-None-Match";
+        private const string kAnyEtag = "*";
         private const int kDefaultRuleCollectionGroupPriority = 10000;
 
         private static readonly List<FirewallWriteOperation> RuleOperations =
             [FirewallWriteOperation.RuleCreate, FirewallWriteOperation.RuleModify, FirewallWriteOperation.RuleDelete];
+        private static readonly List<FirewallWriteOperation> CreateOperations =
+        [
+            FirewallWriteOperation.HostCreate, FirewallWriteOperation.NetworkCreate, FirewallWriteOperation.AddressRangeCreate,
+            FirewallWriteOperation.GroupCreate
+        ];
 
         private string? accessToken;
 
@@ -57,6 +68,11 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <inheritdoc/>
         public override async Task<FirewallStepResult> Execute(RenderedFirewallRequest request)
         {
+            if (CreateOperations.Contains(request.Operation))
+            {
+                // a PUT would replace an IP group of the same name
+                request.Headers[kIfNoneMatch] = kAnyEtag;
+            }
             if (!RuleOperations.Contains(request.Operation))
             {
                 return await base.Execute(request);
@@ -64,7 +80,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             FirewallTemplateRenderer.EnsureResolved(request);
             JsonObject fragment = ParseJson(request.Body) as JsonObject
                 ?? throw new ConfigException($"Template error in {request.Operation}. The rule template must be a JSON object.");
-            JsonObject ruleCollectionGroup = await ReadRuleCollectionGroup(request.Path, fragment);
+            JsonObject ruleCollectionGroup = await ReadRuleCollectionGroup(request, fragment);
             AzureRuleCollectionMerge.Apply(ruleCollectionGroup, request.Operation, fragment);
             request.Body = ruleCollectionGroup.ToJsonString();
             RestResponse response = await SendRendered(request);
@@ -109,7 +125,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 : location;
         }
 
-        /// <summary>Reads the addresses of the IP group at the path of the call.</summary>
+        /// <summary>Reads the addresses of the IP group at the path of the call; the write is made conditional on the ETag read.</summary>
         private async Task<List<string>> ReadIpAddresses(RenderedFirewallRequest request)
         {
             RestResponse response = await SendAuthenticated(new RestRequest(request.Path, Method.Get));
@@ -117,25 +133,45 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 throw new ProcessingFailedException($"Azure could not read IP group '{request.Step.TargetName}': {(int)response.StatusCode} {response.Content}");
             }
-            JsonArray? addresses = ParseJson(response.Content)?[kProperties]?["ipAddresses"] as JsonArray;
+            JsonNode? ipGroup = ParseJson(response.Content);
+            RequireEtag(request, ipGroup, response);
+            JsonArray? addresses = ipGroup?[kProperties]?["ipAddresses"] as JsonArray;
             return [.. (addresses ?? []).Select(address => address?.GetValue<string>() ?? "").Where(address => address.Length > 0)];
         }
 
-        /// <summary>Reads the rule collection group, or starts a new one if it does not exist yet.</summary>
-        private async Task<JsonObject> ReadRuleCollectionGroup(string path, JsonObject fragment)
+        /// <summary>
+        /// Reads the rule collection group, or starts a new one if it does not exist yet. The write is made conditional on
+        /// the ETag read, or on the group still not existing.
+        /// </summary>
+        private async Task<JsonObject> ReadRuleCollectionGroup(RenderedFirewallRequest request, JsonObject fragment)
         {
-            RestResponse response = await SendAuthenticated(new RestRequest(path, Method.Get));
+            RestResponse response = await SendAuthenticated(new RestRequest(request.Path, Method.Get));
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
+                request.Headers[kIfNoneMatch] = kAnyEtag;
                 int priority = fragment["ruleCollectionGroupPriority"]?.GetValue<int>() ?? kDefaultRuleCollectionGroupPriority;
                 return new JsonObject { [kProperties] = new JsonObject { ["priority"] = priority, [kRuleCollections] = new JsonArray() } };
             }
-            if (!response.IsSuccessful || ParseJson(response.Content)?[kProperties] is not JsonObject properties)
+            JsonNode? ruleCollectionGroup = ParseJson(response.Content);
+            if (!response.IsSuccessful || ruleCollectionGroup?[kProperties] is not JsonObject properties)
             {
                 throw new ProcessingFailedException($"Azure could not read rule collection group: {(int)response.StatusCode} {response.Content}");
             }
+            RequireEtag(request, ruleCollectionGroup, response);
             JsonObject writable = new() { ["priority"] = properties["priority"]?.DeepClone(), [kRuleCollections] = properties[kRuleCollections]?.DeepClone() ?? new JsonArray() };
             return new JsonObject { [kProperties] = writable };
+        }
+
+        /// <summary>Makes the write of a read resource conditional on its ETag (body or header); fails if Azure returned none.</summary>
+        private static void RequireEtag(RenderedFirewallRequest request, JsonNode? resource, RestResponse response)
+        {
+            string? etag = resource?[kEtag]?.GetValue<string>()
+                ?? response.Headers?.FirstOrDefault(header => string.Equals(header.Name, kEtag, StringComparison.OrdinalIgnoreCase))?.Value?.ToString();
+            if (string.IsNullOrWhiteSpace(etag))
+            {
+                throw new ProcessingFailedException($"Azure returned no ETag for '{request.Step.TargetName}', so it cannot be changed without overwriting concurrent changes.");
+            }
+            request.Headers[kIfMatch] = etag;
         }
     }
 }

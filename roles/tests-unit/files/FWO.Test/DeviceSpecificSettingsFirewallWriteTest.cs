@@ -14,7 +14,8 @@ namespace FWO.Test
         private const int kGuardicoreDeviceTypeId = 31;
         private static readonly List<DeviceSpecificSettingsScope> kNoPersistedScopes = [];
         private static readonly List<string> kSectionTextKeys =
-            ["dss_fw_write_section", "dss_fw_write_section_intro", "dss_fw_write_not_supported", "dss_reset_to_default", "H5199r"];
+            ["dss_fw_write_section", "dss_fw_write_section_intro", "dss_fw_write_not_supported", "dss_fw_write_uses_default",
+             "dss_reset_to_default", "dss_copy_default", "H5199r", "H5199s"];
 
         private static DeviceSpecificNode Hierarchy(params Management[] managements) =>
             DeviceSpecificSettingsData.BuildHierarchy(managements, kNoPersistedScopes);

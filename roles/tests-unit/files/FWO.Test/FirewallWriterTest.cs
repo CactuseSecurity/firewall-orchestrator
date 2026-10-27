@@ -20,6 +20,11 @@ namespace FWO.Test
         private static readonly List<string> kCheckPointHostCalls = ["login", "add-host", "publish", "logout"];
         private static readonly List<string> kCheckPointInstallCalls = ["login", "delete-group", "publish", "install-policy", "logout"];
         private static readonly List<string> kCheckPointFailedCalls = ["login", "add-host", "discard", "logout"];
+        private static readonly List<string> kFortiOsMemberCalls =
+        [
+            "Post /api/v2/cmdb/firewall/addrgrp/grp%201/member", "Post /api/v2/cmdb/firewall/addrgrp/grp%201/member",
+            "Delete /api/v2/cmdb/firewall/addrgrp/grp%201/member/old"
+        ];
 
         private static (FirewallWriter Writer, FirewallSimulation Simulation, SimulatedFirewallWriteClientFactory Factory) Writer(FirewallWriteContext context)
         {
@@ -189,27 +194,126 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task FortiManager_AddsSessionMergesMembersAndChecksStatusCodes()
+        public async Task FortiManager_AddsSessionAndChangesMembersWithoutReplacingTheGroup()
         {
             (FirewallWriter writer, FirewallSimulation simulation, _) = Writer(Context(FirewallVendors.kFortiAdom5ff, configPath: "adom1"));
+            simulation.Handler = _ => Ok(kFortiManagerOk);
+            WfImplElement add = Network("m2", null);
+            add.GroupName = "grp";
+            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, add, Network("old", null, action: RequestAction.delete)));
+            JsonNode addMembers = JsonNode.Parse(simulation.Requests[1].Body!)!;
+            JsonNode removeMembers = JsonNode.Parse(simulation.Requests[2].Body!)!;
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(simulation.Requests.All(request => request.Resource == "/jsonrpc"), Is.True);
+                Assert.That(simulation.Requests.Any(request => request.Body!.Contains("\"get\"")), Is.False);
+                Assert.That(addMembers["session"]!.GetValue<string>(), Is.EqualTo("fmg-session"));
+                Assert.That(addMembers["method"]!.GetValue<string>(), Is.EqualTo("add"));
+                Assert.That(addMembers["params"]![0]!["url"]!.GetValue<string>(), Is.EqualTo("/pm/config/adom/adom1/obj/firewall/addrgrp/grp/member"));
+                Assert.That(addMembers["params"]![0]!["data"]!.ToJsonString(), Is.EqualTo("[\"m2\"]"));
+                Assert.That(removeMembers["method"]!.GetValue<string>(), Is.EqualTo("delete"));
+                Assert.That(removeMembers["params"]![0]!["data"]!.ToJsonString(), Is.EqualTo("[\"old\"]"));
+                Assert.That(simulation.Requests[^1].Body, Does.Contain("/sys/logout"));
+            }
+        }
+
+        /// <summary>A '/' in a name must not change the JSON-RPC url path; FortiManager expects it escaped as "\/".</summary>
+        [Test]
+        public async Task FortiManager_EscapesSlashInNamesOfUrls()
+        {
+            (FirewallWriter writer, FirewallSimulation simulation, _) = Writer(Context(FirewallVendors.kFortiManager5ff, configPath: "root"));
+            simulation.Handler = _ => Ok(kFortiManagerOk);
+            WfImplTask task = Task(WfTaskType.object_modify, Network("net_10.0.0.0/24", "10.0.0.0/24", action: RequestAction.delete));
+            ModifyFirewallResult result = await writer.ModifyFirewall(task);
+            JsonNode delete = JsonNode.Parse(simulation.Requests[1].Body!)!;
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(delete["params"]![0]!["url"]!.GetValue<string>(), Is.EqualTo("/pm/config/adom/root/obj/firewall/address/net_10.0.0.0\\/24"));
+            }
+        }
+
+        /// <summary>A custom template can still replace the whole member list, merged into the members read from the FortiManager.</summary>
+        [Test]
+        public async Task FortiManager_CustomTemplateMergesMembers()
+        {
+            GatewayDeviceSpecificSettings settings = new();
+            settings.FwWriteTemplates[FirewallWriteOperation.GroupAddMembers] =
+                """{"method":"update","params":[{"url":"/pm/config/adom/@@ADOM_NAME@@/obj/firewall/addrgrp/@@GROUP_NAME_IN_URL@@","data":{"member":@@MERGED_MEMBERS@@}}]}""";
+            (FirewallWriter writer, FirewallSimulation simulation, _) = Writer(Context(FirewallVendors.kFortiAdom5ff, settings, "adom1"));
             simulation.Handler = request => request.Body!.Contains("\"get\"")
                 ? Ok("{\"result\":[{\"status\":{\"code\":0},\"data\":{\"member\":[\"m1\",\"old\"]}}]}")
                 : Ok(kFortiManagerOk);
             WfImplElement add = Network("m2", null);
             add.GroupName = "grp";
-
-            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, add, Network("old", null, action: RequestAction.delete)));
-
+            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, add));
             JsonNode update = JsonNode.Parse(simulation.Requests[2].Body!)!;
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result.Success, Is.True, result.Message);
-                Assert.That(simulation.Requests.All(request => request.Resource == "/jsonrpc"), Is.True);
-                Assert.That(update["session"]!.GetValue<string>(), Is.EqualTo("fmg-session"));
-                Assert.That(update["params"]![0]!["url"]!.GetValue<string>(), Is.EqualTo("/pm/config/adom/adom1/obj/firewall/addrgrp/grp"));
+                Assert.That(JsonNode.Parse(simulation.Requests[1].Body!)!["params"]![0]!["url"]!.GetValue<string>(),
+                    Is.EqualTo("/pm/config/adom/adom1/obj/firewall/addrgrp/grp"));
                 Assert.That(update["params"]![0]!["data"]!["member"]!.ToJsonString(), Is.EqualTo("[\"m1\",\"old\",\"m2\"]"));
-                Assert.That(JsonNode.Parse(simulation.Requests[4].Body!)!["params"]![0]!["data"]!["member"]!.ToJsonString(), Is.EqualTo("[\"m1\"]"));
-                Assert.That(simulation.Requests[^1].Body, Does.Contain("/sys/logout"));
+            }
+        }
+
+        [Test]
+        public async Task FortiManager_FailingMemberReadStopsTheWrite()
+        {
+            GatewayDeviceSpecificSettings settings = new();
+            settings.FwWriteTemplates[FirewallWriteOperation.GroupAddMembers] = """{"method":"update","params":[{"data":{"member":@@MERGED_MEMBERS@@}}]}""";
+            (FirewallWriter writer, FirewallSimulation simulation, _) = Writer(Context(FirewallVendors.kFortiAdom5ff, settings, "adom1"));
+            simulation.Handler = _ => Ok(kFortiManagerOk);
+            WfImplElement add = Network("m2", null);
+            add.GroupName = "grp";
+            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, add));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.Message, Does.Contain("has no url"));
+                Assert.That(simulation.Requests.Any(request => request.Body!.Contains("\"update\"")), Is.False);
+            }
+        }
+
+        /// <summary>A custom template can still replace the whole member list, merged into the members read from FortiOS.</summary>
+        [Test]
+        public async Task FortiOs_CustomTemplateMergesMembers()
+        {
+            GatewayDeviceSpecificSettings settings = new();
+            settings.FwWriteEndpoints[FirewallWriteOperation.GroupAddMembers] = "PUT /api/v2/cmdb/firewall/addrgrp/@@GROUP_NAME@@";
+            settings.FwWriteTemplates[FirewallWriteOperation.GroupAddMembers] = """{"member":@@MERGED_MEMBERS@@}""";
+            (FirewallWriter writer, FirewallSimulation simulation, _) = Writer(Context(FirewallVendors.kFortiOsGateway, settings));
+            simulation.Handler = request => request.Method == Method.Get
+                ? Ok("{\"results\":[{\"member\":[{\"name\":\"m1\"}]}]}")
+                : Ok("{\"status\":\"success\"}");
+            WfImplElement add = Network("m2", null);
+            add.GroupName = "grp";
+            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, add));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(simulation.Requests[0].Method, Is.EqualTo(Method.Get));
+                Assert.That(simulation.Requests[1].Body, Is.EqualTo("{\"member\":[{\"name\":\"m1\"},{\"name\":\"m2\"}]}"));
+            }
+        }
+
+        [Test]
+        public async Task FortiOs_FailingMemberReadStopsTheWrite()
+        {
+            GatewayDeviceSpecificSettings settings = new();
+            settings.FwWriteEndpoints[FirewallWriteOperation.GroupAddMembers] = "PUT /api/v2/cmdb/firewall/addrgrp/@@GROUP_NAME@@";
+            settings.FwWriteTemplates[FirewallWriteOperation.GroupAddMembers] = """{"member":@@MERGED_MEMBERS@@}""";
+            (FirewallWriter writer, FirewallSimulation simulation, _) = Writer(Context(FirewallVendors.kFortiOsGateway, settings));
+            simulation.Handler = _ => Response(HttpStatusCode.NotFound, "{}");
+            WfImplElement add = Network("m2", null);
+            add.GroupName = "grp";
+            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, add));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.Message, Does.Contain("could not read group"));
+                Assert.That(simulation.Requests.Single().Method, Is.EqualTo(Method.Get));
             }
         }
 
@@ -223,27 +327,42 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task FortiOs_UsesBearerTokenAndRestMethods()
+        public async Task FortiOs_UsesBearerTokenAndChangesTheMemberTableEntryByEntry()
         {
             (FirewallWriter writer, FirewallSimulation simulation, _) = Writer(Context(FirewallVendors.kFortiOsGateway));
-            simulation.Handler = request => request.Method == Method.Get
-                ? Ok("{\"results\":[{\"member\":[{\"name\":\"m1\"}]}]}")
-                : Ok("{\"status\":\"success\"}");
+            simulation.Handler = _ => Ok("{\"status\":\"success\"}");
             WfImplElement add = Network("m2", null);
             add.GroupName = "grp 1";
-
-            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, add));
-
-            RecordedFirewallRequest update = simulation.Requests[1];
+            WfImplElement addToo = Network("m3", null);
+            addToo.GroupName = "grp 1";
+            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, add, addToo,
+                Network("old", null, action: RequestAction.delete)));
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result.Success, Is.True, result.Message);
-                Assert.That(simulation.Requests[0].Method, Is.EqualTo(Method.Get));
-                Assert.That(update.Method, Is.EqualTo(Method.Put));
-                Assert.That(update.Resource, Is.EqualTo("/api/v2/cmdb/firewall/addrgrp/grp%201"));
-                Assert.That(update.Headers["Authorization"], Is.EqualTo("Bearer secret"));
-                Assert.That(update.Body, Is.EqualTo("{\"member\":[{\"name\":\"m1\"},{\"name\":\"m2\"}]}"));
-                Assert.That(simulation.Requests, Has.Count.EqualTo(2));
+                Assert.That(simulation.Requests.Any(request => request.Method == Method.Get), Is.False);
+                Assert.That(simulation.Requests.Select(request => $"{request.Method} {request.Resource}"), Is.EqualTo(kFortiOsMemberCalls));
+                Assert.That(simulation.Requests[0].Headers["Authorization"], Is.EqualTo("Bearer secret"));
+                Assert.That(simulation.Requests[0].Body, Is.EqualTo("{\"name\":\"m2\"}"));
+                Assert.That(simulation.Requests[2].Body, Is.Null);
+            }
+        }
+
+        [Test]
+        public async Task FortiOs_Ipv6ObjectsUseTheAddress6Table()
+        {
+            (FirewallWriter writer, FirewallSimulation simulation, _) = Writer(Context(FirewallVendors.kFortiOsGateway));
+            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.object_create,
+                Network("net6", "2001:db8::/64"), Network("host4", "10.0.0.1")));
+            JsonNode network6 = JsonNode.Parse(simulation.Requests[0].Body!)!;
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(simulation.Requests[0].Resource, Is.EqualTo("/api/v2/cmdb/firewall/address6"));
+                Assert.That(network6["ip6"]!.GetValue<string>(), Is.EqualTo("2001:db8::/64"));
+                Assert.That(network6["type"]!.GetValue<string>(), Is.EqualTo("ipprefix"));
+                Assert.That(simulation.Requests[1].Resource, Is.EqualTo("/api/v2/cmdb/firewall/address"));
+                Assert.That(JsonNode.Parse(simulation.Requests[1].Body!)!["subnet"]!.GetValue<string>(), Is.EqualTo("10.0.0.1 255.255.255.255"));
             }
         }
 
@@ -315,7 +434,7 @@ namespace FWO.Test
             {
                 string resource when resource.Contains("oauth2") => Ok("{\"access_token\":\"token-1\"}"),
                 string resource when resource.Contains("/resourcegroups/rg1") => Ok("{\"location\":\"westeurope\"}"),
-                _ when request.Method == Method.Get => Ok("{\"properties\":{\"ipAddresses\":[\"10.0.0.1/32\"]}}"),
+                _ when request.Method == Method.Get => Ok("{\"etag\":\"W/\\\"7\\\"\",\"properties\":{\"ipAddresses\":[\"10.0.0.1/32\"]}}"),
                 _ => Ok("{}")
             };
             WfImplElement add = Network(null, "10.0.0.2");
@@ -336,6 +455,7 @@ namespace FWO.Test
                 Assert.That(update.QueryParameters["api-version"], Is.EqualTo(AzureWriteDefaults.kNetworkApiVersion));
                 Assert.That(update.Headers["Authorization"], Is.EqualTo("Bearer token-1"));
                 Assert.That(update.Body, Is.EqualTo("{\"location\":\"westeurope\",\"properties\":{\"ipAddresses\":[\"10.0.0.1/32\",\"10.0.0.2/32\"]}}"));
+                Assert.That(update.Headers["If-Match"], Is.EqualTo("W/\"7\""));
             }
         }
 
@@ -350,15 +470,18 @@ namespace FWO.Test
                 _ => Response(HttpStatusCode.Created, "{}")
             };
 
-            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.access, Network(null, "10.0.0.1"),
-                Network(null, "10.0.1.0/24", field: ElemFieldType.destination), Service(null, 6, 443)));
+            WfImplTask task = Task(WfTaskType.access, Network(null, "10.0.0.1"),
+                Network(null, "10.0.1.0/24", field: ElemFieldType.destination), Service(null, 6, 443));
+            task.RuleAction = 1;
+            ModifyFirewallResult result = await writer.ModifyFirewall(task);
 
             JsonNode group = JsonNode.Parse(simulation.Requests[^1].Body!)!;
             JsonNode collection = group["properties"]!["ruleCollections"]![0]!;
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result.Success, Is.True, result.Message);
-                Assert.That(simulation.Requests[^1].Resource, Does.EndWith("/firewallPolicies/Standard/ruleCollectionGroups/Network"));
+                Assert.That(simulation.Requests[^1].Resource, Does.EndWith("/firewallPolicies/Standard/ruleCollectionGroups/FWO"));
+                Assert.That(simulation.Requests[^1].Headers["If-None-Match"], Is.EqualTo("*"));
                 Assert.That(simulation.Requests[^1].QueryParameters["api-version"], Is.EqualTo(AzureWriteDefaults.kNetworkApiVersion));
                 Assert.That(collection["name"]!.GetValue<string>(), Is.EqualTo("FWO-Allow"));
                 Assert.That(collection["action"]!["type"]!.GetValue<string>(), Is.EqualTo("Allow"));
@@ -370,7 +493,7 @@ namespace FWO.Test
         [Test]
         public async Task Azure_FailsWithoutTenant()
         {
-            FirewallWriteContext context = Context(FirewallVendors.kAzure);
+            FirewallWriteContext context = Context(FirewallVendors.kAzure, configPath: "rg1");
             context.Management.CloudTenantId = "";
             (FirewallWriter writer, _, _) = Writer(context);
             ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_delete));

@@ -147,15 +147,11 @@ namespace FWO.Ui.Pages.Settings
                 bool wasLocal = level.DirectOverrides.Contains(field.Key);
                 ResolvedLevel inherited = wasLocal ? parentLevel! : level;
                 (string inheritedValue, DeviceSpecificSettingsScope? inheritedSource) = ValueOf(inherited, field, node.Level);
-                fields.Add(DeviceSpecificFieldState.Create(field, wasLocal, WithShippedDefault(field, node, level.Values[field.Key]),
-                    WithShippedDefault(field, node, inheritedValue), inheritedSource, field.AppliesTo(node)));
+                fields.Add(DeviceSpecificFieldState.Create(field, wasLocal, level.Values[field.Key], inheritedValue,
+                    inheritedSource, field.AppliesTo(node)));
             }
             return new DeviceSpecificLevelForm(node, fields);
         }
-
-        /// <summary>An empty value of a field with device type defaults stands for the default shipped for the node's device type.</summary>
-        private static string WithShippedDefault(DeviceSpecificFieldDefinition field, DeviceSpecificNode node, string value) =>
-            value.Length == 0 ? field.ShippedDefaultFor(node) ?? value : value;
 
         /// <summary>
         /// Saves the form as one patch. Before the level is written, every level above it is persisted and every

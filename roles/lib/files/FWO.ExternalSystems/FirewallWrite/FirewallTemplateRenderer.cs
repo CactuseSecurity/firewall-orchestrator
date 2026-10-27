@@ -31,9 +31,11 @@ namespace FWO.ExternalSystems.FirewallWrite
             FirewallWriteEndpoint endpoint = ParseEndpoint(step.Operation, endpointSetting);
 
             List<string> unresolved = [];
-            string path = Replace(endpoint.Path, step.Values, EncodeForPath, unresolved);
-            string? body = string.IsNullOrWhiteSpace(bodyTemplate) ? null : Replace(bodyTemplate, step.Values, EncodeForJson, unresolved);
+            List<string> withoutValue = [];
+            string path = Replace(endpoint.Path, step.Values, EncodeForPath, unresolved, withoutValue);
+            string? body = string.IsNullOrWhiteSpace(bodyTemplate) ? null : Replace(bodyTemplate, step.Values, EncodeForJson, unresolved, withoutValue);
 
+            EnsureValuesPresent(step.Operation, withoutValue);
             List<string> missing = [.. unresolved.Where(placeholder => !FirewallWritePlaceholders.RuntimePlaceholders.Contains(placeholder)).Distinct()];
             if (missing.Count > 0)
             {
@@ -56,11 +58,13 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             ArgumentNullException.ThrowIfNull(request);
             List<string> unresolved = [];
-            request.Path = Replace(request.Path, values, EncodeForPath, unresolved);
+            List<string> withoutValue = [];
+            request.Path = Replace(request.Path, values, EncodeForPath, unresolved, withoutValue);
             if (request.Body != null)
             {
-                request.Body = Replace(request.Body, values, EncodeForJson, unresolved);
+                request.Body = Replace(request.Body, values, EncodeForJson, unresolved, withoutValue);
             }
+            EnsureValuesPresent(request.Operation, withoutValue);
             EnsureResolved(request, unresolved);
         }
 
@@ -107,18 +111,36 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
         }
 
+        /// <summary>
+        /// Replaces the placeholders that have a value. Placeholders without entry are collected in
+        /// <paramref name="unresolved"/>, placeholders marked as missing with their reason in <paramref name="withoutValue"/>.
+        /// </summary>
         private static string Replace(string template, IReadOnlyDictionary<string, FirewallPlaceholderValue> values,
-            Func<FirewallPlaceholderValue, string> encode, List<string> unresolved)
+            Func<FirewallPlaceholderValue, string> encode, List<string> unresolved, List<string> withoutValue)
         {
             return PlaceholderPattern().Replace(template, match =>
             {
-                if (values.TryGetValue(match.Value, out FirewallPlaceholderValue? value))
+                if (!values.TryGetValue(match.Value, out FirewallPlaceholderValue? value))
                 {
-                    return encode(value);
+                    unresolved.Add(match.Value);
+                    return match.Value;
                 }
-                unresolved.Add(match.Value);
-                return match.Value;
+                if (value.MissingReason != null)
+                {
+                    withoutValue.Add($"{match.Value} ({value.MissingReason})");
+                    return match.Value;
+                }
+                return encode(value);
             });
+        }
+
+        /// <summary>Fails if the template uses a placeholder that has no value for this step.</summary>
+        private static void EnsureValuesPresent(FirewallWriteOperation operation, List<string> withoutValue)
+        {
+            if (withoutValue.Count > 0)
+            {
+                throw new ConfigException($"Template error in {operation}. No value for {string.Join(", ", withoutValue.Distinct())}.");
+            }
         }
 
         /// <summary>Text values are inserted into JSON strings, JSON values as they are; '@' only occurs inside JSON strings.</summary>

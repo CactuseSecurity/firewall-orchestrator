@@ -32,15 +32,19 @@ namespace FWO.Test
             Assert.That(Rules(group, 0).Select(rule => rule!["name"]!.GetValue<string>()), Is.EqualTo(kRulesAfterCreate));
         }
 
-        [Test]
-        public void Create_ReplacesRuleWithSameName()
+        /// <summary>A new rule must not silently replace an existing rule of the same name, in any collection of the group.</summary>
+        [TestCase("FWO-Allow", "r1")]
+        [TestCase("FWO-Deny", "r2")]
+        public void Create_FailsForExistingRuleName(string collectionName, string ruleName)
         {
             JsonObject group = Group();
-            AzureRuleCollectionMerge.Apply(group, FirewallWriteOperation.RuleCreate, Fragment("""{"ruleCollectionName":"FWO-Allow","rule":{"name":"r1","destinationPorts":["443"]}}"""));
+            string before = group.ToJsonString();
+            ConfigException? exception = Assert.Throws<ConfigException>(() => AzureRuleCollectionMerge.Apply(group, FirewallWriteOperation.RuleCreate,
+                Fragment($$$"""{"ruleCollectionName":"{{{collectionName}}}","rule":{"name":"{{{ruleName}}}","destinationPorts":["443"]}}""")));
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(Rules(group, 0), Has.Count.EqualTo(1));
-                Assert.That(Rules(group, 0)[0]!["destinationPorts"]![0]!.GetValue<string>(), Is.EqualTo("443"));
+                Assert.That(exception?.Message, Does.Contain("already exists"));
+                Assert.That(group.ToJsonString(), Is.EqualTo(before));
             }
         }
 

@@ -1,13 +1,20 @@
+using System.Text.RegularExpressions;
+
 namespace FWO.Data.DeviceSpecificSettings;
 
 /// <summary>
 /// HTTP method and path of a firewall write REST call, stored as one setting value in the form "METHOD path",
 /// e.g. "POST add-host" or "PUT /api/v2/cmdb/firewall/address/@@OBJECT_NAME@@". The path may contain placeholders.
+/// The path is always relative to the management: absolute urls would send the vendor credentials to another host.
 /// </summary>
-public sealed record FirewallWriteEndpoint(string Method, string Path)
+public sealed partial record FirewallWriteEndpoint(string Method, string Path)
 {
     private static readonly List<string> kAllowedMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"];
     private const char kSeparator = ' ';
+    private const string kNetworkPathPrefix = "//";
+
+    [GeneratedRegex("^[A-Za-z][A-Za-z0-9+.-]*:")]
+    private static partial Regex SchemePattern();
 
     /// <summary>HTTP methods an endpoint setting may use.</summary>
     public static IReadOnlyList<string> AllowedMethods => kAllowedMethods;
@@ -34,6 +41,10 @@ public sealed record FirewallWriteEndpoint(string Method, string Path)
         if (path.Length == 0 || path.Any(char.IsWhiteSpace))
         {
             throw new ArgumentException($"Endpoint '{value}' must have one path without blanks.", nameof(value));
+        }
+        if (SchemePattern().IsMatch(path) || path.StartsWith(kNetworkPathPrefix, StringComparison.Ordinal) || path.Contains('\\'))
+        {
+            throw new ArgumentException($"Endpoint '{value}' must have a path relative to the management, not an absolute url.", nameof(value));
         }
         return new FirewallWriteEndpoint(method, path);
     }

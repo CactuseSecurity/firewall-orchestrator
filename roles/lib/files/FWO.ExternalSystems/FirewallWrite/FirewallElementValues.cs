@@ -49,14 +49,17 @@ namespace FWO.ExternalSystems.FirewallWrite
                     throw new ConfigException($"Network object '{name}' has no IP address.");
                 }
                 return new FirewallWriteStep(FirewallWriteOperation.HostDelete) { TargetName = name }
-                    .SetText(FirewallWritePlaceholders.ObjectName, name);
+                    .SetText(FirewallWritePlaceholders.ObjectName, name)
+                    .SetText(FirewallWritePlaceholders.ObjectNameInUrl, profile.NameInUrl(name));
             }
 
             (string start, string end) = AddressRange(element.IpString, element.IpEnd);
             string objectType = IpOperations.GetObjectType(element.IpString, element.IpEnd ?? "");
-            FirewallWriteStep step = new(NetworkOperation(objectType, action)) { TargetName = name };
+            bool isIpv6 = IPAddress.Parse(start).AddressFamily == AddressFamily.InterNetworkV6;
+            FirewallWriteStep step = new(NetworkOperation(objectType, action)) { TargetName = name, IsIpv6 = isIpv6 };
             List<string> addresses = [AddressNotation(element)];
             step.SetText(FirewallWritePlaceholders.ObjectName, name)
+                .SetText(FirewallWritePlaceholders.ObjectNameInUrl, profile.NameInUrl(name))
                 .SetText(FirewallWritePlaceholders.Ip, start)
                 .SetText(FirewallWritePlaceholders.IpEnd, end)
                 .SetText(FirewallWritePlaceholders.Comment, comment)
@@ -66,7 +69,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         }
 
         /// <summary>Creates the step that creates, modifies or deletes the service of an element.</summary>
-        public static FirewallWriteStep ServiceStep(WfImplElement element, string action, string comment)
+        public static FirewallWriteStep ServiceStep(WfImplElement element, string action, FirewallVendorProfile profile, string comment)
         {
             string name = ServiceName(element);
             FirewallWriteOperation operation = action switch
@@ -80,6 +83,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             int portEnd = element.PortEnd ?? port;
             return new FirewallWriteStep(operation) { TargetName = name }
                 .SetText(FirewallWritePlaceholders.ServiceName, name)
+                .SetText(FirewallWritePlaceholders.ServiceNameInUrl, profile.NameInUrl(name))
                 .SetText(FirewallWritePlaceholders.Protocol, ProtocolName(element.ProtoId))
                 .SetText(FirewallWritePlaceholders.ProtocolId, (element.ProtoId ?? 0).ToString(CultureInfo.InvariantCulture))
                 .SetText(FirewallWritePlaceholders.Port, port.ToString(CultureInfo.InvariantCulture))
@@ -172,8 +176,15 @@ namespace FWO.ExternalSystems.FirewallWrite
             int prefixLength = PrefixLength(start, end);
             step.SetText(FirewallWritePlaceholders.Subnet, start)
                 .SetText(FirewallWritePlaceholders.MaskLength, prefixLength.ToString(CultureInfo.InvariantCulture))
-                .SetText(FirewallWritePlaceholders.IpCidr, $"{start}/{prefixLength}")
-                .SetText(FirewallWritePlaceholders.Netmask, Netmask(start, prefixLength));
+                .SetText(FirewallWritePlaceholders.IpCidr, $"{start}/{prefixLength}");
+            if (step.IsIpv6)
+            {
+                step.SetMissing(FirewallWritePlaceholders.Netmask, "an IPv6 address has no dotted netmask; use @@IP_CIDR@@ or @@MASK_LENGTH@@");
+            }
+            else
+            {
+                step.SetText(FirewallWritePlaceholders.Netmask, Netmask(prefixLength));
+            }
         }
 
         /// <summary>Prefix length of the network spanned by the range; host length for a range that is no network.</summary>
@@ -190,13 +201,9 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
         }
 
-        /// <summary>Dotted netmask for IPv4, the prefix length for IPv6.</summary>
-        private static string Netmask(string start, int prefixLength)
+        /// <summary>Dotted IPv4 netmask of a prefix length.</summary>
+        private static string Netmask(int prefixLength)
         {
-            if (IPAddress.Parse(start).AddressFamily != AddressFamily.InterNetwork)
-            {
-                return prefixLength.ToString(CultureInfo.InvariantCulture);
-            }
             uint mask = prefixLength == 0 ? 0 : uint.MaxValue << (kIpv4Bits - prefixLength);
             return IpOperations.UintToIp(mask).ToString();
         }

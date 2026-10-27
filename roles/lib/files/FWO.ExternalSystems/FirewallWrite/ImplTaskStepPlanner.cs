@@ -16,6 +16,13 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const int kActionAccess = 4;
         private const int kActionPermit = 11;
         private const int kTrackNone = 2;
+        private const string kNoGateway = "the task names no gateway";
+        private const string kNoConfigPath = "the management has no config path (domain, ADOM or resource group)";
+        private const string kNoPolicy = "neither the gateway's package nor its imported rulebase links name a policy package";
+        private const string kNoLayer = "neither the rule position nor the gateway's imported rulebase links name a layer";
+        private const string kNoRuleUid = "a rule to be created has no uid yet";
+        private const string kNoRuleAction = "the task has no rule action";
+        private const string kNotOneMember = "the call does not write exactly one member; use @@MEMBERS_TO_ADD@@ or @@MEMBERS_TO_REMOVE@@";
 
         private static readonly List<string> MemberAddActions =
             [nameof(RequestAction.create), nameof(RequestAction.addAfterCreation)];
@@ -46,7 +53,13 @@ namespace FWO.ExternalSystems.FirewallWrite
             return steps;
         }
 
-        /// <summary>Returns the placeholder values of the target and the task that every step and session step can use.</summary>
+        /// <summary>
+        /// Returns the placeholder values of the target and the task that every step and session step can use. Target
+        /// values that cannot be determined get no value, so a template that needs them fails before anything is sent.
+        /// The policy package is the gateway's package, else the package of its imported rulebase links, else its rulebase
+        /// (FortiManager); the layer is the one of the rule position, else the first imported access layer, else the
+        /// vendor's own default, else the gateway's rulebase.
+        /// </summary>
         public static IReadOnlyDictionary<string, FirewallPlaceholderValue> ContextValues(WfImplTask implTask, FirewallWriteContext context,
             FirewallRulePlacement? placement)
         {
@@ -56,18 +69,23 @@ namespace FWO.ExternalSystems.FirewallWrite
                 : (gatewayName, FirewallVendorProfile.SplitDeviceAndVdom("").Vdom);
             string domain = context.Management.ConfigPath ?? "";
             FirewallRulePlacement effectivePlacement = placement ?? FirewallRulePlacement.EndOfRulebase;
+            FirewallVendorProfile profile = FirewallVendorProfile.For(context.Vendor);
+            string? policyName = FirstNonBlank(context.Gateway?.Package, context.Rulebases.PolicyName, context.Gateway?.LocalRulebase);
+            string? layerName = FirstNonBlank(effectivePlacement.LayerUid, context.Rulebases.FirstLayerName, profile.DefaultLayerName,
+                context.Gateway?.LocalRulebase);
 
             FirewallWriteStep values = new(FirewallWriteOperation.Publish);
             values.SetText(FirewallWritePlaceholders.ManagementName, context.Management.Name)
-                .SetText(FirewallWritePlaceholders.GatewayName, gatewayName)
-                .SetText(FirewallWritePlaceholders.DeviceName, deviceName)
+                .SetRequiredText(FirewallWritePlaceholders.GatewayName, gatewayName, kNoGateway)
+                .SetRequiredText(FirewallWritePlaceholders.DeviceName, deviceName, kNoGateway)
                 .SetText(FirewallWritePlaceholders.VdomName, vdomName)
-                .SetText(FirewallWritePlaceholders.PolicyName, context.Gateway?.Package ?? context.Gateway?.LocalRulebase ?? "")
-                .SetText(FirewallWritePlaceholders.LayerName, effectivePlacement.LayerUid ?? context.Gateway?.LocalRulebase ?? "")
-                .SetText(FirewallWritePlaceholders.DomainName, domain)
-                .SetText(FirewallWritePlaceholders.AdomName, domain)
-                .SetText(FirewallWritePlaceholders.ResourceGroup, domain)
-                .SetText(FirewallWritePlaceholders.SubscriptionId, context.Management.CloudSubscriptionId ?? "")
+                .SetRequiredText(FirewallWritePlaceholders.PolicyName, policyName, kNoPolicy)
+                .SetRequiredText(FirewallWritePlaceholders.LayerName, layerName, kNoLayer)
+                .SetRequiredText(FirewallWritePlaceholders.DomainName, domain, kNoConfigPath)
+                .SetRequiredText(FirewallWritePlaceholders.AdomName, domain, kNoConfigPath)
+                .SetRequiredText(FirewallWritePlaceholders.ResourceGroup, domain, kNoConfigPath)
+                .SetRequiredText(FirewallWritePlaceholders.SubscriptionId, context.Management.CloudSubscriptionId,
+                    "the management has no cloud subscription id")
                 .SetText(FirewallWritePlaceholders.TicketId, implTask.TicketId.ToString(CultureInfo.InvariantCulture))
                 .SetText(FirewallWritePlaceholders.TaskId, implTask.Id.ToString(CultureInfo.InvariantCulture))
                 .SetText(FirewallWritePlaceholders.TaskNumber, implTask.TaskNumber.ToString(CultureInfo.InvariantCulture))
@@ -88,7 +106,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 string action = ObjectActions.Contains(element.ImplAction) ? element.ImplAction : defaultAction;
                 if (FirewallElementValues.IsServiceElement(element))
                 {
-                    steps.Add(FirewallElementValues.ServiceStep(element, action, Comment(implTask)));
+                    steps.Add(FirewallElementValues.ServiceStep(element, action, profile, Comment(implTask)));
                 }
                 else if (FirewallElementValues.IsNetworkElement(element))
                 {
@@ -113,16 +131,27 @@ namespace FWO.ExternalSystems.FirewallWrite
             List<WfImplElement> toAdd = [.. members.Where(element => MemberAddActions.Contains(element.ImplAction))];
             List<WfImplElement> toRemove = [.. members.Where(element => element.ImplAction == nameof(RequestAction.delete))];
             List<FirewallWriteStep> steps = MemberObjectSteps(implTask, members, profile);
-            if (toAdd.Count > 0)
-            {
-                steps.Add(GroupStep(FirewallWriteOperation.GroupAddMembers, implTask, profile, toAdd));
-            }
-            if (toRemove.Count > 0)
-            {
-                steps.Add(GroupStep(FirewallWriteOperation.GroupRemoveMembers, implTask, profile, toRemove));
-            }
+            steps.AddRange(MemberChangeSteps(FirewallWriteOperation.GroupAddMembers, implTask, profile, toAdd));
+            steps.AddRange(MemberChangeSteps(FirewallWriteOperation.GroupRemoveMembers, implTask, profile, toRemove));
             return steps;
         }
+
+        /// <summary>One step for all members, or one step per member for vendors that change the member table entry by entry.</summary>
+        private static List<FirewallWriteStep> MemberChangeSteps(FirewallWriteOperation operation, WfImplTask implTask, FirewallVendorProfile profile,
+            List<WfImplElement> members)
+        {
+            if (members.Count == 0)
+            {
+                return [];
+            }
+            if (!profile.WritesMembersIndividually)
+            {
+                return [GroupStep(operation, implTask, profile, members)];
+            }
+            return [.. members.Select(member => GroupStep(operation, implTask, profile, SingleMember(member)))];
+        }
+
+        private static List<WfImplElement> SingleMember(WfImplElement member) => [member];
 
         /// <summary>
         /// Creates or modifies the member objects that the task brings along with addresses, before they are used in a
@@ -158,6 +187,14 @@ namespace FWO.ExternalSystems.FirewallWrite
             List<string> renderedMembers = profile.ReferencesObjectsByAddress ? addresses : memberNames;
 
             FirewallWriteStep step = new(operation) { TargetName = groupName };
+            if (renderedMembers.Count == 1)
+            {
+                step.SetText(FirewallWritePlaceholders.MemberName, renderedMembers[0]);
+            }
+            else
+            {
+                step.SetMissing(FirewallWritePlaceholders.MemberName, kNotOneMember);
+            }
             if (operation == FirewallWriteOperation.GroupRemoveMembers)
             {
                 step.MembersToRemove.AddRange(renderedMembers);
@@ -167,6 +204,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 step.MembersToAdd.AddRange(renderedMembers);
             }
             return step.SetText(FirewallWritePlaceholders.GroupName, groupName)
+                .SetText(FirewallWritePlaceholders.GroupNameInUrl, profile.NameInUrl(groupName))
                 .SetText(FirewallWritePlaceholders.Comment, Comment(implTask))
                 .SetStringList(FirewallWritePlaceholders.Members, memberNames)
                 .SetStringList(FirewallWritePlaceholders.MembersToAdd, step.MembersToAdd)
@@ -198,15 +236,24 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             FirewallWriteStep step = new(operation) { TargetName = string.IsNullOrWhiteSpace(ruleUid) ? implTask.Title : ruleUid };
             step.SetText(FirewallWritePlaceholders.RuleName, implTask.Title)
-                .SetText(FirewallWritePlaceholders.RuleUid, ruleUid)
+                .SetRequiredText(FirewallWritePlaceholders.RuleUid, ruleUid, kNoRuleUid)
                 .SetText(FirewallWritePlaceholders.RuleComment, Comment(implTask))
-                .SetText(FirewallWritePlaceholders.RuleAction, IsAccept(implTask.RuleAction) ? profile.AcceptAction : profile.DropAction)
                 .SetText(FirewallWritePlaceholders.RuleTracking, implTask.Tracking == kTrackNone ? profile.LogOff : profile.LogOn);
+            if (implTask.RuleAction == null)
+            {
+                step.SetMissing(FirewallWritePlaceholders.RuleAction, kNoRuleAction);
+            }
+            else
+            {
+                step.SetText(FirewallWritePlaceholders.RuleAction, IsAccept(implTask.RuleAction.Value) ? profile.AcceptAction : profile.DropAction);
+            }
             FirewallRuleValues.SetRuleElements(step, implTask, profile);
             return step;
         }
 
-        private static bool IsAccept(int? ruleAction) => ruleAction is null or kActionAccept or kActionAccess or kActionPermit;
+        private static bool IsAccept(int ruleAction) => ruleAction is kActionAccept or kActionAccess or kActionPermit;
+
+        private static string? FirstNonBlank(params string?[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 
         private static string RuleUid(WfImplTask implTask)
         {

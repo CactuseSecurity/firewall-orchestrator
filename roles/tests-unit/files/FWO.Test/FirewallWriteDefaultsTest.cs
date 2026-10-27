@@ -100,6 +100,43 @@ namespace FWO.Test
             }
         }
 
+        private static IEnumerable<TestCaseData> Ipv6DefaultCases() =>
+            from deviceTypeId in kSupportedDeviceTypes
+            from operation in Enum.GetValues<FirewallWriteOperation>()
+            where FirewallWriteDefaults.Get(deviceTypeId, operation, true) != null
+            select new TestCaseData(deviceTypeId, operation);
+
+        /// <summary>IPv6 objects have no dotted netmask, so the defaults used for them must not need one.</summary>
+        [TestCaseSource(nameof(Ipv6DefaultCases))]
+        public void EveryShippedDefaultForIpv6ObjectsRendersWithoutNetmask(int deviceTypeId, FirewallWriteOperation operation)
+        {
+            FirewallWriteDefault shipped = FirewallWriteDefaults.Get(deviceTypeId, operation, true)!;
+            FirewallWriteStep step = FullStep(operation).SetMissing(FirewallWritePlaceholders.Netmask, "IPv6");
+            Assert.DoesNotThrow(() => FirewallTemplateRenderer.Render(step, shipped.Endpoint, shipped.Template));
+        }
+
+        [TestCase(FirewallVendors.kFortiOsGateway, "/api/v2/cmdb/firewall/address6")]
+        [TestCase(FirewallVendors.kFortiManager5ff, "POST /jsonrpc")]
+        public void FortinetShipsIpv6Objects(int deviceTypeId, string expectedEndpointPart)
+        {
+            FirewallWriteDefault ipv6 = FirewallWriteDefaults.Get(deviceTypeId, FirewallWriteOperation.NetworkCreate, true)!;
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(ipv6.Endpoint, Does.Contain(expectedEndpointPart));
+                Assert.That(ipv6.Endpoint + ipv6.Template, Does.Contain("address6"));
+                Assert.That(FirewallWriteDefaults.Get(deviceTypeId, FirewallWriteOperation.NetworkCreate)!.Template, Does.Not.Contain("ip6"));
+                Assert.That(FirewallWriteDefaults.Get(deviceTypeId, FirewallWriteOperation.GroupCreate, true),
+                    Is.EqualTo(FirewallWriteDefaults.Get(deviceTypeId, FirewallWriteOperation.GroupCreate)));
+            }
+        }
+
+        [Test]
+        public void Ipv6FallsBackToTheCommonDefaultForOtherVendors()
+        {
+            Assert.That(FirewallWriteDefaults.Get(FirewallVendors.kCheckPointR8x, FirewallWriteOperation.HostCreate, true),
+                Is.EqualTo(FirewallWriteDefaults.Get(FirewallVendors.kCheckPointR8x, FirewallWriteOperation.HostCreate)));
+        }
+
         [TestCaseSource(nameof(kSupportedDeviceTypes))]
         public void EverySupportedDeviceTypeShipsObjectGroupAndRuleOperations(int deviceTypeId)
         {

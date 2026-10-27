@@ -16,6 +16,7 @@ namespace FWO.ExternalSystems.FirewallWrite
     {
         private const string kLogCategory = "Firewall Write";
         private const int kMaxLoggedResponseLength = 2000;
+        private const int kDefaultHttpsPort = 443;
 
         protected Management Management { get; }
 
@@ -67,6 +68,10 @@ namespace FWO.ExternalSystems.FirewallWrite
         protected async Task<RestResponse> SendRendered(RenderedFirewallRequest request)
         {
             RestRequest restRequest = new(request.Path, ToMethod(request.Method));
+            foreach ((string name, string value) in request.Headers)
+            {
+                restRequest.AddHeader(name, value);
+            }
             string? body = PrepareBody(request);
             if (body != null)
             {
@@ -123,7 +128,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 host = new Uri(host).Host;
             }
-            int port = management.Port > 0 ? management.Port : 443;
+            int port = management.Port > 0 ? management.Port : kDefaultHttpsPort;
             return $"https://{host}:{port}{pathPrefix}";
         }
 

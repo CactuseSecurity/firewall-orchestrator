@@ -40,6 +40,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task LoadsPackageAndLayerFromTheGatewayRulebaseLinks()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = Api();
+            Device gateway = api.Managements[0].Devices[0];
+            gateway.Package = null;
+            gateway.LocalRulebase = null;
+            gateway.RulebaseLinks = [.. FirewallGatewayRulebasesTest.CheckPointLinks()];
+            FirewallWriteContext context = await new ApiFirewallWriteDataSource(api).LoadContext(Task(WfTaskType.group_delete));
+            IReadOnlyDictionary<string, FirewallPlaceholderValue> values = ImplTaskStepPlanner.ContextValues(Task(WfTaskType.group_delete), context, null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.Rulebases.PolicyName, Is.EqualTo("Standard"));
+                Assert.That(context.Rulebases.FirstLayerName, Is.EqualTo("Network"));
+                Assert.That(values[FirewallWritePlaceholders.PolicyName].Value, Is.EqualTo("Standard"));
+                Assert.That(values[FirewallWritePlaceholders.LayerName].Value, Is.EqualTo("Network"));
+            }
+        }
+
+        [Test]
         public async Task WithoutGatewayUsesManagementSettings()
         {
             WfImplTask task = Task(WfTaskType.group_delete);
@@ -48,6 +67,7 @@ namespace FWO.Test
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(context.Gateway, Is.Null);
+                Assert.That(context.Rulebases, Is.EqualTo(FirewallGatewayRulebases.None));
                 Assert.That(context.GetEndpoint(FirewallWriteOperation.Publish), Is.EqualTo("POST management-publish"));
             }
         }

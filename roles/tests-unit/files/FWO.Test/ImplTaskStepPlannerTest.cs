@@ -27,7 +27,14 @@ namespace FWO.Test
         private static readonly List<string> kOldHost = ["old"];
         private static readonly List<string> kMergedMembers = ["b", "c"];
 
+        private const int kIcmp = 1;
+        private static readonly List<FirewallWriteOperation> kFortiOsMemberOperations =
+            [FirewallWriteOperation.GroupAddMembers, FirewallWriteOperation.GroupAddMembers, FirewallWriteOperation.GroupRemoveMembers];
+        private static readonly List<string> kFortiOsMemberNames = ["m1", "m2", "old"];
+
         private static string Value(FirewallWriteStep step, string placeholder) => step.Values[placeholder].Value;
+
+        private static string? Missing(FirewallWriteStep step, string placeholder) => step.Values[placeholder].MissingReason;
 
         private static List<FirewallWriteStep> Plan(WfImplTask task, int deviceTypeId = FirewallVendors.kCheckPointR8x, FirewallRulePlacement? placement = null) =>
             ImplTaskStepPlanner.Plan(task, Context(deviceTypeId), placement);
@@ -189,19 +196,101 @@ namespace FWO.Test
             }
         }
 
+        /// <summary>Missing rule elements and action are not widened to any and accept: their placeholders have no value.</summary>
         [Test]
-        public void Access_WithoutElementsUsesVendorAnyAndEndOfRulebase()
+        public void Access_WithoutElementsOrActionLeavesThePlaceholdersWithoutValue()
         {
             FirewallWriteStep rule = Plan(Task(WfTaskType.access), FirewallVendors.kFortiOsGateway).Single();
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(Value(rule, FirewallWritePlaceholders.RuleSourcesNameObjects), Is.EqualTo("[{\"name\":\"all\"}]"));
-                Assert.That(Value(rule, FirewallWritePlaceholders.RuleServices), Is.EqualTo("[\"ALL\"]"));
-                Assert.That(Value(rule, FirewallWritePlaceholders.RuleAction), Is.EqualTo("accept"));
+                Assert.That(Missing(rule, FirewallWritePlaceholders.RuleSourcesNameObjects), Does.Contain("no source element"));
+                Assert.That(Missing(rule, FirewallWritePlaceholders.RuleDestinations), Does.Contain("no destination element"));
+                Assert.That(Missing(rule, FirewallWritePlaceholders.RuleServices), Does.Contain("no service element"));
+                Assert.That(Missing(rule, FirewallWritePlaceholders.RuleServicesCsv), Does.Contain("no service element"));
+                Assert.That(Missing(rule, FirewallWritePlaceholders.RuleProtocol), Does.Contain("no service element"));
+                Assert.That(Missing(rule, FirewallWritePlaceholders.RuleAction), Is.EqualTo("the task has no rule action"));
+                Assert.That(Missing(rule, FirewallWritePlaceholders.RuleUid), Does.Contain("no uid"));
+                Assert.That(Value(rule, FirewallWritePlaceholders.RuleSourcesToAdd), Is.EqualTo("[]"));
                 Assert.That(Value(rule, FirewallWritePlaceholders.RuleTracking), Is.EqualTo("all"));
                 Assert.That(Value(rule, FirewallWritePlaceholders.RulePosition), Is.EqualTo("\"bottom\""));
                 Assert.That(Value(rule, FirewallWritePlaceholders.LayerName), Is.EqualTo("Network"));
-                Assert.That(Value(rule, FirewallWritePlaceholders.RuleServicesCsv), Is.Empty);
+            }
+        }
+
+        [TestCase(kTcp, kUdp, "TCP/UDP")]
+        [TestCase(kTcp, kTcp, "TCP")]
+        public void RuleProtocol_IsOneProtocolOrTcpAndUdp(int firstProtocol, int secondProtocol, string expected)
+        {
+            WfImplTask task = Task(WfTaskType.access, Service("a", firstProtocol, 1), Service("b", secondProtocol, 2));
+            Assert.That(Value(Plan(task, FirewallVendors.kOpnSense).Single(), FirewallWritePlaceholders.RuleProtocol), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void RuleProtocol_OtherMixesHaveNoValue()
+        {
+            WfImplTask task = Task(WfTaskType.access, Service("a", kTcp, 1), Service("ping", kIcmp, 0));
+            Assert.That(Missing(Plan(task, FirewallVendors.kOpnSense).Single(), FirewallWritePlaceholders.RuleProtocol), Does.Contain("several protocols"));
+        }
+
+        [Test]
+        public void FortiOs_ChangesGroupMembersOneByOne()
+        {
+            WfImplElement first = Network("m1", null);
+            first.GroupName = "grp";
+            WfImplElement second = Network("m2", null);
+            second.GroupName = "grp";
+            List<FirewallWriteStep> steps = Plan(Task(WfTaskType.group_modify, first, second, Network("old", null, action: RequestAction.delete)),
+                FirewallVendors.kFortiOsGateway);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(steps.Select(step => step.Operation), Is.EqualTo(kFortiOsMemberOperations));
+                Assert.That(steps.Select(step => Value(step, FirewallWritePlaceholders.MemberName)), Is.EqualTo(kFortiOsMemberNames));
+                Assert.That(Missing(Plan(Task(WfTaskType.group_modify, first, second)).Single(), FirewallWritePlaceholders.MemberName),
+                    Does.Contain("exactly one member"));
+            }
+        }
+
+        [Test]
+        public void FortiManager_EscapesSlashOnlyInUrlNames()
+        {
+            WfImplElement member = Network("net/24", "10.0.0.0/24");
+            member.GroupName = "grp/a";
+            List<FirewallWriteStep> fortiManager = Plan(Task(WfTaskType.group_create, member), FirewallVendors.kFortiManager5ff);
+            List<FirewallWriteStep> fortiOs = Plan(Task(WfTaskType.group_create, member), FirewallVendors.kFortiOsGateway);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(Value(fortiManager[0], FirewallWritePlaceholders.ObjectName), Is.EqualTo("net/24"));
+                Assert.That(Value(fortiManager[0], FirewallWritePlaceholders.ObjectNameInUrl), Is.EqualTo("net\\/24"));
+                Assert.That(Value(fortiManager[1], FirewallWritePlaceholders.GroupNameInUrl), Is.EqualTo("grp\\/a"));
+                Assert.That(Value(fortiOs[1], FirewallWritePlaceholders.GroupNameInUrl), Is.EqualTo("grp/a"));
+            }
+        }
+
+        [Test]
+        public void Ipv6Objects_AreMarkedAndHaveNoDottedNetmask()
+        {
+            List<FirewallWriteStep> steps = Plan(Task(WfTaskType.object_create, Network("n6", "2001:db8::/64"), Network("n4", "10.1.0.0/24")));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(steps[0].IsIpv6, Is.True);
+                Assert.That(Value(steps[0], FirewallWritePlaceholders.IpCidr), Is.EqualTo("2001:db8::/64"));
+                Assert.That(Missing(steps[0], FirewallWritePlaceholders.Netmask), Does.Contain("IPv6"));
+                Assert.That(steps[1].IsIpv6, Is.False);
+                Assert.That(Value(steps[1], FirewallWritePlaceholders.Netmask), Is.EqualTo("255.255.255.0"));
+            }
+        }
+
+        [Test]
+        public void Azure_WritesIntoItsOwnRuleCollectionGroup()
+        {
+            FirewallWriteStep rule = Plan(Task(WfTaskType.access), FirewallVendors.kAzureFirewall).Single();
+            FirewallWriteStep positioned = Plan(Task(WfTaskType.access), FirewallVendors.kAzureFirewall,
+                new FirewallRulePlacement(FirewallRuleAnchor.Bottom, null, "rcg-1")).Single();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(Value(rule, FirewallWritePlaceholders.LayerName), Is.EqualTo("FWO"));
+                Assert.That(Value(rule, FirewallWritePlaceholders.PolicyName), Is.EqualTo("Standard"));
+                Assert.That(Value(positioned, FirewallWritePlaceholders.LayerName), Is.EqualTo("rcg-1"));
             }
         }
 
@@ -217,6 +306,7 @@ namespace FWO.Test
             WfImplTask task = Task(WfTaskType.access, Network(null, "10.0.0.0/24"), Network("d", "10.0.1.1", field: ElemFieldType.destination),
                 Service(null, kTcp, 443));
 
+            task.RuleAction = 1;
             List<FirewallWriteStep> steps = Plan(task, FirewallVendors.kAzureFirewall);
 
             using (Assert.EnterMultipleScope())

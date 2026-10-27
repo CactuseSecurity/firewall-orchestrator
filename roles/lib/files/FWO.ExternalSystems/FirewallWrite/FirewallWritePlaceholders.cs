@@ -3,7 +3,8 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// <summary>
     /// Placeholders of the firewall write endpoint and body templates. Scalar placeholders are meant to be used inside
     /// JSON strings and are inserted JSON-escaped (URL-encoded in endpoint paths); list placeholders and
-    /// <see cref="RulePosition"/> are inserted as complete JSON values and are used without quotes.
+    /// <see cref="RulePosition"/> are inserted as complete JSON values and are used without quotes. The "..._IN_URL"
+    /// placeholders hold a name for a url inside a JSON body (FortiManager JSON-RPC), with a '/' in the name escaped.
     /// </summary>
     public static class FirewallWritePlaceholders
     {
@@ -24,6 +25,7 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         // network objects
         public const string ObjectName = "@@OBJECT_NAME@@";
+        public const string ObjectNameInUrl = "@@OBJECT_NAME_IN_URL@@";
         public const string Ip = "@@IP@@";
         public const string IpEnd = "@@IP_END@@";
         public const string IpCidr = "@@IP_CIDR@@";
@@ -35,6 +37,7 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         // services
         public const string ServiceName = "@@SERVICE_NAME@@";
+        public const string ServiceNameInUrl = "@@SERVICE_NAME_IN_URL@@";
         public const string Protocol = "@@PROTOCOL@@";
         public const string ProtocolId = "@@PROTOCOL_ID@@";
         public const string Port = "@@PORT@@";
@@ -43,6 +46,8 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         // groups
         public const string GroupName = "@@GROUP_NAME@@";
+        public const string GroupNameInUrl = "@@GROUP_NAME_IN_URL@@";
+        public const string MemberName = "@@MEMBER_NAME@@";
         public const string Members = "@@MEMBERS@@";
         public const string MembersToAdd = "@@MEMBERS_TO_ADD@@";
         public const string MembersToRemove = "@@MEMBERS_TO_REMOVE@@";

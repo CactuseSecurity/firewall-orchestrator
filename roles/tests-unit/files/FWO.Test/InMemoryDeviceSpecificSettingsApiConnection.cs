@@ -34,6 +34,13 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
         return [.. Managements.Where(management => Equals(management.Id, id))];
     }
 
+    /// <summary>Gateways with the id of the getGatewayRulebaseLinks variables, with their package and rulebase links.</summary>
+    private List<Device> GatewaysById(object? variables)
+    {
+        object? id = variables?.GetType().GetProperty("gwId")?.GetValue(variables);
+        return [.. Managements.SelectMany(management => management.Devices).Where(device => Equals(device.Id, id))];
+    }
+
     /// <summary>Optional test hook that can pause a query after it has been recorded and before it is applied.</summary>
     public Func<string, Task>? BeforeQueryAsync { get; set; }
 
@@ -126,6 +133,7 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
             _ when query == DeviceQueries.getManagementDetailsWithoutSecrets => Managements,
             _ when query == DeviceQueries.getManagementHierarchy => Managements,
             _ when query == DeviceQueries.getManagementById => ManagementsById(variables),
+            _ when query == DeviceQueries.getGatewayRulebaseLinks => GatewaysById(variables),
             _ when query == DeviceSpecificSettingsQueries.upsertNode => UpsertNode(variables),
             _ when query == DeviceSpecificSettingsQueries.applyPatch => ApplyPatch(variables),
             _ when query == DeviceSpecificSettingsQueries.deleteOverrides => DeleteOverrides(variables),

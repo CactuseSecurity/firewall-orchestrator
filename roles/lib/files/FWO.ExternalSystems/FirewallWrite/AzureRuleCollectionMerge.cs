@@ -7,7 +7,8 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// <summary>
     /// Applies a rendered Azure rule template to a rule collection group. The template carries the rule ("rule"), the
     /// collection it belongs to ("ruleCollectionName", "ruleCollectionPriority", "ruleCollectionAction") or, for a
-    /// deletion, only the rule name ("ruleName"). Rules are matched by name.
+    /// deletion, only the rule name ("ruleName"). Rules are matched by name; creating a rule whose name is already used in
+    /// the group fails instead of replacing that rule.
     /// </summary>
     public static class AzureRuleCollectionMerge
     {
@@ -19,7 +20,9 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const int kDefaultCollectionPriority = 10000;
 
         /// <summary>Changes the rule collection group in place.</summary>
-        /// <exception cref="ConfigException">Thrown if the template lacks the rule or the rule to change does not exist.</exception>
+        /// <exception cref="ConfigException">
+        /// Thrown if the template lacks the rule, the rule to change does not exist or the rule to create already exists.
+        /// </exception>
         public static void Apply(JsonObject ruleCollectionGroup, FirewallWriteOperation operation, JsonObject fragment)
         {
             JsonArray collections = ruleCollectionGroup[kProperties]?[kRuleCollections] as JsonArray
@@ -44,16 +47,11 @@ namespace FWO.ExternalSystems.FirewallWrite
                 return;
             }
 
-            JsonObject target = FindOrAddCollection(collections, fragment);
-            int index = FindRule(target, name);
-            if (index >= 0)
+            if (collections.OfType<JsonObject>().Any(collection => FindRule(collection, name) >= 0))
             {
-                Rules(target)[index] = rule;
+                throw new ConfigException($"Azure rule '{name}' already exists in the rule collection group.");
             }
-            else
-            {
-                Rules(target).Add(rule);
-            }
+            Rules(FindOrAddCollection(collections, fragment)).Add(rule);
         }
 
         private static JsonObject FindOrAddCollection(JsonArray collections, JsonObject fragment)

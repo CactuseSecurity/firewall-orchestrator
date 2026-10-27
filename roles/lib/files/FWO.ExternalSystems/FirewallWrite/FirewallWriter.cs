@@ -97,12 +97,12 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         private static RenderedFirewallRequest Render(FirewallWriteStep step, FirewallWriteContext context)
         {
-            string endpoint = context.GetEndpoint(step.Operation);
+            string endpoint = context.GetEndpoint(step.Operation, step.IsIpv6);
             if (string.IsNullOrWhiteSpace(endpoint))
             {
                 throw new ConfigException($"{step.Operation} is not supported for device type {context.DeviceTypeId}: no endpoint configured.");
             }
-            return FirewallTemplateRenderer.Render(step, endpoint, context.GetTemplate(step.Operation));
+            return FirewallTemplateRenderer.Render(step, endpoint, context.GetTemplate(step.Operation, step.IsIpv6));
         }
 
         private static async Task<ModifyFirewallResult> Execute(FirewallWriteClient client, List<RenderedFirewallRequest> requests, FirewallWriteContext context)

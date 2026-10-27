@@ -46,7 +46,24 @@ namespace FWO.ExternalSystems.FirewallWrite
                 : DeviceSpecificScopePath.ForGateway(management, gateway);
             List<DeviceSpecificScopePath> paths = [path];
             List<GlobalDeviceSpecificSettings> settings = await new DeviceSpecificSettingsManager(apiConnection).LoadEffectiveSettingsAsync(paths);
-            return new FirewallWriteContext { Management = management, Gateway = gateway, Settings = settings[0] };
+            FirewallGatewayRulebases rulebases = gateway == null ? FirewallGatewayRulebases.None : await LoadRulebases(gateway);
+            return new FirewallWriteContext { Management = management, Gateway = gateway, Settings = settings[0], Rulebases = rulebases };
+        }
+
+        /// <summary>
+        /// Loads the package name and the current rulebase links of the gateway; the management query leaves both out. The
+        /// package name is copied to the gateway, where it takes precedence over the package derived from the links.
+        /// </summary>
+        private async Task<FirewallGatewayRulebases> LoadRulebases(Device gateway)
+        {
+            List<Device> devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getGatewayRulebaseLinks, new { gwId = gateway.Id });
+            Device? linked = devices.FirstOrDefault();
+            if (linked == null)
+            {
+                return FirewallGatewayRulebases.None;
+            }
+            gateway.Package = linked.Package;
+            return FirewallGatewayRulebases.FromLinks(linked.RulebaseLinks);
         }
     }
 }

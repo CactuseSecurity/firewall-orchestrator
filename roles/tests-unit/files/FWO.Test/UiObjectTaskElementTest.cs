@@ -1,6 +1,7 @@
 using BlazorTable;
 using Bunit;
 using FWO.Api.Client;
+using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
@@ -28,19 +29,48 @@ namespace FWO.Test
         private sealed class SearchApiConnection : SimulatedApiConnection
         {
             public object Result { get; set; } = new List<NetworkObject>();
+            public Exception? QueryException { get; set; }
             public int QueryCount { get; private set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 QueryCount++;
+                if (QueryException != null)
+                {
+                    return Task.FromException<QueryResponseType>(QueryException);
+                }
                 return Task.FromResult((QueryResponseType)Result);
             }
         }
 
-        private static BunitContext CreateContext(ApiConnection? apiConnection = null)
+        private sealed class DeferredGroupApiConnection : SimulatedApiConnection
+        {
+            public Dictionary<long, TaskCompletionSource<List<NetworkObject>>> Responses { get; } = [];
+
+            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                PropertyInfo groupIdProperty = variables?.GetType().GetProperty("groupId")
+                    ?? throw new AssertionException("The group id was not passed to the group-member query.");
+                long groupId = Convert.ToInt64(groupIdProperty.GetValue(variables));
+                List<NetworkObject> result = await Responses[groupId].Task;
+                return (QueryResponseType)(object)result;
+            }
+        }
+
+        private sealed class LocalizedUserConfig(string groupLimitText) : SimulatedUserConfig
+        {
+            private readonly string localizedGroupLimitText = groupLimitText;
+
+            public override string GetText(string key)
+            {
+                return key == "E5130" ? localizedGroupLimitText : base.GetText(key);
+            }
+        }
+
+        private static BunitContext CreateContext(ApiConnection? apiConnection = null, UserConfig? userConfig = null)
         {
             BunitContext context = new();
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<UserConfig>(userConfig ?? new SimulatedUserConfig());
             context.Services.AddSingleton<DomEventService>();
             context.Services.AddBlazorTable();
             context.Services.AddSingleton(apiConnection ?? new SearchApiConnection());
@@ -319,6 +349,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateTask_IsShownWithNameAndContentInReadOnlyMode()
+        {
+            await using BunitContext context = CreateContext();
+            WfReqTask task = new() { TaskType = WfTaskType.object_create.ToString() };
+            task.Elements.Add(new()
+            {
+                Field = ElemFieldType.source.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                Name = "srv_web01",
+                IpString = "10.1.1.5"
+            });
+
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, false, kManagementId, false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("srv_web01"));
+                Assert.That(component.Markup, Does.Contain("10.1.1.5"));
+                Assert.That(component.Markup, Does.Not.Contain("requested_state"));
+                Assert.That(component.FindAll(".list-group-item"), Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
         public async Task ExistingTask_PrefillsTheInputsAndKeepsTheElementIds()
         {
             await using BunitContext context = CreateContext();
@@ -427,6 +481,220 @@ namespace FWO.Test
             {
                 Assert.That(component.FindComponent<FlowObjectTable<NetworkService>>().Instance.FilteredItems.Count(), Is.EqualTo(1));
                 Assert.That(component.Markup, Does.Not.Contain("refine_search"));
+                Assert.That(component.Markup, Does.Contain("search_service_object"));
+            });
+        }
+
+        [Test]
+        public async Task ObjectSelector_SearchesNetworkGroupsInGroupMode()
+        {
+            SearchApiConnection apiConnection = new() { Result = new List<NetworkObject> { new() { Id = 12, Name = "web_group", MemberNames = "web01" } } };
+            await using BunitContext context = CreateContext(apiConnection);
+            IRenderedComponent<ObjectSelector> component = context.Render<ObjectSelector>(parameters => parameters
+                .AddCascadingValue(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())))
+                .Add(p => p.ManagementId, kManagementId)
+                .Add(p => p.GroupMode, true)
+                .Add(p => p.IpProtos, kIpProtos));
+            MethodInfo search = typeof(ObjectSelector).GetMethod("Search", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ObjectSelector).FullName, "Search");
+
+            List<object?> arguments = ["web"];
+            await component.InvokeAsync(() => (Task)search.Invoke(component.Instance, arguments.ToArray())!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
+                Assert.That(component.FindComponent<FlowObjectTable<NetworkObject>>().Instance.FilteredItems.Single().Name, Is.EqualTo("web_group"));
+                Assert.That(component.Markup, Does.Contain("Members"));
+                Assert.That(component.Markup, Does.Contain("search_network_object"));
+            });
+        }
+
+        [Test]
+        public async Task ObjectSelector_GroupSelectionIgnoresAnOlderMemberLoad()
+        {
+            DeferredGroupApiConnection apiConnection = new();
+            apiConnection.Responses[1] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            apiConnection.Responses[2] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            await using BunitContext context = CreateContext(apiConnection);
+            List<long> selectedIds = [];
+            IRenderedComponent<ObjectSelector> component = context.Render<ObjectSelector>(parameters => parameters
+                .AddCascadingValue(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())))
+                .Add(p => p.ManagementId, kManagementId)
+                .Add(p => p.GroupMode, true)
+                .Add(p => p.SelectedNetworkObjectChanged, (NetworkObject? selected) => selectedIds.Add(selected?.Id ?? -1)));
+            MethodInfo select = typeof(ObjectSelector).GetMethod("SelectNetworkObject", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ObjectSelector).FullName, "SelectNetworkObject");
+            NetworkObject firstGroup = new() { Id = 1, Name = "first" };
+            NetworkObject secondGroup = new() { Id = 2, Name = "second" };
+
+            List<object?> firstArguments = [firstGroup];
+            Task firstSelection = (Task)select.Invoke(component.Instance, firstArguments.ToArray())!;
+            List<object?> secondArguments = [secondGroup];
+            Task secondSelection = (Task)select.Invoke(component.Instance, secondArguments.ToArray())!;
+
+            NetworkObject loadedSecondGroup = new() { Id = secondGroup.Id, Name = secondGroup.Name };
+            loadedSecondGroup.ObjectGroups = [new Group<NetworkObject> { Id = 20, Object = new NetworkObject { Id = 20, Name = "second-member" } }];
+            List<NetworkObject> loadedSecondResult = [loadedSecondGroup];
+            apiConnection.Responses[2].SetResult(loadedSecondResult);
+            await secondSelection;
+            NetworkObject loadedFirstGroup = new() { Id = firstGroup.Id, Name = firstGroup.Name };
+            loadedFirstGroup.ObjectGroups = [new Group<NetworkObject> { Id = 10, Object = new NetworkObject { Id = 10, Name = "first-member" } }];
+            List<NetworkObject> loadedFirstResult = [loadedFirstGroup];
+            apiConnection.Responses[1].SetResult(loadedFirstResult);
+            await firstSelection;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Instance.SelectedNetworkObject?.Id, Is.EqualTo(2));
+                Assert.That(selectedIds, Has.Count.EqualTo(1));
+                Assert.That(selectedIds[0], Is.EqualTo(2));
+            });
+        }
+
+        [TestCase("The selected group has too many members to edit.")]
+        [TestCase("Die ausgewählte Gruppe enthält zu viele Mitglieder und kann nicht bearbeitet werden.")]
+        public async Task ObjectSelector_DisplaysLocalizedMessageWhenGroupIsTooLarge(string expectedMessage)
+        {
+            NetworkObject group = new() { Id = 41, Name = "large-group" };
+            group.ObjectGroups = Enumerable.Range(1, WfObjectTaskHelper.kGroupMemberLimit + 1)
+                .Select(id => new Group<NetworkObject> { Id = id, Object = new NetworkObject { Id = id } })
+                .ToArray();
+            SearchApiConnection apiConnection = new() { Result = new List<NetworkObject> { group } };
+            List<(Exception? Exception, string Title, string Message, bool IsError)> displayedMessages = [];
+            UserConfig userConfig = new LocalizedUserConfig(expectedMessage);
+            await using BunitContext context = CreateContext(apiConnection, userConfig);
+            IRenderedComponent<ObjectSelector> component = context.Render<ObjectSelector>(parameters => parameters
+                .AddCascadingValue(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())))
+                .AddCascadingValue((Action<Exception?, string, string, bool>)((exception, title, message, isError) =>
+                    displayedMessages.Add((exception, title, message, isError))))
+                .Add(p => p.ManagementId, kManagementId)
+                .Add(p => p.GroupMode, true)
+                .Add(p => p.IpProtos, kIpProtos));
+            MethodInfo select = typeof(ObjectSelector).GetMethod("SelectNetworkObject", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ObjectSelector).FullName, "SelectNetworkObject");
+
+            List<object?> arguments = [group];
+            Task selection = (Task)select.Invoke(component.Instance, arguments.ToArray())!;
+            await selection;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(displayedMessages, Has.Count.EqualTo(1));
+                Assert.That(displayedMessages[0].Exception, Is.Null);
+                Assert.That(displayedMessages[0].Message, Is.EqualTo(expectedMessage));
+                Assert.That(displayedMessages[0].IsError, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ObjectSelector_DisplaysLocalizedMessageWhenServiceGroupIsTooLarge()
+        {
+            NetworkService group = new() { Id = 42, Name = "large-service-group" };
+            group.ServiceGroups = Enumerable.Range(1, WfObjectTaskHelper.kGroupMemberLimit + 1)
+                .Select(id => new Group<NetworkService> { Id = id, Object = new NetworkService { Id = id } })
+                .ToArray();
+            SearchApiConnection apiConnection = new() { Result = new List<NetworkService> { group } };
+            List<(Exception? Exception, string Title, string Message, bool IsError)> displayedMessages = [];
+            await using BunitContext context = CreateContext(apiConnection, new LocalizedUserConfig("localized group limit"));
+            IRenderedComponent<ObjectSelector> component = context.Render<ObjectSelector>(parameters => parameters
+                .AddCascadingValue(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())))
+                .AddCascadingValue((Action<Exception?, string, string, bool>)((exception, title, message, isError) =>
+                    displayedMessages.Add((exception, title, message, isError))))
+                .Add(p => p.ManagementId, kManagementId)
+                .Add(p => p.Kind, ObjectTaskKind.Service)
+                .Add(p => p.GroupMode, true)
+                .Add(p => p.IpProtos, kIpProtos));
+            MethodInfo select = typeof(ObjectSelector).GetMethod("SelectService", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ObjectSelector).FullName, "SelectService");
+
+            List<object?> arguments = [group];
+            Task selection = (Task)select.Invoke(component.Instance, arguments.ToArray())!;
+            await selection;
+
+            Assert.That(displayedMessages.Single().Message, Is.EqualTo("localized group limit"));
+            Assert.That(displayedMessages.Single().Exception, Is.Null);
+        }
+
+        [Test]
+        public async Task ObjectSelector_ReportsNetworkGroupLoadErrors()
+        {
+            InvalidOperationException expectedException = new("network group lookup failed");
+            SearchApiConnection apiConnection = new() { QueryException = expectedException };
+            List<(Exception? Exception, string Title, string Message, bool IsError)> displayedMessages = [];
+            await using BunitContext context = CreateContext(apiConnection);
+            IRenderedComponent<ObjectSelector> component = context.Render<ObjectSelector>(parameters => parameters
+                .AddCascadingValue(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())))
+                .AddCascadingValue((Action<Exception?, string, string, bool>)((exception, title, message, isError) =>
+                    displayedMessages.Add((exception, title, message, isError))))
+                .Add(p => p.ManagementId, kManagementId)
+                .Add(p => p.GroupMode, true)
+                .Add(p => p.IpProtos, kIpProtos));
+            MethodInfo select = typeof(ObjectSelector).GetMethod("SelectNetworkObject", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ObjectSelector).FullName, "SelectNetworkObject");
+
+            List<object?> arguments = [new NetworkObject { Id = 41, Name = "network-group" }];
+            await (Task)select.Invoke(component.Instance, arguments.ToArray())!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(displayedMessages.Single().Exception, Is.SameAs(expectedException));
+                Assert.That(displayedMessages.Single().Message, Is.Empty);
+                Assert.That(component.Instance.SelectedNetworkObject, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task ObjectSelector_ReportsServiceGroupLoadErrors()
+        {
+            InvalidOperationException expectedException = new("service group lookup failed");
+            SearchApiConnection apiConnection = new() { QueryException = expectedException };
+            List<(Exception? Exception, string Title, string Message, bool IsError)> displayedMessages = [];
+            await using BunitContext context = CreateContext(apiConnection);
+            IRenderedComponent<ObjectSelector> component = context.Render<ObjectSelector>(parameters => parameters
+                .AddCascadingValue(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())))
+                .AddCascadingValue((Action<Exception?, string, string, bool>)((exception, title, message, isError) =>
+                    displayedMessages.Add((exception, title, message, isError))))
+                .Add(p => p.ManagementId, kManagementId)
+                .Add(p => p.Kind, ObjectTaskKind.Service)
+                .Add(p => p.GroupMode, true)
+                .Add(p => p.IpProtos, kIpProtos));
+            MethodInfo select = typeof(ObjectSelector).GetMethod("SelectService", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ObjectSelector).FullName, "SelectService");
+
+            List<object?> arguments = [new NetworkService { Id = 42, Name = "service-group" }];
+            await (Task)select.Invoke(component.Instance, arguments.ToArray())!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(displayedMessages.Single().Exception, Is.SameAs(expectedException));
+                Assert.That(displayedMessages.Single().Message, Is.Empty);
+                Assert.That(component.Instance.SelectedService, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task ObjectSelector_SearchesServiceGroupsInGroupMode()
+        {
+            SearchApiConnection apiConnection = new() { Result = new List<NetworkService> { new() { Id = 13, Name = "https_group", MemberNames = "https" } } };
+            await using BunitContext context = CreateContext(apiConnection);
+            IRenderedComponent<ObjectSelector> component = context.Render<ObjectSelector>(parameters => parameters
+                .AddCascadingValue(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())))
+                .Add(p => p.ManagementId, kManagementId)
+                .Add(p => p.Kind, ObjectTaskKind.Service)
+                .Add(p => p.GroupMode, true)
+                .Add(p => p.IpProtos, kIpProtos));
+            MethodInfo search = typeof(ObjectSelector).GetMethod("Search", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ObjectSelector).FullName, "Search");
+
+            List<object?> arguments = ["https"];
+            await component.InvokeAsync(() => (Task)search.Invoke(component.Instance, arguments.ToArray())!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
+                Assert.That(component.FindComponent<FlowObjectTable<NetworkService>>().Instance.FilteredItems.Single().Name, Is.EqualTo("https_group"));
+                Assert.That(component.Markup, Does.Contain("Members"));
                 Assert.That(component.Markup, Does.Contain("search_service_object"));
             });
         }

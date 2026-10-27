@@ -1,0 +1,504 @@
+using FWO.Api.Client.Queries;
+using FWO.Data;
+using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Workflow;
+using FWO.Services.Workflow;
+using NUnit.Framework;
+using System.Reflection;
+
+namespace FWO.Test
+{
+    /// <summary>
+    /// Tests the automatic creation of implementation tasks along the auto plan device specific settings: the precedence
+    /// of entered devices over the path analysis algorithm, the fallback task and the resolution of the settings.
+    /// </summary>
+    [TestFixture]
+    internal class WfHandlerAutoPlanTest
+    {
+        private const long kGlobalNodeId = 1;
+        private const long kDeviceTypeNodeId = 2;
+        private const long kManagementNodeId = 3;
+        private const long kGatewayNodeId = 4;
+        private const int kDeviceTypeId = 9;
+        private const int kManagementId = 20;
+        private const int kFirstGatewayId = 1;
+        private const int kSecondGatewayId = 2;
+        private const int kUnknownGatewayId = 99;
+        private const int kUnknownManagementId = 98;
+        private const int kOpenStateId = 4;
+        private const int kCompletedStateId = 10;
+
+        private static readonly List<int> kFirstGateway = [kFirstGatewayId];
+        private static readonly List<int> kSecondGateway = [kSecondGatewayId];
+        private static readonly List<int> kBothGateways = [kFirstGatewayId, kSecondGatewayId];
+        private static readonly List<int> kUnknownGateway = [kUnknownGatewayId];
+        private static readonly List<int?> kUnknownGatewayTask = [kUnknownGatewayId];
+        private static readonly List<int> kNoGateway = [];
+        private static readonly List<int> kAllDevicesMarker = [WfReqTaskBase.kAllDevicesId];
+        private static readonly List<int?> kFirstGatewayTask = [kFirstGatewayId];
+        private static readonly List<int?> kBothGatewayTasks = [kFirstGatewayId, kSecondGatewayId];
+        private static readonly List<int?> kTaskWithoutGateway = [null];
+        private static readonly List<int> kRequestedManagements = [kManagementId, kUnknownManagementId];
+        private static readonly List<int> kNoIds = [];
+        private static readonly List<Device> kNoGateways = [];
+        private static readonly List<(DeviceSpecificScopeType ScopeType, int? Id)> kExpectedResolvedLevels =
+        [
+            (DeviceSpecificScopeType.Global, null),
+            (DeviceSpecificScopeType.Management, kManagementId),
+            (DeviceSpecificScopeType.Gateway, kFirstGatewayId),
+            (DeviceSpecificScopeType.Gateway, kSecondGatewayId)
+        ];
+
+        private static InMemoryDeviceSpecificSettingsApiConnection CreateApi()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = new();
+            Management management = CreateManagement();
+            management.Devices = [.. CreateDevices()];
+            api.Managements.Add(management);
+            api.AddNode(kGlobalNodeId, DeviceSpecificScopeType.Global, DeviceSpecificScopePath.GlobalObjectKey, displayName: "Global");
+            api.AddNode(kDeviceTypeNodeId, DeviceSpecificScopeType.DeviceType, kDeviceTypeId.ToString(), kGlobalNodeId);
+            api.AddNode(kManagementNodeId, DeviceSpecificScopeType.Management, kManagementId.ToString(), kDeviceTypeNodeId);
+            api.AddNode(kGatewayNodeId, DeviceSpecificScopeType.Gateway, kFirstGatewayId.ToString(), kManagementNodeId);
+            return api;
+        }
+
+        private static WfHandler CreateHandler(InMemoryDeviceSpecificSettingsApiConnection api,
+            ReqDeviceInputOptions deviceInput = ReqDeviceInputOptions.enterInReqTask)
+        {
+            return new WfHandler(new SimulatedUserConfig { ReqDeviceInput = deviceInput }, api, WorkflowPhases.planning, null)
+            {
+                Devices = CreateDevices()
+            };
+        }
+
+        private static Management CreateManagement()
+        {
+            return new Management
+            {
+                Id = kManagementId,
+                Name = "mgm",
+                DeviceType = new DeviceType { Id = kDeviceTypeId, Name = "Check Point", Version = "R8x" }
+            };
+        }
+
+        /// <summary>
+        /// The gateways as loaded with the device details: with their management and its device type.
+        /// </summary>
+        private static List<Device> CreateDevices()
+        {
+            Management management = CreateManagement();
+            return
+            [
+                new Device { Id = kFirstGatewayId, Name = "gw-1", Management = management },
+                new Device { Id = kSecondGatewayId, Name = "gw-2", Management = management }
+            ];
+        }
+
+        /// <summary>
+        /// The two known gateways and one without known management.
+        /// </summary>
+        private static List<Device> CreateRequestedGateways()
+        {
+            List<Device> gateways = CreateDevices();
+            gateways.Add(new Device { Id = kUnknownGatewayId, Name = "unknown" });
+            return gateways;
+        }
+
+        private static int SettingsQueryCount(InMemoryDeviceSpecificSettingsApiConnection api)
+        {
+            return api.Calls.Count(call => call.Query == DeviceSpecificSettingsQueries.getNodesByNaturalKeys);
+        }
+
+        private static WfReqTask CreateAccessTask(List<int> enteredDeviceIds)
+        {
+            WfReqTask reqTask = new() { Id = 8, TaskType = WfTaskType.access.ToString(), StateId = kOpenStateId, Title = "Access", ManagementId = kManagementId };
+            reqTask.SetDeviceList(enteredDeviceIds);
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "10.0.0.1" });
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "10.0.1.1" });
+            return reqTask;
+        }
+
+        private static WfReqTask CreateRuleDeleteTask()
+        {
+            WfReqTask reqTask = new() { Id = 9, TaskType = WfTaskType.rule_delete.ToString(), StateId = kOpenStateId, Title = "Delete" };
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.rule.ToString(), DeviceId = kFirstGatewayId, RuleUid = "uid-1" });
+            return reqTask;
+        }
+
+        private static async Task InvokeAutoCreateImplTasks(WfHandler handler, WfReqTask reqTask)
+        {
+            MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateImplTasks", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(nameof(WfHandler), "AutoCreateImplTasks");
+            object[] arguments = [reqTask];
+            await (Task)method.Invoke(handler, arguments)!;
+        }
+
+        private static void SetMatrix(WfHandler handler, string taskType, StateMatrix matrix)
+        {
+            FieldInfo field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(nameof(WfHandler), "stateMatrixDict");
+            ((StateMatrixDict)field.GetValue(handler)!).Matrices[taskType] = matrix;
+        }
+
+        private static List<int?> DeviceIds(WfReqTask reqTask)
+        {
+            return [.. reqTask.ImplementationTasks.Select(implTask => implTask.DeviceId)];
+        }
+
+        [Test]
+        public async Task AccessTask_RulesPlannedManuallyByDefault_CreatesNoTask()
+        {
+            WfHandler handler = CreateHandler(CreateApi());
+            WfReqTask reqTask = CreateAccessTask(kBothGateways);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks, Is.Empty);
+        }
+
+        [Test]
+        public async Task AccessTask_GatewayOverride_OnlyThatGatewayGetsTask()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGatewayNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateHandler(api);
+            WfReqTask reqTask = CreateAccessTask(kBothGateways);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(DeviceIds(reqTask), Is.EqualTo(kFirstGatewayTask));
+        }
+
+        [Test]
+        public async Task AccessTask_ManagementWithoutAutoPlan_OverridesRulesSettingOfItsGateways()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            api.SetValue(kManagementNodeId, DeviceSpecificSettingKeys.AutoPlanImplementation, false);
+            WfHandler handler = CreateHandler(api);
+            WfReqTask reqTask = CreateAccessTask(kBothGateways);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks, Is.Empty, "rules need both settings");
+        }
+
+        [Test]
+        public async Task AccessTask_EnteredDevicesTakePrecedenceOverAlgorithm()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateHandler(api);
+            FixedPathAnalyzer analyzer = new(kSecondGateway);
+            handler.PathAnalyzerOverride = analyzer;
+            WfReqTask reqTask = CreateAccessTask(kFirstGateway);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(DeviceIds(reqTask), Is.EqualTo(kFirstGatewayTask));
+                Assert.That(analyzer.Requests, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task AccessTask_WithoutEnteredDevices_UsesAlgorithmWithAddressesOfRequest()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateHandler(api, ReqDeviceInputOptions.never);
+            FixedPathAnalyzer analyzer = new(kBothGateways);
+            handler.PathAnalyzerOverride = analyzer;
+            WfReqTask reqTask = CreateAccessTask(kNoGateway);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(DeviceIds(reqTask), Is.EqualTo(kBothGatewayTasks));
+                Assert.That(analyzer.Requests.Single().Sources.Single().ToString(), Is.EqualTo("10.0.0.1"));
+                Assert.That(analyzer.Requests.Single().Destinations.Single().ToString(), Is.EqualTo("10.0.1.1"));
+            });
+        }
+
+        [Test]
+        public async Task AccessTask_FailingAlgorithm_CreatesFallbackTaskWithoutGateway()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateHandler(api);
+            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kBothGateways, fail: true);
+            WfReqTask reqTask = CreateAccessTask(kNoGateway);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(DeviceIds(reqTask), Is.EqualTo(kTaskWithoutGateway));
+        }
+
+        [Test]
+        public async Task AccessTask_NoTargetWhileRulesPlannedManually_CreatesNoFallback()
+        {
+            WfHandler handler = CreateHandler(CreateApi());
+            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kNoGateway);
+            WfReqTask reqTask = CreateAccessTask(kNoGateway);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks, Is.Empty);
+        }
+
+        [Test]
+        public async Task AccessTask_GatewaysPlannedManuallyUnderAutomaticGlobal_CreatesNoFallback()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            api.SetValue(kManagementNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, false);
+            WfHandler handler = CreateHandler(api);
+            WfReqTask reqTask = CreateAccessTask(kBothGateways);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks, Is.Empty);
+        }
+
+        [Test]
+        public async Task AccessTask_AllDevicesWithOneTaskOption_CreatesOneTaskWithoutGateway()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateHandler(api, ReqDeviceInputOptions.oneTaskForAllDevices);
+            WfReqTask reqTask = CreateAccessTask(kAllDevicesMarker);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(DeviceIds(reqTask), Is.EqualTo(kTaskWithoutGateway));
+        }
+
+        [Test]
+        public async Task AccessTask_AllDevicesWithEnterOption_CreatesTaskPerGateway()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateHandler(api);
+            WfReqTask reqTask = CreateAccessTask(kAllDevicesMarker);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(DeviceIds(reqTask), Is.EqualTo(kBothGatewayTasks));
+        }
+
+        [Test]
+        public async Task RuleDeleteTask_FollowsSettingsOfRuleGateway()
+        {
+            WfHandler manualHandler = CreateHandler(CreateApi());
+            WfReqTask manualTask = CreateRuleDeleteTask();
+            InMemoryDeviceSpecificSettingsApiConnection automaticApi = CreateApi();
+            automaticApi.SetValue(kGatewayNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler automaticHandler = CreateHandler(automaticApi);
+            WfReqTask automaticTask = CreateRuleDeleteTask();
+
+            await InvokeAutoCreateImplTasks(manualHandler, manualTask);
+            await InvokeAutoCreateImplTasks(automaticHandler, automaticTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(manualTask.ImplementationTasks, Is.Empty);
+                Assert.That(DeviceIds(automaticTask), Is.EqualTo(kFirstGatewayTask));
+            });
+        }
+
+        [Test]
+        public async Task GroupTask_ManagementWithoutAutoPlan_CreatesNoTask()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kManagementNodeId, DeviceSpecificSettingKeys.AutoPlanImplementation, false);
+            WfHandler handler = CreateHandler(api);
+            WfReqTask reqTask = new() { Id = 7, TaskType = WfTaskType.group_create.ToString(), StateId = kOpenStateId, Title = "Group", ManagementId = kManagementId };
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks, Is.Empty);
+        }
+
+        [Test]
+        public async Task GroupTask_AutoPlannedByDefault_CreatesTaskOnManagement()
+        {
+            WfHandler handler = CreateHandler(CreateApi());
+            WfReqTask reqTask = new() { Id = 7, TaskType = WfTaskType.group_create.ToString(), StateId = kOpenStateId, Title = "Group", ManagementId = kManagementId };
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks.Single().ManagementId, Is.EqualTo(kManagementId));
+        }
+
+        [Test]
+        public async Task GenericTask_FollowsGlobalAutoPlan()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection manualApi = CreateApi();
+            manualApi.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementation, false);
+            WfReqTask manualTask = new() { Id = 6, TaskType = WfTaskType.generic.ToString(), StateId = kOpenStateId, Title = "Generic" };
+            WfReqTask automaticTask = new() { Id = 6, TaskType = WfTaskType.generic.ToString(), StateId = kOpenStateId, Title = "Generic" };
+
+            await InvokeAutoCreateImplTasks(CreateHandler(manualApi), manualTask);
+            await InvokeAutoCreateImplTasks(CreateHandler(CreateApi()), automaticTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(manualTask.ImplementationTasks, Is.Empty);
+                Assert.That(automaticTask.ImplementationTasks, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task CreateMissingImplTasksForTicket_FollowsAutoPlanSettings()
+        {
+            WfHandler manualHandler = CreateHandler(CreateApi());
+            SetMatrix(manualHandler, WfTaskType.access.ToString(), new StateMatrix { MinTicketCompleted = kCompletedStateId });
+            WfTicket manualTicket = new() { Id = 5, Tasks = [CreateAccessTask(kBothGateways)] };
+            InMemoryDeviceSpecificSettingsApiConnection automaticApi = CreateApi();
+            automaticApi.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler automaticHandler = CreateHandler(automaticApi);
+            SetMatrix(automaticHandler, WfTaskType.access.ToString(), new StateMatrix { MinTicketCompleted = kCompletedStateId });
+            WfTicket automaticTicket = new() { Id = 6, Tasks = [CreateAccessTask(kBothGateways)] };
+
+            int manualCount = await manualHandler.CreateMissingImplTasksForTicket(manualTicket);
+            int automaticCount = await automaticHandler.CreateMissingImplTasksForTicket(automaticTicket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(manualCount, Is.EqualTo(0), "rules are planned manually by default");
+                Assert.That(automaticCount, Is.EqualTo(kBothGateways.Count));
+            });
+        }
+
+        [Test]
+        public async Task SettingsThatCannotBeRead_ApplyDefaults()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.FailingQuery = DeviceSpecificSettingsQueries.getNodesByNaturalKeys;
+            WfReqTask accessTask = CreateAccessTask(kBothGateways);
+            WfReqTask genericTask = new() { Id = 6, TaskType = WfTaskType.generic.ToString(), StateId = kOpenStateId, Title = "Generic" };
+
+            await InvokeAutoCreateImplTasks(CreateHandler(api), accessTask);
+            await InvokeAutoCreateImplTasks(CreateHandler(api), genericTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(accessTask.ImplementationTasks, Is.Empty, "rules are planned manually by default");
+                Assert.That(genericTask.ImplementationTasks, Has.Count.EqualTo(1), "other task types are planned automatically by default");
+            });
+        }
+
+        [Test]
+        public async Task SettingsThatCannotBeRead_CreateNoFallbackForRuleTask()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            api.FailingQuery = DeviceSpecificSettingsQueries.getNodesByNaturalKeys;
+            WfHandler handler = CreateHandler(api);
+            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kNoGateway);
+            WfReqTask reqTask = CreateAccessTask(kNoGateway);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(reqTask.ImplementationTasks, Is.Empty, "no fallback task without readable settings");
+        }
+
+        [Test]
+        public async Task Resolver_ReturnsInheritedSettingsOfExistingLevelsOnly()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kManagementNodeId, DeviceSpecificSettingKeys.AutoPlanImplementation, false);
+            api.SetValue(kGatewayNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+
+            Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> settings =
+                await new ImplTaskAutoPlanResolver(api).Resolve(CreateRequestedGateways(), kRequestedManagements);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(settings.Keys, Is.EquivalentTo(kExpectedResolvedLevels));
+                Assert.That(SettingsQueryCount(api), Is.EqualTo(1), "all levels with one settings query");
+                Assert.That(settings[(DeviceSpecificScopeType.Global, null)].AutoPlanImplementation, Is.True);
+                Assert.That(settings[(DeviceSpecificScopeType.Management, kManagementId)].AutoPlanImplementation, Is.False);
+                Assert.That(settings[(DeviceSpecificScopeType.Gateway, kFirstGatewayId)].AutoPlanImplementation, Is.False, "inherited from the management");
+                Assert.That(settings[(DeviceSpecificScopeType.Gateway, kFirstGatewayId)].AutoPlanImplementationForRules, Is.True);
+                Assert.That(settings[(DeviceSpecificScopeType.Gateway, kSecondGatewayId)].AutoPlanImplementationForRules, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task Resolver_WithoutIds_ReturnsGlobalSettingsOnly()
+        {
+            Dictionary<(DeviceSpecificScopeType ScopeType, int? Id), GlobalDeviceSpecificSettings> settings =
+                await new ImplTaskAutoPlanResolver(CreateApi()).Resolve(kNoGateways, kNoIds);
+
+            Assert.That(settings.Keys.Single().ScopeType, Is.EqualTo(DeviceSpecificScopeType.Global));
+        }
+
+        [Test]
+        public async Task FailedResolve_IsNotRetriedWithinTheRun()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.FailingQuery = DeviceSpecificSettingsQueries.getNodesByNaturalKeys;
+            WfHandler handler = CreateHandler(api);
+            WfReqTask firstTask = CreateAccessTask(kFirstGateway);
+            WfReqTask secondTask = CreateAccessTask(kSecondGateway);
+            secondTask.Id = 10;
+
+            await InvokeAutoCreateImplTasks(handler, firstTask);
+            await InvokeAutoCreateImplTasks(handler, secondTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(SettingsQueryCount(api), Is.EqualTo(1));
+                Assert.That(firstTask.ImplementationTasks, Is.Empty, "a failure applies the defaults, rules are planned manually");
+            });
+        }
+
+        [Test]
+        public async Task UnknownGateway_InheritsGlobalAndIsResolvedOnce()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateHandler(api);
+            WfReqTask firstTask = CreateAccessTask(kUnknownGateway);
+            WfReqTask secondTask = CreateAccessTask(kUnknownGateway);
+            secondTask.Id = 10;
+
+            await InvokeAutoCreateImplTasks(handler, firstTask);
+            await InvokeAutoCreateImplTasks(handler, secondTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(SettingsQueryCount(api), Is.EqualTo(1));
+                Assert.That(DeviceIds(firstTask), Is.EqualTo(kUnknownGatewayTask));
+            });
+        }
+
+        [TestCase(true, true, true, true)]
+        [TestCase(true, false, false, true)]
+        [TestCase(false, true, false, false)]
+        [TestCase(false, false, false, false)]
+        public void IsAutoPlanned_CombinesBothSettingsForRules(bool autoPlan, bool forRules, bool expectedForRules, bool expectedForOthers)
+        {
+            GlobalDeviceSpecificSettings settings = new() { AutoPlanImplementation = autoPlan, AutoPlanImplementationForRules = forRules };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(settings.IsAutoPlanned(true), Is.EqualTo(expectedForRules));
+                Assert.That(settings.IsAutoPlanned(false), Is.EqualTo(expectedForOthers));
+            });
+        }
+
+        [TestCase(nameof(WfTaskType.access), true)]
+        [TestCase(nameof(WfTaskType.rule_modify), true)]
+        [TestCase(nameof(WfTaskType.rule_delete), true)]
+        [TestCase(nameof(WfTaskType.group_create), false)]
+        [TestCase(nameof(WfTaskType.generic), false)]
+        public void IsRuleTaskType_RecognizesRuleTasks(string taskType, bool expected)
+        {
+            Assert.That(WfHandler.IsRuleTaskType(taskType), Is.EqualTo(expected));
+        }
+    }
+}

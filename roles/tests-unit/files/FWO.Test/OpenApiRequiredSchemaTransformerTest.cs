@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Requests;
+using FWO.Middleware.Server.Responses;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using NUnit.Framework;
@@ -66,6 +67,72 @@ internal class OpenApiRequiredSchemaTransformerTest
             JsonSerializer.Deserialize<GetAuditProofCriticalChangesRequest>("{\"options\":{}}")!;
 
         Assert.That(request.TicketId, Is.Null);
+    }
+
+    [Test]
+    public async Task AddressInputsPublishThreeExclusiveRepresentationsAndTwoItemRange()
+    {
+        OpenApiSchema schema = new()
+        {
+            Properties = new Dictionary<string, IOpenApiSchema>
+            {
+                ["ipHost"] = new OpenApiSchema(),
+                ["ipNetwork"] = new OpenApiSchema(),
+                ["ipRange"] = new OpenApiSchema()
+            }
+        };
+        OpenApiAddressInputSchemaTransformer transformer = new();
+
+        await transformer.TransformAsync(
+            schema,
+            CreateContext(typeof(GetFlowComplianceStateRequest.IpRangeRequest)),
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(schema.OneOf, Has.Count.EqualTo(3));
+            Assert.That(schema.OneOf!.SelectMany(branch => ((OpenApiSchema)branch).Required!),
+                Is.EquivalentTo(["ipHost", "ipNetwork", "ipRange"]));
+            OpenApiSchema rangeSchema = (OpenApiSchema)schema.Properties!["ipRange"];
+            Assert.That(rangeSchema.MinItems, Is.EqualTo(2));
+            Assert.That(rangeSchema.MaxItems, Is.EqualTo(2));
+        });
+    }
+
+    [TestCase(typeof(GetAddressObjectIdRequest))]
+    [TestCase(typeof(GetFlowComplianceStateRequest.IpRangeRequest))]
+    [TestCase(typeof(ResolveZonesForObjectsRequest.LeafObjectRequest))]
+    [TestCase(typeof(CreateTicketRequest.CreateAddressObjectRequest))]
+    public void AddressRequestJsonContractsExcludeLegacyBounds(Type requestType)
+    {
+        string[] propertyNames = JsonSerializerOptions.Default.GetTypeInfo(requestType).Properties
+            .Select(property => property.Name)
+            .ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(propertyNames, Does.Contain("ipHost"));
+            Assert.That(propertyNames, Does.Contain("ipNetwork"));
+            Assert.That(propertyNames, Does.Contain("ipRange"));
+            Assert.That(propertyNames, Does.Not.Contain("ipStart"));
+            Assert.That(propertyNames, Does.Not.Contain("ipEnd"));
+        });
+    }
+
+    [TestCase(typeof(AddressObjectResponse))]
+    [TestCase(typeof(ComplianceDesignatedZoneIpRangeResponse))]
+    public void AddressResponseJsonContractsExcludeLegacyBounds(Type responseType)
+    {
+        string[] propertyNames = JsonSerializerOptions.Default.GetTypeInfo(responseType).Properties
+            .Select(property => property.Name)
+            .ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(propertyNames, Does.Contain("ipRange"));
+            Assert.That(propertyNames, Does.Not.Contain("ipStart"));
+            Assert.That(propertyNames, Does.Not.Contain("ipEnd"));
+        });
     }
 
     private static async Task<OpenApiSchema> TransformSchemaOf<TRequest>()

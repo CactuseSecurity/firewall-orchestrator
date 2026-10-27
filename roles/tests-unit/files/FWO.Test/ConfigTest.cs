@@ -1,5 +1,6 @@
 using System.Reflection;
 using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -21,6 +22,11 @@ namespace FWO.Test
         private static readonly ConfigItem[] kCreateObjectsSeparatelyItems =
         [
             new() { Key = "reqCreateObjectsSeparately", Value = "True", User = 0 }
+        ];
+        private static readonly ConfigItem[] kChangedPathAnalysisItems =
+        [
+            new() { Key = "pathAnalysisAlgorithm", Value = "3", User = 0 },
+            new() { Key = "reqDeviceInput", Value = "oneTaskForAllDevices", User = 0 }
         ];
         private static readonly ConfigItem[] ModIconifyFalseConfigItem =
         [
@@ -128,17 +134,17 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Update_KeepsDefaultEnum_WhenConfigContainsUnknownAutoCreateImplTaskOption()
+        public void Update_KeepsDefaultEnum_WhenConfigContainsUnknownDeviceInputOption()
         {
             SimulatedUserConfig userConfig = new();
-            userConfig.ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.never;
+            userConfig.ReqDeviceInput = ReqDeviceInputOptions.never;
 
             InvokeUpdate(userConfig,
             [
-                new() { Key = "reqAutoCreateImplTasks", Value = "999", User = 0 }
+                new() { Key = "reqDeviceInput", Value = "999", User = 0 }
             ]);
 
-            Assert.That(userConfig.ReqAutoCreateImplTasks, Is.EqualTo(AutoCreateImplTaskOptions.never));
+            Assert.That(userConfig.ReqDeviceInput, Is.EqualTo(ReqDeviceInputOptions.never));
         }
 
         [Test]
@@ -217,6 +223,26 @@ namespace FWO.Test
 
             Assert.That(userConfig.ReqOwnerBased, Is.True);
             Assert.That(userConfig.ReqVisibilityBased, Is.True);
+        }
+
+        [Test]
+        public async Task WithCurrentConfigItems_ReadsChangedValuesAndKeepsLanguageData()
+        {
+            using GlobalConfig startupConfig = new();
+            using UserConfigApiConnection apiConnection = new(kChangedPathAnalysisItems);
+
+            using (GlobalConfig currentConfig = await startupConfig.WithCurrentConfigItemsAsync(apiConnection))
+            {
+                Assert.Multiple(() =>
+                {
+                    Assert.That(currentConfig.PathAnalysisAlgorithm, Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmForEachDevice));
+                    Assert.That(currentConfig.ReqDeviceInput, Is.EqualTo(ReqDeviceInputOptions.oneTaskForAllDevices));
+                    Assert.That(currentConfig.LangDict, Is.SameAs(startupConfig.LangDict));
+                    Assert.That(startupConfig.PathAnalysisAlgorithm, Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNone), "startup config unchanged");
+                });
+            }
+
+            Assert.That(apiConnection.IsDisposed, Is.False);
         }
 
         [Test]

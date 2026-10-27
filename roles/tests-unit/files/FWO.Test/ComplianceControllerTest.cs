@@ -26,6 +26,7 @@ namespace FWO.Test
     {
         private static readonly List<int> kSingleManagement = [1];
         private static readonly List<Ldap> kNoLdaps = [];
+        private static readonly List<string> kDmzIpRange = ["10.0.0.0", "10.0.0.255"];
 
         [Test]
         public async Task StartInitialComplianceCheck_ReturnsAcceptedAndMarksJobSucceeded()
@@ -248,8 +249,7 @@ namespace FWO.Test
             Assert.That(zones[0].Name, Is.EqualTo("DMZ"));
             Assert.That(zones[0].Description, Is.EqualTo("Demilitarized zone"));
             Assert.That(zones[0].IpRanges, Has.Count.EqualTo(1));
-            Assert.That(zones[0].IpRanges[0].IpStart, Is.EqualTo("10.0.0.0"));
-            Assert.That(zones[0].IpRanges[0].IpEnd, Is.EqualTo("10.0.0.255"));
+            Assert.That(zones[0].IpRanges[0].IpRange, Is.EqualTo(kDmzIpRange));
             Assert.That(apiConnection.LastMatrixQuery, Is.EqualTo(ComplianceQueries.getMatrixById));
             Assert.That(GetAnonymousProperty<int>(apiConnection.LastMatrixQueryVariables, "criterionId"), Is.EqualTo(12));
             Assert.That(apiConnection.MatrixQueryCount, Is.EqualTo(1));
@@ -365,22 +365,19 @@ namespace FWO.Test
                                     {
                                         Name = "Backend Host",
                                         Type = "host",
-                                        IpStart = "10.0.0.1",
-                                        IpEnd = "10.0.0.1"
+                                        IpRange = ["10.0.0.1", "10.0.0.1"]
                                     },
                                     new ResolveZonesForObjectsRequest.LeafObjectRequest
                                     {
                                         Name = "Backend Host Duplicate",
                                         Type = "network",
-                                        IpStart = "10.0.0.1",
-                                        IpEnd = "10.0.0.1"
+                                        IpRange = ["10.0.0.1", "10.0.0.1"]
                                     },
                                     new ResolveZonesForObjectsRequest.LeafObjectRequest
                                     {
                                         Name = "DMZ Host",
                                         Type = "ip_range",
-                                        IpStart = "10.0.1.1",
-                                        IpEnd = "10.0.1.1"
+                                        IpRange = ["10.0.1.1", "10.0.1.1"]
                                     }
                                 ]
                             }
@@ -415,8 +412,7 @@ namespace FWO.Test
                     {
                         Name = "Leaf",
                         Type = "network",
-                        IpStart = "10.0.0.1",
-                        IpEnd = "10.0.0.1"
+                        IpRange = ["10.0.0.1", "10.0.0.1"]
                     }
                 ]
             });
@@ -448,8 +444,7 @@ namespace FWO.Test
                 {
                     Name = "IPv6 Host",
                     Type = "host",
-                    IpStart = "2001:db8::1",
-                    IpEnd = "2001:db8::1"
+                    IpRange = ["2001:db8::1", "2001:db8::1"]
                 }
             ];
 
@@ -484,8 +479,7 @@ namespace FWO.Test
                 {
                     Name = "Leaf",
                     Type = "network",
-                    IpStart = "10.0.0.1",
-                    IpEnd = "10.0.0.1"
+                    IpRange = ["10.0.0.1", "10.0.0.1"]
                 }
             ];
 

@@ -11,6 +11,7 @@
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
+@inject UiSessionTracker SessionTracker
 
 
 <div class="input-group">
@@ -263,6 +264,8 @@
             await DeleteTenants();
             await DeleteGroups();
             await DeleteOwners();
+            // sessions of deleted sample users and of members of deleted sample groups end at once
+            SessionTracker.RequestSessionCheck();
 
             await Acknowledge(actAlert);
             DisplayMessageInUi(null, userConfig.GetText("remove_sample_data"), ConstructMessage(), false);

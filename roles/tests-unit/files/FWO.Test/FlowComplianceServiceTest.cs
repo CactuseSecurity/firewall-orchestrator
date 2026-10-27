@@ -217,8 +217,8 @@ internal class FlowComplianceServiceTest
         GetFlowComplianceStateRequest request = BuildCompliantMatrixOnlyRequest();
         request.Source =
         [
-            new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "2001:db8::1", IpEnd = "2001:db8::1" },
-            new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "2001:db8:1::1", IpEnd = "2001:db8:1::1" }
+            new GetFlowComplianceStateRequest.IpRangeRequest { IpRange = ["2001:db8::1", "2001:db8::1" ]},
+            new GetFlowComplianceStateRequest.IpRangeRequest { IpRange = ["2001:db8:1::1", "2001:db8:1::1" ]}
         ];
 
         List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(request);
@@ -257,16 +257,14 @@ internal class FlowComplianceServiceTest
             [
                 new GetFlowComplianceStateRequest.IpRangeRequest
                 {
-                    IpStart = sourceIpStart,
-                    IpEnd = sourceIpEnd
+                    IpRange = [sourceIpStart, sourceIpEnd]
                 }
             ],
             Destination =
             [
                 new GetFlowComplianceStateRequest.IpRangeRequest
                 {
-                    IpStart = "193.0.0.1",
-                    IpEnd = "193.0.0.1"
+                    IpRange = ["193.0.0.1", "193.0.0.1"]
                 }
             ],
             Service =
@@ -323,16 +321,14 @@ internal class FlowComplianceServiceTest
             [
                 new GetFlowComplianceStateRequest.IpRangeRequest
                 {
-                    IpStart = "128.0.0.1",
-                    IpEnd = "128.0.0.1"
+                    IpRange = ["128.0.0.1", "128.0.0.1"]
                 }
             ],
             Destination =
             [
                 new GetFlowComplianceStateRequest.IpRangeRequest
                 {
-                    IpStart = "193.0.0.1",
-                    IpEnd = "193.0.0.1"
+                    IpRange = ["193.0.0.1", "193.0.0.1"]
                 }
             ],
             Service =
@@ -356,16 +352,14 @@ internal class FlowComplianceServiceTest
             [
                 new GetFlowComplianceStateRequest.IpRangeRequest
                 {
-                    IpStart = "128.0.0.1",
-                    IpEnd = "128.0.0.1"
+                    IpRange = ["128.0.0.1", "128.0.0.1"]
                 }
             ],
             Destination =
             [
                 new GetFlowComplianceStateRequest.IpRangeRequest
                 {
-                    IpStart = "128.0.0.1",
-                    IpEnd = "128.0.0.1"
+                    IpRange = ["128.0.0.1", "128.0.0.1"]
                 }
             ],
             Service =

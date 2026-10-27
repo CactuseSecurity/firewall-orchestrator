@@ -45,11 +45,13 @@ else
         {
             await states.Init(apiConnection);
 
-            if(userConfig.ReqOwnerBased)
+            // also without owner based requests the apps decide which tickets of other requesters a user may change,
+            // admins change all tickets anyway
+            if (!userConfig.CanUseAnyRole(Roles.Admin))
             {
-                OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
+                OwnerIds = (await ModellingHandlerBase.GetResponsibleApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
             }
-            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient)){};
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient)){ RestrictToResponsibleRequests = true };
             await Reset();
             await HandleTicketId();
             InitComplete = true;

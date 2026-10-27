@@ -98,6 +98,32 @@ including the internal LDAP, and newer 389 Directory Server), `nsUniqueId` (389 
   next login with password binds it again.
 - Directories that provide none of these attributes keep the binding by connection and dn only.
 
+## Session revocation
+
+A session consists of a short-lived access token (JWT, `accessTokenLifetime`, default 1 hour) and a refresh token
+(`refreshTokenLifetime`, default 1 day). Every refresh rebuilds the user's roles, tenant and ownerships from the
+directories. When an administrator reduces the permissions of a user, the sessions of the affected local users are
+ended at once instead of when their access tokens expire:
+
+| Change | Ended sessions |
+|---|---|
+| Delete a user (`DELETE api/User`, or delete the local user only) | the user's (its refresh tokens are deleted with it) |
+| Remove a user from all groups and roles (`DELETE api/User/AllGroupsAndRoles`) | the user's |
+| Remove a user or group from a role (`DELETE api/Role/User`) | the user's, or those of all members of the group including nested groups |
+| Remove a user or group from a group (`DELETE api/Group/User`) | the user's, or those of all members of the removed group |
+| Delete a group (`DELETE api/Group`) | those of all members of the group |
+
+Ending a session revokes all refresh tokens of the user, which is written to the audit log ("Session Revocation").
+Every UI session asks the middleware every 30 seconds whether its refresh token is still live
+(`POST api/AuthenticationToken/CheckSession`), and right away when the change was made in the UI on the same UI
+server. A session that has ended is sent to the login page; the user logs in again and gets the reduced permissions,
+or cannot log in any more.
+
+The middleware cannot withdraw an access token that it has already issued. Until it expires, such a token still
+works for direct calls to the GraphQL API and the middleware REST API. Keep `accessTokenLifetime` short if this
+matters. Changes made directly in an external directory are not noticed: they take effect at the next token refresh
+or login.
+
 ## Login limits
 
 Every login with credentials makes the middleware search and bind in the active LDAP connections. To keep

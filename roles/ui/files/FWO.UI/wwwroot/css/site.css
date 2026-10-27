@@ -606,6 +606,14 @@ div.modal-content .sticky-header thead {
     line-height: 1.2;
 }
 
+.sticky-collapse {
+    padding-left: 0.5rem;
+    padding-bottom: 0.5rem;
+    position: sticky;
+    top: 6rem;
+    z-index: 14;
+}
+
 .device-specific-field {
     transition: background-color 500ms linear, box-shadow 500ms linear;
 }

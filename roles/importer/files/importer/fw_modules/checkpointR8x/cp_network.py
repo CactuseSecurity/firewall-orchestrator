@@ -31,9 +31,6 @@ def normalize_network_objects(
             nw_obj.update({"control_id": import_id})
             if nw_obj["obj_typ"] == "interoperable-device":
                 nw_obj.update({"obj_typ": "external-gateway"})
-            if nw_obj["obj_typ"] == "CpmiVoipSipDomain":
-                FWOLogger.info("found VOIP object - tranforming to empty group")
-                nw_obj.update({"obj_typ": "group"})
             set_dummy_ip_for_object_without_ip(nw_obj)
 
     for idx in range(len(nw_objects) - 1):
@@ -75,7 +72,8 @@ def collect_nw_objects(
     """
     Collect nw_objects from object tables and write them into global nw_objects dict
     """
-    if object_table["type"] not in cp_const.nw_obj_table_names:
+    table_type = object_table["type"]
+    if table_type not in cp_const.nw_obj_table_names and not cp_const.is_object_dictionary_only_obj_type(table_type):
         return
     for chunk in object_table["chunks"]:
         if "objects" in chunk:
@@ -194,7 +192,7 @@ def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple
                 + "' without hyphen: "
                 + ip_addr
             )
-    elif obj_type in cp_const.cp_specific_object_types:
+    elif obj_type in cp_const.cp_specific_object_types or cp_const.is_voip_domain_obj_type(obj_type):
         FWOLogger.debug(f"rewriting non-standard cp-host-type '{obj['name']}' with object type '{obj_type}' to host", 6)
         FWOLogger.debug("obj_dump:" + json.dumps(obj, indent=3), 6)
         obj_type = "host"

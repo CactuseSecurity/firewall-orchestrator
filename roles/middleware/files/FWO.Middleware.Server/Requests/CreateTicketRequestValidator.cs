@@ -158,10 +158,36 @@ public static class CreateTicketRequestValidator
     private static void ValidateAddressObject(CreateTicketRequest.CreateAddressObjectRequest value, string path,
         RequestValidationErrorResponse result)
     {
+        if (value == null)
+        {
+            result.Errors.Add(BuildError(path, $"'{path}' must not be null."));
+            return;
+        }
+
         ValidateShortString(value.Predicate, $"{path}.predicate", result);
         ValidateShortString(value.Name, $"{path}.name", result);
-        ValidateShortString(value.IpStart, $"{path}.ipStart", result);
-        ValidateShortString(value.IpEnd, $"{path}.ipEnd", result);
+        ValidateShortString(value.IpHost, $"{path}.ipHost", result);
+        ValidateShortString(value.IpNetwork, $"{path}.ipNetwork", result);
+        if (value.IpRange != null)
+        {
+            for (int index = 0; index < Math.Min(value.IpRange.Count, 2); index++)
+            {
+                ValidateShortString(value.IpRange[index], $"{path}.ipRange[{index}]", result);
+            }
+        }
+
+        if (!AddressInputNormalizer.TryValidateAndNormalize(
+            value,
+            $"'{path}'",
+            out NormalizedAddressBounds bounds,
+            out string? errorMessage))
+        {
+            result.Errors.Add(BuildError(path, errorMessage!));
+            return;
+        }
+
+        value.NormalizedIpStart = bounds.IpStart;
+        value.NormalizedIpEnd = bounds.IpEnd;
     }
 
     /// <summary>Validates one declared network group and its members.</summary>

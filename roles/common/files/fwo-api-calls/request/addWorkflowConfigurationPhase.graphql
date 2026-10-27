@@ -1,0 +1,33 @@
+mutation addWorkflowConfigurationPhase(
+  $configurationId: Int!
+  $taskType: String!
+  $phase: String!
+  $name: String!
+  $active: Boolean!
+  $phaseVisibilityMode: String!
+  $lowestInputState: Int!
+  $lowestStartState: Int!
+  $lowestEndState: Int!
+  $derivedStates: [request_state_matrix_derived_state_insert_input!]!
+  $transitionGroups: [request_state_matrix_phase_transition_group_insert_input!]!
+) {
+  add_phase: insert_request_workflow_configuration_phase_one(object: {
+    configuration_id: $configurationId
+    task_type: $taskType
+    phase: $phase
+    state_matrix_phase: {data: {
+      name: $name
+      phase: $phase
+      active: $active
+      phase_visibility_mode: $phaseVisibilityMode
+      lowest_input_state: $lowestInputState
+      lowest_start_state: $lowestStartState
+      lowest_end_state: $lowestEndState
+      state_matrix_derived_states: {data: $derivedStates}
+      state_matrix_phase_transition_groups: {data: $transitionGroups}
+    }}
+  }) {
+    task_type
+    phase
+  }
+}

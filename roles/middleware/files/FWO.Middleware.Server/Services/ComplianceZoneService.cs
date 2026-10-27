@@ -108,11 +108,22 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
             throw new InvalidOperationException($"Unsupported object node type '{node.GetType().Name}'.");
         }
 
+        if (string.IsNullOrEmpty(leaf.NormalizedIpStart))
+        {
+            if (!AddressInputNormalizer.TryValidateAndNormalize(leaf, $"'{leaf.Name}'", out NormalizedAddressBounds bounds, out string? errorMessage))
+            {
+                throw new ArgumentException(errorMessage);
+            }
+
+            leaf.NormalizedIpStart = bounds.IpStart;
+            leaf.NormalizedIpEnd = bounds.IpEnd;
+        }
+
         NetworkObject networkObject = new()
         {
             Name = leaf.Name,
-            IP = leaf.IpStart,
-            IpEnd = leaf.IpEnd,
+            IP = leaf.NormalizedIpStart,
+            IpEnd = leaf.NormalizedIpEnd,
             Type = new NetworkObjectType
             {
                 Name = NormalizeObjectType(leaf.Type)
@@ -147,8 +158,7 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
             Description = zone.Description,
             IpRanges = [.. zone.IPRanges.Select(ipRange => new ComplianceDesignatedZoneIpRangeResponse
             {
-                IpStart = ipRange.Begin.ToString(),
-                IpEnd = ipRange.End.ToString()
+                IpRange = [ipRange.Begin.ToString(), ipRange.End.ToString()]
             })]
         };
     }

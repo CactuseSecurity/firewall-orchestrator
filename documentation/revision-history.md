@@ -78,7 +78,7 @@
 
 ## 9.7.4 - 14.10.2026
 
-- rename the hierarchical provisioning settings to device specific settings, as they are also used e.g. for importing: UI page (now settings/devicespecificsettings), help page, code and the tables provisioning_config_*(now device_specific_config_*)
+- rename the hierarchical provisioning settings to device specific settings, as they are also used e.g. for importing: UI page (now settings/devicespecificsettings), help page, code and the tables provisioning_config_* (now device_specific_config_*)
 - extend the device specific settings for Guardicore: object creation, common service separation, external ticket system, importer host, app-zone and network-area switches, dynamic IP labels, connection IDs, rule implementation and planning overrides
 - migrate setting key names and option values; privately back up old overrides before enforcing the revised scope restrictions (see developer documentation on device specific settings)
 - the migration keeps implementation planning on levels below a former "None" level and reroutes former Tufin SecureChange levels to the configured SecureChange system
@@ -233,7 +233,7 @@
     minute); the UI and middleware hosts are exempt from the per-client limit. At most 16 directories per login,
     32 waiting logins and 4 parallel user searches and password checks are allowed, and all directory work of a
     login has to finish within 10 seconds. Refused logins are answered with 429 (A0006) or 503 (A0007) and
-    Retry-After; the limits can be set in fworch.json (login_*keys, see documentation/auth/README.md). A
+    Retry-After; the limits can be set in fworch.json (login_* keys, see documentation/auth/README.md). A
     login_* value of the wrong type is ignored with a warning instead of stopping the middleware, and the
     installer also accepts login_trusted_client_hosts as a JSON list given as a string
   - when a login runs out of time or is cancelled, its LDAP connections are closed, and every directory operation

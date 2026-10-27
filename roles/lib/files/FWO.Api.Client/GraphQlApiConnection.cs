@@ -561,6 +561,8 @@ namespace FWO.Api.Client
                     reconnectLock.Release();
                 }
             }
+
+            base.Dispose(disposing);
         }
 
         private GraphQLHttpRequest CreateHttpRequest(string role, string query, object? variables, string? operationName)

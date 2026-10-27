@@ -19,7 +19,7 @@ namespace FWO.Test
     [TestFixture]
     [NonParallelizable]
     [RequiresIntegrationEnvironment]
-    internal class AuthenticationTokenIntegrationTest
+    internal sealed class AuthenticationTokenIntegrationTest : IDisposable
     {
         // High enough that the requests genuinely overlap on the single-use token, but not above the
         // number of requests the refresh lock lets wait for one token: further ones are refused with
@@ -82,7 +82,14 @@ namespace FWO.Test
         public void GlobalCleanup()
         {
             Log.WriteInfo("Test Cleanup", "Disposing JWT integration test resources");
+            Dispose();
+        }
+
+        public void Dispose()
+        {
             client?.Dispose();
+            client = null;
+            GC.SuppressFinalize(this);
         }
 
         #endregion

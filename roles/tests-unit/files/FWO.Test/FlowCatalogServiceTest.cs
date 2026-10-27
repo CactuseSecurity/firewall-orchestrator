@@ -37,6 +37,43 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
+    public void Dispose_WhenCalledTwice_DoesNotThrow()
+    {
+        FlowCatalogService service = new(new FlowCatalogServiceApiConn(), new GlobalConfig());
+
+        service.Dispose();
+
+        Assert.DoesNotThrow(service.Dispose);
+    }
+
+    [Test]
+    public void GetAddressObjectsAsync_AfterDispose_Throws()
+    {
+        FlowCatalogService service = new(new FlowCatalogServiceApiConn(), new GlobalConfig());
+        service.Dispose();
+
+        Assert.ThrowsAsync<ObjectDisposedException>(() => service.GetAddressObjectsAsync(null, 10, null));
+    }
+
+    [Test]
+    public void GetSeparatedAddressGroupsAsync_AfterDispose_Throws()
+    {
+        FlowCatalogService service = new(new FlowCatalogServiceApiConn(), new GlobalConfig());
+        service.Dispose();
+
+        Assert.ThrowsAsync<ObjectDisposedException>(() => service.GetSeparatedAddressGroupsAsync(null, 10, null));
+    }
+
+    [Test]
+    public void ResolveFlowGroupMembersAsync_AfterDispose_Throws()
+    {
+        FlowCatalogService service = new(new FlowCatalogServiceApiConn(), new GlobalConfig());
+        service.Dispose();
+
+        Assert.ThrowsAsync<ObjectDisposedException>(() => service.ResolveFlowGroupMembersAsync(new FlowGroupResolutionParameters()));
+    }
+
+    [Test]
     public async Task GetServiceObjectsAsync_UsesReadableProtocolNamesAndFiltersWhenRequested()
     {
         FlowCatalogServiceApiConn apiConnection = new();
@@ -989,6 +1026,7 @@ internal class FlowCatalogServiceTest
 
         protected override void Dispose(bool disposing)
         {
+            base.Dispose(disposing);
         }
 
         public override void DisposeSubscriptions<T>()

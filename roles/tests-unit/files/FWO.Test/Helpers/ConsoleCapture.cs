@@ -6,6 +6,7 @@ namespace FWO.Test.Helpers
     /// Buffer of one console capture. Reads and writes share a single lock, so a background
     /// thread still writing through a stale Console.Out reference cannot corrupt a snapshot.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable", Justification = "The writer must outlive the capture, see LockedTextWriter.")]
     internal sealed class ConsoleCapture
     {
         private readonly LockedTextWriter writer = new();

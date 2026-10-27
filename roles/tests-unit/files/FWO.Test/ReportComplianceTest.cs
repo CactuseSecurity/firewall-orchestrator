@@ -9,16 +9,46 @@ using static FWO.Test.ComplianceReportTestData;
 namespace FWO.Test
 {
     [TestFixture]
-    internal class ReportComplianceTest
+    internal sealed class ReportComplianceTest : IDisposable
     {
         private static readonly List<int> kVisibleRelevantManagementIds = [9];
-        private MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.ComplianceReport);
+        private UserConfig _userConfig = default!;
         private MockReportCompliance _testReport = default!;
 
         [SetUp]
         public void SetUpTest()
         {
-            _testReport = _complianceReport;
+            _userConfig = new();
+            _testReport = new(new(""), _userConfig, Basics.ReportType.ComplianceReport);
+        }
+
+        [TearDown]
+        public void TearDownTest()
+        {
+            DisposeTestResources();
+        }
+
+        public void Dispose()
+        {
+            DisposeTestResources();
+            GC.SuppressFinalize(this);
+        }
+
+        private void DisposeTestResources()
+        {
+            _testReport?.Dispose();
+            _userConfig?.Dispose();
+        }
+
+        [Test]
+        public void Dispose_WhenCalledTwice_DoesNotThrow()
+        {
+            using UserConfig userConfig = new();
+            using MockReportCompliance report = new(new(""), userConfig, Basics.ReportType.ComplianceReport);
+
+            report.Dispose();
+
+            Assert.DoesNotThrow(report.Dispose);
         }
 
         [Test]
@@ -65,7 +95,7 @@ namespace FWO.Test
                 ComplianceCheckRelevantManagements = "9,10"
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            MockReportCompliance report = new(new(""), userConfig, Basics.ReportType.ComplianceReport)
+            using MockReportCompliance report = new(new(""), userConfig, Basics.ReportType.ComplianceReport)
             {
                 Managements =
                 [
@@ -82,7 +112,8 @@ namespace FWO.Test
         [Test]
         public void CreateQueryVariables_UsesLoadedManagementIdsWhenNoConfiguredFilter()
         {
-            MockReportCompliance report = new(new(""), new(), Basics.ReportType.ComplianceReport)
+            using UserConfig userConfig = new();
+            using MockReportCompliance report = new(new(""), userConfig, Basics.ReportType.ComplianceReport)
             {
                 Managements =
                 [
@@ -100,7 +131,7 @@ namespace FWO.Test
         [Test]
         public void DetermineCompliance_ReportsNotAssessableOnlyWhenNoRealViolationRemains()
         {
-            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            using MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
 
             Assert.Multiple(() =>
             {
@@ -147,7 +178,7 @@ namespace FWO.Test
         [Test]
         public void SetComplianceDataForRule_RetainsRealViolationAlongsidePartialAssessabilityIssue()
         {
-            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            using MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
             ComplianceViolation matrixViolation = CreateMockComplianceViolation(1, 1, DateTime.Now, type: ComplianceViolationType.MatrixViolation);
             matrixViolation.Details = "Matrix violation";
             ComplianceViolation partialAssessabilityIssue = CreateMockComplianceViolation(2, 1, DateTime.Now, criterion: new()
@@ -175,7 +206,7 @@ namespace FWO.Test
         {
             // A rule whose only violations are assessability issues stays not assessable, however many objects
             // reported one and whichever criterion recorded them.
-            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            using MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
             ComplianceCriterion assessabilityCriterion = new() { CriterionType = nameof(CriterionType.Assessability) };
             ComplianceViolation firstIssue = CreateMockComplianceViolation(1, 1, DateTime.Now, criterion: assessabilityCriterion, type: ComplianceViolationType.NotAssessable);
             ComplianceViolation secondIssue = CreateMockComplianceViolation(2, 1, DateTime.Now, criterion: assessabilityCriterion, type: ComplianceViolationType.NotAssessable);
@@ -194,7 +225,7 @@ namespace FWO.Test
         {
             // The Assessability criterion also records one issue per object, so an unassessable object of an
             // otherwise assessable rule must not hide the violation found on its remaining objects.
-            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            using MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
             ComplianceViolation matrixViolation = CreateMockComplianceViolation(1, 1, DateTime.Now, type: ComplianceViolationType.MatrixViolation);
             matrixViolation.Details = "Matrix violation";
             ComplianceViolation ruleAssessabilityIssue = CreateMockComplianceViolation(2, 1, DateTime.Now, criterion: new()
@@ -220,7 +251,7 @@ namespace FWO.Test
         [Test]
         public void GetViewDataFromRules_SeveralAssessabilityCriterionIssuesStayNotAssessable()
         {
-            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            using MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
             ComplianceCriterion assessabilityCriterion = new() { CriterionType = nameof(CriterionType.Assessability) };
             ComplianceViolation firstIssue = CreateMockComplianceViolation(1, 1, DateTime.Now, criterion: assessabilityCriterion, type: ComplianceViolationType.NotAssessable);
             ComplianceViolation secondIssue = CreateMockComplianceViolation(2, 1, DateTime.Now, criterion: assessabilityCriterion, type: ComplianceViolationType.NotAssessable);
@@ -245,7 +276,7 @@ namespace FWO.Test
             {
                 ComplianceCheckMaxPrintedViolations = 1
             };
-            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(singleViolationConfig), Basics.ReportType.ComplianceReport);
+            using MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(singleViolationConfig), Basics.ReportType.ComplianceReport);
             List<ComplianceViolation> assessabilityIssueFirst = CreateTypedViolations(
                 ComplianceViolationType.NotAssessable,
                 ComplianceViolationType.MatrixViolation);
@@ -279,7 +310,7 @@ namespace FWO.Test
             {
                 ComplianceCheckMaxPrintedViolations = 1
             };
-            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(singleViolationConfig), Basics.ReportType.ComplianceReport);
+            using MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(singleViolationConfig), Basics.ReportType.ComplianceReport);
             ComplianceViolation assessabilityIssue = CreateMockComplianceViolation(1, 1, DateTime.Now, criterion: new()
             {
                 CriterionType = nameof(CriterionType.Assessability)
@@ -335,7 +366,8 @@ namespace FWO.Test
         [Test]
         public void ExportToCsv_IncludesExpirationTimeColumnAndValue()
         {
-            MockReportCompliance report = new(new(""), new(), Basics.ReportType.ComplianceReport);
+            using UserConfig userConfig = new();
+            using MockReportCompliance report = new(new(""), userConfig, Basics.ReportType.ComplianceReport);
             report.RuleViewData =
             [
                 new RuleViewData

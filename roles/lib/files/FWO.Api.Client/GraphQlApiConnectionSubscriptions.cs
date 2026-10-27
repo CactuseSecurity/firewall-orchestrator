@@ -6,6 +6,8 @@ namespace FWO.Api.Client
 {
     public partial class GraphQlApiConnection
     {
+        // Not disposed on purpose: a reconnect still waiting on it after Dispose would never wake up.
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Pending waiters must stay releasable after Dispose; SemaphoreSlim holds no unmanaged state unless AvailableWaitHandle is used.")]
         private readonly SemaphoreSlim reconnectLock = new(1, 1);
         private GraphQLHttpClient? graphQlSubscriptionClient;
 

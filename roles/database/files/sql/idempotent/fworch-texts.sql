@@ -631,6 +631,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Neuer REST-Aufruf <code>resolvePathDevices</code>: ermittelt die Firewalls auf den Pfaden zwischen Quell- und Zieladressen (Bereiche oder Netze, je bis zu 100) mit dem Network-Zone-Tree-Algorithmus. Algorithmus und Zonenmatrix k&ouml;nnen angegeben werden, sonst gelten die Einstellungen. Die Antwort nennt jedes Ger&auml;t einmal sowie den verwendeten Algorithmus und die verwendete Matrix.</li>
     <li>Auftr&auml;ge vom Typ &quot;Gruppe &auml;ndern&quot; k&ouml;nnen bestehende Netzwerk- und Dienstgruppen suchen und bearbeiten. Mitglieder werden vorbef&uuml;llt, k&ouml;nnen zum Entfernen markiert und durch neue Netzwerkobjekte oder Dienste erg&auml;nzt werden.</li>
     <li>Workflow-Konfigurationen k&ouml;nnen mit frei w&auml;hlbarem Dateinamen und ausgew&auml;hlten Phasen exportiert werden. Beim Import kann eine neue Konfiguration angelegt oder eine bestehende erweitert werden. Verwendete Status werden mit Namen und Automatik-Eigenschaft &uuml;bertragen; vorhandene Status und Gruppen werden nicht unbemerkt &uuml;berschrieben.</li>
+    <li>Neue Bibliothek zum direkten Schreiben von Implementierungs-Auftr&auml;gen auf Firewalls (Check Point, FortiManager, FortiOS, OPNsense, Azure; noch nicht aktiviert). Endpunkt und JSON-Vorlage jeder Operation (Objekte, Services, Gruppen, Regeln, Ver&ouml;ffentlichen, Policy-Installation) sind in den ger&auml;tespezifischen Einstellungen &auml;nderbar und lassen sich auf die mitgelieferte Vorgabe zur&uuml;cksetzen; die Zertifikatspr&uuml;fung ist je Manager abschaltbar.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -666,6 +667,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>New REST call <code>resolvePathDevices</code>: determines the firewalls on the paths between source and destination addresses (ranges or networks, up to 100 each) using the network zone tree algorithm. Algorithm and zone matrix can be specified, otherwise the settings apply. The response lists each device once together with the algorithm and matrix used.</li>
     <li>&quot;Modify group&quot; tasks can search for and edit existing network and service groups. Members are prefilled, can be marked for removal, and can be supplemented with new network objects or services.</li>
     <li>Workflow configurations can be exported with a custom file name and selected phases. During import, a new configuration can be created or an existing one can be extended. Referenced states are transferred with their names and automatic-only property; existing states and groups are not silently overwritten.</li>
+    <li>New library for writing implementation tasks directly to firewalls (Check Point, FortiManager, FortiOS, OPNsense, Azure; not activated yet). The endpoint and JSON template of every operation (objects, services, groups, rules, publish, policy installation) can be changed in the device specific settings and reset to the shipped default; certificate checks can be switched off per manager.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3583,6 +3585,64 @@ INSERT INTO txt VALUES ('dss_rule_type',       'German', 	'Regeltyp');
 INSERT INTO txt VALUES ('dss_rule_type',       'English', 	'Rule type');
 INSERT INTO txt VALUES ('dss_templates',       'German', 	'Vorlagen');
 INSERT INTO txt VALUES ('dss_templates',       'English', 	'Templates');
+INSERT INTO txt VALUES ('dss_fw_write_section', 'German', 	'Schreiben auf Firewalls');
+INSERT INTO txt VALUES ('dss_fw_write_section', 'English', 	'Firewall write');
+INSERT INTO txt VALUES ('dss_fw_write_section_intro', 'German', 	'Endpunkte und Vorlagen, mit denen Implementierungs-Auftr&auml;ge direkt auf die Firewall geschrieben werden. Ein leerer Wert verwendet die f&uuml;r den Ger&auml;tetyp mitgelieferte Vorgabe.');
+INSERT INTO txt VALUES ('dss_fw_write_section_intro', 'English', 	'Endpoints and templates used to write implementation tasks directly to the firewall. An empty value uses the default shipped for the device type.');
+INSERT INTO txt VALUES ('dss_fw_write_check_certificates', 'German', 	'Zertifikate pr&uuml;fen');
+INSERT INTO txt VALUES ('dss_fw_write_check_certificates', 'English', 	'Check certificates');
+INSERT INTO txt VALUES ('dss_fw_write_install_policy', 'German', 	'Policy installieren');
+INSERT INTO txt VALUES ('dss_fw_write_install_policy', 'English', 	'Install policy');
+INSERT INTO txt VALUES ('dss_fw_write_endpoint', 'German', 	'Endpunkt');
+INSERT INTO txt VALUES ('dss_fw_write_endpoint', 'English', 	'Endpoint');
+INSERT INTO txt VALUES ('dss_fw_write_template', 'German', 	'Vorlage');
+INSERT INTO txt VALUES ('dss_fw_write_template', 'English', 	'Template');
+INSERT INTO txt VALUES ('dss_fw_write_not_supported', 'German', 	'F&uuml;r diesen Ger&auml;tetyp gibt es keine Vorgabe: die Operation wird nur ausgef&uuml;hrt, wenn hier ein Wert gesetzt ist.');
+INSERT INTO txt VALUES ('dss_fw_write_not_supported', 'English', 	'There is no default for this device type: the operation is only executed if a value is set here.');
+INSERT INTO txt VALUES ('dss_reset_to_default', 'German', 	'Auf Vorgabe zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('dss_reset_to_default', 'English', 	'Reset to default');
+INSERT INTO txt VALUES ('dss_fw_op_host_create', 'German', 	'Host anlegen');
+INSERT INTO txt VALUES ('dss_fw_op_host_create', 'English', 	'Create host');
+INSERT INTO txt VALUES ('dss_fw_op_host_modify', 'German', 	'Host &auml;ndern');
+INSERT INTO txt VALUES ('dss_fw_op_host_modify', 'English', 	'Modify host');
+INSERT INTO txt VALUES ('dss_fw_op_host_delete', 'German', 	'Host l&ouml;schen');
+INSERT INTO txt VALUES ('dss_fw_op_host_delete', 'English', 	'Delete host');
+INSERT INTO txt VALUES ('dss_fw_op_network_create', 'German', 	'Netzwerk anlegen');
+INSERT INTO txt VALUES ('dss_fw_op_network_create', 'English', 	'Create network');
+INSERT INTO txt VALUES ('dss_fw_op_network_modify', 'German', 	'Netzwerk &auml;ndern');
+INSERT INTO txt VALUES ('dss_fw_op_network_modify', 'English', 	'Modify network');
+INSERT INTO txt VALUES ('dss_fw_op_network_delete', 'German', 	'Netzwerk l&ouml;schen');
+INSERT INTO txt VALUES ('dss_fw_op_network_delete', 'English', 	'Delete network');
+INSERT INTO txt VALUES ('dss_fw_op_address_range_create', 'German', 	'Adressbereich anlegen');
+INSERT INTO txt VALUES ('dss_fw_op_address_range_create', 'English', 	'Create address range');
+INSERT INTO txt VALUES ('dss_fw_op_address_range_modify', 'German', 	'Adressbereich &auml;ndern');
+INSERT INTO txt VALUES ('dss_fw_op_address_range_modify', 'English', 	'Modify address range');
+INSERT INTO txt VALUES ('dss_fw_op_address_range_delete', 'German', 	'Adressbereich l&ouml;schen');
+INSERT INTO txt VALUES ('dss_fw_op_address_range_delete', 'English', 	'Delete address range');
+INSERT INTO txt VALUES ('dss_fw_op_service_create', 'German', 	'Service anlegen');
+INSERT INTO txt VALUES ('dss_fw_op_service_create', 'English', 	'Create service');
+INSERT INTO txt VALUES ('dss_fw_op_service_modify', 'German', 	'Service &auml;ndern');
+INSERT INTO txt VALUES ('dss_fw_op_service_modify', 'English', 	'Modify service');
+INSERT INTO txt VALUES ('dss_fw_op_service_delete', 'German', 	'Service l&ouml;schen');
+INSERT INTO txt VALUES ('dss_fw_op_service_delete', 'English', 	'Delete service');
+INSERT INTO txt VALUES ('dss_fw_op_group_create', 'German', 	'Gruppe anlegen');
+INSERT INTO txt VALUES ('dss_fw_op_group_create', 'English', 	'Create group');
+INSERT INTO txt VALUES ('dss_fw_op_group_add_members', 'German', 	'Gruppenmitglieder hinzuf&uuml;gen');
+INSERT INTO txt VALUES ('dss_fw_op_group_add_members', 'English', 	'Add group members');
+INSERT INTO txt VALUES ('dss_fw_op_group_remove_members', 'German', 	'Gruppenmitglieder entfernen');
+INSERT INTO txt VALUES ('dss_fw_op_group_remove_members', 'English', 	'Remove group members');
+INSERT INTO txt VALUES ('dss_fw_op_group_delete', 'German', 	'Gruppe l&ouml;schen');
+INSERT INTO txt VALUES ('dss_fw_op_group_delete', 'English', 	'Delete group');
+INSERT INTO txt VALUES ('dss_fw_op_rule_create', 'German', 	'Regel anlegen');
+INSERT INTO txt VALUES ('dss_fw_op_rule_create', 'English', 	'Create rule');
+INSERT INTO txt VALUES ('dss_fw_op_rule_modify', 'German', 	'Regel &auml;ndern');
+INSERT INTO txt VALUES ('dss_fw_op_rule_modify', 'English', 	'Modify rule');
+INSERT INTO txt VALUES ('dss_fw_op_rule_delete', 'German', 	'Regel l&ouml;schen');
+INSERT INTO txt VALUES ('dss_fw_op_rule_delete', 'English', 	'Delete rule');
+INSERT INTO txt VALUES ('dss_fw_op_publish', 'German', 	'Ver&ouml;ffentlichen');
+INSERT INTO txt VALUES ('dss_fw_op_publish', 'English', 	'Publish');
+INSERT INTO txt VALUES ('dss_fw_op_install_policy', 'German', 	'Policy installieren');
+INSERT INTO txt VALUES ('dss_fw_op_install_policy', 'English', 	'Install policy');
 INSERT INTO txt VALUES ('dss_positioning_algorithm', 'German', 	'Positionierungs-Algorithmus');
 INSERT INTO txt VALUES ('dss_positioning_algorithm', 'English', 	'Positioning algorithm');
 INSERT INTO txt VALUES ('dss_common_service_separation', 'German', 	'Common Services trennen');
@@ -6821,6 +6881,16 @@ INSERT INTO txt VALUES ('H5199l', 'German', 'Hostname des Servers, dessen Import
 INSERT INTO txt VALUES ('H5199l', 'English', 'Host name of the server whose importer imports the managements of this level. Default: empty, then every importer imports them, which suits installations with a single importer. Set it if several distributed importers run, so that not every importer imports all managements. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5199m', 'German',  'Verbindungs-ID: Feld des umgesetzten Objekts (Name, Kommentar oder benutzerdefiniertes Feld), das die ID der Modellierungsverbindung tr&auml;gt, und Vorlage f&uuml;r diesen Wert. Standard: Name und FWOC{ID}. Global, Ger&auml;tetyp und Manager.');
 INSERT INTO txt VALUES ('H5199m', 'English', 'Connection ID: field of the implemented object (name, comment or custom field) that carries the ID of the modelling connection, and the template for this value. Default: name and FWOC{ID}. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199n', 'German',  'Zertifikate pr&uuml;fen: ob beim Schreiben auf die Firewall das Server-Zertifikat des Managements gepr&uuml;ft wird. Standard: Ja. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199n', 'English', 'Check certificates: whether the server certificate of the management is checked when writing to the firewall. Default: Yes. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199o', 'German',  'Policy installieren: ob die Policy nach dem Schreiben und Ver&ouml;ffentlichen auf dem Gateway installiert wird (Check Point, FortiManager, OPNsense). Standard: Nein. Alle Ebenen.');
+INSERT INTO txt VALUES ('H5199o', 'English', 'Install policy: whether the policy is installed on the gateway after the changes were written and published (Check Point, FortiManager, OPNsense). Default: No. All levels.');
+INSERT INTO txt VALUES ('H5199p', 'German',  'Endpunkt: HTTP-Methode und Pfad des REST-Aufrufs in der Form &quot;METHODE Pfad&quot;, z.B. &quot;POST add-host&quot; oder &quot;PUT /api/v2/cmdb/firewall/address/@@OBJECT_NAME@@&quot;. Erlaubt sind GET, POST, PUT, PATCH und DELETE; der Pfad darf Platzhalter enthalten. Leer = mitgelieferte Vorgabe des Ger&auml;tetyps. Ger&auml;tetyp, Manager und Gateway.');
+INSERT INTO txt VALUES ('H5199p', 'English', 'Endpoint: HTTP method and path of the REST call in the form &quot;METHOD path&quot;, e.g. &quot;POST add-host&quot; or &quot;PUT /api/v2/cmdb/firewall/address/@@OBJECT_NAME@@&quot;. GET, POST, PUT, PATCH and DELETE are allowed; the path may contain placeholders. Empty = default shipped for the device type. Device type, manager and gateway.');
+INSERT INTO txt VALUES ('H5199q', 'German',  'Vorlage: JSON-Body des REST-Aufrufs mit Platzhaltern wie @@OBJECT_NAME@@, @@IP@@, @@MEMBERS@@ oder @@RULE_SOURCES@@. Text-Platzhalter stehen in Anf&uuml;hrungszeichen, Listen-Platzhalter und @@RULE_POSITION@@ ohne. Vor dem Senden wird gepr&uuml;ft, dass kein Platzhalter &uuml;brig bleibt und der Body g&uuml;ltiges JSON ist. Leer = mitgelieferte Vorgabe des Ger&auml;tetyps. Ger&auml;tetyp, Manager und Gateway.');
+INSERT INTO txt VALUES ('H5199q', 'English', 'Template: JSON body of the REST call with placeholders such as @@OBJECT_NAME@@, @@IP@@, @@MEMBERS@@ or @@RULE_SOURCES@@. Text placeholders go inside quotes, list placeholders and @@RULE_POSITION@@ without. Before sending, FWO checks that no placeholder is left and the body is valid JSON. Empty = default shipped for the device type. Device type, manager and gateway.');
+INSERT INTO txt VALUES ('H5199r', 'German',  'F&uuml;r die Ger&auml;tetypen Check Point R8x/MDS, FortiManager (inkl. ADOM/FortiGate), FortiOS, OPNsense und Azure k&ouml;nnen Implementierungs-Auftr&auml;ge direkt per REST auf die Firewall geschrieben werden (die Funktion wird in einer sp&auml;teren Version aktiviert). F&uuml;r jede Operation gibt es einen Endpunkt und eine JSON-Vorlage; ist beides leer, gilt die f&uuml;r den Ger&auml;tetyp mitgelieferte Vorgabe, die im Feld angezeigt wird. &quot;Auf Vorgabe zur&uuml;cksetzen&quot; &uuml;bernimmt die Vorgabe in ein &uuml;berschriebenes Feld. Verwendet werden die Export-Zugangsdaten des Managements. Platzhalter: Kontext @@MANAGEMENT_NAME@@, @@GATEWAY_NAME@@, @@POLICY_NAME@@, @@LAYER_NAME@@, @@DOMAIN_NAME@@/@@ADOM_NAME@@/@@RESOURCE_GROUP@@ (Config-Pfad), @@SUBSCRIPTION_ID@@, @@TICKET_ID@@, @@TASK_ID@@; Objekte @@OBJECT_NAME@@, @@IP@@, @@IP_END@@, @@IP_CIDR@@, @@SUBNET@@, @@MASK_LENGTH@@, @@NETMASK@@, @@COMMENT@@; Services @@SERVICE_NAME@@, @@PROTOCOL@@, @@PORT@@, @@PORT_END@@, @@PORT_RANGE@@; Gruppen @@GROUP_NAME@@, @@MEMBERS@@, @@MEMBERS_TO_ADD@@, @@MEMBERS_TO_REMOVE@@, @@MEMBERS_NAME_OBJECTS@@, @@MERGED_MEMBERS@@; Regeln @@RULE_NAME@@, @@RULE_UID@@, @@RULE_POSITION@@, @@RULE_SOURCES@@, @@RULE_DESTINATIONS@@, @@RULE_SERVICES@@ (jeweils auch mit _TO_ADD, _TO_REMOVE, _NAME_OBJECTS), @@RULE_ACTION@@, @@RULE_TRACKING@@, @@RULE_COMMENT@@.');
+INSERT INTO txt VALUES ('H5199r', 'English', 'For the device types Check Point R8x/MDS, FortiManager (incl. ADOM/FortiGate), FortiOS, OPNsense and Azure, implementation tasks can be written directly to the firewall via REST (the function is activated in a later version). Every operation has an endpoint and a JSON template; if both are empty, the default shipped for the device type applies and is shown in the field. &quot;Reset to default&quot; copies the default into an overridden field. The export credentials of the management are used. Placeholders: context @@MANAGEMENT_NAME@@, @@GATEWAY_NAME@@, @@POLICY_NAME@@, @@LAYER_NAME@@, @@DOMAIN_NAME@@/@@ADOM_NAME@@/@@RESOURCE_GROUP@@ (config path), @@SUBSCRIPTION_ID@@, @@TICKET_ID@@, @@TASK_ID@@; objects @@OBJECT_NAME@@, @@IP@@, @@IP_END@@, @@IP_CIDR@@, @@SUBNET@@, @@MASK_LENGTH@@, @@NETMASK@@, @@COMMENT@@; services @@SERVICE_NAME@@, @@PROTOCOL@@, @@PORT@@, @@PORT_END@@, @@PORT_RANGE@@; groups @@GROUP_NAME@@, @@MEMBERS@@, @@MEMBERS_TO_ADD@@, @@MEMBERS_TO_REMOVE@@, @@MEMBERS_NAME_OBJECTS@@, @@MERGED_MEMBERS@@; rules @@RULE_NAME@@, @@RULE_UID@@, @@RULE_POSITION@@, @@RULE_SOURCES@@, @@RULE_DESTINATIONS@@, @@RULE_SERVICES@@ (each also with _TO_ADD, _TO_REMOVE, _NAME_OBJECTS), @@RULE_ACTION@@, @@RULE_TRACKING@@, @@RULE_COMMENT@@.');
 INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Ldap-Verbindungen einrichten und verwalten. Sie k&ouml;nnen alle zur Nutzerauthentifizierung genutzt werden.<br>
     Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
     Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.

@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.4 - 27.10.2026
+- dependencies: update NuGet packages (AngleSharp to 1.8.6, bunit to 2.13.3, MailKit to 4.18.2, Microsoft.AspNetCore.Authentication.JwtBearer to 10.0.14, Microsoft.AspNetCore.Components to 10.0.14, Microsoft.AspNetCore.Mvc.Testing to 10.0.14, Microsoft.AspNetCore.OpenApi to 10.0.14, Microsoft.OpenApi to 2.13.0, Microsoft.Playwright to 1.64.1, MimeKit to 4.18.2, PuppeteerSharp to 25.15.0, Quartz to 4.6.2, RestSharp to 114.1.0, RestSharp.Serializers.NewtonsoftJson to 114.1.0, Scalar.AspNetCore to 2.18.3)
+- dependencies: remove explicit System.Security.Cryptography.Pkcs pin from FWO.Mail; MimeKit 4.18.2 now references the patched 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
+
 ## 9.8.3 - 26.10.2026
 - request workflow: the device specific settings autoPlanImplementation and autoPlanImplementationForRules (renamed from planImplementation and planImplementationOverrideForRules) decide which implementation tasks are created automatically, independently of the planning phase
   - rule tasks (access, rule_modify, rule_delete) need both settings, all other task types autoPlanImplementation; the default of autoPlanImplementationForRules is false

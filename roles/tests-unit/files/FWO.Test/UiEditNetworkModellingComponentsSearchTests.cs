@@ -125,6 +125,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SearchNwObject_HiddenObjectIds_AreNotOffered()
+        {
+            await using BunitContext context = CreateContext(out RecordingApiConnection apiConn, out SimulatedUserConfig userConfig);
+            ModellingNwGroup offeredArea = new() { Id = 521, Name = "offered", IdString = "NA521" };
+            ModellingNwGroup hiddenArea = new() { Id = 522, Name = "hidden", IdString = "NA522" };
+            apiConn.NwGroupObjects = [offeredArea, hiddenArea];
+
+            IRenderedComponent<SearchNwObject> component = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<SearchNwObject>(search => search
+                    .Add(p => p.Display, true)
+                    .Add(p => p.ObjectList, [])
+                    .Add(p => p.HiddenObjectIds, new HashSet<long> { hiddenArea.Id })))
+                .FindComponent<SearchNwObject>();
+
+            component.WaitForAssertion(() =>
+            {
+                List<ModellingNwGroup> remaining = GetPrivateField<List<ModellingNwGroup>>(component.Instance, "remainingNwObjects");
+                Assert.That(remaining.Select(o => o.Id), Is.EqualTo(new List<long> { offeredArea.Id }));
+            });
+        }
+
+        [Test]
         public async Task SearchInterface_OnParametersSetAsync_LoadsSelectableInterfaces_AndSelectInterfaceCloses()
         {
             await using BunitContext context = CreateContext(out RecordingApiConnection apiConn, out SimulatedUserConfig userConfig);

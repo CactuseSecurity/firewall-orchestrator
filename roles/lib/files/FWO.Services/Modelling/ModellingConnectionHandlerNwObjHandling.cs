@@ -18,6 +18,13 @@ namespace FWO.Services.Modelling
         public List<ModellingNwGroupWrapper> AvailableNwGroups { get; set; } = [];
         public List<CommonAreaConfig> CommonAreaConfigItems { get; set; } = [];
         public HashSet<long> ComSvcExcludedAreaIds { get; set; } = [];
+
+        /// <summary>
+        /// Ids of the network areas which must not be offered for the current connection:
+        /// the areas excluded from common services if it is a common service, else none.
+        /// </summary>
+        public IReadOnlySet<long> ComSvcHiddenAreaIds => ActConn.IsCommonService ? ComSvcExcludedAreaIds : kNoHiddenAreaIds;
+        private static readonly IReadOnlySet<long> kNoHiddenAreaIds = new HashSet<long>();
         public ModellingAppServerHandler? AppServerHandler { get; set; }
         private readonly string InsertForbidden = "insert_forbidden";
         private const string ComSvcExcludedAreaMessage = "U9046";

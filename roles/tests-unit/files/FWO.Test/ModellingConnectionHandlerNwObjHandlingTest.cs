@@ -774,6 +774,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ComSvcHiddenAreaIds_ContainExcludedAreasOnlyForCommonService()
+        {
+            ModellingConnectionHandler comSvcHandler = CreateHandlerWithExcludedArea(new() { Id = 39, IsCommonService = true });
+            ModellingConnectionHandler connHandler = CreateHandlerWithExcludedArea(new() { Id = 40 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(comSvcHandler.ComSvcHiddenAreaIds, Is.EquivalentTo(kExcludedAreaIds));
+                Assert.That(connHandler.ComSvcHiddenAreaIds, Is.Empty);
+            });
+        }
+
+        [Test]
         public async Task Save_BlocksCommonServiceStillContainingExcludedArea()
         {
             List<string> messages = [];

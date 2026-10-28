@@ -194,6 +194,44 @@ namespace FWO.Basics
         }
 
         /// <summary>
+        /// Tries to parse a start address and an optional end address into one range, IPv4 or IPv6. Start and end may
+        /// each be a single IP, a CIDR or a range string; the range reaches from the first address of the start to the
+        /// last address of the end. So a network stored with netmask on both, e.g. "10.0.0.0/24" to "10.0.0.0/24", keeps
+        /// its size, and host notations such as "10.0.0.1/32" to "10.0.0.5/32" give the range between them. Fails for a
+        /// missing start, an unparsable address, a reversed range and a range mixing IPv4 and IPv6.
+        /// </summary>
+        /// <param name="start">Start address, CIDR or range.</param>
+        /// <param name="end">End address of a range; empty for a single address or network.</param>
+        /// <param name="range">The parsed range, or null if parsing failed.</param>
+        public static bool TryParseIPRange(string? start, string? end, out IPAddressRange? range)
+        {
+            range = null;
+            if (string.IsNullOrWhiteSpace(start) || !start.TryParseIPString(out IPAddressRange? startRange) || startRange == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(end))
+            {
+                range = startRange;
+                return true;
+            }
+            if (!end.TryParseIPString(out IPAddressRange? endRange) || endRange == null)
+            {
+                return false;
+            }
+            try
+            {
+                range = new IPAddressRange(startRange.Begin, endRange.End);
+                return true;
+            }
+            catch (ArgumentException)
+            {
+                // a reversed range or a range mixing IPv4 and IPv6
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Checks whether an IPv4 value uses four unambiguous decimal octets.
         /// </summary>
         private static bool IsValidIPv4(string ipAddress)

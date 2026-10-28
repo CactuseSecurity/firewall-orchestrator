@@ -314,8 +314,11 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqCreateRequestTaskSortConfig"), JsonPropertyName("reqCreateRequestTaskSortConfig")]
         public string ReqCreateRequestTaskSortConfig { get; set; } = System.Text.Json.JsonSerializer.Serialize(new CreateRequestTaskSortConfig());
 
-        [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
-        public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
+        /// <summary>
+        /// Whether and how the requester enters the affected devices in an access request task.
+        /// </summary>
+        [JsonProperty("reqDeviceInput"), JsonPropertyName("reqDeviceInput")]
+        public ReqDeviceInputOptions ReqDeviceInput { get; set; } = ReqDeviceInputOptions.never;
 
         [JsonProperty("reqConsiderBundling"), JsonPropertyName("reqConsiderBundling")]
         public bool ReqConsiderBundling { get; set; } = false;
@@ -470,6 +473,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("modUpdatableObjAreas"), JsonPropertyName("modUpdatableObjAreas")]
         public string ModUpdatableObjAreas { get; set; } = "";
+
+        [JsonProperty("modComSvcExcludedAreas"), JsonPropertyName("modComSvcExcludedAreas")]
+        public string ModComSvcExcludedAreas { get; set; } = "";
 
         [JsonProperty("modAppServerTypes"), JsonPropertyName("modAppServerTypes")]
         public string ModAppServerTypes { get; set; } = "";

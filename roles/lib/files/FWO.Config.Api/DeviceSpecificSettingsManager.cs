@@ -265,9 +265,43 @@ public sealed class DeviceSpecificSettingsManager
     {
         List<DeviceSpecificSettingsScope> chain = path.ToScopes();
         DeviceSpecificSettingsHierarchyValidator.ValidateRequestedChain(chain);
-        DeviceSpecificSettingsScope requestedScope = chain[^1];
         Dictionary<(DeviceSpecificScopeType ScopeType, string ObjectKey), DeviceSpecificConfigNodeData> storedNodes = await LoadNodesOfChainAsync(chain);
+        return ResolveChain(chain, storedNodes);
+    }
 
+    /// <summary>
+    /// Resolves the settings in effect at the most specific level of every given path, inherited like in
+    /// <see cref="LoadLevelAsync{TSettings}"/>, but loads the stored nodes of all paths with a single query, so the
+    /// cost does not grow with the number of paths. The result is in the order of the paths.
+    /// </summary>
+    /// <param name="paths">Paths to resolve; levels shared by several paths, e.g. Global, are loaded once.</param>
+    public async Task<List<GlobalDeviceSpecificSettings>> LoadEffectiveSettingsAsync(IReadOnlyList<DeviceSpecificScopePath> paths)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        if (paths.Count == 0)
+        {
+            return [];
+        }
+
+        List<List<DeviceSpecificSettingsScope>> chains = [.. paths.Select(path => path.ToScopes())];
+        foreach (List<DeviceSpecificSettingsScope> chain in chains)
+        {
+            DeviceSpecificSettingsHierarchyValidator.ValidateRequestedChain(chain);
+        }
+
+        List<DeviceSpecificSettingsScope> distinctScopes = [.. chains.SelectMany(chain => chain).DistinctBy(scope => (scope.ScopeType, scope.ObjectKey))];
+        Dictionary<(DeviceSpecificScopeType ScopeType, string ObjectKey), DeviceSpecificConfigNodeData> storedNodes = await LoadNodesOfChainAsync(distinctScopes);
+        return [.. chains.Select(chain => ResolveChain(chain, storedNodes).Settings)];
+    }
+
+    /// <summary>
+    /// Merges the values of the stored nodes of a requested chain, Global first. Levels without a stored node
+    /// contribute no values.
+    /// </summary>
+    private static ResolvedSettings ResolveChain(List<DeviceSpecificSettingsScope> chain,
+        Dictionary<(DeviceSpecificScopeType ScopeType, string ObjectKey), DeviceSpecificConfigNodeData> storedNodes)
+    {
+        DeviceSpecificSettingsScope requestedScope = chain[^1];
         List<DeviceSpecificConfigNodeData> nodes = [];
         DeviceSpecificSettingsScope resolvedScope = DeviceSpecificSettingsScopeFactory.Copy(requestedScope);
         bool selectedNodeExists = false;

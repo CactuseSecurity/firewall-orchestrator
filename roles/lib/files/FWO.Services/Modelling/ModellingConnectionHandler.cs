@@ -312,6 +312,13 @@ namespace FWO.Services.Modelling
                 return false;
             }
 
+            List<ModellingNetworkArea> remainingExcludedAreas = GetRemainingComSvcExcludedAreas();
+            if (remainingExcludedAreas.Count > 0)
+            {
+                DisplayMessageInUi(default, userConfig.GetText("edit_common_service"), GetComSvcExcludedAreaSaveMessage(remainingExcludedAreas), true);
+                return false;
+            }
+
             try
             {
                 if (ActConn.Sanitize())

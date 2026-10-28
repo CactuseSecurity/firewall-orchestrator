@@ -18,6 +18,10 @@ internal class FlowCatalogServiceTest
 {
     private static readonly List<string> kFirstTwoHostNames = ["HostA", "HostB"];
     private static readonly List<long> kTwoPortlessServiceIds = [61, 62];
+    private static readonly List<string> kIpv4HostRange = ["10.0.0.1", "10.0.0.1"];
+    private static readonly List<string> kIpv6HostRange = ["2001:db8::1", "2001:db8::1"];
+    private static readonly List<string> kIpv4NetworkRange = ["10.0.0.0", "10.0.0.255"];
+    private static readonly List<string> kEmptyIpRange = [];
 
     [Test]
     public void Dispose_ReleasesTheOwnedProtocolCacheLock()
@@ -579,7 +583,37 @@ internal class FlowCatalogServiceTest
         {
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].Name, Is.EqualTo("HostA"));
+            Assert.That(result[0].IpRange, Is.EqualTo(kIpv4HostRange));
             Assert.That(result[0].ShowInRequest, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task GetAddressObjectsAsync_ReturnsMasklessRangesAndEmptyRangeForFqdn()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.AddressObjects =
+        [
+            new FlowNwObject { Id = 16, Name = "Ipv4Host", IpStart = "10.0.0.1/32", IpEnd = "10.0.0.1/32" },
+            new FlowNwObject { Id = 17, Name = "Ipv6Host", IpStart = "2001:db8::1/128", IpEnd = "2001:db8::1/128" },
+            new FlowNwObject { Id = 18, Name = "Ipv4Network", IpStart = "10.0.0.0/32", IpEnd = "10.0.0.255/32" },
+            new FlowNwObject { Id = 19, Name = "Fqdn", IpStart = null, IpEnd = null }
+        ];
+
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+
+        List<AddressObjectResponse> result = (await service.GetAddressObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result[0].IpRange, Is.EqualTo(kIpv4HostRange));
+            Assert.That(result[0].Type, Is.EqualTo("host"));
+            Assert.That(result[1].IpRange, Is.EqualTo(kIpv6HostRange));
+            Assert.That(result[1].Type, Is.EqualTo("host"));
+            Assert.That(result[2].IpRange, Is.EqualTo(kIpv4NetworkRange));
+            Assert.That(result[2].Type, Is.EqualTo("network"));
+            Assert.That(result[3].IpRange, Is.EqualTo(kEmptyIpRange));
+            Assert.That(result[3].Type, Is.EqualTo("fqdn"));
         });
     }
 

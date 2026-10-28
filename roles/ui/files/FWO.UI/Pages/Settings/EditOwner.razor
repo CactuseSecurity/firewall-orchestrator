@@ -817,13 +817,17 @@
 
     private async Task AddNetworkOwners()
     {
+        ModellingNamingConvention namingConvention = ModellingNamingConvention.FromJson(userConfig.ModNamingConvention);
         foreach (var ipAdd in IpsToAdd)
         {
+            string? ip = ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.IpString : null;
+            string? ipEnd = ipAdd.IpEndString != null && ipAdd.Cidr != null && ipAdd.Cidr.Valid && ipAdd.IpEndString != "" ? ipAdd.IpEndString : null;
             var variables = new
             {
                 ownerId = ActOwner.Id,
-                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.IpString : null),
-                ip_end = (ipAdd.IpEndString != null && ipAdd.Cidr != null && ipAdd.Cidr.Valid && ipAdd.IpEndString != "" ? ipAdd.IpEndString : null)
+                ip,
+                ip_end = ipEnd,
+                name = AppServerHelper.ConstructOwnedIpName(ipAdd.Name, ip ?? "", ipEnd, namingConvention)
             };
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newNetworkOwnership, variables);
             ActIpAddresses.Add(ipAdd);

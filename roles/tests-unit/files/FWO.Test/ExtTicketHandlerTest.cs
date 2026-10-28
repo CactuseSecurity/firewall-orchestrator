@@ -169,12 +169,12 @@ namespace FWO.Test
             ExternalRequest oldRquestGrp = new() { ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks[0]), ExtRequestContent = ticket.TicketText };
             ExternalRequest oldRquestAcc = new() { ExtRequestType = ticket.GetTaskTypeAsString(accessReqTasks[0]), ExtRequestContent = ticket.TicketText };
 
-            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRquestAcc));
-            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRquestAcc));
-            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles("any", oldRquestAcc));
-            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRquestGrp));
-            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRquestGrp));
-            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles("any", oldRquestGrp));
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRquestAcc, ticketSystem));
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRquestAcc, ticketSystem));
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles("any", oldRquestAcc, ticketSystem));
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRquestGrp, ticketSystem));
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRquestGrp, ticketSystem));
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles("any", oldRquestGrp, ticketSystem));
         }
 
         [TestCase(nameof(WfTaskType.group_create))]
@@ -187,8 +187,8 @@ namespace FWO.Test
             using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
             ExternalRequest oldRequest = new() { ExtRequestType = oldRequestType, ExtRequestContent = "{}" };
 
-            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRequest));
-            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRequest));
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRequest, ticketSystem));
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRequest, ticketSystem));
         }
 
         [TestCase(nameof(WfTaskType.group_create))]
@@ -198,7 +198,40 @@ namespace FWO.Test
             using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
             ExternalRequest oldRequest = new() { ExtRequestType = oldRequestType, ExtRequestContent = "{\"object_updated_status\":\"NEW\"}" };
 
-            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRequest));
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRequest, ticketSystem));
+        }
+
+        [TestCase(nameof(WfTaskType.group_create), nameof(WfTaskType.rule_modify))]
+        [TestCase(nameof(WfTaskType.group_modify), nameof(WfTaskType.rule_modify))]
+        [TestCase(nameof(WfTaskType.group_create), nameof(WfTaskType.rule_delete))]
+        [TestCase(nameof(WfTaskType.group_modify), nameof(WfTaskType.rule_delete))]
+        public void GetWaitCyclesWaitsForTufinRuleChangeAfterCheckPointGroupChange(string oldRequestType, string taskType)
+        {
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            ExternalRequest oldRequest = new() { ExtRequestType = oldRequestType, ExtRequestContent = "{}" };
+
+            ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(taskType, oldRequest, ticketSystem));
+        }
+
+        [TestCase(nameof(WfTaskType.rule_modify))]
+        [TestCase(nameof(WfTaskType.rule_delete))]
+        public void GetWaitCyclesDoesNotWaitForNonTufinRuleChangeAfterGroupChange(string taskType)
+        {
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            ExternalRequest oldRequest = new() { ExtRequestType = nameof(WfTaskType.group_create), ExtRequestContent = "{}" };
+
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(taskType, oldRequest, checkPointTicketSystem));
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(taskType, oldRequest, customTicketSystem));
+        }
+
+        [TestCase(nameof(WfTaskType.rule_modify))]
+        [TestCase(nameof(WfTaskType.rule_delete))]
+        public void GetWaitCyclesDoesNotWaitForTufinRuleChangeAfterNonGroupChange(string taskType)
+        {
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            ExternalRequest oldRequest = new() { ExtRequestType = nameof(WfTaskType.access), ExtRequestContent = "{}" };
+
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(taskType, oldRequest, ticketSystem));
         }
 
         [TestCase(nameof(WfTaskType.access))]
@@ -210,7 +243,7 @@ namespace FWO.Test
             using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
             ExternalRequest oldRequest = new() { ExtRequestType = oldRequestType, ExtRequestContent = "{\"object_updated_status\":\"NEW\"}" };
 
-            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRequest));
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRequest, ticketSystem));
         }
 
         [Test]
@@ -221,8 +254,8 @@ namespace FWO.Test
             using ExternalRequestHandler noWaitHandler = new(noWaitConfig, apiConnection, null);
             ExternalRequest oldRequest = new() { ExtRequestType = nameof(WfTaskType.group_create), ExtRequestContent = "{}" };
 
-            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), null));
-            ClassicAssert.AreEqual(0, noWaitHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRequest));
+            ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), null, ticketSystem));
+            ClassicAssert.AreEqual(0, noWaitHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRequest, ticketSystem));
         }
 
         [Test]

@@ -29,7 +29,8 @@ namespace FWO.Test
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetTimeObjects)),
             (typeof(WorkflowImplTaskTargetController), nameof(WorkflowImplTaskTargetController.GetImplTaskTargets)),
             (typeof(WorkflowTicketController), nameof(WorkflowTicketController.CreateTicket)),
-            (typeof(PathAnalysisController), nameof(PathAnalysisController.ResolvePathDevices))
+            (typeof(PathAnalysisController), nameof(PathAnalysisController.ResolvePathDevices)),
+            (typeof(ReportController), nameof(ReportController.Get))
         ];
 
         [Test]

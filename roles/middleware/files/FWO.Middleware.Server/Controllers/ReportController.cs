@@ -7,10 +7,13 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Report;
 using FWO.Logging;
+using FWO.Middleware.Server.Requests;
 using FWO.Report;
+using FWO.Report.Filter;
 using FWO.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers
@@ -30,14 +33,34 @@ namespace FWO.Middleware.Server.Controllers
         /// <summary>
         /// Get Report
         /// </summary>
-        /// <param name="parameters">ReportGetParameters</param>
-        /// <returns>Report as json string</returns>
+        /// <param name="parameters">ReportGetParameters. Each list holds at most
+        /// <see cref="ReportGetParametersValidator.kMaxFilterValues"/> values (device filter ids at most
+        /// <see cref="ReportGetParametersValidator.kMaxDeviceFilterIds"/>), each text at most
+        /// <see cref="ReportGetParametersValidator.kMaxFilterTextLength"/> characters, and IP values must be
+        /// addresses, CIDR networks or ranges.</param>
+        /// <returns>Report as json string; 400 with all field errors when the request is invalid.</returns>
         [HttpPost("Get")]
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}")]
-        public async Task<string> Get([FromBody] ReportGetParameters parameters)
+        public async Task<ActionResult<string>> Get([FromBody] ReportGetParameters parameters)
         {
+            Dictionary<string, string[]> validationErrors = ReportGetParametersValidator.Validate(parameters);
+            if (validationErrors.Count > 0)
+            {
+                return BadRequest(new ValidationProblemDetails(validationErrors) { Status = StatusCodes.Status400BadRequest });
+            }
+
             try
             {
+                ReportTemplate template = await ConvertParameters(parameters);
+                if (template.Filter.Length > Compiler.kMaxFilterLength)
+                {
+                    return BadRequest(BuildFilterTooLongError());
+                }
+
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
                 // the local user id keeps the rebuilt user in the caller's directory, as the dn alone may exist in several (SEC-11)
                 UiUser targetUser = new()
@@ -48,7 +71,6 @@ namespace FWO.Middleware.Server.Controllers
                 };
                 string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false);
                 using ApiConnection apiConnectionUserContext = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
-                ReportTemplate template = await ConvertParameters(parameters);
                 ReportType reportType = (ReportType)template.ReportParams.ReportType;
 
                 using GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(jwt);
@@ -64,6 +86,25 @@ namespace FWO.Middleware.Server.Controllers
                 Log.WriteError("Get Report", "Error while getting report.", exception);
             }
             return "";
+        }
+
+        private static ValidationProblemDetails BuildFilterTooLongError()
+        {
+            Dictionary<string, string[]> errors = [];
+            string[] filterErrors = new string[1];
+            filterErrors[0] = $"'rule-filter' together with 'action' and 'active' results in a report filter longer than {Compiler.kMaxFilterLength} characters. Request fewer values.";
+            errors["rule-filter"] = filterErrors;
+            return new ValidationProblemDetails(errors) { Status = StatusCodes.Status400BadRequest };
+        }
+
+        /// <summary>
+        /// Quotes a free-text value for the report filter, so that blanks, brackets or keywords in it stay part
+        /// of the value instead of changing the filter.
+        /// </summary>
+        internal static string QuoteFilterValue(string value)
+        {
+            string escapedValue = value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+            return $"\"{escapedValue}\"";
         }
 
         private async Task<ReportTemplate> ConvertParameters(ReportGetParameters reportApiParams)
@@ -148,7 +189,7 @@ namespace FWO.Middleware.Server.Controllers
 
             if (!string.IsNullOrEmpty(action))
             {
-                allAndFilters.Add($"action={action}");
+                allAndFilters.Add($"action={QuoteFilterValue(action)}");
             }
             if (active != null)
             {
@@ -168,7 +209,7 @@ namespace FWO.Middleware.Server.Controllers
                     List<string> serviceSubFilters = [];
                     if (!string.IsNullOrEmpty(service.Name))
                     {
-                        serviceSubFilters.Add($"svc={service.Name}");
+                        serviceSubFilters.Add($"svc={QuoteFilterValue(service.Name)}");
                     }
                     if (service.Protocol != null)
                     {

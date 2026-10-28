@@ -127,36 +127,6 @@ namespace FWO.Test
             }
         }
 
-        /// <summary>
-        /// OPNsense can only replace a whole alias: if its content changed between the read for the merge and the write, the
-        /// write is not sent and fails as a retryable conflict.
-        /// </summary>
-        [Test]
-        public async Task OpnSense_DoesNotOverwriteAnAliasChangedInTheMeantime()
-        {
-            (FirewallWriter writer, FirewallSimulation simulation) = Writer(Context(FirewallVendors.kOpnSense));
-            int contentReads = 0;
-            simulation.Handler = request => request.Resource switch
-            {
-                "/api/firewall/alias/getAliasUUID/grp" => Ok("{\"uuid\":\"uuid-1\"}"),
-                "/api/firewall/alias/getItem/uuid-1" => Ok(contentReads++ == 0
-                    ? "{\"alias\":{\"content\":{\"m1\":{\"selected\":1}}}}"
-                    : "{\"alias\":{\"content\":{\"m1\":{\"selected\":1},\"added-meanwhile\":{\"selected\":1}}}}"),
-                _ => Ok("{\"result\":\"saved\"}")
-            };
-            WfImplElement add = Network("m2", null);
-            add.GroupName = "grp";
-            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, add));
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(result.Success, Is.False);
-                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Conflict));
-                Assert.That(result.IsRetryable, Is.True);
-                Assert.That(result.Message, Does.Contain("changed on the firewall in the meantime"));
-                Assert.That(simulation.Requests.Any(request => request.Resource.Contains("setItem")), Is.False);
-            }
-        }
-
         /// <summary>IPv6 objects use their own operations, which Azure (IPv4 only IP groups) does not ship.</summary>
         [Test]
         public async Task Ipv6ObjectsUseTheirOwnOperations()

@@ -105,6 +105,30 @@ namespace FWO.ExternalSystems.FirewallWrite
             return profile.NormalizeName(element.Name.Trim());
         }
 
+        /// <summary>
+        /// Validates a literal IP/CIDR member for OPNsense's atomic alias utility. Alias references and ranges cannot be
+        /// changed persistently by that API and must be refused during planning, before any task calls are sent.
+        /// </summary>
+        internal static string RequireAddressMember(string member)
+        {
+            int separator = member.IndexOf('/');
+            string addressText = separator < 0 ? member : member[..separator];
+            bool isAddress = (addressText.Contains('.') || addressText.Contains(':')) && !addressText.Contains('%')
+                && IPAddress.TryParse(addressText, out _);
+            if (!isAddress)
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
+                    $"OPNsense member '{member}' is not a literal IP address or CIDR. Alias references and ranges cannot be changed atomically.");
+            }
+            IPAddress address = IPAddress.Parse(addressText);
+            if (separator >= 0 && (!int.TryParse(member[(separator + 1)..], NumberStyles.None, CultureInfo.InvariantCulture, out int prefix)
+                || prefix > address.GetAddressBytes().Length * kBitsPerByte))
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Invalid CIDR member '{member}'.");
+            }
+            return member.ToLowerInvariant();
+        }
+
         /// <summary>Returns the service name of an element, or a name built from protocol and ports if it has none.</summary>
         public static string ServiceName(WfImplElement element)
         {

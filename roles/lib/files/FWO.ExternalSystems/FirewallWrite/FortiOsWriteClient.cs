@@ -13,6 +13,10 @@ namespace FWO.ExternalSystems.FirewallWrite
     {
         private const string kErrorAlreadyExists = "-5";
         private const string kErrorNotFound = "-3";
+        private const string kErrorInvalidAddress = "-8";
+        private const string kErrorInvalidNetmask = "-9";
+        private const string kErrorOutOfRange = "-650";
+        private const string kErrorInvalidInput = "-651";
 
         private string? apiToken;
 
@@ -50,8 +54,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         }
 
         /// <summary>
-        /// Maps the "error" number of a FortiOS REST answer: -5 entry already exists, -3 entry not found; other errors fall back
-        /// to the HTTP status.
+        /// Maps native FortiOS errors before the HTTP status: validation errors can arrive with HTTP 500 but cannot be
+        /// corrected by retrying the same request. Unrecognized errors fall back to the HTTP status.
         /// </summary>
         protected override (FirewallWriteErrorKind? Kind, string? NativeCode) ClassifyVendorError(JsonNode? content)
         {
@@ -60,6 +64,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 kErrorAlreadyExists => FirewallWriteErrorKind.AlreadyExists,
                 kErrorNotFound => FirewallWriteErrorKind.NotFound,
+                kErrorInvalidAddress or kErrorInvalidNetmask or kErrorOutOfRange or kErrorInvalidInput => FirewallWriteErrorKind.Rejected,
                 _ => null
             };
             return (kind, code);

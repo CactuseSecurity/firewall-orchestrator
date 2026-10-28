@@ -1,4 +1,5 @@
 using FWO.Data;
+using FWO.Data.DeviceSpecificSettings;
 using RestSharp;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -7,21 +8,19 @@ namespace FWO.ExternalSystems.FirewallWrite
 {
     /// <summary>
     /// OPNsense API access with API key (user) and secret of the export credential as basic authentication. Resolves
-    /// alias UUIDs by name and merges group member changes into the current alias content, checking right before the write
-    /// that the content did not change in the meantime.
+    /// alias UUIDs by name. Member changes use the alias utility, which holds the firewall's configuration lock while
+    /// adding or removing one address and persisting host/network aliases; the client never replaces a stale member list.
     /// </summary>
     public class OpnSenseWriteClient : FirewallWriteClient
     {
         private const string kAliasPath = "/api/firewall/alias";
-        private const string kMemberSeparator = "\n";
-
         private const string kValidations = "validations";
         private const string kResultFailed = "failed";
+        private const string kStatus = "status";
+        private const string kStatusDone = "done";
+        private const string kStatusOk = "ok";
 
         private string? basicAuthentication;
-
-        /// <summary>Alias content read for a call that replaces it with merged members, checked again before the call is sent.</summary>
-        private readonly Dictionary<RenderedFirewallRequest, (string Uuid, List<string> Content)> mergedFrom = [];
 
         /// <summary>Creates a client for the API of an OPNsense firewall.</summary>
         public OpnSenseWriteClient(Management management, bool checkCertificates)
@@ -42,6 +41,24 @@ namespace FWO.ExternalSystems.FirewallWrite
             request.AddHeader("Authorization", $"Basic {basicAuthentication ?? throw new FirewallWriteException(FirewallWriteErrorKind.Configuration, "OPNsense API key missing.")}");
         }
 
+        /// <summary>Per-address utility calls must explicitly report completion, including when HTTP status is 200.</summary>
+        public override async Task<FirewallStepResult> Execute(RenderedFirewallRequest request)
+        {
+            if (!ChangesMembers(request))
+            {
+                return await base.Execute(request);
+            }
+            await ResolveRuntimeValues(request);
+            FirewallTemplateRenderer.EnsureResolved(request);
+            RestResponse response = await SendRendered(request);
+            bool completed = IsSuccess(response) && ParseJson(response.Content)?[kStatus]?.ToString() == kStatusDone;
+            return ToResult(request, response, completed);
+        }
+
+        /// <summary>Whether the request changes the members of an existing alias.</summary>
+        private static bool ChangesMembers(RenderedFirewallRequest request) =>
+            request.Operation is FirewallWriteOperation.GroupAddMembers or FirewallWriteOperation.GroupRemoveMembers;
+
         /// <summary>Failed if the HTTP call failed, the API reports validation errors or a failed result.</summary>
         protected override bool IsSuccess(RestResponse response)
         {
@@ -51,7 +68,8 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
             JsonNode? content = ParseJson(response.Content);
             string? result = content?["result"]?.ToString();
-            return content?[kValidations] == null && result != kResultFailed;
+            string? status = content?[kStatus]?.ToString();
+            return content?[kValidations] == null && result != kResultFailed && (status == null || status is kStatusDone or kStatusOk);
         }
 
         /// <summary>
@@ -65,6 +83,11 @@ namespace FWO.ExternalSystems.FirewallWrite
                 return (FirewallWriteErrorKind.Rejected, kValidations);
             }
             string? result = content?["result"]?.ToString();
+            string? status = content?[kStatus]?.ToString();
+            if (status != null && status is not kStatusDone and not kStatusOk)
+            {
+                return (FirewallWriteErrorKind.Rejected, status);
+            }
             return result == kResultFailed ? (FirewallWriteErrorKind.Rejected, result) : (null, null);
         }
 
@@ -72,42 +95,23 @@ namespace FWO.ExternalSystems.FirewallWrite
         protected override async Task ResolveRuntimeValues(RenderedFirewallRequest request)
         {
             Dictionary<string, FirewallPlaceholderValue> values = [];
-            if (FirewallTemplateRenderer.Contains(request, FirewallWritePlaceholders.ObjectUuid) ||
-                FirewallTemplateRenderer.Contains(request, FirewallWritePlaceholders.MergedMembers))
+            bool changesMembers = ChangesMembers(request);
+            if (FirewallTemplateRenderer.Contains(request, FirewallWritePlaceholders.MergedMembers))
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
+                    "OPNsense cannot safely replace merged alias members. Reset member endpoints and templates to the shipped per-address defaults.");
+            }
+            if (FirewallTemplateRenderer.Contains(request, FirewallWritePlaceholders.ObjectUuid) || changesMembers)
             {
                 string uuid = await LookupAliasUuid(request);
                 values[FirewallWritePlaceholders.ObjectUuid] = new(uuid, false);
-                if (FirewallTemplateRenderer.Contains(request, FirewallWritePlaceholders.MergedMembers))
+                if (changesMembers)
                 {
-                    List<string> current = await ReadAliasContent(uuid, request);
-                    mergedFrom[request] = (uuid, current);
-                    List<string> merged = FirewallMemberMerge.Merge(current, request.Step);
-                    values[FirewallWritePlaceholders.MergedMembers] = new(string.Join(kMemberSeparator, merged), false);
+                    await EnsurePersistentAlias(uuid, request);
                 }
                 FirewallTemplateRenderer.ResolveRuntimePlaceholders(request, values);
             }
             await base.ResolveRuntimeValues(request);
-        }
-
-        /// <summary>
-        /// The OPNsense API can only replace the whole alias content, without a condition. To keep a change made on the
-        /// firewall in the meantime from being overwritten, the content is read again right before the call; if it differs
-        /// from the content the members were merged into, the call is not sent and fails as a retryable conflict. A change
-        /// between this last read and the call itself cannot be detected.
-        /// </summary>
-        protected override async Task BeforeSend(RenderedFirewallRequest request)
-        {
-            if (!mergedFrom.Remove(request, out (string Uuid, List<string> Content) read))
-            {
-                return;
-            }
-            List<string> now = await ReadAliasContent(read.Uuid, request);
-            if (!new HashSet<string>(now).SetEquals(read.Content))
-            {
-                string message = $"OPNsense alias '{request.Step.TargetName}' was changed on the firewall in the meantime; it is not overwritten.";
-                throw new FirewallWriteException(new FirewallWriteError(FirewallWriteErrorKind.Conflict, string.Join(kMemberSeparator, now),
-                    Operation: request.Operation), message);
-            }
         }
 
         private async Task<string> LookupAliasUuid(RenderedFirewallRequest request)
@@ -125,21 +129,23 @@ namespace FWO.ExternalSystems.FirewallWrite
                 : uuid;
         }
 
-        /// <summary>Reads the selected entries of the content of an alias.</summary>
-        private async Task<List<string>> ReadAliasContent(string uuid, RenderedFirewallRequest request)
+        /// <summary>Only host/network aliases persist address changes; external and other alias types are refused.</summary>
+        private async Task EnsurePersistentAlias(string uuid, RenderedFirewallRequest request)
         {
             RestResponse response = await SendAuthenticated(new RestRequest($"{kAliasPath}/getItem/{Uri.EscapeDataString(uuid)}", Method.Get));
             if (!response.IsSuccessful)
             {
-                throw ReadFailure(response, request, $"the content of alias '{uuid}'");
+                throw ReadFailure(response, request, $"the type of alias '{uuid}'");
             }
-            if (ParseJson(response.Content)?["alias"]?["content"] is not JsonObject content)
+            JsonNode? type = ParseJson(response.Content)?["alias"]?["type"];
+            string? selectedType = type is JsonObject options
+                ? options.FirstOrDefault(entry => entry.Value?["selected"]?.ToString() is "1" or "true").Key
+                : type?.GetValue<string>();
+            if (selectedType is not "host" and not "network")
             {
-                return [];
+                throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
+                    $"OPNsense alias '{request.Step.TargetName}' must have type host or network for persistent per-address changes.");
             }
-            return [.. content
-                .Where(entry => entry.Value?["selected"]?.ToString() is "1" or "true")
-                .Select(entry => entry.Key)];
         }
     }
 }

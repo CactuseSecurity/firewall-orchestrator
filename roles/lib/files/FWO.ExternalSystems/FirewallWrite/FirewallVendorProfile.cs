@@ -30,7 +30,11 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             EscapeSlashInUrlNames = true
         };
-        private static readonly FirewallVendorProfile OpnSense = new("any", "pass", "block", "1", "0", false, false);
+        private static readonly FirewallVendorProfile OpnSense = new("any", "pass", "block", "1", "0", false, false)
+        {
+            WritesMembersIndividually = true,
+            RequiresAddressMembers = true
+        };
         private static readonly FirewallVendorProfile Azure = new("*", "Allow", "Deny", "", "", false, true)
         {
             DefaultLayerName = kFwoRuleCollectionGroup
@@ -39,8 +43,11 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>Whether a '/' in a name is escaped as "\/" where the name is part of a JSON-RPC url (FortiManager).</summary>
         public bool EscapeSlashInUrlNames { get; init; }
 
-        /// <summary>Whether group members are added and removed with one call per member (FortiOS member table).</summary>
+        /// <summary>Whether group members are added and removed with one call per member (FortiOS and OPNsense).</summary>
         public bool WritesMembersIndividually { get; init; }
+
+        /// <summary>Whether member changes accept only literal IP addresses or CIDRs, rather than alias references.</summary>
+        public bool RequiresAddressMembers { get; init; }
 
         /// <summary>
         /// Layer used when neither the rule position nor the imported rulebase links name one, instead of the gateway's

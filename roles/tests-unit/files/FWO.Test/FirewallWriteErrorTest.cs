@@ -210,17 +210,26 @@ namespace FWO.Test
             }
         }
 
-        [TestCase(HttpStatusCode.InternalServerError, "{\"status\":\"error\",\"error\":-5}", FirewallWriteErrorKind.AlreadyExists, "-5")]
-        [TestCase(HttpStatusCode.NotFound, "{\"status\":\"error\",\"error\":-3}", FirewallWriteErrorKind.NotFound, "-3")]
-        [TestCase(HttpStatusCode.InternalServerError, "{\"status\":\"error\",\"error\":-651}", FirewallWriteErrorKind.FirewallError, "-651")]
-        [TestCase(HttpStatusCode.Unauthorized, "", FirewallWriteErrorKind.Authentication, null)]
-        public async Task FortiOs_ErrorNumbersAreNormalized(HttpStatusCode statusCode, string content, FirewallWriteErrorKind kind, string? nativeCode)
+        [TestCase(HttpStatusCode.InternalServerError, "{\"status\":\"error\",\"error\":-5}", FirewallWriteErrorKind.AlreadyExists, "-5", false)]
+        [TestCase(HttpStatusCode.NotFound, "{\"status\":\"error\",\"error\":-3}", FirewallWriteErrorKind.NotFound, "-3", false)]
+        [TestCase(HttpStatusCode.InternalServerError, "{\"status\":\"error\",\"error\":-8}", FirewallWriteErrorKind.Rejected, "-8", false)]
+        [TestCase(HttpStatusCode.InternalServerError, "{\"status\":\"error\",\"error\":-9}", FirewallWriteErrorKind.Rejected, "-9", false)]
+        [TestCase(HttpStatusCode.InternalServerError, "{\"status\":\"error\",\"error\":-650}", FirewallWriteErrorKind.Rejected, "-650", false)]
+        [TestCase(HttpStatusCode.InternalServerError, "{\"status\":\"error\",\"error\":-651}", FirewallWriteErrorKind.Rejected, "-651", false)]
+        [TestCase(HttpStatusCode.InternalServerError, "{\"status\":\"error\",\"error\":-6}", FirewallWriteErrorKind.FirewallError, "-6", true)]
+        [TestCase(HttpStatusCode.InternalServerError, "{}", FirewallWriteErrorKind.FirewallError, null, true)]
+        [TestCase(HttpStatusCode.Unauthorized, "", FirewallWriteErrorKind.Authentication, null, false)]
+        public async Task FortiOs_ErrorNumbersAreNormalized(HttpStatusCode statusCode, string content, FirewallWriteErrorKind kind,
+            string? nativeCode, bool retryable)
         {
             ModifyFirewallResult result = await WriteHost(FirewallVendors.kFortiOsGateway, _ => Response(statusCode, content));
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result.Error?.Kind, Is.EqualTo(kind));
                 Assert.That(result.Error?.NativeCode, Is.EqualTo(nativeCode));
+                Assert.That(result.Error?.NativeMessage, Is.EqualTo(content));
+                Assert.That(result.Error?.StatusCode, Is.EqualTo((int)statusCode));
+                Assert.That(result.IsRetryable, Is.EqualTo(retryable));
             }
         }
 

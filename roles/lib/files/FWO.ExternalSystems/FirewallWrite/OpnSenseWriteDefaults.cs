@@ -4,7 +4,8 @@ namespace FWO.ExternalSystems.FirewallWrite
 {
     /// <summary>
     /// Shipped OPNsense API calls. Network objects, services and groups are aliases; the client looks up the alias UUID
-    /// by name. Publish applies the aliases, install applies the filter rules.
+        /// by name. Member changes use the alias utility's locked, persistent per-address calls for host/network aliases.
+        /// Publish applies the aliases, install applies the filter rules.
     /// </summary>
     public static class OpnSenseWriteDefaults
     {
@@ -15,7 +16,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const string kNetworkBody = """{"alias":{"enabled":"1","name":"@@OBJECT_NAME@@","type":"network","content":"@@IP_CIDR@@","description":"@@COMMENT@@"}}""";
         private const string kRangeBody = """{"alias":{"enabled":"1","name":"@@OBJECT_NAME@@","type":"host","content":"@@IP@@-@@IP_END@@","description":"@@COMMENT@@"}}""";
         private const string kServiceBody = """{"alias":{"enabled":"1","name":"@@SERVICE_NAME@@","type":"port","content":"@@PORT@@:@@PORT_END@@","description":"@@COMMENT@@"}}""";
-        private const string kMergedMembersBody = """{"alias":{"content":"@@MERGED_MEMBERS@@"}}""";
+        private const string kMemberBody = """{"address":"@@MEMBER_NAME@@"}""";
+        private const string kAliasUtilityPath = "/api/firewall/alias_util";
 
         private const string kRuleBody = """
             {"rule":{"enabled":"1","action":"@@RULE_ACTION@@","quick":"1","interface":"","direction":"in","ipprotocol":"inet",
@@ -53,8 +55,8 @@ namespace FWO.ExternalSystems.FirewallWrite
                 { FirewallWriteOperation.ServiceModify, new($"POST {kAliasPath}/setItem/@@OBJECT_UUID@@", kServiceBody) },
                 { FirewallWriteOperation.ServiceDelete, new($"POST {kAliasPath}/delItem/@@OBJECT_UUID@@", "") },
                 { FirewallWriteOperation.GroupCreate, new($"POST {kAliasPath}/addItem", """{"alias":{"enabled":"1","name":"@@GROUP_NAME@@","type":"network","content":"@@MEMBERS_LINES@@","description":"@@COMMENT@@"}}""") },
-                { FirewallWriteOperation.GroupAddMembers, new($"POST {kAliasPath}/setItem/@@OBJECT_UUID@@", kMergedMembersBody) },
-                { FirewallWriteOperation.GroupRemoveMembers, new($"POST {kAliasPath}/setItem/@@OBJECT_UUID@@", kMergedMembersBody) },
+                { FirewallWriteOperation.GroupAddMembers, new($"POST {kAliasUtilityPath}/add/@@GROUP_NAME@@", kMemberBody) },
+                { FirewallWriteOperation.GroupRemoveMembers, new($"POST {kAliasUtilityPath}/delete/@@GROUP_NAME@@", kMemberBody) },
                 { FirewallWriteOperation.GroupDelete, new($"POST {kAliasPath}/delItem/@@OBJECT_UUID@@", "") },
                 { FirewallWriteOperation.RuleCreate, new($"POST {kFilterPath}/addRule", kRuleBody) },
                 { FirewallWriteOperation.RuleModify, new($"POST {kFilterPath}/setRule/@@RULE_UID@@", kRuleModifyBody) },

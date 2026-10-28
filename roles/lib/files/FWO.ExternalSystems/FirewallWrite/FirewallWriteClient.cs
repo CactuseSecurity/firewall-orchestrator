@@ -43,13 +43,12 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         /// <summary>
         /// Sends one rendered call. Runtime placeholders are resolved first, then the call is checked for leftover
-        /// placeholders and valid JSON, and the vendor gets a last look (<see cref="BeforeSend"/>) before it is sent.
+        /// placeholders and valid JSON before it is sent.
         /// </summary>
         public virtual async Task<FirewallStepResult> Execute(RenderedFirewallRequest request)
         {
             await ResolveRuntimeValues(request);
             FirewallTemplateRenderer.EnsureResolved(request);
-            await BeforeSend(request);
             RestResponse response = await SendRendered(request);
             return ToResult(request, response, IsSuccess(response));
         }
@@ -66,12 +65,6 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
             return Task.CompletedTask;
         }
-
-        /// <summary>
-        /// Runs right before a resolved call is sent, e.g. to check that data read for it did not change in the meantime.
-        /// Throws <see cref="FirewallWriteException"/> to stop the call.
-        /// </summary>
-        protected virtual Task BeforeSend(RenderedFirewallRequest request) => Task.CompletedTask;
 
         /// <summary>Builds and sends a rendered call with authentication.</summary>
         protected async Task<RestResponse> SendRendered(RenderedFirewallRequest request)

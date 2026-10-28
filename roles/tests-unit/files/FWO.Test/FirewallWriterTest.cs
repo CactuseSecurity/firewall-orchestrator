@@ -383,31 +383,32 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task OpnSense_ResolvesAliasUuidMergesContentAndApplies()
+        public async Task OpnSense_ChangesOneAddressAndApplies()
         {
             GatewayDeviceSpecificSettings settings = new() { FwWriteInstallPolicy = true };
             (FirewallWriter writer, FirewallSimulation simulation, _) = Writer(Context(FirewallVendors.kOpnSense, settings));
             simulation.Handler = request => request.Resource switch
             {
                 "/api/firewall/alias/getAliasUUID/grp" => Ok("{\"uuid\":\"uuid-1\"}"),
-                "/api/firewall/alias/getItem/uuid-1" => Ok("{\"alias\":{\"content\":{\"m1\":{\"value\":\"m1\",\"selected\":1},\"x\":{\"value\":\"x\",\"selected\":0}}}}"),
+                "/api/firewall/alias/getItem/uuid-1" => Ok("{\"alias\":{\"type\":{\"network\":{\"selected\":1},\"external\":{\"selected\":0}}}}"),
+                "/api/firewall/alias_util/add/grp" => Ok("{\"status\":\"done\"}"),
                 _ => Ok("{\"result\":\"saved\"}")
             };
-            WfImplElement add = Network("m2", null);
+            WfImplElement add = Network("10.0.0.2", null);
             add.GroupName = "grp";
 
             ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, add));
 
-            RecordedFirewallRequest update = simulation.Requests[3];
+            RecordedFirewallRequest update = simulation.Requests[2];
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result.Success, Is.True, result.Message);
-                Assert.That(update.Resource, Is.EqualTo("/api/firewall/alias/setItem/uuid-1"));
-                Assert.That(JsonNode.Parse(update.Body!)!["alias"]!["content"]!.GetValue<string>(), Is.EqualTo("m1\nm2"));
+                Assert.That(update.Resource, Is.EqualTo("/api/firewall/alias_util/add/grp"));
+                Assert.That(JsonNode.Parse(update.Body!)!["address"]!.GetValue<string>(), Is.EqualTo("10.0.0.2"));
                 Assert.That(update.Headers["Authorization"], Is.EqualTo("Basic " + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("writer:secret"))));
-                Assert.That(simulation.Requests[2].Resource, Is.EqualTo("/api/firewall/alias/getItem/uuid-1"));
-                Assert.That(simulation.Requests[4].Resource, Is.EqualTo("/api/firewall/alias/reconfigure"));
-                Assert.That(simulation.Requests[5].Resource, Is.EqualTo("/api/firewall/filter/apply"));
+                Assert.That(simulation.Requests[1].Resource, Is.EqualTo("/api/firewall/alias/getItem/uuid-1"));
+                Assert.That(simulation.Requests[3].Resource, Is.EqualTo("/api/firewall/alias/reconfigure"));
+                Assert.That(simulation.Requests[4].Resource, Is.EqualTo("/api/firewall/filter/apply"));
             }
         }
 

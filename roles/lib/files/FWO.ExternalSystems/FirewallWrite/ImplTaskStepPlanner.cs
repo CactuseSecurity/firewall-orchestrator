@@ -129,7 +129,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             List<WfImplElement> members = GroupMembers(implTask);
             List<WfImplElement> toAdd = [.. members.Where(element => MemberAddActions.Contains(element.ImplAction))];
             List<WfImplElement> toRemove = [.. members.Where(element => element.ImplAction == nameof(RequestAction.delete))];
-            List<FirewallWriteStep> steps = MemberObjectSteps(implTask, members, profile);
+            List<FirewallWriteStep> steps = profile.RequiresAddressMembers ? [] : MemberObjectSteps(implTask, members, profile);
             steps.AddRange(MemberChangeSteps(FirewallWriteOperation.GroupAddMembers, implTask, profile, toAdd));
             steps.AddRange(MemberChangeSteps(FirewallWriteOperation.GroupRemoveMembers, implTask, profile, toRemove));
             return steps;
@@ -188,7 +188,11 @@ namespace FWO.ExternalSystems.FirewallWrite
             FirewallWriteStep step = new(operation) { TargetName = groupName };
             if (renderedMembers.Count == 1)
             {
-                step.SetText(FirewallWritePlaceholders.MemberName, renderedMembers[0]);
+                bool changesMembers = operation is FirewallWriteOperation.GroupAddMembers or FirewallWriteOperation.GroupRemoveMembers;
+                string member = profile.RequiresAddressMembers && changesMembers
+                    ? FirewallElementValues.RequireAddressMember(renderedMembers[0])
+                    : renderedMembers[0];
+                step.SetText(FirewallWritePlaceholders.MemberName, member);
             }
             else
             {

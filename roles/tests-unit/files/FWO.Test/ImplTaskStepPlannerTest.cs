@@ -32,6 +32,9 @@ namespace FWO.Test
         private static readonly List<FirewallWriteOperation> kFortiOsMemberOperations =
             [FirewallWriteOperation.GroupAddMembers, FirewallWriteOperation.GroupAddMembers, FirewallWriteOperation.GroupRemoveMembers];
         private static readonly List<string> kFortiOsMemberNames = ["m1", "m2", "old"];
+        private static readonly List<FirewallWriteOperation> kOpnSenseMemberOperations =
+            [FirewallWriteOperation.GroupAddMembers, FirewallWriteOperation.GroupAddMembers, FirewallWriteOperation.GroupRemoveMembers];
+        private static readonly List<string> kOpnSenseMemberEntries = ["10.0.0.1/32", "10.0.0.2/31", "10.0.1.0/24"];
 
         private static string Value(FirewallWriteStep step, string placeholder) => step.Values[placeholder].Value;
 
@@ -255,6 +258,59 @@ namespace FWO.Test
                 Assert.That(Missing(Plan(Task(WfTaskType.group_modify, first, second)).Single(), FirewallWritePlaceholders.MemberName),
                     Does.Contain("exactly one member"));
             }
+        }
+
+        [TestCase("10.0.0.2", null, "10.0.0.2/32")]
+        [TestCase("10.0.0.2/32", null, "10.0.0.2/32")]
+        [TestCase("10.0.1.7/24", null, "10.0.1.0/24")]
+        [TestCase("10.0.0.1/32", "10.0.0.6/32", "10.0.0.1/32\n10.0.0.2/31\n10.0.0.4/31\n10.0.0.6/32")]
+        [TestCase("10.0.0.0", "10.0.0.255", "10.0.0.0/24")]
+        [TestCase("0.0.0.0", "255.255.255.255", "0.0.0.0/0")]
+        [TestCase("255.255.255.254", "255.255.255.255", "255.255.255.254/31")]
+        [TestCase("2001:DB8::1", null, "2001:db8::1/128")]
+        [TestCase("2001:db8::", "2001:db8::ff", "2001:db8::/120")]
+        [TestCase("2001:db8::ff", "2001:db8::100", "2001:db8::ff/128\n2001:db8::100/128")]
+        public void OpnSense_GroupCreateWritesCidrEntriesWithoutMemberAliases(string ip, string? ipEnd, string expectedLines)
+        {
+            WfImplElement member = Network("srv", ip, ipEnd);
+            member.GroupName = "grp";
+            WfImplElement duplicate = Network("srv-again", ip, ipEnd);
+            List<FirewallWriteStep> steps = Plan(Task(WfTaskType.group_create, member, duplicate), FirewallVendors.kOpnSense);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(steps.Single().Operation, Is.EqualTo(FirewallWriteOperation.GroupCreate));
+                Assert.That(Value(steps[0], FirewallWritePlaceholders.MembersLines), Is.EqualTo(expectedLines));
+            }
+        }
+
+        [Test]
+        public void OpnSense_GroupModifyChangesOneCidrEntryPerCall()
+        {
+            WfImplElement range = Network("range", "10.0.0.1/32", "10.0.0.3/32");
+            range.GroupName = "grp";
+            WfImplElement old = Network("old", "10.0.1.0/24", action: RequestAction.delete);
+            List<FirewallWriteStep> steps = Plan(Task(WfTaskType.group_modify, range, old), FirewallVendors.kOpnSense);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(steps.Select(step => step.Operation), Is.EqualTo(kOpnSenseMemberOperations));
+                Assert.That(steps.Select(step => Value(step, FirewallWritePlaceholders.MemberName)), Is.EqualTo(kOpnSenseMemberEntries));
+                Assert.That(steps.Select(step => step.TargetName).Distinct().Single(), Is.EqualTo("grp"));
+            }
+        }
+
+        [TestCase(null, null, FirewallWriteErrorKind.Unsupported)]
+        [TestCase("fe80::1%eth0", null, FirewallWriteErrorKind.InvalidTaskData)]
+        [TestCase("10.0.0.1/33", null, FirewallWriteErrorKind.InvalidTaskData)]
+        [TestCase("2001:db8::/129", null, FirewallWriteErrorKind.InvalidTaskData)]
+        [TestCase("10.0.0.9", "10.0.0.1", FirewallWriteErrorKind.InvalidTaskData)]
+        [TestCase("10.0.0.1", "2001:db8::1", FirewallWriteErrorKind.InvalidTaskData)]
+        [TestCase("not-an-address", null, FirewallWriteErrorKind.InvalidTaskData)]
+        public void OpnSense_RefusesMembersWithoutValidAddress(string? ip, string? ipEnd, FirewallWriteErrorKind kind)
+        {
+            WfImplElement member = Network("member", ip, ipEnd);
+            member.GroupName = "grp";
+            AssertKind(kind, () => Plan(Task(WfTaskType.group_modify, member), FirewallVendors.kOpnSense));
+            AssertKind(kind, () => Plan(Task(WfTaskType.group_create, member), FirewallVendors.kOpnSense));
         }
 
         [Test]

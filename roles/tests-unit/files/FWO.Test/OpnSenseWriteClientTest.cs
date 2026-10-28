@@ -9,7 +9,10 @@ using static FWO.Test.FirewallWriteTestSupport;
 
 namespace FWO.Test;
 
-/// <summary>Persistent OPNsense member updates must preserve concurrent edits and refuse unsupported mutations.</summary>
+/// <summary>
+/// Persistent OPNsense member updates must preserve concurrent edits, match the entries of created groups and refuse
+/// unsupported mutations.
+/// </summary>
 [TestFixture]
 [Parallelizable]
 internal sealed class OpnSenseWriteClientTest
@@ -18,8 +21,10 @@ internal sealed class OpnSenseWriteClientTest
     private const string kItemPath = "/api/firewall/alias/getItem/uuid-1";
     private const string kAddPath = "/api/firewall/alias_util/add/grp";
     private const string kDeletePath = "/api/firewall/alias_util/delete/grp";
+    private const string kApplyPath = "/api/firewall/filter/apply";
+    private const string kCreatePath = "/api/firewall/alias/addItem";
     private const string kDone = "{\"status\":\"done\"}";
-    private static readonly List<string> ExpectedAddresses = ["10.0.0.99", "10.0.0.2", "2001:db8::1/128"];
+    private static readonly List<string> ExpectedAddresses = ["10.0.0.99/32", "10.0.0.2/32", "2001:db8::1/128"];
 
     /// <summary>Builds a writer with a simulated OPNsense API.</summary>
     private static (FirewallWriter Writer, FirewallSimulation Simulation) Writer(GlobalDeviceSpecificSettings? settings = null)
@@ -36,10 +41,10 @@ internal sealed class OpnSenseWriteClientTest
         return (writer, simulation);
     }
 
-    /// <summary>A group change referencing a literal address or alias name.</summary>
-    private static WfImplElement Member(string name, RequestAction action = RequestAction.create)
+    /// <summary>A group member with a descriptive name and its address.</summary>
+    private static WfImplElement Member(string ip, RequestAction action = RequestAction.create, string? ipEnd = null)
     {
-        WfImplElement member = Network(name, null, action: action);
+        WfImplElement member = Network("app-server", ip, ipEnd, action: action);
         member.GroupName = "grp";
         return member;
     }
@@ -49,7 +54,7 @@ internal sealed class OpnSenseWriteClientTest
     public async Task MemberChanges_PreserveUpdatesAfterTheLastRead()
     {
         (FirewallWriter writer, FirewallSimulation simulation) = Writer();
-        HashSet<string> configured = new() { "10.0.0.1" };
+        HashSet<string> configured = new() { "10.0.0.1/32" };
         simulation.Handler = request =>
         {
             if (request.Resource == kLookupPath)
@@ -64,7 +69,7 @@ internal sealed class OpnSenseWriteClientTest
                     content[member] = new JsonObject { ["selected"] = 1 };
                 }
                 string snapshot = new JsonObject { ["alias"] = new JsonObject { ["type"] = "network", ["content"] = content } }.ToJsonString();
-                configured.Add("10.0.0.99");
+                configured.Add("10.0.0.99/32");
                 return Ok(snapshot);
             }
             if (request.Resource is kAddPath or kDeletePath)
@@ -96,19 +101,15 @@ internal sealed class OpnSenseWriteClientTest
         }
     }
 
-    /// <summary>Unsupported references and malformed CIDRs fail planning before even another valid member is written.</summary>
-    [TestCase("nested_alias", FirewallWriteErrorKind.Unsupported)]
-    [TestCase("10.0.0.1-10.0.0.9", FirewallWriteErrorKind.Unsupported)]
-    [TestCase("fe80::1%eth0", FirewallWriteErrorKind.Unsupported)]
-    [TestCase("1234", FirewallWriteErrorKind.Unsupported)]
+    /// <summary>A member without address or with an invalid one fails planning before even another valid member is written.</summary>
+    [TestCase(null, FirewallWriteErrorKind.Unsupported)]
+    [TestCase("fe80::1%eth0", FirewallWriteErrorKind.InvalidTaskData)]
     [TestCase("10.0.0.1/33", FirewallWriteErrorKind.InvalidTaskData)]
-    [TestCase("2001:db8::/129", FirewallWriteErrorKind.InvalidTaskData)]
-    [TestCase("10.0.0.1/-1", FirewallWriteErrorKind.InvalidTaskData)]
-    [TestCase("10.0.0.1/no-prefix", FirewallWriteErrorKind.InvalidTaskData)]
-    public async Task InvalidMembers_SendNothing(string member, FirewallWriteErrorKind kind)
+    [TestCase("nested_alias", FirewallWriteErrorKind.InvalidTaskData)]
+    public async Task InvalidMembers_SendNothing(string? ip, FirewallWriteErrorKind kind)
     {
         (FirewallWriter writer, FirewallSimulation simulation) = Writer();
-        WfImplTask task = Task(WfTaskType.group_modify, Member("10.0.0.2"), Member(member));
+        WfImplTask task = Task(WfTaskType.group_modify, Member("10.0.0.2"), Member(ip!));
         ModifyFirewallResult result = await writer.ModifyFirewall(task);
         using (Assert.EnterMultipleScope())
         {
@@ -116,6 +117,52 @@ internal sealed class OpnSenseWriteClientTest
             Assert.That(result.Error?.Kind, Is.EqualTo(kind));
             Assert.That(result.IsRetryable, Is.False);
             Assert.That(simulation.Requests, Is.Empty);
+        }
+    }
+
+    /// <summary>
+    /// A group FWO creates with named members holds their CIDR entries, so a later group modify removes exactly the entry it wrote.
+    /// </summary>
+    [Test]
+    public async Task CreatedGroup_CanBeModifiedLater()
+    {
+        (FirewallWriter writer, FirewallSimulation simulation) = Writer();
+        ModifyFirewallResult created = await writer.ModifyFirewall(Task(WfTaskType.group_create, Member("10.0.0.2"),
+            Member("10.0.1.1", ipEnd: "10.0.1.2")));
+        ModifyFirewallResult modified = await writer.ModifyFirewall(Task(WfTaskType.group_modify, Member("10.0.0.2", RequestAction.delete)));
+
+        RecordedFirewallRequest create = simulation.Requests.Single(request => request.Resource == kCreatePath);
+        RecordedFirewallRequest remove = simulation.Requests.Single(request => request.Resource == kDeletePath);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(created.Success, Is.True, created.Message);
+            Assert.That(modified.Success, Is.True, modified.Message);
+            Assert.That(JsonNode.Parse(create.Body!)!["alias"]!["content"]!.GetValue<string>(), Is.EqualTo("10.0.0.2/32\n10.0.1.1/32\n10.0.1.2/32"));
+            Assert.That(JsonNode.Parse(create.Body!)!["alias"]!["name"]!.GetValue<string>(), Is.EqualTo("grp"));
+            Assert.That(simulation.Requests.Count(request => request.Resource == kCreatePath), Is.EqualTo(1));
+            Assert.That(JsonNode.Parse(remove.Body!)!["address"]!.GetValue<string>(), Is.EqualTo("10.0.0.2/32"));
+        }
+    }
+
+    /// <summary>filter/apply answers the configd output, e.g. "OK\n\n"; only an error status fails the install.</summary>
+    [TestCase("{\"status\":\"OK\\n\\n\"}", true)]
+    [TestCase("{\"status\":\"ok\"}", true)]
+    [TestCase("{\"status\":\"Error (1)\\n\\n\"}", false)]
+    public async Task InstallPolicy_StatusOfFilterApply(string response, bool success)
+    {
+        GatewayDeviceSpecificSettings settings = new() { FwWriteInstallPolicy = true };
+        (FirewallWriter writer, FirewallSimulation simulation) = Writer(settings);
+        Func<RecordedFirewallRequest, RestResponse> original = simulation.Handler;
+        simulation.Handler = request => request.Resource == kApplyPath ? Ok(response) : original(request);
+        ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, Member("10.0.0.2")));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Success, Is.EqualTo(success), result.Message);
+            Assert.That(simulation.Requests.Last().Resource, Is.EqualTo(kApplyPath));
+            if (!success)
+            {
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Rejected));
+            }
         }
     }
 

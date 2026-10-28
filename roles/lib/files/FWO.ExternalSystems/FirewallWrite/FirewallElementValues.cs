@@ -5,6 +5,7 @@ using NetTools;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
 
 namespace FWO.ExternalSystems.FirewallWrite
 {
@@ -19,6 +20,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const int kIpProtoTcp = 6;
         private const int kIpProtoUdp = 17;
         private const string kRangeSeparator = "-";
+        private const char kScopeSeparator = '%';
 
         private static readonly Dictionary<int, string> ProtocolNames = new()
         {
@@ -106,27 +108,25 @@ namespace FWO.ExternalSystems.FirewallWrite
         }
 
         /// <summary>
-        /// Validates a literal IP/CIDR member for OPNsense's atomic alias utility. Alias references and ranges cannot be
-        /// changed persistently by that API and must be refused during planning, before any task calls are sent.
+        /// Returns the group entries of a member for vendors whose groups hold literal addresses (OPNsense): the canonical
+        /// CIDR blocks covering its address, host or range, so that later per-entry changes match the entries written at
+        /// creation. Members without an address cannot be written this way and are refused before anything is sent.
         /// </summary>
-        internal static string RequireAddressMember(string member)
+        public static List<string> GroupAddressEntries(WfImplElement element)
         {
-            int separator = member.IndexOf('/');
-            string addressText = separator < 0 ? member : member[..separator];
-            bool isAddress = (addressText.Contains('.') || addressText.Contains(':')) && !addressText.Contains('%')
-                && IPAddress.TryParse(addressText, out _);
-            if (!isAddress)
+            if (string.IsNullOrWhiteSpace(element.IpString))
             {
                 throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
-                    $"OPNsense member '{member}' is not a literal IP address or CIDR. Alias references and ranges cannot be changed atomically.");
+                    $"Group member '{element.Name}' has no IP address. Groups of this firewall hold literal addresses only.");
             }
-            IPAddress address = IPAddress.Parse(addressText);
-            if (separator >= 0 && (!int.TryParse(member[(separator + 1)..], NumberStyles.None, CultureInfo.InvariantCulture, out int prefix)
-                || prefix > address.GetAddressBytes().Length * kBitsPerByte))
+            string addressText = string.IsNullOrWhiteSpace(element.IpEnd)
+                ? element.IpString.Trim()
+                : element.IpString.StripOffNetmask().Trim() + kRangeSeparator + element.IpEnd.StripOffNetmask().Trim();
+            if (addressText.Contains(kScopeSeparator) || !IPAddressRange.TryParse(addressText, out IPAddressRange? range))
             {
-                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Invalid CIDR member '{member}'.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Group member '{element.Name}' has an invalid address '{addressText}'.");
             }
-            return member.ToLowerInvariant();
+            return CidrBlocks(range.Begin, range.End);
         }
 
         /// <summary>Returns the service name of an element, or a name built from protocol and ports if it has none.</summary>
@@ -228,6 +228,46 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 return startAddress.GetAddressBytes().Length * kBitsPerByte;
             }
+        }
+
+        /// <summary>
+        /// Splits an address range into the smallest list of aligned CIDR blocks that covers it exactly; at most two blocks
+        /// per address bit.
+        /// </summary>
+        private static List<string> CidrBlocks(IPAddress first, IPAddress last)
+        {
+            int addressBytes = first.GetAddressBytes().Length;
+            int addressBits = addressBytes * kBitsPerByte;
+            BigInteger current = ToNumber(first);
+            BigInteger end = ToNumber(last);
+            List<string> blocks = [];
+            while (current <= end)
+            {
+                int prefixLength = addressBits;
+                while (prefixLength > 0)
+                {
+                    BigInteger widerSize = BigInteger.One << (addressBits - prefixLength + 1);
+                    if (!(current % widerSize).IsZero || current + widerSize - 1 > end)
+                    {
+                        break;
+                    }
+                    prefixLength--;
+                }
+                blocks.Add($"{ToAddress(current, addressBytes)}/{prefixLength}");
+                current += BigInteger.One << (addressBits - prefixLength);
+            }
+            return blocks;
+        }
+
+        private static BigInteger ToNumber(IPAddress address) => new(address.GetAddressBytes(), isUnsigned: true, isBigEndian: true);
+
+        private static IPAddress ToAddress(BigInteger number, int addressBytes)
+        {
+            byte[] significantBytes = number.ToByteArray(isUnsigned: true, isBigEndian: true);
+            byte[] bytes = new byte[addressBytes];
+            int skippedBytes = Math.Max(0, significantBytes.Length - addressBytes);
+            significantBytes.AsSpan(skippedBytes).CopyTo(bytes.AsSpan(addressBytes - (significantBytes.Length - skippedBytes)));
+            return new IPAddress(bytes);
         }
 
         /// <summary>Dotted IPv4 netmask of a prefix length.</summary>

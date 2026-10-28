@@ -33,7 +33,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         private static readonly FirewallVendorProfile OpnSense = new("any", "pass", "block", "1", "0", false, false)
         {
             WritesMembersIndividually = true,
-            RequiresAddressMembers = true
+            GroupsHoldAddresses = true
         };
         private static readonly FirewallVendorProfile Azure = new("*", "Allow", "Deny", "", "", false, true)
         {
@@ -46,8 +46,11 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>Whether group members are added and removed with one call per member (FortiOS and OPNsense).</summary>
         public bool WritesMembersIndividually { get; init; }
 
-        /// <summary>Whether member changes accept only literal IP addresses or CIDRs, rather than alias references.</summary>
-        public bool RequiresAddressMembers { get; init; }
+        /// <summary>
+        /// Whether groups hold the members' addresses as CIDR entries instead of references to member objects (OPNsense:
+        /// the alias utility changes only literal entries, so groups are created the same way).
+        /// </summary>
+        public bool GroupsHoldAddresses { get; init; }
 
         /// <summary>
         /// Layer used when neither the rule position nor the imported rulebase links name one, instead of the gateway's

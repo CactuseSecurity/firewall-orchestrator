@@ -51,7 +51,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             await ResolveRuntimeValues(request);
             FirewallTemplateRenderer.EnsureResolved(request);
             RestResponse response = await SendRendered(request);
-            bool completed = IsSuccess(response) && ParseJson(response.Content)?[kStatus]?.ToString() == kStatusDone;
+            bool completed = IsSuccess(response) && Status(ParseJson(response.Content)) == kStatusDone;
             return ToResult(request, response, completed);
         }
 
@@ -59,7 +59,13 @@ namespace FWO.ExternalSystems.FirewallWrite
         private static bool ChangesMembers(RenderedFirewallRequest request) =>
             request.Operation is FirewallWriteOperation.GroupAddMembers or FirewallWriteOperation.GroupRemoveMembers;
 
-        /// <summary>Failed if the HTTP call failed, the API reports validation errors or a failed result.</summary>
+        /// <summary>
+        /// The "status" of an answer, trimmed and in lower case: configd actions answer e.g. "OK\n\n" (filter/apply),
+        /// the alias utility "done" and alias/reconfigure "ok".
+        /// </summary>
+        private static string? Status(JsonNode? content) => content?[kStatus]?.ToString().Trim().ToLowerInvariant();
+
+        /// <summary>Failed if the HTTP call failed, the API reports validation errors, a failed result or a status other than done/ok.</summary>
         protected override bool IsSuccess(RestResponse response)
         {
             if (!response.IsSuccessful)
@@ -68,7 +74,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
             JsonNode? content = ParseJson(response.Content);
             string? result = content?["result"]?.ToString();
-            string? status = content?[kStatus]?.ToString();
+            string? status = Status(content);
             return content?[kValidations] == null && result != kResultFailed && (status == null || status is kStatusDone or kStatusOk);
         }
 
@@ -83,7 +89,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 return (FirewallWriteErrorKind.Rejected, kValidations);
             }
             string? result = content?["result"]?.ToString();
-            string? status = content?[kStatus]?.ToString();
+            string? status = Status(content);
             if (status != null && status is not kStatusDone and not kStatusOk)
             {
                 return (FirewallWriteErrorKind.Rejected, status);

@@ -119,7 +119,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             List<WfImplElement> members = GroupMembers(implTask);
             List<WfImplElement> groupMembers = [.. members.Where(element => element.ImplAction != nameof(RequestAction.delete))];
-            List<FirewallWriteStep> steps = MemberObjectSteps(implTask, members, profile);
+            List<FirewallWriteStep> steps = GroupMemberObjectSteps(implTask, members, profile);
             steps.Add(GroupStep(FirewallWriteOperation.GroupCreate, implTask, profile, groupMembers));
             return steps;
         }
@@ -129,7 +129,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             List<WfImplElement> members = GroupMembers(implTask);
             List<WfImplElement> toAdd = [.. members.Where(element => MemberAddActions.Contains(element.ImplAction))];
             List<WfImplElement> toRemove = [.. members.Where(element => element.ImplAction == nameof(RequestAction.delete))];
-            List<FirewallWriteStep> steps = profile.RequiresAddressMembers ? [] : MemberObjectSteps(implTask, members, profile);
+            List<FirewallWriteStep> steps = GroupMemberObjectSteps(implTask, members, profile);
             steps.AddRange(MemberChangeSteps(FirewallWriteOperation.GroupAddMembers, implTask, profile, toAdd));
             steps.AddRange(MemberChangeSteps(FirewallWriteOperation.GroupRemoveMembers, implTask, profile, toRemove));
             return steps;
@@ -147,10 +147,23 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 return [GroupStep(operation, implTask, profile, members)];
             }
+            if (profile.GroupsHoldAddresses)
+            {
+                List<string> entries = MemberValues(members, profile).Names;
+                return [.. entries.Select(entry => GroupStep(operation, implTask, profile, SingleEntry(entry), SingleEntry(entry)))];
+            }
             return [.. members.Select(member => GroupStep(operation, implTask, profile, SingleMember(member)))];
         }
 
         private static List<WfImplElement> SingleMember(WfImplElement member) => [member];
+
+        private static List<string> SingleEntry(string entry) => [entry];
+
+        /// <summary>Member objects of a group task; none for vendors whose groups hold the members' addresses themselves.</summary>
+        private static List<FirewallWriteStep> GroupMemberObjectSteps(WfImplTask implTask, List<WfImplElement> members, FirewallVendorProfile profile)
+        {
+            return profile.GroupsHoldAddresses ? [] : MemberObjectSteps(implTask, members, profile);
+        }
 
         /// <summary>
         /// Creates or modifies the member objects that the task brings along with addresses, before they are used in a
@@ -171,28 +184,39 @@ namespace FWO.ExternalSystems.FirewallWrite
         private static FirewallWriteStep GroupStep(FirewallWriteOperation operation, WfImplTask implTask, FirewallVendorProfile profile,
             List<WfImplElement> members)
         {
-            string groupName = profile.NormalizeName(GroupName(implTask));
-            List<string> memberNames;
-            List<string> addresses = [];
+            (List<string> memberNames, List<string> addresses) = MemberValues(members, profile);
+            return GroupStep(operation, implTask, profile, memberNames, addresses);
+        }
+
+        /// <summary>
+        /// Returns how a group refers to its members and their addresses: by name, by name and address (Azure), or only
+        /// by their CIDR entries (OPNsense), which then also serve as the member names.
+        /// </summary>
+        private static (List<string> Names, List<string> Addresses) MemberValues(List<WfImplElement> members, FirewallVendorProfile profile)
+        {
+            if (profile.GroupsHoldAddresses)
+            {
+                List<string> entries = [.. members.SelectMany(FirewallElementValues.GroupAddressEntries).Distinct()];
+                return (entries, entries);
+            }
             if (profile.ReferencesObjectsByAddress)
             {
-                addresses = [.. members.Select(FirewallElementValues.AddressNotation).Distinct()];
-                memberNames = [.. members.Where(element => !string.IsNullOrWhiteSpace(element.Name)).Select(element => element.Name!.Trim()).Distinct()];
+                return ([.. members.Where(element => !string.IsNullOrWhiteSpace(element.Name)).Select(element => element.Name!.Trim()).Distinct()],
+                    [.. members.Select(FirewallElementValues.AddressNotation).Distinct()]);
             }
-            else
-            {
-                memberNames = [.. members.Select(element => FirewallElementValues.RequireName(element, profile)).Distinct()];
-            }
+            return ([.. members.Select(element => FirewallElementValues.RequireName(element, profile)).Distinct()], []);
+        }
+
+        private static FirewallWriteStep GroupStep(FirewallWriteOperation operation, WfImplTask implTask, FirewallVendorProfile profile,
+            List<string> memberNames, List<string> addresses)
+        {
+            string groupName = profile.NormalizeName(GroupName(implTask));
             List<string> renderedMembers = profile.ReferencesObjectsByAddress ? addresses : memberNames;
 
             FirewallWriteStep step = new(operation) { TargetName = groupName };
             if (renderedMembers.Count == 1)
             {
-                bool changesMembers = operation is FirewallWriteOperation.GroupAddMembers or FirewallWriteOperation.GroupRemoveMembers;
-                string member = profile.RequiresAddressMembers && changesMembers
-                    ? FirewallElementValues.RequireAddressMember(renderedMembers[0])
-                    : renderedMembers[0];
-                step.SetText(FirewallWritePlaceholders.MemberName, member);
+                step.SetText(FirewallWritePlaceholders.MemberName, renderedMembers[0]);
             }
             else
             {

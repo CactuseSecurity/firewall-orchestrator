@@ -21,7 +21,7 @@ internal static class DeviceSpecificSettingsMapper
     }
 
     private static readonly Dictionary<DeviceSpecificSettingKey, System.Reflection.PropertyInfo> Properties =
-        DeviceSpecificSettingKeys.All.ToDictionary(key => key, key =>
+        DeviceSpecificSettingKeys.All.Where(key => key.DtoGetter is null).ToDictionary(key => key, key =>
             typeof(GlobalDeviceSpecificSettings).GetProperty(char.ToUpperInvariant(key.DatabaseKey[0]) + key.DatabaseKey[1..])
                 ?? throw new InvalidOperationException($"Device specific setting '{key.DatabaseKey}' has no DTO mapping."));
 
@@ -30,6 +30,11 @@ internal static class DeviceSpecificSettingsMapper
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(value);
+        if (key.DtoSetter is not null)
+        {
+            key.DtoSetter(settings, value);
+            return;
+        }
         Properties[key].SetValue(settings, value);
     }
 
@@ -37,6 +42,6 @@ internal static class DeviceSpecificSettingsMapper
     public static object GetValue(GlobalDeviceSpecificSettings settings, DeviceSpecificSettingKey key)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        return Properties[key].GetValue(settings)!;
+        return key.DtoGetter is not null ? key.DtoGetter(settings) : Properties[key].GetValue(settings)!;
     }
 }

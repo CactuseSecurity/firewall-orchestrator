@@ -23,7 +23,8 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "securityProfiles", "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName",
         "autoPlanImplementation", "autoPlanImplementationForRules", "modellingCreateAppZones",
         "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
-        "modellingConnectionIdField", "modellingConnectionIdTemplate", "templates"
+        "modellingConnectionIdField", "modellingConnectionIdTemplate", "templates",
+        .. FirewallWriteKeys()
     ];
     private static readonly HashSet<string> kManagerConfigKeys =
     [
@@ -50,11 +51,28 @@ internal class DeviceSpecificSettingsGuardicoreTest
     private static readonly List<(string Value, string Name)> kConfiguredTicketSystemOptions = [("3", "Ticketing (3)")];
     private static readonly List<(string Value, string Name)> kOptionsWithRemovedTicketSystem = [("3", "Ticketing (3)"), ("9", "9")];
 
+    /// <summary>Database keys of the firewall write settings: connection settings, then endpoint and template per operation.</summary>
+    private static List<string> FirewallWriteKeys()
+    {
+        List<string> keys = ["fwWriteCheckCertificates", "fwWriteInstallPolicy", "fwWriteDeleteObjects"];
+        foreach (FirewallWriteOperation operation in Enum.GetValues<FirewallWriteOperation>())
+        {
+            keys.Add($"fwWriteEndpoint{operation}");
+            keys.Add($"fwWriteTemplate{operation}");
+        }
+        return keys;
+    }
+
+    private static bool IsFirewallWriteRequestKey(DeviceSpecificSettingKey key) =>
+        key.DatabaseKey.StartsWith("fwWriteEndpoint", StringComparison.Ordinal) || key.DatabaseKey.StartsWith("fwWriteTemplate", StringComparison.Ordinal);
+
     /// <summary>Levels at which the API accepts an override, per the issue's config column.</summary>
     private static List<DeviceSpecificScopeType> ConfigLevels(DeviceSpecificSettingKey key) => key.DatabaseKey switch
     {
         "templates" => kDeviceTypeLevel,
         "securityProfiles" => kDeviceLevels,
+        "fwWriteCheckCertificates" => kManagerLevels,
+        _ when IsFirewallWriteRequestKey(key) => kDeviceLevels,
         _ => kManagerConfigKeys.Contains(key.DatabaseKey) ? kManagerLevels : kAllLevels
     };
 
@@ -63,6 +81,8 @@ internal class DeviceSpecificSettingsGuardicoreTest
     {
         "templates" => kDeviceTypeLevel,
         "securityProfiles" => kDeviceUiLevels,
+        "fwWriteCheckCertificates" => kManagerLevels,
+        _ when IsFirewallWriteRequestKey(key) => kDeviceLevels,
         _ => kManagerConfigKeys.Contains(key.DatabaseKey) || kManagerUiKeys.Contains(key.DatabaseKey) ? kManagerLevels : kAllLevels
     };
 
@@ -143,6 +163,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
             DeviceSpecificFieldKind.SingleSelect => field.Options.Last().Value,
             DeviceSpecificFieldKind.ExtTicketSystem => "7",
             DeviceSpecificFieldKind.StringList => "profile1,profile2",
+            DeviceSpecificFieldKind.FirewallEndpoint => "POST custom-endpoint",
             _ => "custom value"
         };
         DeviceSpecificSettingsChangeSet changes = new(new DeviceSpecificSettingsScope

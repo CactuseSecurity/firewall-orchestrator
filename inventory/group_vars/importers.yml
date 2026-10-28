@@ -1,1 +1,4 @@
 importer_home: "{{ fworch_home }}/importer"
+# SSH host keys of firewalls imported over SSH (Cisco ASA), checked unless certificate checking of firewall
+# connections is switched off; the importer reads it at the fixed path fwo_const.SSH_KNOWN_HOSTS_FILE
+importer_ssh_known_hosts_file: "{{ fworch_conf_dir }}/ssh_known_hosts"

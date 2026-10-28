@@ -13,13 +13,16 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import fwo_globals
 from fw_modules.ciscoasa9.asa_normalize import normalize_config
 from fw_modules.ciscoasa9.asa_parser import parse_asa_config
 from fwo_base import write_native_config_to_file
-from fwo_exceptions import FwoImporterError
+from fwo_const import SSH_KNOWN_HOSTS_FILE
+from fwo_exceptions import FwoImporterError, SshHostKeyRejectedError
 from fwo_log import FWOLogger
 from models.fw_common import FwCommon
 from scrapli.driver import GenericDriver
+from scrapli.exceptions import ScrapliAuthenticationFailed
 
 if TYPE_CHECKING:
     from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -32,6 +35,29 @@ class CiscoAsa9Common(FwCommon):
         self, config_in: FwConfigManagerListController, import_state: ImportStateController
     ) -> tuple[int, FwConfigManagerListController]:
         return get_config(config_in, import_state)
+
+
+# managements whose unchecked host key was already reported, so the warning is written once per importer process
+_unchecked_host_key_mgm_ids_warned: set[int] = set()
+
+
+def _host_key_options(mgm_details: ManagementController) -> dict[str, Any]:
+    """
+    Return the scrapli options for checking the SSH host key of the device.
+
+    The host key is checked against SSH_KNOWN_HOSTS_FILE unless certificate checking of firewall connections is
+    switched off. Without the check any host is accepted, and the import credentials go to whoever answers.
+    """
+    if fwo_globals.verify_certs is False:
+        if mgm_details.mgm_id not in _unchecked_host_key_mgm_ids_warned:
+            _unchecked_host_key_mgm_ids_warned.add(mgm_details.mgm_id)
+            FWOLogger.warning(
+                f"SSH host key checking is switched off for management {mgm_details.name} ({mgm_details.hostname}): "
+                "any host key is accepted, so the import credentials can be intercepted. Add the verified host key "
+                f'to {SSH_KNOWN_HOSTS_FILE} and switch on "check certificates of firewall connections".'
+            )
+        return {"auth_strict_key": False}
+    return {"auth_strict_key": True, "ssh_known_hosts_file": SSH_KNOWN_HOSTS_FILE}
 
 
 def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
@@ -50,11 +76,21 @@ def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
         "port": mgm_details.port,
         "auth_username": mgm_details.import_user,
         "auth_password": mgm_details.secret,
-        "auth_strict_key": False,
+        **_host_key_options(mgm_details),
         "transport_options": {"open_cmd": ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]},
     }
     conn = GenericDriver(**device)
-    conn.open()
+    try:
+        conn.open()
+    except ScrapliAuthenticationFailed as e:
+        # ssh stops before the authentication, so no credential has been sent to the unverified host
+        if "host key verification failed" in str(e).lower():
+            raise SshHostKeyRejectedError(
+                f"SSH host key of {mgm_details.hostname}:{mgm_details.port} is unknown or has changed, the import "
+                f"credentials were not sent. Add the verified host key to {SSH_KNOWN_HOSTS_FILE} on the importer "
+                "host, see documentation/certificates.md."
+            ) from None
+        raise
     return conn
 
 
@@ -267,6 +303,9 @@ def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool,
 
         return config
 
+    except SshHostKeyRejectedError:
+        _safe_close_connection(conn)
+        raise
     except Exception as e:
         _safe_close_connection(conn)
         error_msg = _handle_connection_error(e, mgm_details, attempt, max_retries)
@@ -299,6 +338,9 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
 
         try:
             return _attempt_connection(mgm_details, is_virtual_asa, attempt, max_retries)
+        except SshHostKeyRejectedError:
+            FWOLogger.error(f"not retrying the connection to {mgm_details.hostname}: its SSH host key was rejected")
+            raise
         except FwoImporterError as _:
             if attempt >= max_retries - 1:
                 raise

@@ -154,6 +154,10 @@ class FwoImporterError(Exception):
         super().__init__(message)
 
 
+class SshHostKeyRejectedError(FwoImporterError):
+    """Custom exception to signal that the SSH host key of a firewall is unknown or has changed."""
+
+
 class FwoImporterErrorInconsistenciesError(Exception):
     """Custom exception to signal a failed import attempt."""
 

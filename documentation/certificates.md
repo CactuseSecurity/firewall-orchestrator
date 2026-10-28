@@ -471,6 +471,31 @@ a certificate that is still not trusted fails the connection instead of being
 accepted silently. Turning the checks on is planned to become part of a later
 upgrade, so add the CAs now.
 
+### SSH host keys of Cisco ASA devices
+
+Cisco ASA devices are imported over SSH, so instead of a certificate the importer checks
+the device's SSH host key against `/usr/local/fworch/etc/ssh_known_hosts`
+(`importer_ssh_known_hosts_file`) on the importer host. The installer creates the file
+empty and never overwrites it. The same switch as for TLS, `importCheckCertificates`,
+decides whether the host key is checked. While it is on, an import from a device whose key
+is not in the file, or whose key has changed, fails at once with an import error before
+any credential is sent.
+
+Add the key of each device after checking it, for example against the key shown on the
+device console:
+
+```console
+# fetch the key (use the SSH port of the management) and show its fingerprint
+ssh-keyscan -p 22 asa.example.com > asa.keys
+ssh-keygen -lf asa.keys
+# after comparing the fingerprint with the device, add it
+sudo tee -a /usr/local/fworch/etc/ssh_known_hosts < asa.keys
+```
+
+No restart is needed, the file is read on every connection. When a device gets a new
+key, remove the old line (`sudo ssh-keygen -R asa.example.com -f /usr/local/fworch/etc/ssh_known_hosts`)
+and add the verified new key the same way.
+
 ## Trusting the internal CA in a browser
 
 A browser opening the FWO UI has to trust the internal CA, unless that host serves an

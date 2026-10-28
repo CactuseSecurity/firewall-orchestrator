@@ -1,0 +1,66 @@
+@using FWO.Basics
+@using FWO.Config.Api.Data
+
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+@implements IDisposable
+
+@* Upgraded installations keep certificate checking switched off where it was off before; nothing else would show it. *@
+@if (uncheckedSwitches.Count > 0)
+{
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+        <div class="alert alert-warning small my-1" role="alert" data-testid="unchecked-certificates-warning">
+            <span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5018"))
+            @foreach (string switchKey in uncheckedSwitches)
+            {
+                <a class="ms-2" href="@kSettingsPages[switchKey]">@(userConfig.GetText(kConnectionTexts[switchKey]))</a>
+            }
+        </div>
+    </ExecutionModeAuthorizeView>
+}
+
+@code
+{
+    private static readonly Dictionary<string, string> kConnectionTexts = new()
+    {
+        [ConfigData.kImportCheckCertificatesKey] = "cert_check_firewalls",
+        [ConfigData.kExtTicketSystemsCheckCertificatesKey] = "cert_check_ticket_systems",
+        [ConfigData.kEmailCheckCertificatesKey] = "cert_check_email"
+    };
+
+    private static readonly Dictionary<string, string> kSettingsPages = new()
+    {
+        [ConfigData.kImportCheckCertificatesKey] = "/settings/importer",
+        [ConfigData.kExtTicketSystemsCheckCertificatesKey] = "/settings/exttickettemplates",
+        [ConfigData.kEmailCheckCertificatesKey] = "/settings/email"
+    };
+
+    private List<string> uncheckedSwitches = [];
+
+    /// <summary>
+    /// Reads the certificate checking switches and follows their changes.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        uncheckedSwitches = globalConfig.GetUncheckedCertificateSwitches();
+        globalConfig.OnChange += OnConfigChange;
+    }
+
+    /// <summary>
+    /// Re-reads the switches when the global config changed, e.g. after an admin switched a check on.
+    /// </summary>
+    private void OnConfigChange(Config _, ConfigItem[] __)
+    {
+        uncheckedSwitches = globalConfig.GetUncheckedCertificateSwitches();
+        Task.Run(async () => await InvokeAsync(StateHasChanged));
+    }
+
+    /// <summary>
+    /// Stops following config changes.
+    /// </summary>
+    public void Dispose()
+    {
+        globalConfig.OnChange -= OnConfigChange;
+    }
+}

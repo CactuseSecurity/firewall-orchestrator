@@ -431,6 +431,46 @@ curl --request POST \
 The client private key is readable only by the FWO service account, so run such
 commands as that user or as root.
 
+## Certificates of firewall managements, ticket systems and email servers
+
+FWO checks the TLS certificate of every external system it connects to against the
+operating-system trust store of the host that opens the connection. One switch per
+connection type decides whether the check is done:
+
+| Switch (Settings page) | Connections | Hosts that open them |
+|---|---|---|
+| `importCheckCertificates` (Import) | firewall imports, autodiscovery, Check Point change requests | importer; middleware and UI for autodiscovery and change requests |
+| `extTicketSystemsCheckCertificates` (External ticket templates) | Tufin SecureChange and Check Point ticket systems | middleware |
+| `emailCheckCertificates` (Email) | SMTP server with StartTls or Tls | middleware; UI for the test email |
+
+A switched-off check accepts any server certificate, so anyone with a network position
+between FWO and the system can impersonate it, receive the credentials FWO sends, and
+feed FWO forged configuration data or ticket states. New installations switch all
+checks on. Upgrades from versions before 9.7.1 keep a check off where it was off
+before. As long as a check is off, the installer prints a `SECURITY WARNING` at the
+end of an upgrade, admins see a warning at the top of every UI page, and the
+importer and middleware log a warning once per endpoint.
+
+To switch a check on for a system that presents a self-signed certificate or one from
+a private CA, add the issuing CA (PEM) to the trust store of the hosts listed above
+and restart the FWO services there:
+
+```console
+# Debian / Ubuntu
+sudo cp issuing-ca.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates
+# Red Hat / Rocky
+sudo cp issuing-ca.crt /etc/pki/ca-trust/source/anchors/
+sudo update-ca-trust extract
+
+sudo systemctl restart fworch-importer-api fworch-middleware fworch-ui
+```
+
+Then switch the check on in the settings and watch the import and middleware logs:
+a certificate that is still not trusted fails the connection instead of being
+accepted silently. Turning the checks on is planned to become part of a later
+upgrade, so add the CAs now.
+
 ## Trusting the internal CA in a browser
 
 A browser opening the FWO UI has to trust the internal CA, unless that host serves an

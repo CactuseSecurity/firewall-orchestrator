@@ -21,6 +21,7 @@
 - importer: sub-managements set to "do not import" are skipped by the import of their super manager instead of having all their rules and objects marked removed (FortiManager ADOMs, Check Point domains; GHSA-hj46-639g-mxq2). A forced import still imports them
 - importer: remove the retention cleanup of old imports. It never worked since 9.0 and rolled back every import of a management that had not been imported within the data retention time; deleting old import_control rows would also cascade into rules and objects that are still in use. The data retention time remains unenforced, as the settings help already states
 - external ticket systems (Tufin SecureChange, Check Point): all values inserted into the JSON templates (reason, comments, subject, requester, group, object and service names, ...) are JSON-escaped, so quotes or backslashes in requester text can neither break the request nor add fields to it (GHSA-79jw-fv66-39cw)
+- certificate checking: while the certificate check of firewall connections, external ticket systems or the email server is switched off (kept on upgrades from versions before 9.7.1), admins see a warning at the top of every page and the database upgrade prints a SECURITY WARNING listing the unchecked switches; "suppress certificate warnings" is off for new installations; documentation/certificates.md describes how to add the CA of an external system to the host trust stores (GHSA-xg2m-2m7v-v6hm)
 
 ## 9.8.2 - 24.10.2026
 - middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`

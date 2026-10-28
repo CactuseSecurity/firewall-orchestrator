@@ -53,3 +53,28 @@
   loop: "{{ upgrade_files | community.general.version_sort }}"
   loop_control:
       loop_var: upgrade_file
+
+# upgrades keep certificate checking switched off where it was off before (9.7.1), so say which connections are
+# still unchecked; the UI shows the same to admins until the checks are switched on
+- name: read the certificate checking switches that are off
+  community.postgresql.postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >-
+          SELECT config_key FROM config
+          WHERE config_user = 0 AND config_value = 'False'
+            AND config_key IN ('importCheckCertificates', 'extTicketSystemsCheckCertificates', 'emailCheckCertificates')
+          ORDER BY config_key
+  register: unchecked_certificate_switches
+  changed_when: false
+  become: true
+  become_user: postgres
+
+- name: warn about connections without certificate checking
+  debug:
+      msg: >-
+          SECURITY WARNING: certificate checking is switched off for
+          {{ unchecked_certificate_switches.query_result | map(attribute='config_key') | join(', ') }}.
+          These connections accept any server certificate, so the credentials FWO sends over them can be
+          intercepted. Add the issuing CAs to the trust store of the FWO hosts and switch the checks on in the
+          settings, see documentation/certificates.md.
+  when: unchecked_certificate_switches.query_result | length > 0

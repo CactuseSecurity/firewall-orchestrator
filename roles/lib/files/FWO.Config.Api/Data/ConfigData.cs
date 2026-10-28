@@ -16,6 +16,13 @@ namespace FWO.Config.Api.Data
 
     public class ConfigData : ICloneable
     {
+        /// <summary>Config key of the certificate checking switch for firewall connections.</summary>
+        public const string kImportCheckCertificatesKey = "importCheckCertificates";
+        /// <summary>Config key of the certificate checking switch for external ticket systems.</summary>
+        public const string kExtTicketSystemsCheckCertificatesKey = "extTicketSystemsCheckCertificates";
+        /// <summary>Config key of the certificate checking switch for the email server.</summary>
+        public const string kEmailCheckCertificatesKey = "emailCheckCertificates";
+
         public readonly bool Editable;
 
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
@@ -74,11 +81,11 @@ namespace FWO.Config.Api.Data
         /// Whether TLS certificates of all firewall management connections are checked: importer, autodiscovery
         /// and Check Point change requests.
         /// </summary>
-        [JsonProperty("importCheckCertificates"), JsonPropertyName("importCheckCertificates")]
+        [JsonProperty(kImportCheckCertificatesKey), JsonPropertyName(kImportCheckCertificatesKey)]
         public bool ImportCheckCertificates { get; set; } = true;
 
         [JsonProperty("importSuppressCertificateWarnings"), JsonPropertyName("importSuppressCertificateWarnings")]
-        public bool ImportSuppressCertificateWarnings { get; set; } = true;
+        public bool ImportSuppressCertificateWarnings { get; set; } = false;
 
         [JsonProperty("autoDiscoverSleepTime"), JsonPropertyName("autoDiscoverSleepTime")]
         public int AutoDiscoverSleepTime { get; set; } = 24;
@@ -235,7 +242,7 @@ namespace FWO.Config.Api.Data
         /// <summary>
         /// Whether the TLS certificate of the email server is checked (StartTls and Tls only).
         /// </summary>
-        [JsonProperty("emailCheckCertificates"), JsonPropertyName("emailCheckCertificates")]
+        [JsonProperty(kEmailCheckCertificatesKey), JsonPropertyName(kEmailCheckCertificatesKey)]
         public bool EmailCheckCertificates { get; set; } = true;
 
         [JsonProperty("useDummyEmailAddress"), JsonPropertyName("useDummyEmailAddress")]
@@ -581,7 +588,7 @@ namespace FWO.Config.Api.Data
         /// <summary>
         /// Whether TLS certificates of all external ticket systems are checked.
         /// </summary>
-        [JsonProperty("extTicketSystemsCheckCertificates"), JsonPropertyName("extTicketSystemsCheckCertificates")]
+        [JsonProperty(kExtTicketSystemsCheckCertificatesKey), JsonPropertyName(kExtTicketSystemsCheckCertificatesKey)]
         public bool ExtTicketSystemsCheckCertificates { get; set; } = true;
 
         /// <summary>
@@ -591,6 +598,29 @@ namespace FWO.Config.Api.Data
         public ExternalCertificateChecks GetExternalCertificateChecks()
         {
             return new ExternalCertificateChecks(ImportCheckCertificates, ExtTicketSystemsCheckCertificates);
+        }
+
+        /// <summary>
+        /// Lists the certificate checking switches that are off, so that the connections they cover accept any
+        /// server certificate. Upgraded installations keep a switch off when it was off before.
+        /// </summary>
+        /// <returns>The config keys of the switches that are off, in a fixed order; empty when all are on.</returns>
+        public List<string> GetUncheckedCertificateSwitches()
+        {
+            List<string> uncheckedSwitches = [];
+            if (!ImportCheckCertificates)
+            {
+                uncheckedSwitches.Add(kImportCheckCertificatesKey);
+            }
+            if (!ExtTicketSystemsCheckCertificates)
+            {
+                uncheckedSwitches.Add(kExtTicketSystemsCheckCertificatesKey);
+            }
+            if (!EmailCheckCertificates)
+            {
+                uncheckedSwitches.Add(kEmailCheckCertificatesKey);
+            }
+            return uncheckedSwitches;
         }
 
         [JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]

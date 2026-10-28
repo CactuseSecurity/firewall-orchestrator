@@ -75,6 +75,11 @@ namespace FWO.Middleware.Server.Controllers
                     return result;
                 }
 
+                if (!TryRestrictNotificationPlaceholders(parameters, result))
+                {
+                    return result;
+                }
+
                 long lockTicketId = GetTicketId(parameters, scope);
                 if (lockTicketId <= 0)
                 {
@@ -101,6 +106,25 @@ namespace FWO.Middleware.Server.Controllers
         private static void LogActionRequest(WorkflowActionParameters parameters)
         {
             Log.WriteDebug("Workflow Actions", $"Received action execution request. Scope: {parameters.Scope}, ActionId: {parameters.ActionId}, ObjectId: {parameters.ObjectId}, TicketId: {parameters.TicketId}, State: {parameters.OldStateId}->{parameters.NewStateId}, Phase: {parameters.Phase}.");
+        }
+
+        /// <summary>
+        /// Replaces the caller's notification placeholder values by what the caller may decide: the user name comes from
+        /// the token, links have to lead into the FWO UI, reason and requester come from the workflow object.
+        /// </summary>
+        /// <returns>False when the values were rejected; the warning is set in the result.</returns>
+        private bool TryRestrictNotificationPlaceholders(WorkflowActionParameters parameters, WorkflowActionResult result)
+        {
+            string callerName = User.FindFirstValue("unique_name") ?? "";
+            parameters.NotificationPlaceholders = NotificationPlaceholderResolver.RestrictCallerPlaceholderData(
+                parameters.NotificationPlaceholders, callerName, globalConfig.UiHostName, out string? error);
+            if (error == null)
+            {
+                return true;
+            }
+
+            SetWarning(result, error);
+            return false;
         }
 
         private static bool TryParseScope(WorkflowActionParameters parameters, WorkflowActionResult result, out WfObjectScopes scope)

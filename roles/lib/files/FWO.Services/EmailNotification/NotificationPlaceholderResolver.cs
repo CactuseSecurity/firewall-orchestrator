@@ -34,21 +34,41 @@ namespace FWO.Services
         }
 
         /// <summary>
+        /// Maximum length of a caller-provided placeholder text such as an interface or app name.
+        /// </summary>
+        public const int kMaxCallerTextLength = 1000;
+
+        /// <summary>
+        /// Maximum length of the caller-provided content of a workflow email, e.g. the reason for rejecting an interface.
+        /// </summary>
+        public const int kMaxCallerContentLength = 10000;
+
+        /// <summary>
         /// Replaces owner and time interval placeholders.
         /// </summary>
-        public static string ReplaceOwnerPlaceholders(string text, FwoOwner? owner, string timeIntervalText = "")
+        /// <param name="text">Subject or body template.</param>
+        /// <param name="owner">Owner whose name and id are inserted.</param>
+        /// <param name="timeIntervalText">Text for the time interval placeholder.</param>
+        /// <param name="isHtmlBody">True when the text is an HTML body, so that every value is HTML-encoded.</param>
+        public static string ReplaceOwnerPlaceholders(string text, FwoOwner? owner, string timeIntervalText = "", bool isHtmlBody = false)
         {
+            Func<string?, string> insert = SelectValueEncoding(isHtmlBody);
             return text
-                .Replace(Placeholder.APPNAME, owner?.Name ?? "")
-                .Replace(Placeholder.APPID, owner?.ExtAppId ?? "")
-                .Replace(Placeholder.TIME_INTERVAL, timeIntervalText);
+                .Replace(Placeholder.APPNAME, insert(owner?.Name))
+                .Replace(Placeholder.APPID, insert(owner?.ExtAppId))
+                .Replace(Placeholder.TIME_INTERVAL, insert(timeIntervalText));
         }
 
         /// <summary>
         /// Replaces workflow placeholders.
         /// </summary>
+        /// <param name="text">Subject or body template.</param>
+        /// <param name="statefulObject">Workflow object the values are derived from.</param>
+        /// <param name="owner">Owner of the workflow object, if known.</param>
+        /// <param name="placeholderData">Additional values, e.g. of the interface a request is about.</param>
+        /// <param name="isHtmlBody">True when the text is an HTML body, so that every value is HTML-encoded and links are rendered as anchors.</param>
         public static string ReplaceWorkflowPlaceholders(string text, WfStatefulObject statefulObject, FwoOwner? owner,
-            NotificationPlaceholderData? placeholderData = null, bool renderHtmlLinks = false)
+            NotificationPlaceholderData? placeholderData = null, bool isHtmlBody = false)
         {
             NotificationPlaceholderValues values = new()
             {
@@ -58,27 +78,114 @@ namespace FWO.Services
                 RequestDate = GetWorkflowRequestDate(statefulObject)
             };
             values = ApplyWorkflowPlaceholderData(values, placeholderData);
-            return ReplaceNotificationPlaceholders(text, values, renderHtmlLinks);
+            return ReplaceNotificationPlaceholders(text, values, isHtmlBody);
         }
 
         /// <summary>
         /// Replaces notification placeholders.
         /// </summary>
-        public static string ReplaceNotificationPlaceholders(string text, NotificationPlaceholderValues values, bool renderHtmlLinks = false)
+        /// <param name="text">Subject or body template.</param>
+        /// <param name="values">The values to insert.</param>
+        /// <param name="isHtmlBody">True when the text is an HTML body, so that every value is HTML-encoded and links are rendered as anchors.</param>
+        public static string ReplaceNotificationPlaceholders(string text, NotificationPlaceholderValues values, bool isHtmlBody = false)
         {
+            Func<string?, string> insert = SelectValueEncoding(isHtmlBody);
             return text
-                .Replace(Placeholder.APPNAME, values.Application.Name ?? "")
-                .Replace(Placeholder.APPID, values.Application.ExtAppId ?? "")
-                .Replace(Placeholder.REQUESTING_APPNAME, values.RequestingOwner?.Name ?? "")
-                .Replace(Placeholder.REQUESTING_APPID, values.RequestingOwner?.ExtAppId ?? "")
-                .Replace(Placeholder.REQUESTER, FirstNonEmpty(values.RequesterName, values.RequestingOwner?.Name))
-                .Replace(Placeholder.REQUESTDATE, values.RequestDate)
-                .Replace(Placeholder.INTERFACE_NAME, values.InterfaceName)
-                .Replace(Placeholder.INTERFACE_LINK, RenderLink(values.InterfaceLinkUrl, values.InterfaceLinkText, values.InterfaceLinkName, renderHtmlLinks))
-                .Replace(Placeholder.NEW_INTERFACE_NAME, values.NewInterfaceName)
-                .Replace(Placeholder.NEW_INTERFACE_LINK, RenderLink(values.NewInterfaceLinkUrl, values.NewInterfaceLinkText, values.NewInterfaceLinkName, renderHtmlLinks))
-                .Replace(Placeholder.REASON, values.Reason)
-                .Replace(Placeholder.USER_NAME, values.UserName);
+                .Replace(Placeholder.APPNAME, insert(values.Application.Name))
+                .Replace(Placeholder.APPID, insert(values.Application.ExtAppId))
+                .Replace(Placeholder.REQUESTING_APPNAME, insert(values.RequestingOwner?.Name))
+                .Replace(Placeholder.REQUESTING_APPID, insert(values.RequestingOwner?.ExtAppId))
+                .Replace(Placeholder.REQUESTER, insert(FirstNonEmpty(values.RequesterName, values.RequestingOwner?.Name)))
+                .Replace(Placeholder.REQUESTDATE, insert(values.RequestDate))
+                .Replace(Placeholder.INTERFACE_NAME, insert(values.InterfaceName))
+                .Replace(Placeholder.INTERFACE_LINK, RenderLink(values.InterfaceLinkUrl, values.InterfaceLinkText, values.InterfaceLinkName, isHtmlBody))
+                .Replace(Placeholder.NEW_INTERFACE_NAME, insert(values.NewInterfaceName))
+                .Replace(Placeholder.NEW_INTERFACE_LINK, RenderLink(values.NewInterfaceLinkUrl, values.NewInterfaceLinkText, values.NewInterfaceLinkName, isHtmlBody))
+                .Replace(Placeholder.REASON, insert(values.Reason))
+                .Replace(Placeholder.USER_NAME, insert(values.UserName));
+        }
+
+        /// <summary>
+        /// Restricts placeholder values sent by a caller of the workflow action endpoint to what the caller may decide.
+        /// The user name is the authenticated caller, link targets have to lead into the FWO UI, and reason and requester
+        /// are always taken from the workflow object. All remaining values are free text, which is encoded when inserted.
+        /// </summary>
+        /// <param name="data">The values sent by the caller; null when none were sent.</param>
+        /// <param name="callerName">Name of the authenticated caller.</param>
+        /// <param name="uiHostName">Configured base URL of the FWO UI.</param>
+        /// <param name="error">Why the values were rejected; null when they were accepted.</param>
+        /// <returns>The restricted values; null when none were sent or they were rejected.</returns>
+        public static NotificationPlaceholderData? RestrictCallerPlaceholderData(NotificationPlaceholderData? data, string callerName,
+            string uiHostName, out string? error)
+        {
+            error = FindOversizedCallerValue(data);
+            if (data == null || error != null)
+            {
+                return null;
+            }
+
+            return new NotificationPlaceholderData
+            {
+                RequestingAppName = data.RequestingAppName,
+                RequestingAppId = data.RequestingAppId,
+                InterfaceName = data.InterfaceName,
+                InterfaceLinkText = data.InterfaceLinkText,
+                InterfaceLinkName = data.InterfaceLinkName,
+                InterfaceLinkUrl = IsUiLink(data.InterfaceLinkUrl, uiHostName) ? data.InterfaceLinkUrl : "",
+                NewInterfaceName = data.NewInterfaceName,
+                NewInterfaceLinkText = data.NewInterfaceLinkText,
+                NewInterfaceLinkName = data.NewInterfaceLinkName,
+                NewInterfaceLinkUrl = IsUiLink(data.NewInterfaceLinkUrl, uiHostName) ? data.NewInterfaceLinkUrl : "",
+                Content = data.Content,
+                UserName = callerName,
+                RequestDate = data.RequestDate
+            };
+        }
+
+        /// <summary>
+        /// True for an absolute http(s) URL below the configured FWO UI base URL.
+        /// </summary>
+        /// <param name="url">The link target to check.</param>
+        /// <param name="uiHostName">Configured base URL of the FWO UI.</param>
+        public static bool IsUiLink(string? url, string uiHostName)
+        {
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(uiHostName)
+                || !Uri.TryCreate(url, UriKind.Absolute, out Uri? link) || !Uri.TryCreate(uiHostName, UriKind.Absolute, out Uri? uiBase))
+            {
+                return false;
+            }
+
+            bool isHttp = link.Scheme == Uri.UriSchemeHttps || link.Scheme == Uri.UriSchemeHttp;
+            bool sameOrigin = string.Equals(link.GetLeftPart(UriPartial.Authority), uiBase.GetLeftPart(UriPartial.Authority), StringComparison.OrdinalIgnoreCase);
+            string basePath = uiBase.AbsolutePath.TrimEnd('/') + "/";
+            return isHttp && sameOrigin && link.AbsolutePath.StartsWith(basePath, StringComparison.Ordinal);
+        }
+
+        private static string? FindOversizedCallerValue(NotificationPlaceholderData? data)
+        {
+            if (data == null)
+            {
+                return null;
+            }
+            if (data.Content.Length > kMaxCallerContentLength)
+            {
+                return $"Notification content must not be longer than {kMaxCallerContentLength} characters.";
+            }
+
+            List<string> texts =
+            [
+                data.RequestingAppName, data.RequestingAppId, data.InterfaceName, data.InterfaceLinkText, data.InterfaceLinkName,
+                data.InterfaceLinkUrl, data.NewInterfaceName, data.NewInterfaceLinkText, data.NewInterfaceLinkName,
+                data.NewInterfaceLinkUrl, data.Reason, data.UserName, data.RequesterName, data.RequestDate
+            ];
+            return texts.Any(text => (text?.Length ?? 0) > kMaxCallerTextLength)
+                ? $"Notification placeholder values must not be longer than {kMaxCallerTextLength} characters."
+                : null;
+        }
+
+        private static Func<string?, string> SelectValueEncoding(bool isHtmlBody)
+        {
+            return isHtmlBody ? HtmlOutputEncoder.EncodeText : value => value ?? "";
         }
 
         private static FwoOwner? GetWorkflowOwner(WfStatefulObject statefulObject)

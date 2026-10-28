@@ -756,7 +756,7 @@ namespace FWO.Test
                 (await (Task<NotificationPlaceholderResolver.NotificationPlaceholderValues>)(buildPlaceholderValues.Invoke(dailyCheckJob, [ticket, owner])
                     ?? throw new InvalidOperationException("BuildRequestPlaceholderValues returned null task.")));
             string body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
-                string.Join("|", ExpectedModUnansweredReqEmailBodyPlaceholders), values, renderHtmlLinks: true);
+                string.Join("|", ExpectedModUnansweredReqEmailBodyPlaceholders), values, isHtmlBody: true);
 
             Assert.That(body, Is.EqualTo(
                 $"Requester A|02.01.2025|Requesting App|REQ-7|Owner A|APP-42|<a target=\"_blank\" href=\"https://fwo.example/{PageName.Modelling}/APP-42/123\">Request Interface</a>"));
@@ -800,7 +800,7 @@ namespace FWO.Test
                     Placeholder.USER_NAME,
                     Placeholder.REQUESTDATE,
                     Placeholder.INTERFACE_LINK
-                }), values, renderHtmlLinks: true);
+                }), values, isHtmlBody: true);
 
             Assert.That(body, Is.EqualTo(
                 $"Requester A|Interface Request|||Requester A|02.01.2025|<a target=\"_blank\" href=\"https://fwo.example/{PageName.Modelling}/APP-42/123\">Request Interface</a>"));

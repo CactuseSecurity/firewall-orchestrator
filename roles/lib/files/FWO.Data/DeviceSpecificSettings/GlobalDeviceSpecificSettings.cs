@@ -81,6 +81,21 @@ public class GlobalDeviceSpecificSettings
 
     public string Templates { get; set; } = "{}";
 
+    /// <summary>Whether the server certificate of the firewall management is checked when writing to the firewall.</summary>
+    public bool FwWriteCheckCertificates { get; set; } = true;
+
+    /// <summary>Whether the policy is installed on the gateway after a firewall write.</summary>
+    public bool FwWriteInstallPolicy { get; set; } = false;
+
+    /// <summary>Whether objects, services and groups are deleted on the firewall; rules are always deleted when a task says so.</summary>
+    public bool FwWriteDeleteObjects { get; set; } = false;
+
+    /// <summary>Endpoint overrides ("METHOD path") per firewall write operation; a missing or empty entry uses the shipped default.</summary>
+    public Dictionary<FirewallWriteOperation, string> FwWriteEndpoints { get; set; } = [];
+
+    /// <summary>Body template overrides per firewall write operation; a missing or empty entry uses the shipped default.</summary>
+    public Dictionary<FirewallWriteOperation, string> FwWriteTemplates { get; set; } = [];
+
     /// <summary>Creates global settings.</summary>
     public GlobalDeviceSpecificSettings() => Scope.ScopeType = DeviceSpecificScopeType.Global;
 }

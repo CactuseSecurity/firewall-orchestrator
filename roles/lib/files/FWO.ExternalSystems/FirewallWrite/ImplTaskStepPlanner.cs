@@ -149,7 +149,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
             if (profile.GroupsHoldAddresses)
             {
-                List<string> entries = MemberValues(members, profile).Names;
+                List<string> entries = [.. MemberValues(members, profile).Names.Select(FirewallElementValues.AddressUtilityEntry)];
                 return [.. entries.Select(entry => GroupStep(operation, implTask, profile, SingleEntry(entry), SingleEntry(entry)))];
             }
             return [.. members.Select(member => GroupStep(operation, implTask, profile, SingleMember(member)))];

@@ -19,6 +19,9 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const string kStatus = "status";
         private const string kStatusDone = "done";
         private const string kStatusOk = "ok";
+        private const string kAliasTypeHost = "host";
+        private const string kAliasTypeNetwork = "network";
+        private const char kPrefixSeparator = '/';
 
         private string? basicAuthentication;
 
@@ -40,6 +43,30 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             request.AddHeader("Authorization", $"Basic {basicAuthentication ?? throw new FirewallWriteException(FirewallWriteErrorKind.Configuration, "OPNsense API key missing.")}");
         }
+
+        /// <summary>
+        /// Host aliases hold single addresses only: a task that adds or removes a network in one is refused before anything
+        /// is sent, because OPNsense would reject the addition and report the removal as done without changing the alias.
+        /// </summary>
+        public override async Task Prepare(IReadOnlyList<RenderedFirewallRequest> requests)
+        {
+            IEnumerable<RenderedFirewallRequest> networkChanges = requests
+                .Where(request => ChangesMembers(request) && MemberEntry(request).Contains(kPrefixSeparator))
+                .DistinctBy(request => request.Step.TargetName);
+            foreach (RenderedFirewallRequest request in networkChanges)
+            {
+                string uuid = await LookupAliasUuid(request);
+                if (await AliasType(uuid, request) == kAliasTypeHost)
+                {
+                    throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
+                        $"OPNsense alias '{request.Step.TargetName}' has type host and cannot hold the network '{MemberEntry(request)}'.");
+                }
+            }
+        }
+
+        /// <summary>The single address or network a per-address utility call adds or removes.</summary>
+        private static string MemberEntry(RenderedFirewallRequest request) =>
+            request.Step.Values.TryGetValue(FirewallWritePlaceholders.MemberName, out FirewallPlaceholderValue? entry) ? entry.Value : "";
 
         /// <summary>Per-address utility calls must explicitly report completion, including when HTTP status is 200.</summary>
         public override async Task<FirewallStepResult> Execute(RenderedFirewallRequest request)
@@ -138,20 +165,25 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>Only host/network aliases persist address changes; external and other alias types are refused.</summary>
         private async Task EnsurePersistentAlias(string uuid, RenderedFirewallRequest request)
         {
+            if (await AliasType(uuid, request) is not kAliasTypeHost and not kAliasTypeNetwork)
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
+                    $"OPNsense alias '{request.Step.TargetName}' must have type host or network for persistent per-address changes.");
+            }
+        }
+
+        /// <summary>Reads the selected type of an alias, e.g. host, network or external.</summary>
+        private async Task<string?> AliasType(string uuid, RenderedFirewallRequest request)
+        {
             RestResponse response = await SendAuthenticated(new RestRequest($"{kAliasPath}/getItem/{Uri.EscapeDataString(uuid)}", Method.Get));
             if (!response.IsSuccessful)
             {
                 throw ReadFailure(response, request, $"the type of alias '{uuid}'");
             }
             JsonNode? type = ParseJson(response.Content)?["alias"]?["type"];
-            string? selectedType = type is JsonObject options
+            return type is JsonObject options
                 ? options.FirstOrDefault(entry => entry.Value?["selected"]?.ToString() is "1" or "true").Key
                 : type?.GetValue<string>();
-            if (selectedType is not "host" and not "network")
-            {
-                throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
-                    $"OPNsense alias '{request.Step.TargetName}' must have type host or network for persistent per-address changes.");
-            }
         }
     }
 }

@@ -24,6 +24,8 @@ internal sealed class OpnSenseWriteClientTest
     private const string kApplyPath = "/api/firewall/filter/apply";
     private const string kCreatePath = "/api/firewall/alias/addItem";
     private const string kDone = "{\"status\":\"done\"}";
+    private const string kHost = "host";
+    private const string kNetwork = "network";
     private static readonly List<string> ExpectedAddresses = ["10.0.0.99/32", "10.0.0.2/32", "2001:db8::1/128"];
 
     /// <summary>Builds a writer with a simulated OPNsense API.</summary>
@@ -48,6 +50,41 @@ internal sealed class OpnSenseWriteClientTest
         member.GroupName = "grp";
         return member;
     }
+
+    /// <summary>
+    /// Changes the alias content like the OPNsense alias utility: add appends the full-length mask to a single address in
+    /// network aliases only; delete removes a single address with and without its mask, a masked address only as written.
+    /// </summary>
+    private static void ApplyAliasUtility(RecordedFirewallRequest request, HashSet<string> configured, string aliasType)
+    {
+        string address = JsonNode.Parse(request.Body!)!["address"]!.GetValue<string>();
+        string masked = address.Contains('/') ? address : address + (address.Contains(':') ? "/128" : "/32");
+        if (request.Resource == kAddPath)
+        {
+            configured.Add(aliasType == kNetwork ? masked : address);
+            return;
+        }
+        configured.Remove(masked);
+        configured.Remove(address);
+    }
+
+    /// <summary>Simulates an alias of the given type whose content is held in <paramref name="configured"/>.</summary>
+    private static Func<RecordedFirewallRequest, RestResponse> AliasHandler(HashSet<string> configured, string aliasType) => request =>
+    {
+        if (request.Resource == kLookupPath)
+        {
+            return Ok("{\"uuid\":\"uuid-1\"}");
+        }
+        if (request.Resource == kItemPath)
+        {
+            return Ok(new JsonObject { ["alias"] = new JsonObject { ["type"] = aliasType } }.ToJsonString());
+        }
+        if (request.Resource is kAddPath or kDeletePath)
+        {
+            ApplyAliasUtility(request, configured, aliasType);
+        }
+        return Ok(kDone);
+    };
 
     /// <summary>Concurrent additions after the last read survive both member additions and removals.</summary>
     [Test]
@@ -74,15 +111,7 @@ internal sealed class OpnSenseWriteClientTest
             }
             if (request.Resource is kAddPath or kDeletePath)
             {
-                string address = JsonNode.Parse(request.Body!)!["address"]!.GetValue<string>();
-                if (request.Resource == kAddPath)
-                {
-                    configured.Add(address);
-                }
-                else
-                {
-                    configured.Remove(address);
-                }
+                ApplyAliasUtility(request, configured, kNetwork);
             }
             return Ok(kDone);
         };
@@ -121,7 +150,8 @@ internal sealed class OpnSenseWriteClientTest
     }
 
     /// <summary>
-    /// A group FWO creates with named members holds their CIDR entries, so a later group modify removes exactly the entry it wrote.
+    /// A group FWO creates with named members holds their CIDR entries; a later group modify sends the single address, which
+    /// OPNsense matches to the entry written with its mask.
     /// </summary>
     [Test]
     public async Task CreatedGroup_CanBeModifiedLater()
@@ -140,7 +170,58 @@ internal sealed class OpnSenseWriteClientTest
             Assert.That(JsonNode.Parse(create.Body!)!["alias"]!["content"]!.GetValue<string>(), Is.EqualTo("10.0.0.2/32\n10.0.1.1/32\n10.0.1.2/32"));
             Assert.That(JsonNode.Parse(create.Body!)!["alias"]!["name"]!.GetValue<string>(), Is.EqualTo("grp"));
             Assert.That(simulation.Requests.Count(request => request.Resource == kCreatePath), Is.EqualTo(1));
-            Assert.That(JsonNode.Parse(remove.Body!)!["address"]!.GetValue<string>(), Is.EqualTo("10.0.0.2/32"));
+            Assert.That(JsonNode.Parse(remove.Body!)!["address"]!.GetValue<string>(), Is.EqualTo("10.0.0.2"));
+        }
+    }
+
+    /// <summary>
+    /// Existing host and network aliases store single addresses with or without mask; both are removed, and an added
+    /// address takes the form of the alias type.
+    /// </summary>
+    [TestCase(kHost, "10.0.0.2", "10.0.0.3")]
+    [TestCase(kNetwork, "10.0.0.2", "10.0.0.3/32")]
+    [TestCase(kNetwork, "10.0.0.2/32", "10.0.0.3/32")]
+    public async Task SingleAddresses_MatchExistingAliasEntries(string aliasType, string stored, string expectedAdded)
+    {
+        (FirewallWriter writer, FirewallSimulation simulation) = Writer();
+        HashSet<string> configured = new() { stored, "10.0.0.9" };
+        simulation.Handler = AliasHandler(configured, aliasType);
+        ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, Member("10.0.0.3"),
+            Member("10.0.0.2", RequestAction.delete)));
+        HashSet<string> expected = new() { "10.0.0.9", expectedAdded };
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Success, Is.True, result.Message);
+            Assert.That(configured, Is.EquivalentTo(expected));
+        }
+    }
+
+    /// <summary>
+    /// Host aliases cannot hold networks: OPNsense would reject the addition and report the removal as done without a
+    /// change, so the task is refused before any change is sent, even for a valid single address in the same task.
+    /// Network aliases accept the same task.
+    /// </summary>
+    [TestCase(kHost, "10.0.1.0/24", null, RequestAction.create, false)]
+    [TestCase(kHost, "10.0.1.0/24", null, RequestAction.delete, false)]
+    [TestCase(kHost, "10.0.0.1", "10.0.0.3", RequestAction.create, false)]
+    [TestCase(kNetwork, "10.0.1.0/24", null, RequestAction.create, true)]
+    [TestCase(kNetwork, "10.0.0.1", "10.0.0.3", RequestAction.delete, true)]
+    public async Task Networks_OnlyInNetworkAliases(string aliasType, string ip, string? ipEnd, RequestAction action, bool supported)
+    {
+        (FirewallWriter writer, FirewallSimulation simulation) = Writer();
+        HashSet<string> configured = [];
+        simulation.Handler = AliasHandler(configured, aliasType);
+        ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, Member("10.0.0.5"),
+            Member(ip, action, ipEnd)));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Success, Is.EqualTo(supported), result.Message);
+            Assert.That(simulation.Requests.Any(request => request.Method != Method.Get), Is.EqualTo(supported));
+            if (!supported)
+            {
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Unsupported));
+                Assert.That(result.IsRetryable, Is.False);
+            }
         }
     }
 

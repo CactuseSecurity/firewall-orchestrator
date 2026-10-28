@@ -406,7 +406,7 @@ namespace FWO.Test
             {
                 Assert.That(result.Success, Is.True, result.Message);
                 Assert.That(update.Resource, Is.EqualTo("/api/firewall/alias_util/add/grp"));
-                Assert.That(JsonNode.Parse(update.Body!)!["address"]!.GetValue<string>(), Is.EqualTo("10.0.0.2/32"));
+                Assert.That(JsonNode.Parse(update.Body!)!["address"]!.GetValue<string>(), Is.EqualTo("10.0.0.2"));
                 Assert.That(update.Headers["Authorization"], Is.EqualTo("Basic " + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("writer:secret"))));
                 Assert.That(simulation.Requests[1].Resource, Is.EqualTo("/api/firewall/alias/getItem/uuid-1"));
                 Assert.That(simulation.Requests[3].Resource, Is.EqualTo("/api/firewall/alias/reconfigure"));

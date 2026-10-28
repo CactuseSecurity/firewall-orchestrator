@@ -141,6 +141,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             try
             {
                 await client.Login();
+                await client.Prepare(rendered.Requests);
                 foreach (RenderedFirewallRequest request in rendered.Requests)
                 {
                     FirewallStepResult result = await client.Execute(request);

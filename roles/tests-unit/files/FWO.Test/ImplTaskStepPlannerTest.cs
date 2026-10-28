@@ -34,7 +34,7 @@ namespace FWO.Test
         private static readonly List<string> kFortiOsMemberNames = ["m1", "m2", "old"];
         private static readonly List<FirewallWriteOperation> kOpnSenseMemberOperations =
             [FirewallWriteOperation.GroupAddMembers, FirewallWriteOperation.GroupAddMembers, FirewallWriteOperation.GroupRemoveMembers];
-        private static readonly List<string> kOpnSenseMemberEntries = ["10.0.0.1/32", "10.0.0.2/31", "10.0.1.0/24"];
+        private static readonly List<string> kOpnSenseMemberEntries = ["10.0.0.1", "10.0.0.2/31", "10.0.1.0/24"];
 
         private static string Value(FirewallWriteStep step, string placeholder) => step.Values[placeholder].Value;
 
@@ -296,6 +296,17 @@ namespace FWO.Test
                 Assert.That(steps.Select(step => Value(step, FirewallWritePlaceholders.MemberName)), Is.EqualTo(kOpnSenseMemberEntries));
                 Assert.That(steps.Select(step => step.TargetName).Distinct().Single(), Is.EqualTo("grp"));
             }
+        }
+
+        [TestCase("10.0.0.2/32", "10.0.0.2")]
+        [TestCase("2001:db8::1/128", "2001:db8::1")]
+        [TestCase("10.0.0.2/31", "10.0.0.2/31")]
+        [TestCase("2001:db8::/120", "2001:db8::/120")]
+        [TestCase("0.0.0.0/0", "0.0.0.0/0")]
+        [TestCase("not-an-entry", "not-an-entry")]
+        public void OpnSense_AddressUtilityEntryDropsOnlyFullLengthPrefix(string groupEntry, string expected)
+        {
+            Assert.That(FirewallElementValues.AddressUtilityEntry(groupEntry), Is.EqualTo(expected));
         }
 
         [TestCase(null, null, FirewallWriteErrorKind.Unsupported)]

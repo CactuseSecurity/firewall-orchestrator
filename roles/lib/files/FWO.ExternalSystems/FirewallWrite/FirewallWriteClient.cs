@@ -35,6 +35,12 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>Opens the session, if the vendor API needs one.</summary>
         public abstract Task Login();
 
+        /// <summary>
+        /// Checks the calls of a task against the firewall before the first one is sent, so that a call the firewall cannot
+        /// apply fails the task without partial writes. Checks nothing by default.
+        /// </summary>
+        public virtual Task Prepare(IReadOnlyList<RenderedFirewallRequest> requests) => Task.CompletedTask;
+
         /// <summary>Discards the uncommitted changes of the session after an error, if the vendor API supports it.</summary>
         public virtual Task Discard() => Task.CompletedTask;
 

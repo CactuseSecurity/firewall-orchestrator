@@ -129,6 +129,21 @@ namespace FWO.ExternalSystems.FirewallWrite
             return CidrBlocks(range.Begin, range.End);
         }
 
+        /// <summary>
+        /// Returns a group entry in the form the per-address alias utility of OPNsense expects: a single address without its
+        /// full-length prefix, so that the firewall removes it whether the alias stores it with or without the mask and adds
+        /// it in the form the alias type requires. Networks keep their CIDR notation.
+        /// </summary>
+        public static string AddressUtilityEntry(string groupEntry)
+        {
+            if (!IPNetwork.TryParse(groupEntry, out IPNetwork network))
+            {
+                return groupEntry;
+            }
+            int addressBits = network.BaseAddress.GetAddressBytes().Length * kBitsPerByte;
+            return network.PrefixLength == addressBits ? network.BaseAddress.ToString() : groupEntry;
+        }
+
         /// <summary>Returns the service name of an element, or a name built from protocol and ports if it has none.</summary>
         public static string ServiceName(WfImplElement element)
         {

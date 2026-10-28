@@ -468,6 +468,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modUpdatableObjAreas"), JsonPropertyName("modUpdatableObjAreas")]
         public string ModUpdatableObjAreas { get; set; } = "";
 
+        [JsonProperty("modComSvcExcludedAreas"), JsonPropertyName("modComSvcExcludedAreas")]
+        public string ModComSvcExcludedAreas { get; set; } = "";
+
         [JsonProperty("modAppServerTypes"), JsonPropertyName("modAppServerTypes")]
         public string ModAppServerTypes { get; set; } = "";
 

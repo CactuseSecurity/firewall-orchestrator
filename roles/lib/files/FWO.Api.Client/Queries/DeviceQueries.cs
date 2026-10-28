@@ -36,6 +36,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getManagementsUsingCredential;
         public static readonly string getUsedMgmDeviceTypes;
         public static readonly string getManagementById;
+        public static readonly string getGatewayRulebaseLinks;
         public static readonly string getMgmIdsBySuperMgmId;
 
 
@@ -89,6 +90,7 @@ namespace FWO.Api.Client.Queries
                 deleteCredential = GetQueryText("device/deleteCredential.graphql");
                 getManagementsUsingCredential = GetQueryText("device/getManagementsUsingCredential.graphql");
                 getUsedMgmDeviceTypes = GetQueryText("device/getUsedMgmDeviceTypes.graphql");
+                getGatewayRulebaseLinks = GetQueryText("device/getGatewayRulebaseLinks.graphql");
                 getManagementById = GetQueryText("device/getManagementById.graphql")
                     + GetQueryText("device/fragments/subManagements.graphql")
                     + GetQueryText("device/fragments/managementDetails.graphql")

@@ -95,12 +95,14 @@ namespace FWO.Test
         public void Render_FailsForPlaceholderWithoutValue()
         {
             FirewallWriteStep step = HostStep("h").SetMissing(FirewallWritePlaceholders.LayerName, "no layer known");
-            ConfigException? inBody = Assert.Throws<ConfigException>(() =>
+            FirewallWriteException? inBody = Assert.Throws<FirewallWriteException>(() =>
                 FirewallTemplateRenderer.Render(step, "POST add-host", """{"layer":"@@LAYER_NAME@@"}"""));
-            ConfigException? inPath = Assert.Throws<ConfigException>(() => FirewallTemplateRenderer.Render(step, "DELETE /x/@@LAYER_NAME@@", ""));
+            FirewallWriteException? inPath = Assert.Throws<FirewallWriteException>(() => FirewallTemplateRenderer.Render(step, "DELETE /x/@@LAYER_NAME@@", ""));
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(inBody?.Message, Does.Contain("No value for @@LAYER_NAME@@ (no layer known)"));
+                Assert.That(inBody?.Error.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(inBody?.Error.Operation, Is.EqualTo(FirewallWriteOperation.HostCreate));
                 Assert.That(inPath?.Message, Does.Contain("No value for @@LAYER_NAME@@"));
                 Assert.DoesNotThrow(() => FirewallTemplateRenderer.Render(step, "POST add-host", """{"name":"@@OBJECT_NAME@@"}"""));
             }

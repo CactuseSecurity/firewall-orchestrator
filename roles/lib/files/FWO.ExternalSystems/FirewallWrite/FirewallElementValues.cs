@@ -1,5 +1,4 @@
 using FWO.Basics;
-using FWO.Basics.Exceptions;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using NetTools;
@@ -37,7 +36,8 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         /// <summary>
         /// Creates the step that creates, modifies or deletes the network object of an element. The object type (host,
-        /// network or address range) follows from its addresses; an element without addresses is deleted as host.
+        /// network or address range) and the IP version follow from its addresses, IPv6 objects use the Ipv6 operations; an
+        /// element without addresses is deleted as (IPv4) host.
         /// </summary>
         public static FirewallWriteStep NetworkObjectStep(WfImplElement element, string action, FirewallVendorProfile profile, string comment)
         {
@@ -46,7 +46,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 if (action != nameof(RequestAction.delete))
                 {
-                    throw new ConfigException($"Network object '{name}' has no IP address.");
+                    throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Network object '{name}' has no IP address.");
                 }
                 return new FirewallWriteStep(FirewallWriteOperation.HostDelete) { TargetName = name }
                     .SetText(FirewallWritePlaceholders.ObjectName, name)
@@ -56,7 +56,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             (string start, string end) = AddressRange(element.IpString, element.IpEnd);
             string objectType = IpOperations.GetObjectType(element.IpString, element.IpEnd ?? "");
             bool isIpv6 = IPAddress.Parse(start).AddressFamily == AddressFamily.InterNetworkV6;
-            FirewallWriteStep step = new(NetworkOperation(objectType, action)) { TargetName = name, IsIpv6 = isIpv6 };
+            FirewallWriteStep step = new(NetworkOperation(objectType, action, isIpv6)) { TargetName = name, IsIpv6 = isIpv6 };
             List<string> addresses = [AddressNotation(element)];
             step.SetText(FirewallWritePlaceholders.ObjectName, name)
                 .SetText(FirewallWritePlaceholders.ObjectNameInUrl, profile.NameInUrl(name))
@@ -77,7 +77,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 nameof(RequestAction.create) => FirewallWriteOperation.ServiceCreate,
                 nameof(RequestAction.modify) => FirewallWriteOperation.ServiceModify,
                 nameof(RequestAction.delete) => FirewallWriteOperation.ServiceDelete,
-                _ => throw new ConfigException($"Unsupported service action '{action}'.")
+                _ => throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Unsupported service action '{action}'.")
             };
             int port = element.Port ?? 0;
             int portEnd = element.PortEnd ?? port;
@@ -100,7 +100,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             if (string.IsNullOrWhiteSpace(element.Name))
             {
-                throw new ConfigException($"Element '{element.Id}' ({element.Field}) has no object name.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Element '{element.Id}' ({element.Field}) has no object name.");
             }
             return profile.NormalizeName(element.Name.Trim());
         }
@@ -118,7 +118,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             if (string.IsNullOrWhiteSpace(element.IpString))
             {
-                throw new ConfigException($"Element '{element.Name}' has no IP address.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Element '{element.Name}' has no IP address.");
             }
             (string start, string end) = AddressRange(element.IpString, element.IpEnd);
             return IpOperations.GetObjectType(element.IpString, element.IpEnd ?? "") == ObjectType.IPRange
@@ -146,20 +146,24 @@ namespace FWO.ExternalSystems.FirewallWrite
                 : (protoId ?? 0).ToString(CultureInfo.InvariantCulture);
         }
 
-        private static FirewallWriteOperation NetworkOperation(string objectType, string action)
+        private static FirewallWriteOperation NetworkOperation(string objectType, string action, bool isIpv6)
         {
-            (FirewallWriteOperation create, FirewallWriteOperation modify, FirewallWriteOperation delete) = objectType switch
+            (FirewallWriteOperation create, FirewallWriteOperation modify, FirewallWriteOperation delete) = (objectType, isIpv6) switch
             {
-                ObjectType.Network => (FirewallWriteOperation.NetworkCreate, FirewallWriteOperation.NetworkModify, FirewallWriteOperation.NetworkDelete),
-                ObjectType.IPRange => (FirewallWriteOperation.AddressRangeCreate, FirewallWriteOperation.AddressRangeModify, FirewallWriteOperation.AddressRangeDelete),
-                _ => (FirewallWriteOperation.HostCreate, FirewallWriteOperation.HostModify, FirewallWriteOperation.HostDelete)
+                (ObjectType.Network, false) => (FirewallWriteOperation.NetworkCreate, FirewallWriteOperation.NetworkModify, FirewallWriteOperation.NetworkDelete),
+                (ObjectType.Network, true) => (FirewallWriteOperation.Ipv6NetworkCreate, FirewallWriteOperation.Ipv6NetworkModify, FirewallWriteOperation.Ipv6NetworkDelete),
+                (ObjectType.IPRange, false) => (FirewallWriteOperation.AddressRangeCreate, FirewallWriteOperation.AddressRangeModify, FirewallWriteOperation.AddressRangeDelete),
+                (ObjectType.IPRange, true) => (FirewallWriteOperation.Ipv6AddressRangeCreate, FirewallWriteOperation.Ipv6AddressRangeModify,
+                    FirewallWriteOperation.Ipv6AddressRangeDelete),
+                (_, false) => (FirewallWriteOperation.HostCreate, FirewallWriteOperation.HostModify, FirewallWriteOperation.HostDelete),
+                (_, true) => (FirewallWriteOperation.Ipv6HostCreate, FirewallWriteOperation.Ipv6HostModify, FirewallWriteOperation.Ipv6HostDelete)
             };
             return action switch
             {
                 nameof(RequestAction.create) => create,
                 nameof(RequestAction.modify) => modify,
                 nameof(RequestAction.delete) => delete,
-                _ => throw new ConfigException($"Unsupported network object action '{action}'.")
+                _ => throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Unsupported network object action '{action}'.")
             };
         }
 
@@ -179,7 +183,8 @@ namespace FWO.ExternalSystems.FirewallWrite
                 .SetText(FirewallWritePlaceholders.IpCidr, $"{start}/{prefixLength}");
             if (step.IsIpv6)
             {
-                step.SetMissing(FirewallWritePlaceholders.Netmask, "an IPv6 address has no dotted netmask; use @@IP_CIDR@@ or @@MASK_LENGTH@@");
+                step.SetMissing(FirewallWritePlaceholders.Netmask, "an IPv6 address has no dotted netmask; use @@IP_CIDR@@ or @@MASK_LENGTH@@",
+                    FirewallWriteErrorKind.Configuration);
             }
             else
             {

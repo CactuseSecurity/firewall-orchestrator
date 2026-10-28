@@ -2,7 +2,8 @@ namespace FWO.Data.DeviceSpecificSettings;
 
 /// <summary>
 /// One kind of REST call that writes a change from an implementation task to a firewall. Each operation has its own
-/// endpoint and body template setting per device type.
+/// endpoint and body template setting per device type. IPv6 network objects have operations of their own, because some
+/// vendors keep them in separate tables and their calls differ.
 /// </summary>
 public enum FirewallWriteOperation
 {
@@ -15,6 +16,15 @@ public enum FirewallWriteOperation
     AddressRangeCreate,
     AddressRangeModify,
     AddressRangeDelete,
+    Ipv6HostCreate,
+    Ipv6HostModify,
+    Ipv6HostDelete,
+    Ipv6NetworkCreate,
+    Ipv6NetworkModify,
+    Ipv6NetworkDelete,
+    Ipv6AddressRangeCreate,
+    Ipv6AddressRangeModify,
+    Ipv6AddressRangeDelete,
     ServiceCreate,
     ServiceModify,
     ServiceDelete,

@@ -37,6 +37,14 @@ namespace FWO.ExternalSystems.FirewallWrite
             FirewallWriteOperation.GroupCreate
         ];
 
+        private const string kNotFoundSuffix = "NotFound";
+        private static readonly List<string> AzureAuthenticationCodes =
+            ["Authorization", "Authentication", "InvalidAuthenticationToken", "invalid_client", "unauthorized_client", "invalid_grant"];
+        private static readonly HashSet<string> AzureConflictCodes = new(StringComparer.OrdinalIgnoreCase)
+            { "Conflict", "AnotherOperationInProgress", "PreconditionFailed" };
+        private static readonly HashSet<string> AzureThrottlingCodes = new(StringComparer.OrdinalIgnoreCase)
+            { "TooManyRequests", "Throttled", "SubscriptionRequestsThrottled" };
+
         private string? accessToken;
 
         /// <summary>Creates a client for Azure Resource Manager.</summary>
@@ -49,7 +57,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             if (string.IsNullOrWhiteSpace(Management.CloudTenantId))
             {
-                throw new ProcessingFailedException($"Azure management '{Management.Name}' has no tenant id.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.Configuration, $"Azure management '{Management.Name}' has no tenant id.");
             }
             (string clientId, string clientSecret) = ExportCredentials();
             RestRequest request = new(string.Format(System.Globalization.CultureInfo.InvariantCulture, kLoginUrl, Uri.EscapeDataString(Management.CloudTenantId)), Method.Post);
@@ -61,7 +69,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             accessToken = ParseJson(response.Content)?["access_token"]?.GetValue<string>();
             if (!response.IsSuccessful || string.IsNullOrWhiteSpace(accessToken))
             {
-                throw new ProcessingFailedException($"Azure login for '{Management.Name}' failed: {(int)response.StatusCode}");
+                throw LoginFailure(response, "Azure");
             }
         }
 
@@ -87,10 +95,31 @@ namespace FWO.ExternalSystems.FirewallWrite
             return ToResult(request, response, IsSuccess(response));
         }
 
+        /// <summary>
+        /// Maps the error code of Azure Resource Manager ({"error":{"code":...}}) or of the Entra ID login ({"error":"..."}),
+        /// e.g. AuthorizationFailed, ResourceNotFound, AnotherOperationInProgress or invalid_client; other codes fall back to
+        /// the HTTP status.
+        /// </summary>
+        protected override (FirewallWriteErrorKind? Kind, string? NativeCode) ClassifyVendorError(JsonNode? content)
+        {
+            JsonNode? error = content?["error"];
+            string? code = error is JsonObject armError ? armError["code"]?.ToString() : error?.ToString();
+            FirewallWriteErrorKind? kind = code switch
+            {
+                null => null,
+                _ when AzureAuthenticationCodes.Any(part => code.Contains(part, StringComparison.OrdinalIgnoreCase)) => FirewallWriteErrorKind.Authentication,
+                _ when code.EndsWith(kNotFoundSuffix, StringComparison.OrdinalIgnoreCase) => FirewallWriteErrorKind.NotFound,
+                _ when AzureConflictCodes.Contains(code) => FirewallWriteErrorKind.Conflict,
+                _ when AzureThrottlingCodes.Contains(code) => FirewallWriteErrorKind.RateLimited,
+                _ => null
+            };
+            return (kind, code);
+        }
+
         /// <inheritdoc/>
         protected override void AddAuthentication(RestRequest request)
         {
-            request.AddHeader("Authorization", $"Bearer {accessToken ?? throw new ProcessingFailedException("Azure access token missing.")}");
+            request.AddHeader("Authorization", $"Bearer {accessToken ?? throw new FirewallWriteException(FirewallWriteErrorKind.Authentication, "Azure access token missing.")}");
         }
 
         /// <inheritdoc/>
@@ -99,7 +128,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             Dictionary<string, FirewallPlaceholderValue> values = [];
             if (FirewallTemplateRenderer.Contains(request, FirewallWritePlaceholders.Location))
             {
-                values[FirewallWritePlaceholders.Location] = new(await ReadLocation(request.Step), false);
+                values[FirewallWritePlaceholders.Location] = new(await ReadLocation(request), false);
             }
             if (FirewallTemplateRenderer.Contains(request, FirewallWritePlaceholders.MergedMembers))
             {
@@ -113,15 +142,19 @@ namespace FWO.ExternalSystems.FirewallWrite
             await base.ResolveRuntimeValues(request);
         }
 
-        private async Task<string> ReadLocation(FirewallWriteStep step)
+        private async Task<string> ReadLocation(RenderedFirewallRequest request)
         {
-            string subscription = step.Values.GetValueOrDefault(FirewallWritePlaceholders.SubscriptionId)?.Value ?? "";
-            string resourceGroup = step.Values.GetValueOrDefault(FirewallWritePlaceholders.ResourceGroup)?.Value ?? "";
-            RestRequest request = new($"/subscriptions/{Uri.EscapeDataString(subscription)}/resourcegroups/{Uri.EscapeDataString(resourceGroup)}?api-version={kResourceGroupApiVersion}", Method.Get);
-            RestResponse response = await SendAuthenticated(request);
-            string? location = response.IsSuccessful ? ParseJson(response.Content)?["location"]?.GetValue<string>() : null;
+            string subscription = request.Step.Values.GetValueOrDefault(FirewallWritePlaceholders.SubscriptionId)?.Value ?? "";
+            string resourceGroup = request.Step.Values.GetValueOrDefault(FirewallWritePlaceholders.ResourceGroup)?.Value ?? "";
+            RestRequest locationRequest = new($"/subscriptions/{Uri.EscapeDataString(subscription)}/resourcegroups/{Uri.EscapeDataString(resourceGroup)}?api-version={kResourceGroupApiVersion}", Method.Get);
+            RestResponse response = await SendAuthenticated(locationRequest);
+            if (!response.IsSuccessful)
+            {
+                throw ReadFailure(response, request, $"the location of resource group '{resourceGroup}'");
+            }
+            string? location = ParseJson(response.Content)?["location"]?.GetValue<string>();
             return string.IsNullOrWhiteSpace(location)
-                ? throw new ProcessingFailedException($"Azure resource group '{resourceGroup}' not found: {(int)response.StatusCode}")
+                ? throw new FirewallWriteException(FirewallWriteErrorKind.NotFound, $"Azure resource group '{resourceGroup}' has no location.")
                 : location;
         }
 
@@ -131,7 +164,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             RestResponse response = await SendAuthenticated(new RestRequest(request.Path, Method.Get));
             if (!response.IsSuccessful)
             {
-                throw new ProcessingFailedException($"Azure could not read IP group '{request.Step.TargetName}': {(int)response.StatusCode} {response.Content}");
+                throw ReadFailure(response, request, "the IP group");
             }
             JsonNode? ipGroup = ParseJson(response.Content);
             RequireEtag(request, ipGroup, response);
@@ -155,7 +188,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             JsonNode? ruleCollectionGroup = ParseJson(response.Content);
             if (!response.IsSuccessful || ruleCollectionGroup?[kProperties] is not JsonObject properties)
             {
-                throw new ProcessingFailedException($"Azure could not read rule collection group: {(int)response.StatusCode} {response.Content}");
+                throw ReadFailure(response, request, "the rule collection group");
             }
             RequireEtag(request, ruleCollectionGroup, response);
             JsonObject writable = new() { ["priority"] = properties["priority"]?.DeepClone(), [kRuleCollections] = properties[kRuleCollections]?.DeepClone() ?? new JsonArray() };
@@ -169,7 +202,8 @@ namespace FWO.ExternalSystems.FirewallWrite
                 ?? response.Headers?.FirstOrDefault(header => string.Equals(header.Name, kEtag, StringComparison.OrdinalIgnoreCase))?.Value?.ToString();
             if (string.IsNullOrWhiteSpace(etag))
             {
-                throw new ProcessingFailedException($"Azure returned no ETag for '{request.Step.TargetName}', so it cannot be changed without overwriting concurrent changes.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
+                    $"Azure returned no ETag for '{request.Step.TargetName}', so it cannot be changed without overwriting concurrent changes.");
             }
             request.Headers[kIfMatch] = etag;
         }

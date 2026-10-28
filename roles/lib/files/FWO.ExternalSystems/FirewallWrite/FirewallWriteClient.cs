@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Basics.Exceptions;
 using FWO.Data;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Encryption;
 using FWO.Logging;
 using RestSharp;
@@ -11,11 +12,12 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// <summary>
     /// REST session with one firewall management for the firewall write library. Vendor clients add login and logout,
     /// authentication, the evaluation of responses and the runtime placeholders that need data read from the firewall.
+    /// Every failed call is classified into a vendor-independent <see cref="FirewallWriteError"/>: first the transport
+    /// (no answer), then the vendor's own error code (<see cref="ClassifyVendorError"/>), then the HTTP status.
     /// </summary>
     public abstract class FirewallWriteClient : RestApiClient
     {
         private const string kLogCategory = "Firewall Write";
-        private const int kMaxLoggedResponseLength = 2000;
         private const int kDefaultHttpsPort = 443;
 
         protected Management Management { get; }
@@ -41,12 +43,13 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         /// <summary>
         /// Sends one rendered call. Runtime placeholders are resolved first, then the call is checked for leftover
-        /// placeholders and valid JSON before it is sent.
+        /// placeholders and valid JSON, and the vendor gets a last look (<see cref="BeforeSend"/>) before it is sent.
         /// </summary>
         public virtual async Task<FirewallStepResult> Execute(RenderedFirewallRequest request)
         {
             await ResolveRuntimeValues(request);
             FirewallTemplateRenderer.EnsureResolved(request);
+            await BeforeSend(request);
             RestResponse response = await SendRendered(request);
             return ToResult(request, response, IsSuccess(response));
         }
@@ -63,6 +66,12 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
             return Task.CompletedTask;
         }
+
+        /// <summary>
+        /// Runs right before a resolved call is sent, e.g. to check that data read for it did not change in the meantime.
+        /// Throws <see cref="FirewallWriteException"/> to stop the call.
+        /// </summary>
+        protected virtual Task BeforeSend(RenderedFirewallRequest request) => Task.CompletedTask;
 
         /// <summary>Builds and sends a rendered call with authentication.</summary>
         protected async Task<RestResponse> SendRendered(RenderedFirewallRequest request)
@@ -102,13 +111,13 @@ namespace FWO.ExternalSystems.FirewallWrite
         protected virtual Task<RestResponse> Send(RestRequest request) => restClient.ExecuteAsync(request);
 
         /// <summary>Returns user and decrypted secret of the management's export credential.</summary>
-        /// <exception cref="ProcessingFailedException">Thrown if the export credential is incomplete.</exception>
+        /// <exception cref="FirewallWriteException">Thrown if the export credential is incomplete.</exception>
         protected (string User, string Secret) ExportCredentials()
         {
             Credential credential = Management.ExportCredential;
             if (credential == null || string.IsNullOrWhiteSpace(credential.Secret))
             {
-                throw new ProcessingFailedException($"Export credentials missing for management '{Management.Name}'.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.Configuration, $"Export credentials missing for management '{Management.Name}'.");
             }
             string secret = AesEnc.TryDecrypt(credential.Secret, true, kLogCategory,
                 $"Could not decrypt secret in export credential '{credential.Name}'.", true);
@@ -116,12 +125,12 @@ namespace FWO.ExternalSystems.FirewallWrite
         }
 
         /// <summary>Returns "https://host:port" of the management.</summary>
-        /// <exception cref="ProcessingFailedException">Thrown if the management has no host name.</exception>
+        /// <exception cref="FirewallWriteException">Thrown if the management has no host name.</exception>
         protected static string HostUrl(Management management, string pathPrefix = "")
         {
             if (string.IsNullOrWhiteSpace(management.Hostname))
             {
-                throw new ProcessingFailedException($"Management '{management.Name}' has no host name.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.Configuration, $"Management '{management.Name}' has no host name.");
             }
             string host = management.Hostname.Trim();
             if (host.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || host.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
@@ -149,19 +158,60 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
         }
 
-        /// <summary>Converts a response to a step result; the logged content is shortened.</summary>
-        protected static FirewallStepResult ToResult(RenderedFirewallRequest request, RestResponse response, bool success)
+        /// <summary>Converts a response to a step result, with the classified error if the call failed.</summary>
+        protected FirewallStepResult ToResult(RenderedFirewallRequest request, RestResponse response, bool success)
         {
-            string content = response.Content ?? response.ErrorMessage ?? "";
-            if (content.Length > kMaxLoggedResponseLength)
+            string content = FirewallWriteErrors.NativeMessage(response);
+            FirewallWriteError? error = success ? null : ClassifyFailure(response, request.Operation);
+            if (error != null)
             {
-                content = content[..kMaxLoggedResponseLength];
+                Log.WriteWarning(kLogCategory, $"{request.Operation} on '{request.Step.TargetName}' failed ({error.Kind}): {(int)response.StatusCode} {content}");
             }
-            if (!success)
+            return new FirewallStepResult(request.Operation, request.Step.TargetName, success, (int)response.StatusCode, content, error);
+        }
+
+        /// <summary>
+        /// Classifies a failed call: no answer (timeout, connection, certificate), else the vendor's error code, else the
+        /// HTTP status. The error keeps the native message and code of the firewall.
+        /// </summary>
+        protected FirewallWriteError ClassifyFailure(RestResponse response, FirewallWriteOperation? operation = null)
+        {
+            string nativeMessage = FirewallWriteErrors.NativeMessage(response);
+            FirewallWriteErrorKind? transportKind = FirewallWriteErrors.FromTransport(response);
+            if (transportKind != null)
             {
-                Log.WriteWarning(kLogCategory, $"{request.Operation} on '{request.Step.TargetName}' failed: {(int)response.StatusCode} {content}");
+                return new FirewallWriteError(transportKind.Value, nativeMessage, null, null, operation);
             }
-            return new FirewallStepResult(request.Operation, request.Step.TargetName, success, (int)response.StatusCode, content);
+            (FirewallWriteErrorKind? vendorKind, string? nativeCode) = ClassifyVendorError(ParseJson(response.Content));
+            FirewallWriteErrorKind kind = vendorKind ?? FirewallWriteErrors.FromStatusCode(response.StatusCode);
+            return new FirewallWriteError(kind, nativeMessage, (int)response.StatusCode, nativeCode, operation);
+        }
+
+        /// <summary>
+        /// Reads the vendor's error code from a failed response body and maps it, where it says more than the HTTP status.
+        /// Returns a null kind to fall back to the HTTP status, and the native code (if any) for the result.
+        /// </summary>
+        protected virtual (FirewallWriteErrorKind? Kind, string? NativeCode) ClassifyVendorError(JsonNode? content) => (null, null);
+
+        /// <summary>
+        /// The exception for a failed login: a firewall that answers with a client error refuses the credentials, so these
+        /// count as <see cref="FirewallWriteErrorKind.Authentication"/>.
+        /// </summary>
+        protected FirewallWriteException LoginFailure(RestResponse response, string vendor)
+        {
+            FirewallWriteError error = ClassifyFailure(response);
+            if (error.Kind is FirewallWriteErrorKind.Rejected or FirewallWriteErrorKind.NotFound or FirewallWriteErrorKind.Unknown)
+            {
+                error = error with { Kind = FirewallWriteErrorKind.Authentication };
+            }
+            return new FirewallWriteException(error, $"{vendor} login to '{Management.Name}' failed ({error.Kind}): {(int)response.StatusCode}");
+        }
+
+        /// <summary>The exception for a failed read of data the call needs, e.g. the current members of a group.</summary>
+        protected FirewallWriteException ReadFailure(RestResponse response, RenderedFirewallRequest request, string what)
+        {
+            FirewallWriteError error = ClassifyFailure(response, request.Operation);
+            return new FirewallWriteException(error, $"Could not read {what} for {request.Operation} on '{request.Step.TargetName}' ({error.Kind}): {(int)response.StatusCode}");
         }
 
         private static Method ToMethod(string method) => method switch

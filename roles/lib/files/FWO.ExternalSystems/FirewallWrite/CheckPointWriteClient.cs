@@ -1,4 +1,3 @@
-using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Logging;
@@ -25,6 +24,10 @@ namespace FWO.ExternalSystems.FirewallWrite
             "More than one network has the same", "More than one host has the same", "More than one address range has the same"
         ];
 
+        private const string kDuplicateNameMessage = "More than one object named";
+        private const string kInternalErrorPrefix = "generic_internal";
+        private static readonly List<string> CheckPointAuthenticationCodes = ["login", "wrong_session", "session_expired", "unauthorized", "permission"];
+
         private string? sessionId;
 
         /// <summary>Creates a client for the web_api of a Check Point management.</summary>
@@ -49,7 +52,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             sessionId = ParseJson(response.Content)?["sid"]?.GetValue<string>();
             if (!response.IsSuccessful || string.IsNullOrWhiteSpace(sessionId))
             {
-                throw new ProcessingFailedException($"Check Point login to '{Management.Name}' failed: {(int)response.StatusCode} {response.Content}");
+                throw LoginFailure(response, "Check Point");
             }
         }
 
@@ -89,9 +92,32 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             if (string.IsNullOrWhiteSpace(sessionId))
             {
-                throw new ProcessingFailedException("Check Point session missing.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.Authentication, "Check Point session missing.");
             }
             request.AddHeader(kSessionHeader, sessionId);
+        }
+
+        /// <summary>
+        /// Maps the "code" of a Check Point management API error, e.g. "generic_err_object_not_found" or
+        /// "generic_err_object_locked"; other codes fall back to the HTTP status.
+        /// </summary>
+        protected override (FirewallWriteErrorKind? Kind, string? NativeCode) ClassifyVendorError(JsonNode? content)
+        {
+            string? code = content?["code"]?.ToString();
+            string message = content?.ToJsonString() ?? "";
+            FirewallWriteErrorKind? kind = code switch
+            {
+                null => null,
+                _ when code.Contains("not_found", StringComparison.OrdinalIgnoreCase) => FirewallWriteErrorKind.NotFound,
+                _ when code.Contains("locked", StringComparison.OrdinalIgnoreCase) => FirewallWriteErrorKind.Conflict,
+                _ when code.Contains("too_many_requests", StringComparison.OrdinalIgnoreCase) => FirewallWriteErrorKind.RateLimited,
+                _ when CheckPointAuthenticationCodes.Any(part => code.Contains(part, StringComparison.OrdinalIgnoreCase)) => FirewallWriteErrorKind.Authentication,
+                _ when code.Contains("not_unique", StringComparison.OrdinalIgnoreCase)
+                    || message.Contains(kDuplicateNameMessage, StringComparison.OrdinalIgnoreCase) => FirewallWriteErrorKind.AlreadyExists,
+                _ when code.StartsWith(kInternalErrorPrefix, StringComparison.OrdinalIgnoreCase) => FirewallWriteErrorKind.FirewallError,
+                _ => null
+            };
+            return (kind, code);
         }
 
         private static bool IsDuplicateAddressWarning(string content) =>

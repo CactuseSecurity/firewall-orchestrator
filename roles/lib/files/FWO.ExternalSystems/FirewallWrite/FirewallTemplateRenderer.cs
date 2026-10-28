@@ -25,13 +25,14 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// (<see cref="FirewallWritePlaceholders.RuntimePlaceholders"/>) are kept.
         /// </summary>
         /// <exception cref="ConfigException">Thrown for an invalid endpoint, an unresolved placeholder or an invalid JSON body.</exception>
+        /// <exception cref="FirewallWriteException">Thrown if the template needs a placeholder that has no value for the step.</exception>
         public static RenderedFirewallRequest Render(FirewallWriteStep step, string endpointSetting, string bodyTemplate)
         {
             ArgumentNullException.ThrowIfNull(step);
             FirewallWriteEndpoint endpoint = ParseEndpoint(step.Operation, endpointSetting);
 
             List<string> unresolved = [];
-            List<string> withoutValue = [];
+            List<FirewallPlaceholderValue> withoutValue = [];
             string path = Replace(endpoint.Path, step.Values, EncodeForPath, unresolved, withoutValue);
             string? body = string.IsNullOrWhiteSpace(bodyTemplate) ? null : Replace(bodyTemplate, step.Values, EncodeForJson, unresolved, withoutValue);
 
@@ -58,7 +59,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             ArgumentNullException.ThrowIfNull(request);
             List<string> unresolved = [];
-            List<string> withoutValue = [];
+            List<FirewallPlaceholderValue> withoutValue = [];
             request.Path = Replace(request.Path, values, EncodeForPath, unresolved, withoutValue);
             if (request.Body != null)
             {
@@ -113,10 +114,10 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         /// <summary>
         /// Replaces the placeholders that have a value. Placeholders without entry are collected in
-        /// <paramref name="unresolved"/>, placeholders marked as missing with their reason in <paramref name="withoutValue"/>.
+        /// <paramref name="unresolved"/>, placeholders marked as missing in <paramref name="withoutValue"/>.
         /// </summary>
         private static string Replace(string template, IReadOnlyDictionary<string, FirewallPlaceholderValue> values,
-            Func<FirewallPlaceholderValue, string> encode, List<string> unresolved, List<string> withoutValue)
+            Func<FirewallPlaceholderValue, string> encode, List<string> unresolved, List<FirewallPlaceholderValue> withoutValue)
         {
             return PlaceholderPattern().Replace(template, match =>
             {
@@ -127,20 +128,27 @@ namespace FWO.ExternalSystems.FirewallWrite
                 }
                 if (value.MissingReason != null)
                 {
-                    withoutValue.Add($"{match.Value} ({value.MissingReason})");
+                    withoutValue.Add(value with { Value = match.Value });
                     return match.Value;
                 }
                 return encode(value);
             });
         }
 
-        /// <summary>Fails if the template uses a placeholder that has no value for this step.</summary>
-        private static void EnsureValuesPresent(FirewallWriteOperation operation, List<string> withoutValue)
+        /// <summary>
+        /// Fails if the template uses a placeholder that has no value for this step, with the error kind of the first such
+        /// placeholder (a gap in the task's data or in the configuration).
+        /// </summary>
+        /// <param name="withoutValue">The missing values found, each with the placeholder in <see cref="FirewallPlaceholderValue.Value"/>.</param>
+        private static void EnsureValuesPresent(FirewallWriteOperation operation, List<FirewallPlaceholderValue> withoutValue)
         {
-            if (withoutValue.Count > 0)
+            if (withoutValue.Count == 0)
             {
-                throw new ConfigException($"Template error in {operation}. No value for {string.Join(", ", withoutValue.Distinct())}.");
+                return;
             }
+            IEnumerable<string> descriptions = withoutValue.Select(missing => $"{missing.Value} ({missing.MissingReason})").Distinct();
+            string message = $"Template error in {operation}. No value for {string.Join(", ", descriptions)}.";
+            throw new FirewallWriteException(new FirewallWriteError(withoutValue[0].MissingKind, message, Operation: operation), message);
         }
 
         /// <summary>Text values are inserted into JSON strings, JSON values as they are; '@' only occurs inside JSON strings.</summary>

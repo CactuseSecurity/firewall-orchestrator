@@ -1,4 +1,3 @@
-using FWO.Basics.Exceptions;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using FWO.ExternalSystems.FirewallWrite;
@@ -28,6 +27,8 @@ namespace FWO.Test
         private static readonly List<string> kMergedMembers = ["b", "c"];
 
         private const int kIcmp = 1;
+        private static readonly List<FirewallWriteOperation> kIpv6ModifyAndDelete =
+            [FirewallWriteOperation.Ipv6HostModify, FirewallWriteOperation.Ipv6AddressRangeDelete];
         private static readonly List<FirewallWriteOperation> kFortiOsMemberOperations =
             [FirewallWriteOperation.GroupAddMembers, FirewallWriteOperation.GroupAddMembers, FirewallWriteOperation.GroupRemoveMembers];
         private static readonly List<string> kFortiOsMemberNames = ["m1", "m2", "old"];
@@ -35,6 +36,12 @@ namespace FWO.Test
         private static string Value(FirewallWriteStep step, string placeholder) => step.Values[placeholder].Value;
 
         private static string? Missing(FirewallWriteStep step, string placeholder) => step.Values[placeholder].MissingReason;
+
+        private static void AssertKind(FirewallWriteErrorKind kind, TestDelegate planning)
+        {
+            FirewallWriteException? exception = Assert.Throws<FirewallWriteException>(planning);
+            Assert.That(exception?.Error.Kind, Is.EqualTo(kind));
+        }
 
         private static List<FirewallWriteStep> Plan(WfImplTask task, int deviceTypeId = FirewallVendors.kCheckPointR8x, FirewallRulePlacement? placement = null) =>
             ImplTaskStepPlanner.Plan(task, Context(deviceTypeId), placement);
@@ -93,7 +100,7 @@ namespace FWO.Test
         [Test]
         public void ObjectCreate_FailsForObjectWithoutAddress()
         {
-            Assert.Throws<ConfigException>(() => Plan(Task(WfTaskType.object_create, Network("h1", null))));
+            AssertKind(FirewallWriteErrorKind.InvalidTaskData, () => Plan(Task(WfTaskType.object_create, Network("h1", null))));
         }
 
         [Test]
@@ -163,9 +170,9 @@ namespace FWO.Test
             WfImplTask unnamedMember = Task(WfTaskType.group_create, Network(null, null, action: RequestAction.unchanged));
             using (Assert.EnterMultipleScope())
             {
-                Assert.Throws<ConfigException>(() => Plan(withService));
-                Assert.Throws<ConfigException>(() => Plan(withoutName));
-                Assert.Throws<ConfigException>(() => Plan(unnamedMember));
+                AssertKind(FirewallWriteErrorKind.Unsupported, () => Plan(withService));
+                AssertKind(FirewallWriteErrorKind.InvalidTaskData, () => Plan(withoutName));
+                AssertKind(FirewallWriteErrorKind.InvalidTaskData, () => Plan(unnamedMember));
             }
         }
 
@@ -267,11 +274,16 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Ipv6Objects_AreMarkedAndHaveNoDottedNetmask()
+        public void Ipv6Objects_UseTheIpv6OperationsAndHaveNoDottedNetmask()
         {
             List<FirewallWriteStep> steps = Plan(Task(WfTaskType.object_create, Network("n6", "2001:db8::/64"), Network("n4", "10.1.0.0/24")));
+            List<FirewallWriteStep> others = Plan(Task(WfTaskType.object_modify, Network("h6", "2001:db8::1", action: RequestAction.modify),
+                Network("r6", "2001:db8::1", "2001:db8::9", action: RequestAction.delete)));
             using (Assert.EnterMultipleScope())
             {
+                Assert.That(steps[0].Operation, Is.EqualTo(FirewallWriteOperation.Ipv6NetworkCreate));
+                Assert.That(steps[1].Operation, Is.EqualTo(FirewallWriteOperation.NetworkCreate));
+                Assert.That(others.Select(step => step.Operation), Is.EqualTo(kIpv6ModifyAndDelete));
                 Assert.That(steps[0].IsIpv6, Is.True);
                 Assert.That(Value(steps[0], FirewallWritePlaceholders.IpCidr), Is.EqualTo("2001:db8::/64"));
                 Assert.That(Missing(steps[0], FirewallWritePlaceholders.Netmask), Does.Contain("IPv6"));
@@ -297,7 +309,7 @@ namespace FWO.Test
         [Test]
         public void Access_FailsForRuleElementWithoutName()
         {
-            Assert.Throws<ConfigException>(() => Plan(Task(WfTaskType.access, Network(null, "10.0.0.1", action: RequestAction.unchanged))));
+            AssertKind(FirewallWriteErrorKind.InvalidTaskData, () => Plan(Task(WfTaskType.access, Network(null, "10.0.0.1", action: RequestAction.unchanged))));
         }
 
         [Test]
@@ -357,8 +369,8 @@ namespace FWO.Test
         {
             using (Assert.EnterMultipleScope())
             {
-                Assert.Throws<ConfigException>(() => Plan(Task(WfTaskType.rule_modify)));
-                Assert.Throws<ConfigException>(() => Plan(Task(WfTaskType.rule_delete)));
+                AssertKind(FirewallWriteErrorKind.InvalidTaskData, () => Plan(Task(WfTaskType.rule_modify)));
+                AssertKind(FirewallWriteErrorKind.InvalidTaskData, () => Plan(Task(WfTaskType.rule_delete)));
             }
         }
 
@@ -376,7 +388,7 @@ namespace FWO.Test
         [Test]
         public void UnsupportedTaskType_Fails()
         {
-            Assert.Throws<ConfigException>(() => Plan(Task(WfTaskType.generic)));
+            AssertKind(FirewallWriteErrorKind.Unsupported, () => Plan(Task(WfTaskType.generic)));
         }
 
         [Test]

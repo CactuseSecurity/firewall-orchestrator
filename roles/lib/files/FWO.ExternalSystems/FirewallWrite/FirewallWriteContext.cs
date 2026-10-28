@@ -23,27 +23,23 @@ namespace FWO.ExternalSystems.FirewallWrite
         public FirewallVendor Vendor => FirewallVendors.FromDeviceTypeId(DeviceTypeId);
 
         /// <summary>
-        /// Returns the endpoint setting of an operation: the configured value, or the default shipped for the device type
-        /// (the IPv6 default for IPv6 objects where the vendor has one). Empty if neither exists, i.e. the device type does
-        /// not support the operation.
+        /// Returns the endpoint setting of an operation: the configured value, or the default shipped for the device type.
+        /// Empty if neither exists, i.e. the device type does not support the operation.
         /// </summary>
-        public string GetEndpoint(FirewallWriteOperation operation, bool isIpv6 = false)
+        public string GetEndpoint(FirewallWriteOperation operation)
         {
             string configured = Settings.FwWriteEndpoints.GetValueOrDefault(operation, "");
             return string.IsNullOrWhiteSpace(configured)
-                ? FirewallWriteDefaults.Get(DeviceTypeId, operation, isIpv6)?.Endpoint ?? ""
+                ? FirewallWriteDefaults.GetEndpoint(DeviceTypeId, operation) ?? ""
                 : configured;
         }
 
-        /// <summary>
-        /// Returns the body template of an operation: the configured value, or the default shipped for the device type
-        /// (the IPv6 default for IPv6 objects where the vendor has one).
-        /// </summary>
-        public string GetTemplate(FirewallWriteOperation operation, bool isIpv6 = false)
+        /// <summary>Returns the body template of an operation: the configured value, or the default shipped for the device type.</summary>
+        public string GetTemplate(FirewallWriteOperation operation)
         {
             string configured = Settings.FwWriteTemplates.GetValueOrDefault(operation, "");
             return string.IsNullOrWhiteSpace(configured)
-                ? FirewallWriteDefaults.Get(DeviceTypeId, operation, isIpv6)?.Template ?? ""
+                ? FirewallWriteDefaults.GetTemplate(DeviceTypeId, operation) ?? ""
                 : configured;
         }
     }

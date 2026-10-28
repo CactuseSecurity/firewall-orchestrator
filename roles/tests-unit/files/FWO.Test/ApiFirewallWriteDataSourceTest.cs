@@ -1,4 +1,3 @@
-using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
@@ -84,9 +83,12 @@ namespace FWO.Test
             ApiFirewallWriteDataSource dataSource = new(Api());
             using (Assert.EnterMultipleScope())
             {
-                Assert.ThrowsAsync<ConfigException>(() => dataSource.LoadContext(withoutManagement));
-                Assert.ThrowsAsync<ConfigException>(() => dataSource.LoadContext(unknownManagement));
-                Assert.ThrowsAsync<ConfigException>(() => dataSource.LoadContext(foreignGateway));
+                Assert.That(Assert.ThrowsAsync<FirewallWriteException>(() => dataSource.LoadContext(withoutManagement))?.Error.Kind,
+                    Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(Assert.ThrowsAsync<FirewallWriteException>(() => dataSource.LoadContext(unknownManagement))?.Error.Kind,
+                    Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(Assert.ThrowsAsync<FirewallWriteException>(() => dataSource.LoadContext(foreignGateway))?.Error.Kind,
+                    Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
             }
         }
     }

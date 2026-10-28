@@ -19,6 +19,14 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const string kParams = "params";
         private const string kResult = "result";
 
+        private const string kStatusOk = "0";
+        private const string kStatusAlreadyExists = "-2";
+        private const string kStatusNotFound = "-3";
+        private const string kStatusInvalidUrl = "-6";
+        private const string kStatusInvalidData = "-10";
+        private const string kStatusNoPermission = "-11";
+        private const string kStatusLoginFailed = "-22";
+
         private string? session;
 
         /// <summary>Creates a client for the JSON-RPC API of a FortiManager.</summary>
@@ -40,7 +48,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             session = ParseJson(response.Content)?[kSession]?.GetValue<string>();
             if (!IsSuccess(response) || string.IsNullOrWhiteSpace(session))
             {
-                throw new ProcessingFailedException($"FortiManager login to '{Management.Name}' failed: {(int)response.StatusCode} {response.Content}");
+                throw LoginFailure(response, "FortiManager");
             }
         }
 
@@ -102,6 +110,28 @@ namespace FWO.ExternalSystems.FirewallWrite
             return results.All(result => result?["status"]?["code"]?.GetValue<int>() == 0);
         }
 
+        /// <summary>
+        /// Maps the status code of the first failed JSON-RPC result: -2 object already exists, -3 object does not exist,
+        /// -6 invalid url, -10 invalid data, -11 no permission, -22 login failed; other codes fall back to the HTTP status.
+        /// </summary>
+        protected override (FirewallWriteErrorKind? Kind, string? NativeCode) ClassifyVendorError(JsonNode? content)
+        {
+            JsonNode? failedStatus = (content?[kResult] as JsonArray)?
+                .Select(result => result?["status"])
+                .FirstOrDefault(status => status?["code"] is JsonValue code && code.ToString() != kStatusOk);
+            string? code = failedStatus?["code"]?.ToString();
+            FirewallWriteErrorKind? kind = code switch
+            {
+                kStatusAlreadyExists => FirewallWriteErrorKind.AlreadyExists,
+                kStatusNotFound => FirewallWriteErrorKind.NotFound,
+                kStatusInvalidUrl or kStatusInvalidData => FirewallWriteErrorKind.Rejected,
+                kStatusNoPermission or kStatusLoginFailed => FirewallWriteErrorKind.Authentication,
+                null => null,
+                _ => FirewallWriteErrorKind.Unknown
+            };
+            return (kind, code);
+        }
+
         /// <summary>Reads the members of the group addressed by the url of the call.</summary>
         private async Task<List<string>> ReadMembers(RenderedFirewallRequest request)
         {
@@ -114,7 +144,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             RestResponse response = await Send(JsonRpcRequest(body));
             if (!IsSuccess(response))
             {
-                throw new ProcessingFailedException($"FortiManager could not read group '{request.Step.TargetName}': {response.Content}");
+                throw ReadFailure(response, request, "the members of the group");
             }
             JsonNode? members = ParseJson(response.Content)?[kResult]?[0]?["data"]?["member"];
             return members switch

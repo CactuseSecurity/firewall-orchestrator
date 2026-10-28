@@ -1,4 +1,3 @@
-using FWO.Basics.Exceptions;
 using FWO.Data;
 using RestSharp;
 using System.Text.Json;
@@ -12,6 +11,9 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// </summary>
     public class FortiOsWriteClient : FirewallWriteClient
     {
+        private const string kErrorAlreadyExists = "-5";
+        private const string kErrorNotFound = "-3";
+
         private string? apiToken;
 
         /// <summary>Creates a client for the REST API of a FortiOS device.</summary>
@@ -29,7 +31,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <inheritdoc/>
         protected override void AddAuthentication(RestRequest request)
         {
-            request.AddHeader("Authorization", $"Bearer {apiToken ?? throw new ProcessingFailedException("FortiOS API token missing.")}");
+            request.AddHeader("Authorization", $"Bearer {apiToken ?? throw new FirewallWriteException(FirewallWriteErrorKind.Configuration, "FortiOS API token missing.")}");
         }
 
         /// <inheritdoc/>
@@ -47,13 +49,29 @@ namespace FWO.ExternalSystems.FirewallWrite
             await base.ResolveRuntimeValues(request);
         }
 
+        /// <summary>
+        /// Maps the "error" number of a FortiOS REST answer: -5 entry already exists, -3 entry not found; other errors fall back
+        /// to the HTTP status.
+        /// </summary>
+        protected override (FirewallWriteErrorKind? Kind, string? NativeCode) ClassifyVendorError(JsonNode? content)
+        {
+            string? code = content?["error"]?.ToString();
+            FirewallWriteErrorKind? kind = code switch
+            {
+                kErrorAlreadyExists => FirewallWriteErrorKind.AlreadyExists,
+                kErrorNotFound => FirewallWriteErrorKind.NotFound,
+                _ => null
+            };
+            return (kind, code);
+        }
+
         /// <summary>Reads the members of the group at the path of the call.</summary>
         private async Task<List<string>> ReadMembers(RenderedFirewallRequest request)
         {
             RestResponse response = await SendAuthenticated(new RestRequest(request.Path, Method.Get));
             if (!response.IsSuccessful)
             {
-                throw new ProcessingFailedException($"FortiOS could not read group '{request.Step.TargetName}': {(int)response.StatusCode} {response.Content}");
+                throw ReadFailure(response, request, "the members of the group");
             }
             JsonArray? members = ParseJson(response.Content)?["results"]?[0]?["member"] as JsonArray;
             return [.. (members ?? []).Select(member => member?["name"]?.GetValue<string>() ?? "").Where(name => name.Length > 0)];

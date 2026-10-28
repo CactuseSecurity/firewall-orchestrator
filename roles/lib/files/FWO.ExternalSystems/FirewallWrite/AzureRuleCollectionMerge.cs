@@ -20,9 +20,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const int kDefaultCollectionPriority = 10000;
 
         /// <summary>Changes the rule collection group in place.</summary>
-        /// <exception cref="ConfigException">
-        /// Thrown if the template lacks the rule, the rule to change does not exist or the rule to create already exists.
-        /// </exception>
+        /// <exception cref="ConfigException">Thrown if the template lacks the rule.</exception>
+        /// <exception cref="FirewallWriteException">Thrown if the rule to change does not exist or the rule to create already exists.</exception>
         public static void Apply(JsonObject ruleCollectionGroup, FirewallWriteOperation operation, JsonObject fragment)
         {
             JsonArray collections = ruleCollectionGroup[kProperties]?[kRuleCollections] as JsonArray
@@ -32,7 +31,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 string ruleName = fragment["ruleName"]?.GetValue<string>() ?? throw new ConfigException("The Azure rule delete template needs \"ruleName\".");
                 if (!collections.OfType<JsonObject>().Any(collection => RemoveRule(collection, ruleName)))
                 {
-                    throw new ConfigException($"Azure rule '{ruleName}' not found.");
+                    throw new FirewallWriteException(FirewallWriteErrorKind.NotFound, $"Azure rule '{ruleName}' not found.");
                 }
                 return;
             }
@@ -42,14 +41,14 @@ namespace FWO.ExternalSystems.FirewallWrite
             if (operation == FirewallWriteOperation.RuleModify)
             {
                 JsonObject existingCollection = collections.OfType<JsonObject>().FirstOrDefault(collection => FindRule(collection, name) >= 0)
-                    ?? throw new ConfigException($"Azure rule '{name}' not found.");
+                    ?? throw new FirewallWriteException(FirewallWriteErrorKind.NotFound, $"Azure rule '{name}' not found.");
                 Rules(existingCollection)[FindRule(existingCollection, name)] = rule;
                 return;
             }
 
             if (collections.OfType<JsonObject>().Any(collection => FindRule(collection, name) >= 0))
             {
-                throw new ConfigException($"Azure rule '{name}' already exists in the rule collection group.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.AlreadyExists, $"Azure rule '{name}' already exists in the rule collection group.");
             }
             Rules(FindOrAddCollection(collections, fragment)).Add(rule);
         }

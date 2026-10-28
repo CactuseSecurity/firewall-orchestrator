@@ -94,7 +94,8 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
             else
             {
-                step.SetMissing(FirewallWritePlaceholders.RuleProtocol, "the services use several protocols that one rule cannot express");
+                step.SetMissing(FirewallWritePlaceholders.RuleProtocol, "the services use several protocols that one rule cannot express",
+                    FirewallWriteErrorKind.Unsupported);
             }
         }
 

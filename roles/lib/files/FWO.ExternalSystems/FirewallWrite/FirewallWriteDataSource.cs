@@ -1,6 +1,5 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
@@ -12,7 +11,7 @@ namespace FWO.ExternalSystems.FirewallWrite
     public interface IFirewallWriteDataSource
     {
         /// <summary>Returns management, gateway and the device specific settings in effect for the task's target.</summary>
-        /// <exception cref="ConfigException">Thrown if the task has no management or the management or gateway does not exist.</exception>
+        /// <exception cref="FirewallWriteException">Thrown if the task has no management or the management or gateway does not exist.</exception>
         Task<FirewallWriteContext> LoadContext(WfImplTask implTask);
     }
 
@@ -28,17 +27,19 @@ namespace FWO.ExternalSystems.FirewallWrite
             ArgumentNullException.ThrowIfNull(implTask);
             if (implTask.ManagementId == null)
             {
-                throw new ConfigException($"Implementation task {implTask.Id} has no management.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Implementation task {implTask.Id} has no management.");
             }
 
             List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementById, new { id = implTask.ManagementId.Value });
             Management management = managements.FirstOrDefault()
-                ?? throw new ConfigException($"Management {implTask.ManagementId} of implementation task {implTask.Id} not found.");
+                ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                    $"Management {implTask.ManagementId} of implementation task {implTask.Id} not found.");
             Device? gateway = null;
             if (implTask.DeviceId != null)
             {
                 gateway = management.Devices.FirstOrDefault(device => device.Id == implTask.DeviceId)
-                    ?? throw new ConfigException($"Gateway {implTask.DeviceId} of implementation task {implTask.Id} does not belong to management {management.Id}.");
+                    ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                        $"Gateway {implTask.DeviceId} of implementation task {implTask.Id} does not belong to management {management.Id}.");
             }
 
             DeviceSpecificScopePath path = gateway == null

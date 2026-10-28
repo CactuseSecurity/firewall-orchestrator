@@ -1,4 +1,3 @@
-using FWO.Basics.Exceptions;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using System.Globalization;
@@ -30,7 +29,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             [nameof(RequestAction.create), nameof(RequestAction.modify), nameof(RequestAction.delete)];
 
         /// <summary>Plans the steps of a task in execution order; every step carries the context placeholders.</summary>
-        /// <exception cref="ConfigException">Thrown for task types, actions or elements that cannot be written.</exception>
+        /// <exception cref="FirewallWriteException">Thrown for task types, actions or elements that cannot be written.</exception>
         public static List<FirewallWriteStep> Plan(WfImplTask implTask, FirewallWriteContext context, FirewallRulePlacement? placement)
         {
             ArgumentNullException.ThrowIfNull(implTask);
@@ -45,7 +44,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 nameof(WfTaskType.access) => PlanRuleCreate(implTask, profile),
                 nameof(WfTaskType.rule_modify) => [RuleStep(FirewallWriteOperation.RuleModify, implTask, profile, RuleUid(implTask))],
                 nameof(WfTaskType.rule_delete) => PlanRuleDelete(implTask, profile),
-                _ => throw new ConfigException($"Task type '{implTask.TaskType}' cannot be written to a firewall.")
+                _ => throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported, $"Task type '{implTask.TaskType}' cannot be written to a firewall.")
             };
 
             IReadOnlyDictionary<string, FirewallPlaceholderValue> contextValues = ContextValues(implTask, context, placement);
@@ -56,8 +55,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>
         /// Returns the placeholder values of the target and the task that every step and session step can use. Target
         /// values that cannot be determined get no value, so a template that needs them fails before anything is sent.
-        /// The policy package is the gateway's package, else the package of its imported rulebase links, else its rulebase
-        /// (FortiManager); the layer is the one of the rule position, else the first imported access layer, else the
+        /// The policy package is the package of the gateway's current imported rulebase links, else the gateway's package
+        /// (not maintained by current imports, so only a fallback), else its rulebase (FortiManager); the layer is the one of the rule position, else the first imported access layer, else the
         /// vendor's own default, else the gateway's rulebase.
         /// </summary>
         public static IReadOnlyDictionary<string, FirewallPlaceholderValue> ContextValues(WfImplTask implTask, FirewallWriteContext context,
@@ -70,7 +69,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             string domain = context.Management.ConfigPath ?? "";
             FirewallRulePlacement effectivePlacement = placement ?? FirewallRulePlacement.EndOfRulebase;
             FirewallVendorProfile profile = FirewallVendorProfile.For(context.Vendor);
-            string? policyName = FirstNonBlank(context.Gateway?.Package, context.Rulebases.PolicyName, context.Gateway?.LocalRulebase);
+            string? policyName = FirstNonBlank(context.Rulebases.PolicyName, context.Gateway?.Package, context.Gateway?.LocalRulebase);
             string? layerName = FirstNonBlank(effectivePlacement.LayerUid, context.Rulebases.FirstLayerName, profile.DefaultLayerName,
                 context.Gateway?.LocalRulebase);
 
@@ -79,13 +78,13 @@ namespace FWO.ExternalSystems.FirewallWrite
                 .SetRequiredText(FirewallWritePlaceholders.GatewayName, gatewayName, kNoGateway)
                 .SetRequiredText(FirewallWritePlaceholders.DeviceName, deviceName, kNoGateway)
                 .SetText(FirewallWritePlaceholders.VdomName, vdomName)
-                .SetRequiredText(FirewallWritePlaceholders.PolicyName, policyName, kNoPolicy)
-                .SetRequiredText(FirewallWritePlaceholders.LayerName, layerName, kNoLayer)
-                .SetRequiredText(FirewallWritePlaceholders.DomainName, domain, kNoConfigPath)
-                .SetRequiredText(FirewallWritePlaceholders.AdomName, domain, kNoConfigPath)
-                .SetRequiredText(FirewallWritePlaceholders.ResourceGroup, domain, kNoConfigPath)
+                .SetRequiredText(FirewallWritePlaceholders.PolicyName, policyName, kNoPolicy, FirewallWriteErrorKind.Configuration)
+                .SetRequiredText(FirewallWritePlaceholders.LayerName, layerName, kNoLayer, FirewallWriteErrorKind.Configuration)
+                .SetRequiredText(FirewallWritePlaceholders.DomainName, domain, kNoConfigPath, FirewallWriteErrorKind.Configuration)
+                .SetRequiredText(FirewallWritePlaceholders.AdomName, domain, kNoConfigPath, FirewallWriteErrorKind.Configuration)
+                .SetRequiredText(FirewallWritePlaceholders.ResourceGroup, domain, kNoConfigPath, FirewallWriteErrorKind.Configuration)
                 .SetRequiredText(FirewallWritePlaceholders.SubscriptionId, context.Management.CloudSubscriptionId,
-                    "the management has no cloud subscription id")
+                    "the management has no cloud subscription id", FirewallWriteErrorKind.Configuration)
                 .SetText(FirewallWritePlaceholders.TicketId, implTask.TicketId.ToString(CultureInfo.InvariantCulture))
                 .SetText(FirewallWritePlaceholders.TaskId, implTask.Id.ToString(CultureInfo.InvariantCulture))
                 .SetText(FirewallWritePlaceholders.TaskNumber, implTask.TaskNumber.ToString(CultureInfo.InvariantCulture))
@@ -193,7 +192,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
             else
             {
-                step.SetMissing(FirewallWritePlaceholders.MemberName, kNotOneMember);
+                step.SetMissing(FirewallWritePlaceholders.MemberName, kNotOneMember, FirewallWriteErrorKind.Configuration);
             }
             if (operation == FirewallWriteOperation.GroupRemoveMembers)
             {
@@ -227,7 +226,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             List<string> ruleUids = [.. implTask.GetRuleElements().Select(rule => rule.RuleUid).Where(uid => !string.IsNullOrWhiteSpace(uid)).Distinct()];
             if (ruleUids.Count == 0)
             {
-                throw new ConfigException($"Implementation task {implTask.Id} has no rule to delete.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Implementation task {implTask.Id} has no rule to delete.");
             }
             return [.. ruleUids.Select(uid => RuleStep(FirewallWriteOperation.RuleDelete, implTask, profile, uid))];
         }
@@ -236,7 +235,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             FirewallWriteStep step = new(operation) { TargetName = string.IsNullOrWhiteSpace(ruleUid) ? implTask.Title : ruleUid };
             step.SetText(FirewallWritePlaceholders.RuleName, implTask.Title)
-                .SetRequiredText(FirewallWritePlaceholders.RuleUid, ruleUid, kNoRuleUid)
+                .SetRequiredText(FirewallWritePlaceholders.RuleUid, ruleUid, kNoRuleUid, FirewallWriteErrorKind.Configuration)
                 .SetText(FirewallWritePlaceholders.RuleComment, Comment(implTask))
                 .SetText(FirewallWritePlaceholders.RuleTracking, implTask.Tracking == kTrackNone ? profile.LogOff : profile.LogOn);
             if (implTask.RuleAction == null)
@@ -258,14 +257,15 @@ namespace FWO.ExternalSystems.FirewallWrite
         private static string RuleUid(WfImplTask implTask)
         {
             string? ruleUid = implTask.GetRuleElements().Select(rule => rule.RuleUid).FirstOrDefault(uid => !string.IsNullOrWhiteSpace(uid));
-            return ruleUid ?? throw new ConfigException($"Implementation task {implTask.Id} has no rule to modify.");
+            return ruleUid ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Implementation task {implTask.Id} has no rule to modify.");
         }
 
         private static List<WfImplElement> GroupMembers(WfImplTask implTask)
         {
             if (implTask.ImplElements.Any(FirewallElementValues.IsServiceElement))
             {
-                throw new ConfigException($"Implementation task {implTask.Id}: service groups are not supported by the firewall write library.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
+                    $"Implementation task {implTask.Id}: service groups are not supported by the firewall write library.");
             }
             return [.. implTask.ImplElements.Where(FirewallElementValues.IsNetworkElement)];
         }
@@ -275,7 +275,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             string? groupName = implTask.ImplElements.Select(element => element.GroupName).FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
             groupName ??= implTask.Title;
             return string.IsNullOrWhiteSpace(groupName)
-                ? throw new ConfigException($"Implementation task {implTask.Id} has no group name.")
+                ? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Implementation task {implTask.Id} has no group name.")
                 : groupName.Trim();
         }
 

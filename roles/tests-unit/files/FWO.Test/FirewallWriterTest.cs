@@ -312,7 +312,9 @@ namespace FWO.Test
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result.Success, Is.False);
-                Assert.That(result.Message, Does.Contain("could not read group"));
+                Assert.That(result.Message, Does.Contain("Could not read the members of the group"));
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.NotFound));
+                Assert.That(result.IsRetryable, Is.False);
                 Assert.That(simulation.Requests.Single().Method, Is.EqualTo(Method.Get));
             }
         }
@@ -396,15 +398,16 @@ namespace FWO.Test
 
             ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, add));
 
-            RecordedFirewallRequest update = simulation.Requests[2];
+            RecordedFirewallRequest update = simulation.Requests[3];
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result.Success, Is.True, result.Message);
                 Assert.That(update.Resource, Is.EqualTo("/api/firewall/alias/setItem/uuid-1"));
                 Assert.That(JsonNode.Parse(update.Body!)!["alias"]!["content"]!.GetValue<string>(), Is.EqualTo("m1\nm2"));
                 Assert.That(update.Headers["Authorization"], Is.EqualTo("Basic " + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("writer:secret"))));
-                Assert.That(simulation.Requests[3].Resource, Is.EqualTo("/api/firewall/alias/reconfigure"));
-                Assert.That(simulation.Requests[4].Resource, Is.EqualTo("/api/firewall/filter/apply"));
+                Assert.That(simulation.Requests[2].Resource, Is.EqualTo("/api/firewall/alias/getItem/uuid-1"));
+                Assert.That(simulation.Requests[4].Resource, Is.EqualTo("/api/firewall/alias/reconfigure"));
+                Assert.That(simulation.Requests[5].Resource, Is.EqualTo("/api/firewall/filter/apply"));
             }
         }
 

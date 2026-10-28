@@ -52,6 +52,15 @@ namespace FWO.ExternalSystems.FirewallWrite
                 { FirewallWriteOperation.AddressRangeCreate, Call("add", kAddressUrl, kRangeData) },
                 { FirewallWriteOperation.AddressRangeModify, Call("update", kAddressUrl + kObjectInUrl, kRangeData) },
                 { FirewallWriteOperation.AddressRangeDelete, Call("delete", kAddressUrl + kObjectInUrl) },
+                { FirewallWriteOperation.Ipv6HostCreate, Call("add", kAddress6Url, kPrefix6Data) },
+                { FirewallWriteOperation.Ipv6HostModify, Call("update", kAddress6Url + kObjectInUrl, kPrefix6Data) },
+                { FirewallWriteOperation.Ipv6HostDelete, Call("delete", kAddress6Url + kObjectInUrl) },
+                { FirewallWriteOperation.Ipv6NetworkCreate, Call("add", kAddress6Url, kPrefix6Data) },
+                { FirewallWriteOperation.Ipv6NetworkModify, Call("update", kAddress6Url + kObjectInUrl, kPrefix6Data) },
+                { FirewallWriteOperation.Ipv6NetworkDelete, Call("delete", kAddress6Url + kObjectInUrl) },
+                { FirewallWriteOperation.Ipv6AddressRangeCreate, Call("add", kAddress6Url, kRangeData) },
+                { FirewallWriteOperation.Ipv6AddressRangeModify, Call("update", kAddress6Url + kObjectInUrl, kRangeData) },
+                { FirewallWriteOperation.Ipv6AddressRangeDelete, Call("delete", kAddress6Url + kObjectInUrl) },
                 { FirewallWriteOperation.ServiceCreate, Call("add", kServiceUrl, kServiceData) },
                 { FirewallWriteOperation.ServiceModify, Call("update", kServiceUrl + kServiceInUrl, kServiceData) },
                 { FirewallWriteOperation.ServiceDelete, Call("delete", kServiceUrl + kServiceInUrl) },
@@ -63,21 +72,6 @@ namespace FWO.ExternalSystems.FirewallWrite
                 { FirewallWriteOperation.RuleModify, Call("update", kPolicyUrl + "/@@RULE_UID@@", kRuleModifyData) },
                 { FirewallWriteOperation.RuleDelete, Call("delete", kPolicyUrl + "/@@RULE_UID@@") },
                 { FirewallWriteOperation.InstallPolicy, Call("exec", "/securityconsole/install/package", kInstallData) }
-            };
-
-        /// <summary>Shipped calls for IPv6 network objects, which FortiManager keeps in the address6 table.</summary>
-        public static IReadOnlyDictionary<FirewallWriteOperation, FirewallWriteDefault> Ipv6Operations { get; } =
-            new Dictionary<FirewallWriteOperation, FirewallWriteDefault>
-            {
-                { FirewallWriteOperation.HostCreate, Call("add", kAddress6Url, kPrefix6Data) },
-                { FirewallWriteOperation.HostModify, Call("update", kAddress6Url + kObjectInUrl, kPrefix6Data) },
-                { FirewallWriteOperation.HostDelete, Call("delete", kAddress6Url + kObjectInUrl) },
-                { FirewallWriteOperation.NetworkCreate, Call("add", kAddress6Url, kPrefix6Data) },
-                { FirewallWriteOperation.NetworkModify, Call("update", kAddress6Url + kObjectInUrl, kPrefix6Data) },
-                { FirewallWriteOperation.NetworkDelete, Call("delete", kAddress6Url + kObjectInUrl) },
-                { FirewallWriteOperation.AddressRangeCreate, Call("add", kAddress6Url, kRangeData) },
-                { FirewallWriteOperation.AddressRangeModify, Call("update", kAddress6Url + kObjectInUrl, kRangeData) },
-                { FirewallWriteOperation.AddressRangeDelete, Call("delete", kAddress6Url + kObjectInUrl) }
             };
 
         /// <summary>Builds the JSON-RPC envelope of one call; the client adds the session.</summary>

@@ -21,7 +21,7 @@ namespace FWO.Test
         private const string kAzureToken = "{\"access_token\":\"token-1\"}";
         private const string kAzureLocation = "{\"location\":\"westeurope\"}";
         private static readonly List<string> kModifyOnlyCalls = ["login", "set-host", "publish", "logout"];
-        private static readonly List<string> kSkippedObjectDeletions = ["HostDelete 'h2'", "ServiceDelete 'svc'"];
+        private static readonly List<string> kSkippedObjectDeletions = ["HostDelete 'h2'", "ServiceDelete 'svc'", "Ipv6HostDelete 'h6'"];
 
         private static (FirewallWriter Writer, FirewallSimulation Simulation) Writer(FirewallWriteContext context)
         {
@@ -100,6 +100,83 @@ namespace FWO.Test
             }
         }
 
+        /// <summary>
+        /// The package of the current import wins over device.package_name, which no import maintains any more and may still
+        /// hold a value from an older version.
+        /// </summary>
+        [Test]
+        public async Task CheckPoint_InstallsThePackageOfTheImportNotAStalePackageName()
+        {
+            GatewayDeviceSpecificSettings settings = new() { FwWriteInstallPolicy = true };
+            FirewallGatewayRulebases rulebases = FirewallGatewayRulebases.FromLinks(FirewallGatewayRulebasesTest.CheckPointLinks());
+            FirewallWriteContext context = Context(FirewallVendors.kCheckPointR8x, settings);
+            context.Gateway!.Package = "Stale Package";
+            (FirewallWriter writer, FirewallSimulation simulation) = Writer(new FirewallWriteContext
+            {
+                Management = context.Management,
+                Gateway = context.Gateway,
+                Settings = settings,
+                Rulebases = rulebases
+            });
+            simulation.Handler = request => Ok(request.Resource == "login" ? kCheckPointLogin : "{}");
+            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.rule_delete, Rule("uid-1")));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(JsonNode.Parse(simulation.Requests[3].Body!)!["policy-package"]!.GetValue<string>(), Is.EqualTo("Standard"));
+            }
+        }
+
+        /// <summary>
+        /// OPNsense can only replace a whole alias: if its content changed between the read for the merge and the write, the
+        /// write is not sent and fails as a retryable conflict.
+        /// </summary>
+        [Test]
+        public async Task OpnSense_DoesNotOverwriteAnAliasChangedInTheMeantime()
+        {
+            (FirewallWriter writer, FirewallSimulation simulation) = Writer(Context(FirewallVendors.kOpnSense));
+            int contentReads = 0;
+            simulation.Handler = request => request.Resource switch
+            {
+                "/api/firewall/alias/getAliasUUID/grp" => Ok("{\"uuid\":\"uuid-1\"}"),
+                "/api/firewall/alias/getItem/uuid-1" => Ok(contentReads++ == 0
+                    ? "{\"alias\":{\"content\":{\"m1\":{\"selected\":1}}}}"
+                    : "{\"alias\":{\"content\":{\"m1\":{\"selected\":1},\"added-meanwhile\":{\"selected\":1}}}}"),
+                _ => Ok("{\"result\":\"saved\"}")
+            };
+            WfImplElement add = Network("m2", null);
+            add.GroupName = "grp";
+            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, add));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Conflict));
+                Assert.That(result.IsRetryable, Is.True);
+                Assert.That(result.Message, Does.Contain("changed on the firewall in the meantime"));
+                Assert.That(simulation.Requests.Any(request => request.Resource.Contains("setItem")), Is.False);
+            }
+        }
+
+        /// <summary>IPv6 objects use their own operations, which Azure (IPv4 only IP groups) does not ship.</summary>
+        [Test]
+        public async Task Ipv6ObjectsUseTheirOwnOperations()
+        {
+            (FirewallWriter checkPoint, FirewallSimulation checkPointSimulation) = Writer(Context(FirewallVendors.kCheckPointR8x));
+            checkPointSimulation.Handler = request => Ok(request.Resource == "login" ? kCheckPointLogin : "{}");
+            ModifyFirewallResult checkPointResult = await checkPoint.ModifyFirewall(Task(WfTaskType.object_create, Network("h6", "2001:db8::1")));
+            (FirewallWriter azure, FirewallSimulation azureSimulation) = Writer(Context(FirewallVendors.kAzure, configPath: "rg1"));
+            ModifyFirewallResult azureResult = await azure.ModifyFirewall(Task(WfTaskType.object_create, Network("h6", "2001:db8::1")));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(checkPointResult.Success, Is.True, checkPointResult.Message);
+                Assert.That(checkPointResult.Steps[0].Operation, Is.EqualTo(FirewallWriteOperation.Ipv6HostCreate));
+                Assert.That(JsonNode.Parse(checkPointSimulation.Requests[1].Body!)!["ip-address"]!.GetValue<string>(), Is.EqualTo("2001:db8::1"));
+                Assert.That(azureResult.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Unsupported));
+                Assert.That(azureResult.Message, Does.Contain("Ipv6HostCreate is not supported"));
+                Assert.That(azureSimulation.Requests, Is.Empty);
+            }
+        }
+
         [Test]
         public async Task CheckPoint_WithoutLayerAndPackageSendsNothing()
         {
@@ -139,7 +216,8 @@ namespace FWO.Test
             (FirewallWriter writer, FirewallSimulation simulation) = Writer(Context(FirewallVendors.kCheckPointR8x, new GatewayDeviceSpecificSettings()));
             simulation.Handler = request => Ok(request.Resource == "login" ? kCheckPointLogin : "{}");
             ModifyFirewallResult objects = await writer.ModifyFirewall(Task(WfTaskType.object_modify, Network("h1", "10.0.0.1", action: RequestAction.modify),
-                Network("h2", "10.0.0.2", action: RequestAction.delete), Service("svc", 6, 80, action: RequestAction.delete)));
+                Network("h2", "10.0.0.2", action: RequestAction.delete), Service("svc", 6, 80, action: RequestAction.delete),
+                Network("h6", "2001:db8::6", action: RequestAction.delete)));
             int callsForObjects = simulation.Requests.Count;
             ModifyFirewallResult group = await writer.ModifyFirewall(Task(WfTaskType.group_delete));
             using (Assert.EnterMultipleScope())

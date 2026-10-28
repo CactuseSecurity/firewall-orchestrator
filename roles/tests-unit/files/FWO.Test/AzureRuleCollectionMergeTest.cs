@@ -39,11 +39,12 @@ namespace FWO.Test
         {
             JsonObject group = Group();
             string before = group.ToJsonString();
-            ConfigException? exception = Assert.Throws<ConfigException>(() => AzureRuleCollectionMerge.Apply(group, FirewallWriteOperation.RuleCreate,
+            FirewallWriteException? exception = Assert.Throws<FirewallWriteException>(() => AzureRuleCollectionMerge.Apply(group, FirewallWriteOperation.RuleCreate,
                 Fragment($$$"""{"ruleCollectionName":"{{{collectionName}}}","rule":{"name":"{{{ruleName}}}","destinationPorts":["443"]}}""")));
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(exception?.Message, Does.Contain("already exists"));
+                Assert.That(exception?.Error.Kind, Is.EqualTo(FirewallWriteErrorKind.AlreadyExists));
                 Assert.That(group.ToJsonString(), Is.EqualTo(before));
             }
         }
@@ -79,14 +80,20 @@ namespace FWO.Test
             Assert.That(Rules(group, 1), Is.Empty);
         }
 
-        [TestCase(FirewallWriteOperation.RuleDelete, """{"ruleName":"missing"}""")]
         [TestCase(FirewallWriteOperation.RuleDelete, """{}""")]
-        [TestCase(FirewallWriteOperation.RuleModify, """{"rule":{"name":"missing"}}""")]
         [TestCase(FirewallWriteOperation.RuleCreate, """{"rule":{}}""")]
         [TestCase(FirewallWriteOperation.RuleCreate, """{"name":"no rule object"}""")]
-        public void InvalidChanges_Fail(FirewallWriteOperation operation, string fragment)
+        public void InvalidTemplates_Fail(FirewallWriteOperation operation, string fragment)
         {
             Assert.Throws<ConfigException>(() => AzureRuleCollectionMerge.Apply(Group(), operation, Fragment(fragment)));
+        }
+
+        [TestCase(FirewallWriteOperation.RuleDelete, """{"ruleName":"missing"}""")]
+        [TestCase(FirewallWriteOperation.RuleModify, """{"rule":{"name":"missing"}}""")]
+        public void MissingRules_FailAsNotFound(FirewallWriteOperation operation, string fragment)
+        {
+            FirewallWriteException? exception = Assert.Throws<FirewallWriteException>(() => AzureRuleCollectionMerge.Apply(Group(), operation, Fragment(fragment)));
+            Assert.That(exception?.Error.Kind, Is.EqualTo(FirewallWriteErrorKind.NotFound));
         }
 
         [Test]

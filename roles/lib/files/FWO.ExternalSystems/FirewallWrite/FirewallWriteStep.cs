@@ -5,13 +5,14 @@ namespace FWO.ExternalSystems.FirewallWrite
 {
     /// <summary>
     /// Value of one placeholder. Text values are escaped for the place they are inserted at, JSON values are inserted as they are.
-    /// A value with <see cref="MissingReason"/> has no content: rendering a template that uses it fails with that reason, so
-    /// that nothing is sent with an empty or widened value.
+    /// A value with <see cref="MissingReason"/> has no content: rendering a template that uses it fails with that reason and
+    /// <see cref="MissingKind"/>, so that nothing is sent with an empty or widened value.
     /// </summary>
-    public sealed record FirewallPlaceholderValue(string Value, bool IsJson, string? MissingReason = null)
+    public sealed record FirewallPlaceholderValue(string Value, bool IsJson, string? MissingReason = null,
+        FirewallWriteErrorKind MissingKind = FirewallWriteErrorKind.InvalidTaskData)
     {
-        /// <summary>A placeholder that has no value for the step, with the reason shown when a template uses it.</summary>
-        public static FirewallPlaceholderValue Missing(string reason) => new("", false, reason);
+        /// <summary>A placeholder that has no value for the step, with the reason and error kind used when a template needs it.</summary>
+        public static FirewallPlaceholderValue Missing(string reason, FirewallWriteErrorKind kind) => new("", false, reason, kind);
     }
 
     /// <summary>
@@ -27,7 +28,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>Name of the object, group or rule the call changes; used by vendor clients that look up IDs by name.</summary>
         public string TargetName { get; set; } = "";
 
-        /// <summary>Whether the step writes an IPv6 network object; selects the IPv6 defaults of vendors with separate IPv6 tables.</summary>
+        /// <summary>Whether the step writes an IPv6 network object (one of the Ipv6 operations).</summary>
         public bool IsIpv6 { get; init; }
 
         /// <summary>Members to add to a group, as rendered into the request.</summary>
@@ -44,15 +45,19 @@ namespace FWO.ExternalSystems.FirewallWrite
         }
 
         /// <summary>Sets a placeholder to a text value, or marks it as missing with the given reason if the value is empty.</summary>
-        public FirewallWriteStep SetRequiredText(string placeholder, string? value, string missingReason)
+        public FirewallWriteStep SetRequiredText(string placeholder, string? value, string missingReason,
+            FirewallWriteErrorKind missingKind = FirewallWriteErrorKind.InvalidTaskData)
         {
-            return string.IsNullOrWhiteSpace(value) ? SetMissing(placeholder, missingReason) : SetText(placeholder, value);
+            return string.IsNullOrWhiteSpace(value) ? SetMissing(placeholder, missingReason, missingKind) : SetText(placeholder, value);
         }
 
-        /// <summary>Marks a placeholder as having no value; a template that uses it fails with the reason.</summary>
-        public FirewallWriteStep SetMissing(string placeholder, string reason)
+        /// <summary>
+        /// Marks a placeholder as having no value; a template that uses it fails with the reason and error kind (by default
+        /// a gap in the task's data).
+        /// </summary>
+        public FirewallWriteStep SetMissing(string placeholder, string reason, FirewallWriteErrorKind kind = FirewallWriteErrorKind.InvalidTaskData)
         {
-            Values[placeholder] = FirewallPlaceholderValue.Missing(reason);
+            Values[placeholder] = FirewallPlaceholderValue.Missing(reason, kind);
             return this;
         }
 

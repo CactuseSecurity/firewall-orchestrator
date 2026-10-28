@@ -1,4 +1,3 @@
-using FWO.Basics.Exceptions;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using FWO.Logging;
@@ -19,6 +18,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         private static readonly HashSet<FirewallWriteOperation> ObjectDeletions =
         [
             FirewallWriteOperation.HostDelete, FirewallWriteOperation.NetworkDelete, FirewallWriteOperation.AddressRangeDelete,
+            FirewallWriteOperation.Ipv6HostDelete, FirewallWriteOperation.Ipv6NetworkDelete, FirewallWriteOperation.Ipv6AddressRangeDelete,
             FirewallWriteOperation.ServiceDelete, FirewallWriteOperation.GroupDelete
         ];
 
@@ -56,7 +56,8 @@ namespace FWO.ExternalSystems.FirewallWrite
                 context = await dataSource.LoadContext(implTask);
                 if (context.Vendor == FirewallVendor.Unsupported)
                 {
-                    return ModifyFirewallResult.Failed($"Device type {context.DeviceTypeId} of management '{context.Management.Name}' is not supported for firewall writes.");
+                    string message = $"Device type {context.DeviceTypeId} of management '{context.Management.Name}' is not supported for firewall writes.";
+                    return ModifyFirewallResult.Failed(message, new FirewallWriteError(FirewallWriteErrorKind.Unsupported, message));
                 }
                 rendered = RenderTask(implTask, context);
                 if (rendered.Requests.Count == 0)
@@ -68,8 +69,9 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
             catch (Exception exception)
             {
-                Log.WriteWarning(kLogCategory, $"Implementation task {implTask.Id} not written: {exception.Message}");
-                return ModifyFirewallResult.Failed(exception.Message);
+                FirewallWriteError error = FirewallWriteErrors.FromException(exception);
+                Log.WriteWarning(kLogCategory, $"Implementation task {implTask.Id} not written ({error.Kind}): {exception.Message}");
+                return ModifyFirewallResult.Failed(exception.Message, error);
             }
             return await Execute(client, rendered, context);
         }
@@ -122,12 +124,13 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         private static RenderedFirewallRequest Render(FirewallWriteStep step, FirewallWriteContext context)
         {
-            string endpoint = context.GetEndpoint(step.Operation, step.IsIpv6);
+            string endpoint = context.GetEndpoint(step.Operation);
             if (string.IsNullOrWhiteSpace(endpoint))
             {
-                throw new ConfigException($"{step.Operation} is not supported for device type {context.DeviceTypeId}: no endpoint configured.");
+                throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
+                    $"{step.Operation} is not supported for device type {context.DeviceTypeId}: no endpoint configured.");
             }
-            return FirewallTemplateRenderer.Render(step, endpoint, context.GetTemplate(step.Operation, step.IsIpv6));
+            return FirewallTemplateRenderer.Render(step, endpoint, context.GetTemplate(step.Operation));
         }
 
         private static async Task<ModifyFirewallResult> Execute(FirewallWriteClient client, RenderedTask rendered, FirewallWriteContext context)
@@ -144,7 +147,10 @@ namespace FWO.ExternalSystems.FirewallWrite
                     results.Add(result);
                     if (!result.Success)
                     {
-                        return ModifyFirewallResult.Failed($"{result.Operation} on '{result.Target}' failed with status {result.StatusCode}.", results, skipped);
+                        FirewallWriteError error = result.Error ?? new FirewallWriteError(FirewallWriteErrorKind.Unknown, result.Message, result.StatusCode,
+                            Operation: result.Operation);
+                        return ModifyFirewallResult.Failed($"{result.Operation} on '{result.Target}' failed with status {result.StatusCode} ({error.Kind}).",
+                            error, results, skipped);
                     }
                 }
                 completed = true;
@@ -152,8 +158,9 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
             catch (Exception exception)
             {
-                Log.WriteError(kLogCategory, $"Writing to '{context.Management.Name}' failed.", exception);
-                return ModifyFirewallResult.Failed(exception.Message, results, skipped);
+                FirewallWriteError error = FirewallWriteErrors.FromException(exception);
+                Log.WriteError(kLogCategory, $"Writing to '{context.Management.Name}' failed ({error.Kind}).", exception);
+                return ModifyFirewallResult.Failed(exception.Message, error, results, skipped);
             }
             finally
             {

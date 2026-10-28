@@ -45,6 +45,15 @@ namespace FWO.ExternalSystems.FirewallWrite
                 { FirewallWriteOperation.AddressRangeCreate, new($"POST {kAddressPath}", kRangeBody) },
                 { FirewallWriteOperation.AddressRangeModify, new($"PUT {kAddressPath}{kObjectInPath}", kRangeBody) },
                 { FirewallWriteOperation.AddressRangeDelete, new($"DELETE {kAddressPath}{kObjectInPath}", "") },
+                { FirewallWriteOperation.Ipv6HostCreate, new($"POST {kAddress6Path}", kPrefix6Body) },
+                { FirewallWriteOperation.Ipv6HostModify, new($"PUT {kAddress6Path}{kObjectInPath}", kPrefix6Body) },
+                { FirewallWriteOperation.Ipv6HostDelete, new($"DELETE {kAddress6Path}{kObjectInPath}", "") },
+                { FirewallWriteOperation.Ipv6NetworkCreate, new($"POST {kAddress6Path}", kPrefix6Body) },
+                { FirewallWriteOperation.Ipv6NetworkModify, new($"PUT {kAddress6Path}{kObjectInPath}", kPrefix6Body) },
+                { FirewallWriteOperation.Ipv6NetworkDelete, new($"DELETE {kAddress6Path}{kObjectInPath}", "") },
+                { FirewallWriteOperation.Ipv6AddressRangeCreate, new($"POST {kAddress6Path}", kRangeBody) },
+                { FirewallWriteOperation.Ipv6AddressRangeModify, new($"PUT {kAddress6Path}{kObjectInPath}", kRangeBody) },
+                { FirewallWriteOperation.Ipv6AddressRangeDelete, new($"DELETE {kAddress6Path}{kObjectInPath}", "") },
                 { FirewallWriteOperation.ServiceCreate, new($"POST {kServicePath}", kServiceBody) },
                 { FirewallWriteOperation.ServiceModify, new($"PUT {kServicePath}/@@SERVICE_NAME@@", kServiceBody) },
                 { FirewallWriteOperation.ServiceDelete, new($"DELETE {kServicePath}/@@SERVICE_NAME@@", "") },
@@ -55,21 +64,6 @@ namespace FWO.ExternalSystems.FirewallWrite
                 { FirewallWriteOperation.RuleCreate, new($"POST {kPolicyPath}", kRuleCreateBody) },
                 { FirewallWriteOperation.RuleModify, new($"PUT {kPolicyPath}/@@RULE_UID@@", kRuleModifyBody) },
                 { FirewallWriteOperation.RuleDelete, new($"DELETE {kPolicyPath}/@@RULE_UID@@", "") }
-            };
-
-        /// <summary>Shipped calls for IPv6 network objects, which FortiOS keeps in the address6 table.</summary>
-        public static IReadOnlyDictionary<FirewallWriteOperation, FirewallWriteDefault> Ipv6Operations { get; } =
-            new Dictionary<FirewallWriteOperation, FirewallWriteDefault>
-            {
-                { FirewallWriteOperation.HostCreate, new($"POST {kAddress6Path}", kPrefix6Body) },
-                { FirewallWriteOperation.HostModify, new($"PUT {kAddress6Path}{kObjectInPath}", kPrefix6Body) },
-                { FirewallWriteOperation.HostDelete, new($"DELETE {kAddress6Path}{kObjectInPath}", "") },
-                { FirewallWriteOperation.NetworkCreate, new($"POST {kAddress6Path}", kPrefix6Body) },
-                { FirewallWriteOperation.NetworkModify, new($"PUT {kAddress6Path}{kObjectInPath}", kPrefix6Body) },
-                { FirewallWriteOperation.NetworkDelete, new($"DELETE {kAddress6Path}{kObjectInPath}", "") },
-                { FirewallWriteOperation.AddressRangeCreate, new($"POST {kAddress6Path}", kRangeBody) },
-                { FirewallWriteOperation.AddressRangeModify, new($"PUT {kAddress6Path}{kObjectInPath}", kRangeBody) },
-                { FirewallWriteOperation.AddressRangeDelete, new($"DELETE {kAddress6Path}{kObjectInPath}", "") }
             };
     }
 }

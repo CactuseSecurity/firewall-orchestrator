@@ -631,6 +631,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Neuer REST-Aufruf <code>resolvePathDevices</code>: ermittelt die Firewalls auf den Pfaden zwischen Quell- und Zieladressen (Bereiche oder Netze, je bis zu 100) mit dem Network-Zone-Tree-Algorithmus. Algorithmus und Zonenmatrix k&ouml;nnen angegeben werden, sonst gelten die Einstellungen. Die Antwort nennt jedes Ger&auml;t einmal sowie den verwendeten Algorithmus und die verwendete Matrix.</li>
     <li>Auftr&auml;ge vom Typ &quot;Gruppe &auml;ndern&quot; k&ouml;nnen bestehende Netzwerk- und Dienstgruppen suchen und bearbeiten. Mitglieder werden vorbef&uuml;llt, k&ouml;nnen zum Entfernen markiert und durch neue Netzwerkobjekte oder Dienste erg&auml;nzt werden.</li>
     <li>Workflow-Konfigurationen k&ouml;nnen mit frei w&auml;hlbarem Dateinamen und ausgew&auml;hlten Phasen exportiert werden. Beim Import kann eine neue Konfiguration angelegt oder eine bestehende erweitert werden. Verwendete Status werden mit Namen und Automatik-Eigenschaft &uuml;bertragen; vorhandene Status und Gruppen werden nicht unbemerkt &uuml;berschrieben.</li>
+    <li>Modellierung: In den Modellierungs-Einstellungen k&ouml;nnen Netzwerkareas festgelegt werden, die nicht in Common Services verwendet werden d&uuml;rfen. Sie werden bei der Bearbeitung von Common Services nicht zur Auswahl angeboten.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -666,6 +667,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>New REST call <code>resolvePathDevices</code>: determines the firewalls on the paths between source and destination addresses (ranges or networks, up to 100 each) using the network zone tree algorithm. Algorithm and zone matrix can be specified, otherwise the settings apply. The response lists each device once together with the algorithm and matrix used.</li>
     <li>&quot;Modify group&quot; tasks can search for and edit existing network and service groups. Members are prefilled, can be marked for removal, and can be supplemented with new network objects or services.</li>
     <li>Workflow configurations can be exported with a custom file name and selected phases. During import, a new configuration can be created or an existing one can be extended. Referenced states are transferred with their names and automatic-only property; existing states and groups are not silently overwritten.</li>
+    <li>Modelling: network areas which must not be used in common services can be defined in the modelling settings. They are not offered for selection when editing common services.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -1987,6 +1989,8 @@ INSERT INTO txt VALUES ('special_user_areas',   'German', 	'Netzwerkareas f&uuml
 INSERT INTO txt VALUES ('special_user_areas',   'English', 	'Network Areas for Users');
 INSERT INTO txt VALUES ('updatable_obj_areas', 'German', 	'Netzwerkareas f&uuml;r Updatable Objects');
 INSERT INTO txt VALUES ('updatable_obj_areas', 'English', 	'Network Areas for Updatable Objects');
+INSERT INTO txt VALUES ('com_svc_excluded_areas', 'German', 	'Netzwerkareas nicht in Common Services');
+INSERT INTO txt VALUES ('com_svc_excluded_areas', 'English', 	'Network Areas excluded from Common Services');
 INSERT INTO txt VALUES ('search_interface',     'German', 	'Schnittstelle suchen');
 INSERT INTO txt VALUES ('search_interface',     'English', 	'Search Interface');
 INSERT INTO txt VALUES ('used_interface',       'German', 	'Genutzte Schnittstelle');
@@ -4820,6 +4824,10 @@ INSERT INTO txt VALUES ('U9044', 'German',  'Benachrichtigungen an App-Verantwor
 INSERT INTO txt VALUES ('U9044', 'English', 'Notifications were sent to App responsibles.');
 INSERT INTO txt VALUES ('U9045', 'German',  'Die Regel-Eigent&uuml;mer-Zuordnung ist gerade nicht verwendbar. Der Soll-Ist-Abgleich kann deshalb l&auml;nger dauern als gewohnt.');
 INSERT INTO txt VALUES ('U9045', 'English', 'The rule owner mapping cannot be used right now. The variance analysis may therefore take longer than usual.');
+INSERT INTO txt VALUES ('U9046', 'German',  'Dieser Netzbereich darf nicht in Common Services verwendet werden.');
+INSERT INTO txt VALUES ('U9046', 'English', 'This network area must not be used in common services.');
+INSERT INTO txt VALUES ('U9047', 'German',  'Dieser Common Service enth&auml;lt Netzbereiche, die nicht in Common Services verwendet werden d&uuml;rfen: @@OBJECTNAME@@. Bitte entfernen Sie diese vor dem Speichern.');
+INSERT INTO txt VALUES ('U9047', 'English', 'This common service contains network areas which must not be used in common services: @@OBJECTNAME@@. Please remove them before saving.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -7961,6 +7969,8 @@ INSERT INTO txt VALUES ('H5658', 'German',  'Rezertifizierungstext: Text, der zu
 INSERT INTO txt VALUES ('H5658', 'English', 'Recertification Text: Text to be shown to confirm recertification. If the text contains a placeholder "@@APPNAME@@", it is replaced by the app name.');
 INSERT INTO txt VALUES ('H5659', 'German',  'Netzwerkareas f&uuml;r Updatable Objects: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration "Updatable Objects" genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
 INSERT INTO txt VALUES ('H5659', 'English', 'Network Areas for Updatable Objects: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations "Updatable Objects". The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
+INSERT INTO txt VALUES ('H5659a', 'German',  'Netzwerkareas nicht in Common Services: Vom Administrator vorgegebene Netzwerkareas, welche weder in der Quelle noch im Ziel von Common Services genutzt werden d&uuml;rfen. In normalen Verbindungen bleiben sie nutzbar. Bereits bestehende Common Services mit einer dieser Netzwerkareas k&ouml;nnen erst wieder gespeichert werden, wenn die Netzwerkarea entfernt wurde.');
+INSERT INTO txt VALUES ('H5659a', 'English', 'Network Areas excluded from Common Services: Network areas defined by the administrator, which must not be used in source or destination of common services. They remain usable in regular connections. Existing common services containing one of these network areas can only be saved again after the network area has been removed.');
 INSERT INTO txt VALUES ('H5660', 'German',  'Empf&auml;nger der Stilllegungsbenachrichtigung: Mehrfachauswahl, an wen die Stilllegungsbenachrichtigung als To, Cc oder Bcc geschickt werden soll.
     Verf&uuml;gbare Optionen sind Keine, Andere Adressen, die Option "Mindestens eine Email-Benachrichtigung sicherstellen" und alle aktiven Verantwortlichkeitsstufen.
     Ist "Keine" gesetzt, sind alle anderen Optionen deaktiviert. Wenn "Mindestens eine Email-Benachrichtigung sicherstellen" aktiv ist, werden zuerst die ausgew&auml;hlten Optionen verwendet. Nur falls daraus keine Empf&auml;nger entstehen, werden nicht ausgew&auml;hlte Verantwortlichkeitsstufen von hoher zu niedriger Sortierreihenfolge durchsucht, bis eine Stufe mit Empf&auml;ngern gefunden wird.');

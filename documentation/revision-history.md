@@ -23,6 +23,8 @@
     that still has further pages after 1000 pages is reported as an error instead of being shown incomplete
 
 ## 9.8.3 - 26.10.2026
+- modelling: new setting "Network Areas excluded from Common Services" - network areas listed there are not offered for selection in common services and cannot be added to them; existing common services containing such an area can only be saved after removing it (#5406)
+- modelling: fix destination area check using the "in Source" flag of common network areas instead of "in Destination"
 - request workflow: the device specific settings autoPlanImplementation and autoPlanImplementationForRules (renamed from planImplementation and planImplementationOverrideForRules) decide which implementation tasks are created automatically, independently of the planning phase
   - rule tasks (access, rule_modify, rule_delete) need both settings, all other task types autoPlanImplementation; the default of autoPlanImplementationForRules is false
   - devices entered in the request take precedence over the path analysis algorithm; if the action finds no target, one implementation task without gateway is created
@@ -35,6 +37,8 @@
   - "after path analysis" ran the routing based path analysis independently of the configured algorithm; now the configured algorithm applies, which is "None" unless changed, so no gateway is found. Select "Network Zone Tree", or attach a path analysis action writing the found devices to the device list before "create implementation tasks" (devices in the request take precedence)
   - "for each device" and "only for one device" replace the configured path analysis algorithm; a previously configured "Network Zone Tree" is then no longer the default of resolvePathDevices, so callers have to pass the algorithm
   - if the auto plan settings cannot be read, the defaults apply (auto plan Yes, for rules No)
+- dependencies: update NuGet packages (AngleSharp to 1.8.6, bunit to 2.13.3, MailKit to 4.18.2, Microsoft.AspNetCore.Authentication.JwtBearer to 10.0.14, Microsoft.AspNetCore.Components to 10.0.14, Microsoft.AspNetCore.Mvc.Testing to 10.0.14, Microsoft.AspNetCore.OpenApi to 10.0.14, Microsoft.OpenApi to 2.13.0, Microsoft.Playwright to 1.64.1, MimeKit to 4.18.2, PuppeteerSharp to 25.15.0, Quartz to 4.6.2, RestSharp to 114.1.0, RestSharp.Serializers.NewtonsoftJson to 114.1.0, Scalar.AspNetCore to 2.18.3)
+- dependencies: remove explicit System.Security.Cryptography.Pkcs pin from FWO.Mail; MimeKit 4.18.2 now references the patched 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
 
 ## 9.8.2 - 24.10.2026
 - middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`

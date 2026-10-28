@@ -18,6 +18,8 @@ namespace FWO.Test
     internal class WfHandlerStateChangesTest
     {
         private static readonly int[] kPromotedTaskStates = [2, 2];
+        // triggerActions, targetTicketStateId, approvalComment of UpdateRequestTasksFromTicket
+        private static readonly object?[] kUpdateRequestTasksArguments = [true, null, null];
 
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix matrix)
         {
@@ -834,7 +836,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(4));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(4));
@@ -867,7 +869,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            object[] arguments = [false, true, null!, null!];
+            object[] arguments = [true, null!, null!];
             await (Task)(method?.Invoke(handler, arguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(6));
@@ -908,7 +910,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(6));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(5));
@@ -944,7 +946,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            bool requestTaskActionsChangedState = await (Task<bool>)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            bool requestTaskActionsChangedState = await (Task<bool>)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(4));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(4));
@@ -977,7 +979,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.Multiple(() =>
             {
@@ -1045,7 +1047,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(6));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(5));
@@ -1106,7 +1108,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(secondTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.Multiple(() =>
             {
@@ -1125,7 +1127,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices }
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices }
             };
             StateMatrix matrix = new()
             {
@@ -1150,7 +1152,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [true, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.Multiple(() =>
             {
@@ -1160,11 +1162,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task UpdateRequestTasksFromTicket_CreatesImplTasksForImplementationRangeWhenEntryStateIsSkipped()
+        public async Task UpdateRequestTasksFromTicket_CreatesNoImplTasksWhenReachingImplementationRange()
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices }
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices }
             };
             StateMatrix matrix = new()
             {
@@ -1189,13 +1191,12 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [true, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.Multiple(() =>
             {
                 Assert.That(reqTask.StateId, Is.EqualTo(60));
-                Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
-                Assert.That(reqTask.ImplementationTasks[0].DeviceId, Is.Null);
+                Assert.That(reqTask.ImplementationTasks, Is.Empty, "only the action creates implementation tasks");
             });
         }
 
@@ -1528,7 +1529,7 @@ namespace FWO.Test
                 AuthUser = new ClaimsPrincipal(new ClaimsIdentity([new Claim("x-hasura-uuid", "admin-user")], "test")),
                 userConfig = new SimulatedUserConfig
                 {
-                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices,
+                    ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices,
                     ReqConsiderBundling = false
                 }
             };

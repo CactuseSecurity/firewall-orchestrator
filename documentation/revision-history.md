@@ -1,5 +1,40 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.3 - 26.10.2026
+- modelling: new setting "Network Areas excluded from Common Services" - network areas listed there are not offered for selection in common services and cannot be added to them; existing common services containing such an area can only be saved after removing it (#5406)
+- modelling: fix destination area check using the "in Source" flag of common network areas instead of "in Destination"
+- request workflow: the device specific settings autoPlanImplementation and autoPlanImplementationForRules (renamed from planImplementation and planImplementationOverrideForRules) decide which implementation tasks are created automatically, independently of the planning phase
+  - rule tasks (access, rule_modify, rule_delete) need both settings, all other task types autoPlanImplementation; the default of autoPlanImplementationForRules is false
+  - devices entered in the request take precedence over the path analysis algorithm; if the action finds no target, one implementation task without gateway is created
+  - breaking: implementation tasks are only created by the state action "create implementation tasks", no longer when a ticket leaves the approval phase; the action follows the auto plan settings. installation and upgrade provide the action unless one of this type already exists, but do not attach it: an administrator has to attach it to the state in which tickets enter the implementation (e.g. "approved", without approval phase the state ending the request phase), otherwise no implementation tasks are created automatically. With scope ticket it runs once all request tasks have passed the approval, with scope request task at every approved request task
+  - the device specific settings page warns if rules are planned automatically without path analysis algorithm or manually without active planning phase
+  - interface requests from modelling still get their implementation task when they are created, independently of the action and the auto plan settings
+- Workflow Customizing: the option "auto-create implementation tasks" is split up: the new setting reqDeviceInput (never, enter device in request, one task for all devices) and the new path analysis algorithms "For each device" and "First device (if available)"; consider bundling and display bundled tasks as one are grouped as bundling options
+- path analysis REST endpoint resolvePathDevices: the device selections "for each device" and "first device (if available)" are no path analysis, so they can neither be requested nor serve as configured default (400 like none)
+- the upgrade translates reqAutoCreateImplTasks into reqDeviceInput and the path analysis algorithm and removes the old config key; with an active planning phase of access tasks reqDeviceInput becomes "never", as the device field was hidden there before (if the planning phase is switched off later, set "Devices in request" in Workflow Customizing); the auto plan settings are not derived from the planning phases, an administrator sets them (default: auto plan Yes, for rules No)
+  - "after path analysis" ran the routing based path analysis independently of the configured algorithm; now the configured algorithm applies, which is "None" unless changed, so no gateway is found. Select "Network Zone Tree", or attach a path analysis action writing the found devices to the device list before "create implementation tasks" (devices in the request take precedence)
+  - "for each device" and "only for one device" replace the configured path analysis algorithm; a previously configured "Network Zone Tree" is then no longer the default of resolvePathDevices, so callers have to pass the algorithm
+  - if the auto plan settings cannot be read, the defaults apply (auto plan Yes, for rules No)
+- dependencies: update NuGet packages (AngleSharp to 1.8.6, bunit to 2.13.3, MailKit to 4.18.2, Microsoft.AspNetCore.Authentication.JwtBearer to 10.0.14, Microsoft.AspNetCore.Components to 10.0.14, Microsoft.AspNetCore.Mvc.Testing to 10.0.14, Microsoft.AspNetCore.OpenApi to 10.0.14, Microsoft.OpenApi to 2.13.0, Microsoft.Playwright to 1.64.1, MimeKit to 4.18.2, PuppeteerSharp to 25.15.0, Quartz to 4.6.2, RestSharp to 114.1.0, RestSharp.Serializers.NewtonsoftJson to 114.1.0, Scalar.AspNetCore to 2.18.3)
+- dependencies: remove explicit System.Security.Cryptography.Pkcs pin from FWO.Mail; MimeKit 4.18.2 now references the patched 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
+
+## 9.8.2 - 24.10.2026
+- middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`
+  now return each inclusive address range as the two-entry `ipRange` instead of separate `ipStart`
+  and `ipEnd` fields; `getAddressObjects` returns an empty range for non-IP objects such as FQDNs
+- workflow API: `createTicket` now creates object-create request tasks for submitted new network objects, services and time objects
+- workflow UI: network and service group modification tasks provide management-aware selectors for existing groups,
+  member add/remove editing, and read-only display of the requested changes
+- workflow configuration transfer: export selected phases with a custom file name; import as a new configuration or merge into an existing one
+- workflow configuration packages include referenced state names and `automatic_only` semantics; missing states are created, equivalent existing states are reused, and conflicting state IDs are rejected before import changes are made
+- stored secrets (import credentials, LDAP and email passwords) are now encrypted with authentication (AES-256-CBC with HMAC-SHA256, encrypt-then-MAC) in the new format `fwo-v2:...` (#5476). Before, a wrong main key was only detected by an invalid padding, so about 1 in 250 decryptions with a wrong key (e.g. after a restore with another main key) returned a garbage secret that was then sent to LDAP, mail or ticket servers instead of failing with "Could not decrypt secret"
+  - the UI, middleware, importer and database read both formats; the installer (install and upgrade) re-encrypts all secrets stored in the old format, the UI re-encrypts a secret in the old format when it is saved
+  - the importer no longer uses the stored ciphertext as password when a secret in the new format cannot be decrypted, the import fails instead
+  - versions before 9.8.2 cannot read the new format, so a downgrade requires re-entering the secrets
+- fix owner recertification failing with "Object reference not set to an instance of an object" when an owner's app roles contain app servers without a name (#5572)
+  - ip addresses added to an owner in the owner settings and the demo owner data are now stored with a name built from the app server naming convention; the upgrade names existing app servers without a name the same way
+  - report links to app roles, groups and network areas whose names share a prefix now point to the right object
+
 ## 9.8.1 - 20.10.2026
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
 - autodiscovery: alerts and alert log lines no longer contain the import credential secret of the super management; the upgrade removes it from existing alerts. Rotate the credentials of super managements used with autodiscovery, and purge old middleware logs where possible

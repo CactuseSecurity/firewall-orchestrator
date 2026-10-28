@@ -94,14 +94,14 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
         {
             bool shortened = false;
             return template.ObjectTemplate
-                .Replace(Placeholder.TYPE, type)
-                .Replace(Placeholder.OBJECTNAME, objInfo.Name.SanitizeJsonFieldMand(ref shortened))
-                .Replace(Placeholder.OBJECT_TYPE, objInfo.Type)
-                .Replace(Placeholder.OBJECT_DETAILS, objInfo.Details)
-                .Replace(Placeholder.COMMENT, objInfo.Comment)
-                .Replace(Placeholder.STATUS, objInfo.Status)
-                .Replace(Placeholder.OBJUPDSTATUS, objInfo.UpdateStatus)
-                .Replace(Placeholder.MANAGEMENT_ID, mgmId);
+                .ReplaceJsonStringPlaceholder(Placeholder.TYPE, type)
+                .ReplaceJsonStringPlaceholder(Placeholder.OBJECTNAME, objInfo.Name.SanitizeJsonFieldMand(ref shortened))
+                .ReplaceJsonStringPlaceholder(Placeholder.OBJECT_TYPE, objInfo.Type)
+                .ReplaceJsonStringPlaceholder(Placeholder.OBJECT_DETAILS, objInfo.Details)
+                .ReplaceJsonStringPlaceholder(Placeholder.COMMENT, objInfo.Comment)
+                .ReplaceJsonStringPlaceholder(Placeholder.STATUS, objInfo.Status)
+                .ReplaceJsonStringPlaceholder(Placeholder.OBJUPDSTATUS, objInfo.UpdateStatus)
+                .ReplaceJsonStringPlaceholder(Placeholder.MANAGEMENT_ID, mgmId);
         }
 
         /// 	{
@@ -115,35 +115,43 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
         {
             bool shortened = false;
             return template.ObjectTemplateShort
-                .Replace(Placeholder.OBJECTNAME, objName.SanitizeJsonFieldMand(ref shortened))
-                .Replace(Placeholder.STATUS, status)
-                .Replace(Placeholder.OBJUPDSTATUS, objUpdStatus)
-                .Replace(Placeholder.MANAGEMENT_ID, mgmId);
+                .ReplaceJsonStringPlaceholder(Placeholder.OBJECTNAME, objName.SanitizeJsonFieldMand(ref shortened))
+                .ReplaceJsonStringPlaceholder(Placeholder.STATUS, status)
+                .ReplaceJsonStringPlaceholder(Placeholder.OBJUPDSTATUS, objUpdStatus)
+                .ReplaceJsonStringPlaceholder(Placeholder.MANAGEMENT_ID, mgmId);
         }
 
         protected static string FillIpTemplate(ExternalTicketTemplate template, string ipString)
         {
-            return template.IpTemplate.Replace(Placeholder.IP, ipString);
+            return template.IpTemplate.ReplaceJsonStringPlaceholder(Placeholder.IP, ipString);
         }
 
         protected static string FillServiceTemplate(ExternalTicketTemplate template, string protocolName, string port, string serviceName)
         {
-            return template.ServiceTemplate.Replace(Placeholder.PROTOCOLNAME, protocolName).Replace(Placeholder.PORT, port).Replace(Placeholder.SERVICENAME, serviceName);
+            return template.ServiceTemplate
+                .ReplaceJsonStringPlaceholder(Placeholder.PROTOCOLNAME, protocolName)
+                .ReplaceJsonStringPlaceholder(Placeholder.PORT, port)
+                .ReplaceJsonStringPlaceholder(Placeholder.SERVICENAME, serviceName);
         }
 
         protected static string FillIcmpTemplate(ExternalTicketTemplate template, string serviceName)
         {
-            return template.IcmpTemplate.Replace(Placeholder.SERVICENAME, serviceName);
+            return template.IcmpTemplate.ReplaceJsonStringPlaceholder(Placeholder.SERVICENAME, serviceName);
         }
 
         protected static string FillIpProtocolTemplate(ExternalTicketTemplate template, string protocolName, string protocolId, string serviceName)
         {
-            return template.IpProtocolTemplate.Replace(Placeholder.PROTOCOLNAME, protocolName).Replace(Placeholder.PROTOCOLID, protocolId).Replace(Placeholder.SERVICENAME, serviceName);
+            return template.IpProtocolTemplate
+                .ReplaceJsonStringPlaceholder(Placeholder.PROTOCOLNAME, protocolName)
+                .ReplaceJsonStringPlaceholder(Placeholder.PROTOCOLID, protocolId)
+                .ReplaceJsonStringPlaceholder(Placeholder.SERVICENAME, serviceName);
         }
 
         protected static string FillNwObjGroupTemplate(ExternalTicketTemplate template, string groupName, string mgtName)
         {
-            return template.NwObjGroupTemplate.Replace(Placeholder.GROUPNAME, groupName).Replace(Placeholder.MANAGEMENT_NAME, mgtName);
+            return template.NwObjGroupTemplate
+                .ReplaceJsonStringPlaceholder(Placeholder.GROUPNAME, groupName)
+                .ReplaceJsonStringPlaceholder(Placeholder.MANAGEMENT_NAME, mgtName);
         }
 
         protected string ConvertNetworkObjects(ExternalTicketTemplate template, string? mgmId, ModellingNamingConvention? namingConvention)

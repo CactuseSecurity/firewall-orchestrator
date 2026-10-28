@@ -208,7 +208,7 @@ internal sealed class UiSettingsDeviceSpecificTest
     }
 
     /// <summary>
-    /// An empty firewall write value stands for the shipped default: it is shown as placeholder, "Copy default" takes it over
+    /// An empty firewall write value stands for the shipped default: it is shown as placeholder, "Edit default" takes it over
     /// for editing, "Reset to default" empties the value again, and the empty value is what gets stored.
     /// </summary>
     [Test]
@@ -224,12 +224,12 @@ internal sealed class UiSettingsDeviceSpecificTest
         page.WaitForAssertion(() => page.Find($"{field} input[type=text]"));
         IElement Input() => page.Find($"{field} input[type=text]");
         IElement ResetButton() => page.Find($"{field} .dss-reset-default");
-        IElement CopyButton() => page.Find($"{field} .dss-copy-default");
+        IElement EditButton() => page.Find($"{field} .dss-edit-default");
         using (Assert.EnterMultipleScope())
         {
             Assert.That(Input().GetAttribute("value"), Is.EqualTo("POST custom-host"));
             Assert.That(Input().GetAttribute("placeholder"), Is.EqualTo("POST add-host"));
-            Assert.That(CopyButton().HasAttribute("disabled"), Is.True);
+            Assert.That(EditButton().HasAttribute("disabled"), Is.True);
         }
 
         await ResetButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
@@ -237,10 +237,10 @@ internal sealed class UiSettingsDeviceSpecificTest
         {
             Assert.That(Input().GetAttribute("value"), Is.Empty);
             Assert.That(ResetButton().HasAttribute("disabled"), Is.True);
-            Assert.That(CopyButton().HasAttribute("disabled"), Is.False);
+            Assert.That(EditButton().HasAttribute("disabled"), Is.False);
         }
 
-        await CopyButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await EditButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
         Assert.That(Input().GetAttribute("value"), Is.EqualTo("POST add-host"));
 
         await ResetButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());

@@ -223,7 +223,7 @@ else
 
     /// <summary>
     /// For fields with a default shipped for the device type: an empty value uses that default, also after an update that
-    /// corrects it. "Reset to default" empties the value again, "Copy default" takes the default over for editing.
+    /// corrects it. "Reset to default" empties the value again, "Edit default" takes the default over for editing.
     /// </summary>
     private RenderFragment RenderShippedDefaultActions(DeviceSpecificFieldState state, string? shippedDefault) =>
         @<div>
@@ -237,10 +237,10 @@ else
                     disabled="@(!CanChangeLocalValue(state) || state.LocalValue.Length == 0)" @onclick="() => ResetToShippedDefault(state)">
                 @(DisplayService.DisplayButton(userConfig, "dss_reset_to_default", Icons.Undo))
             </button>
-            <button type="button" class="dss-copy-default btn btn-sm btn-outline-secondary mt-2"
+            <button type="button" class="dss-edit-default btn btn-sm btn-outline-secondary mt-2"
                     disabled="@(!CanChangeLocalValue(state) || shippedDefault == null || state.LocalValue.Length > 0)"
-                    @onclick="() => CopyShippedDefault(state)">
-                @(DisplayService.DisplayButton(userConfig, "dss_copy_default", Icons.Clipboard))
+                    @onclick="() => EditShippedDefault(state)">
+                @(DisplayService.DisplayButton(userConfig, "dss_edit_default", Icons.Edit))
             </button>
         </div>;
 
@@ -399,7 +399,7 @@ else
     }
 
     /// <summary>Takes the default shipped for the device type over as local value, to adapt it.</summary>
-    private void CopyShippedDefault(DeviceSpecificFieldState state)
+    private void EditShippedDefault(DeviceSpecificFieldState state)
     {
         if (CanChangeLocalValue(state) && form != null)
         {

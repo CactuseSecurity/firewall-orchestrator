@@ -508,14 +508,7 @@ else
                 break;
 
             case DeviceSpecificFieldKind.FirewallEndpoint:
-                builder.OpenElement(0, "input");
-                builder.AddAttribute(1, "type", "text");
-                builder.AddAttribute(2, "class", "form-control form-control-sm font-monospace");
-                builder.AddAttribute(3, "value", value);
-                builder.AddAttribute(4, "placeholder", placeholder);
-                builder.AddAttribute(5, "onchange", changeCallback);
-                builder.AddAttribute(6, "disabled", disabled);
-                builder.CloseElement();
+                builder.AddContent(0, RenderEndpointEditor(value, disabled, onChange, placeholder));
                 break;
 
             case DeviceSpecificFieldKind.FirewallTemplate:
@@ -544,6 +537,34 @@ else
                 break;
         }
     };
+
+    /// <summary>
+    /// Renders an endpoint as HTTP method drop-down and path input, stored together as "METHOD path". While the value is
+    /// empty, the drop-down shows the shipped default method and the path input the shipped default path in grey.
+    /// </summary>
+    private RenderFragment RenderEndpointEditor(string value, bool disabled, Action<string> onChange, string? shippedDefault)
+    {
+        (string method, string path) = FirewallWriteEndpoint.SplitSetting(value);
+        (string defaultMethod, string defaultPath) = FirewallWriteEndpoint.SplitSetting(shippedDefault ?? "");
+        return @<div class="input-group input-group-sm">
+            <select class="dss-endpoint-method form-select form-select-sm flex-grow-0 w-auto font-monospace @(method.Length == 0 ? "text-muted" : "")"
+                    value="@method" disabled="@disabled"
+                    @onchange="e => onChange(DeviceSpecificSettingsData.ChangeEndpoint(value, shippedDefault, method: ChangedText(e)))">
+                @if (method.Length == 0)
+                {
+                    <option value="">@defaultMethod</option>
+                }
+                @foreach (string allowedMethod in FirewallWriteEndpoint.AllowedMethods)
+                {
+                    <option value="@allowedMethod">@allowedMethod</option>
+                }
+            </select>
+            <input type="text" class="dss-endpoint-path form-control form-control-sm font-monospace" value="@path" placeholder="@defaultPath"
+                   disabled="@disabled" @onchange="e => onChange(DeviceSpecificSettingsData.ChangeEndpoint(value, shippedDefault, path: ChangedText(e)))" />
+        </div>;
+    }
+
+    private static string ChangedText(Microsoft.AspNetCore.Components.ChangeEventArgs changeEvent) => changeEvent.Value?.ToString() ?? "";
 
     /// <summary>Renders a list of text inputs with add/remove buttons, stored as a comma separated value.</summary>
     private RenderFragment RenderStringList(string value, bool disabled, Action<string> onChange) => builder =>

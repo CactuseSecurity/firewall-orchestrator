@@ -374,6 +374,21 @@ namespace FWO.Ui.Pages.Settings
             return value;
         }
 
+        /// <summary>
+        /// The endpoint value after its method or path was changed in the editor. While the value is empty, the part that
+        /// was not changed is taken from the shipped default, so changing one part takes the default over for editing.
+        /// </summary>
+        /// <param name="value">Current value; empty stands for the shipped default.</param>
+        /// <param name="shippedDefault">Default shipped for the device type, if any.</param>
+        /// <param name="method">New method, or null if the path was changed.</param>
+        /// <param name="path">New path, or null if the method was changed.</param>
+        public static string ChangeEndpoint(string value, string? shippedDefault, string? method = null, string? path = null)
+        {
+            string baseValue = string.IsNullOrWhiteSpace(value) ? shippedDefault ?? "" : value;
+            (string currentMethod, string currentPath) = FirewallWriteEndpoint.SplitSetting(baseValue);
+            return FirewallWriteEndpoint.CombineSetting(method ?? currentMethod, path ?? currentPath);
+        }
+
         /// <summary>Returns the field definition of a setting key, or null if the key is not edited in the UI.</summary>
         public static DeviceSpecificFieldDefinition? FindField(DeviceSpecificSettingKey key) => Fields.FirstOrDefault(f => f.Key == key);
 

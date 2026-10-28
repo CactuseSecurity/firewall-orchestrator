@@ -180,5 +180,24 @@ namespace FWO.Test
         {
             Assert.That(FirewallWriteEndpoint.IsValidSetting(" "), Is.True);
         }
+
+        [TestCase("post  add-host ", "POST", "add-host")]
+        [TestCase("DELETE", "DELETE", "")]
+        [TestCase("", "", "")]
+        [TestCase("add-host", "", "add-host")]
+        [TestCase("SEND add-host", "", "SEND add-host")]
+        public void Endpoint_SplitsSettingForEditing(string value, string method, string path)
+        {
+            Assert.That(FirewallWriteEndpoint.SplitSetting(value), Is.EqualTo((method, path)));
+        }
+
+        [TestCase("post", " add-host ", "POST add-host")]
+        [TestCase("", "", "")]
+        [TestCase("PUT", "", "PUT")]
+        [TestCase("", "add-host", "add-host")]
+        public void Endpoint_CombinesSettingFromMethodAndPath(string method, string path, string value)
+        {
+            Assert.That(FirewallWriteEndpoint.CombineSetting(method, path), Is.EqualTo(value));
+        }
     }
 }

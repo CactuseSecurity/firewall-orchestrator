@@ -67,6 +67,27 @@ public sealed partial record FirewallWriteEndpoint(string Method, string Path)
         }
     }
 
+    /// <summary>
+    /// Splits a stored value into method and path for editing them separately, without validating it. A first word that
+    /// is no allowed method is kept in the path, so the value is not lost.
+    /// </summary>
+    public static (string Method, string Path) SplitSetting(string value)
+    {
+        string trimmed = value.Trim();
+        int separatorIndex = trimmed.IndexOf(kSeparator);
+        string firstWord = separatorIndex < 0 ? trimmed : trimmed[..separatorIndex];
+        string method = firstWord.ToUpperInvariant();
+        if (!kAllowedMethods.Contains(method))
+        {
+            return ("", trimmed);
+        }
+        return (method, separatorIndex < 0 ? "" : trimmed[(separatorIndex + 1)..].Trim());
+    }
+
+    /// <summary>Combines method and path to the stored value; empty if both are empty.</summary>
+    public static string CombineSetting(string method, string path) =>
+        $"{method.Trim().ToUpperInvariant()}{kSeparator}{path.Trim()}".Trim();
+
     /// <summary>Returns the stored form "METHOD path".</summary>
     public override string ToString() => $"{Method}{kSeparator}{Path}";
 }

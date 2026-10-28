@@ -221,27 +221,38 @@ internal sealed class UiSettingsDeviceSpecificTest
         IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
         await TreeButton(page, "Check Point R8x").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
         string field = $"#dss-field-{FirewallWriteSettingKeys.Endpoints[FirewallWriteOperation.HostCreate].DatabaseKey}";
-        page.WaitForAssertion(() => page.Find($"{field} input[type=text]"));
-        IElement Input() => page.Find($"{field} input[type=text]");
+        page.WaitForAssertion(() => page.Find($"{field} .dss-endpoint-path"));
+        IElement Path() => page.Find($"{field} .dss-endpoint-path");
+        IElement Method() => page.Find($"{field} .dss-endpoint-method");
         IElement ResetButton() => page.Find($"{field} .dss-reset-default");
         IElement EditButton() => page.Find($"{field} .dss-edit-default");
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(Input().GetAttribute("value"), Is.EqualTo("POST custom-host"));
-            Assert.That(Input().GetAttribute("placeholder"), Is.EqualTo("POST add-host"));
+            Assert.That(Method().GetAttribute("value"), Is.EqualTo("POST"));
+            Assert.That(Path().GetAttribute("value"), Is.EqualTo("custom-host"));
+            Assert.That(Path().GetAttribute("placeholder"), Is.EqualTo("add-host"));
             Assert.That(EditButton().HasAttribute("disabled"), Is.True);
         }
 
         await ResetButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(Input().GetAttribute("value"), Is.Empty);
+            Assert.That(Method().GetAttribute("value"), Is.Empty);
+            Assert.That(Method().QuerySelector("option[value='']")?.TextContent, Is.EqualTo("POST"));
+            Assert.That(Path().GetAttribute("value"), Is.Empty);
             Assert.That(ResetButton().HasAttribute("disabled"), Is.True);
             Assert.That(EditButton().HasAttribute("disabled"), Is.False);
         }
 
         await EditButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
-        Assert.That(Input().GetAttribute("value"), Is.EqualTo("POST add-host"));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(Method().GetAttribute("value"), Is.EqualTo("POST"));
+            Assert.That(Path().GetAttribute("value"), Is.EqualTo("add-host"));
+        }
+
+        await Method().ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "PUT" });
+        Assert.That(Path().GetAttribute("value"), Is.EqualTo("add-host"));
 
         await ResetButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
         await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());

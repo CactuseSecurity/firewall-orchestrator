@@ -91,6 +91,18 @@ namespace FWO.Test
             }
         }
 
+        [TestCase("", "POST add-host", "PUT", null, "PUT add-host")]
+        [TestCase("", "POST add-host", null, "my-host", "POST my-host")]
+        [TestCase("GET a", "POST add-host", "DELETE", null, "DELETE a")]
+        [TestCase("GET a", "POST add-host", null, "b", "GET b")]
+        [TestCase("", null, "PATCH", null, "PATCH")]
+        [TestCase("", null, null, "x", "x")]
+        public void ChangeEndpoint_TakesTheOtherPartFromTheValueOrTheShippedDefault(string value, string? shippedDefault, string? method,
+            string? path, string expected)
+        {
+            Assert.That(DeviceSpecificSettingsData.ChangeEndpoint(value, shippedDefault, method, path), Is.EqualTo(expected));
+        }
+
         private static string LocateTextsFile()
         {
             DirectoryInfo? directory = new(AppContext.BaseDirectory);

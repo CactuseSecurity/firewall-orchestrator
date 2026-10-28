@@ -4,8 +4,8 @@ namespace FWO.ExternalSystems.FirewallWrite
 {
     /// <summary>
     /// Shipped OPNsense API calls. Network objects, services and groups are aliases; the client looks up the alias UUID
-        /// by name. Member changes use the alias utility's locked, persistent per-address calls for host/network aliases.
-        /// Publish applies the aliases, install applies the filter rules.
+    /// by name. Member changes use the alias utility's locked, persistent per-address calls for host/network aliases.
+    /// Publish applies the aliases, install applies the filter rules.
     /// </summary>
     public static class OpnSenseWriteDefaults
     {

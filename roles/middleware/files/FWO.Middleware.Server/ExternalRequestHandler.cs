@@ -353,7 +353,7 @@ namespace FWO.Middleware.Server
             }
 
             int waitCycles = GetWaitCycles(nextTask.TaskType, state.OldRequest, actSystem);
-            if (nextTask.TaskType == WfTaskType.access.ToString() || nextTask.TaskType == WfTaskType.rule_modify.ToString() || nextTask.TaskType == WfTaskType.rule_delete.ToString())
+            if (nextTask.TaskType == WfTaskType.access.ToString() || IsRuleChangeOrDelete(nextTask.TaskType))
             {
                 List<WfReqTask> bundledTasks = [];
                 List<WfReqTask> handledTasks = [nextTask];
@@ -508,6 +508,11 @@ namespace FWO.Middleware.Server
             return 0;
         }
 
+        /// <summary>
+        /// Checks if a workflow task type is a rule modification or deletion.
+        /// </summary>
+        /// <param name="taskType">workflow task type</param>
+        /// <returns>true if the task type is rule_modify or rule_delete</returns>
         private static bool IsRuleChangeOrDelete(string taskType)
         {
             return taskType == WfTaskType.rule_modify.ToString() || taskType == WfTaskType.rule_delete.ToString();

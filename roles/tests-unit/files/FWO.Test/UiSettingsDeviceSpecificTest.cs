@@ -207,6 +207,58 @@ internal sealed class UiSettingsDeviceSpecificTest
         }
     }
 
+    /// <summary>
+    /// An empty firewall write value stands for the shipped default: it is shown as placeholder, "Edit default" takes it over
+    /// for editing, "Reset to default" empties the value again, and the empty value is what gets stored.
+    /// </summary>
+    [Test]
+    public async Task Admin_KeepsFirewallWriteDefaultsEmptyUntilCopied()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        api.AddNode(2, DeviceSpecificScopeType.DeviceType, "9", kGlobalNodeId, "Check Point R8x");
+        api.SetValue(2, FirewallWriteSettingKeys.Endpoints[FirewallWriteOperation.HostCreate], "POST custom-host");
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        await TreeButton(page, "Check Point R8x").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        string field = $"#dss-field-{FirewallWriteSettingKeys.Endpoints[FirewallWriteOperation.HostCreate].DatabaseKey}";
+        page.WaitForAssertion(() => page.Find($"{field} .dss-endpoint-path"));
+        IElement Path() => page.Find($"{field} .dss-endpoint-path");
+        IElement Method() => page.Find($"{field} .dss-endpoint-method");
+        IElement ResetButton() => page.Find($"{field} .dss-reset-default");
+        IElement EditButton() => page.Find($"{field} .dss-edit-default");
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(Method().GetAttribute("value"), Is.EqualTo("POST"));
+            Assert.That(Path().GetAttribute("value"), Is.EqualTo("custom-host"));
+            Assert.That(Path().GetAttribute("placeholder"), Is.EqualTo("add-host"));
+            Assert.That(EditButton().HasAttribute("disabled"), Is.True);
+        }
+
+        await ResetButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(Method().GetAttribute("value"), Is.Empty);
+            Assert.That(Method().QuerySelector("option[value='']")?.TextContent, Is.EqualTo("POST"));
+            Assert.That(Path().GetAttribute("value"), Is.Empty);
+            Assert.That(ResetButton().HasAttribute("disabled"), Is.True);
+            Assert.That(EditButton().HasAttribute("disabled"), Is.False);
+        }
+
+        await EditButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(Method().GetAttribute("value"), Is.EqualTo("POST"));
+            Assert.That(Path().GetAttribute("value"), Is.EqualTo("add-host"));
+        }
+
+        await Method().ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "PUT" });
+        Assert.That(Path().GetAttribute("value"), Is.EqualTo("add-host"));
+
+        await ResetButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        Assert.That(api.ReadValue(2, FirewallWriteSettingKeys.Endpoints[FirewallWriteOperation.HostCreate])?.ToObject<string>(), Is.Empty);
+    }
+
     private static IRenderedComponent<CascadingAuthenticationState> RenderPage(BunitContext context)
     {
         IRenderedComponent<CascadingAuthenticationState> page = context.Render<CascadingAuthenticationState>(parameters => parameters

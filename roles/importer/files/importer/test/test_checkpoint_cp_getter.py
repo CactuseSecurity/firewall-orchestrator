@@ -67,7 +67,7 @@ class TestCpApiCall:
             cp_getter.cp_api_call("https://mgm.invalid/", "login", {"password": "secret"}, None)
 
         assert "secret" not in str(exception_info.value)
-        assert "credential information" in str(exception_info.value)
+        assert "<redacted>" in str(exception_info.value)
 
     def test_request_error_without_password_includes_payload(self):
         error = requests.exceptions.RequestException("boom")

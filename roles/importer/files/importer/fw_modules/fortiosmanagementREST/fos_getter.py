@@ -47,36 +47,31 @@ def fortios_api_call(api_url: str, access_token: str) -> list[dict[str, Any]]:
     """
     request_headers = {"Content-Type": "application/json"}
 
-    response = requests.get(
-        api_url,
-        headers=request_headers,
-        params={"access_token": access_token},
-        verify=fwo_globals.verify_certs,
-        timeout=FWO_HTTP_TIMEOUT,
-    )
+    try:
+        response = requests.get(
+            api_url,
+            headers=request_headers,
+            params={"access_token": access_token},
+            verify=fwo_globals.verify_certs,
+            timeout=FWO_HTTP_TIMEOUT,
+        )
+    except requests.exceptions.RequestException as request_error:
+        # the text of a requests error names the full url including the access token query parameter
+        raise FwApiCallFailedError(
+            f"error while sending api_call to url '{api_url}' ({type(request_error).__name__})"
+        ) from None
     if response.status_code != HTTP_OK:
         raise FwApiCallFailedError(
-            "error while sending api_call to url '"
-            + str(api_url)
-            + "' with headers: '"
-            + json.dumps(request_headers, indent=2)
-            + ", response code: "
-            + str(response.status_code)
-            + ", response text: "
-            + response.text
+            f"error while sending api_call to url '{api_url}', response code: {response.status_code}, "
+            f"response text: {response.text}"
         )
     result_json = response.json()
     if "results" not in result_json:
         raise FwApiCallFailedError(
-            "error while sending api_call to url '"
-            + str(api_url)
-            + "' including headers: '"
-            + json.dumps(request_headers, indent=2)
-            + ", response json: "
-            + json.dumps(result_json, indent=2)
+            f"error while sending api_call to url '{api_url}', response json: {json.dumps(result_json, indent=2)}"
         )
 
-    FWOLogger.debug("api_call to url '" + str(api_url) + "', headers: '" + json.dumps(request_headers, indent=2), 3)
+    FWOLogger.debug(f"api_call to url '{api_url}'", 3)
 
     return result_json["results"]
 

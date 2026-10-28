@@ -42,23 +42,20 @@ class CheckpointR8xCommon(FwCommon):
         if full_config:  # a config was passed in (read from file), so we assume that an import has to be done (simulating changes here)
             return True
 
-        session_id: str = cp_getter.login(import_state.mgm_details)
-
-        if import_state.last_successful_import is None or import_state.last_successful_import == "" or force:
-            # if no last import time found or given or if force flag is set, do full import
-            result = True
-        else:  # otherwise search for any changes since last import
-            result = (
-                cp_getter.get_changes(
-                    session_id,
-                    import_state.mgm_details.hostname,
-                    str(import_state.mgm_details.port),
-                    import_state.last_successful_import,
+        with cp_getter.api_session(import_state.mgm_details) as session_id:
+            if import_state.last_successful_import is None or import_state.last_successful_import == "" or force:
+                # if no last import time found or given or if force flag is set, do full import
+                result = True
+            else:  # otherwise search for any changes since last import
+                result = (
+                    cp_getter.get_changes(
+                        session_id,
+                        import_state.mgm_details.hostname,
+                        str(import_state.mgm_details.port),
+                        import_state.last_successful_import,
+                    )
+                    != 0
                 )
-                != 0
-            )
-
-        cp_getter.logout(import_state.mgm_details.buildFwApiString(), session_id)
 
         return result > 0
 
@@ -106,10 +103,7 @@ def get_config(
         FWOLogger.debug("checkpointR8x/get_config - fetch duration: " + str(duration) + "s")
 
     if config_in.contains_only_native():
-        sid: str = ""
-        if not parsing_config_only:
-            sid = cp_getter.login(import_state.state.mgm_details)
-        normalized_config = normalize_config(import_state.state, config_in, parsing_config_only, sid)
+        normalized_config = normalize_config(import_state.state, config_in)
         FWOLogger.info("completed getting config")
         return 0, normalized_config
     # we already have a native config (from file import)
@@ -143,8 +137,6 @@ def initialize_native_config(config_in: FwConfigManagerListController, import_st
 def normalize_config(
     import_state: ImportState,
     config_in: FwConfigManagerListController,
-    parsing_config_only: bool,
-    sid: str,
 ) -> FwConfigManagerListController:
     native_and_normalized_config_dict_list: list[dict[str, Any]] = []
 
@@ -169,8 +161,6 @@ def normalize_config(
             normalized_config_dict,
             normalized_config_global,
             import_state,
-            parsing_config_only,
-            sid,
             is_global_loop_iteration,
         )
 
@@ -242,8 +232,6 @@ def normalize_single_manager_config(
     normalized_config_dict: dict[str, Any],
     normalized_config_global: dict[str, Any],
     import_state: ImportState,
-    parsing_config_only: bool,
-    sid: str,
     is_global_loop_iteration: bool,
 ):
     cp_network.normalize_network_objects(
@@ -268,8 +256,6 @@ def normalize_single_manager_config(
         is_global_loop_iteration,
     )
     cp_nat.normalize_nat_rules(native_config, import_state, normalized_config_dict)
-    if not parsing_config_only:  # get config from cp fw mgr
-        cp_getter.logout(import_state.mgm_details.build_fw_api_string(), sid)
     FWOLogger.info("completed normalizing rulebases")
 
 

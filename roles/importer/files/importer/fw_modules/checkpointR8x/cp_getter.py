@@ -3,6 +3,7 @@ from __future__ import annotations
 # library for API get functions
 import json
 import time
+from contextlib import contextmanager
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -12,9 +13,12 @@ import requests
 from fw_modules.checkpointR8x import cp_const, cp_network
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 from fwo_log import FWOLogger
+from fwo_redaction import redact_sensitive_values, session_fingerprint
 from services.service_provider import ServiceProvider
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from model_controllers.management_controller import ManagementController
 
 # Constants for status values
@@ -41,19 +45,13 @@ def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str |
             verify=fwo_globals.verify_certs,
             timeout=fwo_const.FWO_HTTP_TIMEOUT,
         )
-    except requests.exceptions.RequestException as _:
-        if "password" in json.dumps(json_payload):
-            exception_text = "\nerror while sending api_call containing credential information to url '" + str(url)
-        else:
-            exception_text = (
-                "\nerror while sending api_call to url '"
-                + str(url)
-                + "' with payload '"
-                + json.dumps(json_payload, indent=2)
-                + "' and  headers: '"
-                + json.dumps(request_headers, indent=2)
-            )
-        raise FwApiError(exception_text)
+    except requests.exceptions.RequestException as request_error:
+        # the headers carry the session token and are never part of the text, which ends up in alerts and logs
+        exception_text = (
+            f"\nerror while sending api_call '{command}' to url '{url}' ({type(request_error).__name__}) "
+            f"with payload '{json.dumps(redact_sensitive_values(json_payload), indent=2)}'"
+        )
+        raise FwApiError(exception_text) from None
     if show_progress:
         print(".", end="", flush=True)  # noqa: T201
 
@@ -84,6 +82,28 @@ def login(mgm_details: ManagementController):
 def logout(url: str, sid: str):
     FWOLogger.debug("logout from url " + url, 3)
     return cp_api_call(url, "logout", {}, sid)
+
+
+def logout_quietly(url: str, sid: str) -> None:
+    """Log out without raising, so that a failed logout never hides the error that ended the session early."""
+    try:
+        logout(url, sid)
+    except Exception:
+        FWOLogger.warning(f"logout of api session {session_fingerprint(sid)} from url {url} failed")
+
+
+@contextmanager
+def api_session(mgm_details: ManagementController) -> Generator[str, None, None]:
+    """
+    Log in to the management API and log out again when the block is left, also after an error.
+
+    A session left open stays usable with the import user's permissions until the manager times it out.
+    """
+    sid = login(mgm_details)
+    try:
+        yield sid
+    finally:
+        logout_quietly(mgm_details.build_fw_api_string(), sid)
 
 
 def process_single_task(task: dict[str, Any]) -> tuple[str, int]:
@@ -201,7 +221,7 @@ def get_show_packages_via_api(
         total = packages["total"]
     else:
         FWOLogger.error("packages do not contain total field")
-        FWOLogger.warning("sid: " + sid)
+        FWOLogger.warning("session: " + session_fingerprint(sid))
         FWOLogger.warning("api_v_url:  " + api_v_url)
         for key, value in show_params_policy_structure.items():
             FWOLogger.warning("show_params_policy_structure " + key + ": " + str(value))
@@ -304,7 +324,7 @@ def log_global_assignments_error(
     sid: str, api_v_url: str, show_params_policy_structure: dict[str, Any], assignments: dict[str, Any]
 ) -> None:
     """Log error information for global assignments debugging."""
-    FWOLogger.warning("sid: " + sid)
+    FWOLogger.warning("session: " + session_fingerprint(sid))
     FWOLogger.warning("api_v_url: " + api_v_url)
     for key, value in show_params_policy_structure.items():
         FWOLogger.warning("show_params_policy_structure " + key + ": " + str(value))
@@ -595,7 +615,7 @@ def control_while_loop_in_get_rulebases_in_chunks(
             "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json "
             + str(current_rulebase)
         )
-        FWOLogger.warning("sid:  " + sid)
+        FWOLogger.warning("session: " + session_fingerprint(sid))
         FWOLogger.warning("api_v_url: " + api_v_url)
         for key, value in show_params_rules.items():
             FWOLogger.warning("show_params_rules " + key + ": " + str(value))

@@ -617,8 +617,6 @@ lib_tmp_dir: "{{ fworch_home }}/lib/tmp"
 randomly_generated_pwd: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"
 
 ### logging
-syslog_proto: tcp
-syslog_port: 514
 middleware_server_syslog_id: "{{ product_name }}.middleware-server"
 ui_syslog_id: "{{ product_name }}-ui"
 ldap_syslog_id: slapd

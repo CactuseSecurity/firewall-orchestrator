@@ -45,12 +45,12 @@
     label: "{{ item.path }}"
   become: true
 
-- name: change rsyslog config to receive logs
+# no component sends syslog over the network, all log locally; earlier versions opened an unauthenticated
+# network receiver on all interfaces here, through which anyone could forge audit and alert log entries
+- name: remove the network syslog receiver added to rsyslog by earlier versions
   blockinfile:
     path: /etc/rsyslog.conf
-    block: |
-      module(load="im{{ syslog_proto }}")
-      input(type="im{{ syslog_proto }}" port="{{ syslog_port }}")
+    state: absent
   become: true
 
 # - name: create db log file for {{ product_name }} - owner postgres
@@ -80,15 +80,19 @@
         constant(value="\n")
       }
 
-      if $programname == '{{ product_name }}-database' then action(type="omfile" file="{{ fworch_log_dir }}/database.log" {{ fworch_omfile_params }})
-      if $programname == '{{ middleware_server_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/middleware.log" {{ fworch_omfile_params }})
-      if $programname == '{{ ui_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ui.log" {{ fworch_omfile_params }})
-      if $programname == '{{ ldap_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ldap.log" {{ fworch_omfile_params }})
-      if $programname == '{{ product_name }}-api' then action(type="omfile" file="{{ fworch_log_dir }}/api.log" {{ fworch_omfile_params }})
-      if $programname startswith '{{ product_name }}-importer-api' then action(type="omfile" file="{{ fworch_log_dir }}/importer-api.log" {{ fworch_omfile_params }})
-      if $programname startswith '{{ product_name }}' and $msg contains "Audit" then action(type="omfile" file="{{ fworch_log_dir }}/audit.log" {{ fworch_omfile_params }})
-      if $programname startswith '{{ product_name }}' and $msg contains "FWORCHAlert" then action(type="omfile" file="{{ fworch_log_dir }}/alert.log" {{ fworch_omfile_params }})
-      if $programname == 'import-fworch-app-data' then action(type="omfile" file="{{ fworch_log_dir }}/import-fworch-app-data.log" {{ fworch_omfile_params }})
+      # program name and message text are chosen by the sender, so only messages of local inputs are routed:
+      # a network input enabled by other configuration must not write into the {{ product_name }} logs
+      if ($inputname == 'imuxsock' or $inputname == 'imjournal') then {
+        if $programname == '{{ product_name }}-database' then action(type="omfile" file="{{ fworch_log_dir }}/database.log" {{ fworch_omfile_params }})
+        if $programname == '{{ middleware_server_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/middleware.log" {{ fworch_omfile_params }})
+        if $programname == '{{ ui_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ui.log" {{ fworch_omfile_params }})
+        if $programname == '{{ ldap_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ldap.log" {{ fworch_omfile_params }})
+        if $programname == '{{ product_name }}-api' then action(type="omfile" file="{{ fworch_log_dir }}/api.log" {{ fworch_omfile_params }})
+        if $programname startswith '{{ product_name }}-importer-api' then action(type="omfile" file="{{ fworch_log_dir }}/importer-api.log" {{ fworch_omfile_params }})
+        if $programname startswith '{{ product_name }}' and $msg contains "Audit" then action(type="omfile" file="{{ fworch_log_dir }}/audit.log" {{ fworch_omfile_params }})
+        if $programname startswith '{{ product_name }}' and $msg contains "FWORCHAlert" then action(type="omfile" file="{{ fworch_log_dir }}/alert.log" {{ fworch_omfile_params }})
+        if $programname == 'import-fworch-app-data' then action(type="omfile" file="{{ fworch_log_dir }}/import-fworch-app-data.log" {{ fworch_omfile_params }})
+      }
   vars:
     # set per action: legacy $File* directives would leak into the distribution's own log files
     fworch_omfile_params: >-

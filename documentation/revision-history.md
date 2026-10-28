@@ -17,6 +17,7 @@
   - if the auto plan settings cannot be read, the defaults apply (auto plan Yes, for rules No)
 - dependencies: update NuGet packages (AngleSharp to 1.8.6, bunit to 2.13.3, MailKit to 4.18.2, Microsoft.AspNetCore.Authentication.JwtBearer to 10.0.14, Microsoft.AspNetCore.Components to 10.0.14, Microsoft.AspNetCore.Mvc.Testing to 10.0.14, Microsoft.AspNetCore.OpenApi to 10.0.14, Microsoft.OpenApi to 2.13.0, Microsoft.Playwright to 1.64.1, MimeKit to 4.18.2, PuppeteerSharp to 25.15.0, Quartz to 4.6.2, RestSharp to 114.1.0, RestSharp.Serializers.NewtonsoftJson to 114.1.0, Scalar.AspNetCore to 2.18.3)
 - dependencies: remove explicit System.Security.Cryptography.Pkcs pin from FWO.Mail; MimeKit 4.18.2 now references the patched 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
+- installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server
 
 ## 9.8.2 - 24.10.2026
 - middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`

@@ -27,6 +27,13 @@ public static class FirewallWriteSettingKeys
     public static readonly DeviceSpecificSettingKey<bool> InstallPolicy =
         new("fwWriteInstallPolicy", AllScopeTypes);
 
+    /// <summary>
+    /// Whether network objects, services and groups are deleted on the firewall when a task deletes them. Off by default,
+    /// because objects may still be used elsewhere on the firewall. Rule deletions are not affected.
+    /// </summary>
+    public static readonly DeviceSpecificSettingKey<bool> DeleteObjects =
+        new("fwWriteDeleteObjects", AllScopeTypes);
+
     /// <summary>Endpoint ("METHOD path") setting per operation.</summary>
     public static IReadOnlyDictionary<FirewallWriteOperation, DeviceSpecificSettingKey<string>> Endpoints { get; } =
         CreateKeys(kEndpointKeyPrefix, settings => settings.FwWriteEndpoints);
@@ -55,7 +62,7 @@ public static class FirewallWriteSettingKeys
 
     private static ReadOnlyCollection<DeviceSpecificSettingKey> BuildAll()
     {
-        List<DeviceSpecificSettingKey> keys = [CheckCertificates, InstallPolicy];
+        List<DeviceSpecificSettingKey> keys = [CheckCertificates, InstallPolicy, DeleteObjects];
         foreach (FirewallWriteOperation operation in Enum.GetValues<FirewallWriteOperation>())
         {
             keys.Add(Endpoints[operation]);

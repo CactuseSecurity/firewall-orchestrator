@@ -187,6 +187,7 @@ namespace FWO.Ui.Pages.Settings
             { "dss_modelling_connection_id_template", "H5199m" },
             { "dss_fw_write_check_certificates", "H5199n" },
             { "dss_fw_write_install_policy", "H5199o" },
+            { "dss_fw_write_delete_objects", "H5199t" },
             { "dss_fw_write_endpoint", "H5199p" },
             { "dss_fw_write_template", "H5199q" },
         };
@@ -318,7 +319,7 @@ namespace FWO.Ui.Pages.Settings
         }
 
         /// <summary>
-        /// Fields of the firewall write library: certificate checks and policy installation, then endpoint and body
+        /// Fields of the firewall write library: certificate checks, policy installation and object deletion, then endpoint and body
         /// template per operation. Endpoints and templates show the default shipped for the device type while empty.
         /// </summary>
         private static List<DeviceSpecificFieldDefinition> FirewallWriteFields()
@@ -328,6 +329,8 @@ namespace FWO.Ui.Pages.Settings
                 BoolField(FirewallWriteSettingKeys.CheckCertificates, "dss_fw_write_check_certificates", s => s.FwWriteCheckCertificates,
                     DeviceSpecificScopeType.Management, DeviceSpecificFieldSection.FirewallWrite),
                 BoolField(FirewallWriteSettingKeys.InstallPolicy, "dss_fw_write_install_policy", s => s.FwWriteInstallPolicy,
+                    section: DeviceSpecificFieldSection.FirewallWrite),
+                BoolField(FirewallWriteSettingKeys.DeleteObjects, "dss_fw_write_delete_objects", s => s.FwWriteDeleteObjects,
                     section: DeviceSpecificFieldSection.FirewallWrite)
             ];
             foreach (FirewallWriteOperation operation in Enum.GetValues<FirewallWriteOperation>())

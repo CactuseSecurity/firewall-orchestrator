@@ -9,10 +9,21 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// Writes implementation tasks to firewalls. The calls are built from the endpoints and body templates of the device
     /// specific settings (or the defaults shipped for the device type), all calls are rendered and checked before the
     /// first one is sent, and they run in one vendor session including publish, optional install, discard on error and logout.
+    /// Deletions of objects, services and groups are only sent if the device specific setting <c>fwWriteDeleteObjects</c>
+    /// allows them, because these may still be used elsewhere on the firewall; rule deletions are always sent.
     /// </summary>
     public sealed class FirewallWriter
     {
         private const string kLogCategory = "Firewall Write";
+
+        private static readonly HashSet<FirewallWriteOperation> ObjectDeletions =
+        [
+            FirewallWriteOperation.HostDelete, FirewallWriteOperation.NetworkDelete, FirewallWriteOperation.AddressRangeDelete,
+            FirewallWriteOperation.ServiceDelete, FirewallWriteOperation.GroupDelete
+        ];
+
+        /// <summary>The calls to send and the object deletions left out because deleting objects is switched off.</summary>
+        private sealed record RenderedTask(List<RenderedFirewallRequest> Requests, List<string> SkippedDeletions);
 
         private readonly IFirewallWriteDataSource dataSource;
         private readonly IFirewallWriteClientFactory clientFactory;
@@ -37,7 +48,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         public async Task<ModifyFirewallResult> ModifyFirewall(WfImplTask implTask)
         {
             ArgumentNullException.ThrowIfNull(implTask);
-            List<RenderedFirewallRequest> requests;
+            RenderedTask rendered;
             FirewallWriteContext context;
             FirewallWriteClient client;
             try
@@ -47,10 +58,11 @@ namespace FWO.ExternalSystems.FirewallWrite
                 {
                     return ModifyFirewallResult.Failed($"Device type {context.DeviceTypeId} of management '{context.Management.Name}' is not supported for firewall writes.");
                 }
-                requests = RenderAll(implTask, context);
-                if (requests.Count == 0)
+                rendered = RenderTask(implTask, context);
+                if (rendered.Requests.Count == 0)
                 {
-                    return ModifyFirewallResult.Succeeded("Nothing to write.", new List<FirewallStepResult>());
+                    return ModifyFirewallResult.Succeeded("Nothing to write." + SkippedNote(rendered.SkippedDeletions), new List<FirewallStepResult>(),
+                        rendered.SkippedDeletions);
                 }
                 client = clientFactory.Create(context);
             }
@@ -59,22 +71,30 @@ namespace FWO.ExternalSystems.FirewallWrite
                 Log.WriteWarning(kLogCategory, $"Implementation task {implTask.Id} not written: {exception.Message}");
                 return ModifyFirewallResult.Failed(exception.Message);
             }
-            return await Execute(client, requests, context);
+            return await Execute(client, rendered, context);
         }
 
         /// <summary>
-        /// Plans and renders all calls of a task, including publish and install. Fails if an operation has no endpoint
-        /// for the device type, a placeholder stays unresolved or a body is no valid JSON.
+        /// Plans and renders all calls of a task, including publish and install, without the object deletions that the
+        /// settings do not allow. Fails if an operation has no endpoint for the device type, a placeholder stays unresolved
+        /// or a body is no valid JSON.
         /// </summary>
-        public List<RenderedFirewallRequest> RenderAll(WfImplTask implTask, FirewallWriteContext context)
+        public List<RenderedFirewallRequest> RenderAll(WfImplTask implTask, FirewallWriteContext context) => RenderTask(implTask, context).Requests;
+
+        private RenderedTask RenderTask(WfImplTask implTask, FirewallWriteContext context)
         {
             ArgumentNullException.ThrowIfNull(implTask);
             ArgumentNullException.ThrowIfNull(context);
             FirewallRulePlacement? placement = placementProvider.GetPlacement(implTask);
-            List<FirewallWriteStep> steps = ImplTaskStepPlanner.Plan(implTask, context, placement);
+            List<FirewallWriteStep> planned = ImplTaskStepPlanner.Plan(implTask, context, placement);
+            List<FirewallWriteStep> skipped = context.Settings.FwWriteDeleteObjects
+                ? []
+                : [.. planned.Where(step => ObjectDeletions.Contains(step.Operation))];
+            List<string> skippedDeletions = [.. skipped.Select(step => $"{step.Operation} '{step.TargetName}'")];
+            List<FirewallWriteStep> steps = [.. planned.Except(skipped)];
             if (steps.Count == 0)
             {
-                return [];
+                return new RenderedTask(new List<RenderedFirewallRequest>(), skippedDeletions);
             }
 
             IReadOnlyDictionary<string, FirewallPlaceholderValue> contextValues = ImplTaskStepPlanner.ContextValues(implTask, context, placement);
@@ -83,8 +103,13 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 AddSessionStep(steps, FirewallWriteOperation.InstallPolicy, context, contextValues);
             }
-            return [.. steps.Select(step => Render(step, context))];
+            List<RenderedFirewallRequest> requests = [.. steps.Select(step => Render(step, context))];
+            return new RenderedTask(requests, skippedDeletions);
         }
+
+        private static string SkippedNote(List<string> skippedDeletions) => skippedDeletions.Count == 0
+            ? ""
+            : $" Not deleted on the firewall, because deleting objects is switched off: {string.Join(", ", skippedDeletions)}.";
 
         private static void AddSessionStep(List<FirewallWriteStep> steps, FirewallWriteOperation operation, FirewallWriteContext context,
             IReadOnlyDictionary<string, FirewallPlaceholderValue> contextValues)
@@ -105,29 +130,30 @@ namespace FWO.ExternalSystems.FirewallWrite
             return FirewallTemplateRenderer.Render(step, endpoint, context.GetTemplate(step.Operation, step.IsIpv6));
         }
 
-        private static async Task<ModifyFirewallResult> Execute(FirewallWriteClient client, List<RenderedFirewallRequest> requests, FirewallWriteContext context)
+        private static async Task<ModifyFirewallResult> Execute(FirewallWriteClient client, RenderedTask rendered, FirewallWriteContext context)
         {
+            List<string> skipped = rendered.SkippedDeletions;
             List<FirewallStepResult> results = [];
             bool completed = false;
             try
             {
                 await client.Login();
-                foreach (RenderedFirewallRequest request in requests)
+                foreach (RenderedFirewallRequest request in rendered.Requests)
                 {
                     FirewallStepResult result = await client.Execute(request);
                     results.Add(result);
                     if (!result.Success)
                     {
-                        return ModifyFirewallResult.Failed($"{result.Operation} on '{result.Target}' failed with status {result.StatusCode}.", results);
+                        return ModifyFirewallResult.Failed($"{result.Operation} on '{result.Target}' failed with status {result.StatusCode}.", results, skipped);
                     }
                 }
                 completed = true;
-                return ModifyFirewallResult.Succeeded($"{results.Count} call(s) written to '{context.Management.Name}'.", results);
+                return ModifyFirewallResult.Succeeded($"{results.Count} call(s) written to '{context.Management.Name}'.{SkippedNote(skipped)}", results, skipped);
             }
             catch (Exception exception)
             {
                 Log.WriteError(kLogCategory, $"Writing to '{context.Management.Name}' failed.", exception);
-                return ModifyFirewallResult.Failed(exception.Message, results);
+                return ModifyFirewallResult.Failed(exception.Message, results, skipped);
             }
             finally
             {

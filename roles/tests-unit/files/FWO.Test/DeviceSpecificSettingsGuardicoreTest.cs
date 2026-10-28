@@ -54,7 +54,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
     /// <summary>Database keys of the firewall write settings: connection settings, then endpoint and template per operation.</summary>
     private static List<string> FirewallWriteKeys()
     {
-        List<string> keys = ["fwWriteCheckCertificates", "fwWriteInstallPolicy"];
+        List<string> keys = ["fwWriteCheckCertificates", "fwWriteInstallPolicy", "fwWriteDeleteObjects"];
         foreach (FirewallWriteOperation operation in Enum.GetValues<FirewallWriteOperation>())
         {
             keys.Add($"fwWriteEndpoint{operation}");

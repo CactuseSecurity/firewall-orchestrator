@@ -87,6 +87,9 @@ public class GlobalDeviceSpecificSettings
     /// <summary>Whether the policy is installed on the gateway after a firewall write.</summary>
     public bool FwWriteInstallPolicy { get; set; } = false;
 
+    /// <summary>Whether objects, services and groups are deleted on the firewall; rules are always deleted when a task says so.</summary>
+    public bool FwWriteDeleteObjects { get; set; } = false;
+
     /// <summary>Endpoint overrides ("METHOD path") per firewall write operation; a missing or empty entry uses the shipped default.</summary>
     public Dictionary<FirewallWriteOperation, string> FwWriteEndpoints { get; set; } = [];
 

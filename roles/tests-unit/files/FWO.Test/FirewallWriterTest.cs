@@ -60,7 +60,7 @@ namespace FWO.Test
         [Test]
         public async Task CheckPoint_InstallsPolicyWhenConfigured()
         {
-            GatewayDeviceSpecificSettings settings = new() { FwWriteInstallPolicy = true };
+            GatewayDeviceSpecificSettings settings = new() { FwWriteInstallPolicy = true, FwWriteDeleteObjects = true };
             (FirewallWriter writer, FirewallSimulation simulation, _) = Writer(Context(FirewallVendors.kCheckPointR8x, settings));
             simulation.Handler = request => Ok(request.Resource == "login" ? kCheckPointLogin : "{}");
 
@@ -139,7 +139,7 @@ namespace FWO.Test
         [Test]
         public async Task TemplateErrors_SendNothing()
         {
-            GatewayDeviceSpecificSettings settings = new();
+            GatewayDeviceSpecificSettings settings = new() { FwWriteDeleteObjects = true };
             settings.FwWriteTemplates[FirewallWriteOperation.GroupDelete] = "{\"name\":\"@@NOT_A_PLACEHOLDER@@\"}";
             (FirewallWriter writer, FirewallSimulation simulation, SimulatedFirewallWriteClientFactory factory) = Writer(Context(FirewallVendors.kCheckPointR8x, settings));
 

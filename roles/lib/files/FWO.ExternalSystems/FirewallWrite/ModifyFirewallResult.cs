@@ -17,12 +17,15 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         public List<FirewallStepResult> Steps { get; init; } = [];
 
+        /// <summary>Deletions of objects, services and groups that were not sent, because deleting objects is switched off.</summary>
+        public List<string> SkippedDeletions { get; init; } = [];
+
         /// <summary>Creates a successful result.</summary>
-        public static ModifyFirewallResult Succeeded(string message, List<FirewallStepResult> steps) =>
-            new() { Success = true, Message = message, Steps = steps };
+        public static ModifyFirewallResult Succeeded(string message, List<FirewallStepResult> steps, List<string>? skippedDeletions = null) =>
+            new() { Success = true, Message = message, Steps = steps, SkippedDeletions = skippedDeletions ?? [] };
 
         /// <summary>Creates a failed result.</summary>
-        public static ModifyFirewallResult Failed(string message, List<FirewallStepResult>? steps = null) =>
-            new() { Success = false, Message = message, Steps = steps ?? [] };
+        public static ModifyFirewallResult Failed(string message, List<FirewallStepResult>? steps = null, List<string>? skippedDeletions = null) =>
+            new() { Success = false, Message = message, Steps = steps ?? [], SkippedDeletions = skippedDeletions ?? [] };
     }
 }

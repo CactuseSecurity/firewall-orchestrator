@@ -121,10 +121,19 @@ namespace FWO.Test
             return management;
         }
 
+        /// <summary>
+        /// Context of the sample gateway. Without own settings, deleting objects is switched on, because most tests use the small
+        /// group_delete task; <see cref="FirewallWriteSafetyTest"/> covers the default, under which objects are not deleted.
+        /// </summary>
         public static FirewallWriteContext Context(int deviceTypeId, GlobalDeviceSpecificSettings? settings = null, string configPath = "")
         {
             Management management = Management(deviceTypeId, configPath);
-            return new FirewallWriteContext { Management = management, Gateway = management.Devices[0], Settings = settings ?? new GatewayDeviceSpecificSettings() };
+            return new FirewallWriteContext
+            {
+                Management = management,
+                Gateway = management.Devices[0],
+                Settings = settings ?? new GatewayDeviceSpecificSettings { FwWriteDeleteObjects = true }
+            };
         }
 
         public static WfImplTask Task(WfTaskType taskType, params WfImplElement[] elements) => new()

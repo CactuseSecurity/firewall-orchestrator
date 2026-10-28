@@ -20,6 +20,8 @@ namespace FWO.Test
         private const string kCheckPointLogin = "{\"sid\":\"sid-1\"}";
         private const string kAzureToken = "{\"access_token\":\"token-1\"}";
         private const string kAzureLocation = "{\"location\":\"westeurope\"}";
+        private static readonly List<string> kModifyOnlyCalls = ["login", "set-host", "publish", "logout"];
+        private static readonly List<string> kSkippedObjectDeletions = ["HostDelete 'h2'", "ServiceDelete 'svc'"];
 
         private static (FirewallWriter Writer, FirewallSimulation Simulation) Writer(FirewallWriteContext context)
         {
@@ -115,7 +117,8 @@ namespace FWO.Test
         [Test]
         public async Task InstallWithoutGatewaySendsNothing()
         {
-            FirewallWriteContext context = Context(FirewallVendors.kCheckPointR8x, new GatewayDeviceSpecificSettings { FwWriteInstallPolicy = true });
+            FirewallWriteContext context = Context(FirewallVendors.kCheckPointR8x,
+                new GatewayDeviceSpecificSettings { FwWriteInstallPolicy = true, FwWriteDeleteObjects = true });
             (FirewallWriter writer, FirewallSimulation simulation) = Writer(new FirewallWriteContext { Management = context.Management, Settings = context.Settings });
             ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_delete));
             using (Assert.EnterMultipleScope())
@@ -123,6 +126,63 @@ namespace FWO.Test
                 Assert.That(result.Success, Is.False);
                 Assert.That(result.Message, Does.Contain("@@GATEWAY_NAME@@ (the task names no gateway)"));
                 Assert.That(simulation.Requests, Is.Empty);
+            }
+        }
+
+        /// <summary>
+        /// By default objects, services and groups are not deleted on the firewall, because they may be used elsewhere: the
+        /// deletions are left out and reported, the rest of the task is written.
+        /// </summary>
+        [Test]
+        public async Task ObjectDeletionsAreSkippedByDefault()
+        {
+            (FirewallWriter writer, FirewallSimulation simulation) = Writer(Context(FirewallVendors.kCheckPointR8x, new GatewayDeviceSpecificSettings()));
+            simulation.Handler = request => Ok(request.Resource == "login" ? kCheckPointLogin : "{}");
+            ModifyFirewallResult objects = await writer.ModifyFirewall(Task(WfTaskType.object_modify, Network("h1", "10.0.0.1", action: RequestAction.modify),
+                Network("h2", "10.0.0.2", action: RequestAction.delete), Service("svc", 6, 80, action: RequestAction.delete)));
+            int callsForObjects = simulation.Requests.Count;
+            ModifyFirewallResult group = await writer.ModifyFirewall(Task(WfTaskType.group_delete));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(new GlobalDeviceSpecificSettings().FwWriteDeleteObjects, Is.False);
+                Assert.That(objects.Success, Is.True, objects.Message);
+                Assert.That(simulation.Requests.Take(callsForObjects).Select(request => request.Resource), Is.EqualTo(kModifyOnlyCalls));
+                Assert.That(objects.SkippedDeletions, Is.EqualTo(kSkippedObjectDeletions));
+                Assert.That(objects.Message, Does.Contain("Not deleted on the firewall"));
+                Assert.That(group.Success, Is.True, group.Message);
+                Assert.That(group.Message, Does.StartWith("Nothing to write."));
+                Assert.That(group.SkippedDeletions.Single(), Is.EqualTo("GroupDelete 'rule-1'"));
+                Assert.That(simulation.Requests, Has.Count.EqualTo(callsForObjects));
+            }
+        }
+
+        [Test]
+        public async Task ObjectDeletionsAreSentWhenSwitchedOn()
+        {
+            (FirewallWriter writer, FirewallSimulation simulation) = Writer(Context(FirewallVendors.kCheckPointR8x,
+                new GatewayDeviceSpecificSettings { FwWriteDeleteObjects = true }));
+            simulation.Handler = request => Ok(request.Resource == "login" ? kCheckPointLogin : "{}");
+            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.object_modify, Network("h2", "10.0.0.2", action: RequestAction.delete)));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(result.SkippedDeletions, Is.Empty);
+                Assert.That(simulation.Requests.Select(request => request.Resource), Does.Contain("delete-host"));
+            }
+        }
+
+        /// <summary>Deleting rules does not depend on the object deletion setting.</summary>
+        [Test]
+        public async Task RuleDeletionsAreSentByDefault()
+        {
+            (FirewallWriter writer, FirewallSimulation simulation) = Writer(Context(FirewallVendors.kCheckPointR8x, new GatewayDeviceSpecificSettings()));
+            simulation.Handler = request => Ok(request.Resource == "login" ? kCheckPointLogin : "{}");
+            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.rule_delete, Rule("uid-1")));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(result.SkippedDeletions, Is.Empty);
+                Assert.That(simulation.Requests.Select(request => request.Resource), Does.Contain("delete-access-rule"));
             }
         }
 

@@ -54,11 +54,13 @@ internal sealed class OpnSenseWriteClientTest
     /// <summary>
     /// Changes the alias content like the OPNsense alias utility: add appends the full-length mask to a single address in
     /// network aliases only; delete removes a single address with and without its mask, a masked address only as written.
+    /// Like upstream (strpos), it takes an address as IPv6 only if a colon follows the first character.
     /// </summary>
     private static void ApplyAliasUtility(RecordedFirewallRequest request, HashSet<string> configured, string aliasType)
     {
         string address = JsonNode.Parse(request.Body!)!["address"]!.GetValue<string>();
-        string masked = address.Contains('/') ? address : address + (address.Contains(':') ? "/128" : "/32");
+        string fullLengthMask = address.IndexOf(':') > 0 ? "/128" : "/32";
+        string masked = address.Contains('/') ? address : address + fullLengthMask;
         if (request.Resource == kAddPath)
         {
             configured.Add(aliasType == kNetwork ? masked : address);
@@ -197,12 +199,33 @@ internal sealed class OpnSenseWriteClientTest
     }
 
     /// <summary>
+    /// IPv6 addresses with a leading "::" are sent with /128, because the alias utility would apply /32 to them: the added
+    /// entry stays a single address and the entry written by FWO is removed.
+    /// </summary>
+    [Test]
+    public async Task LeadingColonIpv6_KeepsFullLengthMask()
+    {
+        (FirewallWriter writer, FirewallSimulation simulation) = Writer();
+        HashSet<string> configured = new() { "::2/128", "10.0.0.9" };
+        simulation.Handler = AliasHandler(configured, kNetwork);
+        ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, Member("::3"),
+            Member("::2", RequestAction.delete)));
+        HashSet<string> expected = new() { "10.0.0.9", "::3/128" };
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Success, Is.True, result.Message);
+            Assert.That(configured, Is.EquivalentTo(expected));
+        }
+    }
+
+    /// <summary>
     /// Host aliases cannot hold networks: OPNsense would reject the addition and report the removal as done without a
     /// change, so the task is refused before any change is sent, even for a valid single address in the same task.
     /// Network aliases accept the same task.
     /// </summary>
     [TestCase(kHost, "10.0.1.0/24", null, RequestAction.create, false)]
     [TestCase(kHost, "10.0.1.0/24", null, RequestAction.delete, false)]
+    [TestCase(kHost, "::3", null, RequestAction.create, false)]
     [TestCase(kHost, "10.0.0.1", "10.0.0.3", RequestAction.create, false)]
     [TestCase(kNetwork, "10.0.1.0/24", null, RequestAction.create, true)]
     [TestCase(kNetwork, "10.0.0.1", "10.0.0.3", RequestAction.delete, true)]

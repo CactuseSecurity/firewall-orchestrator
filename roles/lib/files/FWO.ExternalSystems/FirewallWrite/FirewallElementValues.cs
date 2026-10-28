@@ -21,6 +21,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const int kIpProtoUdp = 17;
         private const string kRangeSeparator = "-";
         private const char kScopeSeparator = '%';
+        private const char kIpv6GroupSeparator = ':';
 
         private static readonly Dictionary<int, string> ProtocolNames = new()
         {
@@ -132,7 +133,9 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>
         /// Returns a group entry in the form the per-address alias utility of OPNsense expects: a single address without its
         /// full-length prefix, so that the firewall removes it whether the alias stores it with or without the mask and adds
-        /// it in the form the alias type requires. Networks keep their CIDR notation.
+        /// it in the form the alias type requires. Networks keep their CIDR notation. IPv6 addresses written with a leading
+        /// "::" keep their /128 as well: the alias utility detects IPv6 by a colon after the first character and would
+        /// otherwise apply /32 to them.
         /// </summary>
         public static string AddressUtilityEntry(string groupEntry)
         {
@@ -141,7 +144,9 @@ namespace FWO.ExternalSystems.FirewallWrite
                 return groupEntry;
             }
             int addressBits = network.BaseAddress.GetAddressBytes().Length * kBitsPerByte;
-            return network.PrefixLength == addressBits ? network.BaseAddress.ToString() : groupEntry;
+            string address = network.BaseAddress.ToString();
+            bool fullLength = network.PrefixLength == addressBits;
+            return fullLength && !address.StartsWith(kIpv6GroupSeparator) ? address : groupEntry;
         }
 
         /// <summary>Returns the service name of an element, or a name built from protocol and ports if it has none.</summary>

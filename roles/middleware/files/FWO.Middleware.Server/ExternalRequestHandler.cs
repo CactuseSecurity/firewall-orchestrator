@@ -352,8 +352,8 @@ namespace FWO.Middleware.Server
                 return CreateNextRequestResult.Continue;
             }
 
-            int waitCycles = GetWaitCycles(nextTask.TaskType, state.OldRequest);
-            if (nextTask.TaskType == WfTaskType.access.ToString() || nextTask.TaskType == WfTaskType.rule_modify.ToString() || nextTask.TaskType == WfTaskType.rule_delete.ToString())
+            int waitCycles = GetWaitCycles(nextTask.TaskType, state.OldRequest, actSystem);
+            if (nextTask.TaskType == WfTaskType.access.ToString() || IsRuleChangeOrDelete(nextTask.TaskType))
             {
                 List<WfReqTask> bundledTasks = [];
                 List<WfReqTask> handledTasks = [nextTask];
@@ -482,13 +482,15 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// qad heuristic: wait after a network object group change in the external system before sending
         /// the next request (public only for unit testing).
-        /// Waits before an access request, or before any request if the old request created new objects in the group.
+        /// Waits before an access request, before a rule modification or deletion implemented by Tufin SC,
+        /// or before any request if the old request created new objects in the group.
         /// The new object detection only recognizes the Tufin SC request format.
         /// </summary>
         /// <param name="taskType">task type of the next request task</param>
         /// <param name="oldRequest">previously sent external request, if any</param>
+        /// <param name="nextSystem">external system handling the next request task</param>
         /// <returns>number of wait cycles, 0 if no waiting is needed</returns>
-        public int GetWaitCycles(string taskType, ExternalRequest? oldRequest)
+        public int GetWaitCycles(string taskType, ExternalRequest? oldRequest, ExternalTicketSystem nextSystem)
         {
             // TODO: to be refined
             if (oldRequest != null && UserConfig.ExternalRequestWaitCycles > 0 &&
@@ -496,12 +498,24 @@ namespace FWO.Middleware.Server
                 IsNetworkObjectGroupChange(oldRequest.ExtRequestType) &&
                     // now access request
                     (taskType == WfTaskType.access.ToString() ||
+                    // or rule change handled by Tufin SC (independent of the system which handled the group)
+                    (nextSystem.IsTufinSecureChange() && IsRuleChangeOrDelete(taskType)) ||
                     // or last request created new objects in group
                     ContainsNewObj(oldRequest.ExtRequestContent)))
             {
                 return UserConfig.ExternalRequestWaitCycles;
             }
             return 0;
+        }
+
+        /// <summary>
+        /// Checks if a workflow task type is a rule modification or deletion.
+        /// </summary>
+        /// <param name="taskType">workflow task type</param>
+        /// <returns>true if the task type is rule_modify or rule_delete</returns>
+        private static bool IsRuleChangeOrDelete(string taskType)
+        {
+            return taskType == WfTaskType.rule_modify.ToString() || taskType == WfTaskType.rule_delete.ToString();
         }
 
         /// <summary>

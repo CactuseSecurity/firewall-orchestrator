@@ -27,6 +27,7 @@ from fw_modules.fortiosmanagementREST.fos_zone import normalize_zone_name
 from fwo_const import FWO_HTTP_TIMEOUT
 from fwo_exceptions import FwApiCallFailedError
 from fwo_log import FWOLogger
+from fwo_redaction import redact_secret_in_text, redact_sensitive_values
 from pydantic import BaseModel, TypeAdapter
 
 T = TypeVar("T", bound=BaseModel)
@@ -47,36 +48,33 @@ def fortios_api_call(api_url: str, access_token: str) -> list[dict[str, Any]]:
     """
     request_headers = {"Content-Type": "application/json"}
 
-    response = requests.get(
-        api_url,
-        headers=request_headers,
-        params={"access_token": access_token},
-        verify=fwo_globals.verify_certs,
-        timeout=FWO_HTTP_TIMEOUT,
-    )
-    if response.status_code != HTTP_OK:
+    try:
+        response = requests.get(
+            api_url,
+            headers=request_headers,
+            params={"access_token": access_token},
+            verify=fwo_globals.verify_certs,
+            timeout=FWO_HTTP_TIMEOUT,
+        )
+    except requests.exceptions.RequestException as request_error:
+        # the text of a requests error names the full url including the access token query parameter
         raise FwApiCallFailedError(
-            "error while sending api_call to url '"
-            + str(api_url)
-            + "' with headers: '"
-            + json.dumps(request_headers, indent=2)
-            + ", response code: "
-            + str(response.status_code)
-            + ", response text: "
-            + response.text
+            f"error while sending api_call to url '{api_url}' ({type(request_error).__name__})"
+        ) from None
+    # the firewall or a proxy in between may echo the requested url, including the access token, in its answer
+    if response.status_code != HTTP_OK:
+        response_text = redact_secret_in_text(response.text, access_token)
+        raise FwApiCallFailedError(
+            f"error while sending api_call to url '{api_url}', response code: {response.status_code}, "
+            f"response text: {response_text}"
         )
     result_json = response.json()
     if "results" not in result_json:
-        raise FwApiCallFailedError(
-            "error while sending api_call to url '"
-            + str(api_url)
-            + "' including headers: '"
-            + json.dumps(request_headers, indent=2)
-            + ", response json: "
-            + json.dumps(result_json, indent=2)
-        )
+        response_dump = json.dumps(redact_sensitive_values(result_json), indent=2)
+        response_dump = redact_secret_in_text(response_dump, access_token)
+        raise FwApiCallFailedError(f"error while sending api_call to url '{api_url}', response json: {response_dump}")
 
-    FWOLogger.debug("api_call to url '" + str(api_url) + "', headers: '" + json.dumps(request_headers, indent=2), 3)
+    FWOLogger.debug(f"api_call to url '{api_url}'", 3)
 
     return result_json["results"]
 

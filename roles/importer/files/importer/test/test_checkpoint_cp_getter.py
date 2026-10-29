@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
-from fw_modules.checkpointR8x import cp_const, cp_getter
+from fw_modules.checkpointR8x import cp_const, cp_getter, cp_object_resolver
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 
 if TYPE_CHECKING:
@@ -58,7 +58,7 @@ class TestCpApiCall:
         assert "X-chkp-sid" not in post.call_args.kwargs["headers"]
         assert capsys.readouterr().out == "."
 
-    def test_request_error_with_password_hides_payload(self):
+    def test_request_error_with_password_hides_payload(self) -> None:
         error = requests.exceptions.RequestException("boom")
         with (
             patch.object(cp_getter.requests, "post", side_effect=error),
@@ -67,7 +67,7 @@ class TestCpApiCall:
             cp_getter.cp_api_call("https://mgm.invalid/", "login", {"password": "secret"}, None)
 
         assert "secret" not in str(exception_info.value)
-        assert "credential information" in str(exception_info.value)
+        assert "<redacted>" in str(exception_info.value)
 
     def test_request_error_without_password_includes_payload(self):
         error = requests.exceptions.RequestException("boom")
@@ -528,26 +528,26 @@ class TestNatRules:
 class TestObjectDictionaryResolution:
     def test_find_element_by_uid(self):
         elements: list[dict[str, Any]] = [{"name": "no-uid"}, {"uid": "u-1", "name": "found"}]
-        assert cp_getter.find_element_by_uid(elements, "u-1") == {"uid": "u-1", "name": "found"}
-        assert cp_getter.find_element_by_uid(elements, "u-2") is None
+        assert cp_object_resolver.find_element_by_uid(elements, "u-1") == {"uid": "u-1", "name": "found"}
+        assert cp_object_resolver.find_element_by_uid(elements, "u-2") is None
 
     def test_resolve_ref_returns_matched_object(self):
         obj_dict: list[dict[str, Any]] = [{"uid": "u-1", "type": "host", "name": "h-1"}]
-        assert cp_getter.resolve_ref_from_object_dictionary("u-1", obj_dict) == obj_dict[0]
+        assert cp_object_resolver.resolve_ref_from_object_dictionary("u-1", obj_dict) == obj_dict[0]
 
     def test_resolve_ref_warns_for_unknown_object(self):
-        assert cp_getter.resolve_ref_from_object_dictionary(None, []) is None
-        assert cp_getter.resolve_ref_from_object_dictionary("u-unknown", [], field_name="source") is None
+        assert cp_object_resolver.resolve_ref_from_object_dictionary(None, []) is None
+        assert cp_object_resolver.resolve_ref_from_object_dictionary("u-unknown", [], field_name="source") is None
 
     def test_resolve_ref_skips_warning_for_track_and_none_track_uid(self):
-        assert cp_getter.resolve_ref_from_object_dictionary("u-unknown", [], field_name="track") is None
-        assert cp_getter.resolve_ref_from_object_dictionary("29e53e3d-23bf-48fe-b6b1-d59bd88036f9", []) is None
+        assert cp_object_resolver.resolve_ref_from_object_dictionary("u-unknown", [], field_name="track") is None
+        assert cp_object_resolver.resolve_ref_from_object_dictionary("29e53e3d-23bf-48fe-b6b1-d59bd88036f9", []) is None
 
     def test_resolve_ref_adds_voip_object_to_native_config(self):
         native_config_domain: dict[str, Any] = {"objects": []}
         matched: dict[str, Any] = {"uid": "u-1", "type": "CpmiVoipSipDomain", "name": "voip-1", "domain": "dom-1"}
 
-        result = cp_getter.resolve_ref_from_object_dictionary("u-1", [matched], native_config_domain)
+        result = cp_object_resolver.resolve_ref_from_object_dictionary("u-1", [matched], native_config_domain)
 
         assert result == matched
         assert native_config_domain["objects"][0]["type"] == "CpmiVoipSipDomain"
@@ -563,7 +563,7 @@ class TestObjectDictionaryResolution:
             "color": "blue",
         }
 
-        result = cp_getter.resolve_ref_from_object_dictionary(matched["uid"], [matched], native_config_domain)
+        result = cp_object_resolver.resolve_ref_from_object_dictionary(matched["uid"], [matched], native_config_domain)
 
         assert result == matched
         added_table = native_config_domain["objects"][0]
@@ -575,7 +575,7 @@ class TestObjectDictionaryResolution:
         native_config_domain: dict[str, Any] = {"objects": []}
         matched: dict[str, Any] = {"uid": "u-1", "type": "host", "name": "h-1", "domain": "dom-1"}
 
-        cp_getter.resolve_ref_from_object_dictionary("u-1", [matched], native_config_domain)
+        cp_object_resolver.resolve_ref_from_object_dictionary("u-1", [matched], native_config_domain)
 
         assert native_config_domain["objects"] == []
 
@@ -593,8 +593,8 @@ class TestObjectDictionaryResolution:
             ],
         }
 
-        cp_getter.resolve_ref_list_from_object_dictionary(rulebase, "source")
-        cp_getter.resolve_ref_list_from_object_dictionary(
+        cp_object_resolver.resolve_ref_list_from_object_dictionary(rulebase, "source")
+        cp_object_resolver.resolve_ref_list_from_object_dictionary(
             {"objects-dictionary": obj_dict, "rulebase": [{"uid": "rule-4", "track": {"type": "Log"}}]}, "track"
         )
 
@@ -605,13 +605,13 @@ class TestObjectDictionaryResolution:
 class TestObjectTypeHandlers:
     def test_handle_cpmi_any_object_variants(self):
         base: dict[str, Any] = {"uid": "u-1", "domain": "dom-1"}
-        any_obj = cp_getter.handle_cpmi_any_object({**base, "name": "Any", "color": "red"})
-        none_obj = cp_getter.handle_cpmi_any_object({**base, "name": "None"})
+        any_obj = cp_object_resolver.handle_cpmi_any_object({**base, "name": "Any", "color": "red"})
+        none_obj = cp_object_resolver.handle_cpmi_any_object({**base, "name": "None"})
 
         assert any_obj["chunks"][0]["objects"][0]["type"] == "network"
         assert any_obj["chunks"][0]["objects"][0]["color"] == "red"
         assert none_obj["chunks"][0]["objects"][0]["type"] == "group"
-        assert cp_getter.handle_cpmi_any_object({**base, "name": "Other"}) == {}
+        assert cp_object_resolver.handle_cpmi_any_object({**base, "name": "Other"}) == {}
 
     def test_handle_gateway_global_updatable_and_zone_objects(self):
         obj: dict[str, Any] = {
@@ -622,10 +622,10 @@ class TestObjectTypeHandlers:
             "ipv4-address": "10.0.0.1",
         }
 
-        gateway = cp_getter.handle_gateway_objects(obj)
-        global_obj = cp_getter.handle_global_object(obj)
-        updatable = cp_getter.handle_updatable_objects(obj)
-        zone = cp_getter.handle_network_zone_objects(obj)
+        gateway = cp_object_resolver.handle_gateway_objects(obj)
+        global_obj = cp_object_resolver.handle_global_object(obj)
+        updatable = cp_object_resolver.handle_updatable_objects(obj)
+        zone = cp_object_resolver.handle_network_zone_objects(obj)
 
         assert gateway["chunks"][0]["objects"][0]["ipv4-address"] == "10.0.0.1"
         assert global_obj["chunks"][0]["objects"][0]["ipv4-address"] == cp_getter.fwo_const.ANY_IP_IPV4

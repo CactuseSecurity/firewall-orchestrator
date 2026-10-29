@@ -119,7 +119,7 @@ namespace FWO.Report
                     if (device.RuleStatistics != null)
                     {
                         report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{device.Name}</td>");
+                        report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(device.Name)}</td>");
                         report.AppendLine($"<td>{device.RuleStatistics.ObjectAggregate.ObjectCount}</td>");
                         report.AppendLine("</tr>");
                     }

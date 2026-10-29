@@ -265,11 +265,11 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
             string appId = reqTask != null && reqTask.Owners.Count > 0 ? reqTask.Owners[0]?.Owner.ExtAppId ?? "" : "";
             string onBehalf = TicketSystem.LookupRequesterId ? (await LookupRequesterId(Requester)).ToString() : Requester;
             TicketText = actTicketTemplate
-                .Replace(Placeholder.TICKET_SUBJECT, Subject)
-                .Replace(Placeholder.PRIORITY, Priority)
-                .Replace(Placeholder.ONBEHALF, onBehalf)
-                .Replace(Placeholder.REASON, reqTask?.Reason ?? DefaultReason)
-                .Replace(Placeholder.APPID, appId)
+                .ReplaceJsonStringPlaceholder(Placeholder.TICKET_SUBJECT, Subject)
+                .ReplaceJsonStringPlaceholder(Placeholder.PRIORITY, Priority)
+                .ReplaceJsonStringPlaceholder(Placeholder.ONBEHALF, onBehalf)
+                .ReplaceJsonStringPlaceholder(Placeholder.REASON, reqTask?.Reason ?? DefaultReason)
+                .ReplaceJsonStringPlaceholder(Placeholder.APPID, appId)
                 .Replace(Placeholder.TASKS, string.Join(",", TicketTasks));
             bool shortened = false;
             TicketText = TicketText.SanitizeEolMand(ref shortened);

@@ -12,6 +12,27 @@
 - importer: firewall API session tokens and credentials no longer reach error texts, alerts, data issues or the importer log: Check Point errors omit the request headers (X-chkp-sid), FortiManager errors and debug output redact the session and password, FortiOS transport errors no longer echo the URL with the access token, and session ids are only logged as a short fingerprint; all Check Point API sessions of an import (objects, rules, MDS and global domain) are logged out also after an error, and the normalization no longer opens an unused API session (GHSA-vmp8-pwg3-h2qv)
 - importer (Cisco ASA): the SSH host key of the device is checked against /usr/local/fworch/etc/ssh_known_hosts on the importer host (created empty by the installer, never overwritten) unless "check certificates of firewall connections" is switched off; an unknown or changed key, or a missing known hosts file, fails the import at once, before any credential is sent, and without retries. **Breaking for installations with that check switched on: add the verified host keys of all ASA devices before upgrading** (see documentation/certificates.md) (GHSA-m77f-vf77-96ww)
   - breaking: this breaks ASA imports on installations that have "check certificates of firewall connections" switched on. Fresh installs have it on by default. Those imports fail after the upgrade until the verified host keys are added. The upgrade lists the affected ASA managements, and until their next successful import admins see them in a warning at the top of every page together with the instructions.
+## 9.8.4 - 26.10.2026
+- middleware REST API: every list endpoint is paged with one central page size (#5561)
+  - new setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`, Settings - Defaults,
+    default 10000, at least 100, at most 100000) is the maximum and default `limit` of all list endpoints. It replaces the fixed
+    limits (`getIpDataForOwners` 10000, Flow catalog object lists 1000, group lists 250, `getImplTaskTargets` 1000)
+    and is read at request time
+  - new paging (`limit`, `offset`, deterministic order, response header `X-Has-More`, 400 for a limit outside 1 to
+    the maximum or a negative offset) for `Rule/GetRulesByFilter` and `workflow/getAuditProofCriticalChanges`
+    (`options.limit`/`options.offset`), `owners/get`, `User/Get` and `Group/Get`, `Members`, `Memberships`,
+    `Resolve` (root keys) and `GET User`, `GET Tenant`, `GET Group`, `GET Compliance/designatedZoneMatrix/zones`
+    (query parameters). `GetRulesByFilter` returns the number of rules of the page in `result.count`
+  - breaking change for API clients that do not page: these endpoints return at most `maxRestResponseObjectLimit`
+    objects per request; clients getting fewer objects see no difference. Flow catalog group lists now return up
+    to 10000 groups per page instead of 250. LDAP member, membership and user lists and the user, tenant and
+    group lists are now ordered (by dn resp. id)
+  - `Rule/GetRulesByFilter`, `owners/get`, `getAuditProofCriticalChanges`, `designatedZoneMatrix/zones` and the
+    user, tenant and LDAP lists (`GET User`, `User/Get`, `GET Tenant`, `GET Group`, `Group/Get`, `Members`,
+    `Memberships`, `Resolve`) now use the rate limit policy for expensive requests (at most 2 concurrent requests per
+    user)
+  - the UI reads every page of the user, tenant and LDAP group lists, so it shows complete lists as before; a list
+    that still has further pages after 1000 pages is reported as an error instead of being shown incomplete
 
 ## 9.8.3 - 26.10.2026
 - modelling: new setting "Network Areas excluded from Common Services" - network areas listed there are not offered for selection in common services and cannot be added to them; existing common services containing such an area can only be saved after removing it (#5406)

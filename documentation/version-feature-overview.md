@@ -238,7 +238,8 @@ For a feature-centric, thematically grouped view see
 - The Rules report can show management rulebases instead of gateways: start rulebases are selected per management, including rulebases without a gateway link, and reported together with the layers and sections following them.
 - Configurable default rules report view (gateway rules or management rulebases), globally and personally. Personal settings override the global gateway-based default; saved report templates retain their view.
 
-## 9.8.x
+### 9.8.2 — 24.10.2026
+- Workflow configuration transfer supports selected-phase exports, custom file names, imports into existing configurations, and safe state-definition validation.
 
 ### 9.8.4 — 29.10.2026
 - Admins see a warning on every page while certificate checking is switched off for firewall connections, external ticket systems or the email server, and the upgrade lists the unchecked connection types.
@@ -248,5 +249,5 @@ For a feature-centric, thematically grouped view see
 ### 9.8.3 — 26.10.2026
 - Implementation tasks are created by the state action "Create implementation tasks"; the device specific settings "Auto plan implementation" and "Auto plan implementation for rules" decide per gateway and management which tasks it creates. Workflow Customizing offers the device input in the request and the path analysis algorithms "For each device" and "First device (if available)".
 
-### 9.8.2 — 24.10.2026
-- Workflow configuration transfer supports selected-phase exports, custom file names, imports into existing configurations, and safe state-definition validation.
+### 9.8.4 — 26.10.2026
+- Every list endpoint of the middleware REST API is paged (`limit`, `offset`, `X-Has-More`) with one central page size, the new setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`, default 10000).

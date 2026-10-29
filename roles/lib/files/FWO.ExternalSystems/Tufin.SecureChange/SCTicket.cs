@@ -218,9 +218,10 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
                 if (ticketTask != null)
                 {
                     ExternalTicketTemplate? template = TicketSystem.Templates.FirstOrDefault(t => t.TaskType == actTaskType.ToString());
-                    if (template == null)
+                    // a template without ticket or task text (no device specific setting and no shipped default) counts as missing
+                    if (template == null || string.IsNullOrWhiteSpace(template.TicketTemplate) || string.IsNullOrWhiteSpace(template.TasksTemplate))
                     {
-                        throw new ConfigException($"No Template found for task type {actTaskType}.");
+                        throw new ConfigException($"No Template found for task type {actTaskType}. Set its ticket and task templates in the device specific settings.");
                     }
                     else
                     {

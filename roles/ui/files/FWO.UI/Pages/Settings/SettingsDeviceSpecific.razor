@@ -252,9 +252,14 @@ else
         </div>;
 
     /// <summary>Explains what an empty value means: the shipped default applies, or there is none.</summary>
-    private static string EmptyValueTextKey(DeviceSpecificFieldDefinition field, string? shippedDefault) => field.Section == DeviceSpecificFieldSection.SecureChange
-        ? (shippedDefault == null ? "dss_sc_template_no_default" : "dss_sc_template_uses_default")
-        : (shippedDefault == null ? "dss_fw_write_not_supported" : "dss_fw_write_uses_default");
+    private static string EmptyValueTextKey(DeviceSpecificFieldDefinition field, string? shippedDefault)
+    {
+        if (field.Section == DeviceSpecificFieldSection.SecureChange)
+        {
+            return shippedDefault == null ? "dss_sc_template_no_default" : "dss_sc_template_uses_default";
+        }
+        return shippedDefault == null ? "dss_fw_write_not_supported" : "dss_fw_write_uses_default";
+    }
 
     private RenderFragment RenderInheritedSource(DeviceSpecificFieldState state, DeviceSpecificLevelForm levelForm) =>
         @<div class="text-muted small mt-1">

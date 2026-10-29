@@ -8,8 +8,8 @@
   - the ticket system dialog no longer shows or stores templates for SecureChange systems (URL, credentials, timeouts and requester lookup stay there); other ticket system types keep their templates
   - the upgrade moves the templates of the SecureChange systems: those of the system most managements route their changes to (Settings - Firewall config changes) become the global values, managements routing a change category to another SecureChange system get its differing templates on their own level. Parts equal to the shipped template are not stored. The ticket systems are backed up once in `device_specific_config_backup` (version `9.8.5 extTicketSystems`, without authorization values)
   - breaking: an AccessRequest template that was missing on a SecureChange system (ticket creation failed before) is now replaced by the shipped one
+  - a task type whose ticket or task template is empty (no setting and no shipped template, e.g. NetworkObjectModify) is refused with a configuration error before a request is created, as when its template was missing before
 
-## 9.8.4 - 26.10.2026
 ## 9.8.4 - 29.10.2026
 - installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server
 - importer: sub-managements set to "do not import" are skipped by the import of their super manager instead of having all their rules and objects marked removed (FortiManager ADOMs, Check Point domains; GHSA-hj46-639g-mxq2). A forced import still imports them

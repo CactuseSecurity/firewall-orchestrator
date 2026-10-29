@@ -1,0 +1,10 @@
+query getActiveRuleOwnerApps($ruleIds: [bigint!]!, $mappingSourceId: smallint!) {
+    rule_owner(
+        where: { removed: { _is_null: true }, rule_id: { _in: $ruleIds }, owner_mapping_source_id: { _eq: $mappingSourceId } }
+    ) {
+        rule_id
+        owner {
+            app_id_external
+        }
+    }
+}

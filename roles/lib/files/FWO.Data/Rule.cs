@@ -1,5 +1,6 @@
 using FWO.Basics;
 using FWO.Data.Flow;
+using FWO.Data.Labelling;
 using System.Linq;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
@@ -53,6 +54,36 @@ namespace FWO.Data
 
         [JsonProperty("rule_src_zone"), JsonPropertyName("rule_src_zone")]
         public string SourceZone { get; set; } = "";
+
+        /// <summary>
+        /// Labels of the rule source as ORed AND-groups of label key to label values, null if the source has no labels.
+        /// </summary>
+        [JsonProperty("rule_src_labels", NullValueHandling = NullValueHandling.Ignore), JsonPropertyName("rule_src_labels")]
+        [SystemTextJsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [Newtonsoft.Json.JsonConverter(typeof(RuleLabelsJsonConverter))]
+        public List<Dictionary<string, List<string>>>? SourceLabels { get; set; }
+
+        /// <summary>
+        /// Labels of the rule destination as ORed AND-groups of label key to label values, null if the destination has no labels.
+        /// </summary>
+        [JsonProperty("rule_dst_labels", NullValueHandling = NullValueHandling.Ignore), JsonPropertyName("rule_dst_labels")]
+        [SystemTextJsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [Newtonsoft.Json.JsonConverter(typeof(RuleLabelsJsonConverter))]
+        public List<Dictionary<string, List<string>>>? DestinationLabels { get; set; }
+
+        private List<RuleLabelAssignment>? ruleLabels;
+
+        /// <summary>
+        /// Labels of the rule as a whole (e.g. the App label), as far as they were active at the report time.
+        /// Null without labels, so that rules without them are serialized as before.
+        /// </summary>
+        [JsonProperty("rule_labels", NullValueHandling = NullValueHandling.Ignore), JsonPropertyName("rule_labels")]
+        [SystemTextJsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<RuleLabelAssignment>? RuleLabels
+        {
+            get => ruleLabels;
+            set => ruleLabels = value is { Count: > 0 } ? value : null;
+        }
 
         [JsonProperty("rule_from_zones"), JsonPropertyName("rule_from_zones")]
         public ZoneWrapper[] RuleFromZones { get; set; } = [];
@@ -235,11 +266,14 @@ namespace FWO.Data
             SourceNegated = rule.SourceNegated;
             Source = rule.Source;
             SourceRefs = rule.SourceRefs;
+            SourceLabels = rule.SourceLabels;
             RuleFromZones = rule.RuleFromZones;
             Froms = rule.Froms;
             DestinationNegated = rule.DestinationNegated;
             Destination = rule.Destination;
             DestinationRefs = rule.DestinationRefs;
+            DestinationLabels = rule.DestinationLabels;
+            RuleLabels = rule.RuleLabels;
             RuleToZones = rule.RuleToZones;
             Tos = rule.Tos;
             Action = rule.Action;

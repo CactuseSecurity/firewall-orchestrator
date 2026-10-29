@@ -6,12 +6,13 @@ using FWO.Report.Filter;
 using Newtonsoft.Json;
 using System.Text;
 using System.Globalization;
+using FWO.Data.Labelling;
 
 namespace FWO.Ui.Display
 {
     public class RuleDisplayJson(UserConfig userConfig) : RuleDisplayBase(userConfig)
     {
-        private string DisplayJsonPlain(string tag, string? value)
+        protected static string DisplayJsonPlain(string tag, string? value)
         {
             return (value != null ? $"\"{tag}\": {value}," : "");
         }
@@ -21,13 +22,29 @@ namespace FWO.Ui.Display
             return (value != null ? $"\"{tag}\": {JsonConvert.ToString(value)}," : "");
         }
 
+        /// <summary>
+        /// Json field with the labels of a rule side in their group structure.
+        /// </summary>
+        protected static string DisplaySideLabels(string tag, List<Dictionary<string, List<string>>>? labels)
+        {
+            return DisplayJsonPlain(tag, RuleLabelFormatter.SideLabelsToJson(labels));
+        }
+
+        /// <summary>
+        /// Json field with the labels of the rule as a whole, empty if they are not shown.
+        /// </summary>
+        protected string DisplayRuleLabels(Rule rule)
+        {
+            return ShowRuleLevelLabels ? DisplayJsonPlain("rule labels", RuleLabelFormatter.RuleLabelsToJson(rule.RuleLabels)) : "";
+        }
+
         protected string DisplayJsonArray(string tag, string? value)
         {
             return (value != null ? $"\"{tag}\": [{value}]," : "");
         }
 
 
-        private string DisplayNumber(Rule rule)
+        private static string DisplayNumber(Rule rule)
         {
             return DisplayJsonPlain("number", rule.OrderNumber.ToString(CultureInfo.InvariantCulture));
         }
@@ -42,7 +59,7 @@ namespace FWO.Ui.Display
             return DisplayJsonArray("source zones", ListNetworkZones(networkZones));
         }
 
-        protected string DisplaySourceNegated(bool sourceNegated)
+        protected static string DisplaySourceNegated(bool sourceNegated)
         {
             return DisplayJsonPlain("source negated", sourceNegated.ToString().ToLower());
         }
@@ -57,7 +74,7 @@ namespace FWO.Ui.Display
             return DisplayJsonArray("destination zones", ListNetworkZones(networkZones));
         }
 
-        protected string DisplayDestinationNegated(bool destinationNegated)
+        protected static string DisplayDestinationNegated(bool destinationNegated)
         {
             return DisplayJsonPlain("destination negated", destinationNegated.ToString().ToLower());
         }
@@ -67,7 +84,7 @@ namespace FWO.Ui.Display
             return DisplayJsonArray("destination", ListNetworkLocations(rule, reportType, false));
         }
 
-        protected string DisplayServiceNegated(bool serviceNegated)
+        protected static string DisplayServiceNegated(bool serviceNegated)
         {
             return DisplayJsonPlain("service negated", serviceNegated.ToString().ToLower());
         }
@@ -97,7 +114,7 @@ namespace FWO.Ui.Display
             return DisplayJsonString("rule uid", uid);
         }
 
-        protected string DisplayEnabled(bool disabled)
+        protected static string DisplayEnabled(bool disabled)
         {
             return DisplayJsonPlain("disabled", disabled.ToString().ToLower());
         }
@@ -157,14 +174,17 @@ namespace FWO.Ui.Display
             {
                 stringBuilder.Append(DisplayNumber(rule));
                 stringBuilder.Append(DisplayName(rule.Name));
+                stringBuilder.Append(DisplayRuleLabels(rule));
                 stringBuilder.Append(DisplayRuleSourceZones(rule.RuleFromZones
                     .Select(zoneWrapper => zoneWrapper.Content).ToArray()));
                 stringBuilder.Append(DisplaySourceNegated(rule.SourceNegated));
                 stringBuilder.Append(DisplaySource(rule, reportType));
+                stringBuilder.Append(ShowSourceLabelField ? DisplaySideLabels("source labels", rule.SourceLabels) : "");
                 stringBuilder.Append(DisplayRuleDestinationZones(rule.RuleToZones
                     .Select(zoneWrapper => zoneWrapper.Content).ToArray()));
                 stringBuilder.Append(DisplayDestinationNegated(rule.DestinationNegated));
                 stringBuilder.Append(DisplayDestination(rule, reportType));
+                stringBuilder.Append(ShowDestinationLabelField ? DisplaySideLabels("destination labels", rule.DestinationLabels) : "");
                 stringBuilder.Append(DisplayServiceNegated(rule.ServiceNegated));
                 stringBuilder.Append(DisplayServices(rule, reportType));
                 stringBuilder.Append(DisplayAction(rule.Action));

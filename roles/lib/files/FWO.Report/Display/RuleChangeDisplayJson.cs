@@ -6,6 +6,7 @@ using FWO.Report.Filter;
 using Newtonsoft.Json;
 using System.Globalization;
 using System.Text;
+using FWO.Data.Labelling;
 
 namespace FWO.Ui.Display
 {
@@ -141,6 +142,47 @@ namespace FWO.Ui.Display
                     return ruleChange.OldRule.SourceNegated == ruleChange.NewRule.SourceNegated ?
                     DisplaySourceNegated(ruleChange.NewRule.SourceNegated) :
                     DisplayJsonString("source negated", DisplayDiff(ruleChange.OldRule.SourceNegated.ToString().ToLower(), ruleChange.NewRule.SourceNegated.ToString().ToLower()));
+                default: return "";
+            }
+        }
+
+        /// <summary>
+        /// Json field with the source labels of a rule change in their group structure, empty in mode objects only.
+        /// </summary>
+        public string DisplaySourceLabels(RuleChange ruleChange)
+        {
+            return ShowSourceLabelField ? DisplayLabelChange("source labels", ruleChange, rule => RuleLabelFormatter.SideLabelsToJson(rule.SourceLabels)) : "";
+        }
+
+        /// <summary>
+        /// Json field with the destination labels of a rule change in their group structure, empty in mode objects only.
+        /// </summary>
+        public string DisplayDestinationLabels(RuleChange ruleChange)
+        {
+            return ShowDestinationLabelField ? DisplayLabelChange("destination labels", ruleChange, rule => RuleLabelFormatter.SideLabelsToJson(rule.DestinationLabels)) : "";
+        }
+
+        /// <summary>
+        /// Json field with the rule labels of a rule change, empty if they are not shown.
+        /// </summary>
+        public string DisplayRuleLabels(RuleChange ruleChange)
+        {
+            return ShowRuleLevelLabels ? DisplayLabelChange("rule labels", ruleChange, rule => RuleLabelFormatter.RuleLabelsToJson(rule.RuleLabels)) : "";
+        }
+
+        /// <summary>
+        /// The labels of the deleted or inserted rule, for a changed rule the new labels or, if they changed, the deleted and added labels.
+        /// </summary>
+        private static string DisplayLabelChange(string tag, RuleChange ruleChange, Func<Rule, string> labelsToJson)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return DisplayJsonPlain(tag, labelsToJson(ruleChange.OldRule));
+                case 'I': return DisplayJsonPlain(tag, labelsToJson(ruleChange.NewRule));
+                case 'C':
+                    string oldLabels = labelsToJson(ruleChange.OldRule);
+                    string newLabels = labelsToJson(ruleChange.NewRule);
+                    return DisplayJsonPlain(tag, oldLabels == newLabels ? newLabels : $"{{\"deleted\": {oldLabels}, \"added\": {newLabels}}}");
                 default: return "";
             }
         }

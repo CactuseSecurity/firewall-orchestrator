@@ -601,178 +601,24 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
-    <li>Die hierarchischen Provisionierungs-Einstellungen hei&szlig;en nun ger&auml;tespezifische Einstellungen, da sie z.B. auch f&uuml;r den Import genutzt werden. Sie enthalten nun Guardicore-Objektanlage, Modellierungslabels und Verbindungs-IDs, Importer-Host, externes Ticketsystem sowie &Uuml;berschreibungen f&uuml;r Regelumsetzung und Planung.</li>
-    <li>Der Importer-Hostname wird nicht mehr pro Management, sondern in den ger&auml;tespezifischen Einstellungen (Global, Ger&auml;tetyp oder Manager) festgelegt. Ist er leer, importiert jeder Importer. Das Upgrade &uuml;bernimmt den h&auml;ufigsten Hostnamen als globalen Wert und abweichende als Manager-Werte.</li>
-    <li>Cloud-Zugangsdaten werden als zus&auml;tzliche Zugangsdaten mit verschl&uuml;sseltem Passwort verwaltet. Das Upgrade &uuml;bertr&auml;gt vorhandene Cloud Client IDs und Secrets automatisch. Cisco ASA verwendet das zus&auml;tzliche Passwort f&uuml;r den Enable-Modus.</li>
-    <li>Wenn eine Aufgabe die Genehmigungsphase &uuml;berspringt, werden implizite Genehmigungen als systemerzeugt markiert und mit einem konfigurierbaren Kommentar versehen.</li>
-    <li>Geb&uuml;ndelte Zugriff-Auftr&auml;ge k&ouml;nnen in der Aufgabenansicht als ein Auftrag angezeigt werden, wenn sie denselben Status haben. Unterschiedliche Status bleiben getrennt; die enthaltenen Elemente werden zusammengef&uuml;hrt und dedupliziert.</li>
-    <li>Die Sichtbarkeit von Ticket-Antragsteller, Priorit&auml;t, Deadline, Grund und Kommentaren kann in den Workflow-Anpassungen unabh&auml;ngig eingestellt werden; Kommentare sind standardm&auml;&szlig;ig ausgeblendet.</li>
-    <li>Die Sichtbarkeit der Felder von Zugriff-Auftr&auml;gen kann ebenfalls konfiguriert werden. Netzwerk- und Service-Elemente zeigen in schreibgesch&uuml;tzten Ansichten Details aus der Flow DB oder aus parallelen Aufgaben desselben Tickets; ein Tooltip kennzeichnet ihre Herkunft.</li>
-    <li>Per REST erstellte Tickets speichern Antragsteller- und Kontakt-Metadaten einmal auf Ticket-Ebene; der externe Antragsteller wird in der UI als <code>Name (Id)</code> angezeigt, wenn beide Angaben vorhanden sind.</li>
-    <li>Der Installer zeigt am Ende eine kurze &Uuml;bersicht der Laufzeiten je Rolle, sortiert nach Dauer. Mehrfache Ausf&uuml;hrungen derselben Rolle werden zusammengefasst.</li>
-    <li>Die Middleware-REST-API begrenzt Aufrufe standardm&auml;&szlig;ig auf 600 pro Minute und zwei gleichzeitig laufende aufwendige Aufrufe je Benutzer. Alle Listen-Endpunkte liefern Seiten mit h&ouml;chstens so vielen Objekten wie in der neuen Einstellung &quot;Max Objekte pro REST-API-Antwortseite&quot; (Standard 10000) festgelegt. API-Clients m&uuml;ssen mit <code>limit</code> und <code>offset</code> weiterbl&auml;ttern, bis <code>X-Has-More</code> den Wert <code>false</code> hat. <code>getFlowComplianceState</code> akzeptiert h&ouml;chstens 100 Eintr&auml;ge je Liste; bei mehreren passenden portlosen Diensten liefert <code>getServiceObjectId</code> HTTP 409 mit den Kandidaten.</li>
-    <li><code>createTicket</code> liefert neben der Ticket-Id den Aktionsstatus <code>actionsStatus</code>: <code>completed</code> oder <code>failed</code>. Fehlschl&auml;ge initialer Workflow-Aktionen werden als Alarm und in der &Auml;nderungshistorie gemeldet. Ein bereits gespeichertes Ticket beh&auml;lt auch bei fehlgeschlagener Statusermittlung seine Id; der Status enth&auml;lt dann die numerische Zustands-Id. Den Request nicht erneut senden, da dies ein zweites Ticket erzeugt.</li>
-    <li>Externe Ticket-Systeme verwenden ausw&auml;hlbare Login-Daten mit verschl&uuml;sseltem Passwort statt eines gespeicherten Authorization-Headers. Passwort&auml;nderungen und neue Login-Daten gelten auch f&uuml;r offene Requests desselben Endpunkts. Das Upgrade &uuml;bernimmt g&uuml;ltige Basic-Authentication-Header automatisch; andere konfigurierte Header, etwa Tokens, werden mit einer Warnung entfernt. F&uuml;r betroffene Ticket-Systeme m&uuml;ssen Login-Daten ausgew&auml;hlt werden. Verwendete Login-Daten k&ouml;nnen erst nach einer neuen Zuordnung gel&ouml;scht werden.</li>
-    <li>Die TLS-Zertifikatspr&uuml;fung wird nun je Verbindungsart eingestellt: f&uuml;r alle Firewall-Verbindungen (Import, Autodiscovery, Check Point-&Auml;nderungsauftr&auml;ge), alle externen Ticket-Systeme und den Email-Server. Neuinstallationen pr&uuml;fen per Default gegen den Zertifikatsspeicher des Hosts. Ein Upgrade &uuml;bernimmt die bisherige Einstellung f&uuml;r Firewall-Verbindungen und schaltet die Pr&uuml;fung f&uuml;r bereits eingerichtete Email-Server und Ticket-Systeme aus; ist die Pr&uuml;fung f&uuml;r Firewall-Verbindungen aktiv, werden nun auch Autodiscovery und Check Point-&Auml;nderungsauftr&auml;ge gepr&uuml;ft. Ungepr&uuml;fte Verbindungen werden im Log gemeldet.</li>
-    <li>Neuinstallationen legen keine Demo-Daten (Beispiel-Benutzer, -Eigent&uuml;mer und -Ger&auml;te mit &ouml;ffentlich bekannten Passw&ouml;rtern) mehr an, au&szlig;er mit <code>testkeys=yes</code> oder explizit mit <code>add_demo_data=yes</code>. Ein Upgrade l&auml;sst vorhandene Demo-Daten bestehen; sie k&ouml;nnen &uuml;ber die Schaltfl&auml;chen "Beispieldaten l&ouml;schen" in den Einstellungen entfernt werden, der Daily Check meldet sie bis dahin.</li>
-    <li>LDAP-Anmeldung: Die Anmeldung erfolgt nur noch mit dem Kontonamen (sAMAccountName bei Active Directory, uid bei OpenLDAP). Benutzer, die sich bisher mit cn, userPrincipalName oder Email-Adresse angemeldet haben, m&uuml;ssen nun ihren Kontonamen verwenden. Anmeldeversuche werden je Client und Benutzer begrenzt; die Grenzwerte k&ouml;nnen in fworch.json eingestellt werden.</li>
-    <li>Der Cisco ASA-Import &uuml;bernimmt Access-List-Eintr&auml;ge nicht mehr mit erweiterter Bedeutung (z.B. als "any"), wenn er sie nicht vollst&auml;ndig versteht, sondern bricht mit Zeilennummer und nicht unterst&uuml;tztem Konstrukt ab. Neu unterst&uuml;tzt werden u.a. any6, IPv6-Adressen, lt/gt-Ports, ICMP-Typen und time-range. Eintr&auml;ge mit ge&auml;nderter Bedeutung erhalten neue Regel-UIDs.</li>
-    <li>Die Mandanten-Sichtbarkeit von Regelquellen und -zielen h&auml;ngt nicht mehr von fremden Ger&auml;ten ab: eine Regel ist vollst&auml;ndig sichtbar, wenn der Mandant ihr Management oder eines der Gateways, auf denen sie wirkt, sehen darf. Einzelne Netzwerkobjekte in Regeln werden nun ebenfalls mit den Mandanten-Netzen abgeglichen.</li>
-    <li>Weitere Sicherheitsverbesserungen: der Compliance-Report-API-Aufruf ist auf Admin und Auditor im eigenen Sichtbereich beschr&auml;nkt, externe Antr&auml;ge eines Tickets k&ouml;nnen nur f&uuml;r eigene Tickets und nur einmal gleichzeitig gestartet werden, und der direkte Import von Konfigurationsdateien per URL oder lokaler Datei ist in Gr&ouml;&szlig;e und Dauer begrenzt und folgt keinen Weiterleitungen mehr.</li>
-    <li>Importierte Logdaten zeigen f&uuml;r Quell- und Zieladressen die zugeh&ouml;rigen externen App-IDs, Netzwerk-Areas und Reverse-DNS-Namen. DNS-Ergebnisse werden wiederverwendet; neue Lookups k&ouml;nnen unter Einstellungen - Logging deaktiviert werden.</li>
-    <li>Die Logdaten-Tabelle zeigt den Aggregationszeitraum und Importzeitpunkt der angezeigten Daten. Bei unterschiedlichen oder unbekannten Zeitr&auml;umen erscheinen diese Angaben pro Zeile. Der Standardzeitraum ist unter Einstellungen - Logging einstellbar (7 Tage) und kann von JSON-Importdateien &uuml;berschrieben werden. Die Spalte Zeitpunkt ist standardm&auml;&szlig;ig ausgeblendet. Die &Uuml;berschrift nennt das Ende des Zeitraums und zeigt standardm&auml;&szlig;ig nur das Importdatum; die Uhrzeit des Imports kann unter Einstellungen - Logging aktiviert werden.</li>
-    <li>Die Area-IP-Daten-Konvertierung hei&szlig;t nun convert_area_ip_data_from_git.py. generate_area_ip_data.py erzeugt Area-IP-Testdaten.</li>
-    <li>Aktualisierte .NET-Bibliotheken, u.a. Quartz.NET 4.4 und PuppeteerSharp 25.13 (PDF-Erzeugung).</li>
-    <li>Implementierungs-Auftr&auml;ge entstehen f&uuml;r Objekt-Auftr&auml;ge pro Ziel-Management laut den ger&auml;tespezifischen Einstellungen (Super- oder Submanager). Die neue Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; erzeugt sie auch bei aktiver Planungsphase. Der Pfadanalyse-Algorithmus wird nun in den Workflow-Anpassungen gew&auml;hlt.</li>
-    <li>Das Email-Protokoll kann nach Benachrichtigungs-ID, Benachrichtigungstyp, Status und Fehlertext gefiltert werden.</li>
-    <li>LDAP: Eine Verbindung kann bis zu 10 Server (Replikate) eines Verzeichnisses enthalten, die der Reihe nach versucht werden. Aktive Verbindungen d&uuml;rfen keine gleichen Such- oder Schreibpfade haben; bisher als getrennte Verbindungen eingerichtete Replikate m&uuml;ssen zu einer Verbindung zusammengefasst werden. Lokale Nutzer werden an die unver&auml;nderliche Objekt-Id ihres Verzeichniseintrags gebunden, daher muss sich nach dem Upgrade jeder Nutzer einmal mit Passwort anmelden.</li>
-    <li>Die Auftr&auml;ge &quot;Objekt anlegen&quot; und &quot;Objekt &auml;ndern&quot; unterst&uuml;tzen Zeitobjekte mit Name, Start- und Endzeit.</li>
-    <li>Implementierungs-Auftr&auml;ge entstehen nur noch &uuml;ber die Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot;, die z.B. beim Status &quot;genehmigt&quot; eingeh&auml;ngt wird. Installation und Upgrade legen sie an, h&auml;ngen sie aber nicht ein: das muss ein Administrator tun, sonst entstehen keine Implementierungs-Auftr&auml;ge automatisch. Welche Auftr&auml;ge sie anlegt, legen die ger&auml;tespezifischen Einstellungen &quot;Umsetzung automatisch planen&quot; und &quot;Umsetzung f&uuml;r Regeln automatisch planen&quot; fest, unabh&auml;ngig von der Planungsphase; das Upgrade leitet sie nicht aus den Planungsphasen ab, bitte pr&uuml;fen (Standard f&uuml;r Regeln: Nein). Im Antrag angegebene Ger&auml;te haben Vorrang vor dem Pfadanalyse-Algorithmus, der nun auch &quot;F&uuml;r jedes Ger&auml;t&quot; und &quot;Erstes Ger&auml;t (falls vorhanden)&quot; bietet. Findet die Aktion kein Ziel, entsteht ein Implementierungs-Auftrag ohne Gateway. Die Workflow-Anpassungen fassen die B&uuml;ndelungsoptionen zusammen.</li>
-    <li>Neuer REST-Aufruf <code>resolvePathDevices</code>: ermittelt die Firewalls auf den Pfaden zwischen Quell- und Zieladressen (Bereiche oder Netze, je bis zu 100) mit dem Network-Zone-Tree-Algorithmus. Algorithmus und Zonenmatrix k&ouml;nnen angegeben werden, sonst gelten die Einstellungen. Die Antwort nennt jedes Ger&auml;t einmal sowie den verwendeten Algorithmus und die verwendete Matrix.</li>
-    <li>Auftr&auml;ge vom Typ &quot;Gruppe &auml;ndern&quot; k&ouml;nnen bestehende Netzwerk- und Dienstgruppen suchen und bearbeiten. Mitglieder werden vorbef&uuml;llt, k&ouml;nnen zum Entfernen markiert und durch neue Netzwerkobjekte oder Dienste erg&auml;nzt werden.</li>
-    <li>Workflow-Konfigurationen k&ouml;nnen mit frei w&auml;hlbarem Dateinamen und ausgew&auml;hlten Phasen exportiert werden. Beim Import kann eine neue Konfiguration angelegt oder eine bestehende erweitert werden. Verwendete Status werden mit Namen und Automatik-Eigenschaft &uuml;bertragen; vorhandene Status und Gruppen werden nicht unbemerkt &uuml;berschrieben.</li>
-    <li>Neue Bibliothek zum direkten Schreiben von Implementierungs-Auftr&auml;gen auf Firewalls (Check Point, FortiManager, FortiOS, OPNsense, Azure; noch nicht aktiviert). Endpunkt und JSON-Vorlage jeder Operation (Objekte, Services, Gruppen, Regeln, Ver&ouml;ffentlichen, Policy-Installation) sind in den ger&auml;tespezifischen Einstellungen &auml;nderbar und lassen sich auf die mitgelieferte Vorgabe zur&uuml;cksetzen; die Zertifikatspr&uuml;fung ist je Manager abschaltbar. Objekte, Services und Gruppen werden nur gel&ouml;scht, wenn dies ausdr&uuml;cklich eingeschaltet ist.</li>
-    <li>Modellierung: In den Modellierungs-Einstellungen k&ouml;nnen Netzwerkareas festgelegt werden, die nicht in Common Services verwendet werden d&uuml;rfen. Sie werden bei der Bearbeitung von Common Services nicht zur Auswahl angeboten.</li>
-    <li>Solange die Zertifikatspr&uuml;fung f&uuml;r eine Verbindungsart ausgeschaltet ist, sehen Administratoren oben auf jeder Seite eine Warnung, und ein Upgrade gibt eine Warnung aus. Der Cisco ASA-Importer pr&uuml;ft den SSH-Host-Key des Ger&auml;ts gegen /usr/local/fworch/etc/ssh_known_hosts auf dem Importer-Server; ist die Zertifikatspr&uuml;fung der Firewall-Verbindungen aktiv, m&uuml;ssen die gepr&uuml;ften Host-Keys vor dem Upgrade dort eingetragen werden. Bis dahin listet eine Warnung f&uuml;r Administratoren die betroffenen Managements mit einer Anleitung auf.</li>
-    <li>Syslog nimmt keine Log-Meldungen mehr &uuml;ber das Netzwerk an (TCP-Port 514); Firewall Orchestrator protokolliert nur lokal.</li>
+    <li>Neues Importmodul f&uuml;r Akamai Guardicore Segmentation: Labels werden als Netzwerkobjektgruppen ihrer IP-Adressen (aus IP-Kriterien und den Assets mit dem Label) sowie als Labels importiert, UND-verkn&uuml;pfte Labels einer Regel als Gruppe der gemeinsamen IP-Adressen. Die Regeln werden je Abschnitt und Ruleset in verkettete Regelwerke aufgeteilt, deren alphabetische Reihenfolge der Guardicore-Abschnittsreihenfolge entspricht. Die Labels der Quelle und des Ziels einer Regel werden zudem an der Regel gespeichert.</li>
+    <li>Der App-Daten-Import kann pro App-Server Labels importieren (Schl&uuml;ssel und Wert, z.B. Stage: Prod); unbekannte Labels werden automatisch angelegt. Die Labels importierter Regeln werden mit ihrer Historie pro Regelversion gespeichert, einschlie&szlig;lich der UND/ODER-Verkn&uuml;pfung der Labels einer Guardicore-Regelseite.</li>
+    <li>Regelbasierte Reports zeigen die Labels der Regeln in allen Formaten: Quell- und Ziel-Labels (in eigenen Spalten, zusammen mit den Objekten oder gar nicht, einstellbar unter Einstellungen - Reporting) sowie die Labels der Regel als Ganzes, z.B. das App-Label.</li>
+    <li>Jede Regel und jeder App-Server erh&auml;lt das App-Label ihres Eigent&uuml;mers (die App-ID aus der CMDB) - Regeln &uuml;ber das Regel-Eigent&uuml;mer-Mapping, App-Server beim App-Daten-Import bzw. beim Speichern. Der Schl&uuml;ssel des App-Labels wird unter Einstellungen - App-Daten-Import festgelegt.</li>
+    <li>Modellierung mit Labels (in den Modellierungseinstellungen einzuschalten): Quelle und Ziel von Verbindungen, Schnittstellen und gemeinsamen Diensten k&ouml;nnen zus&auml;tzlich oder anstelle von Objekten Labels enthalten, zusammengefasst in UND-Gruppen (z.B. (Stage: Prod &cap; OS: Linux) &cup; (Stage: Test)).</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
-    <li>The hierarchical provisioning settings are renamed to device specific settings, as they are also used e.g. for importing. They now include Guardicore object creation, modelling labels and connection IDs, importer host and external ticket system, plus rule implementation and planning overrides.</li>
-    <li>The importer host name is no longer set per management but in the device specific settings (Global, device type or manager). If it is empty, every importer imports. The upgrade takes the most common host name as global value and differing ones as manager values.</li>
-    <li>Cloud credentials are managed as additional credentials with encrypted passwords. The upgrade automatically transfers existing cloud client IDs and secrets. Cisco ASA uses the additional password for enable mode.</li>
-    <li>When a task bypasses the approval phase, implicit approvals are marked as system-generated and receive a configurable comment.</li>
-    <li>Bundled access tasks can be displayed as one task in task views when they have the same state. Different states remain separate; their elements are merged and deduplicated.</li>
-    <li>The visibility of the ticket requester, priority, deadline, reason, and comments can be configured independently in Workflow Customizing; comments are hidden by default.</li>
-    <li>Access-task field visibility can also be configured. In read-only views, network and service elements show details from the Flow DB or from parallel tasks of the same ticket; a tooltip identifies their origin.</li>
-    <li>Tickets created through the REST API store requester and contact metadata once at ticket level; the UI displays the external requester as <code>Name (ID)</code> when both values are available.</li>
-    <li>The installer ends with a short overview of elapsed time per role, sorted by duration. Repeated executions of the same role are combined.</li>
-    <li>The middleware REST API defaults to 600 calls per minute and two concurrent expensive calls per user. All list endpoints return pages of at most as many objects as set in the new setting &quot;Max objects per REST API response page&quot; (default 10000). API clients must page with <code>limit</code> and <code>offset</code> until <code>X-Has-More</code> is <code>false</code>. <code>getFlowComplianceState</code> accepts at most 100 entries per list; when several portless services match, <code>getServiceObjectId</code> returns HTTP 409 with the candidates.</li>
-    <li><code>createTicket</code> returns <code>actionsStatus</code> alongside the ticket ID: <code>completed</code> or <code>failed</code>. Initial workflow action failures are reported in an alert and the change history. A saved ticket keeps its ID even if status enrichment fails; its status then contains the numeric state ID. Do not resend the request, as this creates a second ticket.</li>
-    <li>External ticket systems use selectable credentials with an encrypted password instead of a stored authorization header. Password changes and newly selected credentials also apply to open requests for the same endpoint. The upgrade migrates valid basic authentication headers automatically; other configured headers, such as tokens, are removed with a warning. Select credentials for affected ticket systems. Credentials in use can only be deleted after selecting replacements.</li>
-    <li>TLS certificate checking is now configured per connection type: for all firewall connections (import, autodiscovery, Check Point change requests), all external ticket systems and the email server. New installations check against the host trust store by default. An upgrade keeps the setting for firewall connections and switches the check off for email servers and ticket systems already configured; with checking of firewall connections active, autodiscovery and Check Point change requests are now checked as well. Unchecked connections are reported in the log.</li>
-    <li>Fresh installations no longer create demo data (sample users, owners and devices with publicly known passwords), unless <code>testkeys=yes</code> is set or <code>add_demo_data=yes</code> is requested explicitly. Upgrades keep existing demo data; remove it with the "Remove Sample Data" buttons in the settings, until then the daily check reports it.</li>
-    <li>LDAP login: users now log in with their account name only (sAMAccountName for Active Directory, uid for OpenLDAP). Users who logged in with their cn, userPrincipalName or email address so far have to use their account name now. Login attempts are limited per client and user; the limits can be set in fworch.json.</li>
-    <li>The Cisco ASA importer no longer imports access-list entries it does not fully understand with a broader meaning (e.g. as "any"); it fails with the line number and the unsupported construct instead. Newly supported are, among others, any6, IPv6 addresses, lt/gt ports, icmp types and time-range. Entries whose meaning changed get new rule uids.</li>
-    <li>The tenant visibility of rule sources and destinations no longer depends on unrelated devices: a rule is fully visible if the tenant may see its management or one of the gateways it is enforced on. Plain network objects used in rules are now matched against the tenant networks as well.</li>
-    <li>Further security improvements: the compliance report api is limited to admin and auditor within their own scope, the external requests of a ticket can only be started for own tickets and only once at a time, and the direct import of config files from a URL or local file is limited in size and duration and no longer follows redirects.</li>
-    <li>Imported log data shows matching external application IDs, network areas, and reverse-DNS names for source and destination addresses. DNS results are reused; new lookups can be disabled under Settings - Logging.</li>
-    <li>The log data table shows the aggregation period and import time of the displayed data. When periods differ or are unknown, these values appear per row. The default period is configurable under Settings - Logging (7 days) and can be overridden by JSON import files. The log time column is hidden by default. The heading names the end of the period and shows only the import date by default; the time of the import can be enabled under Settings - Logging.</li>
-    <li>The area IP data converter is now named convert_area_ip_data_from_git.py. generate_area_ip_data.py generates area IP test data.</li>
-    <li>Updated .NET libraries, among others Quartz.NET 4.4 and PuppeteerSharp 25.13 (PDF generation).</li>
-    <li>Implementation tasks are created per target management of the device specific settings (super- or sub-management) for object tasks. The new action &quot;Create implementation tasks&quot; also creates them with an active planning phase. The path analysis algorithm is now selected in the workflow customizing settings.</li>
-    <li>The email log can be filtered by notification ID, notification type, status and error text.</li>
-    <li>LDAP: a connection can list up to 10 servers (replicas) of one directory, which are tried in order. Active connections must not share a search or write path; replicas configured as separate connections so far have to be combined into one connection. Local users are bound to the immutable object id of their directory entry, so every user has to log in with password once after the upgrade.</li>
-    <li>The tasks &quot;create object&quot; and &quot;modify object&quot; support time objects with name, start and end time.</li>
-    <li>Implementation tasks are only created by the action &quot;Create implementation tasks&quot;, attached e.g. to the state &quot;approved&quot;. Installation and upgrade provide it but do not attach it: an administrator has to, otherwise no implementation tasks are created automatically. Which tasks it creates is defined by the device specific settings &quot;Auto plan implementation&quot; and &quot;Auto plan implementation for rules&quot;, independently of the planning phase; the upgrade does not derive them from the planning phases, so please check them (default for rules: No). Devices entered in the request take precedence over the path analysis algorithm, which now also offers &quot;For each device&quot; and &quot;First device (if available)&quot;. If the action finds no target, one implementation task without gateway is created. Workflow Customizing groups the bundling options.</li>
-    <li>New REST call <code>resolvePathDevices</code>: determines the firewalls on the paths between source and destination addresses (ranges or networks, up to 100 each) using the network zone tree algorithm. Algorithm and zone matrix can be specified, otherwise the settings apply. The response lists each device once together with the algorithm and matrix used.</li>
-    <li>&quot;Modify group&quot; tasks can search for and edit existing network and service groups. Members are prefilled, can be marked for removal, and can be supplemented with new network objects or services.</li>
-    <li>Workflow configurations can be exported with a custom file name and selected phases. During import, a new configuration can be created or an existing one can be extended. Referenced states are transferred with their names and automatic-only property; existing states and groups are not silently overwritten.</li>
-    <li>New library for writing implementation tasks directly to firewalls (Check Point, FortiManager, FortiOS, OPNsense, Azure; not activated yet). The endpoint and JSON template of every operation (objects, services, groups, rules, publish, policy installation) can be changed in the device specific settings and reset to the shipped default; certificate checks can be switched off per manager. Objects, services and groups are only deleted if this is switched on explicitly.</li>
-    <li>Modelling: network areas which must not be used in common services can be defined in the modelling settings. They are not offered for selection when editing common services.</li>
-    <li>While certificate checking is switched off for a connection type, admins see a warning at the top of every page and an upgrade prints a warning. The Cisco ASA importer checks the SSH host key of the device against /usr/local/fworch/etc/ssh_known_hosts on the importer host; with certificate checking of firewall connections active, add the verified host keys there before upgrading. Until then, a warning for admins lists the affected managements with instructions.</li>
-    <li>Syslog no longer accepts log messages from the network (TCP port 514); Firewall Orchestrator only logs locally.</li>
+    <li>New import module for Akamai Guardicore Segmentation: labels are imported as network object groups of their IP addresses (from IP criteria and from the assets carrying the label) and as labels, ANDed labels of a rule as a group of their common IP addresses. The rules are split into chained rulebases per section and ruleset, whose alphabetical order matches the Guardicore section order. The labels of the source and destination of a rule are also stored with the rule.</li>
+    <li>The app data import can import labels per app server (key and value, e.g. Stage: Prod); unknown labels are created automatically. The labels of imported rules are stored with their history per rule version, keeping the AND/OR combination of the labels of a Guardicore rule side.</li>
+    <li>Rule-based reports show the labels of the rules in all formats: source and destination labels (in own columns, together with the objects or not at all, configurable under Settings - Reporting) and the labels of the rule as a whole, e.g. the App label.</li>
+    <li>Every rule and every app server gets the App label of its owner (the app id from the CMDB) - rules via the rule owner mapping, app servers with the app data import or when they are saved. The key of the App label is set under Settings - App Data Import.</li>
+    <li>Label-based modelling (to be switched on in the modelling settings): source and destination of connections, interfaces and common services can contain labels besides or instead of objects, combined in AND-groups (e.g. (Stage: Prod &cap; OS: Linux) &cup; (Stage: Test)).</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
-INSERT INTO txt VALUES ('getting_started',	    'German', 	'Einstiegshilfe');
-INSERT INTO txt VALUES ('getting_started',	    'English', 	'Quick start');
-INSERT INTO txt VALUES ('getting_started_facts',	    'German', 	'
-Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur Verf&uuml;gung:<ul>
-    <li><a href="/report/generation">Reporting</a>: Erlaubt das einmalige Generieren verschiedener Reports sowie eine regelm&auml;&szlig;ige Generierung</li>
-    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketsystem zur Beantragung von &Auml;nderungen</li>
-    <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
-    <li><a href="/networkmodelling">Modellierung</a>: Erlaubt die verteilte Modellierung von Kommunikationsverbindungen (Soll-Zustand)</li>
-    <li><a href="/network_analysis">Netzanalyse</a>: Pfadanalyse - welche Firewalls liegen zwischen zwei IP-Adressen?</li>
-    <li><a href="/compliance/matrix">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>
-    <li><a href="/monitoring">Monitoring</a>: Alarmierung, Log-Files, Import-Status, ...</li>
-    <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
-    <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
-        das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme</a>.<br>
-        N.B. Stellen Sie sicher, dass Sie alle Demo-Daten (insbesondere die Demo-User) l&ouml;schen (mit Hilfe der "Beispieldaten l&ouml;schen" Option in den Einstellungen),
-        bevor Sie in den produktiven Betrieb &uuml;bergehen, da andernfalls ggf. Ihre Daten mit Default-Logins angezeigt werden k&ouml;nnten.</li>
-    <li><a href="/logout">Abmelden</a>: Firewall Orchestrator verlassen</li>
-</ul>
-');
-INSERT INTO txt VALUES ('getting_started_facts',	    'English', 	'
-The following top-level menu items are available (depending on role memberships):
-<ul>
-    <li><a href="/report/generation">Reporting</a>: Ad-hoc generation and scheduling of reports</li>
-    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketing system for requesting and processing firewall changes</li>
-    <li><a href="/certification">Recertification</a>: Rulebase sanitization by continuously cleaning up existing rules</li>
-    <li><a href="/networkmodelling">Modelling</a>: Allows for distributed modelling of network connections (target state)</li>
-    <li><a href="/network_analysis">Network Analysis</a>: Path analysis - which firewall is crossed when routing between two IP addresses?</li>
-    <li><a href="/compliance/matrix">Compliance</a>: Defining zone matrix and access compliance</li>
-    <li><a href="/monitoring">Monitoring</a>: Alarms, log files, import status, ...</li>
-    <li><a href="/help" target="_blank">Help</a>: Manual pages</li>
-    <li><a href="/settings">Settings</a>: All settings like e.g. language of the user interface or
-        integration of <a href="/settings/managements">your own firewalls</a>.<br>
-        N.B. Please make sure to delete all demo data (using the "Remove sample data" option under settings)
-        before using Firewall Orchestrator with production data.
-        Otherwise you might expose your data by providing default accounts.</li>
-    <li><a href="/logout">Logout</a>: Leave Firewall Orchestrator</li>
-</ul>
-');
-
-INSERT INTO txt VALUES ('getting_support',	    'German', 	'Unterst&uuml;tzung ben&ouml;tigt? Ihre Kontaktm&ouml;glichkeiten');
-INSERT INTO txt VALUES ('getting_support',	    'English', 	'Do you need help? Our Contact options');
-INSERT INTO txt VALUES ('support_details',	    'German', 	'
-M&ouml;chten Sie einen Supportvertrag abschlie&szlig;en, um in den Genuss folgender Vorteile zu kommen?<br>
-<ul>
-    <li>garantierte Unterst&uuml;tzung bei Problemen mit Firewall Orchestrator</li>
-    <li>Customizing: haben Sie Anpassungsw&uuml;nsche, die wir f&uuml;r Sie umsetzen sollen?</li>
-</ul>
-Folgende Kontaktm&ouml;glichkeiten stehen Ihnen zur Verf&uuml;gung:
-<ul>
-    <li><a href="https://github.com/CactuseSecurity/firewall-orchestrator/issues/new?assignees=&labels=&template=feature_request.md&title=">Feature request auf Github</a></li>
-    <li>Telefon: <a href="tel:+496996233675">+49 69 962336-75</a></li>
-    <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a></li>
-</ul>
-');
-INSERT INTO txt VALUES ('support_details',	    'English', 	'
-Do you wish to get a support contract for the following benefits?
-<br>
-<ul>
-    <li>get a direct line to qualified support personnel</li>
-    <li>Customizing: can we help your with individual changes or extensions of functionality?</li>
-</ul>
-Choose from the following contact options:
-<ul>
-    <li><a href="https://github.com/CactuseSecurity/firewall-orchestrator/issues/new?assignees=&labels=&template=feature_request.md&title=">Open a feature request on Github</a></li>
-    <li>Phone: <a href="tel:+496996233675">+49 69 962336-75</a></li>
-    <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a> </li>
-</ul>
-');
-
--- reporting
-INSERT INTO txt VALUES ('report',		        'German', 	'Report');
-INSERT INTO txt VALUES ('report',		        'English', 	'Report');
-INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
-INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
-INSERT INTO txt VALUES ('default_rules_view', 'German', 'Standard-Regelansicht');
-INSERT INTO txt VALUES ('default_rules_view', 'English', 'Default rules view');
-INSERT INTO txt VALUES ('rules_view', 'German', 'Regelansicht');
-INSERT INTO txt VALUES ('rules_view', 'English', 'Rules view');
-INSERT INTO txt VALUES ('gateway_rules_view', 'German', 'Gateway-Regeln');
-INSERT INTO txt VALUES ('gateway_rules_view', 'English', 'Gateway rules');
-INSERT INTO txt VALUES ('management_rulebases_view', 'German', 'Management-Regelwerke');
-INSERT INTO txt VALUES ('management_rulebases_view', 'English', 'Management rulebases');
-INSERT INTO txt VALUES ('no_rulebase_selected', 'German', 'Bitte mindestens ein Regelwerk ausw&auml;hlen.');
-INSERT INTO txt VALUES ('no_rulebase_selected', 'English', 'Select at least one rulebase.');
-INSERT INTO txt VALUES ('select_rulebase', 'German', 'Regelwerk(e) ausw&auml;hlen');
-INSERT INTO txt VALUES ('select_rulebase', 'English', 'Select rulebase(s)');
-INSERT INTO txt VALUES ('rulebases', 'German', 'Regelwerke');
-INSERT INTO txt VALUES ('rulebases', 'English', 'Rulebases');
-INSERT INTO txt VALUES ('rulebase_listed_above', 'German', 'Bereits oben aufgef&uuml;hrt');
-INSERT INTO txt VALUES ('rulebase_listed_above', 'English', 'Already listed above');
-INSERT INTO txt VALUES ('report_time',		    'German', 	'Report-Zeit');
-INSERT INTO txt VALUES ('report_time',		    'English', 	'Report Time');
-INSERT INTO txt VALUES ('tenant_view',		    'German', 	'Mandantenansicht');
-INSERT INTO txt VALUES ('tenant_view',		    'English', 	'Tenant View');
-INSERT INTO txt VALUES ('unused_days',		    'German', 	'Unbenutzt seit (in Tagen)');
-INSERT INTO txt VALUES ('unused_days',		    'English', 	'Unused since (in days)');
 INSERT INTO txt VALUES ('generation',		    'German', 	'Generierung');
 INSERT INTO txt VALUES ('generation',		    'English', 	'Generation');
 INSERT INTO txt VALUES ('change',		        'German', 	'&Auml;ndern');
@@ -1007,6 +853,12 @@ INSERT INTO txt VALUES ('source_zone',		    'German', 	'Quellzone');
 INSERT INTO txt VALUES ('source_zone',		    'English', 	'Source Zone');
 INSERT INTO txt VALUES ('destination_zone',		'German', 	'Zielzone');
 INSERT INTO txt VALUES ('destination_zone',		'English', 	'Destination Zone');
+INSERT INTO txt VALUES ('source_labels',        'German',   'Quell-Labels');
+INSERT INTO txt VALUES ('source_labels',        'English',  'Source Labels');
+INSERT INTO txt VALUES ('destination_labels',   'German',   'Ziel-Labels');
+INSERT INTO txt VALUES ('destination_labels',   'English',  'Destination Labels');
+INSERT INTO txt VALUES ('rule_labels',          'German',   'Regel-Labels');
+INSERT INTO txt VALUES ('rule_labels',          'English',  'Rule Labels');
 INSERT INTO txt VALUES ('enabled',		        'German', 	'Aktiviert');
 INSERT INTO txt VALUES ('enabled',		        'English', 	'Enabled');
 INSERT INTO txt VALUES ('internal_work',        'German',   'Nur f&uuml;r den internen Workflow');
@@ -3305,6 +3157,18 @@ INSERT INTO txt VALUES ('allowServerInConn',    'German', 	'Server in Verbindung
 INSERT INTO txt VALUES ('allowServerInConn',    'English', 	'Allow Servers in Connection');
 INSERT INTO txt VALUES ('allowServiceInConn',   'German', 	'Einfache Dienste in Verbindung erlauben');
 INSERT INTO txt VALUES ('allowServiceInConn',   'English', 	'Allow Simple Services in Connection');
+INSERT INTO txt VALUES ('labelBasedModelling',  'German', 	'Modellierung mit Labels');
+INSERT INTO txt VALUES ('labelBasedModelling',  'English', 	'Label-based Modelling');
+INSERT INTO txt VALUES ('labels',               'German',   'Labels');
+INSERT INTO txt VALUES ('labels',               'English',  'Labels');
+INSERT INTO txt VALUES ('select_label',         'German',   'Label ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_label',         'English',  'Select label');
+INSERT INTO txt VALUES ('new_label_group',      'German',   'Neue Gruppe');
+INSERT INTO txt VALUES ('new_label_group',      'English',  'New group');
+INSERT INTO txt VALUES ('label_group',          'German',   'Gruppe');
+INSERT INTO txt VALUES ('label_group',          'English',  'Group');
+INSERT INTO txt VALUES ('remove_label',         'German',   'Label entfernen');
+INSERT INTO txt VALUES ('remove_label',         'English',  'Remove label');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'German', 	'Max. Anzahl Zeilen in &Uuml;bersicht');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'English', 	'Max. Number of Rows in Overview');
 INSERT INTO txt VALUES ('reducedProtocolSet',   'German',   'Reduzierten Protokollset darstellen');
@@ -3375,6 +3239,8 @@ INSERT INTO txt VALUES ('denied', 'German', 'Verworfen');
 INSERT INTO txt VALUES ('denied', 'English', 'Denied');
 INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'German', 'App-Verantwortliche synchronisieren');
 INSERT INTO txt VALUES ('ownerDataImportSyncUsers', 'English', 'Sync owner responsibles');
+INSERT INTO txt VALUES ('appLabelKey', 'German', 'Schl&uuml;ssel des App-Labels');
+INSERT INTO txt VALUES ('appLabelKey', 'English', 'Key of the App label');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'German', 	'Import Appdaten-Start');
 INSERT INTO txt VALUES ('importAppDataStartAt', 'English', 	'Import App data start at');
 INSERT INTO txt VALUES ('importSubnetDataPath', 'German', 	'Pfad und Name von Subnetzdaten-Import (ohne Endung)');
@@ -3811,6 +3677,16 @@ INSERT INTO txt VALUES ('varianceAnalysisStartAt','German', 'Soll-Ist-Abgleich-S
 INSERT INTO txt VALUES ('varianceAnalysisStartAt','English','Variance Analysis start at');
 INSERT INTO txt VALUES ('resolveNetworkAreas',  'German',   'Netzbereiche aufl&ouml;sen');
 INSERT INTO txt VALUES ('resolveNetworkAreas',  'English',  'Resolve Network Areas');
+INSERT INTO txt VALUES ('rule_label_display',   'German',   'Anzeige Quell- und Ziel-Labels');
+INSERT INTO txt VALUES ('rule_label_display',   'English',  'Display of source and destination labels');
+INSERT INTO txt VALUES ('rule_label_display_LabelColumns',      'German',   'Eigene Spalten');
+INSERT INTO txt VALUES ('rule_label_display_LabelColumns',      'English',  'Own columns');
+INSERT INTO txt VALUES ('rule_label_display_LabelsWithObjects', 'German',   'Mit den Objekten in einer Zelle');
+INSERT INTO txt VALUES ('rule_label_display_LabelsWithObjects', 'English',  'Together with the objects in one cell');
+INSERT INTO txt VALUES ('rule_label_display_ObjectsOnly',       'German',   'Nur Objekte');
+INSERT INTO txt VALUES ('rule_label_display_ObjectsOnly',       'English',  'Objects only');
+INSERT INTO txt VALUES ('show_rule_level_labels', 'German',   'Regel-Labels anzeigen');
+INSERT INTO txt VALUES ('show_rule_level_labels', 'English',  'Show rule labels');
 INSERT INTO txt VALUES ('complianceCheckSleepTime','German','Compliance-Check-Intervall (in Minuten)');
 INSERT INTO txt VALUES ('complianceCheckSleepTime','English','Compliance Check sleep time (in minutes)');
 INSERT INTO txt VALUES ('complianceCheckStartAt','German',  'Compliance-Check-Start');
@@ -5217,6 +5093,8 @@ INSERT INTO txt VALUES ('E5422', 'German',  'Eintrag enth&auml;lt nicht alle erf
 INSERT INTO txt VALUES ('E5422', 'English', 'Entry does not contain all required columns');
 INSERT INTO txt VALUES ('E5423', 'German',  'IP-Adresse/IP-Bereich ist fehlerhaft');
 INSERT INTO txt VALUES ('E5423', 'English', 'IP Address/IP Range malformed');
+INSERT INTO txt VALUES ('E5424', 'German',  'Unbekannte Spalten werden ignoriert (erlaubt sind zus&auml;tzlich nur Spalten label:&lt;Schl&uuml;ssel&gt;)');
+INSERT INTO txt VALUES ('E5424', 'English', 'Unknown columns are ignored (only columns label:&lt;key&gt; are allowed additionally)');
 INSERT INTO txt VALUES ('E5430', 'German',  'Hochgeladener Dateityp ist nicht erlaubt');
 INSERT INTO txt VALUES ('E5430', 'English', 'Uploaded Filetype is not allowed');
 INSERT INTO txt VALUES ('E5431', 'German',  'Hochgeladene Datei &uuml;berschreitet Maximum');
@@ -6615,6 +6493,7 @@ INSERT INTO txt VALUES ('H5102', 'German',  'Folgende Firewallprodukte k&ouml;nn
                 <li>Palo Alto Firewalls (nicht Panorama)</li>
                 <li>Azure Firewall</li>
                 <li>Cisco FirePower Management Center</li>
+                <li>Akamai Guardicore Segmentation (Guardicore Management REST). Labels werden als Netzwerkobjektgruppen ihrer IP-Adressen importiert, die Regeln je Abschnitt (Override Allow, Override Alert, Override Block, Allow, Alert, Block) und Ruleset in verkettete Regelwerke aufgeteilt.</li>
             </ul>
         </li>
     </ul>
@@ -6640,6 +6519,7 @@ INSERT INTO txt VALUES ('H5102', 'English', 'The following firewall products can
                 <li>Palo Alto Firewalls (not Panorama)</li>
                 <li>Azure Firewall</li>
                 <li>Cisco FirePower Management Center</li>
+                <li>Akamai Guardicore Segmentation (Guardicore Management REST). Labels are imported as network object groups of their IP addresses, the rules are split into chained rulebases per section (Override Allow, Override Alert, Override Block, Allow, Alert, Block) and ruleset.</li>
             </ul>
         </li>
     </ul>
@@ -6682,11 +6562,11 @@ INSERT INTO txt VALUES ('H5114', 'English', 'Hostname*: Address of the host (eit
     For all firewall platforms which do not possess a separate management, use the IP address or the resolvable name of the firewall gateway.
 ');
 INSERT INTO txt VALUES ('H5115', 'German',  'Port*: Port-Nummer des Hosts.<br>
-    Wenn das Ziel Check Point R8x, FortiManager, Azure oder Cisco FirePower ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Firewall Managment zu aktivieren.<br>
+    Wenn das Ziel Check Point R8x, FortiManager, Azure, Cisco FirePower oder Guardicore ist, wird die Verbindung via API aufgebaut. Die Standard-Port-Nummer ist 443. Denken Sie daran, den API-Zugang auf Ihrem Firewall Managment zu aktivieren.<br>
     Wenn das Ziel eine andere Plattform ist, braucht Firewall Orchestrator einen ssh-basierten Zugang. Die Standard-Port-Nummer ist in diesem Fall 22.
 ');
 INSERT INTO txt VALUES ('H5115', 'English', 'Port*: Port number of the host.<br>
-    If the target is Check Point R8x, FortiManager, Azure or Cisco FirePower the connection is established via API. The default port number is 443. Remember to enable API access on your firewall managment.<br>
+    If the target is Check Point R8x, FortiManager, Azure, Cisco FirePower or Guardicore the connection is established via API. The default port number is 443. Remember to enable API access on your firewall managment.<br>
     If the target any other platform Firewall Orchestrator needs ssh-based access. The default port number here is 22.
 ');
 INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten f&uuml;r den Import-Nutzer des Managements.<br>
@@ -6737,6 +6617,9 @@ Ein L&ouml;schen ist erst m&ouml;glich, wenn die Zugangsdaten von keinem Managem
             <code>secret=yyy</code></li>
         <li>In der Firewall Orchestrator WebUI: erstelle neue Login-Daten mit Import Nutzer = Wert von "key" und Passwort = Wert von "secret"</li>
     </ol>
+    <br>
+    F&uuml;r den Guardicore Import via REST API: erstelle in der Guardicore Management-Konsole einen Nutzer mit Lesezugriff auf Labels, Label-Gruppen, Assets und Segmentierungsregeln und
+    hinterlege seinen Namen und sein Passwort als Import Login-Daten (Nutzer mit Mehr-Faktor-Authentifizierung k&ouml;nnen nicht verwendet werden).
 ');
 INSERT INTO txt VALUES ('H5130', 'English', 'Manage credentials for logging in to firewall managements (import and provisioning) and external ticket systems.
 Credentials can be used for logging in to one or multiple firewall managements or ticket systems.
@@ -6757,6 +6640,9 @@ Credentials can only be deleted when no management uses them for import or expor
             <code>secret=4N4yTQZATPa/Tj+IUiyXNFsB2r0Kpjt8lQ6UDjsaNZgo0vd/l+ByD3dBR61T/b/8Jz5rleZytIuzpO6R</code></li>
         <li>In Firewall Orchestrator UI create new credentials with username = value of "key" and password = value of "secret"</li>
     </ol>
+    <br>
+    For Guardicore import via REST API: create a user in the Guardicore management console with read access to labels, label groups, assets and segmentation rules
+    and enter its name and password as import credentials (users with multi-factor authentication cannot be used).
 ');
 INSERT INTO txt VALUES ('H5131', 'German',  'Name*: Ein beliebiger Name, der diese Zugangsdaten eindeutig beschreibt.
 ');
@@ -7364,6 +7250,30 @@ INSERT INTO txt VALUES ('H5462', 'German',  'Regelt den Standardzustand der Klap
 INSERT INTO txt VALUES ('H5462', 'English', 'Sets the default state of the collapsible elements for the rule display in the Rules Report.');
 INSERT INTO txt VALUES ('H5463', 'German',  'Reporttyp-Sichtbarkeit je Rolle: F&uuml;r eine ausgew&auml;hlte Rolle kann je Reporttyp festgelegt werden, ob dieser sichtbar, nicht sichtbar oder geerbt (vom Standardverhalten der verf&uuml;gbaren Reporttypen) sein soll. Diese Einstellung schr&auml;nkt die Liste der verf&uuml;gbaren Reporttypen zus&auml;tzlich f&uuml;r Nutzer der jeweiligen Rolle ein bzw. erweitert sie.');
 INSERT INTO txt VALUES ('H5463', 'English', 'Report Type Visibility by Role: For a selected role, each report type can be set to visible, not visible or inherited (from the default behaviour of the available report types). This setting additionally restricts or extends the list of available report types for users of the respective role.');
+INSERT INTO txt VALUES ('H5464', 'German',  'Anzeige Quell- und Ziel-Labels: Legt fest, wie regelbasierte Reports (alle Formate) die Labels von Quelle und Ziel einer Regel zeigen.
+    Labels einer Gruppe werden mit &cap; verkn&uuml;pft (alle m&uuml;ssen zutreffen), mehrere Gruppen einer Seite mit &cup; (eine Gruppe muss zutreffen); im CSV-Export stattdessen mit AND und OR.
+    <ul>
+        <li>Eigene Spalten (Standard): Quell- und Ziel-Labels erscheinen in eigenen Spalten.</li>
+        <li>Mit den Objekten in einer Zelle: Die Labels erscheinen unter den Objekten von Quelle bzw. Ziel. CSV und JSON enthalten sie weiterhin als eigene Felder.</li>
+        <li>Nur Objekte: Die Labels werden nicht angezeigt, sondern nur die Objekte (z.B. die aus Guardicore-Labels gebildeten Gruppen).</li>
+    </ul>
+    Der JSON-Export enth&auml;lt die Labels in ihrer Gruppenstruktur. Label-Spalten und -Felder erscheinen nur, wenn mindestens eine Regel des Reports solche Labels hat;
+    Reports ohne Labels bleiben daher unver&auml;ndert.');
+INSERT INTO txt VALUES ('H5464', 'English', 'Display of source and destination labels: Defines how rule-based reports (all formats) show the labels of the source and destination of a rule.
+    Labels of a group are joined with &cap; (all have to match), several groups of a side with &cup; (one group has to match); in the csv export with AND and OR instead.
+    <ul>
+        <li>Own columns (default): source and destination labels are shown in own columns.</li>
+        <li>Together with the objects in one cell: the labels are shown below the objects of the source or destination. Csv and json still contain them as own fields.</li>
+        <li>Objects only: the labels are not shown, only the objects (e.g. the groups built from Guardicore labels).</li>
+    </ul>
+    The json export contains the labels in their group structure. Label columns and fields only appear if at least one rule of the report has such labels,
+    so reports without labels stay unchanged.');
+INSERT INTO txt VALUES ('H5465', 'German',  'Regel-Labels anzeigen: Zeigt in regelbasierten Reports eine Spalte mit den Labels der Regel als Ganzes (z.B. dem App-Label).
+    Es werden die zum Reportzeitpunkt aktiven Labels angezeigt, in &Auml;nderungsreports die vor bzw. nach der &Auml;nderung. Die Spalte erscheint nur, wenn mindestens eine Regel des Reports solche Labels hat.
+    Diese Einstellung gilt unabh&auml;ngig von der Anzeige der Quell- und Ziel-Labels.');
+INSERT INTO txt VALUES ('H5465', 'English', 'Show rule labels: Shows a column with the labels of the rule as a whole (e.g. the App label) in rule-based reports.
+    The labels active at the report time are shown, in change reports those before and after the change. The column only appears if at least one rule of the report has such labels.
+    This setting is independent of the display of source and destination labels.');
 INSERT INTO txt VALUES ('H5462a', 'German',  'FW Konfigurations&auml;nderungs-Intervall (in Sekunden): legt das Intervall fest, in dem die FW Konfigurations&auml;nderung durchgef&uuml;hrt werden sollen.');
 INSERT INTO txt VALUES ('H5462a', 'English', 'FW Config Change sleep time (in seconds): defines the interval in which the FW Config Changes should be performed.');
 INSERT INTO txt VALUES ('H5462b', 'German',  'Anzahl Wartezyklen: legt fest, wie viele Zyklen des Konfigurations&auml;nderungs-Intervalls bei bestimmten &auml;nderungen gewartet werden soll (z.B. nach Neuanlegen von Netzwerkobjekten).');
@@ -7836,6 +7746,8 @@ INSERT INTO txt VALUES ('H5603', 'German',  'Server in Verbindung erlauben: Steu
 INSERT INTO txt VALUES ('H5603', 'English', 'Allow Servers in Connection: Controls, if App Servers are offered in the Library besides the App Roles for direct use in the connections.');
 INSERT INTO txt VALUES ('H5604', 'German',  'Einfache Dienste in Verbindung erlauben: Steuert, ob in der Bibliothek neben den Servicegruppen auch einfache Services zur direkten Verwendung in den Verbindungen angeboten werden.');
 INSERT INTO txt VALUES ('H5604', 'English', 'Allow Simple Services in Connection: Controls, if simple Services are offered in the Library besides the Service Groups for direct use in the connections.');
+INSERT INTO txt VALUES ('H5604a', 'German',  'Modellierung mit Labels: Schaltet die Auswahl von Labels als Quelle und Ziel von Verbindungen, Schnittstellen und gemeinsamen Diensten ein (Standard: aus). Ist sie ausgeschaltet, wird nur diese Auswahl ausgeblendet: bereits zugeordnete Labels bleiben gespeichert und werden nur lesend angezeigt, Reports zeigen importierte Labels weiterhin. Welche Firewalls labelbasierte Konfigurationen erhalten, legt die ger&auml;tespezifische Einstellung Anlage Labels fest (Ignorieren schlie&szlig;t ein Management aus). AppRoles und AppZones bleiben Gruppen und werden bei der Provisionierung nach Guardicore zu dynamischen IP-Labels.');
+INSERT INTO txt VALUES ('H5604a', 'English', 'Label-based Modelling: Switches on the selection of labels as source and destination of connections, interfaces and common services (default: off). When it is off, only this selection is hidden: labels already assigned stay stored and are shown read-only, reports keep showing imported labels. Which firewalls get label-based configurations is set by the device specific setting Label creation (Ignore excludes a management). App roles and app zones stay groups and become dynamic IP labels during the provisioning towards Guardicore.');
 INSERT INTO txt VALUES ('H5605', 'German',  'Max. Anzahl Zeilen in &Uuml;bersicht: Definiert die Zeilenzahl innerhalb eines Eintrags in der &Uuml;bersichtstabelle der Verbindungen, ab der die Elemente eingeklappt dargestellt werden.
     Wird vom Administrator allgemein vorausgew&auml;hlt, kann aber vom Nutzer in den pers&ouml;nlichen Einstellungen &uuml;berschrieben werden.
 ');
@@ -8141,6 +8053,8 @@ INSERT INTO txt VALUES ('H5675', 'German',  'Nur Administratoren k&ouml;nnen &Au
 INSERT INTO txt VALUES ('H5675', 'English', 'Only administrators can save changes.');
 INSERT INTO txt VALUES ('H5676', 'German',  'Wenn aktiviert, werden Benutzer aus Eigent&uuml;mergruppen entfernt, die nicht im Import enthalten sind. Andernfalls werden nur neue Benutzer hinzugef&uuml;gt.');
 INSERT INTO txt VALUES ('H5676', 'English', 'If enabled, users not listed in the import are removed from owner groups. Otherwise only new users are added.');
+INSERT INTO txt VALUES ('H5676a', 'German',  'Schl&uuml;ssel des App-Labels: Name des Label-Schl&uuml;ssels (Standard App), mit dem FWO jeder Regel und jedem App-Server das App-Label ihres Eigent&uuml;mers gibt. Der Wert ist die externe App-ID (app_id_external) aus der CMDB, Guardicore muss denselben Schl&uuml;ssel und dieselben Werte verwenden. Regeln erhalten das App-Label &uuml;ber das Regel-Eigent&uuml;mer-Mapping der eingestellten Quelle, App-Server beim App-Daten-Import (der in jedem Lauf auch die App-Server der nicht importierten Eigent&uuml;mer abgleicht) sowie beim Speichern eines App-Servers oder Eigent&uuml;mers in der Oberfl&auml;che. Im App-Daten-Import wird ein Label mit diesem Schl&uuml;ssel abgelehnt. Ein leerer Wert schaltet App-Labels ab.');
+INSERT INTO txt VALUES ('H5676a', 'English', 'Key of the App label: name of the label key (default App) with which FWO gives every rule and every app server the App label of its owner. The value is the external app id (app_id_external) from the CMDB; Guardicore has to use the same key and values. Rules get the App label via the rule owner mapping of the configured source, app servers with the app data import (which in every run also aligns the app servers of the owners not imported) and when an app server or owner is saved in the UI. In the app data import a label with this key is rejected. An empty value switches App labels off.');
 INSERT INTO txt VALUES ('H5677', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld f&uuml;r den Owner repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.');
 INSERT INTO txt VALUES ('H5677', 'English', 'Enter the keys that represent the Owner field. You can add multiple keys by clicking the + button.');
 INSERT INTO txt VALUES ('H5678', 'German',  'Trage hier die Schl&uuml;ssel ein, die das Feld f&uuml;r die &Auml;nderungsId repr&auml;sentieren. Du kannst mehrere Keys hinzuf&uuml;gen, indem du auf das + Symbol klickst.');
@@ -8631,44 +8545,76 @@ INSERT INTO txt VALUES ('H6944', 'English', 'The Workflow REST API provides read
         <li>Invalid requests are answered with 400, an unknown <code>ticketId</code> with 404. Both report every detected error together in the format <code>{"errors": [{"path": "options.filter.taskType", "message": "..."}]}</code>.</li>
     </ul>
 ');
-INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.
+INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/owners/appdataimport">App-Daten-Import-Einstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
 ');
-INSERT INTO txt VALUES ('H6921', 'English', 'The import of application data is fed from one or several .json files with paths and names defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
+INSERT INTO txt VALUES ('H6921', 'English', 'The import of application data is fed from one or several .json files with paths and names defined in the <a href="/help/settings/owners/appdataimport">App Data Import Settings</a>.
     There also python scripts with the same names can be provided to create these files. The structure of the .json file is as following:
 ');
 INSERT INTO txt VALUES ('H6922', 'German',  'Die einzelnen Felder haben folgende Bedeutung:
     <ul>
-        <li>app_id_external: Eindeutige Kennzeichnung der Applikation. Dies ist ggf. &uuml;ber verschiedene Importquellen hinweg sicherzustellen.</li>
+        <li>app_id_external: Eindeutige Kennzeichnung der Applikation, &uuml;ber die vorhandene Applikationen wiedererkannt werden. Dies ist ggf. &uuml;ber verschiedene Importquellen hinweg sicherzustellen.</li>
         <li>name: Dargestellter Name der Applikation.</li>
-        <li>main_user: Die DN der hauptverantwortlichen Person. Mindestens eines der Felder main_user, modellers oder modeller_groups sollte gef&uuml;llt sein, damit ein Zugriff
-            auf diese Applikation m&ouml;glich ist. (Ansonsten muss dieses in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> manuell nachgeholt werden.)</li>
-        <li>modellers: Hier werden die DNs von allen zur Bearbeitung dieser Applikation Berechtigten angegeben.</li>
-        <li>modeller_groups: Hier k&ouml;nnen die DNs von Gruppen angegeben werden. Zur Zeit werden diese genauso wie die Eintr&auml;ge unter "modellers" behandelt.</li>
+        <li>main_user: Optionale Kennung oder DN der hauptverantwortlichen Person. Sie wird als Verantwortlicher des Haupt-Verantwortlichentyps &uuml;bernommen, sofern dieser aktiv ist.
+            Mindestens eines der Felder main_user oder responsibles sollte gef&uuml;llt sein, damit ein Zugriff auf diese Applikation m&ouml;glich ist.
+            (Ansonsten muss dieses in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> manuell nachgeholt werden.)</li>
+        <li>responsibles: Optionale Verantwortliche je Verantwortlichentyp. Die Schl&uuml;ssel m&uuml;ssen Zahlen sein: Sie werden aufsteigend sortiert den aktiven Verantwortlichentypen
+            in deren Sortierreihenfolge zugeordnet (kleinster Schl&uuml;ssel zum ersten Typ usw.). Enth&auml;lt eine Applikation einen nicht-numerischen Schl&uuml;ssel, werden ihre Verantwortlichen nicht importiert.
+            Die Werte sind Listen von Benutzer- oder Gruppenkennungen bzw. DNs.</li>
+        <li>Benutzer- und Gruppenkennungen in main_user und responsibles, die keine DN sind, werden &uuml;ber das LDAP aufgel&ouml;st (erst als Benutzer, dann als Gruppe).
+            Nicht aufl&ouml;sbare Kennungen werden &uuml;bersprungen und im Importprotokoll vermerkt.</li>
         <li>criticality: Hier kann optional ein String zur Kennzeichnung der Kritikalit&auml;t der Applikation definiert werden.</li>
-        <li>import_source: String zur Kennzeichnung der Importquelle. Dient zur Unterscheidung bei mehreren Quellen.</li>
-        <li>app_servers: Liste aller zur Applikation zugeordneten Host-Adressen.
+        <li>owner_lifecycle_state: Optionaler Name eines vorhandenen Lebenszyklus-Status. Ist der Name unbekannt, wird die Applikation nicht importiert.</li>
+        <li>additional_information: Optionale weitere Angaben zur Applikation als Paare aus Schl&uuml;ssel und Wert (jeweils Strings).</li>
+        <li>import_source: String zur Kennzeichnung der Importquelle. Dient zur Unterscheidung bei mehreren Quellen.
+            Applikationen dieser Quelle, die in der Datei fehlen, werden deaktiviert.</li>
+        <li>recert_active: Optional, Vorgabe false. Bei true wird die Rezertifizierung der Applikation aktiviert (wirksam im Rezertifizierungsmodus f&uuml;r Eigent&uuml;mer und Regeln).</li>
+        <li>recert_period_days: Optionales Rezertifizierungsintervall in Tagen. Ohne Angabe gilt das allgemein eingestellte Intervall.</li>
+        <li>days_until_first_recert: Wird zur Zeit nicht ber&uuml;cksichtigt.</li>
+        <li>app_servers: Liste aller zur Applikation zugeordneten Host-Adressen. Sie werden &uuml;ber ip und ip_end wiedererkannt; App-Server der Importquelle, die in der Datei fehlen, werden als gel&ouml;scht markiert.
+            Weitere Felder (z.B. type) werden ignoriert.
             <ul>
-                <li>name: Optionaler Name zur Darstellung</li>
+                <li>name: Optionaler Name zur Darstellung. Je nach Einstellung des App-Daten-Imports wird er durch einen aus dem DNS gebildeten Namen ersetzt.</li>
                 <li>ip: IP-Adresse</li>
+                <li>ip_end: Optionales Ende eines IP-Bereichs, ohne Angabe gilt nur die Adresse aus ip</li>
+                <li>labels: Optionale Liste von Labels mit label_key und label_value, z.B. Stage: Prod. Fehlt das Feld, bleiben die Labels des App-Servers unver&auml;ndert,
+                    eine leere Liste entfernt alle. Unbekannte Schl&uuml;ssel und Werte werden als importiert angelegt. Abgelehnt und im Importprotokoll vermerkt werden
+                    die Schl&uuml;ssel AppRole und AppZone (sie bleiben Gruppen), der Schl&uuml;ssel des App-Labels (Standard App, jeder App-Server erh&auml;lt das App-Label seines Eigent&uuml;mers), mehrere Werte eines Schl&uuml;ssels, der nur einen Wert erlaubt, mehr als 50 Labels pro App-Server
+                    sowie Schl&uuml;ssel mit mehr als 100 und Werte mit mehr als 250 Zeichen.</li>
             </ul>
         </li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H6922', 'English', 'These fields have the following meaning:
     <ul>
-        <li>app_id_external: Unique identification string of the application. This has to be ensured over several import sources.</li>
+        <li>app_id_external: Unique identification string of the application, used to recognize existing applications. This has to be ensured over several import sources.</li>
         <li>name: Displayed name of the application.</li>
-        <li>main_user: DN of the main responsible person. At least one of the fields main_user, modellers or modeller_groups should be filled to ensure access
-            to the application. (Else this has to be ensured manually in the <a href="/help/settings/owners">Owner Settings</a> afterwards.)</li>
-        <li>modellers: Here the DNs of all persons authorized to work on this application have to be delivered.</li>
-        <li>modeller_groups: Here DNs of user groups can be delivered. Currently they are handled the same way as the entries in "modellers".</li>
+        <li>main_user: Optional identifier or DN of the main responsible person. It is taken over as responsible of the main responsible type if that type is active.
+            At least one of the fields main_user or responsibles should be filled to ensure access to the application.
+            (Else this has to be ensured manually in the <a href="/help/settings/owners">Owner Settings</a> afterwards.)</li>
+        <li>responsibles: Optional responsibles per responsible type. The keys have to be numbers: sorted in ascending order they are assigned to the active responsible types
+            in their sort order (lowest key to the first type and so on). If an application contains a non-numeric key, none of its responsibles are imported.
+            The values are lists of user or group identifiers or DNs.</li>
+        <li>User and group identifiers in main_user and responsibles that are no DN are resolved via LDAP (first as user, then as group).
+            Identifiers that cannot be resolved are skipped and noted in the import log.</li>
         <li>criticality: An optional string to mark the criticality of the application can be defined here.</li>
-        <li>import_source: String to identify the import source. Necessary to distinguish between several sources.</li>
-        <li>app_servers: List of all host addresses assigned to the application:
+        <li>owner_lifecycle_state: Optional name of an existing lifecycle state. If the name is unknown, the application is not imported.</li>
+        <li>additional_information: Optional further information on the application as pairs of key and value (both strings).</li>
+        <li>import_source: String to identify the import source. Necessary to distinguish between several sources.
+            Applications of this source that are missing in the file are deactivated.</li>
+        <li>recert_active: Optional, default false. If true, the recertification of the application is activated (effective in the recertification mode for owners and rules).</li>
+        <li>recert_period_days: Optional recertification interval in days. Without it the generally configured interval applies.</li>
+        <li>days_until_first_recert: Currently not regarded.</li>
+        <li>app_servers: List of all host addresses assigned to the application. They are recognized by ip and ip_end; app servers of the import source that are missing in the file are marked as deleted.
+            Further fields (e.g. type) are ignored.
             <ul>
-                <li>name: Optional name for display</li>
+                <li>name: Optional name for display. Depending on the app data import settings it is replaced by a name built from DNS.</li>
                 <li>ip: IP address</li>
+                <li>ip_end: Optional end of an IP range, without it only the address in ip is used</li>
+                <li>labels: Optional list of labels with label_key and label_value, e.g. Stage: Prod. Without this field the labels of the app server stay unchanged,
+                    an empty list removes all of them. Unknown keys and values are created as imported. Rejected and noted in the import log are the keys
+                    AppRole and AppZone (they stay groups), the key of the App label (default App, every app server gets the App label of its owner), several values of a key that allows a single value only, more than 50 labels per app server,
+                    and keys longer than 100 or values longer than 250 characters.</li>
             </ul>
         </li>
     </ul>
@@ -9864,6 +9810,14 @@ INSERT INTO txt VALUES ('H9024', 'German',  'Common Services: K&ouml;nnen nur de
 INSERT INTO txt VALUES ('H9024', 'English', 'Common Services: Can only be defined, if the application is marked as permitted in the <a href="/help/settings/owners">Owner Settings</a> by the administrator.
     Formally they are structured as regular connections but are not allowed to use interfaces.
 ');
+INSERT INTO txt VALUES ('H9025', 'German',  'Labels: Ist die <a href="/help/settings/modelling">Modellierung mit Labels</a> eingeschaltet, k&ouml;nnen Quelle und Ziel von Verbindungen, Schnittstellen und gemeinsamen Diensten zus&auml;tzlich oder anstelle von Objekten Labels enthalten (z.B. Stage: Prod).
+    Labels werden in Gruppen zusammengefasst: die Labels einer Gruppe m&uuml;ssen alle zutreffen (&cap;), von mehreren Gruppen und den Objekten einer Seite gen&uuml;gt eines (&cup;), z.B. (Stage: Prod &cap; OS: Linux) &cup; (Stage: Test).
+    Ein Label wird einer bestehenden oder einer neuen Gruppe hinzugef&uuml;gt; eine geleerte Gruppe entf&auml;llt. Labels der Schl&uuml;ssel AppRole und AppZone stehen nicht zur Auswahl (sie bleiben Gruppen), App-Labels nur f&uuml;r eigene Applikationen.
+    Ist die Modellierung mit Labels ausgeschaltet, werden bereits zugeordnete Labels nur angezeigt. Bei einer Verbindung, die eine Schnittstelle nutzt, kommen die Labels der Schnittstellenseite von der Schnittstelle.');
+INSERT INTO txt VALUES ('H9025', 'English', 'Labels: If <a href="/help/settings/modelling">Label-based Modelling</a> is switched on, source and destination of connections, interfaces and common services may contain labels (e.g. Stage: Prod) besides or instead of objects.
+    Labels are combined in groups: all labels of a group have to match (&cap;), of several groups and the objects of a side one is sufficient (&cup;), e.g. (Stage: Prod &cap; OS: Linux) &cup; (Stage: Test).
+    A label is added to an existing or a new group; an emptied group is dropped. Labels of the keys AppRole and AppZone are not offered (they stay groups), App labels only for own applications.
+    If label-based modelling is switched off, labels already assigned are only shown. For a connection using an interface, the labels of the interface side come from the interface.');
 INSERT INTO txt VALUES ('H9031', 'German',  'Netzwerkobjekte werden zur Definition von Quelle und Ziel der Verbindungen ben&ouml;tigt. Es wird zwischen verschiedenen Arten von Netzwerkobjekten unterschieden:');
 INSERT INTO txt VALUES ('H9031', 'English', 'Network objects are used to define source and destination of the connections. There are different types of network objects:');
 INSERT INTO txt VALUES ('H9032', 'German',  'App-Server: Die elementaren Bausteine (Host-Adressen, Netzwerke, IP-Bereiche), die der Applikation zugeordnet sind. Sie werden in der Regel mit den Applikationen importiert
@@ -9989,6 +9943,11 @@ INSERT INTO txt VALUES ('H9055', 'German',  'Importieren von App Servern via CSV
     </ul>
     <br>
     Die CSV darf eine &Uuml;berschrift enthalten und muss wie folgt formatiert/benannt sein: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+    <br><br>
+    Optional k&ouml;nnen in der &Uuml;berschrift weitere Spalten mit dem Namen label:&lt;Schl&uuml;ssel&gt; folgen (z.B. label:Stage), deren Werte die Labels des App-Servers der Zeile sind.
+    Ohne solche Spalten bleiben die Labels der App-Server unver&auml;ndert; mit ihnen erh&auml;lt jeder App-Server die Labels seiner Zeile, eine leere Zelle bedeutet kein Label dieses Schl&uuml;ssels.
+    Es gelten dieselben Regeln wie beim App-Daten-Import (z.B. werden AppRole, AppZone und der Schl&uuml;ssel des App-Labels abgelehnt); abgelehnte Labels werden als Warnung angezeigt.
+    Jeder App-Server erh&auml;lt au&szlig;erdem das App-Label seines Eigent&uuml;mers.
 ');
 INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV file. The CSV must contain the following data:
     <ul>
@@ -9999,6 +9958,11 @@ INSERT INTO txt VALUES ('H9055', 'English', 'Import from app servers via CSV fil
     </ul>
     <br>
     The CSV may contain a header and must be formatted/named as follows: App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range.
+    <br><br>
+    Optionally the header may be followed by further columns named label:&lt;key&gt; (e.g. label:Stage), whose values are the labels of the app server of the line.
+    Without such columns the labels of the app servers stay unchanged; with them every app server gets the labels of its line, an empty cell meaning no label of that key.
+    The same rules apply as for the app data import (e.g. AppRole, AppZone and the key of the App label are rejected); rejected labels are shown as warnings.
+    Every app server also gets the App label of its owner.
 ');
 INSERT INTO txt VALUES ('H9060', 'German',  'Hier werden alle Tickets dargestellt, die f&uuml;r den ausgew&auml;hlten Eigent&uuml;mer f&uuml;r Externe Auftr&auml;ge angelegt wurden.
     Wenn ein Ticket noch nicht abgeschlossen ist, aber keine offenen Externen Auftr&auml;ge daf&uuml;r existieren, wird dem Administrator die M&ouml;glichkeit zum Wiederaufsetzen angeboten.

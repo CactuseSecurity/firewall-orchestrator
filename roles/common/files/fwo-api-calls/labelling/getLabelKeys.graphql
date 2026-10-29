@@ -1,0 +1,9 @@
+query getLabelKeys {
+    labelling_label_key(order_by: { key_name: asc }) {
+        key_id
+        key_name
+        key_source_internal
+        key_is_owner_scoped
+        allow_multiple_values
+    }
+}

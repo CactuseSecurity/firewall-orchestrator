@@ -5,6 +5,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Logging;
+using FWO.Services.Labelling;
 using System.Net;
 
 namespace FWO.Services.Modelling
@@ -180,7 +181,54 @@ namespace FWO.Services.Modelling
             }
         }
 
-        public static async Task<(long?, string?)> UpsertAppServer(ApiConnection apiConnection, UserConfig userConfig, ModellingAppServer incomingAppServer, bool nameCheck, bool manual = false, bool addMode = false)
+        /// <summary>
+        /// Inserts or updates an app server and gives the app servers of its owner the App label of the owner.
+        /// </summary>
+        /// <param name="apiConnection">Api connection of the user.</param>
+        /// <param name="userConfig">User config.</param>
+        /// <param name="incomingAppServer">The app server to save.</param>
+        /// <param name="nameCheck">True to refuse a name that exists already.</param>
+        /// <param name="manual">True for an app server edited manually.</param>
+        /// <param name="addMode">True if a manually edited app server is added.</param>
+        /// <param name="assignAppLabel">False to leave the App label to the caller, e.g. for a bulk upload.</param>
+        /// <returns>The id of the saved app server or the name of a conflicting one.</returns>
+        public static async Task<(long?, string?)> UpsertAppServer(ApiConnection apiConnection, UserConfig userConfig, ModellingAppServer incomingAppServer, bool nameCheck,
+            bool manual = false, bool addMode = false, bool assignAppLabel = true)
+        {
+            (long? appServerId, string? existingAppServerName) = await UpsertAppServerInDb(apiConnection, userConfig, incomingAppServer, nameCheck, manual, addMode);
+            if (appServerId != null && assignAppLabel)
+            {
+                await AssignOwnerAppLabel(apiConnection, userConfig, incomingAppServer.AppId);
+            }
+            return (appServerId, existingAppServerName);
+        }
+
+        /// <summary>
+        /// Gives the app servers of an owner the App label of the owner (app servers are only edited by admins in the UI).
+        /// A failure is logged, the app server itself is saved anyway.
+        /// </summary>
+        /// <param name="apiConnection">Api connection of the user.</param>
+        /// <param name="userConfig">User config with the configured App key.</param>
+        /// <param name="ownerId">Id of the owner of the saved app server.</param>
+        public static async Task AssignOwnerAppLabel(ApiConnection apiConnection, UserConfig userConfig, int? ownerId)
+        {
+            if (ownerId == null)
+            {
+                return;
+            }
+            try
+            {
+                AppLabelHandler appLabels = new(apiConnection, userConfig.AppLabelKey);
+                long? changeEventId = null;
+                await appLabels.SyncAppServers(ownerId.Value, async () => changeEventId ??= await appLabels.CreateChangeEvent(null, true));
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("App Label", $"The App label of the app servers of owner {ownerId} could not be assigned:", exception);
+            }
+        }
+
+        private static async Task<(long?, string?)> UpsertAppServerInDb(ApiConnection apiConnection, UserConfig userConfig, ModellingAppServer incomingAppServer, bool nameCheck, bool manual, bool addMode)
         {
             try
             {

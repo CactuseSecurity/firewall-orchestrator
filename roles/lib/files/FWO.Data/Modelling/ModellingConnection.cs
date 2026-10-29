@@ -1,3 +1,4 @@
+using FWO.Data.Labelling;
 using FWO.Basics;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
@@ -118,6 +119,18 @@ namespace FWO.Data.Modelling
         [JsonProperty("destination_other_groups"), JsonPropertyName("destination_other_groups")]
         public List<ModellingNwGroupWrapper> DestinationOtherGroups { get; set; } = [];
 
+        /// <summary>
+        /// Active labels of the source: the labels of an AND-group (and_group) are ANDed, the groups are ORed.
+        /// </summary>
+        [JsonProperty("connection_source_labels"), JsonPropertyName("connection_source_labels")]
+        public List<ConnectionLabel> SourceLabels { get; set; } = [];
+
+        /// <summary>
+        /// Active labels of the destination: the labels of an AND-group (and_group) are ANDed, the groups are ORed.
+        /// </summary>
+        [JsonProperty("connection_destination_labels"), JsonPropertyName("connection_destination_labels")]
+        public List<ConnectionLabel> DestinationLabels { get; set; } = [];
+
         [JsonProperty("requested_on_fw"), JsonPropertyName("requested_on_fw")]
         public bool RequestedOnFw { get; set; } = false;
 
@@ -230,6 +243,8 @@ namespace FWO.Data.Modelling
                 DestinationAppRoles = [.. conn.DestinationAppRoles];
                 DestinationAreas = [.. conn.DestinationAreas];
                 DestinationOtherGroups = [.. conn.DestinationOtherGroups];
+                SourceLabels = [.. conn.SourceLabels];
+                DestinationLabels = [.. conn.DestinationLabels];
                 ExtraConfigsFromInterface = conn.ExtraConfigsFromInterface;
             }
         }
@@ -267,6 +282,22 @@ namespace FWO.Data.Modelling
         public string DisplayNameWithOwner(FwoOwner owner)
         {
             return Name + " (" + owner.ExtAppId + ":" + owner.Name + ")";
+        }
+
+        /// <summary>
+        /// True if the source has objects or labels.
+        /// </summary>
+        public bool SourceFilledOrLabelled()
+        {
+            return SourceFilled() || SourceLabels.Count > 0;
+        }
+
+        /// <summary>
+        /// True if the destination has objects or labels.
+        /// </summary>
+        public bool DestinationFilledOrLabelled()
+        {
+            return DestinationFilled() || DestinationLabels.Count > 0;
         }
 
         public bool SourceFilled()

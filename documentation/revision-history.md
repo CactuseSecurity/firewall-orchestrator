@@ -1,5 +1,89 @@
 # Firewall Orchestrator Revision History
 
+## 10.0.0 - 30.10.2026
+- database: add schema labelling for generic key/value labels (e.g. Guardicore labels, app roles, stages) as the
+  basis of the Guardicore integration (issue #4949): label keys and values, a label change history
+  (label_change_event, referencing import, ticket and connection) and label assignments to rules (source,
+  destination, whole rule), connections (source, destination, whole connection), owner networks and access flows
+- database: assignments keep their history - an assignment is closed by a removal event instead of being deleted,
+  and only one active assignment per object and label is allowed
+- database: add columns rule_src_labels and rule_dst_labels (jsonb) to firewall.rule for the labels of an imported rule
+- api: track the labelling tables in Hasura with read access for auditor, importer and middleware-server and write
+  access (no delete) for importer (labels, change events, rule assignments) and middleware-server
+- importer: new module for Akamai Guardicore Segmentation (device types Guardicore Management / Guardicore Gateway,
+  REST, issue #4945). Labels become network object groups of their IP addresses (IP criteria plus the IPs of the
+  assets carrying the label), ANDed labels of a rule side become groups of the intersection of their IP addresses.
+  Rules are split into chained rulebases named "<section number> <section> <ruleset>" so that their alphabetical
+  order matches the Guardicore section order (override allow, override alert, override block, allow, alert, block).
+  Services are built from protocols, ports, port ranges, excluded ports and ICMP matches
+- importer: create a dummy FWO gateway when importing a Guardicore management without a registered gateway.
+  Guardicore enforces policies on hosts; this record only groups policy links and rule assignments in FWO.
+  Existing gateways are reused. Deploy both the importer changes and Hasura metadata to enable registration
+- importer: the normalized config takes an optional list of labels (key, value) that is upserted into
+  labelling.label_key / labelling.label_value on every import
+- importer, middleware: rules carry the labels of their source and destination in rule_src_labels / rule_dst_labels as
+  list of ORed AND-groups [{"label-key": "label-value", ...}, ...], several values of one key in a group as array of
+  values, null without labels (issue #5531); the groups are written sorted, and the normalized config of the
+  middleware returns them, so that unchanged labels are not reported as rule changes
+- database: the source and destination label assignments of rules and connections get the AND-group number and_group
+  (part of the primary key and of the active unique index), so that the tables keep the ORed AND-groups (issue #5549)
+- importer: the label assignment tables are the authoritative source of rule labels (rule_src_labels / rule_dst_labels
+  are a copy). Every inserted rule version gets its assignments in labelling.rule_source_label /
+  rule_destination_label, the assignments of removed rule versions are closed; one label change event per import
+  (with import control id, origin import) covers all of them. Label values used by rules only are upserted as well
+- app data import: app servers may carry labels ("labels": [{"label_key": "stage", "label_value": "prod"}]), written
+  into labelling.owner_network_label. Missing labels leave the labels of the app server untouched, an empty list
+  removes them; deleted app servers lose their labels, reactivated ones get the imported labels again. Unknown keys
+  and values are created as imported; the keys AppRole and AppZone, several values of a single value key, more than
+  50 labels per app server and keys/values longer than 100/250 characters are rejected with a log entry. All label
+  changes of an import run share one label change event of the import control of the run, and a label change counts
+  as change of the owner (changelog_owner)
+- scripts: the app data csv helpers read app server labels from csv columns named "label:<key>"
+- reporting: rule-based reports (rules, resolved / technical rules, unused rules, NAT rules, recertification, app rules
+  and all change reports) show the labels of the rules in html, pdf, csv, json and the UI (issue #5550). Global
+  settings under Settings - Reporting: display of source / destination labels (own columns as default, together with
+  the objects in one cell, or objects only) and showing the rule-level labels (labelling.rule_label, e.g. App).
+  Labels of a group are joined with ∩, groups with ∪ (csv: AND / OR), json keeps the group structure. Rule-level
+  labels are those active at the report time (via the import ids of their change events), in change reports those
+  before / after the change. Label columns and fields only appear if a rule of the report has such labels, so reports
+  without labels stay unchanged
+- labelling: App label (issue #5551). The CMDB is the master: every rule and every app server gets the App label of
+  its owner, the value being the external app id (app_id_external); Guardicore has to use the same key and values.
+  The key name is a global setting (appLabelKey, default App, under Settings - App Data Import; empty switches App
+  labels off). The key is kept imported, global and multi-valued, also if it was created before by an importer
+  - rules: the rule owner mapping keeps labelling.rule_label in line with the active rule_owner rows of the
+    configured mapping source, in full and incremental runs, with one label change event per run that carries the
+    import control id of the run. The first run of the middleware process, or the one after a failed sync, compares
+    all rules, which also fills the App labels of the existing mappings after the upgrade. Owners without app id are
+    skipped
+  - app servers: the app data import gives all active app servers of an imported owner the App label of the owner
+    and closes other App labels; at the end of every run it does the same for the active owners that were not part of
+    the import files (e.g. created in the UI), which also fills their App labels after the upgrade. App servers saved
+    in the UI (by admins) and the app servers of an owner saved in the owner settings get it as well.
+  - csv upload of app servers (Settings - App Data Import): optional header columns label:<key> import labels of the
+    app servers with the rules of the app data import (rejections are shown as warnings), and the App label of the
+    owners is assigned once per owner after the upload; the whole upload shares one label change event The App key is rejected in
+    the labels of imported app servers, and imported labels never close the App label
+- modelling: labels as source and destination of connections, interfaces and common services (issue #5552), while
+  label-based modelling is switched on. A side may hold objects, labels or both; labels form AND-groups (∩), the
+  groups and the objects of a side are ORed (∪). Labels of AppRole and AppZone are not offered, App labels only of
+  own apps (also enforced by Hasura via the new relationship label_value.owners_by_app_id). Changes are stored in
+  labelling.connection_source_label / connection_destination_label with the AND-group number and recorded as
+  label_change_event (origin UI, actor, connection) and in the connection history. Connections using an interface
+  show the labels of the interface side; while label-based modelling is off, assigned labels are shown read-only.
+  The connection overview lists the labels of each side
+- api: modeller may read, add and close the labels of connections of own apps and write UI label change events;
+  recertifier may read connection labels
+- modelling: global setting labelBasedModelling ("Label-based Modelling" under Settings - Modelling, default off,
+  issue #5553). It switches the selection of labels as source and destination in modelling (#5552) on; when off,
+  labels already assigned to connections stay stored and are shown read-only, and reports keep showing imported
+  labels. Which firewalls get label-based configurations is set by the device specific setting labelCreation
+- api: modeller, recertifier, reporter and reporter-viewall may read labelling.rule_label, label_value, label_key
+  (reporter and recertifier only for the rules they see) and id / import id / time of label_change_event
+- upgrade: db upgrade file adds the labelling schema, the rule label columns and the Guardicore
+  device types to existing installations
+  
+## 9.8.4 - 26.10.2026
 ## 9.8.4 - 29.10.2026
 - installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server
 - importer: sub-managements set to "do not import" are skipped by the import of their super manager instead of having all their rules and objects marked removed (FortiManager ADOMs, Check Point domains; GHSA-hj46-639g-mxq2). A forced import still imports them
@@ -419,9 +503,8 @@
   setting Settings - Logging - default log time range (default: 7 days, used for CSV imports), which a
   log data import file can override in the new optional top-level field log_time_range_in_seconds.
   The middleware warns about entries logged outside the supplied period. New setting to hide the log time column (default: on) (issue #5391).
-  
-## 9.6.2 - 02.10.2026
 
+## 9.6.2 - 02.10.2026
 - installer: Red Hat Enterprise Linux 8 is no longer supported. Fresh installations and
   upgrades now stop before changing the host if its OS release is unsupported. Supported
   platforms are Debian 12+, Ubuntu 22.04+ (LTS only), Red Hat Enterprise Linux 9+ and Rocky 9+;

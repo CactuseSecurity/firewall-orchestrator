@@ -4,12 +4,16 @@ import argparse
 import csv
 import re
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING, Any
 
 from netaddr import IPAddress, IPNetwork
 
+from scripts.customizing.fwo_custom_lib.app_server_labels import find_label_columns, get_line_labels
+
 if TYPE_CHECKING:
     import logging
+    from collections.abc import Callable
 
     from scripts.customizing.fwo_custom_lib.app_data_models import Appip, Owner
 
@@ -897,7 +901,7 @@ def read_ip_data_from_csv(
     logger: logging.Logger,
     column_patterns: dict[str, str] | None = None,
     csv_separator: str = ",",
-) -> tuple[list[list[str]], int, int] | None:
+) -> tuple[list[list[str]], int, int, dict[int, str]] | None:
     try:
         header_patterns: dict[str, str] = {**DEFAULT_IP_HEADER_PATTERNS, **(column_patterns or {})}
         all_rows: list[list[str]] = _read_csv_rows_with_fallback_encodings(csv_filename, csv_separator, logger)
@@ -919,7 +923,7 @@ def read_ip_data_from_csv(
         logger.exception("error while trying to read csv file %s", csv_filename)
         return None
 
-    return ip_data, app_id_column_no, ip_column_no
+    return ip_data, app_id_column_no, ip_column_no, find_label_columns(headers)
 
 
 def parse_ip(
@@ -928,7 +932,7 @@ def parse_ip(
     ip_column_no: int,
     app_dict: dict[str, Owner],
     count_skips: int,
-    app_ip_cls: type[Appip],
+    app_ip_cls: Callable[..., Appip],
     logger: logging.Logger,
     debug_level: int,
 ) -> int:
@@ -970,7 +974,7 @@ def parse_single_ip_line(
     ip_column_no: int,
     app_dict: dict[str, Owner],
     valid_app_id_prefixes: list[str],
-    app_ip_cls: type[Appip],
+    app_ip_cls: Callable[..., Appip],
     logger: logging.Logger,
     debug_level: int,
 ) -> int:
@@ -1015,17 +1019,19 @@ def extract_ip_data_from_csv(
 
     csv_file_path: str = base_dir + "/" + csv_filename  # add directory to csv files
 
-    ip_data_result: tuple[list[list[str]], int, int] | None = read_ip_data_from_csv(
+    ip_data_result: tuple[list[list[str]], int, int, dict[int, str]] | None = read_ip_data_from_csv(
         csv_file_path, logger, column_patterns, csv_separator
     )
     if ip_data_result is None:
         return
-    ip_data, app_id_column_no, ip_column_no = ip_data_result
+    ip_data, app_id_column_no, ip_column_no, label_columns = ip_data_result
 
     count_skips: int = 0
     for line in ip_data:
+        # the labels of the line go to every app server created from it
+        line_app_ip_cls: Callable[..., Appip] = partial(app_ip_cls, labels=get_line_labels(line, label_columns))
         line_skip_count: int = parse_single_ip_line(
-            line, app_id_column_no, ip_column_no, app_dict, valid_app_id_prefixes, app_ip_cls, logger, debug_level
+            line, app_id_column_no, ip_column_no, app_dict, valid_app_id_prefixes, line_app_ip_cls, logger, debug_level
         )
         count_skips += line_skip_count
     if debug_level > 0:

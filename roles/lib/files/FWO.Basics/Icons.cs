@@ -91,6 +91,7 @@ namespace FWO.Basics
         public const string ServiceGroup = "bi bi-list-ul";
         public const string AppRole = "bi bi-tag-fill";
         public const string NwGroup = "bi bi-folder-fill";
+        public const string Label = "bi bi-tags";
         public const string Connection = "bi bi-arrow-left-right";
         public const string Interface = "bi bi-ethernet";
 

@@ -56,74 +56,20 @@ else
                 </div>
 
                 <form onsubmit="return false">
-                    @foreach (DeviceSpecificFieldState state in form.Fields)
+                    @foreach (DeviceSpecificFieldState state in form.Fields.Where(state => state.Field.Section == DeviceSpecificFieldSection.General))
                     {
-                        <div id="@FieldRowId(state.Field)" class="device-specific-field border rounded p-3 mb-3" data-toggle="tooltip" title="@(userConfig.GetText(state.Field.HelpTextKey))">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <div class="fw-semibold">@(userConfig.GetText(state.Field.LabelTextKey))</div>
-                                <div class="d-flex align-items-center gap-2">
-                                    @if (state.IsChanged)
-                                    {
-                                        <span class="badge rounded-pill bg-warning text-dark">@(userConfig.GetText("unsaved_changes"))</span>
-                                    }
-                                    @if (state.IsDormant)
-                                    {
-                                        <span class="badge rounded-pill bg-info text-dark fw-bold">@(userConfig.GetText("dss_dormant_override"))</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge rounded-pill fw-bold @(state.IsLocal ? "bg-success" : "bg-secondary")">
-                                            @(state.IsLocal ? userConfig.GetText("dss_set_here") : userConfig.GetText("dss_inherited"))
-                                        </span>
-                                        <div class="form-check form-switch mb-0">
-                                            <input class="form-check-input" type="checkbox" id="@($"dss-override-{state.Field.Id}")" checked="@state.IsLocal"
-                                                   disabled="@(saving || !CanEdit)" @onchange="e => ToggleOverride(state, e.Value is true)" />
-                                            <label class="form-check-label small" for="@($"dss-override-{state.Field.Id}")">@(userConfig.GetText("dss_override_here"))</label>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-
-                            @if (state.IsDormant)
+                        @RenderField(state, form)
+                    }
+                    @if (form.Fields.Any(state => state.Field.Section == DeviceSpecificFieldSection.FirewallWrite))
+                    {
+                        <details class="mt-4" open="@form.Fields.Any(state => state.Field.Section == DeviceSpecificFieldSection.FirewallWrite && state.IsChanged)">
+                            <summary class="h5">@(userConfig.GetText("dss_fw_write_section"))</summary>
+                            <div class="text-muted small mb-3">@(userConfig.GetText("dss_fw_write_section_intro"))</div>
+                            @foreach (DeviceSpecificFieldState state in form.Fields.Where(state => state.Field.Section == DeviceSpecificFieldSection.FirewallWrite))
                             {
-                                <div class="mt-2">
-                                    @RenderEditor(state.Field, state.OriginalValue, true, _ => { })
-                                </div>
-                                <div class="text-muted small mt-1">@(userConfig.GetText("dss_dormant_override_hint"))</div>
-                                <button type="button" class="dss-clear-dormant btn btn-sm btn-outline-danger mt-2"
-                                        disabled="@(saving || !CanEdit || !state.IsLocal)" @onclick="() => ClearDormantOverride(state)">
-                                    @(DisplayService.DisplayButton(userConfig, "dss_clear_override", Icons.Delete))
-                                </button>
+                                @RenderField(state, form)
                             }
-                            else
-                            {
-                                <div class="mt-2">
-                                    @RenderEditor(state.Field, state.DisplayedValue, !state.IsLocal || !CanEdit || saving, v => SetLocalValue(state, v))
-                                </div>
-                                @if (state.Field.Key == DeviceSpecificSettingKeys.AutoPlanImplementationForRules)
-                                {
-                                    <div class="text-muted small mt-1">@(userConfig.GetText("dss_auto_plan_rules_hint"))</div>
-                                }
-
-                                @if (!state.IsLocal)
-                                {
-                                    <div class="text-muted small mt-1">
-                                        @if (SourceNode(state) is DeviceSpecificNode sourceNode)
-                                        {
-                                            @(userConfig.GetText("dss_inherited_from"))
-                                            <button type="button" class="btn btn-link btn-sm p-0 align-baseline" disabled="@(saving || form.HasChanges)"
-                                                    @onclick="() => NavigateToSource(state.Field, sourceNode)">
-                                                <strong>@LevelLabel(sourceNode.Level)</strong> "@NodeName(sourceNode)" <span class="@Icons.Use"></span>
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            @(userConfig.GetText("dss_compiled_default"))
-                                        }
-                                    </div>
-                                }
-                            }
-                        </div>
+                        </details>
                     }
                 </form>
 
@@ -192,7 +138,130 @@ else
         }
     }
 
+    private const int kFirewallTemplateRows = 6;
+
     private static string FieldRowId(DeviceSpecificFieldDefinition field) => $"dss-field-{field.Id}";
+
+    /// <summary>Renders the editor block of one field of the selected level.</summary>
+    private RenderFragment RenderField(DeviceSpecificFieldState state, DeviceSpecificLevelForm levelForm) =>
+        @<div id="@FieldRowId(state.Field)" class="device-specific-field border rounded p-3 mb-3" data-toggle="tooltip" title="@(userConfig.GetText(state.Field.HelpTextKey))">
+            @RenderFieldHeader(state)
+            @if (state.IsDormant)
+            {
+                @RenderDormantField(state)
+            }
+            else
+            {
+                @RenderEditableField(state, levelForm)
+            }
+        </div>;
+
+    /// <summary>Label, change badge and the switch between inherited and local value.</summary>
+    private RenderFragment RenderFieldHeader(DeviceSpecificFieldState state) =>
+        @<div class="d-flex align-items-center justify-content-between">
+            <div class="fw-semibold">@FieldLabel(state.Field)</div>
+            <div class="d-flex align-items-center gap-2">
+                @if (state.IsChanged)
+                {
+                    <span class="badge rounded-pill bg-warning text-dark">@(userConfig.GetText("unsaved_changes"))</span>
+                }
+                @if (state.IsDormant)
+                {
+                    <span class="badge rounded-pill bg-info text-dark fw-bold">@(userConfig.GetText("dss_dormant_override"))</span>
+                }
+                else
+                {
+                    @RenderOverrideSwitch(state)
+                }
+            </div>
+        </div>;
+
+    private RenderFragment RenderOverrideSwitch(DeviceSpecificFieldState state) =>
+        @<div class="d-flex align-items-center gap-2">
+            <span class="badge rounded-pill fw-bold @(state.IsLocal ? "bg-success" : "bg-secondary")">
+                @(state.IsLocal ? userConfig.GetText("dss_set_here") : userConfig.GetText("dss_inherited"))
+            </span>
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="@($"dss-override-{state.Field.Id}")" checked="@state.IsLocal"
+                       disabled="@(saving || !CanEdit)" @onchange="e => ToggleOverride(state, e.Value is true)" />
+                <label class="form-check-label small" for="@($"dss-override-{state.Field.Id}")">@(userConfig.GetText("dss_override_here"))</label>
+            </div>
+        </div>;
+
+    /// <summary>A stored override that no longer applies at this level: shown read-only with a button to remove it.</summary>
+    private RenderFragment RenderDormantField(DeviceSpecificFieldState state) =>
+        @<div>
+            <div class="mt-2">
+                @RenderEditor(state.Field, state.OriginalValue, true, _ => { })
+            </div>
+            <div class="text-muted small mt-1">@(userConfig.GetText("dss_dormant_override_hint"))</div>
+            <button type="button" class="dss-clear-dormant btn btn-sm btn-outline-danger mt-2"
+                    disabled="@(!CanChangeLocalValue(state))" @onclick="() => ClearDormantOverride(state)">
+                @(DisplayService.DisplayButton(userConfig, "dss_clear_override", Icons.Delete))
+            </button>
+        </div>;
+
+    private RenderFragment RenderEditableField(DeviceSpecificFieldState state, DeviceSpecificLevelForm levelForm) =>
+        @<div>
+            <div class="mt-2">
+                @RenderEditor(state.Field, state.DisplayedValue, !CanChangeLocalValue(state), v => SetLocalValue(state, v),
+                    state.Field.ShippedDefaultFor(levelForm.Node))
+            </div>
+            @if (state.Field.Key == DeviceSpecificSettingKeys.AutoPlanImplementationForRules)
+            {
+                <div class="text-muted small mt-1">@(userConfig.GetText("dss_auto_plan_rules_hint"))</div>
+            }
+            @if (state.Field.ShippedDefault != null)
+            {
+                @RenderShippedDefaultActions(state, state.Field.ShippedDefaultFor(levelForm.Node))
+            }
+            @if (!state.IsLocal)
+            {
+                @RenderInheritedSource(state, levelForm)
+            }
+        </div>;
+
+    /// <summary>
+    /// For fields with a default shipped for the device type: an empty value uses that default, also after an update that
+    /// corrects it. "Reset to default" empties the value again, "Edit default" takes the default over for editing.
+    /// </summary>
+    private RenderFragment RenderShippedDefaultActions(DeviceSpecificFieldState state, string? shippedDefault) =>
+        @<div>
+            @if (state.DisplayedValue.Length == 0)
+            {
+                <div class="text-muted small mt-1">
+                    @(userConfig.GetText(shippedDefault == null ? "dss_fw_write_not_supported" : "dss_fw_write_uses_default"))
+                </div>
+            }
+            <button type="button" class="dss-reset-default btn btn-sm btn-outline-secondary mt-2 me-2"
+                    disabled="@(!CanChangeLocalValue(state) || state.LocalValue.Length == 0)" @onclick="() => ResetToShippedDefault(state)">
+                @(DisplayService.DisplayButton(userConfig, "dss_reset_to_default", Icons.Undo))
+            </button>
+            <button type="button" class="dss-edit-default btn btn-sm btn-outline-secondary mt-2"
+                    disabled="@(!CanChangeLocalValue(state) || shippedDefault == null || state.LocalValue.Length > 0)"
+                    @onclick="() => EditShippedDefault(state)">
+                @(DisplayService.DisplayButton(userConfig, "dss_edit_default", Icons.Edit))
+            </button>
+        </div>;
+
+    private RenderFragment RenderInheritedSource(DeviceSpecificFieldState state, DeviceSpecificLevelForm levelForm) =>
+        @<div class="text-muted small mt-1">
+            @if (SourceNode(state) is DeviceSpecificNode sourceNode)
+            {
+                @(userConfig.GetText("dss_inherited_from"))
+                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" disabled="@(saving || levelForm.HasChanges)"
+                        @onclick="() => NavigateToSource(state.Field, sourceNode)">
+                    <strong>@LevelLabel(sourceNode.Level)</strong> "@NodeName(sourceNode)" <span class="@Icons.Use"></span>
+                </button>
+            }
+            else
+            {
+                @(userConfig.GetText("dss_compiled_default"))
+            }
+        </div>;
+
+    /// <summary>Whether the local value of the field can be edited now: admin, not saving, and overridden at this level.</summary>
+    private bool CanChangeLocalValue(DeviceSpecificFieldState state) => !saving && CanEdit && state.IsLocal;
 
     private RenderFragment RenderTreeNode(DeviceSpecificNode node) =>
         @<li class="nav-item @(node.Parent == null ? "" : "ms-2")">
@@ -320,6 +389,29 @@ else
         }
     }
 
+    /// <summary>Empties the local value, so the default shipped for the device type applies, including later corrections of it.</summary>
+    private void ResetToShippedDefault(DeviceSpecificFieldState state)
+    {
+        if (CanChangeLocalValue(state))
+        {
+            state.LocalValue = "";
+        }
+    }
+
+    /// <summary>Takes the default shipped for the device type over as local value, to adapt it.</summary>
+    private void EditShippedDefault(DeviceSpecificFieldState state)
+    {
+        if (CanChangeLocalValue(state) && form != null)
+        {
+            state.LocalValue = state.Field.ShippedDefaultFor(form.Node) ?? "";
+        }
+    }
+
+    /// <summary>The field label, preceded by the operation for firewall write endpoints and templates.</summary>
+    private string FieldLabel(DeviceSpecificFieldDefinition field) => field.LabelDetailTextKey == null
+        ? userConfig.GetText(field.LabelTextKey)
+        : $"{userConfig.GetText(field.LabelDetailTextKey)}: {userConfig.GetText(field.LabelTextKey)}";
+
     private void ClearDormantOverride(DeviceSpecificFieldState state)
     {
         if (!saving && CanEdit && state.IsDormant)
@@ -359,7 +451,9 @@ else
     /// Renders a field's control. Read-only while the field inherits its value; switching on
     /// "override here" makes it editable and reports edits via <paramref name="onChange"/>.
     /// </summary>
-    private RenderFragment RenderEditor(DeviceSpecificFieldDefinition field, string value, bool disabled, Action<string> onChange) => builder =>
+    /// <param name="placeholder">Grey hint shown while the value is empty, e.g. the default shipped for the device type.</param>
+    private RenderFragment RenderEditor(DeviceSpecificFieldDefinition field, string value, bool disabled, Action<string> onChange,
+        string? placeholder = null) => builder =>
     {
         Microsoft.AspNetCore.Components.EventCallback<Microsoft.AspNetCore.Components.ChangeEventArgs> changeCallback =
             Microsoft.AspNetCore.Components.EventCallback.Factory.Create<Microsoft.AspNetCore.Components.ChangeEventArgs>(this, e => onChange(e.Value?.ToString() ?? ""));
@@ -413,6 +507,21 @@ else
                 builder.CloseElement();
                 break;
 
+            case DeviceSpecificFieldKind.FirewallEndpoint:
+                builder.AddContent(0, RenderEndpointEditor(value, disabled, onChange, placeholder));
+                break;
+
+            case DeviceSpecificFieldKind.FirewallTemplate:
+                builder.OpenElement(0, "textarea");
+                builder.AddAttribute(1, "class", "form-control form-control-sm font-monospace");
+                builder.AddAttribute(2, "rows", kFirewallTemplateRows);
+                builder.AddAttribute(3, "value", value);
+                builder.AddAttribute(4, "placeholder", placeholder);
+                builder.AddAttribute(5, "onchange", changeCallback);
+                builder.AddAttribute(6, "disabled", disabled);
+                builder.CloseElement();
+                break;
+
             case DeviceSpecificFieldKind.StringList:
                 builder.AddContent(0, RenderStringList(value, disabled, onChange));
                 break;
@@ -428,6 +537,34 @@ else
                 break;
         }
     };
+
+    /// <summary>
+    /// Renders an endpoint as HTTP method drop-down and path input, stored together as "METHOD path". While the value is
+    /// empty, the drop-down shows the shipped default method and the path input the shipped default path in grey.
+    /// </summary>
+    private RenderFragment RenderEndpointEditor(string value, bool disabled, Action<string> onChange, string? shippedDefault)
+    {
+        (string method, string path) = FirewallWriteEndpoint.SplitSetting(value);
+        (string defaultMethod, string defaultPath) = FirewallWriteEndpoint.SplitSetting(shippedDefault ?? "");
+        return @<div class="input-group input-group-sm">
+            <select class="dss-endpoint-method form-select form-select-sm flex-grow-0 w-auto font-monospace @(method.Length == 0 ? "text-muted" : "")"
+                    value="@method" disabled="@disabled"
+                    @onchange="e => onChange(DeviceSpecificSettingsData.ChangeEndpoint(value, shippedDefault, method: ChangedText(e)))">
+                @if (method.Length == 0)
+                {
+                    <option value="">@defaultMethod</option>
+                }
+                @foreach (string allowedMethod in FirewallWriteEndpoint.AllowedMethods)
+                {
+                    <option value="@allowedMethod">@allowedMethod</option>
+                }
+            </select>
+            <input type="text" class="dss-endpoint-path form-control form-control-sm font-monospace" value="@path" placeholder="@defaultPath"
+                   disabled="@disabled" @onchange="e => onChange(DeviceSpecificSettingsData.ChangeEndpoint(value, shippedDefault, path: ChangedText(e)))" />
+        </div>;
+    }
+
+    private static string ChangedText(Microsoft.AspNetCore.Components.ChangeEventArgs changeEvent) => changeEvent.Value?.ToString() ?? "";
 
     /// <summary>Renders a list of text inputs with add/remove buttons, stored as a comma separated value.</summary>
     private RenderFragment RenderStringList(string value, bool disabled, Action<string> onChange) => builder =>

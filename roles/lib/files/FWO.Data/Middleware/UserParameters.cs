@@ -16,7 +16,7 @@ namespace FWO.Data.Middleware
         public int LdapId { get; set; }
     }
 
-    public class LdapUserGetParameters
+    public class LdapUserGetParameters : PagingParameters
     {
         public int LdapId { get; set; }
         public string SearchPattern { get; set; } = "";

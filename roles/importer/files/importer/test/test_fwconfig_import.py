@@ -62,6 +62,17 @@ def set_sub_managers(importer: FwConfigImport, paused_uids: list[str], active_ui
     importer.import_state.state.force_import = False
 
 
+def make_sub_manager_details(uid: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        uid=uid,
+        name=uid,
+        is_super_manager=False,
+        sub_manager_ids=[],
+        domain_name="dom",
+        domain_uid="dom-uid",
+    )
+
+
 def make_rulebase(uid: str) -> Rulebase:
     return Rulebase(uid=uid, name=uid, mgm_uid="mock-uid")
 
@@ -162,6 +173,27 @@ class TestImportManagementSet:
 
         imported_uids = [call.args[1].manager_uid for call in config_importer.call_args_list]
         assert imported_uids == ["super", "paused"]
+
+    def test_clearing_import_clears_sub_managers_whose_import_is_disabled(
+        self, importer: FwConfigImport, service_provider: ServiceProvider
+    ) -> None:
+        set_sub_managers(importer, paused_uids=["paused"], active_uids=["active"])
+        importer.import_state.state.mgm_details.sub_manager_ids = [2, 3]
+        sub_details = [make_sub_manager_details("paused"), make_sub_manager_details("active")]
+        with (
+            patch.object(ManagementController, "get_mgm_details", return_value={"raw": True}),
+            patch.object(ManagementController, "from_json", side_effect=sub_details),
+        ):
+            mgr_set = importer.clear_management()
+        with (
+            patch.object(FwConfigImport, "import_config") as config_importer,
+            patch.object(FwConfigImport, "update_removed_managers"),
+        ):
+            importer.import_management_set(service_provider, mgr_set)
+
+        imported = {call.args[1].manager_uid: call.args[2] for call in config_importer.call_args_list}
+        assert set(imported) == {importer.import_state.state.mgm_details.uid, "paused", "active"}
+        assert all(config.rulebases == [] and config.network_objects == {} for config in imported.values())
 
     def test_import_config_sets_current_manager_context(
         self, importer: FwConfigImport, service_provider: ServiceProvider

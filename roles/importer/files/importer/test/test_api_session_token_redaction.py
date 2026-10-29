@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+from urllib.parse import quote, quote_plus
 
 import pytest
 import requests
@@ -16,6 +17,7 @@ from fwo_redaction import (
     MAX_REDACTION_DEPTH,
     REDACTED_VALUE,
     SESSION_FINGERPRINT_LENGTH,
+    redact_secret_in_text,
     redact_sensitive_values,
     session_fingerprint,
 )
@@ -28,6 +30,8 @@ SESSION_MARKER = "fwo-sweep-session-marker-4"
 TOKEN_MARKER = "fwo-sweep-token-marker-5"  # noqa: S105
 PASSWORD_MARKER = "fwo-sweep-password-marker-6"  # noqa: S105
 CP_URL = "https://cp.invalid/web_api/"
+FOS_URL = "https://fw.invalid/api/v2/cmdb/firewall/address"
+HTTP_FORBIDDEN = 403
 DEBUG_LEVEL_ALL = 10
 
 
@@ -168,6 +172,34 @@ class TestFortiOsApiCall:
         assert "https://fw.invalid/api/v2/cmdb/firewall/address" in str(raised.value)
         assert raised.value.__cause__ is None
 
+    def test_error_page_echoing_the_url_keeps_access_token_out_of_error(self) -> None:
+        response = MagicMock(status_code=HTTP_FORBIDDEN)
+        response.text = f"<p>denied: /api/v2/cmdb/firewall/address?access_token={TOKEN_MARKER}</p>"
+        with (
+            patch.object(fos_getter.requests, "get", return_value=response),
+            pytest.raises(FwApiCallFailedError) as raised,
+        ):
+            fos_getter.fortios_api_call(FOS_URL, TOKEN_MARKER)
+
+        assert TOKEN_MARKER not in str(raised.value)
+        assert "denied: /api/v2/cmdb/firewall/address?access_token=" + REDACTED_VALUE in str(raised.value)
+
+    def test_json_without_results_keeps_access_token_out_of_error(self) -> None:
+        response = MagicMock(status_code=fos_getter.HTTP_OK)
+        response.json.return_value = {
+            "http_status": HTTP_FORBIDDEN,
+            "message": f"invalid request /api/v2/cmdb?access_token={TOKEN_MARKER}",
+            "access_token": TOKEN_MARKER,
+        }
+        with (
+            patch.object(fos_getter.requests, "get", return_value=response),
+            pytest.raises(FwApiCallFailedError) as raised,
+        ):
+            fos_getter.fortios_api_call(FOS_URL, TOKEN_MARKER)
+
+        assert TOKEN_MARKER not in str(raised.value)
+        assert "invalid request" in str(raised.value)
+
 
 class TestRedaction:
     def test_redacts_sensitive_keys_at_any_depth_and_in_any_case(self) -> None:
@@ -187,6 +219,18 @@ class TestRedaction:
             "limit": 1,
         }
         assert data["session"] == SESSION_MARKER
+
+    @pytest.mark.parametrize("secret", ["tok en/+=", "plain-token"])
+    def test_redacts_a_known_secret_in_text_also_url_encoded(self, secret: str) -> None:
+        text = f"raw {secret}, encoded {quote(secret, safe='')}, form {quote_plus(secret)}"
+
+        redacted = redact_secret_in_text(text, secret)
+
+        assert redacted == f"raw {REDACTED_VALUE}, encoded {REDACTED_VALUE}, form {REDACTED_VALUE}"
+
+    def test_empty_secret_leaves_text_unchanged(self) -> None:
+        assert redact_secret_in_text("some text", "") == "some text"
+        assert redact_secret_in_text("some text", None) == "some text"
 
     def test_replaces_structures_nested_too_deeply(self) -> None:
         nested: dict[str, Any] = {"session": SESSION_MARKER}

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 from typing import Any, cast
+from urllib.parse import quote, quote_plus
 
 REDACTED_VALUE = "<redacted>"
 # header and payload keys whose values grant access to a firewall management API; compared in lower case
@@ -58,6 +59,21 @@ def redact_sensitive_values(data: Any, depth: int = 0) -> Any:
         elements = cast("list[Any]", data)
         return [redact_sensitive_values(element, depth + 1) for element in elements]
     return data
+
+
+def redact_secret_in_text(text: str, secret: str | None) -> str:
+    """
+    Return the text with every occurrence of a known secret replaced, also in its URL-encoded forms.
+
+    Needed for free text a firewall returns, e.g. an error page that echoes the requested URL with the token in
+    its query string. Key-based redaction cannot find a secret there.
+    """
+    if not secret:
+        return text
+    secret_forms = sorted({secret, quote(secret, safe=""), quote_plus(secret)}, key=len, reverse=True)
+    for secret_form in secret_forms:
+        text = text.replace(secret_form, REDACTED_VALUE)
+    return text
 
 
 def session_fingerprint(session_id: str | None) -> str:

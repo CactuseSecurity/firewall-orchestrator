@@ -117,9 +117,10 @@ class FwConfigImport:
     def get_paused_sub_manager_uids(self) -> set[str]:
         """
         Returns the UIDs of the sub-managers whose import is disabled. Their configs are not fetched, or fetched
-        empty, so importing them would mark all their rules and objects removed. A forced import fetches them.
+        empty, so importing them would mark all their rules and objects removed. A forced import fetches them,
+        and clearing a management deliberately removes the data of all its sub-managers.
         """
-        if self.import_state.state.force_import:
+        if self.import_state.state.force_import or self.import_state.state.is_clearing_import:
             return set()
         return {
             sub_manager.uid

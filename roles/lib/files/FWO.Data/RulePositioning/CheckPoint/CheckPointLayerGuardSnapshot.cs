@@ -109,7 +109,7 @@ public sealed class CheckPointGuardAddressTerm
     }
 
     /// <summary>Copies exact distinct ranges after validating endpoints.</summary>
-    private static IReadOnlyList<IPAddressRange> CopyDistinct(
+    private static ReadOnlyCollection<IPAddressRange> CopyDistinct(
         IReadOnlyCollection<IPAddressRange> ranges,
         string parameterName)
     {

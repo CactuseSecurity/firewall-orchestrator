@@ -12,12 +12,14 @@ public interface ICreationRuleZoneResolver
     Task<CreationRuleZoneResolutionResult> ResolveAsync(
         WfReqTask requestTask,
         IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+        RulePositioningConfiguration configuration,
         CancellationToken cancellationToken);
 
     /// <summary>Resolves already-normalized source and destination ranges to positioning zones.</summary>
     Task<CreationRuleZoneResolutionResult> ResolveAsync(
         CreationRuleNetworkInput networkInput,
         IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+        RulePositioningConfiguration configuration,
         CancellationToken cancellationToken);
 }
 
@@ -81,10 +83,7 @@ public sealed class CreationRuleZoneInput
         ZoneCoverage sourceCoverage,
         ZoneCoverage destinationCoverage)
     {
-        if (criterionId <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(criterionId));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(criterionId);
 
         ArgumentNullException.ThrowIfNull(sourceZones);
         ArgumentNullException.ThrowIfNull(destinationZones);

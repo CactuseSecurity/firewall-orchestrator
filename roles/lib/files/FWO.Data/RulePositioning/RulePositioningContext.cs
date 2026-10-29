@@ -18,6 +18,9 @@ public sealed record RulePositioningContext
     /// <summary>Gets the optional immutable ticket-task slice used by ticket-aware strategies.</summary>
     public IReadOnlyList<WfReqTask>? TicketRequestTasks { get; init; }
 
+    /// <summary>Gets the current global settings snapshot for strategies that require it.</summary>
+    public RulePositioningConfiguration? Configuration { get; init; }
+
     /// <summary>Creates one caller-resolved positioning context.</summary>
     public RulePositioningContext(
         WfImplTask implementationTask,
@@ -25,7 +28,8 @@ public sealed record RulePositioningContext
         Device targetGateway,
         Management targetManagement,
         GatewayDeviceSpecificSettings effectiveSettings,
-        IReadOnlyCollection<WfReqTask>? ticketRequestTasks = null)
+        IReadOnlyCollection<WfReqTask>? ticketRequestTasks = null,
+        RulePositioningConfiguration? configuration = null)
     {
         ImplementationTask = implementationTask;
         ParentRequestTask = parentRequestTask;
@@ -35,5 +39,6 @@ public sealed record RulePositioningContext
         TicketRequestTasks = ticketRequestTasks == null
             ? null
             : new ReadOnlyCollection<WfReqTask>([.. ticketRequestTasks]);
+        Configuration = configuration;
     }
 }

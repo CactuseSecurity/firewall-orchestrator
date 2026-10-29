@@ -24,6 +24,9 @@ public class RulebaseGraphSnapshotReaderTest
     private const int kGatewayId = 20;
     private const long kImportId = 100;
     private const string kSentinel = "SECRET exception rule-name uid-content";
+    private static readonly string[] kExpectedOperations =
+        ["getLatestSuccessfulRuleImport", "getGatewayRulebaseLinksAtImport", "getRulebasesAtImport"];
+    private static readonly int[] kDefaultRulebaseIds = [1, 2, 3, 4];
 
     private const string kImportJson = """
         [{
@@ -438,12 +441,7 @@ public class RulebaseGraphSnapshotReaderTest
         SimulatedApiConnection api,
         IReadOnlyList<int>? expectedRulebaseIds = null)
     {
-        Assert.That(api.Calls.Select(call => call.OperationName), Is.EqualTo(new[]
-        {
-            "getLatestSuccessfulRuleImport",
-            "getGatewayRulebaseLinksAtImport",
-            "getRulebasesAtImport"
-        }));
+        Assert.That(api.Calls.Select(call => call.OperationName), Is.EqualTo(kExpectedOperations));
         Assert.That(api.Calls.Select(call => call.Query), Is.EqualTo(new[]
         {
             RulePositioningQueries.getLatestSuccessfulRuleImport,
@@ -466,7 +464,7 @@ public class RulebaseGraphSnapshotReaderTest
             Assert.That((int?)rulebaseVariables["rulebaseLimit"], Is.EqualTo(kExpectedRulebaseLimit));
             Assert.That((int?)rulebaseVariables["ruleLimit"], Is.EqualTo(kExpectedRuleLimit));
             Assert.That(rulebaseVariables["rulebaseIds"]!.Values<int>(),
-                Is.EqualTo(expectedRulebaseIds ?? new[] { 1, 2, 3, 4 }));
+                Is.EqualTo(expectedRulebaseIds ?? kDefaultRulebaseIds));
         });
     }
 

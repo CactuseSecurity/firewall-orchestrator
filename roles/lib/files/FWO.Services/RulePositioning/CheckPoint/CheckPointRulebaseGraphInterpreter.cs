@@ -41,8 +41,8 @@ internal sealed class CheckPointGraphStructure
     private sealed class GraphInterpreter
     {
         private readonly RulebaseGraphSnapshot snapshot;
-        private readonly IReadOnlyDictionary<long, RulebaseGraphNode> rulebasesById;
-        private readonly IReadOnlyDictionary<long, RulebaseGraphLink> inlineLinksByRuleId;
+        private readonly Dictionary<long, RulebaseGraphNode> rulebasesById;
+        private readonly Dictionary<long, RulebaseGraphLink> inlineLinksByRuleId;
         private readonly bool hasValidInlineLinks;
         private readonly List<CheckPointLayerStructure> layers = [];
         private readonly HashSet<long> interpretedRulebaseIds = [];
@@ -108,12 +108,41 @@ internal sealed class CheckPointGraphStructure
         }
 
         /// <summary>
-        /// Adds one layer, its sections, and recursively attached inline layers.
+        /// Adds one layer and all attached inline layers without using the call stack.
+        /// Traversal is bounded by the number of rulebases in the validated snapshot.
         /// </summary>
         private bool TryAddLayer(long rulebaseId, out CheckPointLayerStructure? layer)
         {
             layer = null;
-            if (!interpretedRulebaseIds.Add(rulebaseId) || !rulebasesById.TryGetValue(rulebaseId, out RulebaseGraphNode? node) ||
+            Stack<(long RulebaseId, int Depth)> pendingLayers = new();
+            pendingLayers.Push((rulebaseId, 1));
+            while (pendingLayers.TryPop(out (long RulebaseId, int Depth) pending))
+            {
+                if (pending.Depth > rulebasesById.Count ||
+                    !TryCreateLayer(pending.RulebaseId, out CheckPointLayerStructure? currentLayer))
+                {
+                    return false;
+                }
+
+                layer ??= currentLayer;
+                List<long> inlineLayerIds = currentLayer!.OrderedRules
+                    .Where(rule => inlineLinksByRuleId.ContainsKey(rule.Id))
+                    .Select(rule => inlineLinksByRuleId[rule.Id].TargetRulebaseId)
+                    .ToList();
+                for (int index = inlineLayerIds.Count - 1; index >= 0; index--)
+                {
+                    pendingLayers.Push((inlineLayerIds[index], pending.Depth + 1));
+                }
+            }
+            return true;
+        }
+
+        /// <summary>Validates and adds one layer without traversing its inline successors.</summary>
+        private bool TryCreateLayer(long rulebaseId, out CheckPointLayerStructure? layer)
+        {
+            layer = null;
+            if (!interpretedRulebaseIds.Add(rulebaseId) ||
+                !rulebasesById.TryGetValue(rulebaseId, out RulebaseGraphNode? node) ||
                 !TryBuildSections(rulebaseId, out List<CheckPointSectionStructure> sections))
             {
                 return false;
@@ -121,14 +150,6 @@ internal sealed class CheckPointGraphStructure
 
             layer = new CheckPointLayerStructure(node, sections);
             layers.Add(layer);
-            foreach (RulebaseGraphRule rule in layer.OrderedRules)
-            {
-                if (inlineLinksByRuleId.TryGetValue(rule.Id, out RulebaseGraphLink? inlineLink) &&
-                    !TryAddLayer(inlineLink.TargetRulebaseId, out _))
-                {
-                    return false;
-                }
-            }
             return true;
         }
 
@@ -182,7 +203,7 @@ internal sealed class CheckPointGraphStructure
         /// <summary>
         /// Creates a rule-to-inline-layer lookup and marks ambiguity with an impossible sentinel entry.
         /// </summary>
-        private static (IReadOnlyDictionary<long, RulebaseGraphLink> Links, bool IsValid) BuildInlineLinkLookup(
+        private static (Dictionary<long, RulebaseGraphLink> Links, bool IsValid) BuildInlineLinkLookup(
             IEnumerable<RulebaseGraphLink> links)
         {
             Dictionary<long, RulebaseGraphLink> inlineLinks = [];
@@ -255,7 +276,7 @@ internal sealed class CheckPointLayerStructure
     /// </summary>
     private static List<CheckPointLayerItemStructure> BuildOrderedItems(
         IEnumerable<RulebaseGraphRule> directRules,
-        IReadOnlyList<CheckPointSectionStructure> sections)
+        List<CheckPointSectionStructure> sections)
     {
         List<CheckPointLayerItemStructure> items = directRules
             .Select(rule => (CheckPointLayerItemStructure)new CheckPointRuleItemStructure(rule))

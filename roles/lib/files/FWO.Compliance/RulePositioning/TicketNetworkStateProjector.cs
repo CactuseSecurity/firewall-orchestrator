@@ -7,7 +7,7 @@ internal sealed class TicketNetworkStateProjector
     internal const int kMaximumGroupDepth = 100;
 
     /// <summary>Validates ticket scope and returns deterministic task order.</summary>
-    internal IReadOnlyList<WfReqTask> Project(
+    internal static IReadOnlyList<WfReqTask> Project(
         WfReqTask accessTask,
         IReadOnlyCollection<WfReqTask> ticketTasks)
     {

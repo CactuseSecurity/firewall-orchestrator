@@ -93,6 +93,46 @@ internal class RulePositioningWorkflowCallerTest
     }
 
     [Test]
+    public async Task CustomerAlgorithm_UsesSettingsChangedAfterServiceConstruction()
+    {
+        SimulatedGlobalConfig startupConfig = new()
+        {
+            DesignatedZoneMatrixId = 5,
+            AutoCalculateInternetZone = true
+        };
+        RecordingApiConnection api = new()
+        {
+            PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection,
+            CurrentDesignatedZoneMatrixId = 17,
+            CurrentAutoCalculateInternetZone = false
+        };
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        api.Ticket = new WfTicket
+        {
+            Id = requestTask.TicketId,
+            Tasks = [TicketTask(kRequestTaskId, 1, kManagementId)]
+        };
+        RecordingStrategy strategy = new(Success(
+            ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection));
+        RulePositioningWorkflowCaller caller = Caller(api, strategy, startupConfig);
+
+        RulePositioningWorkflowOutcome outcome = await caller.CalculateAndPersistAsync(
+            requestTask,
+            implementationTask,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.Stored));
+            Assert.That(api.ConfigReads, Is.EqualTo(1));
+            Assert.That(strategy.Context!.Configuration!.DesignatedZoneMatrixId, Is.EqualTo(17));
+            Assert.That(strategy.Context.Configuration.AutoCalculateInternetZone, Is.False);
+            Assert.That(startupConfig.DesignatedZoneMatrixId, Is.EqualTo(5));
+            Assert.That(startupConfig.AutoCalculateInternetZone, Is.True);
+        });
+    }
+
+    [Test]
     public async Task CustomerAlgorithm_MalformedTicketClearsStalePositionWithoutCalculation()
     {
         RecordingApiConnection api = new()
@@ -406,15 +446,17 @@ internal class RulePositioningWorkflowCallerTest
 
     private static RulePositioningWorkflowCaller Caller(
         RecordingApiConnection api,
-        RecordingStrategy strategy)
+        RecordingStrategy strategy,
+        GlobalConfig? startupGlobalConfig = null)
     {
         return new RulePositioningWorkflowCaller(
             api,
             new RulePositioningManager([strategy]),
-            new DeviceSpecificSettingsManager(api));
+            new DeviceSpecificSettingsManager(api),
+            startupGlobalConfig ?? new SimulatedGlobalConfig());
     }
 
-    private static RulePositioningResult Success(
+    private static RulePositioningSuccess Success(
         ProvisioningPositioningAlgorithm algorithm = ProvisioningPositioningAlgorithm.DefaultEndOfRulebase)
     {
         return new RulePositioningSuccess(new CheckPointRulePosition(
@@ -488,11 +530,14 @@ internal class RulePositioningWorkflowCallerTest
         public int TargetReads { get; private set; }
         public int SettingsReads { get; private set; }
         public int TicketReads { get; private set; }
+        public int ConfigReads { get; private set; }
         public int PositionWrites { get; private set; }
-        public int AllCalls => TargetReads + SettingsReads + TicketReads + PositionWrites;
+        public int AllCalls => TargetReads + SettingsReads + TicketReads + ConfigReads + PositionWrites;
         public RulePosition? LastPosition { get; private set; }
         public ProvisioningPositioningAlgorithm PositioningAlgorithm { get; set; } =
             ProvisioningPositioningAlgorithm.DefaultEndOfRulebase;
+        public int CurrentDesignatedZoneMatrixId { get; set; } = 7;
+        public bool CurrentAutoCalculateInternetZone { get; set; }
         public WfTicket? Ticket { get; set; }
         public TaskCompletionSource WriteStarted { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -516,6 +561,25 @@ internal class RulePositioningWorkflowCallerTest
                     throw new InvalidOperationException("sensitive target load failure");
                 }
                 return (T)(object)new List<Device> { Target() };
+            }
+            if (query == ConfigQueries.getConfigItemsByUser)
+            {
+                ConfigReads++;
+                return (T)(object)new ConfigItem[]
+                {
+                    new()
+                    {
+                        Key = "designatedZoneMatrix",
+                        Value = CurrentDesignatedZoneMatrixId.ToString(),
+                        User = 0
+                    },
+                    new()
+                    {
+                        Key = "autoCalculateInternetZone",
+                        Value = CurrentAutoCalculateInternetZone.ToString(),
+                        User = 0
+                    }
+                };
             }
             if (query == DeviceSpecificSettingsQueries.getNodesByNaturalKeys)
             {

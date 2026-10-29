@@ -181,49 +181,20 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         bool unresolvedExcluded = false;
         if (HasAddress(topLevel!))
         {
-            if (!TryParseRange(topLevel!.Ip, topLevel.IpEnd, out IPAddressRange? range))
+            if (!TryAddDirectAddress(topLevel!, included))
             {
                 return false;
             }
-            included.Add(range!);
         }
-        else
+        else if (!TryMapGroupMembers(
+            topLevel!,
+            importId,
+            included,
+            excluded,
+            out unresolvedIncluded,
+            out unresolvedExcluded))
         {
-            if (topLevel!.Flats == null || topLevel.Flats.GroupBy(flat => flat.MemberId).Any(group => group.Count() != 1))
-            {
-                return false;
-            }
-            foreach (FlatWire flat in topLevel.Flats)
-            {
-                if (!IsHistorical(flat.Created, flat.Removed, importId) ||
-                    flat.GroupId != topLevel.Id || !flat.Negated.HasValue ||
-                    flat.MemberId is not > 0 || flat.Object?.Id != flat.MemberId ||
-                    !IsValidObject(flat.Object, importId))
-                {
-                    return false;
-                }
-                if (!HasAddress(flat.Object!))
-                {
-                    unresolvedIncluded |= !flat.Negated.Value;
-                    unresolvedExcluded |= flat.Negated.Value;
-                }
-                else if (!TryParseRange(flat.Object!.Ip, flat.Object.IpEnd, out IPAddressRange? range))
-                {
-                    return false;
-                }
-                else if (flat.Negated.Value)
-                {
-                    excluded.Add(range!);
-                }
-                else
-                {
-                    included.Add(range!);
-                }
-            }
-            if (included.Count == 0 && excluded.Count == 0 && !unresolvedIncluded && !unresolvedExcluded)
-            {
-                unresolvedIncluded = true;
-            }
+            return false;
         }
         term = new CheckPointGuardAddressTerm(
             included,
@@ -231,6 +202,68 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
             unresolvedIncluded,
             unresolvedExcluded);
         return true;
+    }
+
+    /// <summary>Adds one direct object address to the included ranges.</summary>
+    private static bool TryAddDirectAddress(ObjectWire directObject, List<IPAddressRange> included)
+    {
+        if (!TryParseRange(directObject.Ip, directObject.IpEnd, out IPAddressRange? range))
+        {
+            return false;
+        }
+        included.Add(range!);
+        return true;
+    }
+
+    /// <summary>Maps flattened group members while preserving unresolved positive and negative terms.</summary>
+    private static bool TryMapGroupMembers(
+        ObjectWire group,
+        long importId,
+        List<IPAddressRange> included,
+        List<IPAddressRange> excluded,
+        out bool unresolvedIncluded,
+        out bool unresolvedExcluded)
+    {
+        unresolvedIncluded = false;
+        unresolvedExcluded = false;
+        if (group.Flats == null || group.Flats.GroupBy(flat => flat.MemberId).Any(members => members.Count() != 1))
+        {
+            return false;
+        }
+
+        foreach (FlatWire flat in group.Flats)
+        {
+            if (!IsValidFlat(flat, group.Id!.Value, importId))
+            {
+                return false;
+            }
+            if (!HasAddress(flat.Object!))
+            {
+                unresolvedIncluded |= !flat.Negated!.Value;
+                unresolvedExcluded |= flat.Negated.Value;
+                continue;
+            }
+            if (!TryParseRange(flat.Object!.Ip, flat.Object.IpEnd, out IPAddressRange? range))
+            {
+                return false;
+            }
+            (flat.Negated!.Value ? excluded : included).Add(range!);
+        }
+
+        if (included.Count == 0 && excluded.Count == 0 && !unresolvedIncluded && !unresolvedExcluded)
+        {
+            unresolvedIncluded = true;
+        }
+        return true;
+    }
+
+    /// <summary>Validates one flattened member against its group and fixed import.</summary>
+    private static bool IsValidFlat(FlatWire flat, long groupId, long importId)
+    {
+        return IsHistorical(flat.Created, flat.Removed, importId) &&
+            flat.GroupId == groupId && flat.Negated.HasValue &&
+            flat.MemberId is > 0 && flat.Object?.Id == flat.MemberId &&
+            IsValidObject(flat.Object, importId);
     }
 
     /// <summary>Parses normalized IP/end data without crossing address families.</summary>

@@ -715,7 +715,7 @@ namespace FWO.Test
                 DesignatedZoneMatrixId = matrixId
             };
 
-            return new ComplianceZoneService(new DesignatedZoneMatrixReader(apiConnection, globalConfig), globalConfig);
+            return new ComplianceZoneService(new DesignatedZoneMatrixReader(apiConnection), globalConfig);
         }
 
     }

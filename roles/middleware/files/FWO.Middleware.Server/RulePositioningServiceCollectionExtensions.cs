@@ -20,7 +20,6 @@ public static class RulePositioningServiceCollectionExtensions
         services.AddSingleton<ICheckPointGraphPositioningRecipeCatalog, CheckPointGraphPositioningRecipeCatalog>();
         services.AddSingleton<ICreationRuleNetworkInputResolver, CreationRuleNetworkInputResolver>();
         services.AddSingleton<ICheckPointLayerGuardSnapshotReader, CheckPointLayerGuardSnapshotReader>();
-        services.AddSingleton<KfwCheckPointPositioningRecipeFactory>();
         services.AddSingleton<ICheckPointPositioningRecipeCatalog, CheckPointPositioningRecipeCatalog>();
         services.AddSingleton<CheckPointGraphRulePositioningStrategy>();
         services.AddSingleton<CheckPointRulePositioningStrategy>();

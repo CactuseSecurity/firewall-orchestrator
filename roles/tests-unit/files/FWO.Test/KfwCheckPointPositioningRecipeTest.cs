@@ -48,7 +48,7 @@ public class KfwCheckPointPositioningRecipeTest
             [Zone(1, "source")],
             [Zone(2, "destination")]);
         KfwCheckPointPositioningRecipeSuccess created = (KfwCheckPointPositioningRecipeSuccess)
-            new KfwCheckPointPositioningRecipeFactory().Create(input, zones);
+            KfwCheckPointPositioningRecipeFactory.Create(input, zones);
 
         PositioningBlockResult<CheckPointBlockValue> result = await new PositioningRecipeExecutor<
             CheckPointPositioningContext, CheckPointBlockValue>().ExecuteAsync(
@@ -71,7 +71,7 @@ public class KfwCheckPointPositioningRecipeTest
         RulebaseGraphSnapshot graph = Graph("[DESTINATION]<[SOURCE]");
         KfwCheckPointPositioningInput input = Input(graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
         KfwCheckPointPositioningRecipeSuccess created = (KfwCheckPointPositioningRecipeSuccess)
-            new KfwCheckPointPositioningRecipeFactory().Create(input,
+            KfwCheckPointPositioningRecipeFactory.Create(input,
                 Zones([Zone(1, "source")], [Zone(2, "destination")]));
 
         PositioningBlockFailure<CheckPointBlockValue> failure = (PositioningBlockFailure<CheckPointBlockValue>)
@@ -95,7 +95,7 @@ public class KfwCheckPointPositioningRecipeTest
             sourceCoverage, destinationCoverage);
 
         KfwCheckPointPositioningRecipeFailure failure = (KfwCheckPointPositioningRecipeFailure)
-            new KfwCheckPointPositioningRecipeFactory().Create(input, zones);
+            KfwCheckPointPositioningRecipeFactory.Create(input, zones);
 
         Assert.That(failure.Category, Is.EqualTo(expected));
     }
@@ -105,19 +105,17 @@ public class KfwCheckPointPositioningRecipeTest
     {
         RulebaseGraphSnapshot graph = Graph("[DESTINATION] < [SOURCE]");
         KfwCheckPointPositioningInput input = Input(graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
-        KfwCheckPointPositioningRecipeFactory factory = new();
-
         Assert.Multiple(() =>
         {
-            Assert.That(Failure(factory.Create(input, Zones([], [Zone(2, "destination")]))).Category,
+            Assert.That(Failure(KfwCheckPointPositioningRecipeFactory.Create(input, Zones([], [Zone(2, "destination")]))).Category,
                 Is.EqualTo(KfwCheckPointPositioningRecipeFailureCategory.ZoneCardinalityInvalid));
-            Assert.That(Failure(factory.Create(input, Zones(
+            Assert.That(Failure(KfwCheckPointPositioningRecipeFactory.Create(input, Zones(
                 [new PositioningZoneReference(null, "x", "source", false, false, PositioningZoneKind.SyntheticInternetFallback)],
                 [Zone(2, "destination")]))).Category,
                 Is.EqualTo(KfwCheckPointPositioningRecipeFailureCategory.ZoneNotPersisted));
-            Assert.That(Failure(factory.Create(input, Zones([Zone(1, "bad[name")], [Zone(2, "destination")]))).Category,
+            Assert.That(Failure(KfwCheckPointPositioningRecipeFactory.Create(input, Zones([Zone(1, "bad[name")], [Zone(2, "destination")]))).Category,
                 Is.EqualTo(KfwCheckPointPositioningRecipeFailureCategory.ZoneDataInvalid));
-            Assert.That(Failure(factory.Create(null, Zones([Zone(1, "source")], [Zone(2, "destination")]))).Category,
+            Assert.That(Failure(KfwCheckPointPositioningRecipeFactory.Create(null, Zones([Zone(1, "source")], [Zone(2, "destination")]))).Category,
                 Is.EqualTo(KfwCheckPointPositioningRecipeFailureCategory.InvalidInput));
         });
     }

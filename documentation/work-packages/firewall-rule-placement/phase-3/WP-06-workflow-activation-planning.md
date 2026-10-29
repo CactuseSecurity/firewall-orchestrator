@@ -118,4 +118,3 @@ Replace every placeholder in `WP-06-workflow-activation-implementation.md` with 
 - Unsupported/combined/non-persisted tasks never invoke the caller.
 - Positioning failure cannot alter the successful workflow result.
 - The implementer needs neither the diagram nor additional product decisions.
-

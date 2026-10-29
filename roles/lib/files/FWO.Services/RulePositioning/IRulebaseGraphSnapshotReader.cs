@@ -28,10 +28,7 @@ public sealed class RulebaseGraphReadSuccess : RulebaseGraphReadResult
     public RulebaseGraphReadSuccess(RulebaseGraphSnapshot snapshot, long importId)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        if (importId <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(importId));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(importId);
         Snapshot = snapshot;
         ImportId = importId;
     }

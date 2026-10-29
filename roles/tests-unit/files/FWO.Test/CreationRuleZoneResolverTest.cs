@@ -1,5 +1,4 @@
 using FWO.Compliance.RulePositioning;
-using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.RulePositioning;
@@ -15,6 +14,9 @@ namespace FWO.Test;
 internal class CreationRuleZoneResolverTest
 {
     private const int kCriterionId = 7;
+    private static readonly long[] kExpectedSingleGroupId = [11];
+    private static readonly string[] kExpectedSingleGroupName = ["NAMED-GROUP"];
+    private static readonly int[] kExpectedChunkSizes = [100, 1];
 
     [Test]
     public async Task ResolveAsync_ResolvesIndependentOrderedZoneSets()
@@ -190,8 +192,8 @@ internal class CreationRuleZoneResolverTest
             Assert.That(input.SourceZones.Single().Id, Is.EqualTo(1));
             Assert.That(input.DestinationZones.Single().Id, Is.EqualTo(2));
             Assert.That(groupResolver.Requests, Has.Count.EqualTo(2));
-            Assert.That(groupResolver.Requests[0].NetworkGroupIds, Is.EqualTo(new long[] { 11 }));
-            Assert.That(groupResolver.Requests[1].NetworkGroupNames, Is.EqualTo(new string[] { "NAMED-GROUP" }));
+            Assert.That(groupResolver.Requests[0].NetworkGroupIds, Is.EqualTo(kExpectedSingleGroupId));
+            Assert.That(groupResolver.Requests[1].NetworkGroupNames, Is.EqualTo(kExpectedSingleGroupName));
         });
     }
 
@@ -224,7 +226,7 @@ internal class CreationRuleZoneResolverTest
             CancellationToken.None));
 
         Assert.That(input.SourceZones.Single().Id, Is.EqualTo(1));
-        Assert.That(groupResolver.Requests.Select(request => request.NetworkGroupIds.Count), Is.EqualTo(new[] { 100, 1 }));
+        Assert.That(groupResolver.Requests.Select(request => request.NetworkGroupIds.Count), Is.EqualTo(kExpectedChunkSizes));
     }
 
     [TestCase(GroupFailure.Missing)]
@@ -308,18 +310,20 @@ internal class CreationRuleZoneResolverTest
     [Test]
     public async Task ResolveAsync_IdentifiesSyntheticFallbackAndIncompleteIpv6Coverage()
     {
-        GlobalConfig globalConfig = Config(autoCalculateInternetZone: false, internetZoneName: "Localized external");
-        CreationRuleZoneResolver resolver = new(new TestFlowGroupResolver(), globalConfig);
+        RulePositioningConfiguration configuration = Config(
+            autoCalculateInternetZone: false,
+            internetZoneName: "Localized external");
+        CreationRuleZoneResolver resolver = new(new TestFlowGroupResolver());
         WfReqTask fallbackTask = CreateTask(
             Element(ElemFieldType.source, "203.0.113.1"), Element(ElemFieldType.destination, "10.0.0.1"));
         CreationRuleZoneInput fallbackInput = Success(await resolver.ResolveAsync(fallbackTask,
-            [Zone(1, "Internal", "10.0.0.0", "10.0.0.255")], CancellationToken.None));
+            [Zone(1, "Internal", "10.0.0.0", "10.0.0.255")], configuration, CancellationToken.None));
 
         WfReqTask ipv6Task = CreateTask(
             Element(ElemFieldType.source, "2001:db8::1"), Element(ElemFieldType.source, "10.0.0.1"),
             Element(ElemFieldType.destination, "2001:db8:ffff::1"));
         CreationRuleZoneInput ipv6Input = Success(await resolver.ResolveAsync(ipv6Task,
-            [Zone(1, "Internal", "10.0.0.0", "10.0.0.255")], CancellationToken.None));
+            [Zone(1, "Internal", "10.0.0.0", "10.0.0.255")], configuration, CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -334,13 +338,14 @@ internal class CreationRuleZoneResolverTest
     [Test]
     public async Task ResolveAsync_UsesPersistedAutomaticInternetZone()
     {
-        CreationRuleZoneResolver resolver = new(new TestFlowGroupResolver(), Config(autoCalculateInternetZone: true));
+        CreationRuleZoneResolver resolver = new(new TestFlowGroupResolver());
+        RulePositioningConfiguration configuration = Config(autoCalculateInternetZone: true);
         ComplianceNetworkZone internet = Zone(5, "Internet", "0.0.0.0", "255.255.255.255");
         internet.IsAutoCalculatedInternetZone = true;
 
         CreationRuleZoneInput input = Success(await resolver.ResolveAsync(CreateTask(
             Element(ElemFieldType.source, "203.0.113.1"), Element(ElemFieldType.destination, "198.51.100.1")),
-            [internet], CancellationToken.None));
+            [internet], configuration, CancellationToken.None));
 
         Assert.That(input.SourceZones.Single().Kind, Is.EqualTo(PositioningZoneKind.Persisted));
         Assert.That(input.SourceZones.Single().IsAutoCalculatedInternetZone, Is.True);
@@ -370,7 +375,8 @@ internal class CreationRuleZoneResolverTest
     [Test]
     public async Task ResolveAsync_RequiresExactlyOneValidAutomaticInternetZone()
     {
-        CreationRuleZoneResolver resolver = new(new TestFlowGroupResolver(), Config(autoCalculateInternetZone: true));
+        CreationRuleZoneResolver resolver = new(new TestFlowGroupResolver());
+        RulePositioningConfiguration configuration = Config(autoCalculateInternetZone: true);
         WfReqTask task = CreateTask(Element(ElemFieldType.source, "10.0.0.1"), Element(ElemFieldType.destination, "10.0.0.2"));
         ComplianceNetworkZone first = Zone(1, "Internet one", "0.0.0.0", "255.255.255.255");
         first.IsAutoCalculatedInternetZone = true;
@@ -380,9 +386,11 @@ internal class CreationRuleZoneResolverTest
         ipv6Only.IsAutoCalculatedInternetZone = true;
 
         CreationRuleZoneResolutionFailure missing = Failure(await resolver.ResolveAsync(task,
-            [Zone(4, "Internal", "10.0.0.0", "10.0.0.255")], CancellationToken.None));
-        CreationRuleZoneResolutionFailure duplicate = Failure(await resolver.ResolveAsync(task, [first, second], CancellationToken.None));
-        CreationRuleZoneResolutionFailure malformed = Failure(await resolver.ResolveAsync(task, [ipv6Only], CancellationToken.None));
+            [Zone(4, "Internal", "10.0.0.0", "10.0.0.255")], configuration, CancellationToken.None));
+        CreationRuleZoneResolutionFailure duplicate = Failure(await resolver.ResolveAsync(
+            task, [first, second], configuration, CancellationToken.None));
+        CreationRuleZoneResolutionFailure malformed = Failure(await resolver.ResolveAsync(
+            task, [ipv6Only], configuration, CancellationToken.None));
 
         Assert.That(new[] { missing.Category, duplicate.Category, malformed.Category },
             Is.All.EqualTo(CreationRuleZoneResolutionFailureCategory.InvalidZoneData));
@@ -509,18 +517,14 @@ internal class CreationRuleZoneResolverTest
 
     private static CreationRuleZoneResolver CreateResolver(TestFlowGroupResolver groupResolver)
     {
-        return new CreationRuleZoneResolver(groupResolver, Config(autoCalculateInternetZone: false));
+        return new CreationRuleZoneResolver(groupResolver);
     }
 
-    private static GlobalConfig Config(bool autoCalculateInternetZone, string internetZoneName = "Internet/Local")
+    private static RulePositioningConfiguration Config(
+        bool autoCalculateInternetZone,
+        string internetZoneName = "Internet/Local")
     {
-        GlobalConfig config = new()
-        {
-            DesignatedZoneMatrixId = kCriterionId,
-            AutoCalculateInternetZone = autoCalculateInternetZone
-        };
-        config.LangDict["English"]["internet_local_zone"] = internetZoneName;
-        return config;
+        return new RulePositioningConfiguration(kCriterionId, autoCalculateInternetZone, internetZoneName);
     }
 
     private static WfReqTask CreateTask(params WfReqElement[] elements)
@@ -634,4 +638,23 @@ internal class CreationRuleZoneResolverTest
             return GetEnumerator();
         }
     }
+}
+
+internal static class CreationRuleZoneResolverTestExtensions
+{
+    private static readonly RulePositioningConfiguration kDefaultConfiguration = new(7, false, "Internet/Local");
+
+    internal static Task<CreationRuleZoneResolutionResult> ResolveAsync(
+        this CreationRuleZoneResolver resolver,
+        WfReqTask requestTask,
+        IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+        CancellationToken cancellationToken) =>
+        resolver.ResolveAsync(requestTask, networkZones, kDefaultConfiguration, cancellationToken);
+
+    internal static Task<CreationRuleZoneResolutionResult> ResolveAsync(
+        this CreationRuleZoneResolver resolver,
+        CreationRuleNetworkInput networkInput,
+        IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+        CancellationToken cancellationToken) =>
+        resolver.ResolveAsync(networkInput, networkZones, kDefaultConfiguration, cancellationToken);
 }

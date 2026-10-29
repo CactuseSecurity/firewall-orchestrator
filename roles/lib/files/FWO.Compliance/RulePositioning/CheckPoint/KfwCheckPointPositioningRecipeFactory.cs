@@ -5,10 +5,10 @@ using FWO.Services.RulePositioning.CheckPoint;
 namespace FWO.Compliance.RulePositioning.CheckPoint;
 
 /// <summary>Builds the inactive KfW Check Point Section-native positioning recipe.</summary>
-public sealed class KfwCheckPointPositioningRecipeFactory
+public static class KfwCheckPointPositioningRecipeFactory
 {
     /// <summary>Validates customer inputs and constructs the complete immutable recipe.</summary>
-    public KfwCheckPointPositioningRecipeResult Create(
+    public static KfwCheckPointPositioningRecipeResult Create(
         KfwCheckPointPositioningInput? positioningInput,
         CreationRuleZoneInput? zoneInput)
     {

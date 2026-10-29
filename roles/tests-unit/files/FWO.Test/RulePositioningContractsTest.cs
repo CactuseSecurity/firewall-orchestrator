@@ -190,7 +190,7 @@ public class RulePositioningContractsTest
     /// <summary>
     /// Creates the test-only known position used to prove polymorphic behavior.
     /// </summary>
-    private static RulePosition KnownPosition()
+    private static MutableTestRulePosition KnownPosition()
     {
         return new MutableTestRulePosition
         {

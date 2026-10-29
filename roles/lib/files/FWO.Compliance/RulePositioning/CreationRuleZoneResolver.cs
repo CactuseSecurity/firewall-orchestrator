@@ -1,5 +1,4 @@
 using FWO.Basics;
-using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.RulePositioning;
@@ -11,13 +10,14 @@ using System.Net.Sockets;
 namespace FWO.Compliance.RulePositioning;
 
 /// <summary>Resolves a new access rule's workflow elements to ordered zone sets.</summary>
-public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolver, GlobalConfig globalConfig) : ICreationRuleZoneResolver
+public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolver) : ICreationRuleZoneResolver
 {
     private sealed record ActiveElement(NwObjectElement NetworkElement, WfReqElement RequestElement);
     private sealed record GroupReference(long? Id, string? Name);
     private sealed record SideResolution(List<PositioningZoneReference> Zones, ZoneCoverage Coverage);
 
-    private sealed class ResolutionFailureException(CreationRuleZoneResolutionFailureCategory category) : Exception
+    /// <summary>Internal control-flow failure carrying a safe public category.</summary>
+    public sealed class ResolutionFailureException(CreationRuleZoneResolutionFailureCategory category) : Exception
     {
         public CreationRuleZoneResolutionFailureCategory Category { get; } = category;
     }
@@ -26,13 +26,14 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
     public async Task<CreationRuleZoneResolutionResult> ResolveAsync(
         WfReqTask requestTask,
         IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+        RulePositioningConfiguration configuration,
         CancellationToken cancellationToken)
     {
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             ValidateSupportedTask(requestTask);
-            List<ComplianceNetworkZone> validatedZones = ValidateZones(networkZones, cancellationToken);
+            List<ComplianceNetworkZone> validatedZones = ValidateZones(networkZones, configuration, cancellationToken);
             (List<ActiveElement> sourceElements, List<ActiveElement> destinationElements) = GetActiveElements(requestTask, cancellationToken);
             Dictionary<long, FlowNetworkGroupResolution> groupsById = await ResolveGroupsAsync(
                 sourceElements.Concat(destinationElements), cancellationToken);
@@ -44,10 +45,10 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
                 return Failure(CreationRuleZoneResolutionFailureCategory.InvalidInput);
             }
 
-            SideResolution source = ResolveSide(sourceRanges, validatedZones, cancellationToken);
-            SideResolution destination = ResolveSide(destinationRanges, validatedZones, cancellationToken);
+            SideResolution source = ResolveSide(sourceRanges, validatedZones, configuration, cancellationToken);
+            SideResolution destination = ResolveSide(destinationRanges, validatedZones, configuration, cancellationToken);
             return new CreationRuleZoneResolutionSuccess(new CreationRuleZoneInput(
-                globalConfig.DesignatedZoneMatrixId,
+                configuration.DesignatedZoneMatrixId,
                 source.Zones,
                 destination.Zones,
                 source.Coverage,
@@ -75,6 +76,7 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
     public Task<CreationRuleZoneResolutionResult> ResolveAsync(
         CreationRuleNetworkInput networkInput,
         IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+        RulePositioningConfiguration configuration,
         CancellationToken cancellationToken)
     {
         try
@@ -85,12 +87,12 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
                 return Task.FromResult<CreationRuleZoneResolutionResult>(
                     Failure(CreationRuleZoneResolutionFailureCategory.InvalidInput));
             }
-            List<ComplianceNetworkZone> validatedZones = ValidateZones(networkZones, cancellationToken);
-            SideResolution source = ResolveSide([.. networkInput.SourceRanges], validatedZones, cancellationToken);
-            SideResolution destination = ResolveSide([.. networkInput.DestinationRanges], validatedZones, cancellationToken);
+            List<ComplianceNetworkZone> validatedZones = ValidateZones(networkZones, configuration, cancellationToken);
+            SideResolution source = ResolveSide([.. networkInput.SourceRanges], validatedZones, configuration, cancellationToken);
+            SideResolution destination = ResolveSide([.. networkInput.DestinationRanges], validatedZones, configuration, cancellationToken);
             return Task.FromResult<CreationRuleZoneResolutionResult>(new CreationRuleZoneResolutionSuccess(
                 new CreationRuleZoneInput(
-                    globalConfig.DesignatedZoneMatrixId,
+                    configuration.DesignatedZoneMatrixId,
                     source.Zones,
                     destination.Zones,
                     source.Coverage,
@@ -132,11 +134,13 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
     }
 
     /// <summary>Validates and copies caller-supplied zone rows.</summary>
-    private List<ComplianceNetworkZone> ValidateZones(
+    private static List<ComplianceNetworkZone> ValidateZones(
         IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+        RulePositioningConfiguration configuration,
         CancellationToken cancellationToken)
     {
-        if (globalConfig.DesignatedZoneMatrixId <= 0 || networkZones == null || networkZones.Count == 0)
+        if (configuration == null || configuration.DesignatedZoneMatrixId <= 0 ||
+            networkZones == null || networkZones.Count == 0)
         {
             throw new ResolutionFailureException(CreationRuleZoneResolutionFailureCategory.InvalidZoneData);
         }
@@ -147,7 +151,7 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (zone == null || zone.Id <= 0 || !zoneIds.Add(zone.Id)
-                || zone.CriterionId != globalConfig.DesignatedZoneMatrixId || string.IsNullOrWhiteSpace(zone.Name)
+                || zone.CriterionId != configuration.DesignatedZoneMatrixId || string.IsNullOrWhiteSpace(zone.Name)
                 || zone.IPRanges == null)
             {
                 throw new ResolutionFailureException(CreationRuleZoneResolutionFailureCategory.InvalidZoneData);
@@ -156,16 +160,17 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
             validatedZones.Add(CloneZone(zone, cancellationToken));
         }
 
-        ValidateAutomaticInternetZone(validatedZones, cancellationToken);
+        ValidateAutomaticInternetZone(validatedZones, configuration, cancellationToken);
         return validatedZones;
     }
 
     /// <summary>Validates the configured automatic Internet-zone invariant.</summary>
-    private void ValidateAutomaticInternetZone(
+    private static void ValidateAutomaticInternetZone(
         List<ComplianceNetworkZone> networkZones,
+        RulePositioningConfiguration configuration,
         CancellationToken cancellationToken)
     {
-        if (!globalConfig.AutoCalculateInternetZone)
+        if (!configuration.AutoCalculateInternetZone)
         {
             return;
         }
@@ -483,16 +488,17 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
     }
 
     /// <summary>Resolves and converts one side of the rule.</summary>
-    private SideResolution ResolveSide(
+    private static SideResolution ResolveSide(
         List<IPAddressRange> ranges,
         List<ComplianceNetworkZone> networkZones,
+        RulePositioningConfiguration configuration,
         CancellationToken cancellationToken)
     {
         List<ComplianceNetworkZone> resolvedZones = ComplianceZoneResolver.ResolveZones(
             ranges,
             networkZones,
-            globalConfig.AutoCalculateInternetZone,
-            globalConfig.GetText("internet_local_zone"),
+            configuration.AutoCalculateInternetZone,
+            configuration.InternetLocalZoneName,
             cancellationToken,
             out List<IPAddressRange> unassignableRanges);
         List<PositioningZoneReference> references = resolvedZones
@@ -500,9 +506,11 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
             .OrderBy(reference => reference.Kind)
             .ThenBy(reference => reference.Id)
             .ToList();
-        ZoneCoverage coverage = unassignableRanges.Count == 0
-            ? ZoneCoverage.Complete
-            : references.Count == 0 ? ZoneCoverage.None : ZoneCoverage.Partial;
+        ZoneCoverage coverage = ZoneCoverage.Complete;
+        if (unassignableRanges.Count > 0)
+        {
+            coverage = references.Count == 0 ? ZoneCoverage.None : ZoneCoverage.Partial;
+        }
         return new SideResolution(references, coverage);
     }
 

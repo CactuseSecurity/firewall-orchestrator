@@ -17,16 +17,19 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
     private readonly ApiConnection apiConnection;
     private readonly RulePositioningManager positioningManager;
     private readonly DeviceSpecificSettingsManager settingsManager;
+    private readonly GlobalConfig startupGlobalConfig;
 
     /// <summary>Creates an independently callable rule-positioning service.</summary>
     public RulePositioningWorkflowCaller(
         ApiConnection apiConnection,
         RulePositioningManager positioningManager,
-        DeviceSpecificSettingsManager settingsManager)
+        DeviceSpecificSettingsManager settingsManager,
+        GlobalConfig startupGlobalConfig)
     {
         this.apiConnection = apiConnection ?? throw new ArgumentNullException(nameof(apiConnection));
         this.positioningManager = positioningManager ?? throw new ArgumentNullException(nameof(positioningManager));
         this.settingsManager = settingsManager ?? throw new ArgumentNullException(nameof(settingsManager));
+        this.startupGlobalConfig = startupGlobalConfig ?? throw new ArgumentNullException(nameof(startupGlobalConfig));
     }
 
     /// <inheritdoc />
@@ -59,6 +62,9 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
                 target.Management.Id,
                 settings.Settings.PositioningAlgorithm,
                 cancellationToken);
+            RulePositioningConfiguration? configuration = await LoadConfigurationIfRequiredAsync(
+                settings.Settings.PositioningAlgorithm,
+                cancellationToken);
 
             RulePositioningContext context = new(
                 implementationTask,
@@ -66,7 +72,8 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
                 target.Gateway,
                 target.Management,
                 settings.Settings,
-                ticketTasks);
+                ticketTasks,
+                configuration);
             RulePositioningResult calculation = await positioningManager.CalculateAsync(
                 context,
                 cancellationToken);
@@ -99,6 +106,25 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
             RulePositioningWorkflowStatus.ClearedAfterFailure,
             failureCategory,
             cancellationToken);
+    }
+
+    /// <summary>Loads one current immutable global-settings snapshot for customer positioning.</summary>
+    private async Task<RulePositioningConfiguration?> LoadConfigurationIfRequiredAsync(
+        ProvisioningPositioningAlgorithm algorithm,
+        CancellationToken cancellationToken)
+    {
+        if (algorithm != ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection)
+        {
+            return null;
+        }
+
+        using GlobalConfig currentConfig = await startupGlobalConfig
+            .WithCurrentConfigItemsAsync(apiConnection)
+            .WaitAsync(cancellationToken);
+        return new RulePositioningConfiguration(
+            currentConfig.DesignatedZoneMatrixId,
+            currentConfig.AutoCalculateInternetZone,
+            currentConfig.GetText("internet_local_zone"));
     }
 
     /// <summary>Loads and validates the management-specific ticket slice only for ticket-aware positioning.</summary>

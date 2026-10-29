@@ -14,7 +14,7 @@ namespace FWO.Data.RulePositioning;
 /// </summary>
 internal static class RulePositioningAlgorithmJsonParser
 {
-    private static readonly IReadOnlyDictionary<string, ProvisioningPositioningAlgorithm> kNamedAlgorithms =
+    private static readonly Dictionary<string, ProvisioningPositioningAlgorithm> kNamedAlgorithms =
         BuildNamedAlgorithms();
 
     /// <summary>
@@ -42,7 +42,7 @@ internal static class RulePositioningAlgorithmJsonParser
     /// <summary>
     /// Builds the immutable lookup once from enum field names and explicit persisted values.
     /// </summary>
-    private static IReadOnlyDictionary<string, ProvisioningPositioningAlgorithm> BuildNamedAlgorithms()
+    private static Dictionary<string, ProvisioningPositioningAlgorithm> BuildNamedAlgorithms()
     {
         Dictionary<string, ProvisioningPositioningAlgorithm> algorithms =
             new(StringComparer.OrdinalIgnoreCase);

@@ -157,7 +157,15 @@ internal static class CheckPointGuardContainmentEvaluator
         {
             int value = bytes[index] + carry;
             bytes[index] = unchecked((byte)value);
-            carry = value < 0 ? -1 : value > byte.MaxValue ? 1 : 0;
+            carry = 0;
+            if (value < 0)
+            {
+                carry = -1;
+            }
+            else if (value > byte.MaxValue)
+            {
+                carry = 1;
+            }
         }
         return new IPAddress(bytes);
     }

@@ -124,10 +124,7 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
         if (!TryMapGraph(
                 rulebaseResult.Value,
                 gateway.Links!,
-                rulebaseIds,
-                managementId,
-                gatewayId,
-                importId,
+                new GraphMappingContext(rulebaseIds, managementId, gatewayId, importId),
                 out List<Rulebase> rulebases,
                 out List<RulebaseLink> links))
         {
@@ -272,16 +269,13 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
     private static bool TryMapGraph(
         List<RulebaseWire>? wireRulebases,
         List<LinkWire> wireLinks,
-        IReadOnlyCollection<int> requestedIds,
-        int managementId,
-        int gatewayId,
-        long importId,
+        GraphMappingContext context,
         out List<Rulebase> rulebases,
         out List<RulebaseLink> links)
     {
         rulebases = [];
         links = [];
-        if (wireRulebases == null || wireRulebases.Count != requestedIds.Count ||
+        if (wireRulebases == null || wireRulebases.Count != context.RequestedIds.Count ||
             wireRulebases.Count > kMaximumRulebases ||
             wireRulebases.Any(rulebase => rulebase == null ||
                 rulebase.Rules?.Count > kMaximumRulesPerRulebase) ||
@@ -295,10 +289,10 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
         foreach (RulebaseWire wireRulebase in wireRulebases)
         {
             if (wireRulebase.Id is not > 0 || !returnedIds.Add(wireRulebase.Id.Value) ||
-                !requestedIds.Contains(wireRulebase.Id.Value) || wireRulebase.ManagementId != managementId ||
-                !IsHistoricallyValid(wireRulebase.Created, wireRulebase.Removed, importId) ||
+                !context.RequestedIds.Contains(wireRulebase.Id.Value) || wireRulebase.ManagementId != context.ManagementId ||
+                !IsHistoricallyValid(wireRulebase.Created, wireRulebase.Removed, context.ImportId) ||
                 wireRulebase.Rules == null ||
-                !TryMapRules(wireRulebase, managementId, importId, returnedRuleIds, out List<Rule> rules))
+                !TryMapRules(wireRulebase, context.ManagementId, context.ImportId, returnedRuleIds, out List<Rule> rules))
             {
                 return false;
             }
@@ -308,12 +302,12 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
                 Id = wireRulebase.Id.Value,
                 Name = wireRulebase.Name ?? "",
                 Uid = wireRulebase.Uid ?? "",
-                MgmtId = managementId,
+                MgmtId = context.ManagementId,
                 Rules = [.. rules]
             });
         }
 
-        if (!returnedIds.SetEquals(requestedIds) ||
+        if (!returnedIds.SetEquals(context.RequestedIds) ||
             wireLinks.Any(link => link.SourceRuleId.HasValue && !returnedRuleIds.Contains(link.SourceRuleId.Value)))
         {
             return false;
@@ -321,7 +315,7 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
 
         links = wireLinks.Select(link => new RulebaseLink
         {
-            GatewayId = gatewayId,
+            GatewayId = context.GatewayId,
             FromRuleId = link.SourceRuleId,
             FromRulebaseId = link.SourceRulebaseId,
             NextRulebaseId = link.TargetRulebaseId!.Value,
@@ -332,6 +326,13 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
         }).ToList();
         return true;
     }
+
+    /// <summary>Values shared while mapping one fixed-import graph response.</summary>
+    private sealed record GraphMappingContext(
+        List<int> RequestedIds,
+        int ManagementId,
+        int GatewayId,
+        long ImportId);
 
     /// <summary>
     /// Validates and maps all structural rules belonging to one rulebase.

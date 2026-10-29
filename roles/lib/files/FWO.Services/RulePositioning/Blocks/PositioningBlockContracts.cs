@@ -60,6 +60,9 @@ public enum PositioningBlockFailureCategory
 /// </summary>
 public abstract class PositioningBlockResult<TOutput>
 {
+    /// <summary>Gets the output type represented by this result contract.</summary>
+    public Type OutputType { get; } = typeof(TOutput);
+
     private protected PositioningBlockResult()
     { }
 }

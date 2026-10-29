@@ -93,7 +93,7 @@ public sealed class PositioningRecipe<TContext, TOutput>
 /// </summary>
 public sealed class PositioningRecipeException : ArgumentException
 {
-    public PositioningBlockFailureCategory Category => PositioningBlockFailureCategory.InvalidRecipe;
+    public PositioningBlockFailureCategory Category { get; } = PositioningBlockFailureCategory.InvalidRecipe;
     public string OriginatingBlockKind { get; }
 
     internal PositioningRecipeException(string originatingBlockKind, string message)

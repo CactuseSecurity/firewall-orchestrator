@@ -12,7 +12,6 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
 {
     private readonly IFlowGroupResolver flowGroupResolver = flowGroupResolver ??
         throw new ArgumentNullException(nameof(flowGroupResolver));
-    private readonly TicketNetworkStateProjector projector = new();
 
     /// <inheritdoc />
     public async Task<CreationRuleNetworkResolutionResult> ResolveAsync(
@@ -24,7 +23,9 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         {
             cancellationToken.ThrowIfCancellationRequested();
             ValidateAccessTask(accessTask);
-            IReadOnlyList<WfReqTask> orderedTasks = projector.Project(accessTask, ticketTasks);
+            IReadOnlyList<WfReqTask> orderedTasks = TicketNetworkStateProjector.Project(
+                accessTask,
+                ticketTasks);
             List<WfReqElement> sources = ActiveSide(accessTask, ElemFieldType.source);
             List<WfReqElement> destinations = ActiveSide(accessTask, ElemFieldType.destination);
             if (sources.Count == 0 || destinations.Count == 0)
@@ -425,8 +426,19 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
     private sealed record GroupIdentity(long? FlowId, long? NormalizedId, string Name)
     {
         internal bool IsUsable => FlowId is > 0 || NormalizedId is > 0 || Name.Length > 0;
-        internal string Key => FlowId is > 0 ? $"f:{FlowId}" :
-            NormalizedId is > 0 ? $"n:{NormalizedId}" : $"s:{Name.ToUpperInvariant()}";
+        internal string Key
+        {
+            get
+            {
+                if (FlowId is > 0)
+                {
+                    return $"f:{FlowId}";
+                }
+                return NormalizedId is > 0
+                    ? $"n:{NormalizedId}"
+                    : $"s:{Name.ToUpperInvariant()}";
+            }
+        }
     }
 
     private sealed class CatalogIndex(IReadOnlyCollection<FlowNetworkGroupResolution> groups)

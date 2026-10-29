@@ -4,7 +4,7 @@ namespace FWO.Data.RulePositioning;
 
 internal static class RulePositionTypeResolver
 {
-    private static readonly Lazy<IReadOnlyDictionary<string, Type>> kTypesByDiscriminator =
+    private static readonly Lazy<Dictionary<string, Type>> kTypesByDiscriminator =
         new(BuildRegistry);
 
     /// <summary>
@@ -20,7 +20,7 @@ internal static class RulePositionTypeResolver
     /// <summary>
     /// Builds the immutable discriminator registry once for the lifetime of the process.
     /// </summary>
-    private static IReadOnlyDictionary<string, Type> BuildRegistry()
+    private static Dictionary<string, Type> BuildRegistry()
     {
         List<(string Discriminator, Type PositionType)> registrations = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(GetLoadableTypes)

@@ -68,12 +68,8 @@ public enum CheckPointRecipeSelectionFailureCategory
 }
 
 /// <summary>Maps the customer Check Point algorithm to its complete immutable recipe.</summary>
-public sealed class CheckPointPositioningRecipeCatalog(KfwCheckPointPositioningRecipeFactory recipeFactory)
-    : ICheckPointPositioningRecipeCatalog
+public sealed class CheckPointPositioningRecipeCatalog : ICheckPointPositioningRecipeCatalog
 {
-    private readonly KfwCheckPointPositioningRecipeFactory recipeFactory = recipeFactory ??
-        throw new ArgumentNullException(nameof(recipeFactory));
-
     /// <inheritdoc />
     public bool SupportsAlgorithm(ProvisioningPositioningAlgorithm positioningAlgorithm) =>
         positioningAlgorithm == ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection;
@@ -90,7 +86,9 @@ public sealed class CheckPointPositioningRecipeCatalog(KfwCheckPointPositioningR
                 CheckPointRecipeSelectionFailureCategory.NoMatchingRecipe);
         }
 
-        KfwCheckPointPositioningRecipeResult result = recipeFactory.Create(positioningInput, zoneInput);
+        KfwCheckPointPositioningRecipeResult result = KfwCheckPointPositioningRecipeFactory.Create(
+            positioningInput,
+            zoneInput);
         return result is KfwCheckPointPositioningRecipeSuccess success
             ? new CheckPointRecipeSelectionSuccess(success.Recipe)
             : new CheckPointRecipeSelectionFailure(CheckPointRecipeSelectionFailureCategory.CatalogInvalid);

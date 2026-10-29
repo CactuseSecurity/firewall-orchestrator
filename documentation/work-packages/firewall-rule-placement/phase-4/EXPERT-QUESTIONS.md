@@ -149,4 +149,3 @@ These were already present in the root TODO and should not be confused with Phas
 
 - Ask audit stakeholders whether storing, replacing, or clearing a rule position needs an event, and define actor, payload, retention, and clearing semantics.
 - In a later modify/retry work package, decide whether gateway, management, or relevant rule-content changes clear or recalculate a stored position, and whether an authorized manual retry is required.
-

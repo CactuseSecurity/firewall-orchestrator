@@ -46,7 +46,7 @@ public sealed class CheckPointRulePosition : RulePosition, IJsonOnDeserialized
         AnchorKind = anchorKind;
         AnchorRuleUid = anchorRuleUid;
         PositioningAlgorithm = positioningAlgorithm;
-        Validate();
+        Validate(layerUid, anchorKind, anchorRuleUid, positioningAlgorithm);
     }
 
     /// <summary>
@@ -58,38 +58,50 @@ public sealed class CheckPointRulePosition : RulePosition, IJsonOnDeserialized
     /// <summary>
     /// Validates values populated by System.Text.Json.
     /// </summary>
-    void IJsonOnDeserialized.OnDeserialized() => Validate();
+    void IJsonOnDeserialized.OnDeserialized() => Validate(
+        LayerUid,
+        AnchorKind,
+        AnchorRuleUid,
+        PositioningAlgorithm);
 
     /// <summary>
     /// Validates values populated by Newtonsoft.Json.
     /// </summary>
     [OnDeserialized]
-    private void OnDeserialized(StreamingContext context) => Validate();
+    private void OnDeserialized(StreamingContext context) => Validate(
+        LayerUid,
+        AnchorKind,
+        AnchorRuleUid,
+        PositioningAlgorithm);
 
     /// <summary>
     /// Enforces anchor and algorithm invariants for construction and persistence loading.
     /// </summary>
-    private void Validate()
+    private static void Validate(
+        string layerUid,
+        CheckPointPositionAnchorKind anchorKind,
+        string? anchorRuleUid,
+        ProvisioningPositioningAlgorithm positioningAlgorithm)
     {
-        if (string.IsNullOrWhiteSpace(LayerUid))
+        if (string.IsNullOrWhiteSpace(layerUid))
         {
-            throw new ArgumentException("A Check Point layer UID is required.", nameof(LayerUid));
+            throw new ArgumentException("A Check Point layer UID is required.", nameof(layerUid));
         }
-        if (!Enum.IsDefined(AnchorKind))
+        if (!Enum.IsDefined(anchorKind))
         {
-            throw new ArgumentOutOfRangeException(nameof(AnchorKind));
+            throw new ArgumentOutOfRangeException(nameof(anchorKind));
         }
-        bool needsRuleUid = AnchorKind is CheckPointPositionAnchorKind.Above or CheckPointPositionAnchorKind.Below;
-        if (needsRuleUid != !string.IsNullOrWhiteSpace(AnchorRuleUid))
+        bool needsRuleUid = anchorKind is CheckPointPositionAnchorKind.Above or CheckPointPositionAnchorKind.Below;
+        if (needsRuleUid != !string.IsNullOrWhiteSpace(anchorRuleUid))
         {
             throw new ArgumentException(
                 "Above and below anchors require one rule UID; top and bottom anchors prohibit it.",
-                nameof(AnchorRuleUid));
+                nameof(anchorRuleUid));
         }
-        if (!Enum.IsDefined(PositioningAlgorithm) ||
-            PositioningAlgorithm == ProvisioningPositioningAlgorithm.Undefined)
+        if (!Enum.IsDefined(positioningAlgorithm) ||
+            positioningAlgorithm == ProvisioningPositioningAlgorithm.Undefined)
         {
-            throw new ArgumentOutOfRangeException(nameof(PositioningAlgorithm));
+            throw new ArgumentOutOfRangeException(nameof(positioningAlgorithm));
         }
     }
 }

@@ -15,6 +15,10 @@ public class CheckPointPositioningContractsTest
     private const int kGatewayId = 20;
     private const ProvisioningPositioningAlgorithm kAlgorithm =
         ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection;
+    private static readonly string[] kExpectedRulebaseUids = ["layer-1", "section-1", "inline-1"];
+    private static readonly string[] kExpectedRuleUids = ["earlier", "later"];
+    private static readonly int[] kExpectedNativeOrder = [1, 2];
+    private static readonly long[] kExpectedTargetRulebaseIds = [1, 2, 3];
 
     [Test]
     public void Snapshot_DefensivelyCopiesEntitiesCollectionsAndNativeOrder()
@@ -48,14 +52,14 @@ public class CheckPointPositioningContractsTest
         Assert.Multiple(() =>
         {
             Assert.That(snapshot.Rulebases.Select(rulebase => rulebase.Uid),
-                Is.EqualTo(new[] { "layer-1", "section-1", "inline-1" }));
+                Is.EqualTo(kExpectedRulebaseUids));
             Assert.That(snapshot.Rulebases[0].Name, Is.EqualTo("Network"));
             Assert.That(snapshot.Rulebases[0].Rules.Select(rule => rule.Uid),
-                Is.EqualTo(new[] { "earlier", "later" }));
+                Is.EqualTo(kExpectedRuleUids));
             Assert.That(snapshot.Rulebases[0].Rules.Select(rule => rule.NativeOrder),
-                Is.EqualTo(new[] { 1, 2 }));
+                Is.EqualTo(kExpectedNativeOrder));
             Assert.That(snapshot.Links.Select(link => link.TargetRulebaseId),
-                Is.EqualTo(new long[] { 1, 2, 3 }));
+                Is.EqualTo(kExpectedTargetRulebaseIds));
             Assert.That(snapshot.Links[0].LinkType, Is.EqualTo(RulebaseLinkTypes.Ordered));
             Assert.That(snapshot.Links[0].IsInitial, Is.True);
             Assert.That(snapshot.Links[0].IsGlobal, Is.True);

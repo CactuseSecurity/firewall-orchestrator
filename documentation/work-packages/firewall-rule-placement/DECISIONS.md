@@ -78,7 +78,7 @@ Do not analyze `FWO_Regel_Platzierung_Regelwerk.md` during Phase 1 planning or i
 
 Rationale: customer-algorithm details must not distort the generic Phase 1 contracts.
 
-## 2026-10-05 — D-013 — Preserve but demote the previous proposal
+## 2026-10-05 — D-013 — Preserve but demote the previous proposal (superseded by D-065)
 
 The previous WP-00 through WP-08 proposal and its vendor-extension note are preserved verbatim under `archive/previous-proposal/`. They are not approved work and do not override active documents.
 
@@ -459,3 +459,9 @@ The production customer orchestrator reads the graph and its exact successful im
 It reuses the existing creation trigger and dedicated `rule_position` mutation. Failures have no fallback or retry and clear stale positions through the established best-effort workflow behavior. Rendering, Check Point API calls, publish/install, auditing, manual recalculation, and schema changes remain out of scope.
 
 Rationale: WP-01 already completed calculation semantics; WP-02 connects those semantics to the validated production seam without reopening persistence or firewall-execution design.
+
+## 2026-10-29 - D-065 - Remove the superseded proposal
+
+Remove the archived WP-00 through WP-08 proposal after the implemented work packages became the authoritative record. D-013 is superseded.
+
+Rationale: retaining obsolete plans after implementation creates maintenance noise and a second apparent source of truth.

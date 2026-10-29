@@ -11,18 +11,17 @@ internal class DesignatedZoneMatrixReaderTest
 {
     private const int kCriterionId = 12;
     private const string kSentinel = "reader-secret-sentinel";
+    private static readonly string[] kMatrixAndZoneOperations = ["matrix", "zones"];
 
     [Test]
-    public async Task ReadAsync_LoadsMatrixThenZonesWithOneCapturedId()
+    public async Task ReadAsync_LoadsMatrixThenZonesWithRequestedId()
     {
-        SimulatedGlobalConfig config = new() { DesignatedZoneMatrixId = kCriterionId };
         RecordingApiConnection api = new(
             [new ComplianceCriterion { Id = kCriterionId, Name = "Matrix" }],
             [new ComplianceNetworkZone { Id = 21, CriterionId = kCriterionId, Name = "Zone" }]);
-        api.AfterMatrixQuery = () => config.DesignatedZoneMatrixId = 99;
 
-        DesignatedZoneMatrixReadSuccess success = Success(await new DesignatedZoneMatrixReader(api, config)
-            .ReadAsync(CancellationToken.None));
+        DesignatedZoneMatrixReadSuccess success = Success(await new DesignatedZoneMatrixReader(api)
+            .ReadAsync(kCriterionId, CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -38,9 +37,8 @@ internal class DesignatedZoneMatrixReaderTest
     {
         RecordingApiConnection api = new([], []);
 
-        DesignatedZoneMatrixReadFailure failure = Failure(await new DesignatedZoneMatrixReader(
-            api,
-            new SimulatedGlobalConfig { DesignatedZoneMatrixId = criterionId }).ReadAsync(CancellationToken.None));
+        DesignatedZoneMatrixReadFailure failure = Failure(await new DesignatedZoneMatrixReader(api)
+            .ReadAsync(criterionId, CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -54,7 +52,7 @@ internal class DesignatedZoneMatrixReaderTest
     {
         RecordingApiConnection api = new([], []);
 
-        DesignatedZoneMatrixReadFailure failure = Failure(await Reader(api).ReadAsync(CancellationToken.None));
+        DesignatedZoneMatrixReadFailure failure = Failure(await Reader(api).ReadAsync(kCriterionId, CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -72,7 +70,7 @@ internal class DesignatedZoneMatrixReaderTest
             : [new() { Id = kCriterionId + 1 }];
         RecordingApiConnection api = new(matrices, []);
 
-        DesignatedZoneMatrixReadFailure failure = Failure(await Reader(api).ReadAsync(CancellationToken.None));
+        DesignatedZoneMatrixReadFailure failure = Failure(await Reader(api).ReadAsync(kCriterionId, CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -89,7 +87,7 @@ internal class DesignatedZoneMatrixReaderTest
             [new ComplianceCriterion { Id = kCriterionId }],
             nullPayload ? null : []);
 
-        DesignatedZoneMatrixReadSuccess success = Success(await Reader(api).ReadAsync(CancellationToken.None));
+        DesignatedZoneMatrixReadSuccess success = Success(await Reader(api).ReadAsync(kCriterionId, CancellationToken.None));
 
         Assert.That(success.NetworkZones, Is.Empty);
     }
@@ -105,7 +103,7 @@ internal class DesignatedZoneMatrixReaderTest
             ThrowOperation = operation
         };
 
-        DesignatedZoneMatrixReadFailure failure = Failure(await Reader(api).ReadAsync(CancellationToken.None));
+        DesignatedZoneMatrixReadFailure failure = Failure(await Reader(api).ReadAsync(kCriterionId, CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -115,7 +113,7 @@ internal class DesignatedZoneMatrixReaderTest
             Assert.That(failure.Diagnostic, Does.Not.Contain("secret-matrix"));
             Assert.That(failure.Diagnostic, Does.Not.Contain("secret-zone"));
             Assert.That(failure.Diagnostic, Does.Not.Contain("192.0.2.1"));
-            Assert.That(api.Operations, Is.EqualTo(operation == "matrix" ? ["matrix"] : new[] { "matrix", "zones" }));
+            Assert.That(api.Operations, Is.EqualTo(operation == "matrix" ? ["matrix"] : kMatrixAndZoneOperations));
         });
     }
 
@@ -126,7 +124,8 @@ internal class DesignatedZoneMatrixReaderTest
         using CancellationTokenSource cancellation = new();
         cancellation.Cancel();
 
-        Assert.ThrowsAsync<OperationCanceledException>(async () => await Reader(api).ReadAsync(cancellation.Token));
+        Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await Reader(api).ReadAsync(kCriterionId, cancellation.Token));
         Assert.That(api.Operations, Is.Empty);
     }
 
@@ -139,13 +138,13 @@ internal class DesignatedZoneMatrixReaderTest
             PendingOperation = operation
         };
         using CancellationTokenSource cancellation = new();
-        Task<DesignatedZoneMatrixReadResult> read = Reader(api).ReadAsync(cancellation.Token);
+        Task<DesignatedZoneMatrixReadResult> read = Reader(api).ReadAsync(kCriterionId, cancellation.Token);
         await api.QueryStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
         cancellation.Cancel();
 
         Assert.CatchAsync<OperationCanceledException>(async () => await read);
-        Assert.That(api.Operations, Is.EqualTo(operation == "matrix" ? ["matrix"] : new[] { "matrix", "zones" }));
+        Assert.That(api.Operations, Is.EqualTo(operation == "matrix" ? ["matrix"] : kMatrixAndZoneOperations));
     }
 
     [Test]
@@ -153,7 +152,8 @@ internal class DesignatedZoneMatrixReaderTest
     {
         List<ComplianceNetworkZone> zones = [new() { Id = 1, CriterionId = kCriterionId }];
         DesignatedZoneMatrixReadSuccess success = Success(await Reader(new(
-            [new ComplianceCriterion { Id = kCriterionId }], zones)).ReadAsync(CancellationToken.None));
+            [new ComplianceCriterion { Id = kCriterionId }], zones))
+            .ReadAsync(kCriterionId, CancellationToken.None));
 
         zones.Add(new ComplianceNetworkZone { Id = 2, CriterionId = kCriterionId });
         zones.Clear();
@@ -177,7 +177,7 @@ internal class DesignatedZoneMatrixReaderTest
     }
 
     private static DesignatedZoneMatrixReader Reader(RecordingApiConnection api) =>
-        new(api, new SimulatedGlobalConfig { DesignatedZoneMatrixId = kCriterionId });
+        new(api);
 
     private static DesignatedZoneMatrixReadSuccess Success(DesignatedZoneMatrixReadResult result) =>
         (DesignatedZoneMatrixReadSuccess)result;
@@ -191,7 +191,6 @@ internal class DesignatedZoneMatrixReaderTest
     {
         public List<string> Operations { get; } = [];
         public List<int> Criteria { get; } = [];
-        public Action? AfterMatrixQuery { get; set; }
         public string? ThrowOperation { get; init; }
         public string? PendingOperation { get; init; }
         public TaskCompletionSource QueryStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -217,7 +216,6 @@ internal class DesignatedZoneMatrixReaderTest
             }
             if (operation == "matrix")
             {
-                AfterMatrixQuery?.Invoke();
                 return Task.FromResult((T)(object?)matrices!);
             }
             if (operation == "zones")

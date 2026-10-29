@@ -116,7 +116,10 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        DesignatedZoneMatrixReadResult matrixResult = await zoneMatrixReader.ReadAsync(cancellationToken);
+        RulePositioningConfiguration configuration = context.Configuration!;
+        DesignatedZoneMatrixReadResult matrixResult = await zoneMatrixReader.ReadAsync(
+            configuration.DesignatedZoneMatrixId,
+            cancellationToken);
         if (matrixResult is not DesignatedZoneMatrixReadSuccess matrixSuccess)
         {
             return MapMatrixFailure(matrixResult);
@@ -126,6 +129,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         CreationRuleZoneResolutionResult zoneResult = await zoneResolver.ResolveAsync(
             networkSuccess.Input,
             matrixSuccess.NetworkZones,
+            configuration,
             cancellationToken);
         if (zoneResult is not CreationRuleZoneResolutionSuccess zoneSuccess)
         {
@@ -175,6 +179,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
             || context.TargetManagement == null
             || context.ParentRequestTask == null
             || context.TicketRequestTasks == null
+            || context.Configuration == null
             || context.EffectiveSettings == null
             || context.TargetManagement.Id <= 0
             || context.TargetGateway.Id <= 0)
@@ -262,11 +267,13 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     /// <summary>Maps recipe-selection failures to the Phase 1 contract.</summary>
     private static RulePositioningFailure MapSelectionFailure(CheckPointRecipeSelectionResult result)
     {
-        RulePositioningFailureCategory category = result is CheckPointRecipeSelectionFailure failure
-            ? failure.Category == CheckPointRecipeSelectionFailureCategory.NoMatchingRecipe
+        RulePositioningFailureCategory category = RulePositioningFailureCategory.CalculationFailed;
+        if (result is CheckPointRecipeSelectionFailure failure)
+        {
+            category = failure.Category == CheckPointRecipeSelectionFailureCategory.NoMatchingRecipe
                 ? RulePositioningFailureCategory.PositioningMethodNotImplemented
-                : RulePositioningFailureCategory.ConfigurationInvalid
-            : RulePositioningFailureCategory.CalculationFailed;
+                : RulePositioningFailureCategory.ConfigurationInvalid;
+        }
         return Failure(category);
     }
 

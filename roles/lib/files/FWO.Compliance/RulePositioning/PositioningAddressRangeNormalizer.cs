@@ -12,9 +12,11 @@ internal static class PositioningAddressRangeNormalizer
     {
         bool hasCidr = element.Cidr?.Valid == true;
         string start = hasCidr ? element.Cidr!.CidrString : element.IpString ?? string.Empty;
-        string end = hasCidr
-            ? element.CidrEnd?.Valid == true ? element.CidrEnd.CidrString : string.Empty
-            : element.IpEnd ?? string.Empty;
+        string end = element.IpEnd ?? string.Empty;
+        if (hasCidr)
+        {
+            end = element.CidrEnd?.Valid == true ? element.CidrEnd.CidrString : string.Empty;
+        }
         if (string.IsNullOrWhiteSpace(start))
         {
             throw new NetworkResolutionException(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved);
@@ -80,7 +82,9 @@ internal static class PositioningAddressRangeNormalizer
         new(CreationRuleNetworkResolutionFailureCategory.InvalidAddress);
 }
 
-internal sealed class NetworkResolutionException(CreationRuleNetworkResolutionFailureCategory category) : Exception
+/// <summary>Signals one safely categorized network-input normalization failure.</summary>
+public sealed class NetworkResolutionException(CreationRuleNetworkResolutionFailureCategory category) : Exception
 {
-    internal CreationRuleNetworkResolutionFailureCategory Category { get; } = category;
+    /// <summary>Gets the safe failure category.</summary>
+    public CreationRuleNetworkResolutionFailureCategory Category { get; } = category;
 }

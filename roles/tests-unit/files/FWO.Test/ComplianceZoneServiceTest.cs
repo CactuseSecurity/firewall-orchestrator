@@ -326,12 +326,14 @@ internal class ComplianceZoneServiceTest
 
     private static ComplianceZoneService CreateService(ComplianceZoneServiceApiConn apiConnection, SimulatedGlobalConfig globalConfig)
     {
-        return new ComplianceZoneService(new DesignatedZoneMatrixReader(apiConnection, globalConfig), globalConfig);
+        return new ComplianceZoneService(new DesignatedZoneMatrixReader(apiConnection), globalConfig);
     }
 
     private sealed class StubZoneMatrixReader(DesignatedZoneMatrixReadResult result) : IDesignatedZoneMatrixReader
     {
-        public Task<DesignatedZoneMatrixReadResult> ReadAsync(CancellationToken cancellationToken)
+        public Task<DesignatedZoneMatrixReadResult> ReadAsync(
+            int criterionId,
+            CancellationToken cancellationToken)
         {
             return Task.FromResult(result);
         }

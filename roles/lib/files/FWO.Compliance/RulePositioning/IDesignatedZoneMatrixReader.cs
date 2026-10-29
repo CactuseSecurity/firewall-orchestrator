@@ -6,8 +6,8 @@ namespace FWO.Compliance.RulePositioning;
 /// <summary>Loads the configured designated zone matrix for positioning calculations.</summary>
 public interface IDesignatedZoneMatrixReader
 {
-    /// <summary>Loads the configured matrix and its network zones.</summary>
-    Task<DesignatedZoneMatrixReadResult> ReadAsync(CancellationToken cancellationToken);
+    /// <summary>Loads the selected matrix and its network zones.</summary>
+    Task<DesignatedZoneMatrixReadResult> ReadAsync(int criterionId, CancellationToken cancellationToken);
 }
 
 /// <summary>Base result for a designated-zone-matrix read.</summary>

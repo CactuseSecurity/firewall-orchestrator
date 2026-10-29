@@ -10,6 +10,9 @@ namespace FWO.Test;
 [TestFixture]
 public class CreationRuleNetworkInputResolverTest
 {
+    private static readonly string[] kExpectedResolvedSourceAddresses = ["10.0.0.1", "10.0.0.2"];
+    private static readonly long[] kExpectedRequestedGroupIds = [7];
+
     [Test]
     public async Task DirectRanges_AreNormalizedDeduplicatedAndImmutable()
     {
@@ -97,8 +100,8 @@ public class CreationRuleNetworkInputResolverTest
             await Resolver(groups).ResolveAsync(access, [access], CancellationToken.None);
 
         Assert.That(success.Input.SourceRanges.Select(range => range.Begin.ToString()),
-            Is.EqualTo(new[] { "10.0.0.1", "10.0.0.2" }));
-        Assert.That(groups.Parameters!.NetworkGroupIds, Is.EqualTo(new long[] { 7 }));
+            Is.EqualTo(kExpectedResolvedSourceAddresses));
+        Assert.That(groups.Parameters!.NetworkGroupIds, Is.EqualTo(kExpectedRequestedGroupIds));
     }
 
     [Test]

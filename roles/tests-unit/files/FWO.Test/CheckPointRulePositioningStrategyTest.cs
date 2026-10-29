@@ -77,7 +77,7 @@ internal class CheckPointRulePositioningStrategyTest
     [Test]
     public void ProductionCatalog_MapsOnlyCustomerAlgorithmToKfwRecipe()
     {
-        CheckPointPositioningRecipeCatalog catalog = new(new KfwCheckPointPositioningRecipeFactory());
+        CheckPointPositioningRecipeCatalog catalog = new();
         KfwCheckPointPositioningInput input = new(
             NetworkInput(),
             new CheckPointLayerGuardSnapshot(kManagementId, kGatewayId, 1, []));
@@ -648,7 +648,8 @@ internal class CheckPointRulePositioningStrategyTest
             },
             management,
             new GatewayDeviceSpecificSettings { PositioningAlgorithm = kAlgorithm },
-            [requestTask]);
+            [requestTask],
+            new RulePositioningConfiguration(kCriterionId, false, "Internet"));
     }
 
     private static RulebaseGraphSnapshot Snapshot(int managementId, int gatewayId, string layerUid)
@@ -914,7 +915,9 @@ internal class CheckPointRulePositioningStrategyTest
         public int CallCount { get; private set; }
         public CancellationToken Token { get; private set; }
 
-        public async Task<DesignatedZoneMatrixReadResult> ReadAsync(CancellationToken cancellationToken)
+        public async Task<DesignatedZoneMatrixReadResult> ReadAsync(
+            int criterionId,
+            CancellationToken cancellationToken)
         {
             CallCount++;
             Token = cancellationToken;
@@ -944,11 +947,13 @@ internal class CheckPointRulePositioningStrategyTest
         public async Task<CreationRuleZoneResolutionResult> ResolveAsync(
             WfReqTask requestTask,
             IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+            RulePositioningConfiguration configuration,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public async Task<CreationRuleZoneResolutionResult> ResolveAsync(
             CreationRuleNetworkInput networkInput,
             IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+            RulePositioningConfiguration configuration,
             CancellationToken cancellationToken)
         {
             CallCount++;
@@ -1082,6 +1087,7 @@ internal class CheckPointRulePositioningStrategyTest
         public Task<CreationRuleZoneResolutionResult> ResolveAsync(
             WfReqTask requestTask,
             IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+            RulePositioningConfiguration configuration,
             CancellationToken cancellationToken)
         {
             throw new NotSupportedException();
@@ -1090,6 +1096,7 @@ internal class CheckPointRulePositioningStrategyTest
         public Task<CreationRuleZoneResolutionResult> ResolveAsync(
             CreationRuleNetworkInput networkInput,
             IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+            RulePositioningConfiguration configuration,
             CancellationToken cancellationToken) => Task.FromResult<CreationRuleZoneResolutionResult>(
                 new CreationRuleZoneResolutionSuccess(ZoneInput()));
     }

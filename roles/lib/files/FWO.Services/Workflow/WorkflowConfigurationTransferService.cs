@@ -221,7 +221,8 @@ namespace FWO.Services.Workflow
                 .Select(state => (object)new { from_state_id = state.FromStateId, derived_state_id = state.DerivedStateId }).ToList();
             List<object> transitionGroups = phase.TransitionGroups.Select((name, sortOrder) => (object)new
             {
-                transition_group_id = transitionGroupIds[name], sort_order = sortOrder
+                transition_group_id = transitionGroupIds[name],
+                sort_order = sortOrder
             }).ToList();
             await apiConnection.SendQueryAsync<object>(RequestQueries.addWorkflowConfigurationPhase, new
             {

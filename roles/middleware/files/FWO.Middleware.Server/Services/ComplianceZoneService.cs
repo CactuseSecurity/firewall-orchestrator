@@ -68,7 +68,9 @@ public sealed class ComplianceZoneService(IDesignatedZoneMatrixReader zoneMatrix
 
     private async Task<List<ComplianceNetworkZone>> LoadDesignatedZoneMatrixZonesAsync()
     {
-        DesignatedZoneMatrixReadResult result = await zoneMatrixReader.ReadAsync(CancellationToken.None);
+        DesignatedZoneMatrixReadResult result = await zoneMatrixReader.ReadAsync(
+            globalConfig.DesignatedZoneMatrixId,
+            CancellationToken.None);
         if (result is DesignatedZoneMatrixReadSuccess success)
         {
             return [.. success.NetworkZones];

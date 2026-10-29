@@ -322,4 +322,3 @@ internal class CheckPointGraphPositioningTest
         }
     }
 }
-

@@ -161,8 +161,18 @@ public class RulePositionPersistenceTest
     {
         string json = $$"""
             [
-              { "id": 41, "rule_position": {{CreateCheckPointPositionJson("999", "3")}} },
-              { "id": 42, "rule_position": {{CreateCheckPointPositionJson("5", "3")}} }
+              { "id": 41, "rule_position": 7 },
+              { "id": 42, "rule_position": ["invalid"] },
+              {
+                "id": 43,
+                "rule_position": {
+                  "position_type": "{{kUnknownDiscriminator}}",
+                  "schema_version": {},
+                  "positioning_algorithm": {},
+                  "vendor_data": { "anchor": "retained" }
+                }
+              },
+              { "id": 44, "rule_position": {{CreateCheckPointPositionJson("5", "3")}} }
             ]
             """;
 
@@ -171,13 +181,19 @@ public class RulePositionPersistenceTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(newtonsoftTasks, Has.Count.EqualTo(2));
-            Assert.That(systemTextTasks, Has.Count.EqualTo(2));
-            Assert.That(newtonsoftTasks[0].RulePosition, Is.TypeOf<UnknownRulePosition>());
-            Assert.That(systemTextTasks[0].RulePosition, Is.TypeOf<UnknownRulePosition>());
-            AssertCheckPointPosition(newtonsoftTasks[1].RulePosition,
+            Assert.That(newtonsoftTasks, Has.Count.EqualTo(4));
+            Assert.That(systemTextTasks, Has.Count.EqualTo(4));
+            Assert.That(newtonsoftTasks.Take(2).Select(task => task.RulePosition), Is.All.Null);
+            Assert.That(systemTextTasks.Take(2).Select(task => task.RulePosition), Is.All.Null);
+            Assert.That(newtonsoftTasks[2].RulePosition, Is.TypeOf<UnknownRulePosition>());
+            Assert.That(systemTextTasks[2].RulePosition, Is.TypeOf<UnknownRulePosition>());
+            Assert.That(((UnknownRulePosition)newtonsoftTasks[2].RulePosition!).RawPayload["vendor_data"]!["anchor"]!.GetValue<string>(),
+                Is.EqualTo("retained"));
+            Assert.That(((UnknownRulePosition)systemTextTasks[2].RulePosition!).RawPayload["vendor_data"]!["anchor"]!.GetValue<string>(),
+                Is.EqualTo("retained"));
+            AssertCheckPointPosition(newtonsoftTasks[3].RulePosition,
                 ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "layer", "anchor");
-            AssertCheckPointPosition(systemTextTasks[1].RulePosition,
+            AssertCheckPointPosition(systemTextTasks[3].RulePosition,
                 ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "layer", "anchor");
         });
     }

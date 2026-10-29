@@ -20,7 +20,7 @@ public sealed class CreationRuleNetworkInput
     }
 
     /// <summary>Copies valid ranges without retaining caller-owned collections.</summary>
-    private static IReadOnlyList<IPAddressRange> CopyRanges(
+    private static ReadOnlyCollection<IPAddressRange> CopyRanges(
         IReadOnlyCollection<IPAddressRange> ranges,
         string parameterName)
     {

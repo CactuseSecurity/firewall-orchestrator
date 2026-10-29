@@ -25,6 +25,13 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'upgrade 9.8.5: nullable request.impltask.rule_position jsonb column is missing';
     END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'request.impltask'::regclass
+            AND conname = 'request_impltask_rule_position_object'
+    ) THEN
+        RAISE EXCEPTION 'upgrade 9.8.5: rule-position JSON object constraint is missing';
+    END IF;
     SELECT impltask_id INTO i_impltask_id FROM rule_position_probe;
     IF (SELECT rule_position FROM request.impltask WHERE id = i_impltask_id) IS NOT NULL THEN
         RAISE EXCEPTION 'upgrade 9.8.5: existing implementation task did not receive a NULL rule position';
@@ -32,6 +39,12 @@ BEGIN
     UPDATE request.impltask
     SET rule_position = '{"type":"upgrade.test-position.v1","probe":true}'::jsonb
     WHERE id = i_impltask_id;
+    BEGIN
+        UPDATE request.impltask SET rule_position = '7'::jsonb WHERE id = i_impltask_id;
+        RAISE EXCEPTION 'upgrade 9.8.5: scalar rule position unexpectedly passed the constraint';
+    EXCEPTION
+        WHEN check_violation THEN NULL;
+    END;
 END $$;
 
 -- @run-upgrade-9.8.5

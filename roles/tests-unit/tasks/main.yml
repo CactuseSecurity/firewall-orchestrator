@@ -26,35 +26,6 @@
         mode: "0644"
       become: true
 
-    - name: ensure repository-contract fixture directory exists
-      file:
-        path: "{{ test_dir }}/csharp/repository-contracts"
-        state: directory
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"
-        mode: "0755"
-      become: true
-
-    - name: provide repository-contract fixtures for installed csharp tests
-      copy:
-        src: "{{ item.source }}"
-        dest: "{{ test_dir }}/csharp/repository-contracts/{{ item.destination }}"
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"
-        mode: "0644"
-      loop:
-        - source: roles/middleware/files/FWO.Middleware.Server/Program.cs
-          destination: Program.cs
-        - source: roles/api/files/replace_metadata.json
-          destination: replace_metadata.json
-        - source: roles/database/files/upgrade/9.8.1.sql
-          destination: 9.8.1.sql
-        - source: roles/database/files/upgrade/9.7.1.sql
-          destination: 9.7.1.sql
-        - source: roles/database/files/sql/creation/fworch-create-tables-request.sql
-          destination: fworch-create-tables-request.sql
-      become: true
-
     # the lib role creates it as well, but the tests also run on their own (tag test)
     - name: create the runtime directory for dotnet commands run as {{ fworch_user }}
       file:

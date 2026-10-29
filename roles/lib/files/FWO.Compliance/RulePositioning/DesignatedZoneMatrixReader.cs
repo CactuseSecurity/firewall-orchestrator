@@ -1,19 +1,19 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Config.Api;
 using FWO.Data;
 
 namespace FWO.Compliance.RulePositioning;
 
 /// <summary>Loads the configured designated zone matrix through the normalized-data API.</summary>
-public sealed class DesignatedZoneMatrixReader(ApiConnection apiConnection, GlobalConfig globalConfig)
+public sealed class DesignatedZoneMatrixReader(ApiConnection apiConnection)
     : IDesignatedZoneMatrixReader
 {
     /// <inheritdoc />
-    public async Task<DesignatedZoneMatrixReadResult> ReadAsync(CancellationToken cancellationToken)
+    public async Task<DesignatedZoneMatrixReadResult> ReadAsync(
+        int criterionId,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        int criterionId = globalConfig.DesignatedZoneMatrixId;
         if (criterionId <= 0)
         {
             return Failure(DesignatedZoneMatrixReadFailureCategory.ConfigurationInvalid);

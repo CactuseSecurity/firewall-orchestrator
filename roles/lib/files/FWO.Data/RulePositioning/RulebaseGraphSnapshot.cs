@@ -21,14 +21,8 @@ public sealed class RulebaseGraphSnapshot
         IEnumerable<Rulebase> rulebases,
         IEnumerable<RulebaseLink> links)
     {
-        if (managementId <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(managementId));
-        }
-        if (gatewayId <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(gatewayId));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(managementId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(gatewayId);
         ArgumentNullException.ThrowIfNull(rulebases);
         ArgumentNullException.ThrowIfNull(links);
 
@@ -138,12 +132,14 @@ public sealed class RulebaseGraphSnapshot
     /// Requires unique native order within one rulebase after sorting.
     /// </summary>
     private static void EnsureDeterministicOrder(
-        IReadOnlyList<RulebaseGraphRule> rules,
+        List<RulebaseGraphRule> rules,
         string parameterName)
     {
         for (int index = 1; index < rules.Count; index++)
         {
+#pragma warning disable S1244 // Native order is a stored identity; distinct adjacent values must remain distinct.
             if (rules[index - 1].NativeOrder == rules[index].NativeOrder)
+#pragma warning restore S1244
             {
                 throw new ArgumentException("Rule native order must be unique within a rulebase.", parameterName);
             }
@@ -182,8 +178,8 @@ public sealed class RulebaseGraphSnapshot
     /// </summary>
     private static void ValidateLinkEndpoints(
         IReadOnlyCollection<RulebaseGraphLink> links,
-        IReadOnlyDictionary<long, RulebaseGraphNode> rulebasesById,
-        IReadOnlyDictionary<long, RulebaseGraphRule> rulesById,
+        Dictionary<long, RulebaseGraphNode> rulebasesById,
+        Dictionary<long, RulebaseGraphRule> rulesById,
         string parameterName)
     {
         foreach (RulebaseGraphLink link in links)

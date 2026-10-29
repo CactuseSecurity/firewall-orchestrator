@@ -17,6 +17,7 @@ namespace FWO.Test
         /// Plans every task type automatically, so the tests check the targets independently of the defaults.
         /// </summary>
         private static readonly GlobalDeviceSpecificSettings kAllAutoPlanned = new() { AutoPlanImplementationForRules = true };
+        private static readonly int[] kExpectedDeviceIds = [21, 22];
 
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix? matrix = null)
         {
@@ -548,7 +549,7 @@ namespace FWO.Test
                 Assert.That(apiConnection.InsertCount, Is.EqualTo(2));
                 Assert.That(caller.CalculationCount, Is.EqualTo(2));
                 Assert.That(caller.Calls.All(call => call.RequestTask.Id == firstTask.Id), Is.True);
-                Assert.That(caller.Calls.All(call => call.RequestTask.GetDeviceList().SequenceEqual(new[] { 21, 22 })), Is.True);
+                Assert.That(caller.Calls.All(call => call.RequestTask.GetDeviceList().SequenceEqual(kExpectedDeviceIds)), Is.True);
             });
         }
 
@@ -576,7 +577,7 @@ namespace FWO.Test
             {
                 Assert.That(caller.CalculationCount, Is.EqualTo(1));
                 Assert.That(caller.LastRequestTask!.Id, Is.EqualTo(firstTask.Id));
-                Assert.That(caller.LastRequestTask.GetDeviceList(), Is.EqualTo(new[] { 21, 22 }));
+                Assert.That(caller.LastRequestTask.GetDeviceList(), Is.EqualTo(kExpectedDeviceIds));
             });
         }
 

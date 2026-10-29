@@ -152,7 +152,29 @@ public sealed class NewtonsoftRulePositionJsonConverter : Newtonsoft.Json.JsonCo
         {
             return null;
         }
-        JObject payload = JObject.Load(reader);
+
+        try
+        {
+            JToken storedValue = JToken.Load(reader);
+            if (storedValue is not JObject payload)
+            {
+                Trace.TraceWarning("A stored rule position was not a JSON object and was ignored.");
+                return null;
+            }
+            return ReadObject(payload, serializer);
+        }
+        catch (Exception exception) when (IsInvalidStoredPosition(exception))
+        {
+            Trace.TraceWarning("A stored rule position was invalid and was ignored.");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Reads one stored object after the outer JSON shape has been validated.
+    /// </summary>
+    private static RulePosition? ReadObject(JObject payload, NewtonsoftJsonSerializer serializer)
+    {
         string discriminator = payload.Value<string>(RulePositionJsonProperties.kPositionType) ?? "";
         if (string.IsNullOrWhiteSpace(discriminator))
         {
@@ -208,7 +230,7 @@ public sealed class NewtonsoftRulePositionJsonConverter : Newtonsoft.Json.JsonCo
         JsonObject rawPayload = JsonNode.Parse(rawJson)?.AsObject()
             ?? throw new Newtonsoft.Json.JsonSerializationException(
                 "The unknown rule position is not a JSON object.");
-        int schemaVersion = payload.Value<int?>(RulePositionJsonProperties.kSchemaVersion) ?? 0;
+        int schemaVersion = ReadInt(payload[RulePositionJsonProperties.kSchemaVersion]);
         ProvisioningPositioningAlgorithm algorithm = ParseAlgorithm(
             payload[RulePositionJsonProperties.kPositioningAlgorithm]);
         return new UnknownRulePosition(
@@ -219,17 +241,37 @@ public sealed class NewtonsoftRulePositionJsonConverter : Newtonsoft.Json.JsonCo
     }
 
     /// <summary>
+    /// Reads compatible integer metadata without rejecting the retained object.
+    /// </summary>
+    private static int ReadInt(JToken? value)
+    {
+        return value?.Type is JTokenType.Integer or JTokenType.String &&
+            int.TryParse(value.ToString(), out int result)
+                ? result
+                : 0;
+    }
+
+    /// <summary>
     /// Reads an algorithm from either its numeric or named representation.
     /// </summary>
     private static ProvisioningPositioningAlgorithm ParseAlgorithm(JToken? value)
     {
-        if (value?.Type == JTokenType.Integer)
+        try
         {
-            return int.TryParse(value.ToString(), out int numericValue)
-                ? RulePositioningAlgorithmJsonParser.Parse(numericValue)
+            if (value?.Type == JTokenType.Integer)
+            {
+                return int.TryParse(value.ToString(), out int numericValue)
+                    ? RulePositioningAlgorithmJsonParser.Parse(numericValue)
+                    : ProvisioningPositioningAlgorithm.Undefined;
+            }
+            return value?.Type == JTokenType.String
+                ? RulePositioningAlgorithmJsonParser.Parse(value.Value<string>())
                 : ProvisioningPositioningAlgorithm.Undefined;
         }
-        return RulePositioningAlgorithmJsonParser.Parse(value?.Value<string>());
+        catch (Exception exception) when (IsInvalidStoredPosition(exception))
+        {
+            return ProvisioningPositioningAlgorithm.Undefined;
+        }
     }
 }
 

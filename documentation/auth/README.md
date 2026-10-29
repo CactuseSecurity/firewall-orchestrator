@@ -186,10 +186,13 @@ Every request to the middleware REST API with a user token counts against a budg
 the `x-hasura-uuid` claim): by default 600 requests per minute, with bursts of up to one minute's budget. The budget
 is refilled at least every 10 seconds (below 60 per minute: one request every 60 / value seconds); a configured value
 that cannot be refilled exactly within such a period is rounded by at most 3 requests per minute. Endpoints
-whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwners` and the Flow catalog lists
-`getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects`) additionally
-run at most 2 requests of one user at the same time; up to 4 further requests wait, the rest are rejected. Their
-request bodies are limited to 1 MiB (`413` above). Rejected requests get `429` with `Retry-After: 60`.
+whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwners`, the Flow catalog lists
+`getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects`, and
+`getImplTaskTargets`, `getAuditProofCriticalChanges`, `Rule/GetRulesByFilter`, `owners/get`,
+`Compliance/designatedZoneMatrix/zones` and the user, tenant and LDAP lists `GET User`, `User/Get`, `GET Tenant`,
+`GET Group`, `Group/Get`, `Group/Members`, `Group/Memberships`, `Group/Resolve`) additionally run at most 2 requests
+of one user at the same time; up to 4 further requests wait, the rest are rejected. Their request bodies are limited
+to 1 MiB (`413` above). Rejected requests get `429` with `Retry-After: 60`.
 
 Service identities (`importer`, `middleware-server`), anonymous login tokens and unauthenticated requests are not
 counted here; logins are limited as described above.
@@ -204,8 +207,28 @@ type are ignored like the login limits:
 }
 ```
 
-The list endpoints above return one page per request: `getIpDataForOwners` at most 10000 applications, the
-object lists at most 1000 items and the group lists at most 250, which is also the default when no limit is sent. Items are ordered by name and
-id; page with `limit` and `offset` (`options.limit`/`options.offset` for `getIpDataForOwners`) until the response
-header `X-Has-More` is `false`. `getFlowComplianceState` accepts at most 100 entries in each of `source`,
+Every REST endpoint returning a list returns one page per request. The maximum page size, which is also the
+default when no limit is sent, is the setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`,
+Settings - Defaults, default 10000, at least 100, at most 100000). The middleware reads it at request time, so a change applies
+without restart. Page with `limit` and `offset` until the response header `X-Has-More` is `false`; a `limit`
+outside 1 to the maximum or a negative `offset` is answered with `400`. Where the keys are sent and how the items
+are ordered:
+
+| Endpoint | Paging keys | Order |
+|---|---|---|
+| `flow/getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects` | root `limit`, `offset` | name, id |
+| `modelling/getIpDataForOwners` | `options.limit`, `options.offset` | name, external app id, id |
+| `workflow/getImplTaskTargets` | `options.limit`, `options.offset` | visible targets by name, then id |
+| `workflow/getAuditProofCriticalChanges` | `options.limit`, `options.offset` | newest first |
+| `Rule/GetRulesByFilter` | `options.limit`, `options.offset` | rule id |
+| `owners/get` | root `limit`, `offset` | name, id |
+| `User/Get`, `Group/Get`, `Group/Members`, `Group/Memberships`, `Group/Resolve` | root `limit`, `offset` | dn |
+| `GET User`, `GET Tenant` | query parameters `limit`, `offset` | id |
+| `GET Group` | query parameters `limit`, `offset` | dn |
+| `GET Compliance/designatedZoneMatrix/zones` | query parameters `limit`, `offset` | zone id |
+
+Callers that receive fewer items than the maximum see no difference. The UI reads every page of the user, tenant
+and LDAP group lists it uses, at most 1000 pages per list; a list with further pages after that is reported as an
+error instead of being shown incomplete. The LDAP lists are read completely from the directory for every page and
+cut in the middleware. `getFlowComplianceState` accepts at most 100 entries in each of `source`,
 `destination` and `service`, and at most 100 `policies`.

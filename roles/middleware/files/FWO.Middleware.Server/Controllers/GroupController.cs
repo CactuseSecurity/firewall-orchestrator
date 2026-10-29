@@ -1,10 +1,13 @@
 using FWO.Api.Client;
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Novell.Directory.Ldap;
 using System;
 using System.Collections.Concurrent;
@@ -22,24 +25,47 @@ namespace FWO.Middleware.Server.Controllers
     {
         private readonly List<Ldap> ldaps;
         private readonly UserSessionRevocation sessionRevocation;
+        private readonly GlobalConfig globalConfig;
 
         /// <summary>
-        /// Constructor needing ldap list and connection
+        /// Constructor needing ldap list, connection and the global configuration holding the maximum page size
         /// </summary>
-        public GroupController(List<Ldap> ldaps, ApiConnection apiConnection)
+        public GroupController(List<Ldap> ldaps, ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.ldaps = ldaps;
+            this.globalConfig = globalConfig;
             sessionRevocation = new UserSessionRevocation(apiConnection, ldaps);
         }
 
         /// <summary>
+        /// Maximum and default page size of the list endpoints, read from the configuration at request time.
+        /// </summary>
+        private int MaxLimit => ListPaging.GetMaxObjectLimit(globalConfig);
+
+        /// <summary>
         /// Get all groups
         /// </summary>
+        /// <remarks>
+        /// Results are ordered by group dn, so <c>limit</c> and <c>offset</c> page them deterministically. Without a limit a
+        /// page of at most the configured <c>maxRestResponseObjectLimit</c> groups (default 10000) is returned, and the
+        /// <c>X-Has-More</c> response header tells whether further groups follow.
+        /// The query parameters <c>limit</c> and <c>offset</c> select the page.
+        /// </remarks>
+        /// <param name="paging">Optional query parameters <c>limit</c> and <c>offset</c>.</param>
         /// <returns>List of groups</returns>
         [HttpGet]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
-        public async Task<ActionResult<List<GroupGetReturnParameters>>> Get()
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<List<GroupGetReturnParameters>>> Get([FromQuery] PagingParameters paging)
         {
+            int maxLimit = MaxLimit;
+            if (!ListPaging.TryValidate(paging, maxLimit, out ActionResult? pagingError))
+            {
+                return pagingError!;
+            }
+
             try
             {
                 ConcurrentBag<GroupGetReturnParameters> allGroups = [];
@@ -61,7 +87,10 @@ namespace FWO.Middleware.Server.Controllers
                 await Task.WhenAll(ldapGroupRequests);
 
                 // Return status and result
-                return Ok(allGroups.ToList());
+                IEnumerable<GroupGetReturnParameters> orderedGroups = allGroups
+                    .OrderBy(group => group.GroupDn, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(group => group.GroupDn, StringComparer.Ordinal);
+                return Ok(ListPaging.TakePage(HttpContext, orderedGroups, paging, maxLimit));
             }
             catch (Exception e)
             {
@@ -209,36 +238,61 @@ namespace FWO.Middleware.Server.Controllers
         /// LdapId (required): id of the LDAP connection to search. A group dn names a group only inside its directory,
         /// so the search covers exactly one connection. &#xA;
         /// SearchPattern (optional) &#xA;
+        /// Limit (optional), Offset (optional) &#xA;
+        /// Results are ordered by group dn, so <c>limit</c> and <c>offset</c> page them deterministically. Without a limit a
+        /// page of at most the configured <c>maxRestResponseObjectLimit</c> groups (default 10000) is returned, and the
+        /// <c>X-Has-More</c> response header tells whether further groups follow.
         /// </remarks>
         /// <param name="parameters">GroupGetParameters</param>
         /// <returns>List of groups</returns>
-        /// <response code="400">LdapId does not name a connected LDAP.</response>
+        /// <response code="400">LdapId does not name a connected LDAP, or limit or offset is out of range.</response>
         [HttpPost("Get")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<string>>> Get([FromBody] GroupGetParameters parameters)
         {
+            int maxLimit = MaxLimit;
             Ldap? ldap = ldaps.FirstOrDefault(ldap => ldap.Id == parameters.LdapId);
+            Dictionary<string, string[]> errors = ListPaging.ValidatePaging(parameters.Limit, parameters.Offset, maxLimit);
             if (parameters.LdapId <= 0 || ldap == null)
             {
-                Dictionary<string, string[]> errors = [];
                 errors.Add("ldapId", new List<string> { "LdapId has to name a connected LDAP connection." }.ToArray());
+            }
+            if (errors.Count > 0)
+            {
                 return BadRequest(new ValidationProblemDetails(errors) { Status = StatusCodes.Status400BadRequest });
             }
 
             // Return status and result
-            return ldap.HasGroupHandling() ? await ldap.GetAllGroups(parameters.SearchPattern) : [];
+            List<string> groups = ldap!.HasGroupHandling() ? await ldap.GetAllGroups(parameters.SearchPattern) : [];
+            return ListPaging.TakePage(HttpContext, OrderDns(groups), parameters, maxLimit);
         }
 
         /// <summary>
         /// Get members of a group by dn if ldap supports group handling
         /// </summary>
+        /// <remarks>
+        /// Results are ordered by member dn, so <c>limit</c> and <c>offset</c> page them deterministically. Without a limit a
+        /// page of at most the configured <c>maxRestResponseObjectLimit</c> members (default 10000) is returned, and the
+        /// <c>X-Has-More</c> response header tells whether further members follow.
+        /// </remarks>
         /// <param name="parameters">GroupMemberGetParameters</param>
         /// <returns>List of member dns</returns>
         [HttpPost("Members")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
-        public async Task<List<string>> GetMembers([FromBody] GroupMemberGetParameters parameters)
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<List<string>>> GetMembers([FromBody] GroupMemberGetParameters parameters)
         {
+            int maxLimit = MaxLimit;
+            if (!ListPaging.TryValidate(parameters, maxLimit, out ActionResult? pagingError))
+            {
+                return pagingError!;
+            }
+
             List<string> members = [];
 
             if (string.IsNullOrWhiteSpace(parameters.GroupDn))
@@ -256,22 +310,36 @@ namespace FWO.Middleware.Server.Controllers
                 }
             }
 
-            return members;
+            return ListPaging.TakePage(HttpContext, OrderDns(members), parameters, maxLimit);
         }
 
         /// <summary>
         /// Get all group memberships for a user across connected ldaps
         /// </summary>
+        /// <remarks>
+        /// Results are ordered by group dn, so <c>limit</c> and <c>offset</c> page them deterministically. Without a limit a
+        /// page of at most the configured <c>maxRestResponseObjectLimit</c> groups (default 10000) is returned, and the
+        /// <c>X-Has-More</c> response header tells whether further groups follow.
+        /// </remarks>
         /// <param name="parameters">GroupMembershipGetParameters</param>
         /// <returns>List of group dns</returns>
         [HttpPost("Memberships")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
-        public async Task<List<string>> GetMemberships([FromBody] GroupMembershipGetParameters parameters)
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<List<string>>> GetMemberships([FromBody] GroupMembershipGetParameters parameters)
         {
+            int maxLimit = MaxLimit;
+            if (!ListPaging.TryValidate(parameters, maxLimit, out ActionResult? pagingError))
+            {
+                return pagingError!;
+            }
+
             HashSet<string> memberships = new(DistName.DnComparer);
             if (string.IsNullOrWhiteSpace(parameters.UserDn) && string.IsNullOrWhiteSpace(parameters.UserName))
             {
-                return [];
+                return new List<string>();
             }
 
             object membershipsLock = new();
@@ -306,21 +374,35 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             await Task.WhenAll(ldapRequests);
-            return new List<string>(memberships);
+            return ListPaging.TakePage(HttpContext, OrderDns(memberships), parameters, maxLimit);
         }
 
         /// <summary>
         /// Resolve user dns from a list of user or group dns across connected ldaps
         /// </summary>
+        /// <remarks>
+        /// Results are ordered by user dn, so <c>limit</c> and <c>offset</c> page them deterministically. Without a limit a
+        /// page of at most the configured <c>maxRestResponseObjectLimit</c> user dns (default 10000) is returned, and the
+        /// <c>X-Has-More</c> response header tells whether further user dns follow.
+        /// </remarks>
         /// <param name="parameters">GroupResolveParameters</param>
         /// <returns>List of user dns</returns>
         [HttpPost("Resolve")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Recertifier}, {Roles.Modeller}")]
-        public async Task<List<string>> ResolveMembers([FromBody] GroupResolveParameters parameters)
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<List<string>>> ResolveMembers([FromBody] GroupResolveParameters parameters)
         {
             if (parameters == null || parameters.Dns.Count == 0)
             {
-                return [];
+                return new List<string>();
+            }
+
+            int maxLimit = MaxLimit;
+            if (!ListPaging.TryValidate(parameters, maxLimit, out ActionResult? pagingError))
+            {
+                return pagingError!;
             }
 
             HashSet<string> resolved = new(DistName.DnComparer);
@@ -328,7 +410,15 @@ namespace FWO.Middleware.Server.Controllers
             await ResolveFromLdaps(parameters.Dns, resolved, resolvedLock);
             AddDirectDns(parameters.Dns, resolved, GetGroupSearchPaths());
 
-            return resolved.ToList();
+            return ListPaging.TakePage(HttpContext, OrderDns(resolved), parameters, maxLimit);
+        }
+
+        /// <summary>
+        /// Orders dns deterministically for paging: case-insensitively, ties broken by the exact spelling.
+        /// </summary>
+        private static IEnumerable<string> OrderDns(IEnumerable<string> dns)
+        {
+            return dns.OrderBy(dn => dn, StringComparer.OrdinalIgnoreCase).ThenBy(dn => dn, StringComparer.Ordinal);
         }
 
         private async Task ResolveFromLdaps(List<string> dns, HashSet<string> resolved, object resolvedLock)

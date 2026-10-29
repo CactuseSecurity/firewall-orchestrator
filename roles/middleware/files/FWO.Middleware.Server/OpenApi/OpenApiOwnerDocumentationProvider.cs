@@ -80,10 +80,12 @@ Field behavior:
 - Text filters must not exceed {{OwnersController.kMaxFilterTextLength}} characters and must not contain control characters.
 - `showDetails` defaults to `false`. Set it to `true` to include responsibles, tenant id, recertification fields, criticality, lifecycle state id, import source, decommission date, and additional info.
 - `showOnlyActiveState` defaults to `true`. Owners whose lifecycle state is inactive are excluded; owners without any lifecycle state are still returned. Set it to `false` to include inactive lifecycle states.
+- `limit` is the maximum number of owners returned, between `1` and the configured `maxRestResponseObjectLimit` (default `10000`); omitted or `null` returns a page of that size. `offset` skips that many owners and must not be negative.
 
 Response behavior:
 
 - The response body is always a JSON array.
+- Owners are ordered by name and id, so `limit` and `offset` page the result deterministically. The response header `X-Has-More` is `true` when further owners follow.
 - The `type` field is derived from `appIdExternal`: `standard` when the external app id contains `app` case-insensitively, otherwise `infrastructure`.
 - Detail fields are omitted unless `showDetails` is `true`.
 - Nullable detail fields are omitted when their value is empty.

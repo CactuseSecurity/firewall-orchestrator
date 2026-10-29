@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
 using FWO.Middleware.Server.Requests;
@@ -10,6 +11,7 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FWO.Middleware.Server.Controllers;
 
@@ -19,7 +21,7 @@ namespace FWO.Middleware.Server.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/owners")]
-public class OwnersController(ApiConnection apiConnection) : ControllerBase
+public class OwnersController(ApiConnection apiConnection, GlobalConfig globalConfig) : ControllerBase
 {
     private const string StandardOwnerType = "standard";
     private const string InfrastructureOwnerType = "infrastructure";
@@ -65,10 +67,16 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     /// The <c>name</c> and <c>appIdExternal</c> filters are case-insensitive and accept <c>*</c> for any
     /// character sequence and <c>?</c> for a single character. Plain text without wildcards is matched as a contains
     /// search, and literal <c>%</c>, <c>_</c>, and <c>\</c> characters are matched verbatim.
-    /// Unknown request properties are rejected with <c>400 Bad Request</c>, as are non-positive ids and text
-    /// filters that exceed 256 characters or contain control characters.
+    /// Owners are ordered by name and id, so <c>limit</c> and <c>offset</c> page the result deterministically.
+    /// Without a limit a page of at most the configured <c>maxRestResponseObjectLimit</c> owners (default 10000) is
+    /// returned, and the <c>X-Has-More</c> response header tells whether further owners follow.
+    /// Unknown request properties are rejected with <c>400 Bad Request</c>, as are non-positive ids, text
+    /// filters that exceed 256 characters or contain control characters, and a <c>limit</c> or <c>offset</c>
+    /// out of range.
     /// </remarks>
     [HttpPost("get")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(List<GetOwnerResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
@@ -81,16 +89,20 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
         try
         {
             GetOwnersRequest effectiveRequest = request ?? new GetOwnersRequest();
-            if (ValidateRequest(effectiveRequest) is string validationError)
+            int maxLimit = ListPaging.GetMaxObjectLimit(globalConfig);
+            if (ValidateRequest(effectiveRequest, maxLimit) is string validationError)
             {
                 return BadRequest(validationError);
             }
 
-            List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(
+            int pageSize = ListPaging.GetPageSize(effectiveRequest.Limit, maxLimit);
+            List<FwoOwner> fetchedOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(
                 OwnerQueries.getOwnersFiltered,
-                BuildQueryVariables(effectiveRequest, User)) ?? [];
+                BuildQueryVariables(effectiveRequest, User, pageSize)) ?? [];
+            ListPage<FwoOwner> owners = ListPage<FwoOwner>.FromLookahead(fetchedOwners, pageSize);
 
-            return Ok(owners.Select(owner => ToResponse(owner, effectiveRequest.ShowDetails == true)).ToList());
+            ListPaging.SetHasMoreHeader(HttpContext, owners.HasMore);
+            return Ok(owners.Items.Select(owner => ToResponse(owner, effectiveRequest.ShowDetails == true)).ToList());
         }
         catch (Exception exception)
         {
@@ -103,9 +115,16 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     /// Validates and sanitizes the supplied filter values before they are used to build the query.
     /// </summary>
     /// <param name="request">The request to validate.</param>
-    /// <returns>An error message describing the first invalid value, or <c>null</c> when the request is valid.</returns>
-    internal static string? ValidateRequest(GetOwnersRequest request)
+    /// <param name="maxLimit">Maximum page size.</param>
+    /// <returns>An error message describing every invalid paging key or the first invalid filter value, or
+    /// <c>null</c> when the request is valid.</returns>
+    internal static string? ValidateRequest(GetOwnersRequest request, int maxLimit)
     {
+        Dictionary<string, string[]> pagingErrors = ListPaging.ValidatePaging(request.Limit, request.Offset, maxLimit);
+        if (pagingErrors.Count > 0)
+        {
+            return $"Invalid paging: {string.Join(" ", pagingErrors.Values.SelectMany(errors => errors))}";
+        }
         if (request.OwnerId is <= 0)
         {
             return "ownerId must be a positive integer.";
@@ -138,9 +157,10 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     }
 
     /// <summary>
-    /// Builds GraphQL variables for the owner lookup.
+    /// Builds GraphQL variables for the owner lookup, including paging. One owner more than the page size is
+    /// requested, so the caller can tell whether further owners follow.
     /// </summary>
-    internal static Dictionary<string, object> BuildQueryVariables(GetOwnersRequest request, ClaimsPrincipal user)
+    internal static Dictionary<string, object> BuildQueryVariables(GetOwnersRequest request, ClaimsPrincipal user, int pageSize)
     {
         List<Dictionary<string, object>> predicates = BuildFilterPredicates(request);
         if (ShouldRestrictToEditableOwners(user))
@@ -148,7 +168,9 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
             predicates.Add(GraphQlFilterBuilder.BuildInExpression("id", JwtClaimParser.ExtractIntClaimValues(user.Claims, "x-hasura-editable-owners")));
         }
 
-        return new Dictionary<string, object> { ["where"] = GraphQlFilterBuilder.CombinePredicates(predicates) };
+        Dictionary<string, object> variables = new() { ["where"] = GraphQlFilterBuilder.CombinePredicates(predicates) };
+        ListPaging.AddLookaheadPagingVariables(variables, pageSize, request.Offset);
+        return variables;
     }
 
     /// <summary>

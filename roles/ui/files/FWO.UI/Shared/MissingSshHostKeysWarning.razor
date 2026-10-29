@@ -1,0 +1,99 @@
+@using System.Security.Claims
+@using FWO.Api.Client.ExceptionHandling
+@using FWO.Api.Client.Queries
+@using FWO.Basics
+@using FWO.Data
+@using Newtonsoft.Json
+@using JsonPropertyName = System.Text.Json.Serialization.JsonPropertyNameAttribute
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@implements IDisposable
+
+@* Cisco ASA imports stop while the SSH host key of the device is unknown or has changed; the importer keeps an alert
+   open per management until the next successful connection, and this warning lists them together with the fix. *@
+@if (managementNames.Count > 0)
+{
+    <div class="alert alert-warning small my-1" role="alert" data-testid="missing-ssh-host-keys-warning">
+        <span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5019")) @(string.Join(", ", managementNames))
+        <div class="mt-1">@(userConfig.GetText("U5020"))</div>
+    </div>
+}
+
+@code
+{
+    // a warning, not a list view: the names of more managements would not help to fix the problem
+    private const int kMaxListedAlerts = 100;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private GraphQlApiSubscription<List<HostKeyAlert>>? hostKeyAlertSubscription;
+    private List<string> managementNames = [];
+
+    /// <summary>
+    /// Subscribes to the open SSH host key alerts with the monitoring role of the user.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        if (authenticationStateTask == null)
+        {
+            return;
+        }
+        ClaimsPrincipal user = (await authenticationStateTask).User;
+        hostKeyAlertSubscription = await apiConnection.RunWithMonitoringRole(user,
+            () => Task.FromResult(apiConnection.GetSubscription<List<HostKeyAlert>>(GraphqlExceptionHandler.Handle, OnHostKeyAlertsUpdate,
+                MonitorQueries.subscribeOpenAlertsByCode, new { alertCode = (int)AlertCode.SshHostKeyRejected, limit = kMaxListedAlerts })));
+    }
+
+    /// <summary>
+    /// Shows the managements of the open alerts; the update comes from the subscription thread.
+    /// </summary>
+    private void OnHostKeyAlertsUpdate(List<HostKeyAlert> alerts)
+    {
+        List<string> names = alerts
+            .Select(alert => alert.Management?.Name ?? alert.ManagementId?.ToString() ?? "")
+            .Where(name => name != "")
+            .Distinct()
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        _ = InvokeAsync(() =>
+        {
+            managementNames = names;
+            StateHasChanged();
+        });
+    }
+
+    /// <summary>
+    /// Stops the subscription.
+    /// </summary>
+    public void Dispose()
+    {
+        hostKeyAlertSubscription?.Dispose();
+    }
+
+    /// <summary>
+    /// Open SSH host key alert as delivered by the subscription.
+    /// </summary>
+    public sealed class HostKeyAlert
+    {
+        [JsonProperty("alert_id"), JsonPropertyName("alert_id")]
+        public long Id { get; set; }
+
+        [JsonProperty("alert_mgm_id"), JsonPropertyName("alert_mgm_id")]
+        public int? ManagementId { get; set; }
+
+        [JsonProperty("management"), JsonPropertyName("management")]
+        public HostKeyAlertManagement? Management { get; set; }
+    }
+
+    /// <summary>
+    /// Management of an open SSH host key alert.
+    /// </summary>
+    public sealed class HostKeyAlertManagement
+    {
+        [JsonProperty("mgm_name"), JsonPropertyName("mgm_name")]
+        public string Name { get; set; } = "";
+    }
+}

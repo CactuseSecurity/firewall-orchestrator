@@ -30,6 +30,7 @@ namespace FWO.Test
             (typeof(WorkflowImplTaskTargetController), nameof(WorkflowImplTaskTargetController.GetImplTaskTargets)),
             (typeof(WorkflowTicketController), nameof(WorkflowTicketController.CreateTicket)),
             (typeof(PathAnalysisController), nameof(PathAnalysisController.ResolvePathDevices)),
+            (typeof(ReportController), nameof(ReportController.Get)),
             (typeof(RuleController), nameof(RuleController.GetRulesByFilter)),
             (typeof(OwnersController), nameof(OwnersController.Get)),
             (typeof(WorkflowChangeHistoryController), nameof(WorkflowChangeHistoryController.GetAuditProofCriticalChanges)),

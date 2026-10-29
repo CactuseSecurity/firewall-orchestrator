@@ -39,14 +39,14 @@ namespace FWO.ExternalSystems.CheckPoint
             string managementName = extMgt.ExtName ?? ReqTask.OnManagement?.Name ?? "";
 
             TaskText = (string.IsNullOrWhiteSpace(template.TasksTemplate) ? template.TicketTemplate : template.TasksTemplate)
-                .Replace(Placeholder.ORDERNAME, "AR" + ReqTask.TaskNumber.ToString())
-                .Replace(Placeholder.TASKCOMMENT, ReqTask.GetFirstCommentText())
-                .Replace(Placeholder.REASON, ReqTask.Reason)
-                .Replace(Placeholder.ACTION, MapActionType())
-                .Replace(Placeholder.CHANGEACTION, MapChangeAction())
-                .Replace(Placeholder.GROUPNAME, ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName))
-                .Replace(Placeholder.MANAGEMENT_ID, managementId)
-                .Replace(Placeholder.MANAGEMENT_NAME, managementName)
+                .ReplaceJsonStringPlaceholder(Placeholder.ORDERNAME, "AR" + ReqTask.TaskNumber.ToString())
+                .ReplaceJsonStringPlaceholder(Placeholder.TASKCOMMENT, ReqTask.GetFirstCommentText())
+                .ReplaceJsonStringPlaceholder(Placeholder.REASON, ReqTask.Reason)
+                .ReplaceJsonStringPlaceholder(Placeholder.ACTION, MapActionType())
+                .ReplaceJsonStringPlaceholder(Placeholder.CHANGEACTION, MapChangeAction())
+                .ReplaceJsonStringPlaceholder(Placeholder.GROUPNAME, ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName))
+                .ReplaceJsonStringPlaceholder(Placeholder.MANAGEMENT_ID, managementId)
+                .ReplaceJsonStringPlaceholder(Placeholder.MANAGEMENT_NAME, managementName)
                 .Replace(Placeholder.MEMBERS, "[]");
 
             if (string.IsNullOrWhiteSpace(TaskText))

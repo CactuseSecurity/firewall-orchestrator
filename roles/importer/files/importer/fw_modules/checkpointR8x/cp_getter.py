@@ -3,24 +3,38 @@ from __future__ import annotations
 # library for API get functions
 import json
 import time
+from contextlib import contextmanager
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import fwo_const
 import fwo_globals
 import requests
-from fw_modules.checkpointR8x import cp_const, cp_network
+from fw_modules.checkpointR8x import cp_const
+from fw_modules.checkpointR8x.cp_object_resolver import (
+    handle_cpmi_any_object,
+    handle_gateway_objects,
+    handle_global_object,
+    handle_network_zone_objects,
+    handle_updatable_objects,
+    resolve_ref_list_from_object_dictionary,
+)
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 from fwo_log import FWOLogger
+from fwo_redaction import redact_sensitive_values, session_fingerprint
 from services.service_provider import ServiceProvider
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from model_controllers.management_controller import ManagementController
 
 # Constants for status values
 STATUS_IN_PROGRESS = "in progress"
 STATUS_SUCCEEDED = "succeeded"
 STATUS_FAILED = "failed"
+# api sessions are only logged by their fingerprint, never by the session id itself
+SESSION_LOG_PREFIX = "session: "
 
 
 def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str | None, show_progress: bool = False):
@@ -41,19 +55,13 @@ def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str |
             verify=fwo_globals.verify_certs,
             timeout=fwo_const.FWO_HTTP_TIMEOUT,
         )
-    except requests.exceptions.RequestException as _:
-        if "password" in json.dumps(json_payload):
-            exception_text = "\nerror while sending api_call containing credential information to url '" + str(url)
-        else:
-            exception_text = (
-                "\nerror while sending api_call to url '"
-                + str(url)
-                + "' with payload '"
-                + json.dumps(json_payload, indent=2)
-                + "' and  headers: '"
-                + json.dumps(request_headers, indent=2)
-            )
-        raise FwApiError(exception_text)
+    except requests.exceptions.RequestException as request_error:
+        # the headers carry the session token and are never part of the text, which ends up in alerts and logs
+        exception_text = (
+            f"\nerror while sending api_call '{command}' to url '{url}' ({type(request_error).__name__}) "
+            f"with payload '{json.dumps(redact_sensitive_values(json_payload), indent=2)}'"
+        )
+        raise FwApiError(exception_text) from None
     if show_progress:
         print(".", end="", flush=True)  # noqa: T201
 
@@ -84,6 +92,28 @@ def login(mgm_details: ManagementController):
 def logout(url: str, sid: str):
     FWOLogger.debug("logout from url " + url, 3)
     return cp_api_call(url, "logout", {}, sid)
+
+
+def logout_quietly(url: str, sid: str) -> None:
+    """Log out without raising, so that a failed logout never hides the error that ended the session early."""
+    try:
+        logout(url, sid)
+    except Exception:
+        FWOLogger.warning(f"logout of api session {session_fingerprint(sid)} from url {url} failed")
+
+
+@contextmanager
+def api_session(mgm_details: ManagementController) -> Generator[str, None, None]:
+    """
+    Log in to the management API and log out again when the block is left, also after an error.
+
+    A session left open stays usable with the import user's permissions until the manager times it out.
+    """
+    sid = login(mgm_details)
+    try:
+        yield sid
+    finally:
+        logout_quietly(mgm_details.build_fw_api_string(), sid)
 
 
 def process_single_task(task: dict[str, Any]) -> tuple[str, int]:
@@ -201,7 +231,7 @@ def get_show_packages_via_api(
         total = packages["total"]
     else:
         FWOLogger.error("packages do not contain total field")
-        FWOLogger.warning("sid: " + sid)
+        FWOLogger.warning(SESSION_LOG_PREFIX + session_fingerprint(sid))
         FWOLogger.warning("api_v_url:  " + api_v_url)
         for key, value in show_params_policy_structure.items():
             FWOLogger.warning("show_params_policy_structure " + key + ": " + str(value))
@@ -304,7 +334,7 @@ def log_global_assignments_error(
     sid: str, api_v_url: str, show_params_policy_structure: dict[str, Any], assignments: dict[str, Any]
 ) -> None:
     """Log error information for global assignments debugging."""
-    FWOLogger.warning("sid: " + sid)
+    FWOLogger.warning(SESSION_LOG_PREFIX + session_fingerprint(sid))
     FWOLogger.warning("api_v_url: " + api_v_url)
     for key, value in show_params_policy_structure.items():
         FWOLogger.warning("show_params_policy_structure " + key + ": " + str(value))
@@ -595,7 +625,7 @@ def control_while_loop_in_get_rulebases_in_chunks(
             "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json "
             + str(current_rulebase)
         )
-        FWOLogger.warning("sid:  " + sid)
+        FWOLogger.warning(SESSION_LOG_PREFIX + session_fingerprint(sid))
         FWOLogger.warning("api_v_url: " + api_v_url)
         for key, value in show_params_rules.items():
             FWOLogger.warning("show_params_rules " + key + ": " + str(value))
@@ -783,249 +813,6 @@ def get_nat_rules_from_api_as_dict(
     return nat_rules
 
 
-def find_element_by_uid(array: list[dict[str, Any]], uid: str | None) -> dict[str, Any] | None:
-    for el in array:
-        if "uid" in el and el["uid"] == uid:
-            return el
-    return None
-
-
-def resolve_ref_from_object_dictionary(
-    uid: str | None,
-    obj_dict: list[dict[str, Any]],
-    native_config_domain: dict[str, Any] | None = None,
-    field_name: str | None = None,
-) -> dict[str, Any] | None:
-    if native_config_domain is None:
-        native_config_domain = {}
-    matched_obj = find_element_by_uid(obj_dict, uid)
-
-    if matched_obj is None:  # object not in dict - need to fetch it from API
-        if field_name != "track" and uid != "29e53e3d-23bf-48fe-b6b1-d59bd88036f9":
-            # 29e53e3d-23bf-48fe-b6b1-d59bd88036f9 is a track object uid (track None) which is not in the object dictionary, but used in some rules
-            if field_name is None:
-                field_name = "unknown"
-            if uid is None:
-                uid = "unknown"
-            FWOLogger.warning(f"object of type {field_name} with uid {uid} not found in object dictionary")
-        return None
-    # there are some objects (at least CpmiVoipSipDomain) which are not API-gettable with show-objects (only with show-object "UID")
-    # these must be added to the (network) objects tables
-    if matched_obj["type"] in ["CpmiVoipSipDomain", "CpmiVoipMgcpDomain", "gsn_handover_group"]:
-        FWOLogger.info(
-            f"adding {matched_obj['type']} '{matched_obj['name']}' object manually, because it is not retrieved by show objects API command"
-        )
-        color = matched_obj.get("color", "black")
-        native_config_domain["objects"].append(
-            {
-                "type": matched_obj["type"],
-                "chunks": [
-                    {
-                        "objects": [
-                            {
-                                "uid": matched_obj["uid"],
-                                "name": matched_obj["name"],
-                                "color": color,
-                                "type": matched_obj["type"],
-                                "domain": matched_obj["domain"],
-                            }
-                        ]
-                    }
-                ],
-            }
-        )
-
-    return matched_obj
-
-
-# resolving all uid references using the object dictionary
-# dealing with a single chunk
-def resolve_ref_list_from_object_dictionary(
-    rulebase: list[dict[str, Any]] | dict[str, Any],
-    value: str,
-    obj_dicts: list[dict[str, Any]] | None = None,
-    native_config_domain: dict[str, Any] | None = None,
-):  # TODO: what is objDict: I think it should be a list of dicts
-    if native_config_domain is None:
-        native_config_domain = {}
-    if obj_dicts is None:
-        obj_dicts = []
-    if isinstance(rulebase, dict) and "objects-dictionary" in rulebase:
-        obj_dicts = rulebase["objects-dictionary"]
-    if isinstance(rulebase, list):  # found a list of rules
-        for rule in rulebase:
-            if value in rule:
-                categorize_value_for_resolve_ref(rule, value, obj_dicts, native_config_domain)  # type: ignore  # noqa: PGH003
-            if "rulebase" in rule:
-                resolve_ref_list_from_object_dictionary(
-                    rule["rulebase"], value, obj_dicts=obj_dicts, native_config_domain=native_config_domain
-                )
-    elif "rulebase" in rulebase:
-        resolve_ref_list_from_object_dictionary(
-            rulebase["rulebase"], value, obj_dicts=obj_dicts, native_config_domain=native_config_domain
-        )
-
-
-def categorize_value_for_resolve_ref(
-    rule: dict[str, Any], value: str, obj_dict: list[dict[str, Any]], native_config_domain: dict[str, Any]
-):
-    value_list: list[Any] = []
-    if isinstance(rule[value], str):  # assuming single uid
-        rule[value] = resolve_ref_from_object_dictionary(
-            rule[value], obj_dict, native_config_domain=native_config_domain, field_name=value
-        )
-    elif "type" in rule[value]:  # e.g. track
-        rule[value] = resolve_ref_from_object_dictionary(
-            rule[value]["type"], obj_dict, native_config_domain=native_config_domain, field_name=value
-        )
-    else:  # assuming list of rules
-        value_list.extend(
-            [
-                resolve_ref_from_object_dictionary(
-                    rule_id, obj_dict, native_config_domain=native_config_domain, field_name=value
-                )
-                for rule_id in rule[value]
-            ]
-        )
-
-        rule[value] = value_list  # replace ref list with object list
-
-
-def handle_cpmi_any_object(obj: dict[str, Any]) -> dict[str, Any]:
-    """Handle CpmiAnyObject type objects."""
-    color = obj.get("color", "black")
-
-    if obj["name"] == "Any":
-        return {
-            "type": "hosts",
-            "chunks": [
-                {
-                    "objects": [
-                        {
-                            "uid": obj["uid"],
-                            "name": obj["name"],
-                            "color": color,
-                            "comments": "any nw object checkpoint (hard coded)",
-                            "type": "network",
-                            "ipv4-address": fwo_const.ANY_IP_IPV4,
-                            "domain": obj["domain"],
-                        }
-                    ]
-                }
-            ],
-        }
-    if obj["name"] == "None":  # None service or network object
-        return {
-            "type": "hosts",
-            "chunks": [
-                {
-                    "objects": [
-                        {
-                            "uid": obj["uid"],
-                            "name": obj["name"],
-                            "color": color,
-                            "comments": "none nw object checkpoint (hard coded)",
-                            "type": "group",
-                            "domain": obj["domain"],
-                        }
-                    ]
-                }
-            ],
-        }
-    return {}
-
-
-def handle_gateway_objects(obj: dict[str, Any]) -> dict[str, Any]:
-    """Handle various gateway and network member objects."""
-    color = obj.get("color", "black")
-    return {
-        "type": "hosts",
-        "chunks": [
-            {
-                "objects": [
-                    {
-                        "uid": obj["uid"],
-                        "name": obj["name"],
-                        "color": color,
-                        "comments": obj["comments"],
-                        "type": "host",
-                        "ipv4-address": cp_network.get_ip_of_obj(obj),
-                        "domain": obj["domain"],
-                    }
-                ]
-            }
-        ],
-    }
-
-
-def handle_global_object(obj: dict[str, Any]) -> dict[str, Any]:
-    """Handle Global type objects."""
-    color = obj.get("color", "black")
-    return {
-        "type": "hosts",
-        "chunks": [
-            {
-                "objects": [
-                    {
-                        "uid": obj["uid"],
-                        "name": obj["name"],
-                        "color": color,
-                        "comments": obj["comments"],
-                        "type": "host",
-                        "ipv4-address": fwo_const.ANY_IP_IPV4,
-                        "domain": obj["domain"],
-                    }
-                ]
-            }
-        ],
-    }
-
-
-def handle_updatable_objects(obj: dict[str, Any]) -> dict[str, Any]:
-    """Handle updatable objects and VoIP domains."""
-    color = obj.get("color", "black")
-    return {
-        "type": "hosts",
-        "chunks": [
-            {
-                "objects": [
-                    {
-                        "uid": obj["uid"],
-                        "name": obj["name"],
-                        "color": color,
-                        "comments": obj["comments"],
-                        "type": "host",
-                        "domain": obj["domain"],
-                    }
-                ]
-            }
-        ],
-    }
-
-
-def handle_network_zone_objects(obj: dict[str, Any]) -> dict[str, Any]:
-    """Handle Internet and security-zone objects."""
-    color = obj.get("color", "black")
-    return {
-        "type": "hosts",
-        "chunks": [
-            {
-                "objects": [
-                    {
-                        "uid": obj["uid"],
-                        "name": obj["name"],
-                        "color": color,
-                        "comments": obj["comments"],
-                        "type": "network",
-                        "ipv4-address": fwo_const.ANY_IP_IPV4,
-                        "domain": obj["domain"],
-                    }
-                ]
-            }
-        ],
-    }
-
-
 def get_object_details_from_api(uid_missing_obj: str, sid: str = "", apiurl: str = "") -> dict[str, Any]:
     FWOLogger.debug(f"getting {uid_missing_obj} from API", 6)
 
@@ -1063,7 +850,7 @@ def get_object_details_from_api(uid_missing_obj: str, sid: str = "", apiurl: str
         return handle_gateway_objects(obj)
     if obj_type == "Global":
         return handle_global_object(obj)
-    if obj_type in ["updatable-object", "CpmiVoipSipDomain", "CpmiVoipMgcpDomain", "gsn_handover_group"]:
+    if obj_type == "updatable-object" or cp_const.is_object_dictionary_only_obj_type(obj_type):
         return handle_updatable_objects(obj)
     if obj_type in ["Internet", "security-zone"]:
         return handle_network_zone_objects(obj)

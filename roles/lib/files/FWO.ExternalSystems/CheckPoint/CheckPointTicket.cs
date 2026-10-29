@@ -466,31 +466,31 @@ namespace FWO.ExternalSystems.CheckPoint
 
             string rendered =
                 template
-                    .Replace(
+                    .ReplaceJsonStringPlaceholder(
                         Placeholder.TICKET_SUBJECT,
                         Subject)
-                    .Replace(
+                    .ReplaceJsonStringPlaceholder(
                         Placeholder.PRIORITY,
                         Priority)
-                    .Replace(
+                    .ReplaceJsonStringPlaceholder(
                         Placeholder.ONBEHALF,
                         Requester)
-                    .Replace(
+                    .ReplaceJsonStringPlaceholder(
                         Placeholder.REQUESTER,
                         Requester)
-                    .Replace(
+                    .ReplaceJsonStringPlaceholder(
                         Placeholder.REASON,
                         reqTask?.Reason ?? "")
-                    .Replace(
+                    .ReplaceJsonStringPlaceholder(
                         Placeholder.APPID,
                         appId)
-                    .Replace(
+                    .ReplaceJsonStringPlaceholder(
                         Placeholder.GROUPNAME,
                         reqTask?.GetAddInfoValue(AdditionalInfoKeys.GrpName) ?? "")
-                    .Replace(
+                    .ReplaceJsonStringPlaceholder(
                         Placeholder.MANAGEMENT_ID,
                         extMgt.ExtId ?? reqTask?.ManagementId?.ToString() ?? "0")
-                    .Replace(
+                    .ReplaceJsonStringPlaceholder(
                         Placeholder.MANAGEMENT_NAME,
                         extMgt.ExtName ?? reqTask?.OnManagement?.Name ?? "")
                     .Replace(

@@ -62,6 +62,7 @@ internal class UiRequestTaskMetadataEditorTest
             Assert.That(source, Does.Contain("@if (TaskType == WfTaskType.access)"));
             Assert.That(source, Does.Contain("Elements=\"NewInterfaceOwnerOptions\" Nullable=\"true\""));
             Assert.That(source, Does.Contain("CanEditField(WorkflowEditableFieldKeys.Owner)"));
+            Assert.That(source, Does.Contain("WfObjectTaskHelper.IsManagementObjectTask(TaskType.ToString())"));
         });
     }
 
@@ -122,7 +123,6 @@ internal class UiRequestTaskMetadataEditorTest
         InvokePrivateTask(component, "OnRuleDeviceChanged", new Device { Id = 4, Name = "changed-gateway" }).GetAwaiter().GetResult();
         InvokePrivateTask(component, "OnOwnerChanged", new FwoOwner { Id = 5, Name = "changed-owner" }).GetAwaiter().GetResult();
         InvokePrivateTask(component, "OnRequestingOwnerChanged", new FwoOwner { Id = 6, Name = "requesting-owner" }).GetAwaiter().GetResult();
-        InvokePrivateTask(component, "GroupNameChangedFromInput", new ChangeEventArgs { Value = "changed-group" }).GetAwaiter().GetResult();
 
         Assert.Multiple(() =>
         {
@@ -131,28 +131,28 @@ internal class UiRequestTaskMetadataEditorTest
             Assert.That(component.CurrentRuleDevice?.Id, Is.EqualTo(4));
             Assert.That(component.CurrentOwner?.Id, Is.EqualTo(5));
             Assert.That(component.CurrentRequestingOwner?.Id, Is.EqualTo(6));
-            Assert.That(component.CurrentGroupName, Is.EqualTo("changed-group"));
             Assert.That(taskTypeCallbackCalled, Is.True);
             Assert.That(managementCallbackCalled, Is.True);
         });
     }
 
     [Test]
-    public void NeedsManualDeviceSelection_ReflectsPlanningPhaseAndConfiguration()
+    public void NeedsManualDeviceSelection_FollowsDeviceInputIndependentlyOfPlanningPhase()
     {
         RequestTaskMetadataEditor inactivePlanning = CreateComponent(new WfHandler
         {
             ActStateMatrix = new StateMatrix { PhaseActive = { [WorkflowPhases.planning] = false } }
-        }, new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.enterInReqTask });
+        }, new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask });
         RequestTaskMetadataEditor activePlanning = CreateComponent(new WfHandler
         {
             ActStateMatrix = new StateMatrix { PhaseActive = { [WorkflowPhases.planning] = true } }
-        }, new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices });
+        }, new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices });
 
         Assert.Multiple(() =>
         {
             Assert.That(inactivePlanning.NeedsManualDeviceSelection, Is.True);
-            Assert.That(activePlanning.NeedsManualDeviceSelection, Is.False);
+            Assert.That(activePlanning.NeedsManualDeviceSelection, Is.True);
+            Assert.That(CreateComponent(new WfHandler(), new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.never }).NeedsManualDeviceSelection, Is.False);
         });
     }
 
@@ -185,7 +185,6 @@ internal class UiRequestTaskMetadataEditorTest
             Assert.That(component.CurrentTaskType, Is.EqualTo(WfTaskType.new_interface));
             Assert.That(component.CurrentManagement?.Id, Is.EqualTo(7));
             Assert.That(component.CurrentOwner?.Id, Is.EqualTo(21));
-            Assert.That(component.CurrentGroupName, Is.EqualTo("group-name"));
             Assert.That(component.CurrentSelectedDevices.Select(device => device.Id), Is.EqualTo(kSelectedGatewayId));
         });
     }
@@ -203,7 +202,7 @@ internal class UiRequestTaskMetadataEditorTest
         };
         SimulatedUserConfig userConfig = new()
         {
-            ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.enterInReqTask
+            ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask
         };
 
         await using BunitContext context = new();
@@ -257,7 +256,7 @@ internal class UiRequestTaskMetadataEditorTest
             "roles", "ui", "files", "FWO.UI", "Pages", "Request", "RequestTaskMetadataEditor.razor"));
         string source = File.ReadAllText(path);
         const string startMarker = "else if (TaskType == WfTaskType.new_interface)";
-        const string endMarker = "else if (TaskType == WfTaskType.group_create)";
+        const string endMarker = "@code";
         int start = source.IndexOf(startMarker, StringComparison.Ordinal);
         int end = source.IndexOf(endMarker, start, StringComparison.Ordinal);
         Assert.That(start, Is.GreaterThanOrEqualTo(0));

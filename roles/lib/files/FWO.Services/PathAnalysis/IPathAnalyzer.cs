@@ -41,5 +41,11 @@ namespace FWO.Services.PathAnalysis
         /// and the only result of algorithms that do not resolve zones.
         /// </summary>
         public IReadOnlyList<PathDevice> Devices { get; init; } = [];
+
+        /// <summary>
+        /// Id of the zone matrix the analysis ran on, either the requested or the designated one.
+        /// Null for algorithms that do not use a zone matrix.
+        /// </summary>
+        public int? MatrixId { get; init; }
     }
 }

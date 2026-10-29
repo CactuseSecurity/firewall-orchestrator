@@ -18,6 +18,8 @@ namespace FWO.Test
     [TestFixture]
     internal class UserControllerTest
     {
+        private static readonly List<int> kFirstTwoUserIds = [3, 5];
+        private static readonly List<int> kLastUserId = [9];
         private const int kUserLdapId = 2;
         private const int kOtherLdapId = 3;
         private const string kUserSearchPath = "ou=users,dc=fworch,dc=internal";
@@ -94,7 +96,7 @@ namespace FWO.Test
         {
             UserApiConnection apiConnection = new() { Users = [user] };
             List<Ldap> readOnlyLdapOfUser = [new Ldap { Id = kUserLdapId }];
-            UserController controller = new(readOnlyLdapOfUser, apiConnection)
+            UserController controller = new(readOnlyLdapOfUser, apiConnection, new SimulatedGlobalConfig())
             {
                 ControllerContext = new ControllerContext
                 {
@@ -141,7 +143,7 @@ namespace FWO.Test
             };
             UserController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
-            List<UserGetReturnParameters> result = await controller.Get();
+            List<UserGetReturnParameters> result = (await controller.Get(new PagingParameters())).Value!;
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].UserId, Is.EqualTo(7));
@@ -149,15 +151,60 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetPagesTheUsersOrderedByIdAndSetsTheHasMoreHeader()
+        {
+            UserControllerTestApiConnection apiConnection = new()
+            {
+                Users =
+                [
+                    new() { DbId = 9, Name = "third" },
+                    new() { DbId = 3, Name = "first" },
+                    new() { DbId = 5, Name = "second" }
+                ]
+            };
+            UserController firstPageController = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+            UserController lastPageController = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            List<UserGetReturnParameters> firstPage = (await firstPageController.Get(new PagingParameters { Limit = 2 })).Value!;
+            List<UserGetReturnParameters> lastPage = (await lastPageController.Get(new PagingParameters { Limit = 2, Offset = 2 })).Value!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstPage.Select(user => user.UserId), Is.EqualTo(kFirstTwoUserIds));
+                Assert.That(firstPageController.HttpContext.Response.Headers["X-Has-More"].ToString(), Is.EqualTo("true"));
+                Assert.That(lastPage.Select(user => user.UserId), Is.EqualTo(kLastUserId));
+                Assert.That(lastPageController.HttpContext.Response.Headers["X-Has-More"].ToString(), Is.EqualTo("false"));
+            });
+        }
+
+        [TestCase(0, null)]
+        [TestCase(GlobalConst.kDefaultMaxRestResponseObjectLimit + 1, null)]
+        [TestCase(null, -1)]
+        public async Task GetRejectsPagingOutOfRange(int? limit, int? offset)
+        {
+            UserController controller = CreateController(new UserControllerTestApiConnection(), PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<List<UserGetReturnParameters>> users = await controller.Get(new PagingParameters { Limit = limit, Offset = offset });
+            ActionResult<List<LdapUserGetReturnParameters>> ldapUsers = await controller.Get(new LdapUserGetParameters { LdapId = 99, Limit = limit, Offset = offset });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(users.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(((BadRequestObjectResult)users.Result!).Value, Is.TypeOf<ValidationProblemDetails>());
+                Assert.That(ldapUsers.Result, Is.TypeOf<BadRequestObjectResult>());
+            });
+        }
+
+        [Test]
         public async Task GetLdapUsersReturnsEmptyListForUnknownLdap()
         {
             UserController controller = CreateController(new UserControllerTestApiConnection(), PrincipalWithRoles(Roles.Admin));
 
-            List<LdapUserGetReturnParameters> result = await controller.Get(new LdapUserGetParameters
+            List<LdapUserGetReturnParameters> result = (await controller.Get(new LdapUserGetParameters
             {
                 LdapId = 99,
                 SearchPattern = "user"
-            });
+            })).Value!;
 
             Assert.That(result, Is.Empty);
         }
@@ -357,6 +404,36 @@ namespace FWO.Test
 
             Assert.That(result, Is.False);
             Assert.That(apiConnection.UserQueryCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task DeleteAllGroupsAndRolesEndsTheSessionsOfTheUser()
+        {
+            UserControllerTestApiConnection apiConnection = new()
+            {
+                Users = [new() { DbId = 42, Dn = "uid=user,ou=users,dc=fworch,dc=internal" }]
+            };
+            TestableLdap roleLdap = new(new RecordingLdapClient())
+            {
+                Id = kUserLdapId,
+                Addresses = ["ldap.example.test"],
+                Port = 389,
+                SearchUser = "cn=search,dc=fworch,dc=internal",
+                SearchUserPwd = LdapTestSupport.CreateEncryptedSecret("searchpwd"),
+                WriteUser = "cn=write,dc=fworch,dc=internal",
+                WriteUserPwd = "writepwd",
+                UserSearchPath = kUserSearchPath,
+                RoleSearchPath = "ou=roles,dc=fworch,dc=internal"
+            };
+            UserController controller = CreateController(new List<Ldap> { roleLdap }, apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            bool result = await controller.DeleteAllGroupsAndRoles(new UserDeleteAllEntriesParameters
+            {
+                UserId = 42
+            });
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.revokeRefreshTokensOfUsers));
         }
 
         [Test]
@@ -906,7 +983,7 @@ namespace FWO.Test
 
         private static UserController CreateController(List<Ldap> ldaps, ApiConnection apiConnection, ClaimsPrincipal user)
         {
-            return new UserController(ldaps, apiConnection)
+            return new UserController(ldaps, apiConnection, new SimulatedGlobalConfig())
             {
                 ControllerContext = new ControllerContext
                 {

@@ -98,6 +98,32 @@ including the internal LDAP, and newer 389 Directory Server), `nsUniqueId` (389 
   next login with password binds it again.
 - Directories that provide none of these attributes keep the binding by connection and dn only.
 
+## Session revocation
+
+A session consists of a short-lived access token (JWT, `accessTokenLifetime`, default 1 hour) and a refresh token
+(`refreshTokenLifetime`, default 1 day). Every refresh rebuilds the user's roles, tenant and ownerships from the
+directories. When an administrator reduces the permissions of a user, the sessions of the affected local users are
+ended at once instead of when their access tokens expire:
+
+| Change | Ended sessions |
+|---|---|
+| Delete a user (`DELETE api/User`, or delete the local user only) | the user's (its refresh tokens are deleted with it) |
+| Remove a user from all groups and roles (`DELETE api/User/AllGroupsAndRoles`) | the user's |
+| Remove a user or group from a role (`DELETE api/Role/User`) | the user's, or those of all members of the group including nested groups |
+| Remove a user or group from a group (`DELETE api/Group/User`) | the user's, or those of all members of the removed group |
+| Delete a group (`DELETE api/Group`) | those of all members of the group |
+
+Ending a session revokes all refresh tokens of the user, which is written to the audit log ("Session Revocation").
+Every UI session asks the middleware every 30 seconds whether its refresh token is still live
+(`POST api/AuthenticationToken/CheckSession`), and right away when the change was made in the UI on the same UI
+server. A session that has ended is sent to the login page; the user logs in again and gets the reduced permissions,
+or cannot log in any more.
+
+The middleware cannot withdraw an access token that it has already issued. Until it expires, such a token still
+works for direct calls to the GraphQL API and the middleware REST API. Keep `accessTokenLifetime` short if this
+matters. Changes made directly in an external directory are not noticed: they take effect at the next token refresh
+or login.
+
 ## Login limits
 
 Every login with credentials makes the middleware search and bind in the active LDAP connections. To keep
@@ -160,10 +186,13 @@ Every request to the middleware REST API with a user token counts against a budg
 the `x-hasura-uuid` claim): by default 600 requests per minute, with bursts of up to one minute's budget. The budget
 is refilled at least every 10 seconds (below 60 per minute: one request every 60 / value seconds); a configured value
 that cannot be refilled exactly within such a period is rounded by at most 3 requests per minute. Endpoints
-whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwners` and the Flow catalog lists
-`getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects`) additionally
-run at most 2 requests of one user at the same time; up to 4 further requests wait, the rest are rejected. Their
-request bodies are limited to 1 MiB (`413` above). Rejected requests get `429` with `Retry-After: 60`.
+whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwners`, the Flow catalog lists
+`getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects`, and
+`getImplTaskTargets`, `getAuditProofCriticalChanges`, `Rule/GetRulesByFilter`, `owners/get`,
+`Compliance/designatedZoneMatrix/zones` and the user, tenant and LDAP lists `GET User`, `User/Get`, `GET Tenant`,
+`GET Group`, `Group/Get`, `Group/Members`, `Group/Memberships`, `Group/Resolve`) additionally run at most 2 requests
+of one user at the same time; up to 4 further requests wait, the rest are rejected. Their request bodies are limited
+to 1 MiB (`413` above). Rejected requests get `429` with `Retry-After: 60`.
 
 Service identities (`importer`, `middleware-server`), anonymous login tokens and unauthenticated requests are not
 counted here; logins are limited as described above.
@@ -178,8 +207,28 @@ type are ignored like the login limits:
 }
 ```
 
-The list endpoints above return one page per request: `getIpDataForOwners` at most 10000 applications, the
-object lists at most 1000 items and the group lists at most 250, which is also the default when no limit is sent. Items are ordered by name and
-id; page with `limit` and `offset` (`options.limit`/`options.offset` for `getIpDataForOwners`) until the response
-header `X-Has-More` is `false`. `getFlowComplianceState` accepts at most 100 entries in each of `source`,
+Every REST endpoint returning a list returns one page per request. The maximum page size, which is also the
+default when no limit is sent, is the setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`,
+Settings - Defaults, default 10000, at least 100, at most 100000). The middleware reads it at request time, so a change applies
+without restart. Page with `limit` and `offset` until the response header `X-Has-More` is `false`; a `limit`
+outside 1 to the maximum or a negative `offset` is answered with `400`. Where the keys are sent and how the items
+are ordered:
+
+| Endpoint | Paging keys | Order |
+|---|---|---|
+| `flow/getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects` | root `limit`, `offset` | name, id |
+| `modelling/getIpDataForOwners` | `options.limit`, `options.offset` | name, external app id, id |
+| `workflow/getImplTaskTargets` | `options.limit`, `options.offset` | visible targets by name, then id |
+| `workflow/getAuditProofCriticalChanges` | `options.limit`, `options.offset` | newest first |
+| `Rule/GetRulesByFilter` | `options.limit`, `options.offset` | rule id |
+| `owners/get` | root `limit`, `offset` | name, id |
+| `User/Get`, `Group/Get`, `Group/Members`, `Group/Memberships`, `Group/Resolve` | root `limit`, `offset` | dn |
+| `GET User`, `GET Tenant` | query parameters `limit`, `offset` | id |
+| `GET Group` | query parameters `limit`, `offset` | dn |
+| `GET Compliance/designatedZoneMatrix/zones` | query parameters `limit`, `offset` | zone id |
+
+Callers that receive fewer items than the maximum see no difference. The UI reads every page of the user, tenant
+and LDAP group lists it uses, at most 1000 pages per list; a list with further pages after that is reported as an
+error instead of being shown incomplete. The LDAP lists are read completely from the directory for every page and
+cut in the middleware. `getFlowComplianceState` accepts at most 100 entries in each of `source`,
 `destination` and `service`, and at most 100 `policies`.

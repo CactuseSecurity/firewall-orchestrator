@@ -68,11 +68,13 @@ public static class DeviceSpecificSettingKeys
     public static readonly DeviceSpecificSettingKey<string> ImporterHostName =
         new("importerHostName", ManagerScopeTypes);
 
-    public static readonly DeviceSpecificSettingKey<bool> PlanImplementation =
-        new("planImplementation", AllScopeTypes);
+    /// <summary>Automatic creation of implementation tasks for every task type.</summary>
+    public static readonly DeviceSpecificSettingKey<bool> AutoPlanImplementation =
+        new("autoPlanImplementation", AllScopeTypes);
 
-    public static readonly DeviceSpecificSettingKey<bool> PlanImplementationOverrideForRules =
-        new("planImplementationOverrideForRules", AllScopeTypes);
+    /// <summary>Automatic creation of implementation tasks for rule tasks, only together with AutoPlanImplementation.</summary>
+    public static readonly DeviceSpecificSettingKey<bool> AutoPlanImplementationForRules =
+        new("autoPlanImplementationForRules", AllScopeTypes);
 
     public static readonly DeviceSpecificSettingKey<bool> ModellingCreateAppZones =
         new("modellingCreateAppZones", ManagerScopeTypes);
@@ -92,6 +94,7 @@ public static class DeviceSpecificSettingKeys
     public static readonly DeviceSpecificSettingKey<string> Templates =
         new("templates", DeviceTypeScopeTypes);
 
+    /// <summary>All canonical keys, including the firewall write keys of <see cref="FirewallWriteSettingKeys"/>.</summary>
     public static IReadOnlyList<DeviceSpecificSettingKey> All { get; } = new List<DeviceSpecificSettingKey>
     {
         InstallOn,
@@ -112,15 +115,15 @@ public static class DeviceSpecificSettingKeys
         OwnerIdCustomFieldName,
         ChangeIdCustomFieldName,
         ImporterHostName,
-        PlanImplementation,
-        PlanImplementationOverrideForRules,
+        AutoPlanImplementation,
+        AutoPlanImplementationForRules,
         ModellingCreateAppZones,
         ModellingImplementNetworkAreaObjects,
         ModellingDynIpLabelsVisibleAsGroups,
         ModellingConnectionIdField,
         ModellingConnectionIdTemplate,
         Templates,
-    }.AsReadOnly();
+    }.Concat(FirewallWriteSettingKeys.All).ToList().AsReadOnly();
 
     public static IReadOnlyDictionary<string, DeviceSpecificSettingKey> ByDatabaseKey { get; } =
         new ReadOnlyDictionary<string, DeviceSpecificSettingKey>(

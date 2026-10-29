@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Data.Workflow;
 using NetTools;
@@ -65,6 +66,37 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
+        /// Searches network groups by name for a group_modify request task.
+        /// </summary>
+        public async Task<List<NetworkObject>> SearchNetworkGroups(int managementId, string searchText)
+        {
+            string text = searchText.Trim();
+            if (text.Length < WfObjectTaskHelper.kMinSearchLength)
+            {
+                return [];
+            }
+            return await apiConnection.RunWithWorkflowRole(user, () =>
+                apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.searchNetworkGroupsForRequestByName, new
+                {
+                    mgmId = managementId,
+                    pattern = ToContainsPattern(text),
+                    limit = WfObjectTaskHelper.kSearchLimit
+                }));
+        }
+
+        public async Task<NetworkObject?> LoadNetworkGroupMembers(int managementId, long groupId)
+        {
+            List<NetworkObject> groups = await apiConnection.RunWithWorkflowRole(user, () =>
+                apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.getNetworkGroupMembersForRequest, new
+                {
+                    mgmId = managementId,
+                    groupId,
+                    memberLimit = WfObjectTaskHelper.kGroupMemberLimit + 1
+                }));
+            return ValidateLoadedGroup(groups, groupId, group => group.ObjectGroups.Length);
+        }
+
+        /// <summary>
         /// Searches services by port, when the text is a number, or else by a part of the name.
         /// Texts shorter than WfObjectTaskHelper.kMinSearchLength return no hits without querying the api,
         /// except for a port number, which may be shorter.
@@ -95,6 +127,62 @@ namespace FWO.Services.Workflow
                     pattern = ToContainsPattern(text),
                     limit = WfObjectTaskHelper.kSearchLimit
                 }));
+        }
+
+        /// <summary>
+        /// Searches service groups by name for a group_modify request task.
+        /// </summary>
+        public async Task<List<NetworkService>> SearchServiceGroups(int managementId, string searchText)
+        {
+            string text = searchText.Trim();
+            if (text.Length < WfObjectTaskHelper.kMinSearchLength)
+            {
+                return [];
+            }
+            return await apiConnection.RunWithWorkflowRole(user, () =>
+                apiConnection.SendQueryAsync<List<NetworkService>>(ObjectQueries.searchNetworkServiceGroupsForRequestByName, new
+                {
+                    mgmId = managementId,
+                    pattern = ToContainsPattern(text),
+                    limit = WfObjectTaskHelper.kSearchLimit
+                }));
+        }
+
+        public async Task<NetworkService?> LoadServiceGroupMembers(int managementId, long groupId)
+        {
+            List<NetworkService> groups = await apiConnection.RunWithWorkflowRole(user, () =>
+                apiConnection.SendQueryAsync<List<NetworkService>>(ObjectQueries.getServiceGroupMembersForRequest, new
+                {
+                    mgmId = managementId,
+                    groupId,
+                    memberLimit = WfObjectTaskHelper.kGroupMemberLimit + 1
+                }));
+            return ValidateLoadedGroup(groups, groupId, group => group.ServiceGroups.Length);
+        }
+
+        private static T? ValidateLoadedGroup<T>(List<T> groups, long groupId, Func<T, int> memberCount)
+            where T : class
+        {
+            T? group = groups.SingleOrDefault(candidate => GetGroupId(candidate) == groupId);
+            if (group is null)
+            {
+                return null;
+            }
+            if (memberCount(group) > WfObjectTaskHelper.kGroupMemberLimit)
+            {
+                throw new CollectionLimitExceededException(WfObjectTaskHelper.kGroupMemberLimit);
+            }
+            return group;
+        }
+
+        private static long GetGroupId<T>(T group)
+        {
+            return group switch
+            {
+                NetworkObject networkGroup => networkGroup.Id,
+                NetworkService serviceGroup => serviceGroup.Id,
+                _ => throw new ArgumentException("Unsupported group type.", nameof(group))
+            };
         }
 
         /// <summary>

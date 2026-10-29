@@ -23,10 +23,9 @@ public sealed record RequestRootValidationSchema(
     /// Builds the schema of a paged list request with the request-visible filter and the paging keys.
     /// </summary>
     /// <param name="endpointName">Name of the endpoint used in validation messages.</param>
-    /// <param name="maxLimit">Maximum page size of the endpoint.</param>
-    public static RequestRootValidationSchema ForPagedVisibleInRequest(string endpointName, int maxLimit)
+    public static RequestRootValidationSchema ForPagedVisibleInRequest(string endpointName)
     {
-        List<RequestKeyDefinition> allowedKeys = [.. kVisibleInRequestKeys, .. FlowCatalogPaging.KeyDefinitions(maxLimit)];
+        List<RequestKeyDefinition> allowedKeys = [.. kVisibleInRequestKeys, .. FlowCatalogPaging.KeyDefinitions()];
         return new RequestRootValidationSchema(endpointName, allowedKeys);
     }
 }

@@ -14,6 +14,12 @@ fragment reqTaskOverview on request_reqtask {
   locked
   reason
   additional_info
+  owners: reqtask_owners {
+    owner: owner {
+      id
+      name
+    }
+  }
   on_management: management {
     id: mgm_id
     name: mgm_name

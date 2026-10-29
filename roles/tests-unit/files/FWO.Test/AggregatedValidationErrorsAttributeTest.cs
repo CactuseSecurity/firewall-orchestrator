@@ -74,7 +74,11 @@ internal class AggregatedValidationErrorsAttributeTest
         // is not reachable from a test without booting the host, so the source is asserted instead.
         string program = File.ReadAllText(LocateProgramFile());
 
-        Assert.That(program, Does.Contain($"AddSchemaTransformer<{nameof(OpenApiRequiredSchemaTransformer)}>"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(program, Does.Contain($"AddSchemaTransformer<{nameof(OpenApiRequiredSchemaTransformer)}>"));
+            Assert.That(program, Does.Contain($"AddSchemaTransformer<{nameof(OpenApiAddressInputSchemaTransformer)}>"));
+        });
     }
 
     private static string LocateProgramFile()

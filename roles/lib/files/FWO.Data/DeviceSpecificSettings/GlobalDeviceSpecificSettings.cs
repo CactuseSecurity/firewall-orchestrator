@@ -46,9 +46,28 @@ public class GlobalDeviceSpecificSettings
     /// </summary>
     public string ImporterHostName { get; set; } = "";
 
-    public bool PlanImplementation { get; set; } = true;
+    /// <summary>
+    /// Whether the implementation tasks of a request task are created automatically once the request task is
+    /// approved. When false, a planner creates them. Applies to every task type; rule tasks additionally need
+    /// <see cref="AutoPlanImplementationForRules"/>.
+    /// </summary>
+    public bool AutoPlanImplementation { get; set; } = true;
 
-    public bool PlanImplementationOverrideForRules { get; set; } = true;
+    /// <summary>
+    /// Whether the implementation tasks of rule tasks (access, rule_modify, rule_delete) are created automatically.
+    /// Only effective together with <see cref="AutoPlanImplementation"/>; when false, a planner creates them.
+    /// </summary>
+    public bool AutoPlanImplementationForRules { get; set; } = false;
+
+    /// <summary>
+    /// Returns whether the implementation tasks of a kind of task are created automatically: rule tasks need both auto
+    /// plan settings, every other task type <see cref="AutoPlanImplementation"/>.
+    /// </summary>
+    /// <param name="isRuleTask">True for access, rule_modify and rule_delete tasks.</param>
+    public bool IsAutoPlanned(bool isRuleTask)
+    {
+        return AutoPlanImplementation && (!isRuleTask || AutoPlanImplementationForRules);
+    }
 
     public bool ModellingCreateAppZones { get; set; } = true;
 
@@ -61,6 +80,21 @@ public class GlobalDeviceSpecificSettings
     public string ModellingConnectionIdTemplate { get; set; } = "FWOC{ID}";
 
     public string Templates { get; set; } = "{}";
+
+    /// <summary>Whether the server certificate of the firewall management is checked when writing to the firewall.</summary>
+    public bool FwWriteCheckCertificates { get; set; } = true;
+
+    /// <summary>Whether the policy is installed on the gateway after a firewall write.</summary>
+    public bool FwWriteInstallPolicy { get; set; } = false;
+
+    /// <summary>Whether objects, services and groups are deleted on the firewall; rules are always deleted when a task says so.</summary>
+    public bool FwWriteDeleteObjects { get; set; } = false;
+
+    /// <summary>Endpoint overrides ("METHOD path") per firewall write operation; a missing or empty entry uses the shipped default.</summary>
+    public Dictionary<FirewallWriteOperation, string> FwWriteEndpoints { get; set; } = [];
+
+    /// <summary>Body template overrides per firewall write operation; a missing or empty entry uses the shipped default.</summary>
+    public Dictionary<FirewallWriteOperation, string> FwWriteTemplates { get; set; } = [];
 
     /// <summary>Creates global settings.</summary>
     public GlobalDeviceSpecificSettings() => Scope.ScopeType = DeviceSpecificScopeType.Global;

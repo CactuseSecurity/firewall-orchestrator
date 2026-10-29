@@ -1,15 +1,23 @@
+using FWO.Logging;
 using System.Collections.Concurrent;
 
 namespace FWO.Ui.Services
 {
     /// <summary>
     /// Keeps track of all UI sessions (Blazor circuits) currently open on this UI server.
-    /// Registered as singleton and fed by the <see cref="UiSessionCircuitHandler"/>.
+    /// Registered as singleton and fed by the <see cref="UiSessionCircuitHandler"/>. It also lets a change that
+    /// ends sessions of other users, such as deleting a user or removing it from a role, ask all sessions to check
+    /// at once whether they are still live, instead of at their next periodic check.
     /// </summary>
     public class UiSessionTracker
     {
         private readonly ConcurrentDictionary<string, UiSession> sessions = new();
         private readonly Func<DateTime> utcNow;
+
+        /// <summary>
+        /// Raised when the sessions have to check whether they are still live.
+        /// </summary>
+        public event Action? SessionCheckRequested;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UiSessionTracker"/> class.
@@ -91,6 +99,31 @@ namespace FWO.Ui.Services
                     .Distinct(StringComparer.OrdinalIgnoreCase).Count(),
                 Sessions = currentSessions
             };
+        }
+
+        /// <summary>
+        /// Asks all sessions to check whether they are still live. A failing subscriber does not keep the others
+        /// from being asked.
+        /// </summary>
+        public void RequestSessionCheck()
+        {
+            Action? handlers = SessionCheckRequested;
+            if (handlers == null)
+            {
+                return;
+            }
+
+            foreach (Action handler in handlers.GetInvocationList().Cast<Action>())
+            {
+                try
+                {
+                    handler();
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError(nameof(UiSessionTracker), "A session could not be asked to check whether it is still live.", exception);
+                }
+            }
         }
 
         private void Update(string sessionId, Action<UiSession> change)

@@ -101,7 +101,7 @@
                     <div class="btn-group">
                         @foreach(var action in offeredActions)
                         {
-                            @if(!WfHandler.ReadOnlyMode || WfStateAction.IsReadonlyType(action.ActionType))
+                            @if(WfHandler.CanPerformActionOnActTicket(action))
                             {
                                 <button type="button" class="btn btn-sm btn-dark ml-13" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
                             }
@@ -151,7 +151,7 @@
                 <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
                     <Authorized>
                         @* read-only users can open the dialog, but never save from it *@
-                        <button type="button" class="btn btn-sm btn-primary" disabled="@WfHandler.ReadOnlyMode" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
+                        <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanSaveActTicket())" @onclick="InitSaveTicket">@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save_promote", Icons.ChangeState))</button>
@@ -363,7 +363,7 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        if (WorkInProgress)
+        if (WorkInProgress || !WfHandler.CanPerformActionOnActTicket(action))
         {
             return;
         }
@@ -474,9 +474,17 @@
         }
     }
 
+    /// <summary>
+    /// Checks whether the user may save the ticket opened for editing.
+    /// </summary>
+    private bool CanSaveActTicket()
+    {
+        return !WfHandler.ReadOnlyMode && WfHandler.CanChangeActTicket();
+    }
+
     private async Task InitSaveTicket()
     {
-        if (WfHandler.ReadOnlyMode)
+        if (!CanSaveActTicket())
         {
             return;
         }

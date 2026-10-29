@@ -1,0 +1,67 @@
+@using FWO.Basics
+@using FWO.Config.Api.Data
+
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+@implements IDisposable
+
+@* Upgraded installations keep certificate checking switched off where it was off before; nothing else would show it. *@
+@if (uncheckedSwitches.Count > 0)
+{
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+        <div class="alert alert-warning small my-1" role="alert" data-testid="unchecked-certificates-warning">
+            <span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5018"))
+            @foreach (string switchKey in uncheckedSwitches)
+            {
+                <a class="ms-2" href="@kSettingsPages[switchKey]">@(userConfig.GetText(kConnectionTexts[switchKey]))</a>
+            }
+        </div>
+    </ExecutionModeAuthorizeView>
+}
+
+@code
+{
+    private static readonly Dictionary<string, string> kConnectionTexts = new()
+    {
+        [ConfigData.kImportCheckCertificatesKey] = "cert_check_firewalls",
+        [ConfigData.kExtTicketSystemsCheckCertificatesKey] = "cert_check_ticket_systems",
+        [ConfigData.kEmailCheckCertificatesKey] = "cert_check_email"
+    };
+
+    private static readonly Dictionary<string, string> kSettingsPages = new()
+    {
+        [ConfigData.kImportCheckCertificatesKey] = "/settings/importer",
+        [ConfigData.kExtTicketSystemsCheckCertificatesKey] = "/settings/exttickettemplates",
+        [ConfigData.kEmailCheckCertificatesKey] = "/settings/email"
+    };
+
+    private List<string> uncheckedSwitches = [];
+    private Action<Config, ConfigItem[]>? configChangeHandler;
+
+    /// <summary>
+    /// Reads the certificate checking switches and follows their changes.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        uncheckedSwitches = globalConfig.GetUncheckedCertificateSwitches();
+        // re-reads the switches when the global config changed, e.g. after an admin switched a check on; the event
+        // comes from the config subscription thread, so reading and rendering happen on the renderer's thread
+        configChangeHandler = (_, _) => _ = InvokeAsync(RefreshUncheckedSwitches);
+        globalConfig.OnChange += configChangeHandler;
+    }
+
+    private void RefreshUncheckedSwitches()
+    {
+        uncheckedSwitches = globalConfig.GetUncheckedCertificateSwitches();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Stops following config changes.
+    /// </summary>
+    public void Dispose()
+    {
+        globalConfig.OnChange -= configChangeHandler;
+    }
+}

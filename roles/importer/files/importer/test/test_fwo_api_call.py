@@ -359,6 +359,16 @@ class TestAlerts:
         assert _passed_variables(api, 1) == {"mgmId": MGM_ID, "alertCode": IMPORT_ERROR_ALERT_CODE, "currentAlertId": 9}
         assert _passed_variables(api, 2)["alertId"] == 5
 
+    def test_acknowledge_open_alerts_acknowledges_all_alerts_of_the_code(
+        self, fwo_api_call: FwoApiCall, api: MagicMock
+    ) -> None:
+        api.call.side_effect = [{"data": {"alert": [{"alert_id": 5}, {"alert_id": 6}]}}, {"data": {}}, {"data": {}}]
+
+        fwo_api_call.acknowledge_open_alerts(MGM_ID, IMPORT_ERROR_ALERT_CODE)
+
+        assert _passed_variables(api, 0) == {"mgmId": MGM_ID, "alertCode": IMPORT_ERROR_ALERT_CODE, "currentAlertId": 0}
+        assert [_passed_variables(api, index)["alertId"] for index in (1, 2)] == [5, 6]
+
     def test_set_alert_stops_without_existing_alert_data(self, fwo_api_call: FwoApiCall, api: MagicMock) -> None:
         api.call.side_effect = [{"data": {"insert_alert": {"returning": [{"newIdLong": 9}]}}}, {"errors": []}]
 

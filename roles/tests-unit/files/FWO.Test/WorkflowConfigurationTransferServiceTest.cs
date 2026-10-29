@@ -13,6 +13,8 @@ namespace FWO.Test
     {
         private static readonly string[] kExpectedPhaseTransitionGroups = ["Reviewers"];
         private static readonly string[] kExpectedVisibilityGroupMembers = ["cn=operators"];
+        private static readonly string[] kExpectedRequestPhase = ["request"];
+        private static readonly string[] kExpectedSelectedTransitionGroups = ["Reviewers"];
 
         [TestCase(true)]
         [TestCase(false)]
@@ -31,6 +33,7 @@ namespace FWO.Test
             {
                 TransitionGroup(10, 20)
             });
+            api.Respond(RequestQueries.getStates, States());
             api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup>
             {
                 VisibilityGroup(20)
@@ -44,10 +47,80 @@ namespace FWO.Test
                 Assert.That(package.Format, Is.EqualTo(WorkflowConfigurationTransferPackage.kFormat));
                 Assert.That(package.Configuration.Name, Is.EqualTo("Shared"));
                 Assert.That(package.Configuration.Phases[0].TransitionGroups, Is.EqualTo(kExpectedPhaseTransitionGroups));
+                Assert.That(package.States.Single(state => state.Id == 2).Name, Is.EqualTo("Automatic approval"));
+                Assert.That(package.States.Single(state => state.Id == 2).AutomaticOnly, Is.True);
                 Assert.That(package.TransitionGroups[0].VisibilityGroup, Is.EqualTo(includeVisibilityGroups ? "Operators" : null));
                 Assert.That(package.TransitionGroups[0].Exclusive, Is.EqualTo(includeVisibilityGroups));
                 Assert.That(package.VisibilityGroups?.Single().Members, Is.EqualTo(includeVisibilityGroups ? kExpectedVisibilityGroupMembers : null));
             });
+        }
+
+        [Test]
+        public async Task Export_IncludesOnlySelectedPhasesAndTheirTransitionGroups()
+        {
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration>
+            {
+                new() { Id = 5, Name = "Shared" }
+            });
+            WorkflowConfigurationPhase selected = PhaseMapping(10);
+            WorkflowConfigurationPhase omitted = PhaseMapping(11);
+            omitted.Phase = WorkflowPhases.approval.ToString();
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase> { selected, omitted });
+            StateMatrixTransitionGroup omittedGroup = TransitionGroup(11, 21);
+            omittedGroup.Name = "Approvers";
+            omittedGroup.VisibilityGroup!.Name = "Managers";
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup>
+            {
+                TransitionGroup(10, 20), omittedGroup
+            });
+            api.Respond(RequestQueries.getStates, States());
+            WorkflowConfigurationTransferService service = new(api);
+
+            WorkflowConfigurationTransferPackage package = await service.Export(5, false,
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "master:request" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(package.Configuration.Phases.Select(phase => phase.Phase), Is.EqualTo(kExpectedRequestPhase));
+                Assert.That(package.TransitionGroups.Select(group => group.Name), Is.EqualTo(kExpectedSelectedTransitionGroups));
+            });
+        }
+
+        [Test]
+        public async Task Export_AllowsReferencedStateZero()
+        {
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration>
+            {
+                new() { Id = 5, Name = "Shared" }
+            });
+            WorkflowConfigurationPhase phase = PhaseMapping(10);
+            phase.PhaseMatrix.LowestInputState = 0;
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase> { phase });
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup>
+            {
+                TransitionGroup(10, 20)
+            });
+            api.Respond(RequestQueries.getStates, States());
+            WorkflowConfigurationTransferService service = new(api);
+
+            WorkflowConfigurationTransferPackage package = await service.Export(5, false);
+
+            Assert.That(package.States.Single(state => state.Id == 0).Name, Is.EqualTo("Draft"));
+        }
+
+        [Test]
+        public void Export_RejectsAnEmptyPhaseSelection()
+        {
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration> { new() { Id = 5, Name = "Shared" } });
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase> { PhaseMapping(10) });
+            WorkflowConfigurationTransferService service = new(api);
+
+            InvalidDataException? exception = Assert.ThrowsAsync<InvalidDataException>(() => service.Export(5, false, new HashSet<string>()));
+
+            Assert.That(exception?.Message, Does.Contain("At least one"));
         }
 
         [Test]
@@ -62,8 +135,10 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(json, Does.Contain("\"transition_groups\""));
+                Assert.That(json, Does.Contain("\"states\""));
                 Assert.That(json, Does.Contain("\"visibility_groups\""));
                 Assert.That(result.Configuration.Phases[0].DerivedStates[0].DerivedStateId, Is.EqualTo(3));
+                Assert.That(result.States.Single(state => state.Id == 2).AutomaticOnly, Is.True);
             });
         }
 
@@ -89,6 +164,104 @@ namespace FWO.Test
                 Assert.That((string?)configurationVariables["name"], Is.EqualTo("Imported"));
                 Assert.That(api.Calls.Any(call => call.Query == RequestQueries.replaceWorkflowVisibilityGroupMembers), Is.True);
                 Assert.That(api.Calls.Any(call => call.Query == RequestQueries.replaceStateMatrixTransitionGroupTransitions), Is.True);
+                Assert.That(service.LastImportStatistics.CreatedStates, Is.EqualTo(0));
+                Assert.That(service.LastImportStatistics.CreatedTransitionGroups, Is.EqualTo(1));
+                Assert.That(service.LastImportStatistics.CreatedVisibilityGroups, Is.EqualTo(1));
+                Assert.That(service.LastImportStatistics.AddedPhases, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task Import_CreatesMissingStatesFromPackageDefinitions()
+        {
+            RecordingWorkflowApiConnection api = EmptyImportApi();
+            api.Respond(RequestQueries.createState, new object());
+            api.Respond(RequestQueries.createWorkflowVisibilityGroup, new ReturnId { NewId = 20 });
+            api.Respond(RequestQueries.replaceWorkflowVisibilityGroupMembers, new object());
+            api.Respond(RequestQueries.createStateMatrixTransitionGroup, new ReturnId { NewId = 30 });
+            api.Respond(RequestQueries.replaceStateMatrixTransitionGroupTransitions, new object());
+            api.Respond(RequestQueries.createWorkflowConfiguration, new ReturnId { NewId = 40 });
+            WorkflowConfigurationTransferPackage package = Package();
+            package.Configuration.Phases[0].LowestEndState = 999;
+            package.States.Add(new WorkflowStateTransferData { Id = 999, Name = "Automatic approval", AutomaticOnly = true });
+            WorkflowConfigurationTransferService service = new(api);
+
+            await service.Import(package, "Imported");
+
+            JObject stateVariables = JObject.FromObject(api.Calls.Single(call => call.Query == RequestQueries.createState).Variables!);
+            Assert.Multiple(() =>
+            {
+                Assert.That((int?)stateVariables["id"], Is.EqualTo(999));
+                Assert.That((string?)stateVariables["name"], Is.EqualTo("Automatic approval"));
+                Assert.That((bool?)stateVariables["automaticOnly"], Is.True);
+            });
+        }
+
+        [Test]
+        public async Task Import_DoesNotOverwriteExistingStateDefinitions()
+        {
+            RecordingWorkflowApiConnection api = EmptyImportApi();
+            api.Respond(RequestQueries.createWorkflowVisibilityGroup, new ReturnId { NewId = 20 });
+            api.Respond(RequestQueries.replaceWorkflowVisibilityGroupMembers, new object());
+            api.Respond(RequestQueries.createStateMatrixTransitionGroup, new ReturnId { NewId = 30 });
+            api.Respond(RequestQueries.replaceStateMatrixTransitionGroupTransitions, new object());
+            api.Respond(RequestQueries.createWorkflowConfiguration, new ReturnId { NewId = 40 });
+            WorkflowConfigurationTransferPackage package = Package();
+            WorkflowConfigurationTransferService service = new(api);
+
+            await service.Import(package, "Imported");
+
+            Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createState), Is.False);
+        }
+
+        [TestCase("Source name", false)]
+        [TestCase("Open", true)]
+        public void Import_RejectsConflictingExistingStateDefinitions(string importedName, bool importedAutomaticOnly)
+        {
+            RecordingWorkflowApiConnection api = EmptyImportApi();
+            WorkflowConfigurationTransferPackage package = Package();
+            WorkflowStateTransferData importedState = package.States.Single(state => state.Id == 1);
+            importedState.Name = importedName;
+            importedState.AutomaticOnly = importedAutomaticOnly;
+            WorkflowConfigurationTransferService service = new(api);
+
+            InvalidDataException? exception = Assert.ThrowsAsync<InvalidDataException>(() => service.Import(package, "Imported"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception?.Message, Does.Contain("different definition"));
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createState), Is.False);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createWorkflowVisibilityGroup), Is.False);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createStateMatrixTransitionGroup), Is.False);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createWorkflowConfiguration), Is.False);
+            });
+        }
+
+        [Test]
+        public void Import_RollsBackMissingStatesWhenExistingGroupWouldBeOverridden()
+        {
+            RecordingWorkflowApiConnection api = new();
+            StateMatrixTransitionGroup conflictingGroup = TransitionGroup(30, 20);
+            conflictingGroup.Description = "Local definition";
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration>());
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup> { conflictingGroup });
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup> { VisibilityGroup(20) });
+            api.Respond(RequestQueries.getStates, States());
+            api.Respond(RequestQueries.createState, new object());
+            api.Respond(RequestQueries.deleteState, new object());
+            WorkflowConfigurationTransferPackage package = Package();
+            package.Configuration.Phases[0].LowestEndState = 999;
+            package.States.Add(new WorkflowStateTransferData { Id = 999, Name = "Imported end state" });
+            WorkflowConfigurationTransferService service = new(api);
+
+            InvalidDataException? exception = Assert.ThrowsAsync<InvalidDataException>(() => service.Import(package, "Imported"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception?.Message, Does.Contain("different definition"));
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createState), Is.False);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.deleteState), Is.False);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createWorkflowConfiguration), Is.False);
             });
         }
 
@@ -111,6 +284,184 @@ namespace FWO.Test
                 Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createStateMatrixTransitionGroup), Is.False);
                 Assert.That(api.Calls.Count(call => call.Query == RequestQueries.createWorkflowConfiguration), Is.EqualTo(1));
             });
+        }
+
+        [Test]
+        public async Task Import_MergesIntoSelectedExistingConfiguration()
+        {
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration>
+            {
+                new() { Id = 5, Name = "Existing" }
+            });
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup> { TransitionGroup(30, 20) });
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup> { VisibilityGroup(20) });
+            api.Respond(RequestQueries.getStates, States());
+            WorkflowConfigurationPhase targetPhase = PhaseMapping(30);
+            targetPhase.PhaseMatrixId = 101;
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase> { targetPhase });
+            WorkflowConfigurationTransferService service = new(api);
+
+            int result = await service.Import(Package(), "Ignored", 5);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.EqualTo(5));
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.createWorkflowConfiguration), Is.False);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.addWorkflowConfigurationPhase), Is.False);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.replaceStateMatrixConfiguration), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task Import_MergesNewDerivedStateAndTransitionGroupLink()
+        {
+            RecordingWorkflowApiConnection api = new();
+            WorkflowTransitionGroupTransferData importedExtraGroup = new()
+            {
+                Name = "Additional",
+                Transitions = []
+            };
+            WorkflowConfigurationTransferPackage package = Package();
+            package.Configuration.Phases[0].DerivedStates.Add(new() { FromStateId = 2, DerivedStateId = 3 });
+            package.Configuration.Phases[0].TransitionGroups.Add(importedExtraGroup.Name);
+            package.TransitionGroups.Add(importedExtraGroup);
+            StateMatrixTransitionGroup existingExtraGroup = new() { Id = 31, Name = "Additional", Transitions = [] };
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration> { new() { Id = 5, Name = "Existing" } });
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup>
+            {
+                TransitionGroup(30, 20), existingExtraGroup
+            });
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup> { VisibilityGroup(20) });
+            api.Respond(RequestQueries.getStates, States());
+            WorkflowConfigurationPhase targetPhase = PhaseMapping(30);
+            targetPhase.PhaseMatrixId = 101;
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase> { targetPhase });
+            api.Respond(RequestQueries.replaceStateMatrixConfiguration, new object());
+            api.Respond(RequestQueries.linkStateMatrixTransitionGroup, new object());
+            WorkflowConfigurationTransferService service = new(api);
+
+            int result = await service.Import(package, "Ignored", 5);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.EqualTo(5));
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.replaceStateMatrixConfiguration), Is.True);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.linkStateMatrixTransitionGroup), Is.True);
+                Assert.That(service.LastImportStatistics.AddedDerivedStates, Is.EqualTo(1));
+                Assert.That(service.LastImportStatistics.AddedTransitionGroupLinks, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public void Import_RollsBackMergedDerivedStateAndEarlierLinksWhenLaterLinkFails()
+        {
+            RecordingWorkflowApiConnection api = new();
+            WorkflowConfigurationTransferPackage package = Package();
+            package.Configuration.Phases[0].DerivedStates.Add(new() { FromStateId = 2, DerivedStateId = 3 });
+            package.Configuration.Phases[0].TransitionGroups.Add("Additional one");
+            package.Configuration.Phases[0].TransitionGroups.Add("Additional two");
+            package.TransitionGroups.Add(new() { Name = "Additional one", Transitions = [] });
+            package.TransitionGroups.Add(new() { Name = "Additional two", Transitions = [] });
+            StateMatrixTransitionGroup additionalOne = new() { Id = 31, Name = "Additional one", Transitions = [] };
+            StateMatrixTransitionGroup additionalTwo = new() { Id = 32, Name = "Additional two", Transitions = [] };
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration> { new() { Id = 5, Name = "Existing" } });
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup>
+            {
+                TransitionGroup(30, 20), additionalOne, additionalTwo
+            });
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup> { VisibilityGroup(20) });
+            api.Respond(RequestQueries.getStates, States());
+            WorkflowConfigurationPhase targetPhase = PhaseMapping(30);
+            targetPhase.PhaseMatrixId = 101;
+            targetPhase.PhaseMatrix.TransitionGroups = [];
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase> { targetPhase });
+            api.Respond(RequestQueries.replaceStateMatrixConfiguration, new object());
+            api.Respond(RequestQueries.unlinkStateMatrixTransitionGroup, new object());
+            api.FailOnCall(RequestQueries.linkStateMatrixTransitionGroup, 2);
+            WorkflowConfigurationTransferService service = new(api);
+
+            Assert.ThrowsAsync<InvalidOperationException>(() => service.Import(package, "Ignored", 5));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(api.Calls.Count(call => call.Query == RequestQueries.linkStateMatrixTransitionGroup), Is.EqualTo(2));
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.unlinkStateMatrixTransitionGroup), Is.True);
+                Assert.That(api.Calls.Count(call => call.Query == RequestQueries.replaceStateMatrixConfiguration), Is.EqualTo(2));
+            });
+        }
+
+        [Test]
+        public void Import_RollsBackPreviouslyAddedPhaseWhenLaterPhaseFails()
+        {
+            RecordingWorkflowApiConnection api = new();
+            WorkflowConfigurationTransferPackage package = Package();
+            package.Configuration.Phases.Add(new()
+            {
+                TaskType = WfTaskType.master.ToString(),
+                Phase = WorkflowPhases.approval.ToString(),
+                Active = true,
+                LowestInputState = 1,
+                LowestStartState = 2,
+                LowestEndState = 999,
+                DerivedStates = [],
+                TransitionGroups = []
+            });
+            package.States.Add(new WorkflowStateTransferData { Id = 999, Name = "Imported end state" });
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration> { new() { Id = 5, Name = "Existing" } });
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup> { TransitionGroup(30, 20) });
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup> { VisibilityGroup(20) });
+            api.Respond(RequestQueries.getStates, States());
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase>());
+            api.Respond(RequestQueries.createState, new object());
+            api.Respond(RequestQueries.deleteState, new object());
+            api.Respond(RequestQueries.deleteWorkflowConfigurationPhase, new object());
+            api.FailOnCall(RequestQueries.addWorkflowConfigurationPhase, 2);
+            WorkflowConfigurationTransferService service = new(api);
+
+            Assert.ThrowsAsync<InvalidOperationException>(() => service.Import(package, "Ignored", 5));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(api.Calls.Count(call => call.Query == RequestQueries.addWorkflowConfigurationPhase), Is.EqualTo(2));
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.deleteWorkflowConfigurationPhase), Is.True);
+                int deletedPhaseIndex = api.Calls.FindIndex(call => call.Query == RequestQueries.deleteWorkflowConfigurationPhase);
+                int deletedStateIndex = api.Calls.FindIndex(call => call.Query == RequestQueries.deleteState);
+                Assert.That(deletedPhaseIndex, Is.LessThan(deletedStateIndex));
+            });
+        }
+
+        [Test]
+        public async Task Import_AddsPhaseToSelectedExistingConfiguration()
+        {
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration> { new() { Id = 5, Name = "Existing" } });
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup> { TransitionGroup(30, 20) });
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup> { VisibilityGroup(20) });
+            api.Respond(RequestQueries.getStates, States());
+            api.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase>());
+            api.Respond(RequestQueries.addWorkflowConfigurationPhase, new object());
+            WorkflowConfigurationTransferService service = new(api);
+
+            int result = await service.Import(Package(), "Ignored", 5);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.EqualTo(5));
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.addWorkflowConfigurationPhase), Is.True);
+                Assert.That(service.LastImportStatistics.AddedPhases, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public void Import_RejectsUnknownSelectedTarget()
+        {
+            RecordingWorkflowApiConnection api = EmptyImportApi();
+            WorkflowConfigurationTransferService service = new(api);
+
+            InvalidDataException? exception = Assert.ThrowsAsync<InvalidDataException>(() => service.Import(Package(), "Ignored", 99));
+
+            Assert.That(exception?.Message, Does.Contain("does not exist"));
         }
 
         [Test]
@@ -181,6 +532,7 @@ namespace FWO.Test
             group.VisibilityGroup = null;
             group.Exclusive = false;
             api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup> { group });
+            api.Respond(RequestQueries.getStates, States());
             WorkflowConfigurationTransferService service = new(api);
 
             WorkflowConfigurationTransferPackage package = await service.Export(5, true);
@@ -258,6 +610,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ValidateStructure_RejectsInvalidStateDefinitions()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(StructureError(package => package.States[0].Id = -1)?.Message,
+                    Does.Contain("invalid or duplicate workflow state"));
+                Assert.That(StructureError(package => package.States.RemoveAt(0))?.Message,
+                    Does.Contain("missing workflow state definitions"));
+                Assert.That(StructureError(package => package.States.Add(new WorkflowStateTransferData
+                {
+                    Id = package.States[0].Id,
+                    Name = "Duplicate"
+                }))?.Message, Does.Contain("invalid or duplicate workflow state"));
+            });
+        }
+
+        [Test]
         public void Validate_RejectsEmptyOrExistingConfigurationName()
         {
             List<WorkflowConfiguration> existingConfigurations = [new() { Id = 1, Name = "Imported" }];
@@ -271,6 +640,13 @@ namespace FWO.Test
                         WorkflowConfigurationTransferService.Validate(Package(), " imported ", existingConfigurations, States()))?.Message,
                     Does.Contain("empty or already exists"));
             });
+        }
+
+        [Test]
+        public void Validate_AcceptsPackageWithExistingStates()
+        {
+            Assert.DoesNotThrow(() => WorkflowConfigurationTransferService.Validate(
+                Package(), "Imported", [], States()));
         }
 
         [Test]
@@ -412,6 +788,12 @@ namespace FWO.Test
                     }
                 ]
             },
+            States =
+            [
+                new() { Id = 1, Name = "Open" },
+                new() { Id = 2, Name = "Automatic approval", AutomaticOnly = true },
+                new() { Id = 3, Name = "Closed" }
+            ],
             TransitionGroups =
             [
                 new()
@@ -465,6 +847,13 @@ namespace FWO.Test
             Members = [new() { VisibilityGroupId = id, MemberDn = "cn=operators" }]
         };
 
-        private static List<WfState> States() => [new() { Id = 1 }, new() { Id = 2 }, new() { Id = 3 }];
+        private static List<WfState> States() =>
+        [
+            new() { Id = 0, Name = "Draft" },
+            new() { Id = 1, Name = "Open" },
+            new() { Id = 2, Name = "Automatic approval", AutomaticOnly = true },
+            new() { Id = 3, Name = "Closed" }
+        ];
+
     }
 }

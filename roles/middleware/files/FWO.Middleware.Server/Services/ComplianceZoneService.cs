@@ -17,12 +17,16 @@ namespace FWO.Middleware.Server.Services;
 public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalConfig globalConfig)
 {
     /// <summary>
-    /// Returns the zones defined by the configured designated zone matrix.
+    /// Returns one page of the zones defined by the configured designated zone matrix, ordered by zone id.
     /// </summary>
-    public async Task<List<ComplianceDesignatedZoneResponse>> GetDesignatedZoneMatrixZonesAsync()
+    /// <param name="pageSize">Maximum number of zones returned.</param>
+    /// <param name="offset">Number of zones skipped before the page; null skips none.</param>
+    public async Task<ListPage<ComplianceDesignatedZoneResponse>> GetDesignatedZoneMatrixZonesAsync(int pageSize, int? offset)
     {
         List<ComplianceNetworkZone> zones = await LoadDesignatedZoneMatrixZonesAsync();
-        return zones.Select(MapDesignatedZoneResponse).ToList();
+        ListPage<ComplianceNetworkZone> page = ListPage<ComplianceNetworkZone>.FromOrderedItems(zones.OrderBy(zone => zone.Id), pageSize, offset);
+        List<ComplianceDesignatedZoneResponse> zoneResponses = page.Items.Select(MapDesignatedZoneResponse).ToList();
+        return new ListPage<ComplianceDesignatedZoneResponse>(zoneResponses, page.HasMore);
     }
 
     /// <summary>
@@ -108,11 +112,22 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
             throw new InvalidOperationException($"Unsupported object node type '{node.GetType().Name}'.");
         }
 
+        if (string.IsNullOrEmpty(leaf.NormalizedIpStart))
+        {
+            if (!AddressInputNormalizer.TryValidateAndNormalize(leaf, $"'{leaf.Name}'", out NormalizedAddressBounds bounds, out string? errorMessage))
+            {
+                throw new ArgumentException(errorMessage);
+            }
+
+            leaf.NormalizedIpStart = bounds.IpStart;
+            leaf.NormalizedIpEnd = bounds.IpEnd;
+        }
+
         NetworkObject networkObject = new()
         {
             Name = leaf.Name,
-            IP = leaf.IpStart,
-            IpEnd = leaf.IpEnd,
+            IP = leaf.NormalizedIpStart,
+            IpEnd = leaf.NormalizedIpEnd,
             Type = new NetworkObjectType
             {
                 Name = NormalizeObjectType(leaf.Type)
@@ -147,8 +162,7 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
             Description = zone.Description,
             IpRanges = [.. zone.IPRanges.Select(ipRange => new ComplianceDesignatedZoneIpRangeResponse
             {
-                IpStart = ipRange.Begin.ToString(),
-                IpEnd = ipRange.End.ToString()
+                IpRange = [ipRange.Begin.ToString(), ipRange.End.ToString()]
             })]
         };
     }

@@ -65,7 +65,7 @@ namespace FWO.Services.Workflow
             bool emailBundleFlushAttempted = false;
             try
             {
-                if (!await PromoteTicket(ticket))
+                if (!CheckActTicketChangeable() || !await PromoteTicket(ticket))
                 {
                     return false;
                 }
@@ -73,10 +73,7 @@ namespace FWO.Services.Workflow
                 BeginWorkflowEmailBundle();
                 emailBundleStarted = true;
 
-                // Creation itself is guarded by the implementation phase's
-                // configured lowest input state. Do not suppress it merely
-                // because this caller is in the request phase.
-                await UpdateRequestTasksFromTicket(true, approvalComment: ticket.OptComment());
+                await UpdateRequestTasksFromTicket(approvalComment: ticket.OptComment());
                 // In the request phase, task actions execute in middleware and
                 // may promote the task and ticket further. The UI still holds
                 // the pre-action task state here, so deriving the ticket from
@@ -125,7 +122,7 @@ namespace FWO.Services.Workflow
                 BeginWorkflowEmailBundle();
                 emailBundleStarted = true;
 
-                await UpdateRequestTasksFromTicket(false, targetTicketStateId: targetTicketStateId,
+                await UpdateRequestTasksFromTicket(targetTicketStateId: targetTicketStateId,
                     approvalComment: ticket.OptComment());
                 ActTicket.StateId = targetTicketStateId;
                 await UpdateActTicketState();
@@ -479,7 +476,7 @@ namespace FWO.Services.Workflow
             }
             if (syncImplementationTasks)
             {
-                await AutoCreateOrUpdateImplTasks();
+                await SyncImplTaskStatesAfterApproval();
             }
             if (dbAcc != null)
             {
@@ -544,12 +541,11 @@ namespace FWO.Services.Workflow
             SyncActTicketFromReqTask(ActReqTask);
         }
 
-        private async Task<bool> UpdateRequestTasksFromTicket(bool createImplTasks = true, bool triggerActions = true,
+        private async Task<bool> UpdateRequestTasksFromTicket(bool triggerActions = true,
             int? targetTicketStateId = null, string? approvalComment = null)
         {
             bool requestTaskActionsChangedState = false;
             List<WfReqTask> requestTasks = [.. ActTicket.Tasks];
-            List<WfReqTask> requestTasksNeedingInitialImplTasks = [];
             int synchronizationTicketStateId = targetTicketStateId ?? ActTicket.StateId;
             // Read the stored ticket once for the whole loop: every task and approval below needs the same
             // pre-change snapshot for the change history, and none of them is affected by another's write.
@@ -572,15 +568,6 @@ namespace FWO.Services.Workflow
                     requestTaskActionsChangedState = true;
                     Log.WriteDebug("UpdateRequestTasksFromTicket", $"Request task {reqtask.Id} changed from {oldReqTaskState} to {reqtask.StateId}.");
                 }
-                if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !IsPlanningPhaseActive(stateMatrixDict.Matrices[reqtask.TaskType])
-                    && RequestTaskNeedsInitialImplTasks(reqtask))
-                {
-                    requestTasksNeedingInitialImplTasks.Add(reqtask);
-                }
-            }
-            foreach (WfReqTask reqtask in await RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
-            {
-                await AutoCreateImplTasks(reqtask);
             }
             return requestTaskActionsChangedState;
         }

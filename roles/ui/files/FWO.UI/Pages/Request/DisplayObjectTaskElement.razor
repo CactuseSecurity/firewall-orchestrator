@@ -97,6 +97,15 @@
 }
 else
 {
+    @if (!IsModify && requested != null)
+    {
+        <div class="form-group row mt-2">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText(ObjectTypeTextKey())):</label>
+            <div class="col-sm-3">
+                <label class="col-sm-12 h-100 border bg-secondary">@requested.Name</label>
+            </div>
+        </div>
+    }
     <div class="form-group row mt-2">
         <div class="list-group col-sm-6">
             @if (original != null)
@@ -105,7 +114,13 @@ else
                     <label>@(userConfig.GetText("previous_state")): @DisplayElement(original)</label>
                 </div>
             }
-            @if (requested != null)
+            @if (!IsModify && requested != null)
+            {
+                <div class="list-group-item border bg-secondary">
+                    <label>@DisplayElement(requested, false)</label>
+                </div>
+            }
+            else if (requested != null)
             {
                 <div class="list-group-item border bg-secondary">
                     <label>@(userConfig.GetText("requested_state")): @DisplayElement(requested)</label>
@@ -484,9 +499,9 @@ else
         return singleElementTask.GetServiceElements().FirstOrDefault() ?? new();
     }
 
-    private string DisplayElement(WfReqElement element)
+    private string DisplayElement(WfReqElement element, bool includeName = true)
     {
-        string name = string.IsNullOrWhiteSpace(element.Name) ? "" : element.Name + " ";
+        string name = includeName && !string.IsNullOrWhiteSpace(element.Name) ? element.Name + " " : "";
         switch (WfObjectTaskHelper.GetKind(element))
         {
             case ObjectTaskKind.Service:
@@ -497,6 +512,16 @@ else
                 NwObjectElement nwObject = ToNwObjectElement(element);
                 return name + NwObjDisplay.DisplayIp(nwObject.IpString, nwObject.IpEndString);
         }
+    }
+
+    private string ObjectTypeTextKey()
+    {
+        return kind switch
+        {
+            ObjectTaskKind.Service => "service",
+            ObjectTaskKind.Time => "time_object",
+            _ => "network_object"
+        };
     }
 
     private static string ValidationClass(bool? valid)

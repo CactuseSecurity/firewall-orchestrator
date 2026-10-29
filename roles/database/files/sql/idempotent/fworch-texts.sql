@@ -633,6 +633,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Workflow-Konfigurationen k&ouml;nnen mit frei w&auml;hlbarem Dateinamen und ausgew&auml;hlten Phasen exportiert werden. Beim Import kann eine neue Konfiguration angelegt oder eine bestehende erweitert werden. Verwendete Status werden mit Namen und Automatik-Eigenschaft &uuml;bertragen; vorhandene Status und Gruppen werden nicht unbemerkt &uuml;berschrieben.</li>
     <li>Neue Bibliothek zum direkten Schreiben von Implementierungs-Auftr&auml;gen auf Firewalls (Check Point, FortiManager, FortiOS, OPNsense, Azure; noch nicht aktiviert). Endpunkt und JSON-Vorlage jeder Operation (Objekte, Services, Gruppen, Regeln, Ver&ouml;ffentlichen, Policy-Installation) sind in den ger&auml;tespezifischen Einstellungen &auml;nderbar und lassen sich auf die mitgelieferte Vorgabe zur&uuml;cksetzen; die Zertifikatspr&uuml;fung ist je Manager abschaltbar. Objekte, Services und Gruppen werden nur gel&ouml;scht, wenn dies ausdr&uuml;cklich eingeschaltet ist.</li>
     <li>Modellierung: In den Modellierungs-Einstellungen k&ouml;nnen Netzwerkareas festgelegt werden, die nicht in Common Services verwendet werden d&uuml;rfen. Sie werden bei der Bearbeitung von Common Services nicht zur Auswahl angeboten.</li>
+    <li>Die Ticket-Vorlagen f&uuml;r Tufin SecureChange sind nun ger&auml;tespezifische Einstellungen und k&ouml;nnen global, je Ger&auml;tetyp und je Management angepasst werden. Das Upgrade &uuml;bernimmt die bisher beim Ticketsystem gespeicherten Vorlagen.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -670,6 +671,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>Workflow configurations can be exported with a custom file name and selected phases. During import, a new configuration can be created or an existing one can be extended. Referenced states are transferred with their names and automatic-only property; existing states and groups are not silently overwritten.</li>
     <li>New library for writing implementation tasks directly to firewalls (Check Point, FortiManager, FortiOS, OPNsense, Azure; not activated yet). The endpoint and JSON template of every operation (objects, services, groups, rules, publish, policy installation) can be changed in the device specific settings and reset to the shipped default; certificate checks can be switched off per manager. Objects, services and groups are only deleted if this is switched on explicitly.</li>
     <li>Modelling: network areas which must not be used in common services can be defined in the modelling settings. They are not offered for selection when editing common services.</li>
+    <li>The Tufin SecureChange ticket templates are now device specific settings and can be adapted globally, per device type and per management. The upgrade takes over the templates stored with the ticket system so far.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3673,6 +3675,22 @@ INSERT INTO txt VALUES ('dss_fw_op_publish', 'German', 	'Ver&ouml;ffentlichen');
 INSERT INTO txt VALUES ('dss_fw_op_publish', 'English', 	'Publish');
 INSERT INTO txt VALUES ('dss_fw_op_install_policy', 'German', 	'Policy installieren');
 INSERT INTO txt VALUES ('dss_fw_op_install_policy', 'English', 	'Install policy');
+INSERT INTO txt VALUES ('dss_sc_template_section', 'German', 	'SecureChange-Ticket-Vorlagen');
+INSERT INTO txt VALUES ('dss_sc_template_section', 'English', 	'SecureChange ticket templates');
+INSERT INTO txt VALUES ('dss_sc_template_section_intro', 'German', 	'Vorlagen, mit denen Antrags-Auftr&auml;ge als Tickets an Tufin SecureChange gesendet werden. Es gelten die Vorlagen des Managements des Auftrags. Ein leerer Wert verwendet die mitgelieferte Vorlage.');
+INSERT INTO txt VALUES ('dss_sc_template_section_intro', 'English', 	'Templates used to send request tasks as tickets to Tufin SecureChange. The templates of the management of the task apply. An empty value uses the shipped template.');
+INSERT INTO txt VALUES ('dss_sc_template_uses_default', 'German', 	'Leer: es gilt die grau angezeigte mitgelieferte Vorlage, auch nach einem Update, das sie korrigiert.');
+INSERT INTO txt VALUES ('dss_sc_template_uses_default', 'English', 	'Empty: the shipped template (shown in grey) applies, also after an update that corrects it.');
+INSERT INTO txt VALUES ('dss_sc_template_no_default', 'German', 	'Hierf&uuml;r wird keine Vorlage mitgeliefert: der Vorlagenteil bleibt leer, solange hier kein Wert gesetzt ist.');
+INSERT INTO txt VALUES ('dss_sc_template_no_default', 'English', 	'No template is shipped for this: the template part stays empty unless a value is set here.');
+INSERT INTO txt VALUES ('dss_sc_task_access_request', 'German', 	'AccessRequest');
+INSERT INTO txt VALUES ('dss_sc_task_access_request', 'English', 	'AccessRequest');
+INSERT INTO txt VALUES ('dss_sc_task_network_object_modify', 'German', 	'NetworkObjectModify');
+INSERT INTO txt VALUES ('dss_sc_task_network_object_modify', 'English', 	'NetworkObjectModify');
+INSERT INTO txt VALUES ('dss_sc_task_network_service_create', 'German', 	'NetworkServiceCreate');
+INSERT INTO txt VALUES ('dss_sc_task_network_service_create', 'English', 	'NetworkServiceCreate');
+INSERT INTO txt VALUES ('dss_sc_task_network_service_update', 'German', 	'NetworkServiceUpdate');
+INSERT INTO txt VALUES ('dss_sc_task_network_service_update', 'English', 	'NetworkServiceUpdate');
 INSERT INTO txt VALUES ('dss_positioning_algorithm', 'German', 	'Positionierungs-Algorithmus');
 INSERT INTO txt VALUES ('dss_positioning_algorithm', 'English', 	'Positioning algorithm');
 INSERT INTO txt VALUES ('dss_common_service_separation', 'German', 	'Common Services trennen');
@@ -3715,6 +3733,8 @@ INSERT INTO txt VALUES ('dss_opt_submanager',                       'German', 	'
 INSERT INTO txt VALUES ('dss_opt_submanager',                       'English', 	'Submanager');
 INSERT INTO txt VALUES ('ext_ticket_templates', 'German', 	'Externe Ticket-Vorlagen');
 INSERT INTO txt VALUES ('ext_ticket_templates', 'English', 	'External ticket templates');
+INSERT INTO txt VALUES ('ext_ticket_sc_templates_moved', 'German', 	'Die Vorlagen f&uuml;r Tufin SecureChange werden in den ger&auml;tespezifischen Einstellungen gepflegt, wo sie je Ger&auml;tetyp und Management angepasst werden k&ouml;nnen:');
+INSERT INTO txt VALUES ('ext_ticket_sc_templates_moved', 'English', 	'The Tufin SecureChange templates are maintained in the device specific settings, where they can be adapted per device type and management:');
 INSERT INTO txt VALUES ('add_ext_ticket_system', 'German',  'Externes Ticket-System anlegen');
 INSERT INTO txt VALUES ('add_ext_ticket_system', 'English', 'Add external ticket system');
 INSERT INTO txt VALUES ('new_ext_ticket_system', 'German',  'Externes Ticket-System anlegen');
@@ -6931,6 +6951,16 @@ INSERT INTO txt VALUES ('H5199t', 'German',  'Objekte l&ouml;schen: ob Netzwerko
 INSERT INTO txt VALUES ('H5199t', 'English', 'Delete objects: whether network objects, services and groups are deleted on the firewall when an implementation task deletes them. Default: No, because they may still be used elsewhere on the firewall; the deletions not sent are listed in the result of the task. Deleting rules is not affected. All levels.');
 INSERT INTO txt VALUES ('H5199u', 'German',  'OPNsense: Gruppen (Aliase) enthalten die Adressen ihrer Mitglieder als CIDR-Eintr&auml;ge, z.B. 10.0.0.1/32; Adressbereiche werden in CIDR-Netze zerlegt. Beim Anlegen einer Gruppe werden daher keine Mitglieds-Aliase angelegt. Mitglieder bestehender Host- und Netzwerk-Aliase werden einzeln per alias_util hinzugef&uuml;gt oder entfernt. OPNsense sperrt dabei die Konfiguration und speichert die jeweilige &Auml;nderung, sodass zwischenzeitliche &Auml;nderungen anderer Mitglieder erhalten bleiben. Mitglieder ohne IP-Adresse werden vor dem Senden abgelehnt, andere Alias-Typen werden nicht ge&auml;ndert. Einzelne Adressen werden dabei ohne /32 bzw. /128 gesendet: OPNsense erg&auml;nzt die Maske in Netzwerk-Aliasen und entfernt einen Eintrag mit und ohne Maske. Ausnahme: IPv6-Adressen, die mit :: beginnen (z.B. ::1), werden mit /128 gesendet, weil OPNsense ihnen sonst die Maske /32 anh&auml;ngen w&uuml;rde. Netze, in Netze zerlegte Adressbereiche und diese IPv6-Adressen k&ouml;nnen nur in Netzwerk-Aliasen ge&auml;ndert werden; f&uuml;r Host-Aliase wird die Aufgabe vor dem Senden abgelehnt. Ein anders geschriebener Eintrag (z.B. eine anders notierte IPv6-Adresse oder eine Alias-Referenz) bleibt bestehen. Alte &Uuml;berschreibungen mit @@MERGED_MEMBERS@@ werden abgelehnt: Endpunkt und Vorlage der Mitglieder-Operationen auf die mitgelieferten Vorgaben zur&uuml;cksetzen.');
 INSERT INTO txt VALUES ('H5199u', 'English', 'OPNsense: groups (aliases) hold the addresses of their members as CIDR entries, e.g. 10.0.0.1/32; address ranges are split into CIDR networks. Creating a group therefore creates no member aliases. Members of existing host and network aliases are added or removed individually via alias_util. OPNsense locks the configuration and persists each change, preserving concurrent changes to other members. Members without an IP address are refused before sending, other alias types are not changed. Single addresses are sent without /32 or /128: OPNsense adds the mask in network aliases and removes an entry with or without the mask. Exception: IPv6 addresses starting with :: (e.g. ::1) are sent with /128, because OPNsense would otherwise append the mask /32 to them. Networks, address ranges split into networks and these IPv6 addresses can only be changed in network aliases; for host aliases the task is refused before sending. An entry written differently (e.g. an IPv6 address in another notation or an alias reference) stays. Old overrides using @@MERGED_MEMBERS@@ are refused: reset the member operation endpoints and templates to the shipped defaults.');
+INSERT INTO txt VALUES ('H5199v', 'German',  'SecureChange-Ticket-Vorlagen: Vorlagen je Tufin-SecureChange-Aufgabentyp (AccessRequest f&uuml;r Zugriff, Regel&auml;nderung und -l&ouml;schung, NetworkObjectModify f&uuml;r Netzwerkgruppen, NetworkServiceCreate und NetworkServiceUpdate f&uuml;r Dienstgruppen) und Vorlagenteil. Global, Ger&auml;tetyp und Manager.
+    Ein Ticket verwendet die Vorlagen des Managements seiner Antrags-Auftr&auml;ge. Auftr&auml;ge verschiedener Managements werden nur dann in einem Ticket geb&uuml;ndelt, wenn ihre Vorlagen gleich sind.
+    Ein leerer Wert verwendet die mitgelieferte Vorlage; mitgeliefert werden nur Ticket- und Aufgabentext von AccessRequest, alle anderen Vorlagenteile bleiben dann leer.
+    Die Vorlagen werden beim Erzeugen des externen Requests ermittelt und mit ihm gespeichert: ge&auml;nderte Vorlagen gelten f&uuml;r neue Requests, nicht f&uuml;r wartende oder wiederholte.
+    Das Ticketsystem selbst (URL, Login-Daten, Zeitlimits) wird weiterhin unter <a href="/help/settings/exttickettemplates">Externe Ticket-Vorlagen</a> gepflegt.');
+INSERT INTO txt VALUES ('H5199v', 'English', 'SecureChange ticket templates: templates per Tufin SecureChange task type (AccessRequest for access, rule modification and rule deletion, NetworkObjectModify for network groups, NetworkServiceCreate and NetworkServiceUpdate for service groups) and template part. Global, device type and manager.
+    A ticket uses the templates of the management of its request tasks. Tasks of different managements are only bundled into one ticket if their templates are equal.
+    An empty value uses the shipped template; only the ticket and task text of AccessRequest are shipped, all other template parts then stay empty.
+    The templates are determined when the external request is created and stored with it: changed templates apply to new requests, not to waiting or retried ones.
+    The ticket system itself (URL, credentials, timeouts) is still maintained under <a href="/help/settings/exttickettemplates">External ticket templates</a>.');
 INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Ldap-Verbindungen einrichten und verwalten. Sie k&ouml;nnen alle zur Nutzerauthentifizierung genutzt werden.<br>
     Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
     Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.
@@ -7793,10 +7823,12 @@ INSERT INTO txt VALUES ('H5596g', 'German', 'Template Ip-Protokoll: Template f&u
 INSERT INTO txt VALUES ('H5596g', 'English','Template Ip-Protokoll: Template for protocol types not TCP, UDP, ICMP, e.g. ESP. Available placeholders: @@PROTOCOLNAME@@, @@PROTOCOLID@@, @@SERVICENAME@@.');
 INSERT INTO txt VALUES ('H5597', 'German',  'Typ des externen Ticketing Systems: Aktuell wird nur TufinSecureChange unterst&uuml;tzt.');
 INSERT INTO txt VALUES ('H5597', 'English', 'Type of external ticketing system: Currently only TufinSecureChange is supported.');
-INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die globalen Einstellungen f&uuml;r externe Requests sowie die konfigurierten externen Ticket-Systeme und deren Vorlagen verwaltet.');
-INSERT INTO txt VALUES ('H5598', 'English', 'This page is used to manage global external request settings as well as configured external ticket systems and their templates.');
+INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die globalen Einstellungen f&uuml;r externe Requests sowie die konfigurierten externen Ticket-Systeme und deren Vorlagen verwaltet. Die Vorlagen f&uuml;r Tufin SecureChange sind ger&auml;tespezifische Einstellungen.');
+INSERT INTO txt VALUES ('H5598', 'English', 'This page is used to manage global external request settings as well as configured external ticket systems and their templates. The Tufin SecureChange templates are device specific settings.');
 INSERT INTO txt VALUES ('H5599', 'German',  'Tasktyp: Typ des Tasks im externen Auftragssystem.');
 INSERT INTO txt VALUES ('H5599', 'English', 'Task Type: Type of the task in the external ticket system.');
+INSERT INTO txt VALUES ('H5599a', 'German',  'F&uuml;r Tufin SecureChange werden hier keine Vorlagen gepflegt: sie sind <a href="/help/settings/devicespecificsettings">ger&auml;tespezifische Einstellungen</a> und k&ouml;nnen je Ger&auml;tetyp und Management angepasst werden. Das Upgrade auf 9.8.5 &uuml;bernimmt die bisher hier gespeicherten SecureChange-Vorlagen dorthin.');
+INSERT INTO txt VALUES ('H5599a', 'English', 'No templates are maintained here for Tufin SecureChange: they are <a href="/help/settings/devicespecificsettings">device specific settings</a> and can be adapted per device type and management. The upgrade to 9.8.5 moves the SecureChange templates stored here so far to them.');
 INSERT INTO txt VALUES ('H5600', 'German',  'Antragsauftrags-Sortierung: Hier werden die Speichern-Priorit&auml;ten f&uuml;r Gruppenanlage, Gruppen&auml;nderung mit Hinzuf&uuml;gen, Zugriff, Regel&auml;nderung, Regel l&ouml;schen, Gruppen&auml;nderung mit Entfernen und Gruppenl&ouml;schung festgelegt. Wenn eine Gruppen&auml;nderung gleichzeitig Mitglieder hinzuf&uuml;gt und entfernt, kann sie in zwei Teilaufgaben aufgespalten werden.');
 INSERT INTO txt VALUES ('H5600', 'English', 'Request task sorting: Defines the save priorities for group creation, group modification with added members, access, rule modification, rule deletion, group modification with removed members, and group deletion. If a group modification both adds and removes members, it can be split into two separate tasks.');
 

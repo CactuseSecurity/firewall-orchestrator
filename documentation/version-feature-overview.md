@@ -246,3 +246,6 @@ For a feature-centric, thematically grouped view see
 
 ### 9.8.4 — 26.10.2026
 - Every list endpoint of the middleware REST API is paged (`limit`, `offset`, `X-Has-More`) with one central page size, the new setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`, default 10000).
+
+### 9.8.5 — 29.10.2026
+- The Tufin SecureChange ticket templates are device specific settings that can be adapted globally, per device type and per management; the upgrade moves the templates stored with the ticket systems.

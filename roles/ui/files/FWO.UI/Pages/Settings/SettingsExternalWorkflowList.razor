@@ -1,5 +1,4 @@
 @using FWO.Logging
-@using FWO.ExternalSystems.Tufin.SecureChange
 @using System.Text.Json
 
 @page "/settings/exttickettemplates"
@@ -153,26 +152,38 @@
                         </div>
                     }
                     <br>
-                    <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
-                        @{
-                            int pos = 0;
-                        }
-                        @foreach (var template in editModel.Templates)
-                        {
-                            <Tab Title="@(template.TaskType)" Position=pos++>
-                                <ExtTicketTemplates Template="template" IsBuiltIn="selectedType.IsBuiltIn" />
-                            </Tab>
-                        }
-                        <Tab Title="  +  " Position=pos>
-                            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
-                                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
-                                <div class="col-sm-4">
-                                    <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="GetAvailableTaskTypesForNewTemplate()" />
-                                </div>
+                    @if (editModel.IsTufinSecureChange())
+                    {
+                        <div class="form-group row mt-2">
+                            <div class="col-sm-12 text-muted">
+                                @(userConfig.GetText("ext_ticket_sc_templates_moved"))
+                                <a href="/settings/devicespecificsettings">@(userConfig.GetText("dss_settings"))</a>
                             </div>
-                            <ExtTicketTemplates Template="newTemplate" IsBuiltIn="selectedType.IsBuiltIn" />
-                        </Tab>
-                    </TabSet>
+                        </div>
+                    }
+                    else
+                    {
+                        <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
+                            @{
+                                int pos = 0;
+                            }
+                            @foreach (var template in editModel.Templates)
+                            {
+                                <Tab Title="@(template.TaskType)" Position=pos++>
+                                    <ExtTicketTemplates Template="template" IsBuiltIn="selectedType.IsBuiltIn" />
+                                </Tab>
+                            }
+                            <Tab Title="  +  " Position=pos>
+                                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
+                                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
+                                    <div class="col-sm-4">
+                                        <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="GetAvailableTaskTypesForNewTemplate()" />
+                                    </div>
+                                </div>
+                                <ExtTicketTemplates Template="newTemplate" IsBuiltIn="selectedType.IsBuiltIn" />
+                            </Tab>
+                        </TabSet>
+                    }
                 </div>
                 <hr />
             }
@@ -310,7 +321,7 @@ else
                 system.CredentialId = selectedType.IsBuiltIn ? editModel.CredentialId : null;
                 system.Authorization = null;
                 system.LookupRequesterId = editModel.LookupRequesterId;
-                system.Templates = editModel.Templates
+                system.Templates = [.. TemplatesToStore(editModel)
                     .Select(t => new ExternalTicketTemplate
                     {
                         TaskType = t.TaskType,
@@ -323,8 +334,8 @@ else
                         ServiceTemplate = t.ServiceTemplate,
                         IcmpTemplate = t.IcmpTemplate,
                         IpProtocolTemplate = t.IpProtocolTemplate
-                    })
-                    .ToList();
+                    })];
+                ClearLegacyTemplates(system);
 
                 system.Sanitize();
             }
@@ -333,6 +344,8 @@ else
                 editModel.Id = GetNextExternalTicketSystemId(extTicketSystems);
                 editModel.CredentialId = selectedType.IsBuiltIn ? editModel.CredentialId : null;
                 editModel.Authorization = null;
+                editModel.Templates = TemplatesToStore(editModel);
+                ClearLegacyTemplates(editModel);
                 editModel.Sanitize();
                 extTicketSystems.Add(editModel);
                 curExternalTicketSystem = editModel;
@@ -355,6 +368,22 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_templates"), "", true);
         }
+    }
+
+    /// <summary>
+    /// The templates stored with a ticket system. SecureChange templates are device specific settings, so none are stored
+    /// with a SecureChange system.
+    /// </summary>
+    private static List<ExternalTicketTemplate> TemplatesToStore(ExternalTicketSystem system)
+    {
+        return system.IsTufinSecureChange() ? [] : system.Templates;
+    }
+
+    /// <summary>Removes the templates of the single-template format, which the template list replaced.</summary>
+    private static void ClearLegacyTemplates(ExternalTicketSystem system)
+    {
+        system.TicketTemplate = "";
+        system.TasksTemplate = "";
     }
 
     private int GetNextExternalTicketSystemId(List<ExternalTicketSystem> systems)

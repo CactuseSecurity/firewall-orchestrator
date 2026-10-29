@@ -11,14 +11,6 @@ using System.Text.Json.Serialization;
 
 namespace FWO.ExternalSystems.Tufin.SecureChange
 {
-    public enum SCTaskType
-    {
-        AccessRequest = 0,
-        NetworkObjectModify = 10,
-        NetworkServiceCreate = 20,
-        NetworkServiceUpdate = 21
-    }
-
     public enum SCTicketPriority
     {
         Low,

@@ -14,6 +14,18 @@ namespace FWO.Test;
 internal class DeviceSpecificSettingsGuardicoreTest
 {
     private static readonly DeviceType kDeviceType = new() { Id = 10, Name = "Guardicore" };
+    // declared before kExpectedKeys, which spreads it during static initialization
+    private static readonly List<string> kSecureChangeTemplateKeys =
+    [
+        "scTemplateAccessRequestTicket", "scTemplateAccessRequestTasks", "scTemplateAccessRequestIp", "scTemplateAccessRequestNwObjGroup",
+        "scTemplateAccessRequestService", "scTemplateAccessRequestIcmp", "scTemplateAccessRequestIpProtocol",
+        "scTemplateNetworkObjectModifyTicket", "scTemplateNetworkObjectModifyTasks", "scTemplateNetworkObjectModifyObject",
+        "scTemplateNetworkObjectModifyObjectShort", "scTemplateNetworkObjectModifyIp", "scTemplateNetworkObjectModifyNwObjGroup",
+        "scTemplateNetworkServiceCreateTicket", "scTemplateNetworkServiceCreateTasks", "scTemplateNetworkServiceCreateService",
+        "scTemplateNetworkServiceCreateIcmp", "scTemplateNetworkServiceCreateIpProtocol",
+        "scTemplateNetworkServiceUpdateTicket", "scTemplateNetworkServiceUpdateTasks", "scTemplateNetworkServiceUpdateService",
+        "scTemplateNetworkServiceUpdateIcmp", "scTemplateNetworkServiceUpdateIpProtocol"
+    ];
     private static readonly List<string> kExpectedKeys =
     [
         "installOn", "positioningAlgorithm", "ruleLoggingOverride",
@@ -24,7 +36,8 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "autoPlanImplementation", "autoPlanImplementationForRules", "modellingCreateAppZones",
         "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
         "modellingConnectionIdField", "modellingConnectionIdTemplate", "templates",
-        .. FirewallWriteKeys()
+        .. FirewallWriteKeys(),
+        .. kSecureChangeTemplateKeys
     ];
     private static readonly HashSet<string> kManagerConfigKeys =
     [
@@ -73,6 +86,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "securityProfiles" => kDeviceLevels,
         "fwWriteCheckCertificates" => kManagerLevels,
         _ when IsFirewallWriteRequestKey(key) => kDeviceLevels,
+        _ when kSecureChangeTemplateKeys.Contains(key.DatabaseKey) => kManagerLevels,
         _ => kManagerConfigKeys.Contains(key.DatabaseKey) ? kManagerLevels : kAllLevels
     };
 
@@ -83,6 +97,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "securityProfiles" => kDeviceUiLevels,
         "fwWriteCheckCertificates" => kManagerLevels,
         _ when IsFirewallWriteRequestKey(key) => kDeviceLevels,
+        _ when kSecureChangeTemplateKeys.Contains(key.DatabaseKey) => kManagerLevels,
         _ => kManagerConfigKeys.Contains(key.DatabaseKey) || kManagerUiKeys.Contains(key.DatabaseKey) ? kManagerLevels : kAllLevels
     };
 

@@ -1485,8 +1485,59 @@ namespace FWO.Test
                 Assert.That(caller.LastRequestTask, Is.SameAs(requestTask));
                 Assert.That(caller.LastImplementationTask, Is.SameAs(implementationTask));
                 Assert.That(caller.LastImplementationTask!.Id, Is.EqualTo(41));
-                Assert.That(caller.LastCancellationToken.CanBeCanceled, Is.False);
+                Assert.That(caller.LastCancellationToken.CanBeCanceled, Is.True);
             });
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_PropagatesRequestCancellationToRulePositioning()
+        {
+            TaskCompletionSource<CancellationToken> started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            RecordingRulePositioningWorkflowCaller caller = new()
+            {
+                Calculation = async cancellationToken =>
+                {
+                    started.TrySetResult(cancellationToken);
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                    return new RulePositioningWorkflowOutcome(RulePositioningWorkflowStatus.Stored);
+                }
+            };
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, null, null, caller);
+            using CancellationTokenSource requestCancellation = new();
+            handler.SetRulePositioningCancellationToken(requestCancellation.Token);
+
+            Task execution = handler.DoStateChangeActions(
+                CreatePositioningImplementationTask(),
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: CreatePositioningRequestTask());
+            CancellationToken observedToken = await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            requestCancellation.Cancel();
+            await execution;
+
+            Assert.That(observedToken.IsCancellationRequested, Is.True);
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_TimesOutRulePositioningWithoutFailingWorkflowActions()
+        {
+            RecordingRulePositioningWorkflowCaller caller = new()
+            {
+                Calculation = async cancellationToken =>
+                {
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                    return new RulePositioningWorkflowOutcome(RulePositioningWorkflowStatus.Stored);
+                }
+            };
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, null, null, caller)
+            {
+                RulePositioningTimeout = TimeSpan.FromMilliseconds(20)
+            };
+
+            Assert.DoesNotThrowAsync(async () => await handler.DoStateChangeActions(
+                CreatePositioningImplementationTask(),
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: CreatePositioningRequestTask()));
+            Assert.That(caller.LastCancellationToken.IsCancellationRequested, Is.True);
         }
 
         [Test]

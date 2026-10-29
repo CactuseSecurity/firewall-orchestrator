@@ -13,7 +13,6 @@ mutation newImplementationTask(
   $validFrom: timestamp
   $validTo: timestamp
   $freeText: String
-  $rulePosition: jsonb
   ) {
   insert_request_impltask(objects: {
     title: $title
@@ -30,7 +29,6 @@ mutation newImplementationTask(
     target_begin_date: $validFrom
 	  target_end_date: $validTo
     free_text: $freeText
-    rule_position: $rulePosition
   }) {
     returning {
       newIdLong: id

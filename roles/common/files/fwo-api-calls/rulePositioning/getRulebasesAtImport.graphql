@@ -2,8 +2,11 @@ query getRulebasesAtImport(
   $managementId: Int!
   $rulebaseIds: [Int!]!
   $importId: bigint!
+  $rulebaseLimit: Int!
+  $ruleLimit: Int!
 ) {
   firewall_rulebase(
+    limit: $rulebaseLimit
     where: {
       id: { _in: $rulebaseIds }
       mgm_id: { _eq: $managementId }
@@ -22,6 +25,7 @@ query getRulebasesAtImport(
     created
     removed
     rules(
+      limit: $ruleLimit
       where: {
         mgm_id: { _eq: $managementId }
         rule_create: { _lte: $importId }

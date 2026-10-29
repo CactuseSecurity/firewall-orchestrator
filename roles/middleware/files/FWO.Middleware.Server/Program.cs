@@ -6,14 +6,11 @@ using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Compliance;
 using FWO.Compliance.RulePositioning;
-using FWO.Compliance.RulePositioning.CheckPoint;
 using FWO.Logging;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Services;
 using FWO.Services;
-using FWO.Services.RulePositioning;
-using FWO.Services.RulePositioning.CheckPoint;
 using FWO.Services.RuleTreeBuilder;
 using FWO.Services.Workflow;
 using FWO.Services.PathAnalysis;
@@ -85,22 +82,8 @@ builder.Services.AddSingleton<ComplianceCheckStatusTracker>();
 builder.Services.AddSingleton(tokenLifetimeProvider);
 builder.Services.AddSingleton(internalApiTokenService);
 builder.Services.AddSingleton<INotificationEmailSender, NotificationEmailSender>();
-builder.Services.AddSingleton<IRulebaseGraphSnapshotReader, RulebaseGraphSnapshotReader>();
-builder.Services.AddSingleton<IDesignatedZoneMatrixReader, DesignatedZoneMatrixReader>();
-builder.Services.AddSingleton<ICheckPointGraphPositioningRecipeCatalog, CheckPointGraphPositioningRecipeCatalog>();
-builder.Services.AddSingleton<ICreationRuleNetworkInputResolver, CreationRuleNetworkInputResolver>();
-builder.Services.AddSingleton<ICheckPointLayerGuardSnapshotReader, CheckPointLayerGuardSnapshotReader>();
-builder.Services.AddSingleton<KfwCheckPointPositioningRecipeFactory>();
-builder.Services.AddSingleton<ICheckPointPositioningRecipeCatalog, CheckPointPositioningRecipeCatalog>();
-builder.Services.AddSingleton<CheckPointGraphRulePositioningStrategy>();
-builder.Services.AddSingleton<CheckPointRulePositioningStrategy>();
-builder.Services.AddSingleton<IRulePositioningStrategy>(serviceProvider =>
-    serviceProvider.GetRequiredService<CheckPointGraphRulePositioningStrategy>());
-builder.Services.AddSingleton<IRulePositioningStrategy>(serviceProvider =>
-    serviceProvider.GetRequiredService<CheckPointRulePositioningStrategy>());
-builder.Services.AddSingleton<RulePositioningManager>();
+builder.Services.AddRulePositioning();
 builder.Services.AddSingleton<DeviceSpecificSettingsManager>();
-builder.Services.AddSingleton<IRulePositioningWorkflowCaller, RulePositioningWorkflowCaller>();
 builder.Services.AddHostedService<InternalApiTokenRefreshService>();
 
 // Register config listeners as singletons (activated at startup)

@@ -1,5 +1,14 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.5 - 29.10.2026
+- add nullable, forward-compatible rule-position storage to implementation tasks
+- add a dedicated GraphQL persistence operation that stores, replaces, or clears only the rule position
+- add a graph-only Check Point end-of-rulebase positioning strategy and an independently callable best-effort workflow service
+- remove the inactive speculative Check Point rule-position renderer; semantic positions remain the terminal output
+- preserve stored rule positions across GraphQL naming policies by writing positioning algorithms numerically and accepting legacy enum, EnumMember, and GraphQL names when reading
+- package repository-contract fixtures with installed C# tests so fresh installations and upgrades can run the rule-positioning source-contract checks
+- add a selectable Check Point layer-guard zone-pair Section algorithm that automatically calculates and persists the semantic end-of-Section position when a gateway-specific access-rule implementation task is created
+
 ## 9.8.4 - 26.10.2026
 - middleware REST API: every list endpoint is paged with one central page size (#5561)
   - new setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`, Settings - Defaults,
@@ -58,13 +67,6 @@
   - report links to app roles, groups and network areas whose names share a prefix now point to the right object
 
 ## 9.8.1 - 20.10.2026
-- add nullable, forward-compatible rule-position storage to implementation tasks
-- add a dedicated GraphQL persistence operation that stores, replaces, or clears only the rule position
-- add a graph-only Check Point end-of-rulebase positioning strategy and an independently callable best-effort workflow service
-- remove the inactive speculative Check Point rule-position renderer; semantic positions remain the terminal output
-- preserve stored rule positions across GraphQL naming policies by writing positioning algorithms numerically and accepting legacy enum, EnumMember, and GraphQL names when reading
-- package repository-contract fixtures with installed C# tests so fresh installations and upgrades can run the rule-positioning source-contract checks
-- add a selectable Check Point layer-guard zone-pair Section algorithm that automatically calculates and persists the semantic end-of-Section position when a gateway-specific access-rule implementation task is created
 - enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
 - autodiscovery: alerts and alert log lines no longer contain the import credential secret of the super management; the upgrade removes it from existing alerts. Rotate the credentials of super managements used with autodiscovery, and purge old middleware logs where possible
 - new REST endpoint `POST /api/pathAnalysis/resolvePathDevices` (roles admin, auditor): returns the firewall devices on the paths between every source and every destination, deduplicated and unordered, together with the algorithm and zone matrix actually used. This makes the network zone tree path analysis callable

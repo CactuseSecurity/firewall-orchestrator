@@ -1,4 +1,4 @@
--- Test the rule-position schema change and repeatability of upgrade/9.8.1.sql.
+-- Test the rule-position schema change and repeatability of upgrade/9.8.5.sql.
 -- The test task inserts the upgrade file at both run-upgrade markers; the transaction is rolled back.
 \set ON_ERROR_STOP 1
 BEGIN;
@@ -12,7 +12,7 @@ WITH inserted AS (
 )
 INSERT INTO rule_position_probe SELECT id FROM inserted;
 
--- @run-upgrade-9.8.1
+-- @run-upgrade-9.8.5
 
 DO $$
 DECLARE
@@ -23,18 +23,18 @@ BEGIN
         WHERE table_schema = 'request' AND table_name = 'impltask' AND column_name = 'rule_position'
             AND data_type = 'jsonb' AND is_nullable = 'YES'
     ) THEN
-        RAISE EXCEPTION 'upgrade 9.8.1: nullable request.impltask.rule_position jsonb column is missing';
+        RAISE EXCEPTION 'upgrade 9.8.5: nullable request.impltask.rule_position jsonb column is missing';
     END IF;
     SELECT impltask_id INTO i_impltask_id FROM rule_position_probe;
     IF (SELECT rule_position FROM request.impltask WHERE id = i_impltask_id) IS NOT NULL THEN
-        RAISE EXCEPTION 'upgrade 9.8.1: existing implementation task did not receive a NULL rule position';
+        RAISE EXCEPTION 'upgrade 9.8.5: existing implementation task did not receive a NULL rule position';
     END IF;
     UPDATE request.impltask
     SET rule_position = '{"type":"upgrade.test-position.v1","probe":true}'::jsonb
     WHERE id = i_impltask_id;
 END $$;
 
--- @run-upgrade-9.8.1
+-- @run-upgrade-9.8.5
 
 DO $$
 DECLARE
@@ -45,13 +45,13 @@ BEGIN
         WHERE table_schema = 'request' AND table_name = 'impltask' AND column_name = 'rule_position'
             AND data_type = 'jsonb' AND is_nullable = 'YES'
     ) THEN
-        RAISE EXCEPTION 'upgrade 9.8.1: rerunning the migration changed the rule-position column';
+        RAISE EXCEPTION 'upgrade 9.8.5: rerunning the migration changed the rule-position column';
     END IF;
     SELECT impltask_id INTO i_impltask_id FROM rule_position_probe;
     IF (SELECT rule_position FROM request.impltask WHERE id = i_impltask_id)
         IS DISTINCT FROM '{"type":"upgrade.test-position.v1","probe":true}'::jsonb THEN
-        RAISE EXCEPTION 'upgrade 9.8.1: rerunning the migration changed an existing rule position';
+        RAISE EXCEPTION 'upgrade 9.8.5: rerunning the migration changed an existing rule position';
     END IF;
 END $$;
 ROLLBACK;
-\echo '9.8.1 rule-position migration and idempotency checks passed'
+\echo '9.8.5 rule-position migration and idempotency checks passed'

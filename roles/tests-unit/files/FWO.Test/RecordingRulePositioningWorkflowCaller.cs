@@ -12,6 +12,7 @@ internal sealed class RecordingRulePositioningWorkflowCaller : IRulePositioningW
     public Func<WfReqTask?, WfImplTask?, bool> Applicability { get; init; } = (_, _) => true;
     public RulePositioningWorkflowOutcome Outcome { get; init; } = new(RulePositioningWorkflowStatus.Stored);
     public Exception? ExceptionToThrow { get; init; }
+    public Func<CancellationToken, Task<RulePositioningWorkflowOutcome>>? Calculation { get; init; }
     public int ApplicabilityCount { get; private set; }
     public int CalculationCount { get; private set; }
     public WfReqTask? LastRequestTask { get; private set; }
@@ -48,6 +49,10 @@ internal sealed class RecordingRulePositioningWorkflowCaller : IRulePositioningW
         LastImplementationTask = implementationTask;
         LastCancellationToken = cancellationToken;
         Calls.Add((requestTask, implementationTask));
+        if (Calculation != null)
+        {
+            return Calculation(cancellationToken);
+        }
         return ExceptionToThrow == null
             ? Task.FromResult(Outcome)
             : Task.FromException<RulePositioningWorkflowOutcome>(ExceptionToThrow);

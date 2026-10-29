@@ -1,8 +1,9 @@
-query getGatewayRulebaseLinksAtImport($gatewayId: Int!, $importId: bigint!) {
+query getGatewayRulebaseLinksAtImport($gatewayId: Int!, $importId: bigint!, $linkLimit: Int!) {
   device(where: { dev_id: { _eq: $gatewayId } }, limit: 2) {
     dev_id
     mgm_id
     rulebase_links(
+      limit: $linkLimit
       where: {
         created: { _lte: $importId }
         _or: [

@@ -4,27 +4,45 @@ namespace FWO.Data.RulePositioning;
 
 internal static class RulePositionTypeResolver
 {
+    private static readonly Lazy<IReadOnlyDictionary<string, Type>> kTypesByDiscriminator =
+        new(BuildRegistry);
+
     /// <summary>
     /// Finds the one loaded concrete rule-position subtype registered for a discriminator.
     /// </summary>
     internal static Type? Resolve(string discriminator)
     {
-        List<Type> matches = AppDomain.CurrentDomain.GetAssemblies()
+        return kTypesByDiscriminator.Value.TryGetValue(discriminator, out Type? positionType)
+            ? positionType
+            : null;
+    }
+
+    /// <summary>
+    /// Builds the immutable discriminator registry once for the lifetime of the process.
+    /// </summary>
+    private static IReadOnlyDictionary<string, Type> BuildRegistry()
+    {
+        List<(string Discriminator, Type PositionType)> registrations = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(GetLoadableTypes)
             .Where(type => !type.IsAbstract && typeof(RulePosition).IsAssignableFrom(type))
-            .Where(type => string.Equals(
-                type.GetCustomAttribute<RulePositionTypeAttribute>()?.Discriminator,
-                discriminator,
-                StringComparison.Ordinal))
+            .Select(type => (type.GetCustomAttribute<RulePositionTypeAttribute>()?.Discriminator, type))
+            .Where(registration => !string.IsNullOrWhiteSpace(registration.Discriminator))
+            .Select(registration => (registration.Discriminator!, registration.type))
             .ToList();
 
-        return matches.Count switch
+        IGrouping<string, (string Discriminator, Type PositionType)>? duplicate = registrations
+            .GroupBy(registration => registration.Discriminator, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate != null)
         {
-            0 => null,
-            1 => matches[0],
-            _ => throw new InvalidOperationException(
-                "More than one rule-position type uses the same discriminator.")
-        };
+            throw new InvalidOperationException(
+                "More than one rule-position type uses the same discriminator.");
+        }
+
+        return registrations.ToDictionary(
+            registration => registration.Discriminator,
+            registration => registration.PositionType,
+            StringComparer.Ordinal);
     }
 
     /// <summary>

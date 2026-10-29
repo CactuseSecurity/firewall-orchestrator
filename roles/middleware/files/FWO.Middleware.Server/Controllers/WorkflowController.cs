@@ -179,6 +179,8 @@ namespace FWO.Middleware.Server.Controllers
             {
                 return result;
             }
+            wfHandler.ActionHandler!.SetRulePositioningCancellationToken(
+                HttpContext?.RequestAborted ?? CancellationToken.None);
 
             WfTicket? ticket = await ResolveWorkflowTicket(wfHandler, lockTicketId, result);
             if (ticket == null)

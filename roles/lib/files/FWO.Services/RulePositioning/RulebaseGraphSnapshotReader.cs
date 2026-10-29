@@ -9,6 +9,10 @@ namespace FWO.Services.RulePositioning;
 
 public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
 {
+    private const int kMaximumRulebaseLinks = 10000;
+    private const int kMaximumRulebases = 5000;
+    private const int kMaximumRulesPerRulebase = 100000;
+    private const int kMaximumRulesPerGraph = 250000;
     private const string kImportOperation = "getLatestSuccessfulRuleImport";
     private const string kLinksOperation = "getGatewayRulebaseLinksAtImport";
     private const string kRulebasesOperation = "getRulebasesAtImport";
@@ -28,6 +32,21 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
     /// Loads one historically consistent structural rulebase graph snapshot.
     /// </summary>
     public async Task<RulebaseGraphReadResult> ReadAsync(
+        int managementId,
+        int gatewayId,
+        CancellationToken cancellationToken)
+    {
+        return await RulePositioningGraphCacheScope.ReadAsync(
+            managementId,
+            gatewayId,
+            () => ReadUncachedAsync(managementId, gatewayId, cancellationToken),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Loads one graph without consulting the operation-scoped cache.
+    /// </summary>
+    private async Task<RulebaseGraphReadResult> ReadUncachedAsync(
         int managementId,
         int gatewayId,
         CancellationToken cancellationToken)
@@ -64,7 +83,7 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
 
         QueryResult<List<GatewayWire>> gatewayResult = await QueryAsync<List<GatewayWire>>(
             RulePositioningQueries.getGatewayRulebaseLinksAtImport,
-            new { gatewayId, importId },
+            new { gatewayId, importId, linkLimit = kMaximumRulebaseLinks + 1 },
             kLinksOperation,
             cancellationToken);
         if (!gatewayResult.Succeeded)
@@ -87,7 +106,14 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
 
         QueryResult<List<RulebaseWire>> rulebaseResult = await QueryAsync<List<RulebaseWire>>(
             RulePositioningQueries.getRulebasesAtImport,
-            new { managementId, rulebaseIds, importId },
+            new
+            {
+                managementId,
+                rulebaseIds,
+                importId,
+                rulebaseLimit = kMaximumRulebases + 1,
+                ruleLimit = kMaximumRulesPerRulebase + 1
+            },
             kRulebasesOperation,
             cancellationToken);
         if (!rulebaseResult.Succeeded)
@@ -175,6 +201,10 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
         {
             return false;
         }
+        if (links.Count > kMaximumRulebaseLinks)
+        {
+            return false;
+        }
 
         HashSet<long> linkIds = [];
         HashSet<int> endpoints = [];
@@ -206,7 +236,7 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
         }
 
         rulebaseIds = endpoints.Order().ToList();
-        return rulebaseIds.Count > 0;
+        return rulebaseIds.Count is > 0 and <= kMaximumRulebases;
     }
 
     /// <summary>
@@ -252,7 +282,10 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
         rulebases = [];
         links = [];
         if (wireRulebases == null || wireRulebases.Count != requestedIds.Count ||
-            wireRulebases.Any(rulebase => rulebase == null))
+            wireRulebases.Count > kMaximumRulebases ||
+            wireRulebases.Any(rulebase => rulebase == null ||
+                rulebase.Rules?.Count > kMaximumRulesPerRulebase) ||
+            wireRulebases.Sum(rulebase => (long?)rulebase.Rules?.Count ?? 0) > kMaximumRulesPerGraph)
         {
             return false;
         }
@@ -389,7 +422,7 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
         public int? GatewayId { get; set; }
 
         [JsonProperty("from_rule_id")]
-        public int? SourceRuleId { get; set; }
+        public long? SourceRuleId { get; set; }
 
         [JsonProperty("from_rulebase_id")]
         public int? SourceRulebaseId { get; set; }
@@ -422,7 +455,7 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
     private sealed class SourceRuleWire
     {
         [JsonProperty("rule_id")]
-        public int? Id { get; set; }
+        public long? Id { get; set; }
 
         [JsonProperty("mgm_id")]
         public int? ManagementId { get; set; }

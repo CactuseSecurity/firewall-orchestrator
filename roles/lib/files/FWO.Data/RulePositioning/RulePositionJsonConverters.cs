@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Diagnostics;
 using FWO.Data.DeviceSpecificSettings;
 using Newtonsoft.Json.Linq;
 using NewtonsoftJsonReader = Newtonsoft.Json.JsonReader;
@@ -17,19 +18,31 @@ public sealed class SystemTextRulePositionJsonConverter : System.Text.Json.Seria
     /// <summary>
     /// Reads a known subtype or retains an unknown subtype's complete JSON object.
     /// </summary>
-    public override RulePosition Read(
+    public override RulePosition? Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
     {
         using JsonDocument document = JsonDocument.ParseValue(ref reader);
         JsonElement root = document.RootElement;
-        string discriminator = GetDiscriminator(root);
+        if (!TryGetDiscriminator(root, out string discriminator))
+        {
+            Trace.TraceWarning("A stored rule position had no valid discriminator and was ignored.");
+            return null;
+        }
         Type? knownType = RulePositionTypeResolver.Resolve(discriminator);
         if (knownType != null)
         {
-            return (RulePosition?)SystemTextJsonSerializer.Deserialize(root.GetRawText(), knownType, options)
-                ?? throw new System.Text.Json.JsonException("The known rule position could not be deserialized.");
+            try
+            {
+                return (RulePosition?)SystemTextJsonSerializer.Deserialize(root.GetRawText(), knownType, options)
+                    ?? CreateUnknownPosition(root.GetRawText());
+            }
+            catch (Exception exception) when (IsInvalidStoredPosition(exception))
+            {
+                Trace.TraceWarning("A stored known rule position was invalid and was retained as unknown.");
+                return CreateUnknownPosition(root.GetRawText());
+            }
         }
         return CreateUnknownPosition(root.GetRawText());
     }
@@ -53,17 +66,27 @@ public sealed class SystemTextRulePositionJsonConverter : System.Text.Json.Seria
     /// <summary>
     /// Reads and validates the persisted discriminator.
     /// </summary>
-    private static string GetDiscriminator(JsonElement root)
+    private static bool TryGetDiscriminator(JsonElement root, out string discriminator)
     {
+        discriminator = "";
         if (root.ValueKind != JsonValueKind.Object ||
             !root.TryGetProperty(RulePositionJsonProperties.kPositionType, out JsonElement discriminatorElement) ||
             discriminatorElement.ValueKind != JsonValueKind.String ||
             string.IsNullOrWhiteSpace(discriminatorElement.GetString()))
         {
-            throw new System.Text.Json.JsonException("The rule position has no valid position_type discriminator.");
+            return false;
         }
-        return discriminatorElement.GetString()!;
+        discriminator = discriminatorElement.GetString()!;
+        return true;
     }
+
+    /// <summary>
+    /// Identifies failures caused by invalid persisted values rather than process-fatal conditions.
+    /// </summary>
+    private static bool IsInvalidStoredPosition(Exception exception) =>
+        exception is System.Text.Json.JsonException or ArgumentException or InvalidOperationException or NotSupportedException ||
+        exception is System.Reflection.TargetInvocationException { InnerException: not null } invocationException &&
+        IsInvalidStoredPosition(invocationException.InnerException!);
 
     /// <summary>
     /// Creates an unknown position from its complete raw JSON object.
@@ -133,21 +156,37 @@ public sealed class NewtonsoftRulePositionJsonConverter : Newtonsoft.Json.JsonCo
         string discriminator = payload.Value<string>(RulePositionJsonProperties.kPositionType) ?? "";
         if (string.IsNullOrWhiteSpace(discriminator))
         {
-            throw new Newtonsoft.Json.JsonSerializationException(
-                "The rule position has no valid position_type discriminator.");
+            Trace.TraceWarning("A stored rule position had no valid discriminator and was ignored.");
+            return null;
         }
         Type? knownType = RulePositionTypeResolver.Resolve(discriminator);
         if (knownType != null)
         {
-            RulePosition position = (RulePosition?)Activator.CreateInstance(knownType, nonPublic: true)
-                ?? throw new Newtonsoft.Json.JsonSerializationException(
-                    "The known rule-position type could not be created.");
-            using NewtonsoftJsonReader payloadReader = payload.CreateReader();
-            serializer.Populate(payloadReader, position);
-            return position;
+            try
+            {
+                RulePosition position = (RulePosition?)Activator.CreateInstance(knownType, nonPublic: true)
+                    ?? throw new Newtonsoft.Json.JsonSerializationException(
+                        "The known rule-position type could not be created.");
+                using NewtonsoftJsonReader payloadReader = payload.CreateReader();
+                serializer.Populate(payloadReader, position);
+                return position;
+            }
+            catch (Exception exception) when (IsInvalidStoredPosition(exception))
+            {
+                Trace.TraceWarning("A stored known rule position was invalid and was retained as unknown.");
+                return CreateUnknownPosition(payload);
+            }
         }
         return CreateUnknownPosition(payload);
     }
+
+    /// <summary>
+    /// Identifies failures caused by invalid persisted values rather than process-fatal conditions.
+    /// </summary>
+    private static bool IsInvalidStoredPosition(Exception exception) =>
+        exception is Newtonsoft.Json.JsonException or ArgumentException or InvalidOperationException or NotSupportedException ||
+        exception is System.Reflection.TargetInvocationException { InnerException: not null } invocationException &&
+        IsInvalidStoredPosition(invocationException.InnerException!);
 
     /// <summary>
     /// Writes a known subtype or the retained payload of an unknown subtype.

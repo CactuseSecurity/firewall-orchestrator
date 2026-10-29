@@ -140,14 +140,45 @@ public class RulePositionPersistenceTest
     [TestCase("999")]
     [TestCase("2147483648")]
     [TestCase("true")]
-    public void KnownPosition_InvalidAlgorithmFailsValidation(string serializedValue)
+    public void KnownPosition_InvalidAlgorithmIsRetainedAsUnknown(string serializedValue)
     {
         string json = CreateCheckPointPositionJson(serializedValue, "3");
 
+        RulePosition? newtonsoftPosition = JsonConvert.DeserializeObject<RulePosition>(json);
+        RulePosition? systemTextPosition = System.Text.Json.JsonSerializer.Deserialize<RulePosition>(json);
+
         Assert.Multiple(() =>
         {
-            Assert.That(() => JsonConvert.DeserializeObject<RulePosition>(json), Throws.Exception);
-            Assert.That(() => System.Text.Json.JsonSerializer.Deserialize<RulePosition>(json), Throws.Exception);
+            Assert.That(newtonsoftPosition, Is.TypeOf<UnknownRulePosition>());
+            Assert.That(systemTextPosition, Is.TypeOf<UnknownRulePosition>());
+            Assert.That(newtonsoftPosition!.PositionType, Is.EqualTo(CheckPointRulePosition.kDiscriminator));
+            Assert.That(systemTextPosition!.PositionType, Is.EqualTo(CheckPointRulePosition.kDiscriminator));
+        });
+    }
+
+    [Test]
+    public void TicketResponse_MalformedPositionDoesNotPreventOtherTasksLoading()
+    {
+        string json = $$"""
+            [
+              { "id": 41, "rule_position": {{CreateCheckPointPositionJson("999", "3")}} },
+              { "id": 42, "rule_position": {{CreateCheckPointPositionJson("5", "3")}} }
+            ]
+            """;
+
+        List<WfImplTask> newtonsoftTasks = JsonConvert.DeserializeObject<List<WfImplTask>>(json)!;
+        List<WfImplTask> systemTextTasks = System.Text.Json.JsonSerializer.Deserialize<List<WfImplTask>>(json)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(newtonsoftTasks, Has.Count.EqualTo(2));
+            Assert.That(systemTextTasks, Has.Count.EqualTo(2));
+            Assert.That(newtonsoftTasks[0].RulePosition, Is.TypeOf<UnknownRulePosition>());
+            Assert.That(systemTextTasks[0].RulePosition, Is.TypeOf<UnknownRulePosition>());
+            AssertCheckPointPosition(newtonsoftTasks[1].RulePosition,
+                ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "layer", "anchor");
+            AssertCheckPointPosition(systemTextTasks[1].RulePosition,
+                ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "layer", "anchor");
         });
     }
 
@@ -306,6 +337,18 @@ public class RulePositionPersistenceTest
     }
 
     [Test]
+    public void GeneralMutations_DoNotWriteRulePosition()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(RequestQueries.newImplementationTask, Does.Not.Contain("rule_position"));
+            Assert.That(RequestQueries.newImplementationTask, Does.Not.Contain("$rulePosition"));
+            Assert.That(RequestQueries.updateImplementationTask, Does.Not.Contain("rule_position"));
+            Assert.That(RequestQueries.updateImplementationTask, Does.Not.Contain("$rulePosition"));
+        });
+    }
+
+    [Test]
     public void DedicatedMutation_TransportSerializesKnownAndUnknownPositions()
     {
         WfImplTask unknownTask = JsonConvert.DeserializeObject<WfImplTask>(kUnknownTaskJson)!;
@@ -352,46 +395,6 @@ public class RulePositionPersistenceTest
                 "transport-anchor",
                 4);
         }
-    }
-
-    [Test]
-    public void ImplTaskMetadata_PreservesReadAccessAndLimitsNewWriteAccess()
-    {
-        JsonObject metadata = JsonNode.Parse(File.ReadAllText(RepositoryContractFileLocator.Locate(
-            "roles", "api", "files", "replace_metadata.json")))!.AsObject();
-        JsonObject table = FindImplTaskMetadata(metadata);
-        List<JsonObject> insertPermissions = ReadPermissionObjects(table, "insert_permissions");
-        List<JsonObject> selectPermissions = ReadPermissionObjects(table, "select_permissions");
-        List<JsonObject> updatePermissions = ReadPermissionObjects(table, "update_permissions");
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(insertPermissions.All(HasRulePositionColumn), Is.True);
-            Assert.That(selectPermissions.All(HasRulePositionColumn), Is.True);
-            Assert.That(updatePermissions.Where(HasRulePositionColumn).Select(ReadRole),
-                Is.EquivalentTo(new List<string> { "middleware-server", "planner" }));
-        });
-    }
-
-    [Test]
-    public void OpenUpgradeAndCreationSchema_DeclareNullableIdempotentJsonbColumn()
-    {
-        string upgrade = File.ReadAllText(RepositoryContractFileLocator.Locate(
-            "roles", "database", "files", "upgrade", "9.8.1.sql"));
-        string sealedUpgrade = File.ReadAllText(RepositoryContractFileLocator.Locate(
-            "roles", "database", "files", "upgrade", "9.7.1.sql"));
-        string creation = File.ReadAllText(RepositoryContractFileLocator.Locate(
-            "roles", "database", "files", "sql", "creation", "fworch-create-tables-request.sql"));
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(upgrade, Does.Contain("ADD COLUMN IF NOT EXISTS rule_position jsonb"));
-            Assert.That(upgrade, Does.Not.Contain("rule_position jsonb NOT NULL"));
-            Assert.That(sealedUpgrade, Does.Not.Contain("rule_position"));
-            Assert.That(creation, Does.Contain("mgm_id int,"));
-            Assert.That(creation, Does.Contain("rule_position jsonb"));
-            Assert.That(creation, Does.Not.Contain("rule_position jsonb NOT NULL"));
-        });
     }
 
     private static PersistedTestRulePosition KnownPosition(string marker)
@@ -536,31 +539,6 @@ public class RulePositionPersistenceTest
             new NewtonsoftJsonSerializer().SerializeToString(request),
             new GraphQL.Client.Serializer.SystemTextJson.SystemTextJsonSerializer().SerializeToString(request)
         ];
-    }
-
-    private static JsonObject FindImplTaskMetadata(JsonObject metadata)
-    {
-        JsonArray sources = metadata["args"]!["metadata"]!["sources"]!.AsArray();
-        return sources.SelectMany(source => source!["tables"]!.AsArray())
-            .Select(table => table!.AsObject())
-            .Single(table => table["table"]!["schema"]!.GetValue<string>() == "request"
-                && table["table"]!["name"]!.GetValue<string>() == "impltask");
-    }
-
-    private static List<JsonObject> ReadPermissionObjects(JsonObject table, string permissionName)
-    {
-        return table[permissionName]!.AsArray().Select(permission => permission!.AsObject()).ToList();
-    }
-
-    private static bool HasRulePositionColumn(JsonObject permission)
-    {
-        return permission["permission"]!["columns"]!.AsArray()
-            .Any(column => column!.GetValue<string>() == "rule_position");
-    }
-
-    private static string ReadRole(JsonObject permission)
-    {
-        return permission["role"]!.GetValue<string>();
     }
 
     [RulePositionType(kKnownDiscriminator)]

@@ -31786,7 +31786,6 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "rule_position",
                       "implementation_action"
                     ]
                   }
@@ -31817,7 +31816,6 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "rule_position",
                       "implementation_action"
                     ]
                   },
@@ -31849,7 +31847,6 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "rule_position",
                       "implementation_action"
                     ]
                   },
@@ -31881,7 +31878,6 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "rule_position",
                       "implementation_action"
                     ]
                   }
@@ -31912,7 +31908,6 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "rule_position",
                       "implementation_action"
                     ]
                   }
@@ -32321,7 +32316,6 @@
                       "stop",
                       "target_begin_date",
                       "target_end_date",
-                      "rule_position",
                       "implementation_action"
                     ],
                     "filter": {},

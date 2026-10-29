@@ -174,8 +174,7 @@ namespace FWO.Services.Workflow
                 ["handler"] = impltask.CurrentHandler?.DbId,
                 ["validFrom"] = impltask.TargetBeginDate,
                 ["validTo"] = impltask.TargetEndDate,
-                ["freeText"] = impltask.FreeText,
-                ["rulePosition"] = impltask.RulePosition
+                ["freeText"] = impltask.FreeText
             };
         }
 

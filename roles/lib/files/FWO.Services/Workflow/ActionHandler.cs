@@ -21,6 +21,8 @@ namespace FWO.Services.Workflow
         private IRequestedRulePolicyChecker? requestedRulePolicyChecker;
         private readonly IWorkflowRecipientResolver? workflowRecipientResolver;
         private readonly IRulePositioningWorkflowCaller? rulePositioningWorkflowCaller;
+        private CancellationToken rulePositioningCancellationToken;
+        internal TimeSpan RulePositioningTimeout { get; set; } = TimeSpan.FromSeconds(30);
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";
         private string? ScopedUserBcc { get; set; } = "";
@@ -113,6 +115,7 @@ namespace FWO.Services.Workflow
                 return;
             }
 
+            using IDisposable graphCacheScope = RulePositioningGraphCacheScope.Begin();
             await RecordStateChangeExecution(statefulObject, scope);
             await ActivateRulePositioningForCreation(statefulObject, scope, creatingRequestTask);
 
@@ -161,10 +164,14 @@ namespace FWO.Services.Workflow
 
                 if (rulePositioningWorkflowCaller.IsApplicable(requestTask, implementationTask))
                 {
+                    using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(
+                        rulePositioningCancellationToken);
+                    timeout.CancelAfter(RulePositioningTimeout);
+                    timeout.Token.ThrowIfCancellationRequested();
                     await rulePositioningWorkflowCaller.CalculateAndPersistAsync(
                         requestTask,
                         implementationTask,
-                        CancellationToken.None);
+                        timeout.Token);
                 }
             }
             catch (OperationCanceledException)
@@ -175,6 +182,14 @@ namespace FWO.Services.Workflow
             {
                 LogRulePositioningActivationFailure(implementationTask.Id);
             }
+        }
+
+        /// <summary>
+        /// Propagates the active middleware request cancellation into rule positioning.
+        /// </summary>
+        public void SetRulePositioningCancellationToken(CancellationToken cancellationToken)
+        {
+            rulePositioningCancellationToken = cancellationToken;
         }
 
         /// <summary>Logs a fixed, payload-free positioning activation failure.</summary>

@@ -6,8 +6,6 @@ The KfW Check Point calculation behavior, vendor scope, and WP-01 technical desi
 
 No open expert or technical-design question blocks WP-01 implementation. Do not infer later activation answers from enum names.
 
-The completed plain-language reasoning is preserved in [OPEN-QUESTIONS-WORKSHEET.md](OPEN-QUESTIONS-WORKSHEET.md).
-
 ## EQ-01 - Zone cardinality and coverage
 
 ### Status

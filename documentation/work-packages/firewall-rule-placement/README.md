@@ -2,7 +2,7 @@
 
 ## Authority and current status
 
-This directory is the repository source of truth for firewall rule positioning work. Active planning documents override chat history and any material under `archive/`.
+This directory records the implemented firewall rule positioning work. The roadmap and decision log override chat history.
 
 Phase 1 is implemented and validated, including the mandatory disposable-VM fresh-install and sequential `9.8.0` to `9.8.1` upgrade acceptance at commit `c85931e0f`. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 WP-01 through WP-06 are implemented and locally validated. WP-05 registers the graph-only calculation/persistence caller and removes the speculative renderer. WP-06 activates the caller from the approved implementation-task creation event. Phase 4 WP-01 is implemented and locally validated. The KfW calculation selects a unique Check Point layer by fixed-import layer-guard IP coverage, resolves same-ticket groups through one authoritative effective range input, and then performs normalized zone-pair Section matching. Selection and production activation are deferred under D-047; Fortinet is deferred under D-058.
 
@@ -12,32 +12,17 @@ Phase 1 is implemented and validated, including the mandatory disposable-VM fres
 | Phase 2 | Implemented and locally validated | Build generic composition contracts, a reusable immutable structural graph, semantic positions, and structural blocks. |
 | Phase 3 | WP-01 through WP-06 implemented and locally validated | Complete a graph-only generic path that persists semantic positions, activate it from an approved workflow seam, remove the renderer, and leave zone input inactive. |
 | Phase 4 | WP-01 implemented and locally validated | Add isolated customer calculation behavior while deferring enum mapping and production activation to a later plan. |
-| Previous proposal | Archived | Historical context only; it is not an alternative active plan. |
 
 ## Reading order
 
-New sessions must read these files in order:
+For maintenance work, read these files in order:
 
 1. `.agents/AGENTS.md`
-2. `documentation/work-packages/firewall-rule-placement/SESSION-HANDOFF.md`
-3. `documentation/work-packages/firewall-rule-placement/README.md`
-4. `documentation/work-packages/firewall-rule-placement/DECISIONS.md`
-5. `documentation/work-packages/firewall-rule-placement/TODO.md`
-6. `documentation/work-packages/firewall-rule-placement/phase-1/README.md`
-7. `documentation/work-packages/firewall-rule-placement/phase-1/WP-01-contracts-and-serialization.md`
-8. `documentation/work-packages/firewall-rule-placement/phase-1/WP-02-positioning-manager.md`
-9. `documentation/work-packages/firewall-rule-placement/phase-1/WP-03-position-persistence.md`
-10. `documentation/work-packages/firewall-rule-placement/phase-2/README.md`
-11. the four Phase 2 work packages in the order listed there
-12. `documentation/work-packages/firewall-rule-placement/phase-3/README.md`
-13. the active Phase 3 planning or implementation brief selected there
-14. `documentation/work-packages/firewall-rule-placement/phase-4/README.md` only after Phase 3 is complete
+2. `documentation/work-packages/firewall-rule-placement/README.md`
+3. `documentation/work-packages/firewall-rule-placement/DECISIONS.md`
+4. the phase README and relevant work package for the area being changed
 
-Do not use the archived proposal to make current decisions. Do not inspect or analyze `FWO_Regel_Platzierung_Regelwerk.md` until the Phase 4 WP-01 planning session.
-
-Use this bootstrap prompt for a new planning session:
-
-> Read `.agents/AGENTS.md`, then `documentation/work-packages/firewall-rule-placement/SESSION-HANDOFF.md`, `README.md`, `DECISIONS.md`, and the active phase work packages in the order listed there. Treat those files as the source of truth. The archived proposal is historical only. Do not analyze `FWO_Regel_Platzierung_Regelwerk.md` until the Phase 4 WP-01 planning session. Continue from the “Next action” in `SESSION-HANDOFF.md`.
+The original customer requirement document was used during Phase 4 planning and is intentionally not part of the product repository. The resulting decisions, implementation brief, and tests are the durable specification.
 
 ## Roadmap boundary
 
@@ -150,14 +135,6 @@ WP-02 and WP-03 proceeded in parallel after WP-01 stabilized. Phase 1 was comple
 - Customer-specific calculation blocks are deferred to Phase 4 WP-01; enum mapping and production selection are deferred to a later plan under D-047.
 - Phase 4 WP-02 maps the customer behavior to a new explicit enum value and activates it without changing the generic graph-only capability.
 
-## Session protocol
+## Documentation maintenance
 
-At the end of every planning session:
-
-1. Append a new entry to `DECISIONS.md` if a decision was added, changed, superseded, or marked for reconsideration. Do not rewrite earlier decision entries.
-2. Replace `SESSION-HANDOFF.md` with a short current recovery point.
-3. Leave changes unstaged and uncommitted unless the user explicitly requests a recovery commit.
-
-## Historical material
-
-The previous WP-00 through WP-08 proposal is preserved under `archive/previous-proposal/`. It remains useful as history, but it must not compete with this roadmap or be treated as approved scope.
+Append a new entry to `DECISIONS.md` when a durable decision is added, changed, superseded, or marked for reconsideration. Do not rewrite earlier decision entries.

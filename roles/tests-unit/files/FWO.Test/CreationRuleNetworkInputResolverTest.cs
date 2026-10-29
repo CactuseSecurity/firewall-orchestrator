@@ -139,6 +139,108 @@ public class CreationRuleNetworkInputResolverTest
     }
 
     [Test]
+    public async Task CatalogGroups_MixedSelectorsAboveOneCallLimitAreLoadedSeparately()
+    {
+        List<WfReqElement> selectors =
+        [
+            .. Enumerable.Range(1, 60).Select(id => new WfReqElement
+            {
+                Field = ElemFieldType.source.ToString(),
+                FlowNetworkGroupId = id
+            }),
+            .. Enumerable.Range(1, 50).Select(id => new WfReqElement
+            {
+                Field = ElemFieldType.source.ToString(),
+                GroupName = $"named-{id}"
+            })
+        ];
+        WfReqTask access = Access(selectors,
+            [Leaf(ElemFieldType.destination, "203.0.113.1", "203.0.113.1")]);
+        FakeFlowGroupResolver groups = new(parameters => new FlowGroupResolutionResult
+        {
+            NetworkGroups =
+            [
+                .. parameters.NetworkGroupIds.Select(id => CatalogGroup(id, $"group-{id}")),
+                .. parameters.NetworkGroupNames.Select((name, index) => CatalogGroup(1000 + index, name))
+            ]
+        });
+
+        CreationRuleNetworkResolutionSuccess success = (CreationRuleNetworkResolutionSuccess)
+            await Resolver(groups).ResolveAsync(access, [access], CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(success.Input.SourceRanges, Is.Not.Empty);
+            Assert.That(groups.CallCount, Is.EqualTo(2));
+            Assert.That(groups.AllParameters.Single(parameters => parameters.NetworkGroupIds.Count > 0)
+                .NetworkGroupIds, Has.Count.EqualTo(60));
+            Assert.That(groups.AllParameters.Single(parameters => parameters.NetworkGroupNames.Count > 0)
+                .NetworkGroupNames, Has.Count.EqualTo(50));
+        });
+    }
+
+    [TestCase(false, CreationRuleNetworkResolutionFailureCategory.GroupUnresolved)]
+    [TestCase(true, CreationRuleNetworkResolutionFailureCategory.GroupAmbiguous)]
+    public async Task CatalogGroups_InvalidResultInLaterChunkFailsClosed(
+        bool duplicateLastGroup,
+        CreationRuleNetworkResolutionFailureCategory expectedCategory)
+    {
+        WfReqTask access = Access(
+            Enumerable.Range(1, 101).Select(id => new WfReqElement
+            {
+                Field = ElemFieldType.source.ToString(),
+                FlowNetworkGroupId = id
+            }),
+            [Leaf(ElemFieldType.destination, "203.0.113.1", "203.0.113.1")]);
+        FakeFlowGroupResolver groups = new(parameters =>
+        {
+            List<FlowNetworkGroupResolution> resolved = parameters.NetworkGroupIds
+                .Where(id => id != 101 || duplicateLastGroup)
+                .Select(id => CatalogGroup(id, $"group-{id}"))
+                .ToList();
+            if (duplicateLastGroup && parameters.NetworkGroupIds.Contains(101))
+            {
+                resolved.Add(CatalogGroup(101, "duplicate-101"));
+            }
+            return new FlowGroupResolutionResult { NetworkGroups = resolved };
+        });
+
+        CreationRuleNetworkResolutionFailure failure = (CreationRuleNetworkResolutionFailure)
+            await Resolver(groups).ResolveAsync(access, [access], CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(failure.Category, Is.EqualTo(expectedCategory));
+            Assert.That(groups.CallCount, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public void CatalogGroups_CancellationBetweenChunksStopsFurtherCalls()
+    {
+        WfReqTask access = Access(
+            Enumerable.Range(1, 101).Select(id => new WfReqElement
+            {
+                Field = ElemFieldType.source.ToString(),
+                FlowNetworkGroupId = id
+            }),
+            [Leaf(ElemFieldType.destination, "203.0.113.1", "203.0.113.1")]);
+        using CancellationTokenSource cancellation = new();
+        FakeFlowGroupResolver groups = new(parameters =>
+        {
+            cancellation.Cancel();
+            return new FlowGroupResolutionResult
+            {
+                NetworkGroups = [.. parameters.NetworkGroupIds.Select(id => CatalogGroup(id, $"group-{id}"))]
+            };
+        });
+
+        Assert.That(async () => await Resolver(groups).ResolveAsync(access, [access], cancellation.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(groups.CallCount, Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task TicketGroup_OverridesCatalogAndExpandsNestedGroup()
     {
         WfReqTask nested = GroupCreate(1, 1, "nested",
@@ -432,6 +534,21 @@ public class CreationRuleNetworkInputResolverTest
         IpString = ip,
         IpEnd = ip,
         RequestAction = action.ToString()
+    };
+
+    private static FlowNetworkGroupResolution CatalogGroup(long id, string name) => new()
+    {
+        Id = id,
+        Name = name,
+        Members =
+        [
+            new FlowNetworkMemberResolution
+            {
+                Id = id,
+                IpStart = "10.0.0.1",
+                IpEnd = "10.0.0.1"
+            }
+        ]
     };
 
     private sealed class FakeFlowGroupResolver : IFlowGroupResolver

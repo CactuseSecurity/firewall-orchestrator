@@ -5,9 +5,11 @@ using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
+using FWO.Middleware.Server;
 using FWO.Services.RulePositioning;
 using FWO.Services.RulePositioning.Blocks;
 using FWO.Services.RulePositioning.CheckPoint;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Concurrent;
 using System.Net;
@@ -552,25 +554,29 @@ internal class CheckPointRulePositioningStrategyTest
     }
 
     [Test]
-    public void Program_RegistersBothNonOverlappingPositioningStrategies()
+    public void AddRulePositioning_RegistersBothNonOverlappingPositioningStrategies()
     {
-        string source = File.ReadAllText(RepositoryContractFileLocator.Locate(
-            "roles", "middleware", "files", "FWO.Middleware.Server", "Program.cs"));
+        ServiceCollection services = new();
+
+        services.AddRulePositioning();
+
+        ServiceDescriptor[] strategies = services
+            .Where(service => service.ServiceType == typeof(IRulePositioningStrategy))
+            .ToArray();
 
         Assert.Multiple(() =>
         {
-            Assert.That(source, Does.Contain("AddSingleton<IDesignatedZoneMatrixReader, DesignatedZoneMatrixReader>()"));
-            Assert.That(source, Does.Contain("AddSingleton<IRulebaseGraphSnapshotReader, RulebaseGraphSnapshotReader>()"));
-            Assert.That(source, Does.Contain("AddSingleton<ICreationRuleZoneResolver, CreationRuleZoneResolver>()"));
-            Assert.That(source, Does.Contain("CheckPointRulePositioningStrategy"));
-            Assert.That(source, Does.Contain("ICheckPointPositioningRecipeCatalog, CheckPointPositioningRecipeCatalog"));
-            Assert.That(source, Does.Contain("KfwCheckPointPositioningRecipeFactory"));
-            Assert.That(source, Does.Contain("ICreationRuleNetworkInputResolver, CreationRuleNetworkInputResolver"));
-            Assert.That(source, Does.Contain("ICheckPointLayerGuardSnapshotReader, CheckPointLayerGuardSnapshotReader"));
-            Assert.That(source, Does.Contain("AddSingleton<ICheckPointGraphPositioningRecipeCatalog, CheckPointGraphPositioningRecipeCatalog>()"));
-            Assert.That(source, Does.Contain("AddSingleton<IRulePositioningStrategy>"));
-            Assert.That(source, Does.Contain("AddSingleton<RulePositioningManager>()"));
-            Assert.That(source, Does.Contain("AddSingleton<IRulePositioningWorkflowCaller, RulePositioningWorkflowCaller>()"));
+            Assert.That(strategies, Has.Length.EqualTo(2));
+            Assert.That(strategies, Has.All.Property(nameof(ServiceDescriptor.Lifetime)).EqualTo(ServiceLifetime.Singleton));
+            Assert.That(services, Has.Some.Matches<ServiceDescriptor>(service =>
+                service.ServiceType == typeof(IRulebaseGraphSnapshotReader)
+                && service.ImplementationType == typeof(RulebaseGraphSnapshotReader)));
+            Assert.That(services, Has.Some.Matches<ServiceDescriptor>(service =>
+                service.ServiceType == typeof(ICheckPointPositioningRecipeCatalog)
+                && service.ImplementationType == typeof(CheckPointPositioningRecipeCatalog)));
+            Assert.That(services, Has.Some.Matches<ServiceDescriptor>(service =>
+                service.ServiceType == typeof(IRulePositioningWorkflowCaller)
+                && service.ImplementationType == typeof(RulePositioningWorkflowCaller)));
         });
     }
 

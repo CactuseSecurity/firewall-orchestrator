@@ -17,6 +17,9 @@ namespace FWO.Test;
 [TestFixture]
 public class RulebaseGraphSnapshotReaderTest
 {
+    private const int kExpectedLinkLimit = 10001;
+    private const int kExpectedRulebaseLimit = 5001;
+    private const int kExpectedRuleLimit = 100001;
     private const int kManagementId = 10;
     private const int kGatewayId = 20;
     private const long kImportId = 100;
@@ -99,6 +102,46 @@ public class RulebaseGraphSnapshotReaderTest
         });
 
         AssertExactCalls(api);
+    }
+
+    [Test]
+    public async Task ReadAsync_AcceptsRuleIdsAboveInt32Range()
+    {
+        const long largeRuleId = (long)int.MaxValue + 1;
+        string linksJson = kLinksJson.Replace("201", largeRuleId.ToString(), StringComparison.Ordinal);
+        string rulebasesJson = kRulebasesJson.Replace("201", largeRuleId.ToString(), StringComparison.Ordinal);
+        SimulatedApiConnection api = new(kImportJson, linksJson, rulebasesJson);
+
+        RulebaseGraphReadSuccess result = (RulebaseGraphReadSuccess)await new RulebaseGraphSnapshotReader(api)
+            .ReadAsync(kManagementId, kGatewayId, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Snapshot.Links.Any(link => link.SourceRuleId == largeRuleId), Is.True);
+            Assert.That(result.Snapshot.Rulebases.SelectMany(rulebase => rulebase.Rules)
+                .Any(rule => rule.Id == largeRuleId), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_ReusesGraphWithinOneWorkflowOperation()
+    {
+        SimulatedApiConnection api = SuccessfulApi();
+        RulebaseGraphSnapshotReader reader = new(api);
+
+        RulebaseGraphReadResult first;
+        RulebaseGraphReadResult second;
+        using (RulePositioningGraphCacheScope.Begin())
+        {
+            first = await reader.ReadAsync(kManagementId, kGatewayId, CancellationToken.None);
+            second = await reader.ReadAsync(kManagementId, kGatewayId, CancellationToken.None);
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(second, Is.SameAs(first));
+            Assert.That(api.Calls, Has.Count.EqualTo(3));
+        });
     }
 
     [Test]
@@ -417,8 +460,11 @@ public class RulebaseGraphSnapshotReaderTest
             Assert.That((int?)importVariables["importTypeId"], Is.EqualTo(1));
             Assert.That((long?)linkVariables["importId"], Is.EqualTo(kImportId));
             Assert.That((int?)linkVariables["gatewayId"], Is.EqualTo(kGatewayId));
+            Assert.That((int?)linkVariables["linkLimit"], Is.EqualTo(kExpectedLinkLimit));
             Assert.That((long?)rulebaseVariables["importId"], Is.EqualTo(kImportId));
             Assert.That((int?)rulebaseVariables["managementId"], Is.EqualTo(kManagementId));
+            Assert.That((int?)rulebaseVariables["rulebaseLimit"], Is.EqualTo(kExpectedRulebaseLimit));
+            Assert.That((int?)rulebaseVariables["ruleLimit"], Is.EqualTo(kExpectedRuleLimit));
             Assert.That(rulebaseVariables["rulebaseIds"]!.Values<int>(),
                 Is.EqualTo(expectedRulebaseIds ?? new[] { 1, 2, 3, 4 }));
         });

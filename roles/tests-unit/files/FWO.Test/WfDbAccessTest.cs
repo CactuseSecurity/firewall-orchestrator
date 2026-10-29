@@ -2719,7 +2719,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildImplTaskUpdateVariables_DoesNotIncludeTaskType()
+        public void BuildImplTaskUpdateVariables_DoesNotIncludeTaskTypeOrRulePosition()
         {
             WfImplTask implTask = new()
             {
@@ -2745,8 +2745,7 @@ namespace FWO.Test
             Assert.That(variables["reqTaskId"], Is.EqualTo((long)11));
             Assert.That(variables["state"], Is.EqualTo(4));
             Assert.That(variables["device"], Is.EqualTo(7));
-            Assert.That(variables.ContainsKey("rulePosition"), Is.True);
-            Assert.That(variables["rulePosition"], Is.Null);
+            Assert.That(variables.ContainsKey("rulePosition"), Is.False);
         }
 
         [Test]

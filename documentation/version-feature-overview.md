@@ -244,7 +244,10 @@ For a feature-centric, thematically grouped view see
 ### 9.8.3 — 26.10.2026
 - Implementation tasks are created by the state action "Create implementation tasks"; the device specific settings "Auto plan implementation" and "Auto plan implementation for rules" decide per gateway and management which tasks it creates. Workflow Customizing offers the device input in the request and the path analysis algorithms "For each device" and "First device (if available)".
 
-### 9.9.0 — 26.10.2026
+### 9.8.4 — 29.10.2026
+- Every list endpoint of the middleware REST API is paged (`limit`, `offset`, `X-Has-More`) with one central page size, the new setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`, default 10000).
+
+### 9.9.0 — 01.11.2026
 - Azure Firewall import module fetches firewall policies (network rules) and IP groups directly via the Azure Resource Manager API (api version 2026-01-01 with fallback to 2024-05-01).
 - Azure parent policies (policy hierarchy) are imported; their rules precede the rules of the child policy.
 - Azure gateway autodiscovery: finds the Azure Firewalls of the subscription and maps each to its firewall policy.

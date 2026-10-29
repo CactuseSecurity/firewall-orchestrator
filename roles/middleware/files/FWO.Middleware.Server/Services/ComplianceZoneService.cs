@@ -17,12 +17,16 @@ namespace FWO.Middleware.Server.Services;
 public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalConfig globalConfig)
 {
     /// <summary>
-    /// Returns the zones defined by the configured designated zone matrix.
+    /// Returns one page of the zones defined by the configured designated zone matrix, ordered by zone id.
     /// </summary>
-    public async Task<List<ComplianceDesignatedZoneResponse>> GetDesignatedZoneMatrixZonesAsync()
+    /// <param name="pageSize">Maximum number of zones returned.</param>
+    /// <param name="offset">Number of zones skipped before the page; null skips none.</param>
+    public async Task<ListPage<ComplianceDesignatedZoneResponse>> GetDesignatedZoneMatrixZonesAsync(int pageSize, int? offset)
     {
         List<ComplianceNetworkZone> zones = await LoadDesignatedZoneMatrixZonesAsync();
-        return zones.Select(MapDesignatedZoneResponse).ToList();
+        ListPage<ComplianceNetworkZone> page = ListPage<ComplianceNetworkZone>.FromOrderedItems(zones.OrderBy(zone => zone.Id), pageSize, offset);
+        List<ComplianceDesignatedZoneResponse> zoneResponses = page.Items.Select(MapDesignatedZoneResponse).ToList();
+        return new ListPage<ComplianceDesignatedZoneResponse>(zoneResponses, page.HasMore);
     }
 
     /// <summary>

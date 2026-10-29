@@ -70,7 +70,7 @@ def resolve_ref_list_from_object_dictionary(
     value: str,
     obj_dicts: list[dict[str, Any]] | None = None,
     native_config_domain: dict[str, Any] | None = None,
-):  # TODO: what is objDict: I think it should be a list of dicts
+) -> None:  # TODO: what is objDict: I think it should be a list of dicts
     if native_config_domain is None:
         native_config_domain = {}
     if obj_dicts is None:
@@ -93,7 +93,7 @@ def resolve_ref_list_from_object_dictionary(
 
 def categorize_value_for_resolve_ref(
     rule: dict[str, Any], value: str, obj_dict: list[dict[str, Any]], native_config_domain: dict[str, Any]
-):
+) -> None:
     value_list: list[Any] = []
     if isinstance(rule[value], str):  # assuming single uid
         rule[value] = resolve_ref_from_object_dictionary(

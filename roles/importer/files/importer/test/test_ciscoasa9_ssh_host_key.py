@@ -52,6 +52,7 @@ def test_checks_host_key_against_fwo_known_hosts_file(
     options = generic_driver.call_args.kwargs
     assert options["auth_strict_key"] is True
     assert options["ssh_known_hosts_file"] == known_hosts_file
+    assert options["transport_options"]["open_cmd"][-2:] == ["-o", "GlobalKnownHostsFile=/dev/null"]
 
 
 def test_unchecked_firewall_connections_accept_any_host_key_with_one_warning(
@@ -70,6 +71,7 @@ def test_unchecked_firewall_connections_accept_any_host_key_with_one_warning(
     warnings = [record for record in caplog.records if "SSH host key checking is switched off" in record.getMessage()]
     assert options["auth_strict_key"] is False
     assert "ssh_known_hosts_file" not in options
+    assert "GlobalKnownHostsFile=/dev/null" not in options["transport_options"]["open_cmd"]
     assert len(warnings) == 1
     assert fwcommon.SSH_KNOWN_HOSTS_FILE in warnings[0].getMessage()
 

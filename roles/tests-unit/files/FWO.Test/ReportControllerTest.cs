@@ -138,6 +138,22 @@ namespace FWO.Test
             Assert.That(problem.Errors["rule-filter"][0], Does.Contain(Compiler.kMaxFilterLength.ToString()));
         }
 
+        [TestCase("src>1.1.1.1", false)]
+        [TestCase("src=1.1.1.1", true)]
+        public void ValidateFilter_FindsErrorsOfTheQueryGeneration(string filter, bool valid)
+        {
+            ReportTemplate template = new() { Filter = filter };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            ValidationProblemDetails? problem = InvokePrivateStatic<ValidationProblemDetails?>("ValidateFilter", template);
+
+            Assert.That(problem == null, Is.EqualTo(valid));
+            if (!valid)
+            {
+                Assert.That(problem!.Errors["rule-filter"][0], Does.Contain("invalid report filter"));
+            }
+        }
+
         [Test]
         public async Task Get_RejectsRequestWhoseFilterDoesNotCompile()
         {

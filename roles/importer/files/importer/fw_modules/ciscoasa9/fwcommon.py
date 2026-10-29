@@ -84,13 +84,18 @@ def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
         Connected GenericDriver instance.
 
     """
+    host_key_options = _host_key_options(mgm_details)
+    open_cmd = ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]
+    if host_key_options["auth_strict_key"]:
+        # only the FWO known hosts file counts; ssh would otherwise also accept the system-wide ones
+        open_cmd += ["-o", "GlobalKnownHostsFile=/dev/null"]
     device: dict[str, Any] = {
         "host": mgm_details.hostname,
         "port": mgm_details.port,
         "auth_username": mgm_details.import_user,
         "auth_password": mgm_details.secret,
-        **_host_key_options(mgm_details),
-        "transport_options": {"open_cmd": ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]},
+        **host_key_options,
+        "transport_options": {"open_cmd": open_cmd},
     }
     conn = GenericDriver(**device)
     try:

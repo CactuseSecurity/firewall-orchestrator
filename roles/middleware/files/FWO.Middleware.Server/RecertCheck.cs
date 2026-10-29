@@ -224,7 +224,7 @@ namespace FWO.Middleware.Server
             int emailsSent = 0;
             foreach (FwoNotification notification in notificationService.Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
             {
-                string body = PrepareRulesBody(upcomingRecerts, overdueRecerts, owner.Name, IsHtmlBody(notification));
+                string body = BuildRulesBody(notification, upcomingRecerts, overdueRecerts, owner.Name);
                 emailsSent += await notificationService.SendNotification(notification, owner, body);
             }
             return emailsSent;
@@ -281,9 +281,25 @@ namespace FWO.Middleware.Server
             foreach (FwoNotification notification in notificationService.Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
             {
                 emailsSent += await notificationService.SendNotificationIfDue(notification, owner, owner.NextRecertDate,
-                    PrepareOwnerBody(owner, IsHtmlBody(notification)), report);
+                    BuildOwnerBody(notification, owner), report);
             }
             return emailsSent;
+        }
+
+        /// <summary>
+        /// Builds the owner recertification body in the form the notification's layout needs.
+        /// </summary>
+        private string BuildOwnerBody(FwoNotification notification, FwoOwner owner)
+        {
+            return PrepareOwnerBody(owner, IsHtmlBody(notification));
+        }
+
+        /// <summary>
+        /// Builds the rule recertification body in the form the notification's layout needs.
+        /// </summary>
+        private string BuildRulesBody(FwoNotification notification, List<Rule> upcomingRecerts, List<Rule> overdueRecerts, string ownerName)
+        {
+            return PrepareRulesBody(upcomingRecerts, overdueRecerts, ownerName, IsHtmlBody(notification));
         }
 
         private static bool IsHtmlBody(FwoNotification notification)

@@ -79,7 +79,7 @@
           settings, see documentation/certificates.md.
   when: unchecked_certificate_switches.query_result | length > 0
 
-# from 9.8.3 on the Cisco ASA importer checks SSH host keys while firewall certificate checks are on; until the
+# from 9.8.4 on the Cisco ASA importer checks SSH host keys while firewall certificate checks are on; until the
 # verified keys are added on the importer hosts these imports fail, and the UI lists them for admins
 - name: read the Cisco ASA managements that need registered SSH host keys
   community.postgresql.postgresql_query:
@@ -94,7 +94,7 @@
   changed_when: false
   become: true
   become_user: postgres
-  when: installed_version is version('9.8.3', '<')
+  when: installed_version is version('9.8.4', '<')
 
 - name: warn about Cisco ASA managements that need registered SSH host keys
   debug:
@@ -104,5 +104,5 @@
           fail until the verified host key of each device is added to {{ importer_ssh_known_hosts_file }} on
           the importer hosts, see documentation/certificates.md. Admins see the affected managements in the UI.
   when:
-      - installed_version is version('9.8.3', '<')
+      - installed_version is version('9.8.4', '<')
       - asa_managements_needing_host_keys.query_result | default([]) | length > 0

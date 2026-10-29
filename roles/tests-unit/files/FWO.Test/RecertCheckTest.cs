@@ -317,6 +317,29 @@ namespace FWO.Test
             Assert.That(exception.InnerException, Is.TypeOf<NotSupportedException>());
         }
 
+        [TestCase(NotificationLayout.HtmlInBody, true)]
+        [TestCase(NotificationLayout.SimpleText, false)]
+        [TestCase(NotificationLayout.PdfAsAttachment, false)]
+        public void BuildBodies_EncodeValuesForTheNotificationLayout(NotificationLayout layout, bool encoded)
+        {
+            const string kPayload = "<b>x</b>\" onmouseover=\"x'";
+            RecertCheck recertCheck = CreateRecertCheck(new RecertCheckApiConnection(), CreateGlobalConfig());
+            FwoNotification notification = new() { Layout = layout };
+            FwoOwner owner = new() { Name = kPayload, NextRecertDate = DateTime.Today.AddDays(1) };
+            List<Rule> upcomingRules = [new Rule { Name = kPayload, DeviceName = kPayload, Uid = kPayload }];
+            List<Rule> overdueRules = [];
+
+            string ownerBody = InvokePrivate<string>(recertCheck, "BuildOwnerBody", notification, owner);
+            string rulesBody = InvokePrivate<string>(recertCheck, "BuildRulesBody", notification, upcomingRules, overdueRules, kPayload);
+
+            string expectedValue = encoded ? System.Net.WebUtility.HtmlEncode(kPayload) : kPayload;
+            Assert.Multiple(() =>
+            {
+                Assert.That(ownerBody, Is.EqualTo("upcoming for " + expectedValue));
+                Assert.That(rulesBody.Split(expectedValue).Length - 1, Is.EqualTo(4));
+            });
+        }
+
         [TestCase(true)]
         [TestCase(false)]
         public void PrepareBodies_EncodeOwnerAndRuleValuesOnlyForHtmlBodies(bool isHtmlBody)

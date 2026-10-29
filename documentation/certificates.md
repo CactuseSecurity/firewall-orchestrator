@@ -481,7 +481,7 @@ decides whether the host key is checked. While it is on, an import from a device
 is not in the file, or whose key has changed, fails at once with an import error before
 any credential is sent. As long as this is the case, admins see a warning at the top of
 every UI page that lists the affected managements together with these instructions; it
-disappears after the next successful import. An upgrade from a version before 9.8.3 lists
+disappears after the next successful import. An upgrade from a version before 9.8.4 lists
 the active ASA managements whose keys have to be added.
 
 Add the key of each device after checking it, for example against the key shown on the

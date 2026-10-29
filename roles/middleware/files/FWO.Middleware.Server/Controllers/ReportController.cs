@@ -57,7 +57,7 @@ namespace FWO.Middleware.Server.Controllers
             try
             {
                 ReportTemplate template = await ConvertParameters(parameters);
-                ValidationProblemDetails? filterError = ValidateFilter(template.Filter);
+                ValidationProblemDetails? filterError = ValidateFilter(template);
                 if (filterError != null)
                 {
                     return BadRequest(filterError);
@@ -91,18 +91,19 @@ namespace FWO.Middleware.Server.Controllers
         }
 
         /// <summary>
-        /// Checks the report filter built from the request before any report work is done.
+        /// Checks the report filter built from the request before any report work is done. Compiling builds the query
+        /// without accessing the database, so syntax and semantic errors are both found.
         /// </summary>
         /// <returns>The validation problem for a too long or invalid filter; null when the filter compiles.</returns>
-        private static ValidationProblemDetails? ValidateFilter(string filter)
+        private static ValidationProblemDetails? ValidateFilter(ReportTemplate template)
         {
-            if (filter.Length > Compiler.kMaxFilterLength)
+            if (template.Filter.Length > Compiler.kMaxFilterLength)
             {
                 return BuildFilterError($"'rule-filter' together with 'action' and 'active' results in a report filter longer than {Compiler.kMaxFilterLength} characters. Request fewer values.");
             }
             try
             {
-                Compiler.CompileToAst(filter);
+                Compiler.Compile(template);
                 return null;
             }
             catch (FilterException exception)

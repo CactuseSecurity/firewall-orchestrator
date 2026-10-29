@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import fwo_globals
 import pytest
 from fw_modules.ciscoasa9 import fwcommon
+from fwo_const import ALERT_CODE_SSH_HOST_KEY_REJECTED
 from fwo_exceptions import SshHostKeyRejectedError
 from scrapli.exceptions import ScrapliAuthenticationFailed
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from unittest.mock import MagicMock
 
     from model_controllers.management_controller import ManagementController
     from pytest_mock import MockerFixture
@@ -129,3 +130,52 @@ def test_missing_known_hosts_file_fails_without_connecting(
 
     assert missing_file in str(raised.value)
     generic_driver.assert_not_called()
+
+
+def import_state_mock(management_controller: ManagementController) -> MagicMock:
+    import_state = MagicMock()
+    import_state.state.mgm_details = management_controller
+    import_state.state.import_id = 77
+    return import_state
+
+
+def test_rejected_host_key_raises_an_alert_for_the_management(
+    mocker: MockerFixture, management_controller: ManagementController
+) -> None:
+    mocker.patch.object(fwcommon, "load_config_from_management", side_effect=SshHostKeyRejectedError("add the key"))
+    import_state = import_state_mock(management_controller)
+
+    with pytest.raises(SshHostKeyRejectedError):
+        fwcommon._load_config_reporting_host_key(import_state, is_virtual_asa=False)  # pyright: ignore[reportPrivateUsage]
+
+    alert = import_state.api_call.set_alert.call_args.kwargs
+    assert alert["alert_code"] == ALERT_CODE_SSH_HOST_KEY_REJECTED
+    assert alert["mgm_id"] == management_controller.mgm_id
+    assert alert["description"] == "add the key"
+    import_state.api_call.acknowledge_open_alerts.assert_not_called()
+
+
+def test_successful_connection_closes_the_host_key_alert(
+    mocker: MockerFixture, management_controller: ManagementController
+) -> None:
+    mocker.patch.object(fwcommon, "load_config_from_management", return_value="config")
+    import_state = import_state_mock(management_controller)
+
+    raw_config = fwcommon._load_config_reporting_host_key(import_state, is_virtual_asa=False)  # pyright: ignore[reportPrivateUsage]
+
+    assert raw_config == "config"
+    import_state.api_call.acknowledge_open_alerts.assert_called_once_with(
+        management_controller.mgm_id, ALERT_CODE_SSH_HOST_KEY_REJECTED
+    )
+    import_state.api_call.set_alert.assert_not_called()
+
+
+def test_failing_alert_api_keeps_the_host_key_error(
+    mocker: MockerFixture, management_controller: ManagementController
+) -> None:
+    mocker.patch.object(fwcommon, "load_config_from_management", side_effect=SshHostKeyRejectedError("add the key"))
+    import_state = import_state_mock(management_controller)
+    import_state.api_call.set_alert.side_effect = RuntimeError("api down")
+
+    with pytest.raises(SshHostKeyRejectedError, match="add the key"):
+        fwcommon._load_config_reporting_host_key(import_state, is_virtual_asa=False)  # pyright: ignore[reportPrivateUsage]

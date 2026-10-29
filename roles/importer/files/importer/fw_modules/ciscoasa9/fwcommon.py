@@ -17,7 +17,7 @@ import fwo_globals
 from fw_modules.ciscoasa9.asa_normalize import normalize_config
 from fw_modules.ciscoasa9.asa_parser import parse_asa_config
 from fwo_base import write_native_config_to_file
-from fwo_const import SSH_KNOWN_HOSTS_FILE
+from fwo_const import ALERT_CODE_SSH_HOST_KEY_REJECTED, SSH_KNOWN_HOSTS_FILE
 from fwo_exceptions import FwoImporterError, SshHostKeyRejectedError
 from fwo_log import FWOLogger
 from models.fw_common import FwCommon
@@ -25,6 +25,8 @@ from scrapli.driver import GenericDriver
 from scrapli.exceptions import ScrapliAuthenticationFailed
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
     from model_controllers.import_state_controller import ImportStateController
     from model_controllers.management_controller import ManagementController
@@ -378,7 +380,7 @@ def get_config(
 
     if config_in.native_config_is_empty():
         # for debugging, use: raw_config = load_config_from_file("test_asa.conf")
-        raw_config = load_config_from_management(import_state.state.mgm_details, is_virtual_asa)
+        raw_config = _load_config_reporting_host_key(import_state, is_virtual_asa)
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 
@@ -387,6 +389,45 @@ def get_config(
     normalize_config(config_in, import_state.state)
 
     return 0, config_in
+
+
+def _load_config_reporting_host_key(import_state: ImportStateController, is_virtual_asa: bool) -> str:
+    """
+    Load the configuration from the device and keep the SSH host key alert of the management up to date.
+
+    A rejected host key raises an alert, which the UI shows to admins together with the instructions. The alert is
+    acknowledged by the next successful connection, so it is open exactly as long as the problem exists.
+    """
+    mgm_details = import_state.state.mgm_details
+    try:
+        raw_config = load_config_from_management(mgm_details, is_virtual_asa)
+    except SshHostKeyRejectedError as rejection:
+        rejection_text = str(rejection)
+        _report_alert_change(
+            lambda: import_state.api_call.set_alert(
+                import_id=import_state.state.import_id,
+                title="SSH host key rejected",
+                mgm_id=mgm_details.mgm_id,
+                severity=1,
+                description=rejection_text,
+                source="import",
+                alert_code=ALERT_CODE_SSH_HOST_KEY_REJECTED,
+                mgm_details=mgm_details,
+            )
+        )
+        raise
+    _report_alert_change(
+        lambda: import_state.api_call.acknowledge_open_alerts(mgm_details.mgm_id, ALERT_CODE_SSH_HOST_KEY_REJECTED)
+    )
+    return raw_config
+
+
+def _report_alert_change(change: Callable[[], None]) -> None:
+    """Apply an alert change without letting a failure of the alert API hide the import result."""
+    try:
+        change()
+    except Exception as e:
+        FWOLogger.warning(f"could not update the SSH host key alert: {e!s}")
 
 
 def load_config_from_file(filename: str) -> str:

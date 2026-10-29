@@ -38,6 +38,9 @@
             @if (ambientRoleInitialized)
             {
                 <UncheckedCertificatesWarning />
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                    <MissingSshHostKeysWarning />
+                </ExecutionModeAuthorizeView>
                 @Body
             }
             else

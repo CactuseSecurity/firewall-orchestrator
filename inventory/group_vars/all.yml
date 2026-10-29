@@ -114,6 +114,9 @@ postgres_group: "postgres"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
 fworch_conf_dir: "{{ fworch_home }}/etc"
+# SSH host keys of firewalls imported over SSH (Cisco ASA), checked unless certificate checking of firewall
+# connections is switched off; the importer reads it at the fixed path fwo_const.SSH_KNOWN_HOSTS_FILE
+importer_ssh_known_hosts_file: "{{ fworch_conf_dir }}/ssh_known_hosts"
 fworch_conf_file: "{{ fworch_conf_dir }}/fworch.json"
 last_commit_id_file_path: "{{ fworch_conf_dir }}/last_commit_id.txt"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"

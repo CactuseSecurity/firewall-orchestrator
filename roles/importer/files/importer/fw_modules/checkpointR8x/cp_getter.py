@@ -33,6 +33,8 @@ if TYPE_CHECKING:
 STATUS_IN_PROGRESS = "in progress"
 STATUS_SUCCEEDED = "succeeded"
 STATUS_FAILED = "failed"
+# api sessions are only logged by their fingerprint, never by the session id itself
+SESSION_LOG_PREFIX = "session: "
 
 
 def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str | None, show_progress: bool = False):
@@ -229,7 +231,7 @@ def get_show_packages_via_api(
         total = packages["total"]
     else:
         FWOLogger.error("packages do not contain total field")
-        FWOLogger.warning("session: " + session_fingerprint(sid))
+        FWOLogger.warning(SESSION_LOG_PREFIX + session_fingerprint(sid))
         FWOLogger.warning("api_v_url:  " + api_v_url)
         for key, value in show_params_policy_structure.items():
             FWOLogger.warning("show_params_policy_structure " + key + ": " + str(value))
@@ -332,7 +334,7 @@ def log_global_assignments_error(
     sid: str, api_v_url: str, show_params_policy_structure: dict[str, Any], assignments: dict[str, Any]
 ) -> None:
     """Log error information for global assignments debugging."""
-    FWOLogger.warning("session: " + session_fingerprint(sid))
+    FWOLogger.warning(SESSION_LOG_PREFIX + session_fingerprint(sid))
     FWOLogger.warning("api_v_url: " + api_v_url)
     for key, value in show_params_policy_structure.items():
         FWOLogger.warning("show_params_policy_structure " + key + ": " + str(value))
@@ -623,7 +625,7 @@ def control_while_loop_in_get_rulebases_in_chunks(
             "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json "
             + str(current_rulebase)
         )
-        FWOLogger.warning("session: " + session_fingerprint(sid))
+        FWOLogger.warning(SESSION_LOG_PREFIX + session_fingerprint(sid))
         FWOLogger.warning("api_v_url: " + api_v_url)
         for key, value in show_params_rules.items():
             FWOLogger.warning("show_params_rules " + key + ": " + str(value))

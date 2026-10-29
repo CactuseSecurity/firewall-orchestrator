@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import fwo_globals
 import pytest
-from fwo_exceptions import FwoApiFailedDeleteOldImportsError, FwoImporterError, ImportInterruptionError
+from fwo_exceptions import FwoImporterError, ImportInterruptionError
 from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.fwconfig_import_label import FwConfigImportLabel
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
@@ -45,6 +45,33 @@ def make_manager(uid: str = "mock-manager-uid", is_super_manager: bool = False) 
         domain_name="dom",
         sub_manager_ids=[],
         configs=[],
+    )
+
+
+def make_manager_set(*uids: str) -> FwConfigManagerListController:
+    mgr_set = FwConfigManagerListController()
+    for uid in uids:
+        manager = make_manager(uid=uid, is_super_manager=uid == "super")
+        manager.configs.append(FwConfigNormalized())
+        mgr_set.add_manager(manager)
+    return mgr_set
+
+
+def set_sub_managers(importer: FwConfigImport, paused_uids: list[str], active_uids: list[str]) -> None:
+    sub_managers = [SimpleNamespace(uid=uid, import_disabled=True) for uid in paused_uids]
+    sub_managers += [SimpleNamespace(uid=uid, import_disabled=False) for uid in active_uids]
+    importer.import_state.state.mgm_details.sub_managers = sub_managers  # type: ignore[assignment]
+    importer.import_state.state.force_import = False
+
+
+def make_sub_manager_details(uid: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        uid=uid,
+        name=uid,
+        is_super_manager=False,
+        sub_manager_ids=[],
+        domain_name="dom",
+        domain_uid="dom-uid",
     )
 
 
@@ -119,6 +146,57 @@ class TestImportManagementSet:
         assert config_importer.call_count == 2
         removed_updater.assert_called_once_with(mgr_set.ManagerSet)
 
+    def test_skips_sub_managers_whose_import_is_disabled(
+        self, importer: FwConfigImport, service_provider: ServiceProvider
+    ) -> None:
+        set_sub_managers(importer, paused_uids=["paused"], active_uids=["active"])
+        mgr_set = make_manager_set("super", "paused", "active")
+        with (
+            patch.object(FwConfigImport, "import_config") as config_importer,
+            patch.object(FwConfigImport, "update_removed_managers") as removed_updater,
+        ):
+            importer.import_management_set(service_provider, mgr_set)
+
+        imported_uids = [call.args[1].manager_uid for call in config_importer.call_args_list]
+        assert imported_uids == ["super", "active"]
+        removed_updater.assert_called_once_with(mgr_set.ManagerSet)
+
+    def test_forced_import_imports_sub_managers_whose_import_is_disabled(
+        self, importer: FwConfigImport, service_provider: ServiceProvider
+    ) -> None:
+        set_sub_managers(importer, paused_uids=["paused"], active_uids=[])
+        importer.import_state.state.force_import = True
+        mgr_set = make_manager_set("super", "paused")
+        with (
+            patch.object(FwConfigImport, "import_config") as config_importer,
+            patch.object(FwConfigImport, "update_removed_managers"),
+        ):
+            importer.import_management_set(service_provider, mgr_set)
+
+        imported_uids = [call.args[1].manager_uid for call in config_importer.call_args_list]
+        assert imported_uids == ["super", "paused"]
+
+    def test_clearing_import_clears_sub_managers_whose_import_is_disabled(
+        self, importer: FwConfigImport, service_provider: ServiceProvider
+    ) -> None:
+        set_sub_managers(importer, paused_uids=["paused"], active_uids=["active"])
+        importer.import_state.state.mgm_details.sub_manager_ids = [2, 3]
+        sub_details = [make_sub_manager_details("paused"), make_sub_manager_details("active")]
+        with (
+            patch.object(ManagementController, "get_mgm_details", return_value={"raw": True}),
+            patch.object(ManagementController, "from_json", side_effect=sub_details),
+        ):
+            mgr_set = importer.clear_management()
+        with (
+            patch.object(FwConfigImport, "import_config") as config_importer,
+            patch.object(FwConfigImport, "update_removed_managers"),
+        ):
+            importer.import_management_set(service_provider, mgr_set)
+
+        imported = {call.args[1].manager_uid: call.args[2] for call in config_importer.call_args_list}
+        assert set(imported) == {importer.import_state.state.mgm_details.uid, "paused", "active"}
+        assert all(config.rulebases == [] and config.network_objects == {} for config in imported.values())
+
     def test_import_config_sets_current_manager_context(
         self, importer: FwConfigImport, service_provider: ServiceProvider
     ):
@@ -169,6 +247,36 @@ class TestUpdateRemovedManagers:
         statistics = importer.import_state.state.stats.statistics
         assert statistics.network_object_delete_count == 2
         assert statistics.rule_delete_count == 3
+
+    def test_keeps_sub_managers_whose_import_is_disabled(self, importer: FwConfigImport) -> None:
+        importer.import_state.state.mgm_details.is_super_manager = True
+        api_connection_mock(importer).call.side_effect = [
+            {
+                "data": {
+                    "management": [
+                        {"mgm_uid": "keep", "mgm_id": 1, "do_not_import": False},
+                        {"mgm_uid": "paused", "mgm_id": 2, "do_not_import": True},
+                        {"mgm_uid": "gone", "mgm_id": 3, "do_not_import": False},
+                    ]
+                }
+            },
+            {"data": {"update_firewall_rule": {"affected_rows": 1}}},
+        ]
+
+        importer.update_removed_managers([make_manager(uid="keep")])
+
+        mutation_variables = api_connection_mock(importer).call.call_args_list[1].kwargs["query_variables"]
+        assert mutation_variables["mgmIds"] == [3]
+
+    def test_only_paused_sub_managers_missing_skips_mutation(self, importer: FwConfigImport) -> None:
+        importer.import_state.state.mgm_details.is_super_manager = True
+        api_connection_mock(importer).call.side_effect = [
+            {"data": {"management": [{"mgm_uid": "paused", "mgm_id": 2, "do_not_import": True}]}},
+        ]
+
+        importer.update_removed_managers([])
+
+        assert api_connection_mock(importer).call.call_count == 1
 
     def test_nothing_to_remove_skips_mutation(self, importer: FwConfigImport):
         importer.import_state.state.mgm_details.is_super_manager = True
@@ -273,28 +381,6 @@ class TestUpdateDiffs:
         ):
             importer.update_diffs(FwConfigNormalized(), None, make_manager())
         gateway_updater.assert_not_called()
-
-
-class TestDeleteOldImports:
-    def test_logs_deleted_imports(self, importer: FwConfigImport):
-        api_call_mock(importer).call.return_value = {
-            "data": {"delete_import_control": {"returning": {"control_id": [1, 2]}}}
-        }
-        importer.delete_old_imports()
-        api_call_mock(importer).call.assert_called_once()
-
-    def test_no_deleted_imports(self, importer: FwConfigImport):
-        api_call_mock(importer).call.return_value = {
-            "data": {"delete_import_control": {"returning": {"control_id": []}}}
-        }
-        importer.delete_old_imports()
-
-    def test_failure_creates_alert_and_raises(self, importer: FwConfigImport):
-        api_call_mock(importer).call.side_effect = Exception("api down")
-        with pytest.raises(FwoApiFailedDeleteOldImportsError):
-            importer.delete_old_imports()
-        api_call_mock(importer).create_data_issue.assert_called_once()
-        api_call_mock(importer).set_alert.assert_called_once()
 
 
 class TestWriteLatestConfig:

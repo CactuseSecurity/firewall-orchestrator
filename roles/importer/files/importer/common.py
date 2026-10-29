@@ -195,14 +195,6 @@ def _import_management(
             FwConfigImportCheckConsistency(import_state.state).check_fwconfig_managerlist_consistency(config_normalized)
         config_importer.import_management_set(service_provider, config_normalized)
 
-    # delete data that has passed the retention time
-    # TODO: replace by deletion of old data with removed date > retention?
-    if (
-        not clear_management_data
-        and import_state.state.data_retention_days < import_state.state.days_since_last_full_import
-    ):
-        config_importer.delete_old_imports()  # delete all imports of the current management before the last but one full import
-
 
 def handle_unexpected_exception(
     import_state: ImportStateController | None = None,

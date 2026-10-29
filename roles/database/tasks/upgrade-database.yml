@@ -53,3 +53,56 @@
   loop: "{{ upgrade_files | community.general.version_sort }}"
   loop_control:
       loop_var: upgrade_file
+
+# upgrades keep certificate checking switched off where it was off before (9.7.1), so say which connections are
+# still unchecked; the UI shows the same to admins until the checks are switched on
+- name: read the certificate checking switches that are off
+  community.postgresql.postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >-
+          SELECT config_key FROM config
+          WHERE config_user = 0 AND config_value = 'False'
+            AND config_key IN ('importCheckCertificates', 'extTicketSystemsCheckCertificates', 'emailCheckCertificates')
+          ORDER BY config_key
+  register: unchecked_certificate_switches
+  changed_when: false
+  become: true
+  become_user: postgres
+
+- name: warn about connections without certificate checking
+  debug:
+      msg: >-
+          SECURITY WARNING: certificate checking is switched off for
+          {{ unchecked_certificate_switches.query_result | map(attribute='config_key') | join(', ') }}.
+          These connections accept any server certificate, so the credentials FWO sends over them can be
+          intercepted. Add the issuing CAs to the trust store of the FWO hosts and switch the checks on in the
+          settings, see documentation/certificates.md.
+  when: unchecked_certificate_switches.query_result | length > 0
+
+# from 9.8.4 on the Cisco ASA importer checks SSH host keys while firewall certificate checks are on; until the
+# verified keys are added on the importer hosts these imports fail, and the UI lists them for admins
+- name: read the Cisco ASA managements that need registered SSH host keys
+  community.postgresql.postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >-
+          SELECT m.mgm_name FROM management m
+          WHERE m.dev_typ_id IN (28, 29) AND NOT m.do_not_import
+            AND EXISTS (SELECT 1 FROM config c WHERE c.config_user = 0
+              AND c.config_key = 'importCheckCertificates' AND c.config_value = 'True')
+          ORDER BY m.mgm_name
+  register: asa_managements_needing_host_keys
+  changed_when: false
+  become: true
+  become_user: postgres
+  when: installed_version is version('9.8.4', '<')
+
+- name: warn about Cisco ASA managements that need registered SSH host keys
+  debug:
+      msg: >-
+          WARNING: from this version on, the SSH host key of Cisco ASA devices is checked. Imports of
+          {{ asa_managements_needing_host_keys.query_result | map(attribute='mgm_name') | join(', ') }}
+          fail until the verified host key of each device is added to {{ importer_ssh_known_hosts_file }} on
+          the importer hosts, see documentation/certificates.md. Admins see the affected managements in the UI.
+  when:
+      - installed_version is version('9.8.4', '<')
+      - asa_managements_needing_host_keys.query_result | default([]) | length > 0

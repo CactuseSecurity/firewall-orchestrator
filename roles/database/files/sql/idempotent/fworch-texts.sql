@@ -2695,6 +2695,12 @@ INSERT INTO txt VALUES ('importCheckCertificates',      'German', 	'Zertifikate 
 INSERT INTO txt VALUES ('importCheckCertificates',      'English', 	'Check certificates of firewall connections');
 INSERT INTO txt VALUES ('check_certificates',   'German', 	'Zertifikate pr&uuml;fen');
 INSERT INTO txt VALUES ('check_certificates',   'English', 	'Check certificates');
+INSERT INTO txt VALUES ('cert_check_firewalls',   'German', 	'Firewall-Verbindungen');
+INSERT INTO txt VALUES ('cert_check_firewalls',   'English', 	'Firewall connections');
+INSERT INTO txt VALUES ('cert_check_ticket_systems', 'German', 	'Externe Ticketsysteme');
+INSERT INTO txt VALUES ('cert_check_ticket_systems', 'English', 	'External ticket systems');
+INSERT INTO txt VALUES ('cert_check_email',       'German', 	'E-Mail-Server');
+INSERT INTO txt VALUES ('cert_check_email',       'English', 	'Email server');
 INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'German', 	'Zertifikatswarnungen unterdr&uuml;cken');
 INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'English', 	'Suppress certificate warnings');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','German', 	'FW API - Pro Abruf geholte Elemente');
@@ -4488,6 +4494,12 @@ INSERT INTO txt VALUES ('U5016', 'German',  'Verwaltung der externen Auftr&auml;
 INSERT INTO txt VALUES ('U5016', 'English', 'Administration of external requests (only by admin)');
 INSERT INTO txt VALUES ('U5017', 'German',  'Verwaltung der Modul-Einstellungen (nur f&uuml;r Admin)');
 INSERT INTO txt VALUES ('U5017', 'English', 'Administration of module settings (only by admin)');
+INSERT INTO txt VALUES ('U5018', 'German',  'Die Zertifikatspr&uuml;fung ist ausgeschaltet. Diese Verbindungen akzeptieren jedes Serverzertifikat, so dass die dar&uuml;ber gesendeten Zugangsdaten abgefangen werden k&ouml;nnen:');
+INSERT INTO txt VALUES ('U5018', 'English', 'Certificate checking is switched off. These connections accept any server certificate, so credentials sent over them can be intercepted:');
+INSERT INTO txt VALUES ('U5019', 'German',  'Diese Cisco ASA-Managements werden nicht importiert, weil der SSH-Host-Key des Ger&auml;ts unbekannt ist oder sich ge&auml;ndert hat:');
+INSERT INTO txt VALUES ('U5019', 'English', 'These Cisco ASA managements are not imported because the SSH host key of the device is unknown or has changed:');
+INSERT INTO txt VALUES ('U5020', 'German',  'Auf dem Importer-Server den Key mit ssh-keyscan -p &lt;Port&gt; &lt;Host&gt; abrufen, seinen Fingerprint (ssh-keygen -lf) mit dem auf dem Ger&auml;t angezeigten Key vergleichen und ihn in /usr/local/fworch/etc/ssh_known_hosts eintragen. Die Warnung verschwindet nach dem n&auml;chsten erfolgreichen Import.');
+INSERT INTO txt VALUES ('U5020', 'English', 'On the importer host, fetch the key with ssh-keyscan -p &lt;port&gt; &lt;host&gt;, compare its fingerprint (ssh-keygen -lf) with the key shown on the device, and add it to /usr/local/fworch/etc/ssh_known_hosts. The warning disappears after the next successful import.');
 INSERT INTO txt VALUES ('U5101', 'German',  'Sind sie sicher, dass sie folgendes Management l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5101', 'English', 'Are you sure you want to delete management: ');
 INSERT INTO txt VALUES ('U5102', 'German',  'L&ouml;scht alle Beispielmanagements (auf "_demo" endend) und alle zugeordneten Gateways');
@@ -5457,7 +5469,8 @@ INSERT INTO txt VALUES ('H1101', 'German',  '<li> Alle Filter sind schreibungsun
     <li> Es gibt verschiedene Varianten f&uuml;r die meisten Schl&uuml;sselw&ouml;rter, z.B. k&ouml;nnen DestinationPort-Filter geschrieben werden als:
         port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port</li>
     <li> Alle Filterausdr&uuml;cke m&uuml;ssen logisch mit den Operatoren: and, or, not miteinander kombiniert werden.</li>
-    <li> Klammern k&ouml;nnen genutzt werden, um die Filterausdr&uuml;cke zu strukturieren.</li>
+    <li> Klammern k&ouml;nnen genutzt werden, um die Filterausdr&uuml;cke zu strukturieren.
+        Ein Ausdruck darf h&ouml;chstens 100 Ebenen tief in Klammern und not-Operatoren eingeschlossen sein, und ein Filter darf h&ouml;chstens 10000 Zeichen lang sein.</li>
     <li> Anf&uuml;hrungszeichen (") k&ouml;nnen optional f&uuml;r Wertdefinitionen genutzt werden. Wenn Leerzeichen im Wert vorkommen (z.B. f&uuml;r Datum/Zeit-Werte), m&uuml;ssen sie genutzt werden.</li>
     <li> Muss ein Gateway ausgew&auml;hlt werden, kann dies manuell oder &uuml;ber die linke Randleiste, von wo die Auswahl automatisch in den Filter integriert wird, erfolgen.</li>
     <li> Workflow-Ticket-Reports unterst&uuml;tzen zus&auml;tzlich die Filterleisten-Schl&uuml;sselw&ouml;rter tasktype, state/states und phase; Workflow-Ticket&auml;nderungen zus&auml;tzlich reference_date.</li>
@@ -5470,7 +5483,8 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
     <li> There are multiple variants for most keywords, e.g. DestinationPort filters can be written as:
         port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port</li>
     <li> All filter statements must be logically combined using either: and, or, not.</li>
-    <li> Brackets can be used for structuring the filter statement.</li>
+    <li> Brackets can be used for structuring the filter statement.
+        A statement may be enclosed in at most 100 levels of brackets and not operators, and a filter may be at most 10000 characters long.</li>
     <li> Quotation marks (") can be used optionally for the value definition. If there are white spaces in the value (e.g. for date/time values) the quotation marks have to be used.</li>
     <li> If a gateway has to be selected, this can be done manually or via the left sidebar, from where the selection is automatically integrated to the filter.</li>
     <li> Workflow ticket reports additionally support the filter-line keywords tasktype, state/states and phase; workflow ticket change reports additionally support reference_date.</li>
@@ -7362,9 +7376,9 @@ INSERT INTO txt VALUES ('H5491f','English', 'Use dummy email address: For testin
 INSERT INTO txt VALUES ('H5491g','German',  'Dummy-Email-Addresse: Addresse auf welche die Emails umgeleitet werden, wenn Umleitung aktiviert.');
 INSERT INTO txt VALUES ('H5491g','English', 'Dummy email address: Address where emails are directed, if redirection is activated.');
 INSERT INTO txt VALUES ('H5491h','German',  'Zertifikate pr&uuml;fen: Bei StartTls und Tls wird das Zertifikat des Email-Servers gegen den Zertifikatsspeicher des Hosts gepr&uuml;ft.
-    Nur ausschalten, wenn die ausstellende CA dort nicht hinterlegt werden kann: ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden.');
+    Nur ausschalten, wenn die ausstellende CA dort nicht hinterlegt werden kann: ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden. Solange die Pr&uuml;fung ausgeschaltet ist, sehen Administratoren oben auf jeder Seite eine Warnung.');
 INSERT INTO txt VALUES ('H5491h','English', 'Check certificates: With StartTls and Tls the certificate of the email server is validated against the host trust store.
-    Only switch this off if the issuing CA cannot be added there: without the check the credentials can be intercepted.');
+    Only switch this off if the issuing CA cannot be added there: without the check the credentials can be intercepted. As long as the check is switched off, admins see a warning at the top of every page.');
 INSERT INTO txt VALUES ('H5492','German',   'Verbindung testen: Es wird eine Test-email an die oben eingerichtete email-Adresse versandt.');
 INSERT INTO txt VALUES ('H5492','English',  'Test connection: A test email is sent to the above defined email address.');
 INSERT INTO txt VALUES ('H5495', 'German',  'Die folgenden Einstellungen wirken sich auf das Import-Modul (python) aus. Die Zertifikatspr&uuml;fung der Firewall-Verbindungen gilt au&szlig;erdem f&uuml;r Autodiscovery und Check Point-&Auml;nderungsauftr&auml;ge.');
@@ -7372,17 +7386,17 @@ INSERT INTO txt VALUES ('H5495', 'English', 'The following settings apply to the
 INSERT INTO txt VALUES ('H5496', 'German',  'Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;ufen. Default-Wert = 40.');
 INSERT INTO txt VALUES ('H5496', 'English', 'Import sleep time (in seconds): Time between import loops; default value=40.');
 INSERT INTO txt VALUES ('H5497', 'German',  'Zertifikate der Firewall-Verbindungen pr&uuml;fen: Sollen bei allen Verbindungen zu Firewall-Managements (Import, Autodiscovery, Check Point-&Auml;nderungsauftr&auml;ge) nur Zertifikate akzeptiert werden, denen der Zertifikatsspeicher des Hosts vertraut?
-    F&uuml;r selbstsignierte Zertifikate die ausstellende CA im Zertifikatsspeicher der FWO-Server hinterlegen. Ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden.
+    F&uuml;r selbstsignierte Zertifikate die ausstellende CA im Zertifikatsspeicher der FWO-Server hinterlegen. Ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden. Bei Cisco ASA (Import per SSH) wird stattdessen der SSH-Host-Key gegen die Datei /usr/local/fworch/etc/ssh_known_hosts auf dem Importer-Server gepr&uuml;ft. Solange die Pr&uuml;fung ausgeschaltet ist, sehen Administratoren oben auf jeder Seite eine Warnung.
     Default-Wert bei Neuinstallation = "aktiv"; ein Upgrade &uuml;bernimmt den bisherigen Wert. War die Pr&uuml;fung aktiv, werden nach dem Upgrade auch Autodiscovery und Check Point-&Auml;nderungsauftr&auml;ge gepr&uuml;ft, die bisher jedes Zertifikat akzeptiert haben.
 ');
 INSERT INTO txt VALUES ('H5497', 'English', 'Check certificates of firewall connections: Shall all connections to firewall managements (import, autodiscovery, Check Point change requests) only accept certificates trusted by the host trust store?
-    For self-signed certificates add the issuing CA to the trust store of the FWO servers. Without the check the credentials can be intercepted.
+    For self-signed certificates add the issuing CA to the trust store of the FWO servers. Without the check the credentials can be intercepted. For Cisco ASA (imported over SSH) the SSH host key is checked against the file /usr/local/fworch/etc/ssh_known_hosts on the importer host instead. As long as the check is switched off, admins see a warning at the top of every page.
     Default value for new installations = "active"; an upgrade keeps the previous value. If the check was active, autodiscovery and Check Point change requests, which accepted any certificate so far, are checked as well after the upgrade.
 ');
-INSERT INTO txt VALUES ('H5498', 'German',  'Zertifikatswarnungen unterdr&uuml;cken: Sollen im Log Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifkaten auf zu importierenden
-    Firewalls ausgegeben werden? Default-Wert = "inaktiv".
+INSERT INTO txt VALUES ('H5498', 'German',  'Zertifikatswarnungen unterdr&uuml;cken: Sollen die Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifikaten auf zu importierenden
+    Firewalls im Import-Log weggelassen werden? Default-Wert = "inaktiv".
 ');
-INSERT INTO txt VALUES ('H5498', 'English', 'Suppress certificate warnings: Shall warnings about invalid certificates be written to import log? Default value = "inactive".');
+INSERT INTO txt VALUES ('H5498', 'English', 'Suppress certificate warnings: Shall the warnings about invalid certificates of firewalls to be imported be left out of the import log? Default value = "inactive".');
 INSERT INTO txt VALUES ('H5499', 'German',  'FW API - Pro Abruf geholte Elemente: Wie viele Objekte sollen beim Import per Firewall-API Call auf einmal geholt werden? Default-Wert = 150.');
 INSERT INTO txt VALUES ('H5499', 'English', 'FW API - Elements per fetch: How many objects/rules shall be fetched per API call from a firewall management? Default value = 150.');
 INSERT INTO txt VALUES ('H5501', 'German',  'Aktionen m&uuml;ssen zuerst in den Einstellungen definiert werden und k&ouml;nnen dann den jeweiligen Status zugeordnet werden.
@@ -7669,10 +7683,10 @@ INSERT INTO txt VALUES ('H5593c', 'German', 'Zyklen zwischen Versuchen: Zyklen z
 INSERT INTO txt VALUES ('H5593c', 'English','Cycles between attempts: Cycles between two sending attempts. Will be multiplied with attempt count to enlarge interval with time.');
 INSERT INTO txt VALUES ('H5593d', 'German', 'Zertifikate pr&uuml;fen: Die TLS-Zertifikate aller externen Ticket-Systeme werden gegen den Zertifikatsspeicher des Hosts gepr&uuml;ft.
     Nur ausschalten, wenn die ausstellende CA dort nicht hinterlegt werden kann: ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden.
-    Default-Wert bei Neuinstallation = "aktiv"; ein Upgrade mit bereits konfigurierten Ticket-Systemen beh&auml;lt das bisherige Verhalten ("inaktiv").');
+    Default-Wert bei Neuinstallation = "aktiv"; ein Upgrade mit bereits konfigurierten Ticket-Systemen beh&auml;lt das bisherige Verhalten ("inaktiv"). Solange die Pr&uuml;fung ausgeschaltet ist, sehen Administratoren oben auf jeder Seite eine Warnung.');
 INSERT INTO txt VALUES ('H5593d', 'English','Check certificates: The TLS certificates of all external ticket systems are validated against the host trust store.
     Only switch this off if the issuing CA cannot be added there: without the check the credentials can be intercepted.
-    Default value for new installations = "active"; an upgrade with ticket systems already configured keeps the previous behaviour ("inactive").');
+    Default value for new installations = "active"; an upgrade with ticket systems already configured keeps the previous behaviour ("inactive"). As long as the check is switched off, admins see a warning at the top of every page.');
 INSERT INTO txt VALUES ('H5594', 'German',  'Login-Daten: <a href="/help/settings/credentials">Login-Daten</a> (Benutzername und Passwort), mit denen sich Firewall Orchestrator per Basic Authentication am Ticket-System anmeldet.
     Der Authorization-Header wird vor jedem Aufruf des Ticket-Systems aus den aktuellen Login-Daten gebildet und nicht gespeichert, ge&auml;nderte Passw&ouml;rter gelten daher auch f&uuml;r offene Requests. Login-Daten mit Schl&uuml;sselpaar k&ouml;nnen nicht gew&auml;hlt werden.');
 INSERT INTO txt VALUES ('H5594', 'English', 'Credentials: <a href="/help/settings/credentials">Credentials</a> (username and password) Firewall Orchestrator uses to log into the ticket system via basic authentication.

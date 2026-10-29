@@ -280,7 +280,8 @@ namespace FWO.Mail
         private static async Task AddContent(MailData mailData, MimeMessage mail, bool mailFormatHtml)
         {
             var body = new BodyBuilder();
-            mail.Subject = mailData.Subject;
+            // placeholder values in the subject are free text; a line break must not reach the header
+            mail.Subject = mailData.Subject.ReplaceLineEndings(" ");
             if (mailFormatHtml)
             {
                 body.HtmlBody = mailData.Body;

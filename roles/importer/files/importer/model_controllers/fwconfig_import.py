@@ -8,7 +8,7 @@ import fwo_globals
 from fwo_api import FwoApi
 from fwo_base import find_all_diffs
 from fwo_enums import ConfigAction
-from fwo_exceptions import FwoApiFailedDeleteOldImportsError, FwoImporterError, ImportInterruptionError
+from fwo_exceptions import FwoImporterError, ImportInterruptionError
 from fwo_log import FWOLogger
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
@@ -81,7 +81,11 @@ class FwConfigImport:
 
     def import_management_set(self, service_provider: ServiceProvider, mgr_set: FwConfigManagerListController) -> None:
         self.import_state.state.rollback_required = True
+        paused_sub_manager_uids = self.get_paused_sub_manager_uids()
         for manager in sorted(mgr_set.ManagerSet, key=lambda m: not getattr(m, "IsSuperManager", False)):
+            if manager.manager_uid in paused_sub_manager_uids:
+                FWOLogger.info(f"skipping sub-manager {manager.manager_uid} as its import is disabled")
+                continue
             """
             the following loop is a preparation for future functionality
             we might add support for multiple configs per manager
@@ -111,9 +115,24 @@ class FwConfigImport:
         config_importer.consistency_check_config_against_db()
         config_importer.write_latest_config()
 
+    def get_paused_sub_manager_uids(self) -> set[str]:
+        """
+        Returns the UIDs of the sub-managers whose import is disabled. Their configs are not fetched, or fetched
+        empty, so importing them would mark all their rules and objects removed. A forced import fetches them,
+        and clearing a management deliberately removes the data of all its sub-managers.
+        """
+        if self.import_state.state.force_import or self.import_state.state.is_clearing_import:
+            return set()
+        return {
+            sub_manager.uid
+            for sub_manager in self.import_state.state.mgm_details.sub_managers
+            if sub_manager.import_disabled
+        }
+
     def update_removed_managers(self, mgr_set: list[FwConfigManager]) -> None:
         """
         Sets removed flag on all db entries associated with sub-managers which are not part of the current import set.
+        Sub-managers whose import is disabled are paused, not removed, and keep their entries.
         """
         if not self.import_state.state.mgm_details.is_super_manager:
             return  # nothing to do for single management imports
@@ -133,7 +152,7 @@ class FwConfigImport:
                 f"failed to get sub manager UIDs for super manager mgm id {self.import_state.state.mgm_details.mgm_id!s}: {traceback.format_exc()!s}"
             )
             raise FwoImporterError("error while trying to get the sub manager UIDs") from None
-        mgr_uids_in_db = {mgr["mgm_uid"] for mgr in mgrs_in_db}
+        mgr_uids_in_db = {mgr["mgm_uid"] for mgr in mgrs_in_db if not mgr.get("do_not_import", False)}
         mgr_uids_in_import = {mgr.manager_uid for mgr in mgr_set}
         mgr_uids_to_remove = list(mgr_uids_in_db - mgr_uids_in_import)
         if not mgr_uids_to_remove:
@@ -261,44 +280,6 @@ class FwConfigImport:
             raise ImportInterruptionError("Shutdown requested during updateRulebaseDiffs.")
 
         self._fw_config_import_gateway.update_gateway_diffs()
-
-    # cleanup configs which do not need to be retained according to data retention time
-    def delete_old_imports(self) -> None:
-        mgm_id = int(self.import_state.state.mgm_details.mgm_id)
-        delete_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/deleteOldImports.graphql"])
-
-        try:
-            delete_result = self.import_state.api_call.call(
-                delete_mutation,
-                query_variables={"mgmId": mgm_id},
-            )
-            if delete_result["data"]["delete_import_control"]["returning"]["control_id"]:
-                imports_deleted = len(delete_result["data"]["delete_import_control"]["returning"]["control_id"])
-                if imports_deleted > 0:
-                    FWOLogger.info(
-                        f"deleted {imports_deleted!s} imports which passed the retention time of {self.import_state.state.data_retention_days} days"
-                    )
-        except Exception:
-            fwo_api_call = self.import_state.api_call
-            FWOLogger.error(
-                f"error while trying to delete old imports for mgm {self.import_state.state.mgm_details.mgm_id!s}"
-            )
-            fwo_api_call.create_data_issue(
-                mgm_id=self.import_state.state.mgm_details.mgm_id,
-                severity=1,
-                description="failed to get import lock for management id " + str(mgm_id),
-            )
-            fwo_api_call.set_alert(
-                import_id=self.import_state.state.import_id,
-                title="import error",
-                mgm_id=mgm_id,
-                severity=1,
-                description="fwo_api: failed to get import lock",
-                source="import",
-                alert_code=15,
-                mgm_details=self.import_state.state.mgm_details,
-            )
-            raise FwoApiFailedDeleteOldImportsError(f"management id: {mgm_id}") from None
 
     def write_latest_config(self) -> None:
         if self.import_state.state.import_version > 8:  # noqa: PLR2004

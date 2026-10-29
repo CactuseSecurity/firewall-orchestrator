@@ -1,5 +1,14 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.5 - 29.10.2026
+- add nullable, forward-compatible rule-position storage to implementation tasks
+- add a dedicated GraphQL persistence operation that stores, replaces, or clears only the rule position
+- add a graph-only Check Point end-of-rulebase positioning strategy and an independently callable best-effort workflow service
+- remove the inactive speculative Check Point rule-position renderer; semantic positions remain the terminal output
+- preserve stored rule positions across GraphQL naming policies by writing positioning algorithms numerically and accepting legacy enum, EnumMember, and GraphQL names when reading
+- package repository-contract fixtures with installed C# tests so fresh installations and upgrades can run the rule-positioning source-contract checks
+- add a selectable Check Point layer-guard zone-pair Section algorithm that automatically calculates and persists the semantic end-of-Section position when a gateway-specific access-rule implementation task is created
+
 ## 9.8.4 - 26.10.2026
 - middleware REST API: every list endpoint is paged with one central page size (#5561)
   - new setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`, Settings - Defaults,
@@ -466,7 +475,6 @@
   does not report the managements it has not reached as deleted
 - middleware: jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now allows
   180 seconds (TimeoutStopSec) before killing the process
-
 ## 9.5.10 - 29.09.2026
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration

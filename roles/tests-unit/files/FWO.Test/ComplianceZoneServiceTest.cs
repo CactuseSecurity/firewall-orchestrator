@@ -1,6 +1,8 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Basics.Exceptions;
+using FWO.Compliance.RulePositioning;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Middleware.Server.Requests;
@@ -36,7 +38,7 @@ internal class ComplianceZoneServiceTest
                     IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.1.1"), IPAddress.Parse("10.0.1.1"))]
                 }
             ]);
-        ComplianceZoneService service = new(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        ComplianceZoneService service = CreateService(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
 
         List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
         {
@@ -89,7 +91,7 @@ internal class ComplianceZoneServiceTest
     [Test]
     public async Task ResolveZonesForObjectsAsync_ReturnsEmptyWhenNoObjectsProvideRanges()
     {
-        ComplianceZoneService service = new(new ComplianceZoneServiceApiConn([], [], []), new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        ComplianceZoneService service = CreateService(new ComplianceZoneServiceApiConn([], [], []), new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
 
         List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
         {
@@ -106,7 +108,7 @@ internal class ComplianceZoneServiceTest
             [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
             [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
             []);
-        ComplianceZoneService service = new(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        ComplianceZoneService service = CreateService(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
 
         List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
         {
@@ -144,7 +146,7 @@ internal class ComplianceZoneServiceTest
                     IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))]
                 }
             ]);
-        ComplianceZoneService service = new(apiConnection, new SimulatedGlobalConfig
+        ComplianceZoneService service = CreateService(apiConnection, new SimulatedGlobalConfig
         {
             DesignatedZoneMatrixId = 12,
             AutoCalculateInternetZone = false
@@ -181,7 +183,7 @@ internal class ComplianceZoneServiceTest
             configItems,
             matrices,
             zones);
-        ComplianceZoneService service = new(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        ComplianceZoneService service = CreateService(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
         ResolveZonesForObjectsRequest request = new()
         {
             Objects = [new ResolveZonesForObjectsRequest.LeafObjectRequest
@@ -220,7 +222,7 @@ internal class ComplianceZoneServiceTest
                     IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.3.7"), IPAddress.Parse("10.0.3.7"))]
                 }
             ]);
-        ComplianceZoneService service = new(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        ComplianceZoneService service = CreateService(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
 
         List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
         {
@@ -259,7 +261,7 @@ internal class ComplianceZoneServiceTest
                     IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))]
                 }
             ]);
-        ComplianceZoneService service = new(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        ComplianceZoneService service = CreateService(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
 
         List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
         {
@@ -277,10 +279,37 @@ internal class ComplianceZoneServiceTest
         Assert.That(result.Select(zone => zone.Name), Is.EqualTo(["DMZ"]));
     }
 
+    [TestCase(DesignatedZoneMatrixReadFailureCategory.ConfigurationInvalid)]
+    [TestCase(DesignatedZoneMatrixReadFailureCategory.MatrixUnavailable)]
+    public async Task GetDesignatedZoneMatrixZonesAsync_ReturnsEmptyForUnavailableConfiguration(
+        DesignatedZoneMatrixReadFailureCategory category)
+    {
+        ComplianceZoneService service = new(
+            new StubZoneMatrixReader(new DesignatedZoneMatrixReadFailure(category)),
+            new SimulatedGlobalConfig());
+
+        ListPage<ComplianceDesignatedZoneResponse> result = await service.GetDesignatedZoneMatrixZonesAsync(
+            GlobalConst.kDefaultMaxRestResponseObjectLimit, null);
+
+        Assert.That(result.Items, Is.Empty);
+    }
+
+    [Test]
+    public void GetDesignatedZoneMatrixZonesAsync_UsesGenericSafeQueryFailurePath()
+    {
+        DesignatedZoneMatrixReadFailure failure = new(DesignatedZoneMatrixReadFailureCategory.QueryFailed);
+        ComplianceZoneService service = new(new StubZoneMatrixReader(failure), new SimulatedGlobalConfig());
+
+        InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await service.GetDesignatedZoneMatrixZonesAsync(GlobalConst.kDefaultMaxRestResponseObjectLimit, null));
+
+        Assert.That(exception!.Message, Is.EqualTo(failure.Diagnostic));
+    }
+
     [Test]
     public void ResolveZonesForObjectsAsync_ThrowsForUnsupportedObjectNodeType()
     {
-        ComplianceZoneService service = new(new ComplianceZoneServiceApiConn([], [], []), new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        ComplianceZoneService service = CreateService(new ComplianceZoneServiceApiConn([], [], []), new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
 
         Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
@@ -293,6 +322,19 @@ internal class ComplianceZoneServiceTest
                     }
                 ]
             }));
+    }
+
+    private static ComplianceZoneService CreateService(ComplianceZoneServiceApiConn apiConnection, SimulatedGlobalConfig globalConfig)
+    {
+        return new ComplianceZoneService(new DesignatedZoneMatrixReader(apiConnection, globalConfig), globalConfig);
+    }
+
+    private sealed class StubZoneMatrixReader(DesignatedZoneMatrixReadResult result) : IDesignatedZoneMatrixReader
+    {
+        public Task<DesignatedZoneMatrixReadResult> ReadAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(result);
+        }
     }
 
     private sealed class ComplianceZoneServiceApiConn : SimulatedApiConnection

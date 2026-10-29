@@ -1,0 +1,140 @@
+# Firewall rule positioning roadmap
+
+## Authority and current status
+
+This directory records the implemented firewall rule positioning work. The roadmap and decision log override chat history.
+
+Phase 1 is implemented and validated, including the mandatory disposable-VM fresh-install and sequential `9.8.0` to `9.8.1` upgrade acceptance at commit `c85931e0f`. Phase 2 is implemented: it adds the in-memory composition framework, an immutable graph derived from normalized rulebases and links, the semantic Check Point position, and the minimal structural Check Point block library without activating production positioning. Phase 3 WP-01 through WP-06 are implemented and locally validated. WP-05 registers the graph-only calculation/persistence caller and removes the speculative renderer. WP-06 activates the caller from the approved implementation-task creation event. Phase 4 WP-01 is implemented and locally validated. The KfW calculation selects a unique Check Point layer by fixed-import layer-guard IP coverage, resolves same-ticket groups through one authoritative effective range input, and then performs normalized zone-pair Section matching. Selection and production activation are deferred under D-047; Fortinet is deferred under D-058.
+
+| Phase | Status | Purpose |
+| --- | --- | --- |
+| Phase 1 | Implemented and validated | Build a calculation-only, cross-vendor positioning foundation and independent position persistence. |
+| Phase 2 | Implemented and locally validated | Build generic composition contracts, a reusable immutable structural graph, semantic positions, and structural blocks. |
+| Phase 3 | WP-01 through WP-06 implemented and locally validated | Complete a graph-only generic path that persists semantic positions, activate it from an approved workflow seam, remove the renderer, and leave zone input inactive. |
+| Phase 4 | WP-01 implemented and locally validated | Add isolated customer calculation behavior while deferring enum mapping and production activation to a later plan. |
+
+## Reading order
+
+For maintenance work, read these files in order:
+
+1. `.agents/AGENTS.md`
+2. `documentation/work-packages/firewall-rule-placement/README.md`
+3. `documentation/work-packages/firewall-rule-placement/DECISIONS.md`
+4. the phase README and relevant work package for the area being changed
+
+The original customer requirement document was used during Phase 4 planning and is intentionally not part of the product repository. The resulting decisions, implementation brief, and tests are the durable specification.
+
+## Roadmap boundary
+
+Phase 1 handles one gateway-specific implementation task per calculation. The caller must load all required context, call the positioning manager, and decide independently whether to persist a successful position or clear a stale one after failure.
+
+Phase 1 includes:
+
+- shared polymorphic position contracts and forward-compatible JSON handling;
+- a vendor-neutral manager that validates context and selects exactly one registered strategy;
+- test-only strategies proving that different vendors can coexist;
+- nullable implementation-task persistence for a calculated position;
+- a dedicated write/clear operation that has no workflow side effects; and
+- unit, coverage, build, fresh-install, and upgrade validation.
+
+Phase 1 excludes:
+
+- the customer-specific positioning algorithm;
+- production Check Point or Fortigate positioning strategies;
+- Check Point or Fortigate communication;
+- automatic workflow triggers or planning activation;
+- UI or plan presentation;
+- executable firewall changes;
+- position-change auditing; and
+- vendor API conversion.
+
+Phase 2 adds only in-memory, side-effect-free building blocks:
+
+- generic typed recipe nodes, immutable recipe construction, and a cancellation-aware executor;
+- stable block failures that retain their originating block kind;
+- a defensively copied structural graph for one management and gateway derived from normalized rulebases and links;
+- a persistable semantic Check Point position using top, bottom, above, or below anchors;
+- exact layer and section scope selection; and
+- beginning/end boundary resolution for populated and empty scopes.
+
+Phase 2 does not add a strategy, policy loader, dependency-injection registration, workflow caller, setting, UI, vendor request renderer, or enum-to-recipe mapping.
+
+## Work packages
+
+| Work package | Outcome |
+| --- | --- |
+| [WP-01](phase-1/WP-01-contracts-and-serialization.md) | Shared contracts, safe failures, polymorphic serialization, and copy semantics. |
+| [WP-02](phase-1/WP-02-positioning-manager.md) | Context validation and exact registered-strategy selection without vendor switches. |
+| [WP-03](phase-1/WP-03-position-persistence.md) | Nullable JSONB persistence propagated through schema, Hasura, GraphQL, and `WfImplTask`. |
+| [Phase 2 WP-01](phase-2/WP-01-composition-contracts.md) | Generic recipe contracts, validation, typed results, and executor. |
+| [Phase 2 WP-02](phase-2/WP-02-check-point-snapshot-and-position.md) | Immutable Check Point snapshot and persisted semantic position. |
+| [Phase 2 WP-03](phase-2/WP-03-structural-blocks.md) | Structural scopes, boundary blocks, and composed acceptance scenarios. |
+| [Phase 2 WP-04](phase-2/WP-04-rulebase-graph-snapshot.md) | Replace the Check Point-specific snapshot with an immutable normalized rulebase graph before Phase 3. |
+| [Phase 3 WP-01](phase-3/WP-01-production-snapshot-reader-planning.md) | Plan and implement loading the latest successful imported graph. |
+| [Phase 3 WP-02](phase-3/WP-02-zone-pair-resolution-planning.md) | Implemented early as inactive Phase 4 preparation; it is not an input to generic recipes. |
+| [Phase 3 WP-03](phase-3/WP-03-check-point-strategy-planning.md) | Implemented a zone-capable inactive seam; WP-05 added a separate graph-only generic path. |
+| [Phase 3 WP-04](phase-3/WP-04-semantic-position-rendering-planning.md) | Historical experiment; its renderer was removed by WP-05 under D-036. |
+| [Phase 3 WP-05](phase-3/WP-05-generic-production-completion-planning.md) | Implemented graph-only generic calculation and persistence, kept zone input inactive, and removed the renderer. |
+| [Phase 3 WP-06](phase-3/WP-06-workflow-activation-planning.md) | Completed activation of the WP-05 caller from the approved server-side workflow trigger. |
+| [Phase 4 WP-01](phase-4/WP-01-customer-specific-recipes-planning.md) | Analyze the customer document and add isolated customer blocks plus activation-neutral recipe construction. |
+| [Phase 4 WP-02](phase-4/WP-02-customer-positioning-activation-planning.md) | Select and activate the KfW layer-guard zone-pair Section behavior in the existing production workflow. |
+
+## Dependency graph
+
+```text
+WP-01 contracts and serialization
+  |---> WP-02 positioning manager
+  `---> WP-03 position persistence
+
+WP-02 + WP-03
+  `---> independent calculation/persistence acceptance tests
+         `---> full Phase 1 validation
+
+Phase 2 WP-01 composition contracts
+  |---> Phase 2 WP-02 snapshot and position
+  `---> Phase 2 WP-03 structural blocks
+         `---> composed in-memory acceptance tests
+
+Phase 2 WP-02 + WP-03
+  `---> Phase 2 WP-04 rulebase graph snapshot
+
+Phase 2 including WP-04
+  `---> Phase 3 WP-01 production snapshot reader
+         `--> Phase 3 WP-05 graph-only recipe, caller, and persistence
+                `--> Phase 3 WP-06 workflow activation
+
+Phase 3 WP-02 zone input + zone-capable portion of WP-03
+  `--> inactive until a later customer selection/activation package
+
+Phase 3 WP-04 renderer
+  `--> removed by Phase 3 WP-05
+```
+
+WP-02 and WP-03 proceeded in parallel after WP-01 stabilized. Phase 1 was completed after all three packages and their combined local and disposable-VM acceptance checks passed.
+
+## Fixed assumptions
+
+- Existing hierarchical provisioning configuration and `ProvisioningPositioningAlgorithm` are reused unchanged.
+- Effective management is `implTask.ManagementId ?? requestTask.ManagementId`; it must agree with the supplied management and gateway relationship.
+- Only new access-rule tasks are supported in Phase 1. Modification, deletion, object, and unknown task types are declined safely.
+- Calculation and persistence are separate operations.
+- Production registration supports only Check Point gateway type `9` with `DefaultEndOfRulebase`; every other capability returns a safe not-implemented result.
+- Safe diagnostics contain neither credentials nor complete rule contents.
+- The schema migration was validated through the completed `9.8.1` upgrade and leaves `product_version` unchanged.
+- Phase 2 recipes are in-memory only and use one caller-supplied immutable snapshot.
+- The final Phase 2 snapshot is a vendor-neutral projection of normalized `Rulebase` and `RulebaseLink` structure; Check Point blocks interpret that graph.
+- Existing-rule semantics remain excluded until a concrete block needs them; structural rule identity and order remain available for anchors.
+- Phase 3 production loading accepts the latest successfully completed import regardless of age, without a freshness threshold or fingerprint requirement.
+- The implemented creation-rule zone resolution expands existing request-visible Flow groups and reuses established compliance-zone behavior, but it is inactive for positioning until Phase 4 and is not a generic dependency.
+- Existing empty scopes are valid; missing, ambiguous, and malformed scopes fail explicitly.
+- Phase 3 ends at calculated and persisted semantic output. It does not invoke the Check Point renderer, client, publish, or policy installation.
+- Phase 3 WP-05 removes the WP-04 renderer and its dedicated tests; a future placer owns any conversion contract.
+- Generic recipes use the imported rulebase graph only and never load zone input.
+- Phase 3 WP-05 confirmed and implemented one genuinely generic existing enum mapping without inferring semantics from an enum name.
+- Phase 3 WP-05 registered the workflow caller; Phase 3 WP-06 completed its separately planned activation hook.
+- Customer-specific calculation blocks are deferred to Phase 4 WP-01; enum mapping and production selection are deferred to a later plan under D-047.
+- Phase 4 WP-02 maps the customer behavior to a new explicit enum value and activates it without changing the generic graph-only capability.
+
+## Documentation maintenance
+
+Append a new entry to `DECISIONS.md` when a durable decision is added, changed, superseded, or marked for reconsideration. Do not rewrite earlier decision entries.

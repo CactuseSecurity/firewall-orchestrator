@@ -176,6 +176,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddImplTask_ActivatesRulePositioningThroughCreationSeam()
+        {
+            WfReqTask requestTask = CreatePositioningRequestTask(11, [21]);
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig(),
+                ActReqTask = requestTask,
+                ActImplTask = new WfImplTask(requestTask) { DeviceId = 21, StateId = 4 },
+                ActTicket = new WfTicket { Id = 7, Tasks = { requestTask } }
+            };
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            SetDbAccess(handler, new ImplTaskCreationApiConnection(handler.ActTicket), caller);
+
+            await handler.AddImplTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.CalculationCount, Is.EqualTo(1));
+                Assert.That(caller.LastRequestTask, Is.SameAs(requestTask));
+                Assert.That(requestTask.ImplementationTasks, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
         public async Task ChangeImplTask_ReplacesTaskByTaskNumber()
         {
             WfHandler handler = new();
@@ -444,6 +468,148 @@ namespace FWO.Test
             Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(reqTask.ImplementationTasks[0].DeviceId, Is.Null);
             Assert.That(reqTask.ImplementationTasks[0].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+        }
+
+        [Test]
+        public async Task AutoCreateAccessImplTasks_ActivatesOncePerNewGatewayAndNotOnRerun()
+        {
+            WfReqTask requestTask = CreatePositioningRequestTask(11, [21, 22]);
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask },
+                Devices = [new Device { Id = 21 }, new Device { Id = 22 }],
+                AutoPlanSettingsOverride = kAllAutoPlanned,
+                ActTicket = new WfTicket { Id = 7, Tasks = { requestTask } }
+            };
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket);
+            SetDbAccess(handler, apiConnection, caller);
+
+            await InvokeAutoCreateImplTasks(handler, requestTask);
+            await InvokeAutoCreateImplTasks(handler, requestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(requestTask.ImplementationTasks.Select(task => task.DeviceId), Is.EqualTo(new int?[] { 21, 22 }));
+                Assert.That(apiConnection.InsertCount, Is.EqualTo(2));
+                Assert.That(caller.CalculationCount, Is.EqualTo(2));
+                Assert.That(caller.Calls.Select(call => call.ImplementationTask.DeviceId), Is.EqualTo(new int?[] { 21, 22 }));
+            });
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task AutoCreateAccessImplTasks_CombinedOrAllDeviceTaskDoesNotActivateRulePositioning(bool allDevices)
+        {
+            WfReqTask requestTask = CreatePositioningRequestTask(
+                11,
+                allDevices ? [WfReqTaskBase.kAllDevicesId] : []);
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices },
+                AutoPlanSettingsOverride = kAllAutoPlanned,
+                ActTicket = new WfTicket { Id = 7, Tasks = { requestTask } }
+            };
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket);
+            SetDbAccess(handler, apiConnection, caller);
+
+            await InvokeAutoCreateImplTasks(handler, requestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.InsertCount, Is.EqualTo(1));
+                Assert.That(requestTask.ImplementationTasks.Single().DeviceId, Is.Null);
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task BundledAccessTasks_ActivateOncePerPersistedTaskWithMergedGatewaySelection()
+        {
+            WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
+            WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
+            firstTask.ManagementId = 11;
+            secondTask.ManagementId = 11;
+            firstTask.SetDeviceList([21]);
+            secondTask.SetDeviceList([22]);
+            WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
+            handler.userConfig.ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask;
+            handler.Devices = [new Device { Id = 21 }, new Device { Id = 22 }];
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket);
+            SetDbAccess(handler, apiConnection, caller);
+
+            List<WfReqTask> effectiveTasks = await InvokeRequestTasksForInitialImplCreation(handler, [firstTask, secondTask]);
+            await InvokeAutoCreateImplTasks(handler, effectiveTasks.Single());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.InsertCount, Is.EqualTo(2));
+                Assert.That(caller.CalculationCount, Is.EqualTo(2));
+                Assert.That(caller.Calls.All(call => call.RequestTask.Id == firstTask.Id), Is.True);
+                Assert.That(caller.Calls.All(call => call.RequestTask.GetDeviceList().SequenceEqual(new[] { 21, 22 })), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task DelegatedCreation_ResolvesMergedBundleContextFromLoadedTicket()
+        {
+            WfReqTask firstTask = CreatePositioningRequestTask(11, [21]);
+            WfReqTask secondTask = CreatePositioningRequestTask(12, [22]);
+            firstTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-11-12");
+            secondTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-11-12");
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqConsiderBundling = true },
+                ActTicket = new WfTicket { Id = 7, Tasks = { firstTask, secondTask } }
+            };
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            ActionHandler actionHandler = new(new ImplTaskCreationApiConnection(handler.ActTicket), handler, null, true, null, null, caller);
+            await actionHandler.Init([new WfState { Id = 4 }]);
+            WfImplTask implementationTask = new(firstTask) { Id = 401, DeviceId = 22 };
+            implementationTask.MarkCreatedStateChanged(4);
+
+            await actionHandler.DoStateChangeActions(implementationTask, WfObjectScopes.ImplementationTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.CalculationCount, Is.EqualTo(1));
+                Assert.That(caller.LastRequestTask!.Id, Is.EqualTo(firstTask.Id));
+                Assert.That(caller.LastRequestTask.GetDeviceList(), Is.EqualTo(new[] { 21, 22 }));
+            });
+        }
+
+        [Test]
+        public void ResolveRulePositioningRequestTask_UsesOnlySafeParentFallbacks()
+        {
+            WfReqTask activeTicketTask = CreatePositioningRequestTask(11, [21]);
+            WfReqTask listedTask = CreatePositioningRequestTask(12, [22]);
+            WfReqTask activeRequestTask = CreatePositioningRequestTask(13, [23]);
+            activeRequestTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "active-only-bundle");
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqConsiderBundling = true },
+                ActTicket = new WfTicket { Id = 7, Tasks = { activeTicketTask } },
+                TicketList = [new WfTicket { Id = 8, Tasks = { listedTask } }],
+                ActReqTask = activeRequestTask
+            };
+
+            WfReqTask? fromActiveTicket = handler.ResolveRulePositioningRequestTask(new WfImplTask { ReqTaskId = 11 });
+            WfReqTask? fromTicketList = handler.ResolveRulePositioningRequestTask(new WfImplTask { ReqTaskId = 12 });
+            WfReqTask? fromActiveRequest = handler.ResolveRulePositioningRequestTask(new WfImplTask { ReqTaskId = 13 });
+            WfReqTask? missing = handler.ResolveRulePositioningRequestTask(new WfImplTask { ReqTaskId = 99 });
+            handler.userConfig.ReqConsiderBundling = false;
+            WfReqTask? withoutBundling = handler.ResolveRulePositioningRequestTask(new WfImplTask { ReqTaskId = 11 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(fromActiveTicket, Is.SameAs(activeTicketTask));
+                Assert.That(fromTicketList, Is.SameAs(listedTask));
+                Assert.That(fromActiveRequest, Is.SameAs(activeRequestTask));
+                Assert.That(missing, Is.Null);
+                Assert.That(withoutBundling, Is.SameAs(activeTicketTask));
+            });
         }
 
         [Test]
@@ -787,6 +953,25 @@ namespace FWO.Test
             field?.SetValue(handler, dbAccess);
         }
 
+        private static void SetDbAccess(
+            WfHandler handler,
+            SimulatedApiConnection apiConnection,
+            RecordingRulePositioningWorkflowCaller caller)
+        {
+            ActionHandler actionHandler = new(apiConnection, handler, null, true, null, null, caller);
+            actionHandler.Init([new WfState { Id = 4 }]).GetAwaiter().GetResult();
+            WfDbAccess dbAccess = new(
+                DefaultInit.DoNothing,
+                handler.userConfig,
+                apiConnection,
+                actionHandler,
+                false,
+                WorkflowPhases.request,
+                false);
+            FieldInfo? field = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance);
+            field?.SetValue(handler, dbAccess);
+        }
+
         private static WfHandler CreateBundlingHandler(bool considerBundling, params WfReqTask[] requestTasks)
         {
             WfHandler handler = new()
@@ -866,6 +1051,22 @@ namespace FWO.Test
                 reqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, bundleId);
             }
             return reqTask;
+        }
+
+        private static WfReqTask CreatePositioningRequestTask(long id, List<int> gatewayIds)
+        {
+            WfReqTask requestTask = new()
+            {
+                Id = id,
+                TicketId = 7,
+                StateId = 4,
+                Title = $"Access {id}",
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                ManagementId = 11
+            };
+            requestTask.SetDeviceList(gatewayIds);
+            return requestTask;
         }
 
         private static WfReqElement CreateBundleElement(long taskId, ElemFieldType field, string name, string ip)

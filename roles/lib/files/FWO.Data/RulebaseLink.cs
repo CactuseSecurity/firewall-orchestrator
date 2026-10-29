@@ -9,7 +9,7 @@ namespace FWO.Data
         public int GatewayId { get; set; }
 
         [JsonProperty("from_rule_id"), JsonPropertyName("from_rule_id")]
-        public int? FromRuleId { get; set; }    // nullable for initial rulebase and for fromRulebase links
+        public long? FromRuleId { get; set; }    // nullable for initial rulebase and for fromRulebase links
 
         [JsonProperty("rule"), JsonPropertyName("rule")]
         public Rule? FromRule { get; set; }

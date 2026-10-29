@@ -3709,6 +3709,8 @@ INSERT INTO txt VALUES ('dss_opt_cp_end_of_app_section_common_svc', 'German', 	'
 INSERT INTO txt VALUES ('dss_opt_cp_end_of_app_section_common_svc', 'English', 	'Check Point: end of app section, distinguish common services');
 INSERT INTO txt VALUES ('dss_opt_default_end_of_rulebase',          'German', 	'Standard: Ende des Regelwerks');
 INSERT INTO txt VALUES ('dss_opt_default_end_of_rulebase',          'English', 	'Default: end of rulebase');
+INSERT INTO txt VALUES ('dss_opt_cp_layer_guard_end_of_zone_pair_section', 'German', 'Check Point: Ende der Layer-Guard-Zonenpaar-Sektion');
+INSERT INTO txt VALUES ('dss_opt_cp_layer_guard_end_of_zone_pair_section', 'English', 'Check Point: end of layer-guard zone-pair section');
 INSERT INTO txt VALUES ('dss_opt_supermanager',                     'German', 	'Supermanager');
 INSERT INTO txt VALUES ('dss_opt_supermanager',                     'English', 	'Supermanager');
 INSERT INTO txt VALUES ('dss_opt_submanager',                       'German', 	'Submanager');
@@ -6879,8 +6881,8 @@ INSERT INTO txt VALUES ('H5193', 'German', 'Regeltyp: Access (Standard), Access 
 INSERT INTO txt VALUES ('H5193', 'English', 'Rule type: access (default), access and NAT, access and IPS, access/NAT/IPS, or application security.');
 INSERT INTO txt VALUES ('H5194', 'German',  'Vorlagen: Freitext-Vorlage(n) mit Platzhaltern wie {{rule_name}}. Nur Ger&auml;tetyp. Standard: {}.');
 INSERT INTO txt VALUES ('H5194', 'English', 'Templates: free-text template(s) with placeholders such as {{rule_name}}. Device type only. Default: {}.');
-INSERT INTO txt VALUES ('H5195', 'German', 'Positionierungsalgorithmus: auf allen Ebenen verf&uuml;gbar, einschlie&szlig;lich Ende des App-Abschnitts in der Allow-Kategorie mit Unterscheidung gemeinsamer Services. Standard: Ende der Rulebase.');
-INSERT INTO txt VALUES ('H5195', 'English', 'Positioning algorithm: available at all levels; includes placement at the end of the allow category app section with common services distinguished. Default: end of rulebase.');
+INSERT INTO txt VALUES ('H5195', 'German', 'Positionierungsalgorithmus: auf allen Ebenen verf&uuml;gbar. Die Check-Point-Layer-Guard-Option positioniert neue Regeln automatisch am Ende der Zonenpaar-Sektion in dem eindeutig durch Quell- und Zieladressen bestimmten Inline-Layer. Standard: Ende der Rulebase.');
+INSERT INTO txt VALUES ('H5195', 'English', 'Positioning algorithm: available at all levels. The Check Point layer-guard option automatically places new rules at the end of the zone-pair section in the inline layer uniquely selected by the source and destination addresses. Default: end of rulebase.');
 INSERT INTO txt VALUES ('H5196', 'German', 'Common Services trennen: ob Common-Service-Regeln getrennt von Applikationsregeln behandelt werden. Standard: Nein. Global, Ger&auml;tetyp und Manager.');
 INSERT INTO txt VALUES ('H5196', 'English', 'Common service separation: whether common-service rules are handled separately from application rules. Default: No. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5197', 'German', 'Sicherheitsprofile: Namen der anzuwendenden Profile, ein Eintrag pro Zeile. Ger&auml;tetyp und Manager.');

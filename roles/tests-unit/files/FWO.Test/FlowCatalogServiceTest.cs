@@ -398,6 +398,45 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
+    public void ResolveFlowGroupMembersAsync_PreCancelledToken_DoesNotQuery()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        CancellationTokenSource cancellation = new();
+        cancellation.Cancel();
+
+        Assert.ThrowsAsync<OperationCanceledException>(async () => await service.ResolveFlowGroupMembersAsync(
+            new() { NetworkGroupIds = [20] }, cancellation.Token));
+        Assert.That(apiConnection.SentQueries, Is.Empty);
+    }
+
+    [Test]
+    public async Task ResolveFlowGroupMembersAsync_CancellationWhileQueryAwaits_Propagates()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        TaskCompletionSource<bool> queryStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<bool> releaseQuery = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        apiConnection.BeforeSendQueryAsync = async (responseType, query) =>
+        {
+            if (responseType == typeof(List<FlowNwGroup>))
+            {
+                queryStarted.TrySetResult(true);
+                await releaseQuery.Task;
+            }
+        };
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        CancellationTokenSource cancellation = new();
+
+        Task<FlowGroupResolutionResult> resolution = service.ResolveFlowGroupMembersAsync(
+            new() { NetworkGroupIds = [20] }, cancellation.Token);
+        await queryStarted.Task;
+        cancellation.Cancel();
+
+        Assert.CatchAsync<OperationCanceledException>(async () => await resolution);
+        releaseQuery.TrySetResult(true);
+    }
+
+    [Test]
     public async Task GetTimeObjectsAsync_MapsTimestamps()
     {
         FlowCatalogServiceApiConn apiConnection = new();

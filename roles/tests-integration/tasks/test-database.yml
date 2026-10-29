@@ -74,3 +74,15 @@
   changed_when: false
   become: true
   become_user: postgres
+
+# the upgrade file is run twice within the test transaction (at its run-upgrade markers), which is always rolled back
+- name: test the rule-position schema change of the 9.8.5 database upgrade
+  command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
+  args:
+    stdin: >-
+      {{ lookup('file', 'database/test-upgrade-9.8.5.sql')
+         | replace('-- @run-upgrade-9.8.5', lookup('file', role_path + '/../database/files/upgrade/9.8.5.sql')) }}
+  register: test_upgrade_9_8_5
+  changed_when: false
+  become: true
+  become_user: postgres

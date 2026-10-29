@@ -179,6 +179,8 @@ namespace FWO.Middleware.Server.Controllers
             {
                 return result;
             }
+            wfHandler.ActionHandler!.SetRulePositioningCancellationToken(
+                HttpContext?.RequestAborted ?? CancellationToken.None);
 
             WfTicket? ticket = await ResolveWorkflowTicket(wfHandler, lockTicketId, result);
             if (ticket == null)
@@ -481,6 +483,12 @@ namespace FWO.Middleware.Server.Controllers
 
         private static bool ValidatePersistedStateTransition(WorkflowActionParameters parameters, WfStatefulObject statefulObject, WorkflowActionResult result)
         {
+            if (parameters.StateChangedByCreation && parameters.OldStateId != 0)
+            {
+                SetWarning(result, "State-change action execution rejected because a creation transition named a nonzero old state.");
+                return false;
+            }
+
             if (parameters.OldStateId == parameters.NewStateId)
             {
                 SetWarning(result, $"State-change action execution rejected because no state change was requested.");
@@ -533,7 +541,7 @@ namespace FWO.Middleware.Server.Controllers
                     parameters.NotificationPlaceholders);
             }
 
-            MarkStateChanged(statefulObject, parameters.OldStateId, parameters.NewStateId);
+            MarkStateChanged(statefulObject, parameters.OldStateId, parameters.NewStateId, parameters.StateChangedByCreation);
             await wfHandler.ActionHandler!.DoStateChangeActions(statefulObject, scope, owner, actionTicketId, userGrpDn, parameters.NotificationPlaceholders);
             return true;
         }
@@ -804,8 +812,14 @@ namespace FWO.Middleware.Server.Controllers
             return (null, null, null, null);
         }
 
-        private static void MarkStateChanged(WfStatefulObject statefulObject, int oldStateId, int newStateId)
+        private static void MarkStateChanged(WfStatefulObject statefulObject, int oldStateId, int newStateId, bool stateChangedByCreation)
         {
+            if (stateChangedByCreation)
+            {
+                statefulObject.MarkCreatedStateChanged(newStateId);
+                return;
+            }
+
             statefulObject.StateId = oldStateId;
             statefulObject.ResetStateChanged();
             statefulObject.StateId = newStateId;

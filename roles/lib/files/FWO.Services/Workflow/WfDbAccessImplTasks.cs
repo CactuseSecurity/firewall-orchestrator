@@ -4,6 +4,7 @@ using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
+using FWO.Data.RulePositioning;
 
 namespace FWO.Services.Workflow
 {
@@ -13,10 +14,11 @@ namespace FWO.Services.Workflow
         /// Creates an implementation task and persists its nested implementation elements.
         /// </summary>
         /// <param name="impltask">Implementation task to create.</param>
+        /// <param name="creatingReqTask">Request task whose creation path produced the implementation task.</param>
         /// <param name="previousTicket">Already loaded stored ticket, so callers creating one task per
         /// device do not read the full ticket graph once per device.</param>
         /// <returns>Id of the created implementation task, or 0 when the insert failed.</returns>
-        public async Task<long> AddImplTaskToDb(WfImplTask impltask, WfTicket? previousTicket = null)
+        public async Task<long> AddImplTaskToDb(WfImplTask impltask, WfReqTask creatingReqTask, WfTicket? previousTicket = null)
         {
             long returnId = 0;
             WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(impltask.TicketId);
@@ -49,7 +51,10 @@ namespace FWO.Services.Workflow
                     await LogWorkflowChange(new(impltask.TicketId, ModellingTypes.ChangeType.Insert, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
                         "Added workflow implementation task", null, ImplementationTaskHistorySnapshot(impltask), storedTicket?.Requester, true);
                     impltask.MarkCreatedStateChanged(newStateId);
-                    await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
+                    await ActionHandler.DoStateChangeActions(
+                        impltask,
+                        WfObjectScopes.ImplementationTask,
+                        creatingRequestTask: creatingReqTask);
                 }
             }
             catch (Exception exception)
@@ -92,6 +97,29 @@ namespace FWO.Services.Workflow
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
+            }
+        }
+
+        /// <summary>
+        /// Stores or clears only the calculated rule position of an implementation task.
+        /// </summary>
+        /// <param name="implementationTaskId">Database id of the implementation task.</param>
+        /// <param name="rulePosition">Position to store, or null to clear the stored position.</param>
+        /// <returns>True when the database updated the requested implementation task.</returns>
+        public async Task<bool> UpdateImplTaskRulePositionInDb(long implementationTaskId, RulePosition? rulePosition)
+        {
+            try
+            {
+                var variables = new { id = implementationTaskId, rulePosition };
+                long updatedId = (await ApiConnection.SendQueryAsync<ReturnId>(
+                    RequestQueries.updateImplementationTaskRulePosition,
+                    variables)).UpdatedIdLong;
+                return updatedId == implementationTaskId;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
+                return false;
             }
         }
 

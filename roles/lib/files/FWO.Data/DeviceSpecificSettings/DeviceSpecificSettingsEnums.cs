@@ -74,18 +74,20 @@ public enum ProvisioningRuleType
 /// </summary>
 public enum ProvisioningPositioningAlgorithm
 {
-    Undefined,
+    Undefined = 0,
     [EnumMember(Value = "cpInlineLayerPerZonePair")]
-    CheckPointInlineLayerPerZonePair,
+    CheckPointInlineLayerPerZonePair = 1,
     [EnumMember(Value = "endOfZone")]
-    FortinetEndOfZone,
+    FortinetEndOfZone = 2,
     [EnumMember(Value = "endOfAppSection")]
-    CheckPointEndOfAppSection,
+    CheckPointEndOfAppSection = 3,
     [EnumMember(Value = "endOfAppSectionDistinguishCommonServices")]
-    CheckPointEndOfAppSectionDistinguishCommonServices,
-    DefaultEndOfRulebase,
+    CheckPointEndOfAppSectionDistinguishCommonServices = 4,
+    DefaultEndOfRulebase = 5,
     [EnumMember(Value = "allowCategoryEndOfAppSectionDistinguishCommonServices")]
-    AllowCategoryEndOfAppSectionDistinguishCommonServices
+    AllowCategoryEndOfAppSectionDistinguishCommonServices = 6,
+    [EnumMember(Value = "cpLayerGuardEndOfZonePairSection")]
+    CheckPointLayerGuardEndOfZonePairSection = 7
 }
 
 /// <summary>Gateways on which generated rules are installed.</summary>

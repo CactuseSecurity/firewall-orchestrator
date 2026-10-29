@@ -44,6 +44,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteRequestElement;
         public static readonly string newImplementationTask;
         public static readonly string updateImplementationTask;
+        public static readonly string updateImplementationTaskRulePosition;
         public static readonly string updateImplementationTaskState;
         public static readonly string deleteImplementationTask;
         public static readonly string newImplementationElement;
@@ -141,6 +142,7 @@ namespace FWO.Api.Client.Queries
                 deleteRequestElement = GetQueryText("request/deleteRequestElement.graphql");
                 newImplementationTask = GetQueryText("request/newImplementationTask.graphql");
                 updateImplementationTask = GetQueryText("request/updateImplementationTask.graphql");
+                updateImplementationTaskRulePosition = GetQueryText("request/updateImplementationTaskRulePosition.graphql");
                 updateImplementationTaskState = GetQueryText("request/updateImplementationTaskState.graphql");
                 deleteImplementationTask = GetQueryText("request/deleteImplementationTask.graphql");
                 newImplementationElement = GetQueryText("request/newImplementationElement.graphql");

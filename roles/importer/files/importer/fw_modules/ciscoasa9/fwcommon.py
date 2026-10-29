@@ -13,15 +13,20 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import fwo_globals
 from fw_modules.ciscoasa9.asa_normalize import normalize_config
 from fw_modules.ciscoasa9.asa_parser import parse_asa_config
 from fwo_base import write_native_config_to_file
-from fwo_exceptions import FwoImporterError
+from fwo_const import ALERT_CODE_SSH_HOST_KEY_REJECTED, SSH_KNOWN_HOSTS_FILE
+from fwo_exceptions import FwoImporterError, SshHostKeyRejectedError
 from fwo_log import FWOLogger
 from models.fw_common import FwCommon
 from scrapli.driver import GenericDriver
+from scrapli.exceptions import ScrapliAuthenticationFailed
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
     from model_controllers.import_state_controller import ImportStateController
     from model_controllers.management_controller import ManagementController
@@ -32,6 +37,40 @@ class CiscoAsa9Common(FwCommon):
         self, config_in: FwConfigManagerListController, import_state: ImportStateController
     ) -> tuple[int, FwConfigManagerListController]:
         return get_config(config_in, import_state)
+
+
+# managements whose unchecked host key was already reported, so the warning is written once per importer process
+_unchecked_host_key_mgm_ids_warned: set[int] = set()
+
+
+def _host_key_options(mgm_details: ManagementController) -> dict[str, Any]:
+    """
+    Return the scrapli options for checking the SSH host key of the device.
+
+    The host key is checked against SSH_KNOWN_HOSTS_FILE unless certificate checking of firewall connections is
+    switched off. Without the check any host is accepted, and the import credentials go to whoever answers.
+
+    Raises:
+        SshHostKeyRejectedError: if the host key is to be checked but SSH_KNOWN_HOSTS_FILE does not exist. scrapli
+            would otherwise fall back to other known hosts files, whose keys FWO does not manage.
+
+    """
+    if fwo_globals.verify_certs is False:
+        if mgm_details.mgm_id not in _unchecked_host_key_mgm_ids_warned:
+            _unchecked_host_key_mgm_ids_warned.add(mgm_details.mgm_id)
+            FWOLogger.warning(
+                f"SSH host key checking is switched off for management {mgm_details.name} ({mgm_details.hostname}): "
+                "any host key is accepted, so the import credentials can be intercepted. Add the verified host key "
+                f'to {SSH_KNOWN_HOSTS_FILE} and switch on "check certificates of firewall connections".'
+            )
+        return {"auth_strict_key": False}
+    if not Path(SSH_KNOWN_HOSTS_FILE).is_file():
+        raise SshHostKeyRejectedError(
+            f"SSH known hosts file {SSH_KNOWN_HOSTS_FILE} is missing on the importer host, so the host key of "
+            f"{mgm_details.hostname} cannot be checked and the import credentials were not sent. Run the installer "
+            "to recreate it and add the verified host keys, see documentation/certificates.md."
+        )
+    return {"auth_strict_key": True, "ssh_known_hosts_file": SSH_KNOWN_HOSTS_FILE}
 
 
 def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
@@ -45,16 +84,31 @@ def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
         Connected GenericDriver instance.
 
     """
+    host_key_options = _host_key_options(mgm_details)
+    open_cmd = ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]
+    if host_key_options["auth_strict_key"]:
+        # only the FWO known hosts file counts; ssh would otherwise also accept the system-wide ones
+        open_cmd += ["-o", "GlobalKnownHostsFile=/dev/null"]
     device: dict[str, Any] = {
         "host": mgm_details.hostname,
         "port": mgm_details.port,
         "auth_username": mgm_details.import_user,
         "auth_password": mgm_details.secret,
-        "auth_strict_key": False,
-        "transport_options": {"open_cmd": ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]},
+        **host_key_options,
+        "transport_options": {"open_cmd": open_cmd},
     }
     conn = GenericDriver(**device)
-    conn.open()
+    try:
+        conn.open()
+    except ScrapliAuthenticationFailed as e:
+        # ssh stops before the authentication, so no credential has been sent to the unverified host
+        if "host key verification failed" in str(e).lower():
+            raise SshHostKeyRejectedError(
+                f"SSH host key of {mgm_details.hostname}:{mgm_details.port} is unknown or has changed, the import "
+                f"credentials were not sent. Add the verified host key to {SSH_KNOWN_HOSTS_FILE} on the importer "
+                "host, see documentation/certificates.md."
+            ) from None
+        raise
     return conn
 
 
@@ -267,6 +321,9 @@ def _attempt_connection(mgm_details: ManagementController, is_virtual_asa: bool,
 
         return config
 
+    except SshHostKeyRejectedError:
+        _safe_close_connection(conn)
+        raise
     except Exception as e:
         _safe_close_connection(conn)
         error_msg = _handle_connection_error(e, mgm_details, attempt, max_retries)
@@ -299,6 +356,9 @@ def load_config_from_management(mgm_details: ManagementController, is_virtual_as
 
         try:
             return _attempt_connection(mgm_details, is_virtual_asa, attempt, max_retries)
+        except SshHostKeyRejectedError:
+            FWOLogger.error(f"not retrying the connection to {mgm_details.hostname}: its SSH host key was rejected")
+            raise
         except FwoImporterError as _:
             if attempt >= max_retries - 1:
                 raise
@@ -325,7 +385,7 @@ def get_config(
 
     if config_in.native_config_is_empty():
         # for debugging, use: raw_config = load_config_from_file("test_asa.conf")
-        raw_config = load_config_from_management(import_state.state.mgm_details, is_virtual_asa)
+        raw_config = _load_config_reporting_host_key(import_state, is_virtual_asa)
         config2import = parse_asa_config(raw_config)
         config_in.native_config = config2import.model_dump()
 
@@ -334,6 +394,45 @@ def get_config(
     normalize_config(config_in, import_state.state)
 
     return 0, config_in
+
+
+def _load_config_reporting_host_key(import_state: ImportStateController, is_virtual_asa: bool) -> str:
+    """
+    Load the configuration from the device and keep the SSH host key alert of the management up to date.
+
+    A rejected host key raises an alert, which the UI shows to admins together with the instructions. The alert is
+    acknowledged by the next successful connection, so it is open exactly as long as the problem exists.
+    """
+    mgm_details = import_state.state.mgm_details
+    try:
+        raw_config = load_config_from_management(mgm_details, is_virtual_asa)
+    except SshHostKeyRejectedError as rejection:
+        rejection_text = str(rejection)
+        _report_alert_change(
+            lambda: import_state.api_call.set_alert(
+                import_id=import_state.state.import_id,
+                title="SSH host key rejected",
+                mgm_id=mgm_details.mgm_id,
+                severity=1,
+                description=rejection_text,
+                source="import",
+                alert_code=ALERT_CODE_SSH_HOST_KEY_REJECTED,
+                mgm_details=mgm_details,
+            )
+        )
+        raise
+    _report_alert_change(
+        lambda: import_state.api_call.acknowledge_open_alerts(mgm_details.mgm_id, ALERT_CODE_SSH_HOST_KEY_REJECTED)
+    )
+    return raw_config
+
+
+def _report_alert_change(change: Callable[[], None]) -> None:
+    """Apply an alert change without letting a failure of the alert API hide the import result."""
+    try:
+        change()
+    except Exception as e:
+        FWOLogger.warning(f"could not update the SSH host key alert: {e!s}")
 
 
 def load_config_from_file(filename: str) -> str:

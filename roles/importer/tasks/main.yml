@@ -89,6 +89,25 @@
         - /var/{{ product_name }}
         - /var/{{ product_name }}/import_archive
 
+    # the operator adds the verified host keys; an existing file is never overwritten
+    - name: create the SSH known hosts file for firewalls imported over SSH
+      copy:
+        content: ""
+        dest: "{{ importer_ssh_known_hosts_file }}"
+        force: false
+        owner: root
+        group: "{{ fworch_group }}"
+        mode: "0644"
+      become: true
+
+    - name: keep the SSH known hosts file writable by root only
+      file:
+        path: "{{ importer_ssh_known_hosts_file }}"
+        owner: root
+        group: "{{ fworch_group }}"
+        mode: "0644"
+      become: true
+
     - name: copy api-importer systemd service script
       template:
         src: "{{ product_name }}-importer-api.service.j2"

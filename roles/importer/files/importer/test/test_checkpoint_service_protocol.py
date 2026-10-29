@@ -1,7 +1,7 @@
 from typing import Any
 
 import pytest
-from fw_modules.checkpointR8x import cp_const, cp_getter, cp_service, fwcommon
+from fw_modules.checkpointR8x import cp_const, cp_object_resolver, cp_service, fwcommon
 
 
 def test_get_protocol_number_handles_string_protocol():
@@ -45,7 +45,7 @@ def test_collect_svc_objects_imports_transformed_cpmi_any_object_as_simple_servi
             "type": "CpmiAnyObject" if uid == cp_const.any_obj_uid else "service-other",
         }
         if uid == cp_const.any_obj_uid:
-            return cp_getter.handle_cpmi_any_object(special_object)
+            return cp_object_resolver.handle_cpmi_any_object(special_object)
         return {"chunks": [{"objects": [special_object]}]}
 
     monkeypatch.setattr(fwcommon.cp_getter, "get_object_details_from_api", get_special_object)

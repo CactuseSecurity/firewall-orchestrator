@@ -18,6 +18,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string acknowledgeAlert;
         public static readonly string acknowledgeAllOpenAlerts;
         public static readonly string subscribeAlertChanges;
+        public static readonly string subscribeOpenAlertsByCode;
         public static readonly string addAutodiscoveryLogEntry;
         public static readonly string getAutodiscoveryLogEntrys;
         public static readonly string getDailyCheckLogEntrys;
@@ -50,6 +51,7 @@ namespace FWO.Api.Client.Queries
                 acknowledgeAlert = GetQueryText("monitor/acknowledgeAlert.graphql");
                 acknowledgeAllOpenAlerts = GetQueryText("monitor/acknowledgeAllOpenAlerts.graphql");
                 subscribeAlertChanges = GetQueryText("monitor/subscribeAlertChanges.graphql");
+                subscribeOpenAlertsByCode = GetQueryText("monitor/subscribeOpenAlertsByCode.graphql");
 
                 getImportStatus = GetQueryText("monitor/getImportStatus.graphql");
 

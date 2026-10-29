@@ -246,6 +246,9 @@ For a feature-centric, thematically grouped view see
 
 ### 9.8.4 — 29.10.2026
 - Every list endpoint of the middleware REST API is paged (`limit`, `offset`, `X-Has-More`) with one central page size, the new setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`, default 10000).
+- Admins see a warning on every page while certificate checking is switched off for firewall connections, external ticket systems or the email server, and the upgrade lists the unchecked connection types.
+- The Cisco ASA importer checks the SSH host key of the device against a known hosts file on the importer host; admins see the managements whose key is unknown or changed together with instructions.
+- Hardening of report filters, the Report/Get REST call, external ticket and notification email templates, HTML report exports and firewall API error logging; the network syslog receiver is no longer opened.
 
 ### 9.9.0 — 01.11.2026
 - Azure Firewall import module fetches firewall policies (network rules) and IP groups directly via the Azure Resource Manager API (api version 2026-01-01 with fallback to 2024-05-01).

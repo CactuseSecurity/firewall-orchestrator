@@ -13,6 +13,13 @@ namespace FWO.Test
     [Parallelizable]
     internal class ExternalCertificateChecksTest
     {
+        private static readonly List<string> kAllCertificateSwitches =
+        [
+            ConfigData.kImportCheckCertificatesKey,
+            ConfigData.kExtTicketSystemsCheckCertificatesKey,
+            ConfigData.kEmailCheckCertificatesKey
+        ];
+
         [Test]
         public void ConfigData_Defaults_CheckEveryConnectionType()
         {
@@ -23,7 +30,42 @@ namespace FWO.Test
                 Assert.That(config.ImportCheckCertificates, Is.True);
                 Assert.That(config.EmailCheckCertificates, Is.True);
                 Assert.That(config.ExtTicketSystemsCheckCertificates, Is.True);
+                Assert.That(config.ImportSuppressCertificateWarnings, Is.False);
             });
+        }
+
+        [Test]
+        public void GetUncheckedCertificateSwitches_IsEmptyWhileEveryCheckIsOn()
+        {
+            Assert.That(new ConfigData().GetUncheckedCertificateSwitches(), Is.Empty);
+        }
+
+        [Test]
+        public void GetUncheckedCertificateSwitches_ListsEverySwitchThatIsOff()
+        {
+            ConfigData config = new()
+            {
+                ImportCheckCertificates = false,
+                ExtTicketSystemsCheckCertificates = false,
+                EmailCheckCertificates = false
+            };
+
+            Assert.That(config.GetUncheckedCertificateSwitches(), Is.EqualTo(kAllCertificateSwitches));
+        }
+
+        [TestCase(false, true, true, ConfigData.kImportCheckCertificatesKey)]
+        [TestCase(true, false, true, ConfigData.kExtTicketSystemsCheckCertificatesKey)]
+        [TestCase(true, true, false, ConfigData.kEmailCheckCertificatesKey)]
+        public void GetUncheckedCertificateSwitches_ListsOnlyTheSwitchThatIsOff(bool firewalls, bool ticketSystems, bool email, string expectedKey)
+        {
+            ConfigData config = new()
+            {
+                ImportCheckCertificates = firewalls,
+                ExtTicketSystemsCheckCertificates = ticketSystems,
+                EmailCheckCertificates = email
+            };
+
+            Assert.That(config.GetUncheckedCertificateSwitches().Single(), Is.EqualTo(expectedKey));
         }
 
         [TestCase(true, false)]

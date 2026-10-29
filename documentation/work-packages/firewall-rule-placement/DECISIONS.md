@@ -435,3 +435,27 @@ The activation-neutral KfW recipe is:
 The existing Section block gains an explicit normalized-name selector mode. Its exact-name and UID modes remain ordinal and unchanged. The canonical builder emits `"[DESTINATION] < [SOURCE]"`; normalized comparison trims both complete names and applies invariant uppercase. Zero and multiple normalized matches use the existing `ScopeNotFound` and `ScopeAmbiguous` failures. The existing `EndOfBlock` produces the semantic end-of-Section anchor, including its already-defined empty-Section behavior.
 
 Recipe construction validates complete coverage, exactly one persisted zone on each side, and a nonblank canonical name. It is a direct factory, not an enum catalog mapping. WP-01 adds no production strategy registration, workflow caller change, persistence change, or activation fallback.
+
+## 2026-10-28 - D-062 - Select customer behavior through a new stable algorithm value
+
+`CheckPointLayerGuardEndOfZonePairSection` is the product-facing behavior name for the KfW Check Point recipe. Its device-specific-settings wire value is `cpLayerGuardEndOfZonePairSection` and its persisted numeric semantic-position value is `7`. Existing members are explicitly fixed at values `0` through `6`.
+
+The customer strategy supports exactly Check Point gateway device type `9` plus this new value. The graph-only strategy continues to support exactly `DefaultEndOfRulebase`; the two capability sets must not overlap and neither strategy provides fallback.
+
+Rationale: the behavior needs an understandable selectable identity, while explicit ordinals prevent later enum edits from reinterpreting stored semantic positions.
+
+## 2026-10-28 - D-063 - Load management-specific ticket state only for customer positioning
+
+After effective settings resolution, the workflow caller loads the full ticket only for `CheckPointLayerGuardEndOfZonePairSection`. It validates ticket identity, keeps positive tasks for the effective management in deterministic task-number/ID order, and passes them as an immutable optional context collection.
+
+The caller-supplied parent Rule A remains authoritative for the rule being positioned, including transient bundled/merged content. The persisted ticket slice supplies same-ticket object and group state. `DefaultEndOfRulebase` performs no ticket query.
+
+Rationale: bundled rule content exists at the creation seam while same-ticket group state is durable ticket data. Keeping both inputs explicit preserves each authority and protects the generic path from customer-only work.
+
+## 2026-10-28 - D-064 - Activate calculation without expanding the terminal boundary
+
+The production customer orchestrator reads the graph and its exact successful import, resolves canonical effective ranges, reads layer guards at that import, loads the designated-zone matrix, resolves zones from the same ranges, selects the exact customer recipe, executes it, and verifies that the returned semantic position retains algorithm value `7`.
+
+It reuses the existing creation trigger and dedicated `rule_position` mutation. Failures have no fallback or retry and clear stale positions through the established best-effort workflow behavior. Rendering, Check Point API calls, publish/install, auditing, manual recalculation, and schema changes remain out of scope.
+
+Rationale: WP-01 already completed calculation semantics; WP-02 connects those semantics to the validated production seam without reopening persistence or firewall-execution design.

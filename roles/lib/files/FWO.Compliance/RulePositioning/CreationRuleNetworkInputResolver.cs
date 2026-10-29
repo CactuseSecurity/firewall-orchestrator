@@ -112,23 +112,22 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         {
             return new CatalogIndex([]);
         }
-        if (ids.Count + names.Count > FlowGroupResolutionParameters.MaxSelectors)
-        {
-            throw Failure(CreationRuleNetworkResolutionFailureCategory.InvalidInput);
-        }
-
         try
         {
-            FlowGroupResolutionResult? result = await flowGroupResolver.ResolveFlowGroupMembersAsync(new()
+            List<FlowNetworkGroupResolution> groups = [];
+            foreach (List<long> chunk in ids.Chunk(FlowGroupResolutionParameters.MaxSelectors)
+                .Select(values => values.ToList()))
             {
-                NetworkGroupIds = ids,
-                NetworkGroupNames = names
-            }, cancellationToken);
-            if (result?.NetworkGroups == null || result.NetworkGroups.Any(group => group == null || group.Members == null))
-            {
-                throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupQueryFailed);
+                groups.AddRange(await LoadCatalogChunkAsync(
+                    new FlowGroupResolutionParameters { NetworkGroupIds = chunk }, cancellationToken));
             }
-            return new CatalogIndex(result.NetworkGroups);
+            foreach (List<string> chunk in names.Chunk(FlowGroupResolutionParameters.MaxSelectors)
+                .Select(values => values.ToList()))
+            {
+                groups.AddRange(await LoadCatalogChunkAsync(
+                    new FlowGroupResolutionParameters { NetworkGroupNames = chunk }, cancellationToken));
+            }
+            return new CatalogIndex(groups);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -142,6 +141,23 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         {
             throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupQueryFailed);
         }
+    }
+
+    /// <summary>Loads and validates one bounded catalog selector chunk.</summary>
+    private async Task<List<FlowNetworkGroupResolution>> LoadCatalogChunkAsync(
+        FlowGroupResolutionParameters parameters,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        FlowGroupResolutionResult? result = await flowGroupResolver.ResolveFlowGroupMembersAsync(
+            parameters,
+            cancellationToken);
+        if (result?.NetworkGroups == null ||
+            result.NetworkGroups.Any(group => group == null || group.Members == null))
+        {
+            throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupQueryFailed);
+        }
+        return result.NetworkGroups;
     }
 
     /// <summary>Recursively resolves direct leaves and group references.</summary>

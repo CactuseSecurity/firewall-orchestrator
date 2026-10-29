@@ -23,6 +23,7 @@ internal class CheckPointGraphPositioningTest
     [TestCase(ProvisioningPositioningAlgorithm.FortinetEndOfZone)]
     [TestCase(ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection)]
     [TestCase(ProvisioningPositioningAlgorithm.CheckPointEndOfAppSectionDistinguishCommonServices)]
+    [TestCase(ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection)]
     [TestCase((ProvisioningPositioningAlgorithm)999)]
     public void Catalog_RejectsEveryUnsupportedAlgorithm(ProvisioningPositioningAlgorithm algorithm)
     {

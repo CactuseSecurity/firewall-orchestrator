@@ -212,6 +212,7 @@ namespace FWO.Ui.Pages.Settings
                     (ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection, "dss_opt_cp_end_of_app_section"),
                     (ProvisioningPositioningAlgorithm.CheckPointEndOfAppSectionDistinguishCommonServices, "dss_opt_cp_end_of_app_section_common_svc"),
                     (ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "dss_opt_default_end_of_rulebase"),
+                    (ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection, "dss_opt_cp_layer_guard_end_of_zone_pair_section"),
                     (ProvisioningPositioningAlgorithm.AllowCategoryEndOfAppSectionDistinguishCommonServices, "dss_opt_allow_category"))),
             EnumField(DeviceSpecificSettingKeys.RuleLoggingOverride, "dss_logging", s => s.RuleLoggingOverride,
                 EnumOptions(

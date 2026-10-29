@@ -10,6 +10,8 @@ using FWO.Services.RulePositioning.Blocks;
 using FWO.Services.RulePositioning.CheckPoint;
 using NUnit.Framework;
 using System.Collections.Concurrent;
+using System.Net;
+using NetTools;
 
 namespace FWO.Test;
 
@@ -21,7 +23,7 @@ internal class CheckPointRulePositioningStrategyTest
     private const int kCriterionId = 41;
     private const int kCheckPointDeviceTypeId = 9;
     private const ProvisioningPositioningAlgorithm kAlgorithm =
-        ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection;
+        ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection;
     private const string kSentinel = "strategy-secret-sentinel";
 
     [Test]
@@ -39,9 +41,9 @@ internal class CheckPointRulePositioningStrategyTest
         });
     }
 
-    [TestCase(null, ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection)]
-    [TestCase(13, ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection)]
-    [TestCase(10, ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection)]
+    [TestCase(null, ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection)]
+    [TestCase(13, ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection)]
+    [TestCase(10, ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection)]
     [TestCase(9, ProvisioningPositioningAlgorithm.Undefined)]
     [TestCase(9, (ProvisioningPositioningAlgorithm)999)]
     public void CanHandle_RejectsNonCapabilityWithoutConsultingCatalog(
@@ -68,6 +70,32 @@ internal class CheckPointRulePositioningStrategyTest
 
         Assert.That(fixture.Strategy.CanHandle(new DeviceType { Id = 9 }, kAlgorithm), Is.False);
         Assert.That(fixture.Catalog.SupportCallCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ProductionCatalog_MapsOnlyCustomerAlgorithmToKfwRecipe()
+    {
+        CheckPointPositioningRecipeCatalog catalog = new(new KfwCheckPointPositioningRecipeFactory());
+        KfwCheckPointPositioningInput input = new(
+            NetworkInput(),
+            new CheckPointLayerGuardSnapshot(kManagementId, kGatewayId, 1, []));
+
+        CheckPointRecipeSelectionResult selected = catalog.SelectRecipe(kAlgorithm, input, ZoneInput());
+        CheckPointRecipeSelectionResult unsupported = catalog.SelectRecipe(
+            ProvisioningPositioningAlgorithm.DefaultEndOfRulebase,
+            input,
+            ZoneInput());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(catalog.SupportsAlgorithm(kAlgorithm), Is.True);
+            Assert.That(catalog.SupportsAlgorithm(ProvisioningPositioningAlgorithm.DefaultEndOfRulebase), Is.False);
+            Assert.That(selected, Is.TypeOf<CheckPointRecipeSelectionSuccess>());
+            Assert.That(((CheckPointRecipeSelectionSuccess)selected).Recipe.Root,
+                Is.TypeOf<EndOfBlock>());
+            Assert.That(((CheckPointRecipeSelectionFailure)unsupported).Category,
+                Is.EqualTo(CheckPointRecipeSelectionFailureCategory.NoMatchingRecipe));
+        });
     }
 
     [Test]
@@ -113,7 +141,7 @@ internal class CheckPointRulePositioningStrategyTest
         CheckPointRulePosition position = (CheckPointRulePosition)success.Position;
         Assert.Multiple(() =>
         {
-            Assert.That(order, Is.EqualTo(["graph", "matrix", "resolve", "select", "execute"]));
+            Assert.That(order, Is.EqualTo(["graph", "network", "guard", "matrix", "resolve", "select", "execute"]));
             Assert.That(fixture.Graph.CallCount, Is.EqualTo(1));
             Assert.That(fixture.Matrix.CallCount, Is.EqualTo(1));
             Assert.That(fixture.Resolver.CallCount, Is.EqualTo(1));
@@ -121,9 +149,14 @@ internal class CheckPointRulePositioningStrategyTest
             Assert.That(fixture.RootExecutionCount, Is.EqualTo(1));
             Assert.That(fixture.Graph.ManagementId, Is.EqualTo(kManagementId));
             Assert.That(fixture.Graph.GatewayId, Is.EqualTo(kGatewayId));
-            Assert.That(fixture.Resolver.RequestTask, Is.SameAs(context.ParentRequestTask));
+            Assert.That(fixture.Network.RequestTask, Is.SameAs(context.ParentRequestTask));
+            Assert.That(fixture.Network.TicketTasks, Is.SameAs(context.TicketRequestTasks));
+            Assert.That(fixture.Guards.ImportId, Is.EqualTo(1));
+            Assert.That(fixture.Resolver.NetworkInput, Is.SameAs(fixture.Network.Input));
             Assert.That(fixture.Resolver.Zones, Is.SameAs(((DesignatedZoneMatrixReadSuccess)fixture.Matrix.Result).NetworkZones));
             Assert.That(fixture.Catalog.ZoneInput, Is.SameAs(zoneInput));
+            Assert.That(fixture.Catalog.PositioningInput!.NetworkInput, Is.SameAs(fixture.Network.Input));
+            Assert.That(fixture.Catalog.PositioningInput.GuardSnapshot, Is.SameAs(fixture.Guards.Snapshot));
             Assert.That(fixture.Catalog.SelectedAlgorithm, Is.EqualTo(kAlgorithm));
             Assert.That(fixture.ExecutionContext!.CalculationContext, Is.SameAs(context));
             Assert.That(fixture.ExecutionContext.Snapshot, Is.SameAs(snapshot));
@@ -178,6 +211,7 @@ internal class CheckPointRulePositioningStrategyTest
     [TestCase(DirectInvalidContext.MissingDeviceType)]
     [TestCase(DirectInvalidContext.MissingManagement)]
     [TestCase(DirectInvalidContext.MissingRequestTask)]
+    [TestCase(DirectInvalidContext.MissingTicketTasks)]
     [TestCase(DirectInvalidContext.MissingSettings)]
     [TestCase(DirectInvalidContext.InvalidGatewayId)]
     [TestCase(DirectInvalidContext.InvalidManagementId)]
@@ -251,6 +285,49 @@ internal class CheckPointRulePositioningStrategyTest
 
         AssertFailure(result, expected);
         AssertDownstream(fixture, graph: 1, matrix: 0, resolver: 0, selection: 0, execution: 0);
+    }
+
+    [TestCase(CreationRuleNetworkResolutionFailureCategory.InvalidInput, RulePositioningFailureCategory.InvalidInput)]
+    [TestCase(CreationRuleNetworkResolutionFailureCategory.UnsupportedTask, RulePositioningFailureCategory.UnsupportedTask)]
+    [TestCase(CreationRuleNetworkResolutionFailureCategory.GroupQueryFailed, RulePositioningFailureCategory.CalculationFailed)]
+    [TestCase(CreationRuleNetworkResolutionFailureCategory.UnexpectedFailure, RulePositioningFailureCategory.CalculationFailed)]
+    public async Task CalculateAsync_MapsNetworkFailuresAndStops(
+        CreationRuleNetworkResolutionFailureCategory childCategory,
+        RulePositioningFailureCategory expected)
+    {
+        StrategyFixture fixture = new();
+        fixture.Network.Result = new CreationRuleNetworkResolutionFailure(childCategory);
+
+        RulePositioningResult result = await fixture.Strategy.CalculateAsync(ValidContext(), CancellationToken.None);
+
+        AssertFailure(result, expected);
+        Assert.Multiple(() =>
+        {
+            Assert.That(fixture.Network.CallCount, Is.EqualTo(1));
+            Assert.That(fixture.Guards.CallCount, Is.Zero);
+            Assert.That(fixture.Matrix.CallCount, Is.Zero);
+        });
+    }
+
+    [TestCase(CheckPointLayerGuardReadFailureCategory.InvalidInput, RulePositioningFailureCategory.InvalidInput)]
+    [TestCase(CheckPointLayerGuardReadFailureCategory.ScopeMismatch, RulePositioningFailureCategory.InvalidInput)]
+    [TestCase(CheckPointLayerGuardReadFailureCategory.InvalidGuardData, RulePositioningFailureCategory.CalculationFailed)]
+    [TestCase(CheckPointLayerGuardReadFailureCategory.QueryFailed, RulePositioningFailureCategory.CalculationFailed)]
+    public async Task CalculateAsync_MapsGuardFailuresAndStops(
+        CheckPointLayerGuardReadFailureCategory childCategory,
+        RulePositioningFailureCategory expected)
+    {
+        StrategyFixture fixture = new();
+        fixture.Guards.Result = new CheckPointLayerGuardReadFailure(childCategory);
+
+        RulePositioningResult result = await fixture.Strategy.CalculateAsync(ValidContext(), CancellationToken.None);
+
+        AssertFailure(result, expected);
+        Assert.Multiple(() =>
+        {
+            Assert.That(fixture.Guards.CallCount, Is.EqualTo(1));
+            Assert.That(fixture.Matrix.CallCount, Is.Zero);
+        });
     }
 
     [TestCase(DesignatedZoneMatrixReadFailureCategory.ConfigurationInvalid, RulePositioningFailureCategory.ConfigurationInvalid)]
@@ -335,6 +412,8 @@ internal class CheckPointRulePositioningStrategyTest
     }
 
     [TestCase("graph")]
+    [TestCase("network")]
+    [TestCase("guard")]
     [TestCase("matrix")]
     [TestCase("resolver")]
     [TestCase("selection")]
@@ -343,6 +422,8 @@ internal class CheckPointRulePositioningStrategyTest
     {
         StrategyFixture fixture = new();
         if (stage == "graph") fixture.Graph.Exception = new InvalidOperationException(kSentinel);
+        if (stage == "network") fixture.Network.Exception = new InvalidOperationException(kSentinel);
+        if (stage == "guard") fixture.Guards.Exception = new InvalidOperationException(kSentinel);
         if (stage == "matrix") fixture.Matrix.Exception = new InvalidOperationException(kSentinel);
         if (stage == "resolver") fixture.Resolver.Exception = new InvalidOperationException(kSentinel);
         if (stage == "selection") fixture.Catalog.SelectionException = new InvalidOperationException(kSentinel);
@@ -372,6 +453,8 @@ internal class CheckPointRulePositioningStrategyTest
     }
 
     [TestCase("graph")]
+    [TestCase("network")]
+    [TestCase("guard")]
     [TestCase("matrix")]
     [TestCase("resolver")]
     [TestCase("execution")]
@@ -380,6 +463,8 @@ internal class CheckPointRulePositioningStrategyTest
         StrategyFixture fixture = new();
         TaskCompletionSource started = new(TaskCreationOptions.RunContinuationsAsynchronously);
         if (stage == "graph") fixture.Graph.Pending = started;
+        if (stage == "network") fixture.Network.Pending = started;
+        if (stage == "guard") fixture.Guards.Pending = started;
         if (stage == "matrix") fixture.Matrix.Pending = started;
         if (stage == "resolver") fixture.Resolver.Pending = started;
         if (stage == "execution")
@@ -444,7 +529,9 @@ internal class CheckPointRulePositioningStrategyTest
         RecordingMatrixReader matrix = new(new DesignatedZoneMatrixReadSuccess([]));
         DynamicZoneResolver resolver = new();
         RecordingCatalog catalog = new() { Recipe = StructuralRecipe() };
-        CheckPointRulePositioningStrategy strategy = new(graph, matrix, resolver, catalog);
+        RecordingNetworkResolver network = new(NetworkInput(), []);
+        RecordingGuardReader guards = new([]);
+        CheckPointRulePositioningStrategy strategy = new(graph, network, guards, matrix, resolver, catalog);
         RulePositioningContext first = ValidContext(101, 201);
         RulePositioningContext second = ValidContext(102, 202);
 
@@ -459,12 +546,13 @@ internal class CheckPointRulePositioningStrategyTest
                 Is.EquivalentTo(["layer-201", "layer-202"]));
             Assert.That(reads, Is.EquivalentTo(new[] { (101, 201), (102, 202) }));
             Assert.That(matrix.CallCount, Is.EqualTo(2));
-            Assert.That(resolver.ReceivedTaskIds, Is.EquivalentTo(new long[] { 301, 302 }));
+            Assert.That(network.CallCount, Is.EqualTo(2));
+            Assert.That(guards.CallCount, Is.EqualTo(2));
         });
     }
 
     [Test]
-    public void Program_RegistersGraphOnlyPositioningServices()
+    public void Program_RegistersBothNonOverlappingPositioningStrategies()
     {
         string source = File.ReadAllText(RepositoryContractFileLocator.Locate(
             "roles", "middleware", "files", "FWO.Middleware.Server", "Program.cs"));
@@ -474,11 +562,11 @@ internal class CheckPointRulePositioningStrategyTest
             Assert.That(source, Does.Contain("AddSingleton<IDesignatedZoneMatrixReader, DesignatedZoneMatrixReader>()"));
             Assert.That(source, Does.Contain("AddSingleton<IRulebaseGraphSnapshotReader, RulebaseGraphSnapshotReader>()"));
             Assert.That(source, Does.Contain("AddSingleton<ICreationRuleZoneResolver, CreationRuleZoneResolver>()"));
-            Assert.That(source, Does.Not.Contain("CheckPointRulePositioningStrategy"));
-            Assert.That(source, Does.Not.Contain("ICheckPointPositioningRecipeCatalog"));
-            Assert.That(source, Does.Not.Contain("KfwCheckPointPositioningRecipeFactory"));
-            Assert.That(source, Does.Not.Contain("CreationRuleNetworkInputResolver"));
-            Assert.That(source, Does.Not.Contain("CheckPointLayerGuardSnapshotReader"));
+            Assert.That(source, Does.Contain("CheckPointRulePositioningStrategy"));
+            Assert.That(source, Does.Contain("ICheckPointPositioningRecipeCatalog, CheckPointPositioningRecipeCatalog"));
+            Assert.That(source, Does.Contain("KfwCheckPointPositioningRecipeFactory"));
+            Assert.That(source, Does.Contain("ICreationRuleNetworkInputResolver, CreationRuleNetworkInputResolver"));
+            Assert.That(source, Does.Contain("ICheckPointLayerGuardSnapshotReader, CheckPointLayerGuardSnapshotReader"));
             Assert.That(source, Does.Contain("AddSingleton<ICheckPointGraphPositioningRecipeCatalog, CheckPointGraphPositioningRecipeCatalog>()"));
             Assert.That(source, Does.Contain("AddSingleton<IRulePositioningStrategy>"));
             Assert.That(source, Does.Contain("AddSingleton<RulePositioningManager>()"));
@@ -501,13 +589,17 @@ internal class CheckPointRulePositioningStrategyTest
         Assert.Multiple(() =>
         {
             Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
-                null!, fixture.Matrix, fixture.Resolver, fixture.Catalog));
+                null!, fixture.Network, fixture.Guards, fixture.Matrix, fixture.Resolver, fixture.Catalog));
             Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
-                fixture.Graph, null!, fixture.Resolver, fixture.Catalog));
+                fixture.Graph, null!, fixture.Guards, fixture.Matrix, fixture.Resolver, fixture.Catalog));
             Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
-                fixture.Graph, fixture.Matrix, null!, fixture.Catalog));
+                fixture.Graph, fixture.Network, null!, fixture.Matrix, fixture.Resolver, fixture.Catalog));
             Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
-                fixture.Graph, fixture.Matrix, fixture.Resolver, null!));
+                fixture.Graph, fixture.Network, fixture.Guards, null!, fixture.Resolver, fixture.Catalog));
+            Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
+                fixture.Graph, fixture.Network, fixture.Guards, fixture.Matrix, null!, fixture.Catalog));
+            Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
+                fixture.Graph, fixture.Network, fixture.Guards, fixture.Matrix, fixture.Resolver, null!));
         });
     }
 
@@ -523,6 +615,7 @@ internal class CheckPointRulePositioningStrategyTest
         {
             Id = gatewayId + 100,
             TicketId = gatewayId + 200,
+            TaskNumber = 1,
             TaskType = WfTaskType.access.ToString(),
             RequestAction = RequestAction.create.ToString(),
             ManagementId = managementId,
@@ -548,7 +641,8 @@ internal class CheckPointRulePositioningStrategyTest
                 Management = management
             },
             management,
-            new GatewayDeviceSpecificSettings { PositioningAlgorithm = kAlgorithm });
+            new GatewayDeviceSpecificSettings { PositioningAlgorithm = kAlgorithm },
+            [requestTask]);
     }
 
     private static RulebaseGraphSnapshot Snapshot(int managementId, int gatewayId, string layerUid)
@@ -578,6 +672,10 @@ internal class CheckPointRulePositioningStrategyTest
         ZoneCoverage.Complete,
         ZoneCoverage.Complete);
 
+    private static CreationRuleNetworkInput NetworkInput() => new(
+        [new IPAddressRange(IPAddress.Parse("10.0.0.1"))],
+        [new IPAddressRange(IPAddress.Parse("10.0.1.1"))]);
+
     private static RulePositioningContext? InvalidContext(DirectInvalidContext invalid)
     {
         RulePositioningContext context = ValidContext();
@@ -594,6 +692,8 @@ internal class CheckPointRulePositioningStrategyTest
                 return context with { TargetManagement = null! };
             case DirectInvalidContext.MissingRequestTask:
                 return context with { ParentRequestTask = null! };
+            case DirectInvalidContext.MissingTicketTasks:
+                return context with { TicketRequestTasks = null };
             case DirectInvalidContext.MissingSettings:
                 return context with { EffectiveSettings = null! };
             case DirectInvalidContext.InvalidGatewayId:
@@ -639,6 +739,8 @@ internal class CheckPointRulePositioningStrategyTest
     private sealed class StrategyFixture
     {
         public RecordingGraphReader Graph { get; }
+        public RecordingNetworkResolver Network { get; }
+        public RecordingGuardReader Guards { get; }
         public RecordingMatrixReader Matrix { get; }
         public RecordingZoneResolver Resolver { get; }
         public RecordingCatalog Catalog { get; }
@@ -668,10 +770,13 @@ internal class CheckPointRulePositioningStrategyTest
             List<string> operationOrder = order ?? [];
             Graph = new RecordingGraphReader(
                 new RulebaseGraphReadSuccess(Snapshot(kManagementId, kGatewayId, "layer-default"), 1), operationOrder);
+            Network = new RecordingNetworkResolver(NetworkInput(), operationOrder);
+            Guards = new RecordingGuardReader(operationOrder);
             Matrix = new RecordingMatrixReader(new DesignatedZoneMatrixReadSuccess([]), operationOrder);
             Resolver = new RecordingZoneResolver(new CreationRuleZoneResolutionSuccess(ZoneInput()), operationOrder);
             Catalog = new RecordingCatalog(operationOrder) { Recipe = CreateDefaultRecipe() };
-            Strategy = new CheckPointRulePositioningStrategy(Graph, Matrix, Resolver, Catalog);
+            Strategy = new CheckPointRulePositioningStrategy(
+                Graph, Network, Guards, Matrix, Resolver, Catalog);
 
             PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> CreateDefaultRecipe()
             {
@@ -689,6 +794,68 @@ internal class CheckPointRulePositioningStrategyTest
         }
     }
 
+    private sealed class RecordingNetworkResolver(
+        CreationRuleNetworkInput input,
+        List<string> order) : ICreationRuleNetworkInputResolver
+    {
+        public CreationRuleNetworkResolutionResult Result { get; set; } =
+            new CreationRuleNetworkResolutionSuccess(input);
+        public CreationRuleNetworkInput Input { get; } = input;
+        public Exception? Exception { get; set; }
+        public TaskCompletionSource? Pending { get; set; }
+        public int CallCount { get; private set; }
+        public WfReqTask? RequestTask { get; private set; }
+        public IReadOnlyCollection<WfReqTask>? TicketTasks { get; private set; }
+
+        public async Task<CreationRuleNetworkResolutionResult> ResolveAsync(
+            WfReqTask accessTask,
+            IReadOnlyCollection<WfReqTask> ticketTasks,
+            CancellationToken cancellationToken)
+        {
+            CallCount++;
+            RequestTask = accessTask;
+            TicketTasks = ticketTasks;
+            order.Add("network");
+            if (Exception != null) throw Exception;
+            if (Pending != null)
+            {
+                Pending.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+            return Result;
+        }
+    }
+
+    private sealed class RecordingGuardReader(List<string> order) : ICheckPointLayerGuardSnapshotReader
+    {
+        public CheckPointLayerGuardReadResult? Result { get; set; }
+        public Exception? Exception { get; set; }
+        public TaskCompletionSource? Pending { get; set; }
+        public int CallCount { get; private set; }
+        public long ImportId { get; private set; }
+        public CheckPointLayerGuardSnapshot Snapshot { get; private set; } =
+            new(kManagementId, kGatewayId, 1, []);
+
+        public async Task<CheckPointLayerGuardReadResult> ReadAsync(
+            RulebaseGraphSnapshot graph,
+            long importId,
+            CancellationToken cancellationToken)
+        {
+            CallCount++;
+            ImportId = importId;
+            Snapshot = new CheckPointLayerGuardSnapshot(
+                graph.ManagementId, graph.GatewayId, importId, []);
+            order.Add("guard");
+            if (Exception != null) throw Exception;
+            if (Pending != null)
+            {
+                Pending.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+            return Result ?? new CheckPointLayerGuardReadSuccess(Snapshot);
+        }
+    }
+
     public enum DirectInvalidContext
     {
         NullContext,
@@ -696,6 +863,7 @@ internal class CheckPointRulePositioningStrategyTest
         MissingDeviceType,
         MissingManagement,
         MissingRequestTask,
+        MissingTicketTasks,
         MissingSettings,
         InvalidGatewayId,
         InvalidManagementId
@@ -763,17 +931,22 @@ internal class CheckPointRulePositioningStrategyTest
         public Exception? Exception { get; set; }
         public TaskCompletionSource? Pending { get; set; }
         public int CallCount { get; private set; }
-        public WfReqTask? RequestTask { get; private set; }
+        public CreationRuleNetworkInput? NetworkInput { get; private set; }
         public IReadOnlyCollection<ComplianceNetworkZone>? Zones { get; private set; }
         public CancellationToken Token { get; private set; }
 
         public async Task<CreationRuleZoneResolutionResult> ResolveAsync(
             WfReqTask requestTask,
             IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public async Task<CreationRuleZoneResolutionResult> ResolveAsync(
+            CreationRuleNetworkInput networkInput,
+            IReadOnlyCollection<ComplianceNetworkZone> networkZones,
             CancellationToken cancellationToken)
         {
             CallCount++;
-            RequestTask = requestTask;
+            NetworkInput = networkInput;
             Zones = networkZones;
             Token = cancellationToken;
             order.Add("resolve");
@@ -785,11 +958,6 @@ internal class CheckPointRulePositioningStrategyTest
             }
             return Result;
         }
-
-        public Task<CreationRuleZoneResolutionResult> ResolveAsync(
-            CreationRuleNetworkInput networkInput,
-            IReadOnlyCollection<ComplianceNetworkZone> networkZones,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
     private sealed class RecordingCatalog(List<string>? order = null) : ICheckPointPositioningRecipeCatalog
@@ -804,6 +972,7 @@ internal class CheckPointRulePositioningStrategyTest
         public int SelectCallCount { get; private set; }
         public List<ProvisioningPositioningAlgorithm> SupportedAlgorithms { get; } = [];
         public ProvisioningPositioningAlgorithm SelectedAlgorithm { get; private set; }
+        public KfwCheckPointPositioningInput? PositioningInput { get; private set; }
         public CreationRuleZoneInput? ZoneInput { get; private set; }
 
         public bool SupportsAlgorithm(ProvisioningPositioningAlgorithm positioningAlgorithm)
@@ -816,10 +985,12 @@ internal class CheckPointRulePositioningStrategyTest
 
         public CheckPointRecipeSelectionResult SelectRecipe(
             ProvisioningPositioningAlgorithm positioningAlgorithm,
+            KfwCheckPointPositioningInput positioningInput,
             CreationRuleZoneInput zoneInput)
         {
             SelectCallCount++;
             SelectedAlgorithm = positioningAlgorithm;
+            PositioningInput = positioningInput;
             ZoneInput = zoneInput;
             order?.Add("select");
             if (SelectionException != null) throw SelectionException;
@@ -902,21 +1073,18 @@ internal class CheckPointRulePositioningStrategyTest
 
     private sealed class DynamicZoneResolver : ICreationRuleZoneResolver
     {
-        public ConcurrentBag<long> ReceivedTaskIds { get; } = [];
-
         public Task<CreationRuleZoneResolutionResult> ResolveAsync(
             WfReqTask requestTask,
             IReadOnlyCollection<ComplianceNetworkZone> networkZones,
             CancellationToken cancellationToken)
         {
-            ReceivedTaskIds.Add(requestTask.Id);
-            return Task.FromResult<CreationRuleZoneResolutionResult>(
-                new CreationRuleZoneResolutionSuccess(ZoneInput()));
+            throw new NotSupportedException();
         }
 
         public Task<CreationRuleZoneResolutionResult> ResolveAsync(
             CreationRuleNetworkInput networkInput,
             IReadOnlyCollection<ComplianceNetworkZone> networkZones,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken) => Task.FromResult<CreationRuleZoneResolutionResult>(
+                new CreationRuleZoneResolutionSuccess(ZoneInput()));
     }
 }

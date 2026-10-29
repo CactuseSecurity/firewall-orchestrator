@@ -204,9 +204,11 @@ internal class DeviceSpecificSettingsServiceTest
 
         DeviceSpecificFieldState positioning = State(form, DeviceSpecificSettingKeys.PositioningAlgorithm);
         positioning.Override();
-        positioning.LocalValue = nameof(ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection);
+        positioning.LocalValue = nameof(ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection);
         State(form, DeviceSpecificSettingKeys.RuleZoneFromOverride).Inherit();
         await service.SaveAsync(form);
+        DeviceSpecificLevelForm reloaded = await service.LoadFormAsync(
+            Node(root, DeviceSpecificScopeType.Gateway, "200"));
 
         using (Assert.EnterMultipleScope())
         {
@@ -215,6 +217,8 @@ internal class DeviceSpecificSettingsServiceTest
             Assert.That(api.LastPatchRemoveKeys, Is.EqualTo(kExpectedZoneFromKeys));
             Assert.That(api.ReadValue(kGatewayNodeId, DeviceSpecificSettingKeys.InstallOn)?.ToString(), Is.EqualTo("gatewaysInPath"));
             Assert.That(api.ReadValue(kGatewayNodeId, DeviceSpecificSettingKeys.RuleZoneFromOverride), Is.Null);
+            Assert.That(State(reloaded, DeviceSpecificSettingKeys.PositioningAlgorithm).DisplayedValue,
+                Is.EqualTo(nameof(ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection)));
         }
     }
 

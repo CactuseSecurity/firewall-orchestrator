@@ -45,4 +45,4 @@ This file tracks unresolved review, validation, and product-boundary work. An it
 - [x] Add existing-rule semantics only for inline parent guard rules through a separate fixed-import projection; no unrelated existing-rule fields enter the structural graph.
 - [x] Preserve generic activation and persistence. WP-01 is directly testable but adds no mapping, registration, workflow selection, or persistence change.
 - [x] Implement the decision-complete Phase 4 WP-01 brief in its four ordered slices and record validation evidence.
-- [ ] Plan customer enum mapping, strategy registration, and workflow selection separately after the customer calculation behavior is implemented and the triggering model is ready.
+- [x] Plan and implement customer enum mapping, strategy registration, and algorithm-gated workflow selection in Phase 4 WP-02.

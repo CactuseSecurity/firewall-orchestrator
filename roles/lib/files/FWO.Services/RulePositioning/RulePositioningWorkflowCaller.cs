@@ -54,13 +54,19 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
                 await settingsManager.LoadLevelAsync<GatewayDeviceSpecificSettings>(
                     DeviceSpecificScopePath.ForGateway(target.Management, target.Gateway));
             cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyCollection<WfReqTask>? ticketTasks = await LoadTicketTasksIfRequiredAsync(
+                requestTask,
+                target.Management.Id,
+                settings.Settings.PositioningAlgorithm,
+                cancellationToken);
 
             RulePositioningContext context = new(
                 implementationTask,
                 requestTask,
                 target.Gateway,
                 target.Management,
-                settings.Settings);
+                settings.Settings,
+                ticketTasks);
             RulePositioningResult calculation = await positioningManager.CalculateAsync(
                 context,
                 cancellationToken);
@@ -93,6 +99,42 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
             RulePositioningWorkflowStatus.ClearedAfterFailure,
             failureCategory,
             cancellationToken);
+    }
+
+    /// <summary>Loads and validates the management-specific ticket slice only for ticket-aware positioning.</summary>
+    private async Task<IReadOnlyCollection<WfReqTask>?> LoadTicketTasksIfRequiredAsync(
+        WfReqTask requestTask,
+        int managementId,
+        ProvisioningPositioningAlgorithm algorithm,
+        CancellationToken cancellationToken)
+    {
+        if (algorithm != ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection)
+        {
+            return null;
+        }
+        if (requestTask.TicketId <= 0 || managementId <= 0)
+        {
+            throw new InvalidOperationException("The rule-positioning ticket context is invalid.");
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        WfTicket? ticket = await apiConnection.SendQueryAsync<WfTicket>(
+            RequestQueries.getTicketById,
+            new { id = requestTask.TicketId }).WaitAsync(cancellationToken);
+        if (ticket == null || ticket.Id != requestTask.TicketId || ticket.Tasks == null)
+        {
+            throw new InvalidOperationException("The rule-positioning ticket is unavailable or inconsistent.");
+        }
+
+        List<WfReqTask> tasks = [.. ticket.Tasks.Where(task =>
+                task != null && task.Id > 0 && task.TaskNumber > 0 &&
+                task.TicketId == ticket.Id && task.ManagementId == managementId)
+            .OrderBy(task => task.TaskNumber).ThenBy(task => task.Id)];
+        if (tasks.Count(task => task.Id == requestTask.Id) != 1)
+        {
+            throw new InvalidOperationException("The rule-positioning ticket does not contain the request task.");
+        }
+        return tasks.AsReadOnly();
     }
 
     /// <summary>Checks task shape and identity before loading any external context.</summary>

@@ -19,7 +19,7 @@ public class KfwCheckPointPositioningRecipeTest
     private const int kGatewayId = 20;
     private const long kImportId = 30;
     private const ProvisioningPositioningAlgorithm kAlgorithm =
-        ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection;
+        ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection;
 
     [TestCase(" destination ", " source ", "[DESTINATION] < [SOURCE]")]
     [TestCase("same", "same", "[SAME] < [SAME]")]

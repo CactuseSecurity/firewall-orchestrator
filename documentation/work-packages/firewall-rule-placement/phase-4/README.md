@@ -2,7 +2,7 @@
 
 ## Status
 
-WP-01 is implemented and locally validated. Phase 3 has produced and validated the generic semantic-positioning capability, Phase 3 WP-06 has activated it through the approved workflow seam, and the remaining Phase 1 disposable-VM acceptance gates have passed.
+WP-01 is implemented and locally validated. WP-02 activates that customer calculation through the existing workflow and persistence seam while keeping generic positioning graph-only.
 
 Phase 4 first adds isolated KfW Check Point calculation behavior. Per D-047, enum mapping, production registration, zone-service activation for positioning, and workflow selection of the customer algorithm move to a separate later plan. Per D-058, Fortinet `SECTION_LABEL` is deferred beyond the current sprint and quarter. Phase 4 does not own generic activation, persistence, request rendering, or firewall execution.
 
@@ -11,6 +11,7 @@ Phase 4 first adds isolated KfW Check Point calculation behavior. Per D-047, enu
 | Work package | Status | Planning brief | Implementation brief | Outcome |
 | --- | --- | --- | --- | --- |
 | WP-01 | Implemented and locally validated | [Plan customer-specific calculation](WP-01-customer-specific-recipes-planning.md) | [Implemented customer-specific calculation](WP-01-customer-specific-recipes-implementation.md) | Adds isolated KfW Check Point guard-derived functional-layer selection, normalized Section matching, same-ticket effective-group input, and activation-neutral recipe construction without production registration. |
+| WP-02 | Implemented and locally validated; VM validation unavailable | [Plan customer activation](WP-02-customer-positioning-activation-planning.md) | [Implemented customer activation](WP-02-customer-positioning-activation-implementation.md) | Adds the behavior-based setting, algorithm-gated ticket context, customer catalog/strategy registration, and automatic semantic-position persistence. |
 
 ## Pre-implemented Phase 4 foundation
 

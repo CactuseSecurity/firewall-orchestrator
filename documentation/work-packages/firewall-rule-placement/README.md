@@ -92,6 +92,7 @@ Phase 2 does not add a strategy, policy loader, dependency-injection registratio
 | [Phase 3 WP-05](phase-3/WP-05-generic-production-completion-planning.md) | Implemented graph-only generic calculation and persistence, kept zone input inactive, and removed the renderer. |
 | [Phase 3 WP-06](phase-3/WP-06-workflow-activation-planning.md) | Completed activation of the WP-05 caller from the approved server-side workflow trigger. |
 | [Phase 4 WP-01](phase-4/WP-01-customer-specific-recipes-planning.md) | Analyze the customer document and add isolated customer blocks plus activation-neutral recipe construction. |
+| [Phase 4 WP-02](phase-4/WP-02-customer-positioning-activation-planning.md) | Select and activate the KfW layer-guard zone-pair Section behavior in the existing production workflow. |
 
 ## Dependency graph
 
@@ -147,6 +148,7 @@ WP-02 and WP-03 proceeded in parallel after WP-01 stabilized. Phase 1 was comple
 - Phase 3 WP-05 confirmed and implemented one genuinely generic existing enum mapping without inferring semantics from an enum name.
 - Phase 3 WP-05 registered the workflow caller; Phase 3 WP-06 completed its separately planned activation hook.
 - Customer-specific calculation blocks are deferred to Phase 4 WP-01; enum mapping and production selection are deferred to a later plan under D-047.
+- Phase 4 WP-02 maps the customer behavior to a new explicit enum value and activates it without changing the generic graph-only capability.
 
 ## Session protocol
 

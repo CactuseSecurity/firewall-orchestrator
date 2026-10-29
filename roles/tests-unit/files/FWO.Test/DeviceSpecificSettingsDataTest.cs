@@ -243,6 +243,22 @@ internal class DeviceSpecificSettingsDataTest
     }
 
     [Test]
+    public void PositioningAlgorithm_OffersCustomerOptionAtEveryScope()
+    {
+        DeviceSpecificFieldDefinition field = DeviceSpecificSettingsData.Fields.Single(item =>
+            item.Key == DeviceSpecificSettingKeys.PositioningAlgorithm);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(field.MinLevel, Is.EqualTo(DeviceSpecificScopeType.Global));
+            Assert.That(field.MaxLevel, Is.EqualTo(DeviceSpecificScopeType.Gateway));
+            Assert.That(field.Options.Single(option => option.Value ==
+                    nameof(ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection)).TextKey,
+                Is.EqualTo("dss_opt_cp_layer_guard_end_of_zone_pair_section"));
+        });
+    }
+
+    [Test]
     public void ParseStringList_KeepsEmptyEntriesButNotForAnEmptyValue()
     {
         using (Assert.EnterMultipleScope())

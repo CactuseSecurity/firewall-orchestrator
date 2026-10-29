@@ -102,6 +102,43 @@ public class CreationRuleNetworkInputResolverTest
     }
 
     [Test]
+    public async Task CatalogGroups_AreLoadedInBoundedChunks()
+    {
+        WfReqTask access = Access(
+            Enumerable.Range(1, 101).Select(id => new WfReqElement
+            {
+                Field = ElemFieldType.source.ToString(),
+                FlowNetworkGroupId = id
+            }),
+            [Leaf(ElemFieldType.destination, "203.0.113.1", "203.0.113.1")]);
+        FakeFlowGroupResolver groups = new(parameters => new FlowGroupResolutionResult
+        {
+            NetworkGroups = [.. parameters.NetworkGroupIds.Select(id => new FlowNetworkGroupResolution
+            {
+                Id = id,
+                Name = $"group-{id}",
+                Members = [new FlowNetworkMemberResolution
+                {
+                    Id = id,
+                    IpStart = $"10.0.{(id - 1) / 254}.{(id - 1) % 254 + 1}",
+                    IpEnd = $"10.0.{(id - 1) / 254}.{(id - 1) % 254 + 1}"
+                }]
+            })]
+        });
+
+        CreationRuleNetworkResolutionSuccess success = (CreationRuleNetworkResolutionSuccess)
+            await Resolver(groups).ResolveAsync(access, [access], CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(success.Input.SourceRanges, Has.Count.EqualTo(101));
+            Assert.That(groups.CallCount, Is.EqualTo(2));
+            Assert.That(groups.AllParameters.SelectMany(item => item.NetworkGroupIds),
+                Is.EquivalentTo(Enumerable.Range(1, 101).Select(id => (long)id)));
+        });
+    }
+
+    [Test]
     public async Task TicketGroup_OverridesCatalogAndExpandsNestedGroup()
     {
         WfReqTask nested = GroupCreate(1, 1, "nested",
@@ -397,11 +434,23 @@ public class CreationRuleNetworkInputResolverTest
         RequestAction = action.ToString()
     };
 
-    private sealed class FakeFlowGroupResolver(FlowGroupResolutionResult result) : IFlowGroupResolver
+    private sealed class FakeFlowGroupResolver : IFlowGroupResolver
     {
+        private readonly Func<FlowGroupResolutionParameters, FlowGroupResolutionResult> resultFactory;
+
+        internal FakeFlowGroupResolver(FlowGroupResolutionResult result)
+            : this(_ => result)
+        { }
+
+        internal FakeFlowGroupResolver(Func<FlowGroupResolutionParameters, FlowGroupResolutionResult> resultFactory)
+        {
+            this.resultFactory = resultFactory;
+        }
+
         internal Exception? Exception { get; init; }
         internal int CallCount { get; private set; }
         internal FlowGroupResolutionParameters? Parameters { get; private set; }
+        internal List<FlowGroupResolutionParameters> AllParameters { get; } = [];
 
         public Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(
             FlowGroupResolutionParameters parameters,
@@ -409,11 +458,12 @@ public class CreationRuleNetworkInputResolverTest
         {
             CallCount++;
             Parameters = parameters;
+            AllParameters.Add(parameters);
             if (Exception != null)
             {
                 throw Exception;
             }
-            return Task.FromResult(result);
+            return Task.FromResult(resultFactory(parameters));
         }
     }
 }

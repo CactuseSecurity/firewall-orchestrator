@@ -8,12 +8,14 @@ using FWO.Services.RulePositioning.CheckPoint;
 
 namespace FWO.Compliance.RulePositioning.CheckPoint;
 
-/// <summary>Orchestrates one inactive Check Point rule-positioning calculation.</summary>
+/// <summary>Orchestrates the ticket-aware Check Point layer-guard positioning calculation.</summary>
 public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
 {
     private const int kCheckPointR8xDeviceTypeId = 9;
 
     private readonly IRulebaseGraphSnapshotReader graphReader;
+    private readonly ICreationRuleNetworkInputResolver networkResolver;
+    private readonly ICheckPointLayerGuardSnapshotReader guardReader;
     private readonly IDesignatedZoneMatrixReader zoneMatrixReader;
     private readonly ICreationRuleZoneResolver zoneResolver;
     private readonly ICheckPointPositioningRecipeCatalog recipeCatalog;
@@ -22,11 +24,15 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     /// <summary>Creates the Check Point positioning orchestration strategy.</summary>
     public CheckPointRulePositioningStrategy(
         IRulebaseGraphSnapshotReader graphReader,
+        ICreationRuleNetworkInputResolver networkResolver,
+        ICheckPointLayerGuardSnapshotReader guardReader,
         IDesignatedZoneMatrixReader zoneMatrixReader,
         ICreationRuleZoneResolver zoneResolver,
         ICheckPointPositioningRecipeCatalog recipeCatalog)
     {
         this.graphReader = graphReader ?? throw new ArgumentNullException(nameof(graphReader));
+        this.networkResolver = networkResolver ?? throw new ArgumentNullException(nameof(networkResolver));
+        this.guardReader = guardReader ?? throw new ArgumentNullException(nameof(guardReader));
         this.zoneMatrixReader = zoneMatrixReader ?? throw new ArgumentNullException(nameof(zoneMatrixReader));
         this.zoneResolver = zoneResolver ?? throw new ArgumentNullException(nameof(zoneResolver));
         this.recipeCatalog = recipeCatalog ?? throw new ArgumentNullException(nameof(recipeCatalog));
@@ -48,69 +54,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     {
         try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            RulePositioningFailure? validationFailure = ValidateContext(context);
-            if (validationFailure != null)
-            {
-                return validationFailure;
-            }
-
-            ProvisioningPositioningAlgorithm algorithm = context.EffectiveSettings.PositioningAlgorithm;
-            if (!CanHandle(context.TargetGateway.DeviceType, algorithm))
-            {
-                return Failure(RulePositioningFailureCategory.PositioningMethodNotImplemented);
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            RulebaseGraphReadResult graphResult = await graphReader.ReadAsync(
-                context.TargetManagement.Id,
-                context.TargetGateway.Id,
-                cancellationToken);
-            if (graphResult is not RulebaseGraphReadSuccess graphSuccess)
-            {
-                return MapGraphFailure(graphResult);
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            DesignatedZoneMatrixReadResult matrixResult = await zoneMatrixReader.ReadAsync(cancellationToken);
-            if (matrixResult is not DesignatedZoneMatrixReadSuccess matrixSuccess)
-            {
-                return MapMatrixFailure(matrixResult);
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            CreationRuleZoneResolutionResult zoneResult = await zoneResolver.ResolveAsync(
-                context.ParentRequestTask,
-                matrixSuccess.NetworkZones,
-                cancellationToken);
-            if (zoneResult is not CreationRuleZoneResolutionSuccess zoneSuccess)
-            {
-                return MapZoneFailure(zoneResult);
-            }
-
-            CheckPointRecipeSelectionResult selectionResult = recipeCatalog.SelectRecipe(algorithm, zoneSuccess.Input);
-            if (selectionResult is not CheckPointRecipeSelectionSuccess selectionSuccess)
-            {
-                return MapSelectionFailure(selectionResult);
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            CheckPointPositioningContext checkPointContext = new(context, graphSuccess.Snapshot);
-            PositioningBlockResult<CheckPointBlockValue> executionResult = await recipeExecutor.ExecuteAsync(
-                selectionSuccess.Recipe,
-                checkPointContext,
-                cancellationToken);
-            if (executionResult is not PositioningBlockSuccess<CheckPointBlockValue> executionSuccess)
-            {
-                return MapExecutionFailure(executionResult);
-            }
-            if (executionSuccess.Value is not CheckPointPositionValue positionValue
-                || positionValue.Position.PositioningAlgorithm != algorithm)
-            {
-                return Failure(RulePositioningFailureCategory.CalculationFailed);
-            }
-
-            return new RulePositioningSuccess(positionValue.Position);
+            return await CalculateCoreAsync(context, cancellationToken);
         }
         catch (OperationCanceledException exception)
             when (cancellationToken.IsCancellationRequested
@@ -124,6 +68,104 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         }
     }
 
+    /// <summary>Runs the validated customer orchestration without exception translation.</summary>
+    private async Task<RulePositioningResult> CalculateCoreAsync(
+        RulePositioningContext context,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        RulePositioningFailure? validationFailure = ValidateContext(context);
+        if (validationFailure != null)
+        {
+            return validationFailure;
+        }
+
+        ProvisioningPositioningAlgorithm algorithm = context.EffectiveSettings.PositioningAlgorithm;
+        if (!CanHandle(context.TargetGateway.DeviceType, algorithm))
+        {
+            return Failure(RulePositioningFailureCategory.PositioningMethodNotImplemented);
+        }
+
+        RulebaseGraphReadResult graphResult = await graphReader.ReadAsync(
+            context.TargetManagement.Id,
+            context.TargetGateway.Id,
+            cancellationToken);
+        if (graphResult is not RulebaseGraphReadSuccess graphSuccess)
+        {
+            return MapGraphFailure(graphResult);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        CreationRuleNetworkResolutionResult networkResult = await networkResolver.ResolveAsync(
+            context.ParentRequestTask,
+            context.TicketRequestTasks!,
+            cancellationToken);
+        if (networkResult is not CreationRuleNetworkResolutionSuccess networkSuccess)
+        {
+            return MapNetworkFailure(networkResult);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        CheckPointLayerGuardReadResult guardResult = await guardReader.ReadAsync(
+            graphSuccess.Snapshot,
+            graphSuccess.ImportId,
+            cancellationToken);
+        if (guardResult is not CheckPointLayerGuardReadSuccess guardSuccess)
+        {
+            return MapGuardFailure(guardResult);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        DesignatedZoneMatrixReadResult matrixResult = await zoneMatrixReader.ReadAsync(cancellationToken);
+        if (matrixResult is not DesignatedZoneMatrixReadSuccess matrixSuccess)
+        {
+            return MapMatrixFailure(matrixResult);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        CreationRuleZoneResolutionResult zoneResult = await zoneResolver.ResolveAsync(
+            networkSuccess.Input,
+            matrixSuccess.NetworkZones,
+            cancellationToken);
+        if (zoneResult is not CreationRuleZoneResolutionSuccess zoneSuccess)
+        {
+            return MapZoneFailure(zoneResult);
+        }
+
+        KfwCheckPointPositioningInput positioningInput = new(
+            networkSuccess.Input,
+            guardSuccess.Snapshot);
+        CheckPointRecipeSelectionResult selectionResult = recipeCatalog.SelectRecipe(
+            algorithm,
+            positioningInput,
+            zoneSuccess.Input);
+        if (selectionResult is not CheckPointRecipeSelectionSuccess selectionSuccess)
+        {
+            return MapSelectionFailure(selectionResult);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        CheckPointPositioningContext checkPointContext = new(
+            context,
+            graphSuccess.Snapshot,
+            positioningInput);
+        PositioningBlockResult<CheckPointBlockValue> executionResult = await recipeExecutor.ExecuteAsync(
+            selectionSuccess.Recipe,
+            checkPointContext,
+            cancellationToken);
+        if (executionResult is not PositioningBlockSuccess<CheckPointBlockValue> executionSuccess)
+        {
+            return MapExecutionFailure(executionResult);
+        }
+        if (executionSuccess.Value is not CheckPointPositionValue positionValue
+            || positionValue.Position.PositioningAlgorithm != algorithm)
+        {
+            return Failure(RulePositioningFailureCategory.CalculationFailed);
+        }
+
+        return new RulePositioningSuccess(positionValue.Position);
+    }
+
     /// <summary>Validates the minimum context required for safe direct invocation.</summary>
     private static RulePositioningFailure? ValidateContext(RulePositioningContext context)
     {
@@ -132,6 +174,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
             || context.TargetGateway.DeviceType == null
             || context.TargetManagement == null
             || context.ParentRequestTask == null
+            || context.TicketRequestTasks == null
             || context.EffectiveSettings == null
             || context.TargetManagement.Id <= 0
             || context.TargetGateway.Id <= 0)
@@ -142,6 +185,34 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         return IsUsableAlgorithm(context.EffectiveSettings.PositioningAlgorithm)
             ? null
             : Failure(RulePositioningFailureCategory.ConfigurationInvalid);
+    }
+
+    /// <summary>Maps effective-network failures to the public positioning contract.</summary>
+    private static RulePositioningFailure MapNetworkFailure(CreationRuleNetworkResolutionResult result)
+    {
+        RulePositioningFailureCategory category = result is CreationRuleNetworkResolutionFailure failure
+            ? failure.Category switch
+            {
+                CreationRuleNetworkResolutionFailureCategory.UnsupportedTask =>
+                    RulePositioningFailureCategory.UnsupportedTask,
+                CreationRuleNetworkResolutionFailureCategory.GroupQueryFailed or
+                    CreationRuleNetworkResolutionFailureCategory.UnexpectedFailure =>
+                    RulePositioningFailureCategory.CalculationFailed,
+                _ => RulePositioningFailureCategory.InvalidInput
+            }
+            : RulePositioningFailureCategory.CalculationFailed;
+        return Failure(category);
+    }
+
+    /// <summary>Maps fixed-import layer-guard failures to the public positioning contract.</summary>
+    private static RulePositioningFailure MapGuardFailure(CheckPointLayerGuardReadResult result)
+    {
+        RulePositioningFailureCategory category = result is CheckPointLayerGuardReadFailure failure
+            && failure.Category is CheckPointLayerGuardReadFailureCategory.InvalidInput
+                or CheckPointLayerGuardReadFailureCategory.ScopeMismatch
+                ? RulePositioningFailureCategory.InvalidInput
+                : RulePositioningFailureCategory.CalculationFailed;
+        return Failure(category);
     }
 
     /// <summary>Checks whether an algorithm is defined and non-default.</summary>

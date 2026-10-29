@@ -3,6 +3,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
+using FWO.Config.Api.DeviceSpecificSettings;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
@@ -46,7 +47,127 @@ internal class RulePositioningWorkflowCallerTest
             Assert.That(api.TargetReads, Is.EqualTo(1));
             Assert.That(api.SettingsReads, Is.EqualTo(1));
             Assert.That(api.PositionWrites, Is.EqualTo(1));
+            Assert.That(api.TicketReads, Is.Zero);
+            Assert.That(strategy.Context.TicketRequestTasks, Is.Null);
             Assert.That(api.LastPosition, Is.TypeOf<CheckPointRulePosition>());
+        });
+    }
+
+    [Test]
+    public async Task CustomerAlgorithm_LoadsOrderedManagementTicketSliceAndKeepsSuppliedParent()
+    {
+        RecordingApiConnection api = new()
+        {
+            PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection
+        };
+        RecordingStrategy strategy = new(Success(
+            ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection));
+        RulePositioningWorkflowCaller caller = Caller(api, strategy);
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        WfReqTask persistedParent = TicketTask(kRequestTaskId, 3, kManagementId);
+        WfReqTask earlier = TicketTask(51, 1, kManagementId);
+        api.Ticket = new WfTicket
+        {
+            Id = requestTask.TicketId,
+            Tasks =
+            [
+                persistedParent,
+                TicketTask(61, 2, 999),
+                earlier
+            ]
+        };
+
+        RulePositioningWorkflowOutcome outcome = await caller.CalculateAndPersistAsync(
+            requestTask,
+            implementationTask,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.Stored));
+            Assert.That(api.TicketReads, Is.EqualTo(1));
+            Assert.That(strategy.Context!.ParentRequestTask, Is.SameAs(requestTask));
+            Assert.That(strategy.Context.TicketRequestTasks, Is.EqualTo([earlier, persistedParent]));
+            Assert.That(strategy.Context.TicketRequestTasks, Is.Not.SameAs(api.Ticket.Tasks));
+        });
+    }
+
+    [Test]
+    public async Task CustomerAlgorithm_MalformedTicketClearsStalePositionWithoutCalculation()
+    {
+        RecordingApiConnection api = new()
+        {
+            PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection,
+            Ticket = new WfTicket { Id = 999 }
+        };
+        RecordingStrategy strategy = new(Success(
+            ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection));
+        RulePositioningWorkflowCaller caller = Caller(api, strategy);
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+
+        RulePositioningWorkflowOutcome outcome = await caller.CalculateAndPersistAsync(
+            requestTask,
+            implementationTask,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.ClearedAfterFailure));
+            Assert.That(strategy.CalculationCount, Is.Zero);
+            Assert.That(api.TicketReads, Is.EqualTo(1));
+            Assert.That(api.LastPosition, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task CustomerAlgorithm_TicketWithoutRuleTaskClearsWithoutCalculation()
+    {
+        RecordingApiConnection api = new()
+        {
+            PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection,
+            Ticket = new WfTicket { Id = 71, Tasks = [TicketTask(51, 1, kManagementId)] }
+        };
+        RecordingStrategy strategy = new(Success(
+            ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection));
+        RulePositioningWorkflowCaller caller = Caller(api, strategy);
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+
+        RulePositioningWorkflowOutcome outcome = await caller.CalculateAndPersistAsync(
+            requestTask,
+            implementationTask,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.ClearedAfterFailure));
+            Assert.That(strategy.CalculationCount, Is.Zero);
+            Assert.That(api.TicketReads, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task CustomerAlgorithm_MissingTicketIdentityClearsBeforeTicketQuery()
+    {
+        RecordingApiConnection api = new()
+        {
+            PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection
+        };
+        RecordingStrategy strategy = new(Success(
+            ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection));
+        RulePositioningWorkflowCaller caller = Caller(api, strategy);
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        requestTask.TicketId = 0;
+
+        RulePositioningWorkflowOutcome outcome = await caller.CalculateAndPersistAsync(
+            requestTask,
+            implementationTask,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.ClearedAfterFailure));
+            Assert.That(strategy.CalculationCount, Is.Zero);
+            Assert.That(api.TicketReads, Is.Zero);
         });
     }
 
@@ -293,13 +414,14 @@ internal class RulePositioningWorkflowCallerTest
             new DeviceSpecificSettingsManager(api));
     }
 
-    private static RulePositioningResult Success()
+    private static RulePositioningResult Success(
+        ProvisioningPositioningAlgorithm algorithm = ProvisioningPositioningAlgorithm.DefaultEndOfRulebase)
     {
         return new RulePositioningSuccess(new CheckPointRulePosition(
             "layer",
             CheckPointPositionAnchorKind.Bottom,
             null,
-            ProvisioningPositioningAlgorithm.DefaultEndOfRulebase));
+            algorithm));
     }
 
     private static (WfReqTask RequestTask, WfImplTask ImplementationTask) Tasks()
@@ -307,6 +429,8 @@ internal class RulePositioningWorkflowCallerTest
         WfReqTask requestTask = new()
         {
             Id = kRequestTaskId,
+            TicketId = 71,
+            TaskNumber = 3,
             TaskType = WfTaskType.access.ToString(),
             RequestAction = RequestAction.create.ToString(),
             ManagementId = kManagementId
@@ -322,6 +446,16 @@ internal class RulePositioningWorkflowCallerTest
         });
     }
 
+    private static WfReqTask TicketTask(long id, int taskNumber, int managementId) => new()
+    {
+        Id = id,
+        TicketId = 71,
+        TaskNumber = taskNumber,
+        TaskType = WfTaskType.access.ToString(),
+        RequestAction = RequestAction.create.ToString(),
+        ManagementId = managementId
+    };
+
     private sealed class RecordingStrategy(RulePositioningResult result) : IRulePositioningStrategy
     {
         public int CalculationCount { get; private set; }
@@ -329,8 +463,7 @@ internal class RulePositioningWorkflowCallerTest
 
         public bool CanHandle(DeviceType deviceType, ProvisioningPositioningAlgorithm positioningAlgorithm)
         {
-            return deviceType.Id == 9
-                && positioningAlgorithm == ProvisioningPositioningAlgorithm.DefaultEndOfRulebase;
+            return deviceType.Id == 9 && positioningAlgorithm != ProvisioningPositioningAlgorithm.Undefined;
         }
 
         public Task<RulePositioningResult> CalculateAsync(
@@ -354,9 +487,13 @@ internal class RulePositioningWorkflowCallerTest
         public bool DelayPositionWrite { get; set; }
         public int TargetReads { get; private set; }
         public int SettingsReads { get; private set; }
+        public int TicketReads { get; private set; }
         public int PositionWrites { get; private set; }
-        public int AllCalls => TargetReads + SettingsReads + PositionWrites;
+        public int AllCalls => TargetReads + SettingsReads + TicketReads + PositionWrites;
         public RulePosition? LastPosition { get; private set; }
+        public ProvisioningPositioningAlgorithm PositioningAlgorithm { get; set; } =
+            ProvisioningPositioningAlgorithm.DefaultEndOfRulebase;
+        public WfTicket? Ticket { get; set; }
         public TaskCompletionSource WriteStarted { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -383,7 +520,36 @@ internal class RulePositioningWorkflowCallerTest
             if (query == DeviceSpecificSettingsQueries.getNodesByNaturalKeys)
             {
                 SettingsReads++;
-                return (T)(object)new List<DeviceSpecificConfigNodeData>();
+                if (PositioningAlgorithm == ProvisioningPositioningAlgorithm.DefaultEndOfRulebase)
+                {
+                    return (T)(object)new List<DeviceSpecificConfigNodeData>();
+                }
+                return (T)(object)new List<DeviceSpecificConfigNodeData>
+                {
+                    new()
+                    {
+                        Id = 1,
+                        NodeType = DeviceSpecificSettingsScopeFactory.GlobalNodeType,
+                        ObjectKey = DeviceSpecificScopePath.GlobalObjectKey,
+                        DisplayName = DeviceSpecificScopePath.GlobalDisplayName,
+                        Values =
+                        [
+                            new DeviceSpecificConfigValueData
+                            {
+                                NodeId = 1,
+                                ConfigKey = DeviceSpecificSettingKeys.PositioningAlgorithm.DatabaseKey,
+                                ConfigValue = DeviceSpecificSettingValueSerializer.Serialize(
+                                    DeviceSpecificSettingKeys.PositioningAlgorithm,
+                                    PositioningAlgorithm)
+                            }
+                        ]
+                    }
+                };
+            }
+            if (query == RequestQueries.getTicketById)
+            {
+                TicketReads++;
+                return (T)(object)(Ticket ?? throw new InvalidOperationException("Missing ticket fixture."));
             }
             if (query == RequestQueries.updateImplementationTaskRulePosition)
             {

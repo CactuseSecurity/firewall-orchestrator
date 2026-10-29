@@ -6,13 +6,13 @@ namespace FWO.Middleware.Server.Requests;
 /// <summary>
 /// Represents the GetServiceGroupsRequest type.
 /// </summary>
-public sealed class GetServiceGroupsRequest : IVisibleInRequestFilterRequest, IPagedListRequest
+public sealed class GetServiceGroupsRequest : IFlowCatalogGroupFilterRequest, IPagedListRequest
 {
     /// <summary>
     /// Gets the Filter value.
     /// </summary>
     [JsonPropertyName("filter")]
-    public VisibleInRequestFilter? Filter { get; set; }
+    public FlowCatalogGroupFilter? Filter { get; set; }
 
     /// <summary>
     /// Gets or sets the maximum number of items returned, between 1 and the configured <c>maxRestResponseObjectLimit</c>

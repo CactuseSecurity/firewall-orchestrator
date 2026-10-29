@@ -159,6 +159,69 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
+    public async Task GetAddressGroupsAsync_IncludesStandaloneTechnicalDetailsOnlyWhenRequested()
+    {
+        FlowCatalogServiceApiConn apiConnection = new()
+        {
+            AddressGroups =
+            [
+                new FlowNwGroup
+                {
+                    Id = 20,
+                    Name = "Addresses",
+                    NwGroupMembers =
+                    [
+                        new FlowNwGroupMember
+                        {
+                            NwObjectId = 100,
+                            NwObject = new FlowNwObject
+                            {
+                                Id = 100,
+                                Name = "Network",
+                                IpStart = "192.0.2.0/24",
+                                IpEnd = "192.0.2.255/24",
+                                State = FlowState.Implemented,
+                                ShowInRequestModule = true
+                            }
+                        },
+                        new FlowNwGroupMember
+                        {
+                            NwObjectId = 101,
+                            NwObject = new FlowNwObject
+                            {
+                                Id = 101,
+                                Name = "example.test",
+                                State = FlowState.Requested,
+                                ShowInRequestModule = false
+                            }
+                        }
+                    ]
+                }
+            ]
+        };
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+
+        List<AddressGroupResponse.AddressGroupMemberResponse> compact =
+            (await service.GetAddressGroupsAsync(null, kMaxLimit, 0, false)).Items.Single().Members;
+        List<AddressGroupResponse.AddressGroupMemberResponse> detailed =
+            (await service.GetAddressGroupsAsync(null, kMaxLimit, 0, true)).Items.Single().Members;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(compact.All(member => !member.IncludeTechnicalDetails), Is.True);
+            Assert.That(detailed.All(member => member.IncludeTechnicalDetails), Is.True);
+            Assert.That(detailed[0].Type, Is.EqualTo("network"));
+            Assert.That(detailed[0].IpRange, Is.EqualTo(new[] { "192.0.2.0", "192.0.2.255" }));
+            Assert.That(detailed[0].State, Is.EqualTo(FlowState.Implemented));
+            Assert.That(detailed[0].ShowInRequest, Is.True);
+            Assert.That(detailed[1].Type, Is.EqualTo("fqdn"));
+            Assert.That(detailed[1].IpRange, Is.Empty);
+            Assert.That(detailed[1].State, Is.EqualTo(FlowState.Requested));
+            Assert.That(detailed[1].ShowInRequest, Is.False);
+        });
+    }
+
+    [Test]
     public async Task GetSeparatedAddressGroupsAsync_SplitsZoneGroupsByConfiguredPatterns()
     {
         FlowCatalogServiceApiConn apiConnection = new();
@@ -722,6 +785,81 @@ internal class FlowCatalogServiceTest
             Assert.That(result[0].ShowInRequest, Is.True);
             Assert.That(result[0].Members, Has.Count.EqualTo(1));
             Assert.That(result[0].Members[0].Name, Is.EqualTo("HTTPS"));
+        });
+    }
+
+    [Test]
+    public async Task GetServiceGroupsAsync_IncludesStandaloneTechnicalDetailsOnlyWhenRequested()
+    {
+        FlowCatalogServiceApiConn apiConnection = new()
+        {
+            Protocols =
+            [
+                new IpProtocol { Id = 1, Name = "ICMP" },
+                new IpProtocol { Id = 6, Name = "TCP" }
+            ],
+            ServiceGroups =
+            [
+                new FlowSvcGroup
+                {
+                    Id = 25,
+                    Name = "Services",
+                    SvcGroupMembers =
+                    [
+                        new FlowSvcGroupMember
+                        {
+                            SvcObjectId = 200,
+                            SvcObject = new FlowSvcObject
+                            {
+                                Id = 200,
+                                Name = "HTTPS",
+                                PortStart = 443,
+                                PortEnd = 443,
+                                ProtoId = 6,
+                                State = FlowState.Implemented,
+                                ShowInRequestModule = true
+                            }
+                        },
+                        new FlowSvcGroupMember
+                        {
+                            SvcObjectId = 201,
+                            SvcObject = new FlowSvcObject
+                            {
+                                Id = 201,
+                                Name = "ICMP",
+                                ProtoId = 1,
+                                State = FlowState.Requested,
+                                ShowInRequestModule = false
+                            }
+                        }
+                    ]
+                }
+            ]
+        };
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+
+        List<ServiceGroupResponse.ServiceGroupMemberResponse> compact =
+            (await service.GetServiceGroupsAsync(null, kMaxLimit, 0, false)).Items.Single().Members;
+        int compactProtocolQueries = apiConnection.SentQueries.Count(query => query == StmQueries.getIpProtocols);
+        List<ServiceGroupResponse.ServiceGroupMemberResponse> detailed =
+            (await service.GetServiceGroupsAsync(null, kMaxLimit, 0, true)).Items.Single().Members;
+        _ = await service.GetServiceGroupsAsync(null, kMaxLimit, 0, true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(compact.All(member => !member.IncludeTechnicalDetails), Is.True);
+            Assert.That(compactProtocolQueries, Is.Zero);
+            Assert.That(apiConnection.SentQueries.Count(query => query == StmQueries.getIpProtocols), Is.EqualTo(1));
+            Assert.That(detailed[0].PortStart, Is.EqualTo(443));
+            Assert.That(detailed[0].PortEnd, Is.EqualTo(443));
+            Assert.That(detailed[0].Protocol, Is.EqualTo("TCP"));
+            Assert.That(detailed[0].State, Is.EqualTo(FlowState.Implemented));
+            Assert.That(detailed[0].ShowInRequest, Is.True);
+            Assert.That(detailed[1].PortStart, Is.Null);
+            Assert.That(detailed[1].PortEnd, Is.Null);
+            Assert.That(detailed[1].Protocol, Is.EqualTo("ICMP"));
+            Assert.That(detailed[1].State, Is.EqualTo(FlowState.Requested));
+            Assert.That(detailed[1].ShowInRequest, Is.False);
         });
     }
 

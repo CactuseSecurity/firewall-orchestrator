@@ -40,7 +40,7 @@ public sealed class AddressGroupResponse
     /// <summary>
     /// Represents the AddressGroupMemberResponse type.
     /// </summary>
-    public sealed class AddressGroupMemberResponse
+    public sealed class AddressGroupMemberResponse : IOptionalTechnicalDetailsResponse
     {
         /// <summary>
         /// Gets the Id value.
@@ -53,5 +53,33 @@ public sealed class AddressGroupResponse
         /// </summary>
         [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets the address type calculated from the IP range.
+        /// </summary>
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets the inclusive IP range or an empty list for non-IP objects.
+        /// </summary>
+        [JsonPropertyName("ipRange")]
+        public List<string> IpRange { get; set; } = [];
+
+        /// <summary>
+        /// Gets the member state.
+        /// </summary>
+        [JsonPropertyName("state")]
+        public string State { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets whether the member is visible in requests.
+        /// </summary>
+        [JsonPropertyName("showInRequest")]
+        public bool ShowInRequest { get; set; }
+
+        /// <inheritdoc />
+        [JsonIgnore]
+        public bool IncludeTechnicalDetails { get; set; }
     }
 }

@@ -476,8 +476,9 @@ namespace FWO.Test
             WfReqTask requestTask = CreatePositioningRequestTask(11, [21, 22]);
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.forEachDevice },
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask },
                 Devices = [new Device { Id = 21 }, new Device { Id = 22 }],
+                AutoPlanSettingsOverride = kAllAutoPlanned,
                 ActTicket = new WfTicket { Id = 7, Tasks = { requestTask } }
             };
             RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
@@ -505,7 +506,8 @@ namespace FWO.Test
                 allDevices ? [WfReqTaskBase.kAllDevicesId] : []);
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices },
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices },
+                AutoPlanSettingsOverride = kAllAutoPlanned,
                 ActTicket = new WfTicket { Id = 7, Tasks = { requestTask } }
             };
             RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
@@ -532,7 +534,7 @@ namespace FWO.Test
             firstTask.SetDeviceList([21]);
             secondTask.SetDeviceList([22]);
             WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
-            handler.userConfig.ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.enterInReqTask;
+            handler.userConfig.ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask;
             handler.Devices = [new Device { Id = 21 }, new Device { Id = 22 }];
             RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
             ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket);

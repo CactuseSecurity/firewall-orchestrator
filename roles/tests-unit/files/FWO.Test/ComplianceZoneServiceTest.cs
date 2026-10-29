@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Basics.Exceptions;
 using FWO.Compliance.RulePositioning;
 using FWO.Config.Api.Data;
@@ -287,9 +288,10 @@ internal class ComplianceZoneServiceTest
             new StubZoneMatrixReader(new DesignatedZoneMatrixReadFailure(category)),
             new SimulatedGlobalConfig());
 
-        List<ComplianceDesignatedZoneResponse> result = await service.GetDesignatedZoneMatrixZonesAsync();
+        ListPage<ComplianceDesignatedZoneResponse> result = await service.GetDesignatedZoneMatrixZonesAsync(
+            GlobalConst.kDefaultMaxRestResponseObjectLimit, null);
 
-        Assert.That(result, Is.Empty);
+        Assert.That(result.Items, Is.Empty);
     }
 
     [Test]
@@ -299,7 +301,7 @@ internal class ComplianceZoneServiceTest
         ComplianceZoneService service = new(new StubZoneMatrixReader(failure), new SimulatedGlobalConfig());
 
         InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await service.GetDesignatedZoneMatrixZonesAsync());
+            await service.GetDesignatedZoneMatrixZonesAsync(GlobalConst.kDefaultMaxRestResponseObjectLimit, null));
 
         Assert.That(exception!.Message, Is.EqualTo(failure.Diagnostic));
     }

@@ -765,6 +765,98 @@ namespace FWO.Test
             }
         }
 
+        [Test]
+        public async Task WorkflowController_ClientDisconnectAfterCreationDoesNotCancelRulePositioning()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            using CancellationTokenSource requestCancellation = new();
+            controller.HttpContext.RequestAborted = requestCancellation.Token;
+            WorkflowExecutionApiConn apiConnection = new() { States = [] };
+            WfReqTask requestTask = new()
+            {
+                Id = 31,
+                TicketId = 42,
+                StateId = 4,
+                ManagementId = 11,
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString()
+            };
+            requestTask.SetDeviceList([21]);
+            requestTask.ImplementationTasks.Add(new WfImplTask
+            {
+                Id = 41,
+                TicketId = 42,
+                ReqTaskId = 31,
+                StateId = 4,
+                DeviceId = 21,
+                TaskType = WfTaskType.access.ToString(),
+                ImplAction = RequestAction.create.ToString()
+            });
+            apiConnection.Ticket = new WfTicket { Id = 42, StateId = 4, Tasks = { requestTask } };
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.ImplementationTask.ToString(),
+                ObjectId = 41,
+                TicketId = 42,
+                Phase = WorkflowPhases.request.ToString(),
+                ExecutionMode = Roles.Admin,
+                OldStateId = 0,
+                NewStateId = 4,
+                StateChangedByCreation = true
+            };
+            TaskCompletionSource<CancellationToken> started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            RecordingRulePositioningWorkflowCaller caller = new()
+            {
+                Calculation = async cancellationToken =>
+                {
+                    started.TrySetResult(cancellationToken);
+                    await release.Task.WaitAsync(cancellationToken);
+                    return new RulePositioningWorkflowOutcome(RulePositioningWorkflowStatus.Stored);
+                }
+            };
+            IServiceProvider? previousServices = FWO.Services.ServiceProvider.Services;
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            FWO.Services.ServiceProvider.Services = new ServiceCollection()
+                .AddSingleton<IRulePositioningWorkflowCaller>(caller)
+                .BuildServiceProvider();
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                Task<WorkflowActionResult> execution = InvokePrivateAsync<WorkflowActionResult>(
+                    controller,
+                    "ExecuteActionsInMiddlewareContext",
+                    apiConnection,
+                    parameters,
+                    WfObjectScopes.ImplementationTask,
+                    WorkflowPhases.request,
+                    42L,
+                    new WorkflowActionResult());
+                CancellationToken positioningToken = await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+                requestCancellation.Cancel();
+
+                Assert.That(positioningToken.IsCancellationRequested, Is.False);
+                release.TrySetResult();
+                WorkflowActionResult result = await execution;
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result.Success, Is.True);
+                    Assert.That(caller.CalculationCount, Is.EqualTo(1));
+                    Assert.That(caller.LastCancellationToken.CanBeCanceled, Is.True,
+                        "the independent positioning timeout must remain active");
+                    Assert.That(caller.LastCancellationToken.IsCancellationRequested, Is.False);
+                });
+            }
+            finally
+            {
+                release.TrySetResult();
+                FWO.Services.ServiceProvider.Services = previousServices;
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
         /// <summary>
         /// The claim decides whether the side effects run, so it must be keyed on the object the
         /// server resolved rather than on the id the caller happened to send.

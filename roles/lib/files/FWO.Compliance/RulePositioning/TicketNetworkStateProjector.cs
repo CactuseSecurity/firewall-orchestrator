@@ -2,7 +2,7 @@ using FWO.Data.Workflow;
 
 namespace FWO.Compliance.RulePositioning;
 
-internal sealed class TicketNetworkStateProjector
+internal static class TicketNetworkStateProjector
 {
     internal const int kMaximumGroupDepth = 100;
 

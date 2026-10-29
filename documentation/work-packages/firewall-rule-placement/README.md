@@ -76,6 +76,7 @@ Phase 2 does not add a strategy, policy loader, dependency-injection registratio
 | [Phase 3 WP-04](phase-3/WP-04-semantic-position-rendering-planning.md) | Historical experiment; its renderer was removed by WP-05 under D-036. |
 | [Phase 3 WP-05](phase-3/WP-05-generic-production-completion-planning.md) | Implemented graph-only generic calculation and persistence, kept zone input inactive, and removed the renderer. |
 | [Phase 3 WP-06](phase-3/WP-06-workflow-activation-planning.md) | Completed activation of the WP-05 caller from the approved server-side workflow trigger. |
+| [Phase 3 WP-07](phase-3/WP-07-positioning-execution-follow-up.md) | Follow up by moving expensive calculation outside the ticket lock, bounding nested guard reads, and validating large multi-task workloads. |
 | [Phase 4 WP-01](phase-4/WP-01-customer-specific-recipes-planning.md) | Analyze the customer document and add isolated customer blocks plus activation-neutral recipe construction. |
 | [Phase 4 WP-02](phase-4/WP-02-customer-positioning-activation-planning.md) | Select and activate the KfW layer-guard zone-pair Section behavior in the existing production workflow. |
 

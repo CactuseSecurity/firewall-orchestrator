@@ -1490,34 +1490,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task DoStateChangeActions_PropagatesRequestCancellationToRulePositioning()
-        {
-            TaskCompletionSource<CancellationToken> started = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            RecordingRulePositioningWorkflowCaller caller = new()
-            {
-                Calculation = async cancellationToken =>
-                {
-                    started.TrySetResult(cancellationToken);
-                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
-                    return new RulePositioningWorkflowOutcome(RulePositioningWorkflowStatus.Stored);
-                }
-            };
-            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, null, null, caller);
-            using CancellationTokenSource requestCancellation = new();
-            handler.SetRulePositioningCancellationToken(requestCancellation.Token);
-
-            Task execution = handler.DoStateChangeActions(
-                CreatePositioningImplementationTask(),
-                WfObjectScopes.ImplementationTask,
-                creatingRequestTask: CreatePositioningRequestTask());
-            CancellationToken observedToken = await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            requestCancellation.Cancel();
-            await execution;
-
-            Assert.That(observedToken.IsCancellationRequested, Is.True);
-        }
-
-        [Test]
         public async Task DoStateChangeActions_TimesOutRulePositioningWithoutFailingWorkflowActions()
         {
             RecordingRulePositioningWorkflowCaller caller = new()

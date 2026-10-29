@@ -20,9 +20,6 @@ namespace FWO.Services.Workflow
         private readonly bool useInMwServer = false;
         private IRequestedRulePolicyChecker? requestedRulePolicyChecker;
         private readonly IWorkflowRecipientResolver? workflowRecipientResolver;
-        private readonly IRulePositioningWorkflowCaller? rulePositioningWorkflowCaller;
-        private CancellationToken rulePositioningCancellationToken;
-        internal TimeSpan RulePositioningTimeout { get; set; } = TimeSpan.FromSeconds(30);
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";
         private string? ScopedUserBcc { get; set; } = "";
@@ -131,71 +128,6 @@ namespace FWO.Services.Workflow
             StateActionExecutionContext context = new(owner, ticketId, userGrpDn, placeholderData);
             await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, context);
             await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, context);
-        }
-
-        /// <summary>Attempts positioning for one durable implementation-task creation event.</summary>
-        private async Task ActivateRulePositioningForCreation(
-            WfStatefulObject statefulObject,
-            WfObjectScopes scope,
-            WfReqTask? creatingRequestTask)
-        {
-            if (!useInMwServer
-                || scope != WfObjectScopes.ImplementationTask
-                || statefulObject is not WfImplTask implementationTask
-                || !implementationTask.StateChangedByCreation())
-            {
-                return;
-            }
-
-            try
-            {
-                if (rulePositioningWorkflowCaller == null)
-                {
-                    LogRulePositioningActivationFailure(implementationTask.Id);
-                    return;
-                }
-
-                WfReqTask? requestTask = creatingRequestTask ?? wfHandler.ResolveRulePositioningRequestTask(implementationTask);
-                if (requestTask == null || requestTask.Id != implementationTask.ReqTaskId)
-                {
-                    LogRulePositioningActivationFailure(implementationTask.Id);
-                    return;
-                }
-
-                if (rulePositioningWorkflowCaller.IsApplicable(requestTask, implementationTask))
-                {
-                    using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(
-                        rulePositioningCancellationToken);
-                    timeout.CancelAfter(RulePositioningTimeout);
-                    timeout.Token.ThrowIfCancellationRequested();
-                    await rulePositioningWorkflowCaller.CalculateAndPersistAsync(
-                        requestTask,
-                        implementationTask,
-                        timeout.Token);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                LogRulePositioningActivationFailure(implementationTask.Id);
-            }
-            catch (Exception)
-            {
-                LogRulePositioningActivationFailure(implementationTask.Id);
-            }
-        }
-
-        /// <summary>
-        /// Propagates the active middleware request cancellation into rule positioning.
-        /// </summary>
-        public void SetRulePositioningCancellationToken(CancellationToken cancellationToken)
-        {
-            rulePositioningCancellationToken = cancellationToken;
-        }
-
-        /// <summary>Logs a fixed, payload-free positioning activation failure.</summary>
-        private static void LogRulePositioningActivationFailure(long implementationTaskId)
-        {
-            Log.WriteWarning("Rule positioning activation", $"Activation failed for implementation task {implementationTaskId}.");
         }
 
         /// <summary>

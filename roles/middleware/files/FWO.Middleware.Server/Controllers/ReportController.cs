@@ -10,6 +10,7 @@ using FWO.Logging;
 using FWO.Middleware.Server.Requests;
 using FWO.Report;
 using FWO.Report.Filter;
+using FWO.Report.Filter.Exceptions;
 using FWO.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -56,9 +57,10 @@ namespace FWO.Middleware.Server.Controllers
             try
             {
                 ReportTemplate template = await ConvertParameters(parameters);
-                if (template.Filter.Length > Compiler.kMaxFilterLength)
+                ValidationProblemDetails? filterError = ValidateFilter(template.Filter);
+                if (filterError != null)
                 {
-                    return BadRequest(BuildFilterTooLongError());
+                    return BadRequest(filterError);
                 }
 
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
@@ -88,11 +90,32 @@ namespace FWO.Middleware.Server.Controllers
             return "";
         }
 
-        private static ValidationProblemDetails BuildFilterTooLongError()
+        /// <summary>
+        /// Checks the report filter built from the request before any report work is done.
+        /// </summary>
+        /// <returns>The validation problem for a too long or invalid filter; null when the filter compiles.</returns>
+        private static ValidationProblemDetails? ValidateFilter(string filter)
+        {
+            if (filter.Length > Compiler.kMaxFilterLength)
+            {
+                return BuildFilterError($"'rule-filter' together with 'action' and 'active' results in a report filter longer than {Compiler.kMaxFilterLength} characters. Request fewer values.");
+            }
+            try
+            {
+                Compiler.CompileToAst(filter);
+                return null;
+            }
+            catch (FilterException exception)
+            {
+                return BuildFilterError($"'rule-filter' together with 'action' and 'active' results in an invalid report filter: {exception.Message}");
+            }
+        }
+
+        private static ValidationProblemDetails BuildFilterError(string message)
         {
             Dictionary<string, string[]> errors = [];
             string[] filterErrors = new string[1];
-            filterErrors[0] = $"'rule-filter' together with 'action' and 'active' results in a report filter longer than {Compiler.kMaxFilterLength} characters. Request fewer values.";
+            filterErrors[0] = message;
             errors["rule-filter"] = filterErrors;
             return new ValidationProblemDetails(errors) { Status = StatusCodes.Status400BadRequest };
         }

@@ -18,6 +18,8 @@ namespace FWO.Test
         private const string kWarningSelector = "[data-testid='unchecked-certificates-warning']";
         private static readonly List<string> kAllSettingsPages = ["/settings/importer", "/settings/exttickettemplates", "/settings/email"];
         private static readonly List<string> kTicketSystemSettingsPage = ["/settings/exttickettemplates"];
+        // generous for loaded CI runners; the assertion returns as soon as it holds
+        private static readonly TimeSpan kRenderTimeout = TimeSpan.FromSeconds(10);
 
         [Test]
         public async Task ShowsNothingWhileAllChecksAreOn()
@@ -81,11 +83,11 @@ namespace FWO.Test
             {
                 List<string?> links = rendered.Find(kWarningSelector).QuerySelectorAll("a").Select(link => link.GetAttribute("href")).ToList();
                 Assert.That(links, Is.EqualTo(kTicketSystemSettingsPage));
-            });
+            }, kRenderTimeout);
 
             globalConfig.MergeSubscriptionUpdateHandler(allChecksOn.ToArray());
 
-            rendered.WaitForAssertion(() => Assert.That(rendered.FindAll(kWarningSelector), Is.Empty));
+            rendered.WaitForAssertion(() => Assert.That(rendered.FindAll(kWarningSelector), Is.Empty), kRenderTimeout);
         }
 
         private static IRenderedComponent<CascadingAuthenticationState> Render(BunitContext context, SimulatedGlobalConfig globalConfig, string role)

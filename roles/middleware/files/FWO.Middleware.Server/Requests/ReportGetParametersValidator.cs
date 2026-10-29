@@ -44,6 +44,10 @@ public static class ReportGetParametersValidator
             return errors;
         }
 
+        if (parameters.ApiReportType is null)
+        {
+            AddError(errors, "report-type", "'report-type' must be a string when supplied.");
+        }
         ValidateText(parameters.ApiReportType, "report-type", errors);
         ValidateTextList(parameters.ApiReportView, "report-view", errors);
         ValidateText(parameters.Action, "action", errors);

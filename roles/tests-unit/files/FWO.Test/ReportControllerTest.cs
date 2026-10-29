@@ -139,6 +139,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Get_RejectsRequestWhoseFilterDoesNotCompile()
+        {
+            ReportControllerTestApiConnection apiConnection = new() { IpProtocols = [new IpProtocol { Id = 17, Name = "udp (" }] };
+            ReportController controller = CreateController(apiConnection);
+
+            ActionResult<string> result = await controller.Get(new ReportGetParameters
+            {
+                ApiRuleFilter = new ApiRuleFilter { Services = [new ApiService { Protocol = 17 }] }
+            });
+
+            ValidationProblemDetails problem = GetValidationProblem(result);
+            Assert.That(problem.Errors.Keys, Is.EquivalentTo(kRuleFilterPath));
+            Assert.That(problem.Errors["rule-filter"][0], Does.Contain("invalid report filter"));
+        }
+
+        [Test]
         public async Task ConvertParameters_QuotesServiceNameAndActionSoTheyStayOneValue()
         {
             ReportController controller = CreateController(new ReportControllerTestApiConnection());

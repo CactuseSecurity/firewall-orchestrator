@@ -131,11 +131,11 @@ namespace FWO.Services
                 InterfaceName = data.InterfaceName,
                 InterfaceLinkText = data.InterfaceLinkText,
                 InterfaceLinkName = data.InterfaceLinkName,
-                InterfaceLinkUrl = IsUiLink(data.InterfaceLinkUrl, uiHostName) ? data.InterfaceLinkUrl : "",
+                InterfaceLinkUrl = NormalizeUiLink(data.InterfaceLinkUrl, uiHostName),
                 NewInterfaceName = data.NewInterfaceName,
                 NewInterfaceLinkText = data.NewInterfaceLinkText,
                 NewInterfaceLinkName = data.NewInterfaceLinkName,
-                NewInterfaceLinkUrl = IsUiLink(data.NewInterfaceLinkUrl, uiHostName) ? data.NewInterfaceLinkUrl : "",
+                NewInterfaceLinkUrl = NormalizeUiLink(data.NewInterfaceLinkUrl, uiHostName),
                 Content = data.Content,
                 UserName = callerName,
                 RequestDate = data.RequestDate
@@ -149,16 +149,38 @@ namespace FWO.Services
         /// <param name="uiHostName">Configured base URL of the FWO UI.</param>
         public static bool IsUiLink(string? url, string uiHostName)
         {
+            return TryParseUiLink(url, uiHostName, out _);
+        }
+
+        /// <summary>
+        /// Returns the normalised form of a link into the configured FWO UI, in which characters such as quotes and
+        /// angle brackets are percent-encoded, or an empty string for any other link.
+        /// </summary>
+        /// <param name="url">The link target to check.</param>
+        /// <param name="uiHostName">Configured base URL of the FWO UI.</param>
+        public static string NormalizeUiLink(string? url, string uiHostName)
+        {
+            return TryParseUiLink(url, uiHostName, out Uri? link) ? link!.AbsoluteUri : "";
+        }
+
+        private static bool TryParseUiLink(string? url, string uiHostName, out Uri? link)
+        {
+            link = null;
             if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(uiHostName)
-                || !Uri.TryCreate(url, UriKind.Absolute, out Uri? link) || !Uri.TryCreate(uiHostName, UriKind.Absolute, out Uri? uiBase))
+                || !Uri.TryCreate(url, UriKind.Absolute, out Uri? parsedLink) || !Uri.TryCreate(uiHostName, UriKind.Absolute, out Uri? uiBase))
             {
                 return false;
             }
 
-            bool isHttp = link.Scheme == Uri.UriSchemeHttps || link.Scheme == Uri.UriSchemeHttp;
-            bool sameOrigin = string.Equals(link.GetLeftPart(UriPartial.Authority), uiBase.GetLeftPart(UriPartial.Authority), StringComparison.OrdinalIgnoreCase);
+            bool isHttp = parsedLink.Scheme == Uri.UriSchemeHttps || parsedLink.Scheme == Uri.UriSchemeHttp;
+            bool sameOrigin = string.Equals(parsedLink.GetLeftPart(UriPartial.Authority), uiBase.GetLeftPart(UriPartial.Authority), StringComparison.OrdinalIgnoreCase);
             string basePath = uiBase.AbsolutePath.TrimEnd('/') + "/";
-            return isHttp && sameOrigin && link.AbsolutePath.StartsWith(basePath, StringComparison.Ordinal);
+            if (!isHttp || !sameOrigin || !parsedLink.AbsolutePath.StartsWith(basePath, StringComparison.Ordinal))
+            {
+                return false;
+            }
+            link = parsedLink;
+            return true;
         }
 
         private static string? FindOversizedCallerValue(NotificationPlaceholderData? data)
@@ -269,13 +291,14 @@ namespace FWO.Services
                 return url;
             }
 
+            string encodedUrl = WebUtility.HtmlEncode(url);
             string displayText = string.IsNullOrWhiteSpace(text) ? linkName : text;
             if (string.IsNullOrWhiteSpace(displayText))
             {
-                return url;
+                // the url is shown as text of an HTML body, so it is encoded like every other value
+                return encodedUrl;
             }
 
-            string encodedUrl = WebUtility.HtmlEncode(url);
             string encodedDisplayText = WebUtility.HtmlEncode(displayText);
             string encodedLinkName = WebUtility.HtmlEncode(linkName);
 

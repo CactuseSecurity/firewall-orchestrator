@@ -80,10 +80,7 @@ namespace FWO.Middleware.Server
                         globalConfig.DefaultLanguage);
                     await ForEachOwnerUpdatingLastSent(owners.Where(o => IsRecertCheckTime(o)), notificationService, async owner =>
                     {
-                        int ownerEmailsSent = await notificationService.SendNotificationsIfDue(
-                            owner,
-                            owner.NextRecertDate,
-                            PrepareOwnerBody(owner),
+                        int ownerEmailsSent = await SendOwnerNotificationsIfDue(notificationService, owner,
                             await PrepareOwnerReport(owner, reportUserConfig));
                         emailsSent += ownerEmailsSent;
                         if (ownerEmailsSent > 0)
@@ -224,10 +221,10 @@ namespace FWO.Middleware.Server
                 return 0;
             }
 
-            string body = PrepareRulesBody(upcomingRecerts, overdueRecerts, owner.Name);
             int emailsSent = 0;
             foreach (FwoNotification notification in notificationService.Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
             {
+                string body = PrepareRulesBody(upcomingRecerts, overdueRecerts, owner.Name, IsHtmlBody(notification));
                 emailsSent += await notificationService.SendNotification(notification, owner, body);
             }
             return emailsSent;
@@ -275,40 +272,67 @@ namespace FWO.Middleware.Server
             return rules;
         }
 
-        private string PrepareRulesBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts, string ownerName)
+        /// <summary>
+        /// Sends the owner recertification notifications that are due, each with a body built for its layout.
+        /// </summary>
+        private async Task<int> SendOwnerNotificationsIfDue(NotificationService notificationService, FwoOwner owner, ReportBase? report)
+        {
+            int emailsSent = 0;
+            foreach (FwoNotification notification in notificationService.Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
+            {
+                emailsSent += await notificationService.SendNotificationIfDue(notification, owner, owner.NextRecertDate,
+                    PrepareOwnerBody(owner, IsHtmlBody(notification)), report);
+            }
+            return emailsSent;
+        }
+
+        private static bool IsHtmlBody(FwoNotification notification)
+        {
+            return notification.Layout == NotificationLayout.HtmlInBody;
+        }
+
+        /// <summary>
+        /// Returns a value for the email body: HTML-encoded for HTML bodies, as owner and rule names come from imports.
+        /// </summary>
+        private static string ForBody(string? value, bool isHtmlBody)
+        {
+            return isHtmlBody ? HtmlOutputEncoder.EncodeText(value) : value ?? "";
+        }
+
+        private string PrepareRulesBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts, string ownerName, bool isHtmlBody)
         {
             StringBuilder body = new();
             if (upcomingRecerts.Count > 0)
             {
-                body.AppendLine(globalConfig.RecCheckEmailUpcomingText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n");
+                body.AppendLine(globalConfig.RecCheckEmailUpcomingText.Replace(Placeholder.APPNAME, ForBody(ownerName, isHtmlBody)) + "\r\n\r\n");
                 foreach (var rule in upcomingRecerts)
                 {
-                    body.AppendLine(PrepareLine(rule));
+                    body.AppendLine(PrepareLine(rule, isHtmlBody));
                 }
             }
             body.AppendLine("\r\n\r\n");
             if (overdueRecerts.Count > 0)
             {
-                body.AppendLine(globalConfig.RecCheckEmailOverdueText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n");
+                body.AppendLine(globalConfig.RecCheckEmailOverdueText.Replace(Placeholder.APPNAME, ForBody(ownerName, isHtmlBody)) + "\r\n\r\n");
                 foreach (Rule rule in overdueRecerts)
                 {
-                    body.AppendLine(PrepareLine(rule));
+                    body.AppendLine(PrepareLine(rule, isHtmlBody));
                 }
             }
             return body.ToString();
         }
 
-        private static string PrepareLine(Rule rule)
+        private static string PrepareLine(Rule rule, bool isHtmlBody)
         {
             Recertification? nextRecert = rule.Metadata.RuleRecertification.FirstOrDefault(x => x.RecertDate == null);
             return (nextRecert != null && nextRecert.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)nextRecert.NextRecertDate) : "") + ": "
-                    + rule.DeviceName + ": " + rule.Name + ":" + rule.Uid + "\r\n\r\n";  // link ?
+                    + ForBody(rule.DeviceName, isHtmlBody) + ": " + ForBody(rule.Name, isHtmlBody) + ":" + ForBody(rule.Uid, isHtmlBody) + "\r\n\r\n";  // link ?
         }
 
-        private string PrepareOwnerBody(FwoOwner owner)
+        private string PrepareOwnerBody(FwoOwner owner, bool isHtmlBody)
         {
             string msgText = owner.NextRecertDate >= DateTime.Today ? globalConfig.RecCheckEmailUpcomingText : globalConfig.RecCheckEmailOverdueText;
-            return msgText.Replace(Placeholder.APPNAME, owner.Name);
+            return msgText.Replace(Placeholder.APPNAME, ForBody(owner.Name, isHtmlBody));
         }
 
         private async Task<ReportBase?> PrepareOwnerReport(FwoOwner owner, UserConfig reportUserConfig)

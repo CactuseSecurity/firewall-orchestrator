@@ -157,6 +157,16 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Validate_RejectsNullReportType()
+        {
+            ReportGetParameters parameters = new() { ApiReportType = null! };
+
+            Dictionary<string, string[]> errors = ReportGetParametersValidator.Validate(parameters);
+
+            Assert.That(errors.Keys.Single(), Is.EqualTo("report-type"));
+        }
+
+        [Test]
         public void Validate_RejectsNullReportView()
         {
             ReportGetParameters parameters = new() { ApiReportView = kReportViewWithNull! };

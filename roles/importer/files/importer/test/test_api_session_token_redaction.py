@@ -50,7 +50,9 @@ def manager_mock() -> ManagementController:
 
 
 class TestCheckPointApiCall:
-    def test_transport_error_keeps_session_token_out_of_error_and_log(self, debug_logging: pytest.LogCaptureFixture):
+    def test_transport_error_keeps_session_token_out_of_error_and_log(
+        self, debug_logging: pytest.LogCaptureFixture
+    ) -> None:
         with (
             patch.object(cp_getter.requests, "post", side_effect=requests.exceptions.ConnectTimeout("timed out")),
             pytest.raises(FwApiError) as raised,
@@ -63,7 +65,7 @@ class TestCheckPointApiCall:
         assert "'show-hosts'" in str(raised.value)
         assert "ConnectTimeout" in str(raised.value)
 
-    def test_transport_error_redacts_credentials_in_payload(self):
+    def test_transport_error_redacts_credentials_in_payload(self) -> None:
         with (
             patch.object(cp_getter.requests, "post", side_effect=requests.exceptions.ConnectionError("reset")),
             pytest.raises(FwApiError) as raised,
@@ -75,7 +77,7 @@ class TestCheckPointApiCall:
 
     def test_garbled_response_warnings_show_fingerprint_instead_of_session(
         self, debug_logging: pytest.LogCaptureFixture
-    ):
+    ) -> None:
         cp_getter.log_global_assignments_error(SID_MARKER, CP_URL, {"limit": 1}, {"total": 0})
 
         assert SID_MARKER not in debug_logging.text
@@ -89,7 +91,7 @@ class TestCheckPointApiSession:
             assert sid == SID_MARKER
             raise FwApiError("transport")
 
-    def test_logs_out_when_the_block_fails(self):
+    def test_logs_out_when_the_block_fails(self) -> None:
         with (
             patch.object(cp_getter, "login", return_value=SID_MARKER),
             patch.object(cp_getter, "logout") as logout,
@@ -99,7 +101,7 @@ class TestCheckPointApiSession:
 
         logout.assert_called_once_with(CP_URL, SID_MARKER)
 
-    def test_logs_out_after_success(self):
+    def test_logs_out_after_success(self) -> None:
         with (
             patch.object(cp_getter, "login", return_value=SID_MARKER),
             patch.object(cp_getter, "logout") as logout,
@@ -109,7 +111,9 @@ class TestCheckPointApiSession:
 
         logout.assert_called_once_with(CP_URL, SID_MARKER)
 
-    def test_failed_logout_neither_hides_the_error_nor_logs_the_session(self, debug_logging: pytest.LogCaptureFixture):
+    def test_failed_logout_neither_hides_the_error_nor_logs_the_session(
+        self, debug_logging: pytest.LogCaptureFixture
+    ) -> None:
         with (
             patch.object(cp_getter, "login", return_value=SID_MARKER),
             patch.object(cp_getter, "logout", side_effect=FwApiError("unreachable")),
@@ -127,7 +131,7 @@ class TestFortiManagerApiCall:
     def payload() -> dict[str, Any]:
         return {"params": [{"data": {"user": "importer", "passwd": PASSWORD_MARKER}}]}
 
-    def test_empty_result_keeps_session_and_password_out_of_error(self):
+    def test_empty_result_keeps_session_and_password_out_of_error(self) -> None:
         response_json: dict[str, Any] = {"result": [], "session": SESSION_MARKER, "error": "no permission"}
         with patch.object(fmgr_getter.requests, "post") as post:
             post.return_value.json.return_value = response_json
@@ -139,7 +143,7 @@ class TestFortiManagerApiCall:
         assert "https://fmg.invalid/jsonrpc" in str(raised.value)
         assert "no permission" in str(raised.value)
 
-    def test_debug_log_keeps_session_and_password_out(self, debug_logging: pytest.LogCaptureFixture):
+    def test_debug_log_keeps_session_and_password_out(self, debug_logging: pytest.LogCaptureFixture) -> None:
         with patch.object(fmgr_getter.requests, "post") as post:
             post.return_value.json.return_value = {"result": [{"status": {"code": 0}}]}
             fmgr_getter.api_call("https://fmg.invalid/jsonrpc", "", self.payload(), SESSION_MARKER)
@@ -150,7 +154,7 @@ class TestFortiManagerApiCall:
 
 
 class TestFortiOsApiCall:
-    def test_transport_error_keeps_access_token_out_of_error(self):
+    def test_transport_error_keeps_access_token_out_of_error(self) -> None:
         leaking_error = requests.exceptions.ConnectionError(
             f"Max retries exceeded with url: /api/v2/cmdb/firewall/address?access_token={TOKEN_MARKER}"
         )
@@ -166,7 +170,7 @@ class TestFortiOsApiCall:
 
 
 class TestRedaction:
-    def test_redacts_sensitive_keys_at_any_depth_and_in_any_case(self):
+    def test_redacts_sensitive_keys_at_any_depth_and_in_any_case(self) -> None:
         data = {
             "X-chkp-sid": SID_MARKER,
             "params": [{"data": {"Passwd": PASSWORD_MARKER, "name": "obj"}}],
@@ -184,14 +188,14 @@ class TestRedaction:
         }
         assert data["session"] == SESSION_MARKER
 
-    def test_replaces_structures_nested_too_deeply(self):
+    def test_replaces_structures_nested_too_deeply(self) -> None:
         nested: dict[str, Any] = {"session": SESSION_MARKER}
         for _ in range(MAX_REDACTION_DEPTH + 1):
             nested = {"level": nested}
 
         assert SESSION_MARKER not in str(redact_sensitive_values(nested))
 
-    def test_session_fingerprint_is_short_stable_and_not_the_session(self):
+    def test_session_fingerprint_is_short_stable_and_not_the_session(self) -> None:
         fingerprint = session_fingerprint(SID_MARKER)
 
         assert len(fingerprint) == SESSION_FINGERPRINT_LENGTH

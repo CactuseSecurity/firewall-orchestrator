@@ -37,6 +37,7 @@
     };
 
     private List<string> uncheckedSwitches = [];
+    private Action<Config, ConfigItem[]>? configChangeHandler;
 
     /// <summary>
     /// Reads the certificate checking switches and follows their changes.
@@ -44,16 +45,16 @@
     protected override void OnInitialized()
     {
         uncheckedSwitches = globalConfig.GetUncheckedCertificateSwitches();
-        globalConfig.OnChange += OnConfigChange;
+        // re-reads the switches when the global config changed, e.g. after an admin switched a check on; the event
+        // comes from the config subscription thread, so reading and rendering happen on the renderer's thread
+        configChangeHandler = (_, _) => _ = InvokeAsync(RefreshUncheckedSwitches);
+        globalConfig.OnChange += configChangeHandler;
     }
 
-    /// <summary>
-    /// Re-reads the switches when the global config changed, e.g. after an admin switched a check on.
-    /// </summary>
-    private void OnConfigChange(Config _, ConfigItem[] __)
+    private void RefreshUncheckedSwitches()
     {
         uncheckedSwitches = globalConfig.GetUncheckedCertificateSwitches();
-        Task.Run(async () => await InvokeAsync(StateHasChanged));
+        StateHasChanged();
     }
 
     /// <summary>
@@ -61,6 +62,6 @@
     /// </summary>
     public void Dispose()
     {
-        globalConfig.OnChange -= OnConfigChange;
+        globalConfig.OnChange -= configChangeHandler;
     }
 }

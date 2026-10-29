@@ -135,7 +135,7 @@ class TestImportManagementSet:
 
     def test_skips_sub_managers_whose_import_is_disabled(
         self, importer: FwConfigImport, service_provider: ServiceProvider
-    ):
+    ) -> None:
         set_sub_managers(importer, paused_uids=["paused"], active_uids=["active"])
         mgr_set = make_manager_set("super", "paused", "active")
         with (
@@ -150,7 +150,7 @@ class TestImportManagementSet:
 
     def test_forced_import_imports_sub_managers_whose_import_is_disabled(
         self, importer: FwConfigImport, service_provider: ServiceProvider
-    ):
+    ) -> None:
         set_sub_managers(importer, paused_uids=["paused"], active_uids=[])
         importer.import_state.state.force_import = True
         mgr_set = make_manager_set("super", "paused")
@@ -214,7 +214,7 @@ class TestUpdateRemovedManagers:
         assert statistics.network_object_delete_count == 2
         assert statistics.rule_delete_count == 3
 
-    def test_keeps_sub_managers_whose_import_is_disabled(self, importer: FwConfigImport):
+    def test_keeps_sub_managers_whose_import_is_disabled(self, importer: FwConfigImport) -> None:
         importer.import_state.state.mgm_details.is_super_manager = True
         api_connection_mock(importer).call.side_effect = [
             {
@@ -234,7 +234,7 @@ class TestUpdateRemovedManagers:
         mutation_variables = api_connection_mock(importer).call.call_args_list[1].kwargs["query_variables"]
         assert mutation_variables["mgmIds"] == [3]
 
-    def test_only_paused_sub_managers_missing_skips_mutation(self, importer: FwConfigImport):
+    def test_only_paused_sub_managers_missing_skips_mutation(self, importer: FwConfigImport) -> None:
         importer.import_state.state.mgm_details.is_super_manager = True
         api_connection_mock(importer).call.side_effect = [
             {"data": {"management": [{"mgm_uid": "paused", "mgm_id": 2, "do_not_import": True}]}},

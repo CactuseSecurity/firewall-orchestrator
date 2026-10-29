@@ -47,6 +47,11 @@ def _host_key_options(mgm_details: ManagementController) -> dict[str, Any]:
 
     The host key is checked against SSH_KNOWN_HOSTS_FILE unless certificate checking of firewall connections is
     switched off. Without the check any host is accepted, and the import credentials go to whoever answers.
+
+    Raises:
+        SshHostKeyRejectedError: if the host key is to be checked but SSH_KNOWN_HOSTS_FILE does not exist. scrapli
+            would otherwise fall back to other known hosts files, whose keys FWO does not manage.
+
     """
     if fwo_globals.verify_certs is False:
         if mgm_details.mgm_id not in _unchecked_host_key_mgm_ids_warned:
@@ -57,6 +62,12 @@ def _host_key_options(mgm_details: ManagementController) -> dict[str, Any]:
                 f'to {SSH_KNOWN_HOSTS_FILE} and switch on "check certificates of firewall connections".'
             )
         return {"auth_strict_key": False}
+    if not Path(SSH_KNOWN_HOSTS_FILE).is_file():
+        raise SshHostKeyRejectedError(
+            f"SSH known hosts file {SSH_KNOWN_HOSTS_FILE} is missing on the importer host, so the host key of "
+            f"{mgm_details.hostname} cannot be checked and the import credentials were not sent. Run the installer "
+            "to recreate it and add the verified host keys, see documentation/certificates.md."
+        )
     return {"auth_strict_key": True, "ssh_known_hosts_file": SSH_KNOWN_HOSTS_FILE}
 
 

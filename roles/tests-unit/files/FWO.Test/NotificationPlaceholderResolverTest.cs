@@ -169,6 +169,31 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void ReplaceNotificationPlaceholders_EncodesLinkUrlWithoutLinkTextInHtmlBodies()
+        {
+            const string kMarkupUrl = "https://fwo.example.test/x\"><img src=x>";
+
+            string html = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(INTERFACE_LINK,
+                new NotificationPlaceholderResolver.NotificationPlaceholderValues { InterfaceLinkUrl = kMarkupUrl }, isHtmlBody: true);
+            string plain = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(INTERFACE_LINK,
+                new NotificationPlaceholderResolver.NotificationPlaceholderValues { InterfaceLinkUrl = kMarkupUrl });
+
+            Assert.That(html, Is.EqualTo(WebUtility.HtmlEncode(kMarkupUrl)));
+            Assert.That(plain, Is.EqualTo(kMarkupUrl));
+        }
+
+        [Test]
+        public void RestrictCallerPlaceholderData_KeepsOnlyTheNormalisedUiLink()
+        {
+            NotificationPlaceholderData callerData = new() { InterfaceLinkUrl = kUiHostName + "/x\"><img src=x>" };
+
+            NotificationPlaceholderData? restricted = NotificationPlaceholderResolver.RestrictCallerPlaceholderData(callerData, "caller", kUiHostName, out _);
+
+            Assert.That(restricted!.InterfaceLinkUrl, Does.StartWith(kUiHostName + "/x"));
+            Assert.That(restricted.InterfaceLinkUrl, Does.Not.Contain("\"").And.Not.Contain("<").And.Not.Contain(">"));
+        }
+
         [TestCase(kUiLink, kUiHostName, true)]
         [TestCase("https://FWO.example.test/x", kUiHostName, true)]
         [TestCase(kForeignLink, kUiHostName, false)]

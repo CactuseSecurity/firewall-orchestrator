@@ -47,6 +47,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ToJsonStringContent_EscapesAtSignsSoValuesCarryNoPlaceholders()
+        {
+            Assert.That("a@@TASKS@@b".ToJsonStringContent(), Is.EqualTo("a\\u0040\\u0040TASKS\\u0040\\u0040b"));
+        }
+
+        [Test]
+        public async Task SCAccessTicket_KeepsPlaceholderTokensInRequesterTextAsText()
+        {
+            const string kTokens = "see @@TASKS@@ and @@SOURCES@@";
+            WfReqTask task = CreateAccessTask();
+            task.Reason = kTokens;
+            task.Comments = [new() { Comment = new() { CommentText = kTokens } }];
+            List<WfReqTask> tasks = [task];
+            SCTicket ticket = new(CreateSecureChangeSystem(), CertificateChecks);
+
+            await ticket.CreateRequestString(tasks, kIpProtos, kNamingConvention);
+
+            JsonNode root = JsonNode.Parse(ticket.TicketText)!;
+            JsonArray fields = root["ticket"]!["steps"]!["step"]![0]!["tasks"]!["task"]!["fields"]!["field"]!.AsArray();
+            Assert.That(fields[1]!["text"]!.GetValue<string>(), Is.EqualTo(kTokens));
+            Assert.That(fields[0]!["access_request"]![0]!["comment"]!.GetValue<string>(), Is.EqualTo(kTokens));
+        }
+
+        [Test]
         public void ReplaceJsonStringPlaceholder_InsertsEscapedValue()
         {
             string json = "{\"a\":\"@@REASON@@\",\"b\":\"@@REASON@@\"}".ReplaceJsonStringPlaceholder(Placeholder.REASON, kPayload);

@@ -10,6 +10,8 @@ namespace FWO.Basics
 
         // escapes quotes, backslashes and control characters but keeps non-ASCII text readable in the external ticket
         private static readonly JsonSerializerOptions kJsonStringContentOptions = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+        private const string kAtSign = "@";
+        private const string kJsonEscapedAtSign = "\\u0040";
 
         public static string SanitizeMand(this string text)
         {
@@ -194,7 +196,8 @@ namespace FWO.Basics
         /// <summary>
         /// Escapes a value for use inside a JSON string literal of a text template, e.g. <c>"text": "@@REASON@@"</c>.
         /// Quotes, backslashes and control characters are escaped, so the value can neither end the string nor add
-        /// fields. Line breaks become blanks, as the rendered templates are sent as a single line.
+        /// fields. The at sign is escaped as well, so that the value cannot carry a placeholder such as @@TASKS@@ into
+        /// a later replacement with raw JSON. Line breaks become blanks, as the rendered templates are sent as a single line.
         /// </summary>
         /// <param name="input">The value; null is treated as an empty string.</param>
         /// <returns>The escaped value without surrounding quotes.</returns>
@@ -202,7 +205,7 @@ namespace FWO.Basics
         {
             string singleLineInput = EolRegex().Replace(input ?? "", " ");
             string quotedValue = JsonSerializer.Serialize(singleLineInput, kJsonStringContentOptions);
-            return quotedValue[1..^1];
+            return quotedValue[1..^1].Replace(kAtSign, kJsonEscapedAtSign);
         }
 
         /// <summary>

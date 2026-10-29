@@ -275,46 +275,51 @@ def get_rules(native_config: dict[str, Any], import_state: ImportState) -> int:
         None,
     )
     manager_details_list = create_ordered_manager_list(import_state)
-    for manager_index, manager_details in enumerate(manager_details_list):
-        if manager_details.import_disabled and not import_state.force_import:
-            continue
-        cp_manager_api_base_url = import_state.mgm_details.build_fw_api_string()
+    cp_manager_api_base_url = import_state.mgm_details.build_fw_api_string()
+    try:
+        for manager_index, manager_details in enumerate(manager_details_list):
+            if manager_details.import_disabled and not import_state.force_import:
+                continue
 
-        if manager_details.is_super_manager:
-            global_assignments, global_policy_structure, global_domain, global_sid = handle_super_manager(
-                manager_details,
-                cp_manager_api_base_url,
-                show_params_policy_structure,
-            )
+            if manager_details.is_super_manager:
+                global_assignments, global_policy_structure, global_domain, global_sid = handle_super_manager(
+                    manager_details,
+                    cp_manager_api_base_url,
+                    show_params_policy_structure,
+                )
 
-        sid: str = cp_getter.login(manager_details)
-        policy_structure: list[dict[str, Any]] = []
-        cp_getter.get_policy_structure(
-            cp_manager_api_base_url,
-            sid,
-            show_params_policy_structure,
-            manager_details,
-            policy_structure=policy_structure,
-        )
-        gateways_and_servers = cp_getter.get_gateways_and_servers(sid, cp_manager_api_base_url)
+            with cp_getter.api_session(manager_details) as sid:
+                policy_structure: list[dict[str, Any]] = []
+                cp_getter.get_policy_structure(
+                    cp_manager_api_base_url,
+                    sid,
+                    show_params_policy_structure,
+                    manager_details,
+                    policy_structure=policy_structure,
+                )
+                gateways_and_servers = cp_getter.get_gateways_and_servers(sid, cp_manager_api_base_url)
 
-        process_devices(
-            manager_details,
-            policy_structure,
-            global_assignments,
-            global_policy_structure,
-            global_domain,
-            global_sid,
-            cp_manager_api_base_url,
-            sid,
-            native_config["domains"][
-                manager_index
-            ],  # globalSid should not be None but is when the first manager is not supermanager
-            native_config["domains"][0],
-            import_state,
-            gateways_and_servers,
-        )
-        native_config["domains"][manager_index].update({"policies": policy_structure})
+                process_devices(
+                    manager_details,
+                    policy_structure,
+                    global_assignments,
+                    global_policy_structure,
+                    global_domain,
+                    global_sid,
+                    cp_manager_api_base_url,
+                    sid,
+                    native_config["domains"][
+                        manager_index
+                    ],  # globalSid should not be None but is when the first manager is not supermanager
+                    native_config["domains"][0],
+                    import_state,
+                    gateways_and_servers,
+                )
+            native_config["domains"][manager_index].update({"policies": policy_structure})
+    finally:
+        # the global domain session is shared by all sub-managers and ends with the last of them
+        if global_sid:
+            cp_getter.logout_quietly(cp_manager_api_base_url, global_sid)
 
     return 0
 
@@ -337,12 +342,12 @@ def handle_super_manager(
     show_params_policy_structure: dict[str, Any],
 ) -> tuple[list[Any], None, Any | None, str]:
     # global assignments are fetched from mds domain
-    mds_sid: str = cp_getter.login(manager_details)
+    with cp_getter.api_session(manager_details) as mds_sid:
+        global_assignments = cp_getter.get_global_assignments(
+            cp_manager_api_base_url, mds_sid, show_params_policy_structure
+        )
     global_policy_structure = None
     global_domain = None
-    global_assignments = cp_getter.get_global_assignments(
-        cp_manager_api_base_url, mds_sid, show_params_policy_structure
-    )
     global_sid = ""
     # import global policies if at least one global assignment exists
 
@@ -352,14 +357,19 @@ def handle_super_manager(
 
             # policy structure is fetched from global domain
             manager_details.domain_uid = global_domain
+            # stays open for the sub-managers; the caller logs it out, or this function does when it fails
             global_sid: str = cp_getter.login(manager_details)
-            cp_getter.get_policy_structure(
-                cp_manager_api_base_url,
-                global_sid,
-                show_params_policy_structure,
-                manager_details,
-                policy_structure=global_policy_structure,
-            )
+            try:
+                cp_getter.get_policy_structure(
+                    cp_manager_api_base_url,
+                    global_sid,
+                    show_params_policy_structure,
+                    manager_details,
+                    policy_structure=global_policy_structure,
+                )
+            except Exception:
+                cp_getter.logout_quietly(cp_manager_api_base_url, global_sid)
+                raise
         else:
             raise FwoImporterError(f"Unexpected global assignments: {global_assignments!s}")
 
@@ -781,14 +791,14 @@ def get_objects_per_domain(
     show_params_objs: dict[str, Any],
     is_stand_alone_manager: bool = True,
 ) -> None:
-    sid = cp_getter.login(manager_details)
     cp_url = manager_details.build_fw_api_string()
-    for obj_type in obj_type_array:
-        object_table = get_objects_per_type(obj_type, show_params_objs, sid, cp_url)
-        add_special_objects_to_global_domain(object_table, obj_type, sid, cp_api_url=cp_url)
-        if not is_stand_alone_manager and not manager_details.is_super_manager:
-            remove_predefined_objects_for_domains(object_table)
-        native_domain["objects"].append(object_table)
+    with cp_getter.api_session(manager_details) as sid:
+        for obj_type in obj_type_array:
+            object_table = get_objects_per_type(obj_type, show_params_objs, sid, cp_url)
+            add_special_objects_to_global_domain(object_table, obj_type, sid, cp_api_url=cp_url)
+            if not is_stand_alone_manager and not manager_details.is_super_manager:
+                remove_predefined_objects_for_domains(object_table)
+            native_domain["objects"].append(object_table)
 
 
 def remove_predefined_objects_for_domains(object_table: dict[str, Any]) -> None:

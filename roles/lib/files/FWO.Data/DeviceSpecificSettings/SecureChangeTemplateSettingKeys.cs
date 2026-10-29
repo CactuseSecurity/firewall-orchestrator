@@ -40,11 +40,12 @@ public static class SecureChangeTemplateSettingKeys
         SecureChangeTemplatePart.Ip, SecureChangeTemplatePart.NwObjGroup
     ];
 
-    private static readonly List<SecureChangeTemplatePart> NetworkServiceParts =
-    [
-        SecureChangeTemplatePart.Ticket, SecureChangeTemplatePart.Tasks, SecureChangeTemplatePart.Service, SecureChangeTemplatePart.Icmp,
-        SecureChangeTemplatePart.IpProtocol
-    ];
+    /// <summary>
+    /// Task types SecureChange tickets are created for. SecureChange only modifies groups of network objects, so service
+    /// group tasks (NetworkServiceCreate, NetworkServiceUpdate) are refused and have no templates. Declared before
+    /// <see cref="Keys"/>, which uses it during static initialization.
+    /// </summary>
+    public static IReadOnlyList<SCTaskType> TaskTypes { get; } = new List<SCTaskType> { SCTaskType.AccessRequest, SCTaskType.NetworkObjectModify }.AsReadOnly();
 
     /// <summary>Template setting per task type and template part, only for the parts the task type uses.</summary>
     public static IReadOnlyDictionary<(SCTaskType TaskType, SecureChangeTemplatePart Part), DeviceSpecificSettingKey<string>> Keys { get; } =
@@ -53,14 +54,14 @@ public static class SecureChangeTemplateSettingKeys
     /// <summary>All SecureChange template keys, ordered by task type and template part.</summary>
     public static IReadOnlyList<DeviceSpecificSettingKey> All { get; } = Keys.Values.ToList<DeviceSpecificSettingKey>().AsReadOnly();
 
-    /// <summary>The template parts a task type uses, in the order they are shown.</summary>
+    /// <summary>The template parts a task type of <see cref="TaskTypes"/> uses, in the order they are shown.</summary>
     public static IReadOnlyList<SecureChangeTemplatePart> PartsOf(SCTaskType taskType)
     {
         return taskType switch
         {
             SCTaskType.AccessRequest => AccessRequestParts,
             SCTaskType.NetworkObjectModify => NetworkObjectModifyParts,
-            _ => NetworkServiceParts
+            _ => throw new ArgumentOutOfRangeException(nameof(taskType), taskType, "SecureChange tickets have no templates for this task type.")
         };
     }
 
@@ -105,7 +106,7 @@ public static class SecureChangeTemplateSettingKeys
     private static ReadOnlyDictionary<(SCTaskType, SecureChangeTemplatePart), DeviceSpecificSettingKey<string>> CreateKeys()
     {
         Dictionary<(SCTaskType, SecureChangeTemplatePart), DeviceSpecificSettingKey<string>> keys = [];
-        foreach (SCTaskType taskType in Enum.GetValues<SCTaskType>())
+        foreach (SCTaskType taskType in TaskTypes)
         {
             foreach (SecureChangeTemplatePart part in PartsOf(taskType))
             {

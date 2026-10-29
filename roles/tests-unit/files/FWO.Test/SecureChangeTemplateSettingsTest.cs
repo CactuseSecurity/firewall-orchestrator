@@ -20,17 +20,19 @@ namespace FWO.Test
         private const int kInheritingManagementId = 1;
         private const int kOverridingManagementId = 2;
         private const int kUnknownManagementId = 99;
-        private const int kTemplateKeyCount = 23;
+        private const int kTemplateKeyCount = 13;
         private static readonly List<SecureChangeTemplatePart> kAccessRequestParts =
         [
             SecureChangeTemplatePart.Ticket, SecureChangeTemplatePart.Tasks, SecureChangeTemplatePart.Ip, SecureChangeTemplatePart.NwObjGroup,
             SecureChangeTemplatePart.Service, SecureChangeTemplatePart.Icmp, SecureChangeTemplatePart.IpProtocol
         ];
-        private static readonly List<SecureChangeTemplatePart> kNetworkServiceParts =
+        private static readonly List<SecureChangeTemplatePart> kNetworkObjectModifyParts =
         [
-            SecureChangeTemplatePart.Ticket, SecureChangeTemplatePart.Tasks, SecureChangeTemplatePart.Service, SecureChangeTemplatePart.Icmp,
-            SecureChangeTemplatePart.IpProtocol
+            SecureChangeTemplatePart.Ticket, SecureChangeTemplatePart.Tasks, SecureChangeTemplatePart.Object, SecureChangeTemplatePart.ObjectShort,
+            SecureChangeTemplatePart.Ip, SecureChangeTemplatePart.NwObjGroup
         ];
+        // SecureChange only modifies groups of network objects, so the service group task types have no templates
+        private static readonly List<string> kTemplateTaskTypes = [nameof(SCTaskType.AccessRequest), nameof(SCTaskType.NetworkObjectModify)];
         private static readonly List<int> kRequestedManagements = [kInheritingManagementId, kOverridingManagementId, kUnknownManagementId];
         private static readonly List<int> kNoManagements = [];
 
@@ -47,7 +49,10 @@ namespace FWO.Test
             {
                 Assert.That(SecureChangeTemplateSettingKeys.All, Has.Count.EqualTo(kTemplateKeyCount));
                 Assert.That(SecureChangeTemplateSettingKeys.PartsOf(SCTaskType.AccessRequest), Is.EqualTo(kAccessRequestParts));
-                Assert.That(SecureChangeTemplateSettingKeys.PartsOf(SCTaskType.NetworkServiceUpdate), Is.EqualTo(kNetworkServiceParts));
+                Assert.That(SecureChangeTemplateSettingKeys.PartsOf(SCTaskType.NetworkObjectModify), Is.EqualTo(kNetworkObjectModifyParts));
+                Assert.That(SecureChangeTemplateSettingKeys.TaskTypes.Select(taskType => taskType.ToString()), Is.EqualTo(kTemplateTaskTypes));
+                Assert.Throws<ArgumentOutOfRangeException>(() => SecureChangeTemplateSettingKeys.PartsOf(SCTaskType.NetworkServiceUpdate));
+                Assert.That(SecureChangeTemplateSettingKeys.Keys.Keys.Any(key => key.TaskType == SCTaskType.NetworkServiceCreate), Is.False);
                 Assert.That(Key(SCTaskType.NetworkObjectModify, SecureChangeTemplatePart.ObjectShort).DatabaseKey,
                     Is.EqualTo("scTemplateNetworkObjectModifyObjectShort"));
                 Assert.That(SecureChangeTemplateSettingKeys.Keys.ContainsKey((SCTaskType.AccessRequest, SecureChangeTemplatePart.Object)), Is.False);
@@ -150,7 +155,7 @@ namespace FWO.Test
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(templates.Select(template => template.TaskType), Is.EqualTo(Enum.GetNames<SCTaskType>()));
+                Assert.That(templates.Select(template => template.TaskType), Is.EqualTo(kTemplateTaskTypes));
                 Assert.That(TemplateOf(templates, SCTaskType.AccessRequest).TicketTemplate,
                     Is.EqualTo(SCTemplateDefaults.Get(SCTaskType.AccessRequest, SecureChangeTemplatePart.Ticket)));
                 Assert.That(TemplateOf(templates, SCTaskType.AccessRequest).TasksTemplate, Is.EqualTo("own tasks"));

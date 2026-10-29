@@ -47,7 +47,7 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
         {
             ArgumentNullException.ThrowIfNull(settings);
             List<ExternalTicketTemplate> templates = [];
-            foreach (SCTaskType taskType in Enum.GetValues<SCTaskType>())
+            foreach (SCTaskType taskType in SecureChangeTemplateSettingKeys.TaskTypes)
             {
                 ExternalTicketTemplate template = new() { TaskType = taskType.ToString() };
                 foreach (SecureChangeTemplatePart part in SecureChangeTemplateSettingKeys.PartsOf(taskType))

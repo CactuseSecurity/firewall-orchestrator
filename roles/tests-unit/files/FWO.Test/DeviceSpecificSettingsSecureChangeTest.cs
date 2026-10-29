@@ -90,7 +90,7 @@ namespace FWO.Test
         }
 
         [TestCase(SCTaskType.AccessRequest, "dss_sc_task_access_request")]
-        [TestCase(SCTaskType.NetworkServiceUpdate, "dss_sc_task_network_service_update")]
+        [TestCase(SCTaskType.NetworkObjectModify, "dss_sc_task_network_object_modify")]
         public void SecureChangeTaskTextKey_IsSnakeCase(SCTaskType taskType, string textKey)
         {
             Assert.That(DeviceSpecificSettingsData.SecureChangeTaskTextKey(taskType), Is.EqualTo(textKey));

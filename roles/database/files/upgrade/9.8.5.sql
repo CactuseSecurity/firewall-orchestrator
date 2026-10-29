@@ -7,6 +7,8 @@
 -- list format falls back to its former single TicketTemplate/TasksTemplate as AccessRequest template.
 -- The ticket systems are backed up once (without authorization values), and the templates are removed from the
 -- SecureChange systems, so a repeated upgrade changes nothing. Other ticket system types keep their templates.
+-- Templates of the service group task types (NetworkServiceCreate, NetworkServiceUpdate) are not migrated: SecureChange
+-- only modifies groups of network objects, they were never used and remain in the backup.
 DO $$
 DECLARE
     t_systems text;
@@ -72,17 +74,7 @@ BEGIN
         ('NetworkObjectModify', 'Object', 'ObjectTemplate', 'Object Changes'),
         ('NetworkObjectModify', 'ObjectShort', 'ObjectTemplateShort', 'Object Changes'),
         ('NetworkObjectModify', 'Ip', 'IpTemplate', 'Object Changes'),
-        ('NetworkObjectModify', 'NwObjGroup', 'NwObjGroupTemplate', 'Object Changes'),
-        ('NetworkServiceCreate', 'Ticket', 'TicketTemplate', 'Object Changes'),
-        ('NetworkServiceCreate', 'Tasks', 'TasksTemplate', 'Object Changes'),
-        ('NetworkServiceCreate', 'Service', 'ServiceTemplate', 'Object Changes'),
-        ('NetworkServiceCreate', 'Icmp', 'IcmpTemplate', 'Object Changes'),
-        ('NetworkServiceCreate', 'IpProtocol', 'IpProtocolTemplate', 'Object Changes'),
-        ('NetworkServiceUpdate', 'Ticket', 'TicketTemplate', 'Object Changes'),
-        ('NetworkServiceUpdate', 'Tasks', 'TasksTemplate', 'Object Changes'),
-        ('NetworkServiceUpdate', 'Service', 'ServiceTemplate', 'Object Changes'),
-        ('NetworkServiceUpdate', 'Icmp', 'IcmpTemplate', 'Object Changes'),
-        ('NetworkServiceUpdate', 'IpProtocol', 'IpProtocolTemplate', 'Object Changes');
+        ('NetworkObjectModify', 'NwObjGroup', 'NwObjGroupTemplate', 'Object Changes');
 
     -- non-empty template parts of every SecureChange system that differ from the shipped default; the first template
     -- of a task type counts, as when tickets were created

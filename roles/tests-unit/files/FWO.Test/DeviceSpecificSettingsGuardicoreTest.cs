@@ -20,11 +20,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "scTemplateAccessRequestTicket", "scTemplateAccessRequestTasks", "scTemplateAccessRequestIp", "scTemplateAccessRequestNwObjGroup",
         "scTemplateAccessRequestService", "scTemplateAccessRequestIcmp", "scTemplateAccessRequestIpProtocol",
         "scTemplateNetworkObjectModifyTicket", "scTemplateNetworkObjectModifyTasks", "scTemplateNetworkObjectModifyObject",
-        "scTemplateNetworkObjectModifyObjectShort", "scTemplateNetworkObjectModifyIp", "scTemplateNetworkObjectModifyNwObjGroup",
-        "scTemplateNetworkServiceCreateTicket", "scTemplateNetworkServiceCreateTasks", "scTemplateNetworkServiceCreateService",
-        "scTemplateNetworkServiceCreateIcmp", "scTemplateNetworkServiceCreateIpProtocol",
-        "scTemplateNetworkServiceUpdateTicket", "scTemplateNetworkServiceUpdateTasks", "scTemplateNetworkServiceUpdateService",
-        "scTemplateNetworkServiceUpdateIcmp", "scTemplateNetworkServiceUpdateIpProtocol"
+        "scTemplateNetworkObjectModifyObjectShort", "scTemplateNetworkObjectModifyIp", "scTemplateNetworkObjectModifyNwObjGroup"
     ];
     private static readonly List<string> kExpectedKeys =
     [

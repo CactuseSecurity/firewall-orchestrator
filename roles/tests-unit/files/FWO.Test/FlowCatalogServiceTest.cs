@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -16,6 +17,7 @@ namespace FWO.Test;
 [TestFixture]
 internal class FlowCatalogServiceTest
 {
+    private const int kMaxLimit = GlobalConst.kDefaultMaxRestResponseObjectLimit;
     private static readonly List<string> kFirstTwoHostNames = ["HostA", "HostB"];
     private static readonly List<long> kTwoPortlessServiceIds = [61, 62];
     private static readonly List<string> kIpv4HostRange = ["10.0.0.1", "10.0.0.1"];
@@ -61,7 +63,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<ServiceObjectResponse> result = (await service.GetServiceObjectsAsync(true, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
+        List<ServiceObjectResponse> result = (await service.GetServiceObjectsAsync(true, kMaxLimit, 0)).Items;
 
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].Protocol, Is.EqualTo("TCP"));
@@ -95,7 +97,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<ServiceObjectResponse> result = (await service.GetServiceObjectsAsync(false, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
+        List<ServiceObjectResponse> result = (await service.GetServiceObjectsAsync(false, kMaxLimit, 0)).Items;
 
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].Protocol, Is.EqualTo("250"));
@@ -114,7 +116,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<ServiceObjectResponse> result = (await service.GetServiceObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
+        List<ServiceObjectResponse> result = (await service.GetServiceObjectsAsync(null, kMaxLimit, 0)).Items;
 
         Assert.That(result[0].PortStart, Is.Null);
         Assert.That(result[0].PortEnd, Is.Null);
@@ -146,7 +148,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<AddressGroupResponse> result = (await service.GetAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0)).Items;
+        List<AddressGroupResponse> result = (await service.GetAddressGroupsAsync(null, kMaxLimit, 0)).Items;
 
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].ShowInRequest, Is.False);
@@ -169,7 +171,7 @@ internal class FlowCatalogServiceTest
         };
         using FlowCatalogService service = new(apiConnection, globalConfig);
 
-        SeparatedAddressGroupsResponse result = (await service.GetSeparatedAddressGroupsAsync(true, FlowCatalogPaging.kMaxGroupLimit, 0)).Groups;
+        SeparatedAddressGroupsResponse result = (await service.GetSeparatedAddressGroupsAsync(true, kMaxLimit, 0)).Groups;
 
         Assert.Multiple(() =>
         {
@@ -192,15 +194,15 @@ internal class FlowCatalogServiceTest
         };
         using FlowCatalogService service = new(apiConnection, globalConfig);
 
-        await service.GetSeparatedAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0);
+        await service.GetSeparatedAddressGroupsAsync(null, kMaxLimit, 0);
         object cachedPatterns = GetZonePatternCache(service);
-        SeparatedAddressGroupsResponse repeatedResult = (await service.GetSeparatedAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0)).Groups;
+        SeparatedAddressGroupsResponse repeatedResult = (await service.GetSeparatedAddressGroupsAsync(null, kMaxLimit, 0)).Groups;
 
         Assert.That(GetZonePatternCache(service), Is.SameAs(cachedPatterns), "The unchanged config was parsed again.");
         Assert.That(repeatedResult.ZoneGroups.Select(group => group.Name), Is.EqualTo(new List<string> { "dmz_zone", "dmz_ZONE" }));
 
         globalConfig.FlowZoneGroupNamePatterns = "[{\"matchType\":\"Exact\",\"caseSensitive\":false,\"value\":\"DMZ-Servers\"}]";
-        SeparatedAddressGroupsResponse changedResult = (await service.GetSeparatedAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0)).Groups;
+        SeparatedAddressGroupsResponse changedResult = (await service.GetSeparatedAddressGroupsAsync(null, kMaxLimit, 0)).Groups;
 
         Assert.That(GetZonePatternCache(service), Is.Not.SameAs(cachedPatterns), "The changed config was not parsed again.");
         Assert.That(changedResult.ZoneGroups.Select(group => group.Name), Is.EqualTo(new List<string> { "DMZ-Servers" }));
@@ -244,7 +246,7 @@ internal class FlowCatalogServiceTest
         };
         using FlowCatalogService service = new(apiConnection, globalConfig);
 
-        SeparatedAddressGroupsResponse result = (await service.GetSeparatedAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0)).Groups;
+        SeparatedAddressGroupsResponse result = (await service.GetSeparatedAddressGroupsAsync(null, kMaxLimit, 0)).Groups;
 
         Assert.That(result.StandardGroups, Is.Empty);
         Assert.That(result.ZoneGroups, Has.Count.EqualTo(1));
@@ -267,7 +269,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        SeparatedAddressGroupsResponse result = (await service.GetSeparatedAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0)).Groups;
+        SeparatedAddressGroupsResponse result = (await service.GetSeparatedAddressGroupsAsync(null, kMaxLimit, 0)).Groups;
 
         Assert.That(result.ZoneGroups, Is.Empty);
         Assert.That(result.StandardGroups, Has.Count.EqualTo(5));
@@ -414,7 +416,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<TimeObjectResponse> result = (await service.GetTimeObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
+        List<TimeObjectResponse> result = (await service.GetTimeObjectsAsync(null, kMaxLimit, 0)).Items;
 
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].StartTime, Does.StartWith("2026-06-01T08:00:00"));
@@ -577,7 +579,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<AddressObjectResponse> result = (await service.GetAddressObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
+        List<AddressObjectResponse> result = (await service.GetAddressObjectsAsync(null, kMaxLimit, 0)).Items;
 
         Assert.Multiple(() =>
         {
@@ -602,7 +604,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<AddressObjectResponse> result = (await service.GetAddressObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
+        List<AddressObjectResponse> result = (await service.GetAddressObjectsAsync(null, kMaxLimit, 0)).Items;
 
         Assert.Multiple(() =>
         {
@@ -647,14 +649,14 @@ internal class FlowCatalogServiceTest
         FlowCatalogServiceApiConn apiConnection = new();
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        (SeparatedAddressGroupsResponse groups, bool hasMore) = await service.GetSeparatedAddressGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0);
+        (SeparatedAddressGroupsResponse groups, bool hasMore) = await service.GetSeparatedAddressGroupsAsync(null, kMaxLimit, 0);
 
         Dictionary<string, object> variables = (Dictionary<string, object>)apiConnection.SentVariables[0]!;
         Assert.Multiple(() =>
         {
-            Assert.That(groups.StandardGroups.Count + groups.ZoneGroups.Count, Is.LessThanOrEqualTo(FlowCatalogPaging.kMaxGroupLimit));
+            Assert.That(groups.StandardGroups.Count + groups.ZoneGroups.Count, Is.LessThanOrEqualTo(kMaxLimit));
             Assert.That(hasMore, Is.False);
-            Assert.That(variables["limit"], Is.EqualTo(FlowCatalogPaging.kMaxGroupLimit + 1));
+            Assert.That(variables["limit"], Is.EqualTo(kMaxLimit + 1));
         });
     }
 
@@ -681,7 +683,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<AddressObjectResponse> result = (await service.GetAddressObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0)).Items;
+        List<AddressObjectResponse> result = (await service.GetAddressObjectsAsync(null, kMaxLimit, 0)).Items;
 
         Assert.That(result[0].Type, Is.EqualTo(expectedType));
     }
@@ -712,7 +714,7 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        List<ServiceGroupResponse> result = (await service.GetServiceGroupsAsync(null, FlowCatalogPaging.kMaxGroupLimit, 0)).Items;
+        List<ServiceGroupResponse> result = (await service.GetServiceGroupsAsync(null, kMaxLimit, 0)).Items;
 
         Assert.Multiple(() =>
         {
@@ -891,9 +893,9 @@ internal class FlowCatalogServiceTest
 
         using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
-        Task<ListPage<ServiceObjectResponse>> firstCall = service.GetServiceObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0);
+        Task<ListPage<ServiceObjectResponse>> firstCall = service.GetServiceObjectsAsync(null, kMaxLimit, 0);
         await protocolQueryStarted.Task;
-        Task<ListPage<ServiceObjectResponse>> secondCall = service.GetServiceObjectsAsync(null, FlowCatalogPaging.kMaxObjectLimit, 0);
+        Task<ListPage<ServiceObjectResponse>> secondCall = service.GetServiceObjectsAsync(null, kMaxLimit, 0);
         releaseProtocolQuery.TrySetResult(true);
 
         ListPage<ServiceObjectResponse>[] pages = await Task.WhenAll(firstCall, secondCall);

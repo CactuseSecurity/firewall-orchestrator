@@ -534,7 +534,7 @@ namespace FWO.Test
                 ticket,
                 new FwoOwner { Name = "Owner", ExtAppId = "APP-1" },
                 placeholderData,
-                renderHtmlLinks: true);
+                isHtmlBody: true);
 
             Assert.That(text, Is.EqualTo(
                 "Owner|APP-1|Requester|Requesting App|REQ-APP|old-interface|<a target=\"_blank\" href=\"https://example.test/old\">Interface: old-interface</a>|new-interface|<a target=\"_blank\" href=\"https://example.test/new\">New interface: new-interface</a>|Rejected reason|Rejecter|03.01.2025"));
@@ -584,7 +584,7 @@ namespace FWO.Test
                     Reason = "Need access",
                     UserName = "Tester"
                 },
-                renderHtmlLinks: true);
+                isHtmlBody: true);
 
             Assert.That(text, Is.EqualTo(
                 "Selected/APP-1/Requester/APP-2/Requester/if-test/"
@@ -642,7 +642,7 @@ namespace FWO.Test
                     Reason = "Planned decommission",
                     UserName = "Tester"
                 },
-                renderHtmlLinks: true);
+                isHtmlBody: true);
 
             Assert.That(text, Is.EqualTo("if-old/if-new/<a target=\"_blank\" href=\"https://ui.example.test/networkmodelling/APP-9/100\">Interface: if-new</a>/Planned decommission/Tester"));
         }

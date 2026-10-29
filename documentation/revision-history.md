@@ -1,5 +1,38 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.4 - 29.10.2026
+- installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server
+- importer: sub-managements set to "do not import" are skipped by the import of their super manager instead of having all their rules and objects marked removed (FortiManager ADOMs, Check Point domains; GHSA-hj46-639g-mxq2). A forced import still imports them
+- importer: remove the retention cleanup of old imports. It never worked since 9.0 and rolled back every import of a management that had not been imported within the data retention time; deleting old import_control rows would also cascade into rules and objects that are still in use. The data retention time remains unenforced, as the settings help already states
+- report filter: nesting of brackets and not is limited to 100 levels and filters to 10000 characters, long and/or chains no longer use the stack; the REST call Report/Get validates its IP, service and text values and returns 400 for invalid values or filters (GHSA-cx2c-86rr-65r7)
+- external ticket systems (Tufin SecureChange, Check Point): all values inserted into the JSON templates (reason, comments, subject, requester, group, object and service names, ...) are JSON-escaped, so quotes, backslashes or placeholder names in requester text can neither break the request nor add fields to it (GHSA-79jw-fv66-39cw)
+- certificate checking: while the certificate check of firewall connections, external ticket systems or the email server is switched off (kept on upgrades from versions before 9.7.1), admins see a warning at the top of every page and the database upgrade prints a SECURITY WARNING listing the unchecked switches; "suppress certificate warnings" is off for new installations; documentation/certificates.md describes how to add the CA of an external system to the host trust stores (GHSA-xg2m-2m7v-v6hm)
+- workflow and notification emails: placeholder values (app and interface names, requester, reason, user name, ...) and the user-provided content are HTML-encoded in HTML bodies, and line breaks never reach the subject header; the workflow action endpoint takes the user name from the caller's token, drops caller-provided reason and requester, accepts link targets only below the configured UI host name and caps the length of the caller-provided values; recertification check emails with HTML body encode owner and rule names as well (GHSA-3w6m-jf7x-mw7m)
+- reporting: the HTML export (download, PDF, HTML report emails) of owner recertification, ticket and statistics reports HTML-encodes owner ids and names, ticket, task and implementation task titles, requester, state names, add-info values and header, approver groups and device names (GHSA-74j3-qvhf-5p4m)
+- importer: firewall API session tokens and credentials no longer reach error texts, alerts, data issues or the importer log: Check Point errors omit the request headers (X-chkp-sid), FortiManager errors and debug output redact the session and password, FortiOS transport errors no longer echo the URL with the access token, and session ids are only logged as a short fingerprint; all Check Point API sessions of an import (objects, rules, MDS and global domain) are logged out also after an error, and the normalization no longer opens an unused API session (GHSA-vmp8-pwg3-h2qv)
+- importer (Cisco ASA): the SSH host key of the device is checked against /usr/local/fworch/etc/ssh_known_hosts on the importer host (created empty by the installer, never overwritten) unless "check certificates of firewall connections" is switched off; an unknown or changed key, or a missing known hosts file, fails the import at once, before any credential is sent, and without retries. **Breaking for installations with that check switched on: add the verified host keys of all ASA devices before upgrading** (see documentation/certificates.md) (GHSA-m77f-vf77-96ww)
+  - breaking: this breaks ASA imports on installations that have "check certificates of firewall connections" switched on. Fresh installs have it on by default. Those imports fail after the upgrade until the verified host keys are added. The upgrade lists the affected ASA managements, and until their next successful import admins see them in a warning at the top of every page together with the instructions.
+- middleware REST API: every list endpoint is paged with one central page size (#5561)
+  - new setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`, Settings - Defaults,
+    default 10000, at least 100, at most 100000) is the maximum and default `limit` of all list endpoints. It replaces the fixed
+    limits (`getIpDataForOwners` 10000, Flow catalog object lists 1000, group lists 250, `getImplTaskTargets` 1000)
+    and is read at request time
+  - new paging (`limit`, `offset`, deterministic order, response header `X-Has-More`, 400 for a limit outside 1 to
+    the maximum or a negative offset) for `Rule/GetRulesByFilter` and `workflow/getAuditProofCriticalChanges`
+    (`options.limit`/`options.offset`), `owners/get`, `User/Get` and `Group/Get`, `Members`, `Memberships`,
+    `Resolve` (root keys) and `GET User`, `GET Tenant`, `GET Group`, `GET Compliance/designatedZoneMatrix/zones`
+    (query parameters). `GetRulesByFilter` returns the number of rules of the page in `result.count`
+  - breaking change for API clients that do not page: these endpoints return at most `maxRestResponseObjectLimit`
+    objects per request; clients getting fewer objects see no difference. Flow catalog group lists now return up
+    to 10000 groups per page instead of 250. LDAP member, membership and user lists and the user, tenant and
+    group lists are now ordered (by dn resp. id)
+  - `Rule/GetRulesByFilter`, `owners/get`, `getAuditProofCriticalChanges`, `designatedZoneMatrix/zones` and the
+    user, tenant and LDAP lists (`GET User`, `User/Get`, `GET Tenant`, `GET Group`, `Group/Get`, `Members`,
+    `Memberships`, `Resolve`) now use the rate limit policy for expensive requests (at most 2 concurrent requests per
+    user)
+  - the UI reads every page of the user, tenant and LDAP group lists, so it shows complete lists as before; a list
+    that still has further pages after 1000 pages is reported as an error instead of being shown incomplete
+
 ## 9.8.3 - 26.10.2026
 - modelling: new setting "Network Areas excluded from Common Services" - network areas listed there are not offered for selection in common services and cannot be added to them; existing common services containing such an area can only be saved after removing it (#5406)
 - modelling: fix destination area check using the "in Source" flag of common network areas instead of "in Destination"

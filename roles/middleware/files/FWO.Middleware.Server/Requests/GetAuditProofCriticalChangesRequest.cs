@@ -68,6 +68,22 @@ public sealed class GetAuditProofCriticalChangesOptions : IRequestWithAdditional
     public AuditProofCriticalChangeFilter? Filter { get; set; }
 
     /// <summary>
+    /// Gets or sets the maximum number of changes returned, between 1 and the configured
+    /// <c>maxRestResponseObjectLimit</c> (default 10000). When omitted or <c>null</c>, a page of that size is
+    /// returned. Changes are ordered newest first, so <c>limit</c> and <c>offset</c> page the result
+    /// deterministically; the <c>X-Has-More</c> response header tells whether further changes follow.
+    /// </summary>
+    [JsonPropertyName("limit")]
+    public int? Limit { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of changes skipped before the first returned change, at least 0. When omitted or
+    /// <c>null</c>, no change is skipped.
+    /// </summary>
+    [JsonPropertyName("offset")]
+    public int? Offset { get; set; }
+
+    /// <summary>
     /// Gets or sets the additional request data. Any key captured here is unsupported and is
     /// reported back to the caller.
     /// </summary>

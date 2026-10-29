@@ -1,4 +1,5 @@
 using FWO.Middleware.Server.Responses;
+using FWO.Middleware.Server.Services;
 
 namespace FWO.Middleware.Server.Requests;
 
@@ -12,8 +13,9 @@ public static class GetAuditProofCriticalChangesRequestValidator
     /// Validates the whole request without stopping at the first error.
     /// </summary>
     /// <param name="request">Request to validate, or null when no body was supplied.</param>
+    /// <param name="maxLimit">Maximum page size.</param>
     /// <returns>All detected errors; empty when the request is valid.</returns>
-    public static RequestValidationErrorResponse Validate(GetAuditProofCriticalChangesRequest? request)
+    public static RequestValidationErrorResponse Validate(GetAuditProofCriticalChangesRequest? request, int maxLimit)
     {
         RequestValidationErrorResponse result = new();
         if (request == null)
@@ -25,6 +27,7 @@ public static class GetAuditProofCriticalChangesRequestValidator
         }
 
         ValidateTicketId(request, result);
+        ValidatePaging(request.Options, maxLimit, result);
         AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.AdditionalData, GetAuditProofCriticalChangesValidationSchema.kRootPath,
             GetAuditProofCriticalChangesValidationSchema.RootKeys, result);
         AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.Options.AdditionalData, GetAuditProofCriticalChangesValidationSchema.kOptionsPath,
@@ -50,6 +53,20 @@ public static class GetAuditProofCriticalChangesRequestValidator
         result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
             GetAuditProofCriticalChangesValidationSchema.DescribeUnknownTicket(ticketId)));
         return result;
+    }
+
+    private static void ValidatePaging(GetAuditProofCriticalChangesOptions options, int maxLimit, RequestValidationErrorResponse result)
+    {
+        if (!ListPaging.IsValidLimit(options.Limit, maxLimit))
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetAuditProofCriticalChangesValidationSchema.kLimitPath,
+                ListPaging.BuildLimitError(GetAuditProofCriticalChangesValidationSchema.kLimitPath, maxLimit)));
+        }
+        if (!ListPaging.IsValidOffset(options.Offset))
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetAuditProofCriticalChangesValidationSchema.kOffsetPath,
+                ListPaging.BuildOffsetError(GetAuditProofCriticalChangesValidationSchema.kOffsetPath)));
+        }
     }
 
     private static void ValidateTicketId(GetAuditProofCriticalChangesRequest request, RequestValidationErrorResponse result)

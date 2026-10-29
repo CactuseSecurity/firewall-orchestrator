@@ -9,7 +9,7 @@ insert into config (config_key, config_value, config_user) VALUES ('defaultManag
 insert into config (config_key, config_value, config_user) VALUES ('dataRetentionTime', '731', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSleepTime', '40', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importCheckCertificates', 'True', 0);
-insert into config (config_key, config_value, config_user) VALUES ('importSuppressCertificateWarnings', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importSuppressCertificateWarnings', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('fwApiElementsPerFetch', '150', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recertificationPeriod', '365', 0);
 insert into config (config_key, config_value, config_user) VALUES ('recertificationNoticePeriod', '30', 0);
@@ -47,6 +47,7 @@ insert into config (config_key, config_value, config_user) VALUES ('pwSpecialCha
 insert into config (config_key, config_value, config_user) VALUES ('maxImportDuration', '4', 0);
 insert into config (config_key, config_value, config_user) VALUES ('maxImportInterval', '12', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importScriptTimeout', '60', 0);
+insert into config (config_key, config_value, config_user) VALUES ('maxRestResponseObjectLimit', '10000', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqAvailableTaskTypes', '[0,1,2,3]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqTicketFieldVisibility', '{"requester":true,"priority":true,"deadline":true,"reason":true,"comments":false,"accessTask":{"management":true,"owner":true,"validFrom":true,"validTo":true,"reason":true,"freeText":false,"comments":true}}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqPriorities', '[{"numeric_prio":1,"name":"Highest","ticket_deadline":1,"approval_deadline":1},{"numeric_prio":2,"name":"High","ticket_deadline":3,"approval_deadline":2},{"numeric_prio":3,"name":"Medium","ticket_deadline":7,"approval_deadline":3},{"numeric_prio":4,"name":"Low","ticket_deadline":14,"approval_deadline":7},{"numeric_prio":5,"name":"Lowest","ticket_deadline":30,"approval_deadline":14}]', 0);

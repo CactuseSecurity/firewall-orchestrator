@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.8.3"
+product_version: "9.8.4"
 # The oldest product version an upgrade may start from, enforced by
 # roles/common/tasks/validate-upgrade-source-version.yml before anything touches the
 # database. It exists because 9.5.0 removed the migration files below 8.0:
@@ -114,6 +114,9 @@ postgres_group: "postgres"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
 fworch_conf_dir: "{{ fworch_home }}/etc"
+# SSH host keys of firewalls imported over SSH (Cisco ASA), checked unless certificate checking of firewall
+# connections is switched off; the importer reads it at the fixed path fwo_const.SSH_KNOWN_HOSTS_FILE
+importer_ssh_known_hosts_file: "{{ fworch_conf_dir }}/ssh_known_hosts"
 fworch_conf_file: "{{ fworch_conf_dir }}/fworch.json"
 last_commit_id_file_path: "{{ fworch_conf_dir }}/last_commit_id.txt"
 fworch_secrets_dir: "{{ fworch_conf_dir }}/secrets"
@@ -624,8 +627,6 @@ lib_tmp_dir: "{{ fworch_home }}/lib/tmp"
 randomly_generated_pwd: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"
 
 ### logging
-syslog_proto: tcp
-syslog_port: 514
 middleware_server_syslog_id: "{{ product_name }}.middleware-server"
 ui_syslog_id: "{{ product_name }}-ui"
 ldap_syslog_id: slapd

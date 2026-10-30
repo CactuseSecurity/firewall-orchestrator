@@ -22,6 +22,12 @@ namespace FWO.Services.Workflow
         private const int kMaxImplTaskTargetPages = 100;
 
         /// <summary>
+        /// Stands for the request management of an object task without management: its targets are taken from every
+        /// hierarchy of managements.
+        /// </summary>
+        private const int kAllManagements = 0;
+
+        /// <summary>
         /// Target managements resolved in the current creation run, by request management and kind of ordered
         /// objects (true for services).
         /// </summary>
@@ -34,12 +40,23 @@ namespace FWO.Services.Workflow
         /// management that already has one is skipped.
         /// </summary>
         /// <param name="ticket">Ticket whose request tasks get their implementation tasks.</param>
+        /// <param name="scopeTask">Request task the action runs for in the request task scope: only this task gets its
+        /// implementation tasks, a bundled task together with its bundle once every member of the bundle has reached
+        /// the state of this task. Null in the ticket scope, where every open request task gets them.</param>
         /// <returns>The number of created implementation tasks.</returns>
-        public async Task<int> CreateMissingImplTasksForTicket(WfTicket ticket)
+        public async Task<int> CreateMissingImplTasksForTicket(WfTicket ticket, WfReqTask? scopeTask = null)
         {
             SetTicketEnv(ticket);
+            if (scopeTask != null)
+            {
+                SyncActTicketFromReqTask(scopeTask);
+            }
             int previousCount = CountImplTasks(ActTicket);
             List<WfReqTask> openTasks = [.. ActTicket.Tasks.Where(RequestTaskIsOpen)];
+            if (scopeTask != null)
+            {
+                openTasks = TasksOfRequestTaskScope(openTasks, scopeTask);
+            }
             foreach (WfReqTask task in await RequestTasksForInitialImplCreation(openTasks, includeExistingImplementationTasks: true))
             {
                 await AutoCreateImplTasks(task);
@@ -49,6 +66,28 @@ namespace FWO.Services.Workflow
             Log.WriteInfo(kImplTaskTargetsLogTitle, $"Created {createdCount} implementation tasks for ticket {ActTicket.Id}, " +
                 $"considering {CountBundles(ActTicket)} task bundles.");
             return createdCount;
+        }
+
+        /// <summary>
+        /// Returns the open request tasks the action handles in the request task scope: the task itself, or with
+        /// bundling its whole bundle, but only once no member of the bundle is in a lower state than the task. The
+        /// member reaching the state last then creates the implementation tasks of the bundle.
+        /// </summary>
+        private List<WfReqTask> TasksOfRequestTaskScope(List<WfReqTask> openTasks, WfReqTask scopeTask)
+        {
+            string bundleId = userConfig.ReqConsiderBundling ? scopeTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) : "";
+            if (string.IsNullOrWhiteSpace(bundleId))
+            {
+                return [.. openTasks.Where(task => task.Id == scopeTask.Id)];
+            }
+            List<WfReqTask> bundleMembers = [.. ActTicket.Tasks.Where(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId)];
+            if (bundleMembers.Any(member => member.StateId < scopeTask.StateId))
+            {
+                Log.WriteInfo(kImplTaskTargetsLogTitle, $"Implementation tasks of request task {scopeTask.Id} wait for bundle {bundleId}: " +
+                    "not every bundled task has reached its state yet.");
+                return [];
+            }
+            return [.. openTasks.Where(task => bundleMembers.Any(member => member.Id == task.Id))];
         }
 
         private bool RequestTaskIsOpen(WfReqTask reqTask)
@@ -75,27 +114,31 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Creates one implementation task per target management of an object task, i.e. a group task
         /// (group_create, group_modify, group_delete) or a single object task (object_create, object_modify).
-        /// Without a request management the single task without management of the previous behaviour is created.
+        /// The targets come from the hierarchy of the request management, without request management (e.g. ordered
+        /// through the REST interface) from every hierarchy of managements. In the ui, which resolves the targets
+        /// through the middleware endpoint for one management, a task without request management keeps the single
+        /// task without management of the previous behaviour.
         /// </summary>
         /// <param name="reqTask">Object task to create the implementation tasks for; only target managements whose
-        /// auto plan device specific settings allow it get one.</param>
+        /// auto plan device specific settings allow it and whose implementation mode is Automatic get one.</param>
         private async Task AutoCreateObjectImplTasks(WfReqTask reqTask)
         {
-            if (reqTask.ManagementId is not int managementId || managementId <= 0)
+            int managementId = reqTask.ManagementId is int requestManagementId && requestManagementId > 0 ? requestManagementId : kAllManagements;
+            List<Management>? targets = await GetObjectTargetManagements(reqTask, managementId);
+            if (targets == null)
             {
                 await AutoCreateSingleImplTask(reqTask);
                 return;
             }
-
-            List<Management> targets = await GetObjectTargetManagements(reqTask, managementId);
             if (targets.Count == 0)
             {
                 // ignore is an explicit setting, so no fallback task is created
                 Log.WriteWarning(kImplTaskTargetsLogTitle, $"No implementation task created for request task {reqTask.Id}: " +
-                    $"every target management of management {managementId} is set to ignore objects of this kind.");
+                    $"every target management of {DescribeRequestManagement(managementId)} is set to ignore objects of this kind.");
                 return;
             }
             targets = await FilterAutoPlannedManagements(targets);
+            targets = await FilterAutomaticObjectTargets(reqTask, targets);
             List<Management> missingTargets = [.. targets.Where(target =>
                 reqTask.ImplementationTasks.All(implTask => (implTask.ManagementId ?? reqTask.ManagementId) != target.Id))];
             bool adaptTitle = targets.Count > 1 || targets.Any(target => target.Id != managementId);
@@ -146,7 +189,11 @@ namespace FWO.Services.Workflow
         /// Resolves the target managements of an object task once per run and kind of ordered objects. If that
         /// fails, the request management itself is the only target, as before.
         /// </summary>
-        private async Task<List<Management>> GetObjectTargetManagements(WfReqTask reqTask, int managementId)
+        /// <param name="reqTask">The object task.</param>
+        /// <param name="managementId">Management of the request task, or <see cref="kAllManagements"/>.</param>
+        /// <returns>The target managements; null for a task without request management whose targets cannot be
+        /// resolved here, so that the single task without management of the previous behaviour is created.</returns>
+        private async Task<List<Management>?> GetObjectTargetManagements(WfReqTask reqTask, int managementId)
         {
             ObjectTaskKind kind = WfObjectTaskHelper.GetCreationKind(reqTask);
             if (objectTargetCache.TryGetValue((managementId, kind), out List<Management>? cachedTargets))
@@ -165,9 +212,14 @@ namespace FWO.Services.Workflow
             catch (Exception exception)
             {
                 Log.WriteError(kImplTaskTargetsLogTitle, $"Could not resolve the target managements of request task {reqTask.Id}, " +
-                    $"using management {managementId}.", exception);
+                    $"using {DescribeRequestManagement(managementId)}.", exception);
             }
-            return [new() { Id = managementId }];
+            return managementId == kAllManagements ? null : [new() { Id = managementId }];
+        }
+
+        private static string DescribeRequestManagement(int managementId)
+        {
+            return managementId == kAllManagements ? "all managements" : $"management {managementId}";
         }
 
         /// <summary>
@@ -200,18 +252,24 @@ namespace FWO.Services.Workflow
         /// Resolves the target managements with the rights of the middleware server: in the ui through the
         /// middleware, which sees every sub-management and the device specific settings, in the middleware directly.
         /// </summary>
+        /// <param name="managementId">Management of the request task, or <see cref="kAllManagements"/>, which only
+        /// the middleware itself resolves: the middleware endpoint answers for one management.</param>
+        /// <param name="kind">Kind of the created objects.</param>
         /// <returns>The target managements, or null when they cannot be resolved here.</returns>
         private async Task<List<Management>?> ResolveObjectTargetManagements(int managementId, ObjectTaskKind kind)
         {
             if (MiddlewareClient != null)
             {
-                return await GetObjectTargetsFromMiddleware(managementId, kind);
+                return managementId == kAllManagements ? null : await GetObjectTargetsFromMiddleware(managementId, kind);
             }
-            if (apiConnection != null)
+            if (apiConnection == null)
             {
-                return await new ImplTaskManagementResolver(apiConnection).ResolveObjectTargets(managementId, kind);
+                return null;
             }
-            return null;
+            ImplTaskManagementResolver resolver = new(apiConnection);
+            return managementId == kAllManagements
+                ? await resolver.ResolveObjectTargetsOfAllManagements(kind)
+                : await resolver.ResolveObjectTargets(managementId, kind);
         }
 
         /// <summary>

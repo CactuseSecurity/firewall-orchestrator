@@ -33,6 +33,8 @@ internal class WorkflowImplTaskTargetControllerTest
     private const string kSecondSubName = "domain-b";
     private const string kVisibleManagementsClaim = "x-hasura-visible-managements";
     private const string kWholeHierarchyVisible = "{20,21,22}";
+    private const string kSuperAndFirstSubVisible = "{20,21}";
+    private const string kSuperAndSecondSubVisible = "{20,22}";
 
     private static readonly List<string> kControllerRoutes = ["api/workflow"];
     private static readonly List<int> kBothSubManagements = [kFirstSubManagementId, kSecondSubManagementId];
@@ -98,12 +100,12 @@ internal class WorkflowImplTaskTargetControllerTest
     [Test]
     public async Task GetImplTaskTargetsOmitsTheNamesOfTargetsNotVisibleToTheCaller()
     {
-        WorkflowImplTaskTargetController controller = CreateController(CreateApi(), Planner(kFirstSubManagementId));
+        WorkflowImplTaskTargetController controller = CreateController(CreateApi(), Principal(kPlannerRole, kSuperAndFirstSubVisible));
 
-        ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest { ManagementId = kFirstSubManagementId });
+        ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest { ManagementId = kSuperManagementId });
         ActionResult<GetImplTaskTargetsResponse> byHiddenName = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest
         {
-            ManagementId = kFirstSubManagementId,
+            ManagementId = kSuperManagementId,
             Options = new GetImplTaskTargetsOptions { Filter = new ImplTaskTargetFilter { Name = kSecondSubName } }
         });
 
@@ -251,9 +253,9 @@ internal class WorkflowImplTaskTargetControllerTest
     {
         InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
         api.Managements.Single(management => management.Id == kFirstSubManagementId).Name = "aa-hidden";
-        WorkflowImplTaskTargetController controller = CreateController(api, Planner(kSecondSubManagementId));
+        WorkflowImplTaskTargetController controller = CreateController(api, Principal(kPlannerRole, kSuperAndSecondSubVisible));
 
-        ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest { ManagementId = kSecondSubManagementId });
+        ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest { ManagementId = kSuperManagementId });
 
         GetImplTaskTargetsResponse response = OkResponse(result);
         Assert.Multiple(() =>

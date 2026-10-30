@@ -44,7 +44,8 @@ internal class DeviceSpecificSettingsGuardicoreTest
     private static readonly HashSet<string> kManagerUiKeys =
     [
         "serviceObjectCreation", "addressObjectCreation", "timeObjectCreation", "labelCreation",
-        "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride", "securityProfiles"
+        "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride", "securityProfiles",
+        "implementationMode", "rerouteToExternalTicketSystem"
     ];
     private static readonly List<DeviceSpecificScopeType> kAllLevels =
         [DeviceSpecificScopeType.Global, DeviceSpecificScopeType.DeviceType, DeviceSpecificScopeType.Management, DeviceSpecificScopeType.Gateway];

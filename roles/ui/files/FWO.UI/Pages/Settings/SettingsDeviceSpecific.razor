@@ -41,6 +41,10 @@ else
             {
                 <div class="alert alert-warning-override small"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5505")) @(string.Join(", ", autoPlanCheck.ManualWithoutPlanningPhase.Select(taskType => userConfig.GetText(taskType))))</div>
             }
+            @if (implementationModeCheck?.HasFindings == true)
+            {
+                @RenderImplementationModeHints(implementationModeCheck)
+            }
             @if (form != null)
             {
                 <div class="d-flex align-items-center gap-2 mb-3">
@@ -102,13 +106,15 @@ else
     private string? pendingHighlightFieldId;
     private bool saving;
     private AutoPlanSettingsCheckResult? autoPlanCheck;
+    private ImplementationModeSettingsCheckResult? implementationModeCheck;
+    private List<Management> managements = [];
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             service = new DeviceSpecificSettingsService(new DeviceSpecificSettingsManager(apiConnection));
-            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
+            managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets) ?? [];
             root = await service.LoadHierarchyAsync(managements);
             await SelectNode(root);
             await RefreshAutoPlanCheck();
@@ -212,7 +218,7 @@ else
         @<div>
             <div class="mt-2">
                 @RenderEditor(state.Field, state.DisplayedValue, !CanChangeLocalValue(state), v => SetLocalValue(state, v),
-                    state.Field.ShippedDefaultFor(levelForm.Node))
+                    state.Field.ShippedDefaultFor(levelForm.Node), levelForm.Node.Level)
             </div>
             @if (state.Field.Key == DeviceSpecificSettingKeys.AutoPlanImplementationForRules)
             {
@@ -373,7 +379,67 @@ else
             autoPlanCheck = null;
             Log.WriteError("Auto Plan Settings Check", "Could not check the auto plan settings.", exception);
         }
+        await RefreshImplementationModeCheck();
     }
+
+    /// <summary>
+    /// Checks the implementation mode, external ticket system and object creation settings of all levels. A failure
+    /// only hides the hints, the settings stay editable.
+    /// </summary>
+    private async Task RefreshImplementationModeCheck()
+    {
+        if (root == null)
+        {
+            return;
+        }
+        try
+        {
+            implementationModeCheck = await ImplementationModeSettingsCheck.LoadAndCheck(apiConnection, root, managements);
+        }
+        catch (Exception exception)
+        {
+            implementationModeCheck = null;
+            Log.WriteError("Implementation Mode Settings Check", "Could not check the implementation mode settings.", exception);
+        }
+    }
+
+    private RenderFragment RenderImplementationModeHints(ImplementationModeSettingsCheckResult check) =>
+        @<div>
+            @RenderNodeHint("U5506", check.ExternalModeWithoutSystem)
+            @RenderNodeHint("U5507", check.SystemWithoutExternalMode)
+            @RenderNodeHint("U5508", check.GatewayDiffersInExternalMode)
+            @foreach (ObjectCreationFinding finding in check.ObjectCreationFindings)
+            {
+                string alertClass = finding.Type == ObjectCreationFindingType.MixedCreation ? "alert alert-info small" : "alert alert-warning-override small";
+                <div class="@alertClass">
+                    @if (finding.Type != ObjectCreationFindingType.MixedCreation)
+                    {
+                        <span class="@Icons.Warning pe-1"></span>
+                    }
+                    @(userConfig.GetText(ObjectCreationFindingTextKey(finding.Type)))
+                    @($" {finding.SuperManagement.Name} ({string.Join(", ", finding.Kinds.Select(kind => userConfig.GetText(ObjectKindTextKey(kind))))}): ")
+                    @(string.Join(", ", finding.Managements.Select(management => management.Name)))
+                </div>
+            }
+        </div>;
+
+    private RenderFragment RenderNodeHint(string textKey, List<DeviceSpecificNode> nodes) =>
+        @<div>
+            @if (nodes.Count > 0)
+            {
+                <div class="alert alert-warning-override small"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText(textKey)) @(string.Join(", ", nodes.Select(NodeName)))</div>
+            }
+        </div>;
+
+    private static string ObjectCreationFindingTextKey(ObjectCreationFindingType type) =>
+        type == ObjectCreationFindingType.SuperSettingWithoutEffect ? "U5509" : "U5511";
+
+    private static string ObjectKindTextKey(ObjectTaskKind kind) => kind switch
+    {
+        ObjectTaskKind.Service => "dss_service_object_creation",
+        ObjectTaskKind.Time => "dss_time_object_creation",
+        _ => "dss_address_object_creation"
+    };
 
     /// <summary>
     /// Only admins can change the settings. Auditors see the same page with all editors disabled, so they cannot
@@ -469,8 +535,9 @@ else
     /// "override here" makes it editable and reports edits via <paramref name="onChange"/>.
     /// </summary>
     /// <param name="placeholder">Grey hint shown while the value is empty, e.g. the default shipped for the device type.</param>
+    /// <param name="level">Level of the edited node, which restricts the options of a select; null offers all options.</param>
     private RenderFragment RenderEditor(DeviceSpecificFieldDefinition field, string value, bool disabled, Action<string> onChange,
-        string? placeholder = null) => builder =>
+        string? placeholder = null, DeviceSpecificScopeType? level = null) => builder =>
     {
         Microsoft.AspNetCore.Components.EventCallback<Microsoft.AspNetCore.Components.ChangeEventArgs> changeCallback =
             Microsoft.AspNetCore.Components.EventCallback.Factory.Create<Microsoft.AspNetCore.Components.ChangeEventArgs>(this, e => onChange(e.Value?.ToString() ?? ""));
@@ -483,7 +550,7 @@ else
                 builder.AddAttribute(2, "value", value);
                 builder.AddAttribute(3, "onchange", changeCallback);
                 builder.AddAttribute(4, "disabled", disabled);
-                foreach (DeviceSpecificFieldOption option in field.Options)
+                foreach (DeviceSpecificFieldOption option in level is DeviceSpecificScopeType editedLevel ? field.OptionsForLevel(editedLevel, value) : field.Options)
                 {
                     builder.OpenElement(5, "option");
                     builder.AddAttribute(6, "value", option.Value);

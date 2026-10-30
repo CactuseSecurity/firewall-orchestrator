@@ -1,15 +1,9 @@
 @implements IDisposable
 
-@if (State?.HasSidebar == true)
-{
-    <div style="margin-left: @($"{State.Width + kGapToSidebar}px");">
-        @ChildContent
-    </div>
-}
-else
-{
+@* always the same element, so that the content keeps its components when a sidebar comes or goes *@
+<div style="@OffsetStyle">
     @ChildContent
-}
+</div>
 
 @code
 {
@@ -29,6 +23,9 @@ else
     public RenderFragment? ChildContent { get; set; }
 
     private LeftSidebarState? subscribedState;
+
+    // null leaves out the style attribute, so without a left sidebar the content is not moved
+    private string? OffsetStyle => State?.HasSidebar == true ? $"margin-left: {State.Width + kGapToSidebar}px;" : null;
 
     /// <summary>
     /// Follows the sidebar widths of the given state.

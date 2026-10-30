@@ -1,0 +1,92 @@
+---
+# Refuses an upgrade of an API host whose Hasura still runs in Docker. The move from Docker
+# to Podman is no longer carried out (see minimum_upgrade_source_version in
+# inventory/group_vars/all.yml), and the product version does not prove that it happened:
+# v9.8.4 records 9.8.4 even when it deferred the move - with
+# api_keep_existing_hasura_on_upgrade=true, or when GitHub was not reachable - and kept
+# using the Docker container. Upgrading such a host would start the Podman container on the
+# API port the Docker one still holds. Like the version check, this has to be rejected
+# before anything changes.
+#
+# In its own file so roles/tests-integration drives this code rather than a copy of it.
+#
+# Inputs:
+#   api_docker_service_names       - the unit names the Docker based API was installed under
+#   api_container_name             - the name of the API container
+#   api_docker_binary              - the Docker client to ask for that container
+#   fworch_service_facts           - the services of this host (gathered here)
+#   minimum_upgrade_source_release - the release that still moves the API to Podman
+# Output: nothing, or a failure naming what still uses Docker and the way out.
+
+- name: look up the services installed on this host for the Docker API check
+  service_facts:
+  become: true
+
+# A completed move leaves a stopped and disabled copy of the Docker unit behind (v9.8.4
+# removed it from the vendor unit directory only), so the unit file alone proves nothing.
+- name: collect the installed Docker based API services
+  set_fact:
+    api_docker_services_installed: >-
+      {{
+        fworch_service_facts.values()
+        | selectattr('name', 'in', api_docker_service_names | map('regex_replace', '$', '.service') | list)
+        | selectattr('status', 'defined')
+        | rejectattr('status', 'in', fworch_unusable_unit_states)
+        | list
+      }}
+
+- name: collect the Docker based API services still in use
+  set_fact:
+    api_docker_services_in_use: >-
+      {{
+        (
+          (api_docker_services_installed | selectattr('state', 'equalto', 'running') | list)
+          + (api_docker_services_installed | selectattr('status', 'equalto', 'enabled') | list)
+        )
+        | map(attribute='name')
+        | unique
+        | list
+      }}
+
+- name: check whether Docker is installed for the Docker API check
+  stat:
+    path: "{{ api_docker_binary }}"
+  register: api_docker_binary_check
+
+# --quiet prints container ids only; a full inspect would put the container environment,
+# Hasura admin secret included, into the registered result.
+- name: look for a remaining Docker API container
+  command:
+    argv:
+      - "{{ api_docker_binary }}"
+      - ps
+      - --all
+      - --quiet
+      - --filter
+      - "name=^/?{{ api_container_name }}$"
+  register: api_docker_container_lookup
+  changed_when: false
+  failed_when: false
+  become: true
+  when: api_docker_binary_check.stat.exists
+
+- name: Refuse to upgrade an API that still runs in Docker
+  fail:
+    msg: >-
+      The {{ product_name }} API on this host still runs in Docker
+      ({{
+        (api_docker_services_in_use
+        + (['container ' ~ api_container_name]
+           if api_docker_container_lookup.stdout | default('') | trim | length > 0 else []))
+        | join(', ')
+      }}). This version no longer moves the API from Docker to Podman, and an earlier
+      upgrade deferred that move, because api_keep_existing_hasura_on_upgrade was set or
+      GitHub could not be reached. Nothing has been changed. Upgrade this host once more
+      with {{ minimum_upgrade_source_release }}
+      ("git checkout {{ minimum_upgrade_source_release }}") without
+      api_keep_existing_hasura_on_upgrade and with access to GitHub, so that release
+      completes the move, then return to this version and upgrade again.
+      See documentation/installer/server-upgrade.md.
+  when: >-
+    api_docker_services_in_use | length > 0
+    or api_docker_container_lookup.stdout | default('') | trim | length > 0

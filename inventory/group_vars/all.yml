@@ -433,6 +433,13 @@ fworch_db_connect_host: >-
 api_service_name: fworch-hasura-api
 api_container_name: "{{ product_name }}-api"
 api_env_file: "{{ fworch_secrets_dir }}/hasura.env"
+# The units the API ran under before 9.0.16 moved it from Docker to Podman. Only read to
+# refuse an upgrade while one is still in use (roles/common/tasks/validate-api-not-on-docker.yml)
+# and to remove the unit files a completed move left behind.
+api_docker_service_names:
+  - fworch-hasura-docker-api
+  - hasura-docker-api
+api_docker_binary: /usr/bin/docker
 api_local_listening_ip_address: "127.0.0.1"
 api_network_listening_ip_address: "{{ fwo_endpoint_hostname or groups['apiserver'].0 }}"
 # api_network_listening_ip_address: "{{ hostvars[groups['apiserver'].0].ip_address }}"

@@ -29,6 +29,14 @@ them. Upgrade with `v8.9.6` the way that release documents it (at the time of wr
 with the current version. The `v9.8.4` installer tells you so as well when you skip the
 first step.
 
+A newer version alone does not prove that the API left Docker: an upgrade with `v9.8.4`
+defers the move and keeps the Docker container when `api_keep_existing_hasura_on_upgrade`
+is set or GitHub cannot be reached. The installer therefore also stops an upgrade while the
+Docker API service (`fworch-hasura-docker-api` or `hasura-docker-api`) is running or
+enabled, or a Docker container `fworch-api` exists. Upgrade once more with `v9.8.4`, with
+access to GitHub and without `api_keep_existing_hasura_on_upgrade`, then with the current
+version.
+
 Anything you configured for this host belongs in
 `/etc/fworch/fwo-install-settings.yml`, not in `inventory/`. That file is
 outside the git repository, so `git pull` and a fresh clone leave it alone and the

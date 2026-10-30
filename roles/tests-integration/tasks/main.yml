@@ -176,6 +176,11 @@
   import_tasks: test-upgrade-source-version-guard.yml
   when: "'databaseserver' in group_names"
 
+# On the API host because that is where roles/common runs this guard.
+- name: Docker API guard testing
+  import_tasks: test-api-docker-guard.yml
+  when: "'apiserver' in group_names"
+
 # On the database host because that is where the database role reads the cluster layout.
 - name: PostgreSQL cluster guard testing
   import_tasks: test-postgresql-cluster-guard.yml

@@ -1,0 +1,90 @@
+---
+# Drives roles/common/tasks/validate-api-not-on-docker.yml itself rather than a copy of it.
+# The defect this guard exists for is a host that passes the upgrade source version check
+# while its API still runs in Docker: v9.8.4 records its own version even when it deferred
+# the move to Podman, and this version would then start the Podman container on the API
+# port the Docker one still holds.
+#
+# The services come from a fixture instead of the host, and Docker is a stand-in script in a
+# temporary directory that only reports a container for the exact filter the guard has to
+# use. No service or container is touched.
+- name: Create a temporary directory for the Docker API guard test
+  tempfile:
+    state: directory
+    prefix: fworch-api-docker-guard-
+  register: test_api_docker_dir
+
+- name: Test the Docker API guard
+  vars:
+    test_api_docker_empty: "{{ test_api_docker_dir.path }}/docker-empty"
+    test_api_docker_container: "{{ test_api_docker_dir.path }}/docker-container"
+    test_api_docker_missing: "{{ test_api_docker_dir.path }}/docker-missing"
+    test_api_docker_podman_service:
+      fworch-hasura-api.service: { name: fworch-hasura-api.service, state: running, status: enabled }
+  block:
+    - name: Create a Docker stand-in without any container
+      copy:
+        content: "#!/bin/sh\nexit 0\n"
+        dest: "{{ test_api_docker_empty }}"
+        mode: "0755"
+
+    - name: Create a Docker stand-in that still holds the API container
+      copy:
+        content: |
+          #!/bin/sh
+          if [ "$5" = "name=^/?{{ api_container_name }}$" ]; then
+            echo 4f1c2a9b0d3e
+          fi
+          exit 0
+        dest: "{{ test_api_docker_container }}"
+        mode: "0755"
+
+    # expected_message empty: the guard must let the case through
+    - name: Define the Docker API guard cases
+      set_fact:
+        test_api_docker_cases:
+          - label: API in Podman, Docker not installed
+            services: "{{ test_api_docker_podman_service }}"
+            docker: "{{ test_api_docker_missing }}"
+            expected_message: ""
+          # the stopped copy a completed move with v9.8.4 leaves in /etc/systemd/system
+          - label: completed move with a leftover Docker unit
+            services: >-
+              {{ test_api_docker_podman_service | combine({'fworch-hasura-docker-api.service':
+                 {'name': 'fworch-hasura-docker-api.service', 'state': 'stopped', 'status': 'disabled'}}) }}
+            docker: "{{ test_api_docker_empty }}"
+            expected_message: ""
+          - label: masked Docker unit
+            services: >-
+              {{ test_api_docker_podman_service | combine({'hasura-docker-api.service':
+                 {'name': 'hasura-docker-api.service', 'state': 'stopped', 'status': 'masked'}}) }}
+            docker: "{{ test_api_docker_empty }}"
+            expected_message: ""
+          # the state v9.8.4 leaves when it deferred the move
+          - label: deferred move, Docker unit running
+            services:
+              fworch-hasura-docker-api.service: { name: fworch-hasura-docker-api.service, state: running, status: enabled }
+            docker: "{{ test_api_docker_container }}"
+            expected_message: fworch-hasura-docker-api.service, container {{ api_container_name }}
+          - label: Docker unit stopped but still enabled
+            services:
+              hasura-docker-api.service: { name: hasura-docker-api.service, state: stopped, status: enabled }
+            docker: "{{ test_api_docker_missing }}"
+            expected_message: hasura-docker-api.service
+          - label: Docker container without its unit
+            services: "{{ test_api_docker_podman_service }}"
+            docker: "{{ test_api_docker_container }}"
+            expected_message: container {{ api_container_name }}
+
+    - name: Verify the guard on every Docker API case
+      include_tasks: test-api-docker-guard-case.yml
+      loop: "{{ test_api_docker_cases }}"
+      loop_control:
+        loop_var: test_api_docker_case
+        label: "{{ test_api_docker_case.label }}"
+
+  always:
+    - name: Remove the temporary directory of the Docker API guard test
+      file:
+        path: "{{ test_api_docker_dir.path }}"
+        state: absent

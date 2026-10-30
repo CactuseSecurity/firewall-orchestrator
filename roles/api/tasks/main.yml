@@ -113,6 +113,16 @@
   when: installation_mode == "upgrade" and not (api_use_existing_hasura_on_upgrade | default(false) | bool)
   failed_when: false
 
+# roles/common refused the upgrade if one of these is still running or enabled, so what is
+# left is the stopped copy a completed move to Podman left in the local unit directory
+- name: remove unit files of the former Docker based API
+  file:
+    path: "{{ item.1 }}/{{ item.0 }}.service"
+    state: absent
+  loop: "{{ api_docker_service_names | product(fworch_systemd_unit_search_dirs) | list }}"
+  become: true
+  when: installation_mode == "upgrade"
+
 - name: stop UI for upgrading
   ansible.builtin.systemd:
     name: "{{ product_name }}-ui"

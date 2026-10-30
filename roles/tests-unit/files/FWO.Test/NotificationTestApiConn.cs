@@ -1,5 +1,6 @@
 using GraphQL;
 using FWO.Api.Client.Queries;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Services;
 using System.Reflection;
@@ -84,6 +85,10 @@ namespace FWO.Test
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);
+            if (responseType == typeof(ConfigItem[]) && query == ConfigQueries.getConfigItemsByUser)
+            {
+                return (QueryResponseType)(object)Array.Empty<ConfigItem>();
+            }
             if (responseType == typeof(List<FwoNotification>))
             {
                 string? Vars = variables?.ToString();

@@ -5,6 +5,7 @@ import time
 from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
+import fwo_const
 import pytest
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
@@ -63,6 +64,17 @@ class TestManagementAndConfigQueries:
 
         assert fwo_api_call.get_config_value("importCheckCertificates") == "True"
         assert _passed_variables(api) == {"key": "importCheckCertificates"}
+
+    def test_get_config_value_returns_none_without_global_row(self, fwo_api_call: FwoApiCall, api: MagicMock) -> None:
+        api.call.return_value = {"data": {"config": []}}
+
+        assert fwo_api_call.get_config_value("importCheckCertificates") is None
+
+    def test_config_queries_read_only_global_rows(self) -> None:
+        for query_file in ("getConfigValue.graphql", "getConfigValuesByKeyFilter.graphql"):
+            query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "config/" + query_file])
+
+            assert "config_user: {_eq: 0}" in query
 
     def test_get_config_value_returns_none_without_config_value(self, fwo_api_call: FwoApiCall, api: MagicMock) -> None:
         api.call.return_value = {"data": {"config": [{"config_key": "x"}]}}

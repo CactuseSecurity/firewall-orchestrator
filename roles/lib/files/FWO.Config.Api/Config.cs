@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api.Data;
+using FWO.Data;
 using FWO.Logging;
 using System.ComponentModel;
 using System.Reflection;
@@ -194,54 +195,122 @@ namespace FWO.Config.Api
                 ?? throw new ArgumentException($"Config value (with key: {configItem.Key}) is not convertible to {property.PropertyType}.");
         }
 
+        /// <summary>
+        /// Writes the values of the edited config that differ from the database to the database and applies them to this config.
+        /// </summary>
+        /// <remarks>
+        /// The values are compared with the database rather than with this in-memory config, which can be outdated when its
+        /// subscription missed updates: an edit back to the outdated value would otherwise never be written (#5601).
+        /// </remarks>
+        /// <param name="editedData">Config holding the edited values, usually from <see cref="GetEditableConfig"/>.</param>
+        /// <param name="apiConnection">Connection of the user saving the values.</param>
+        /// <exception cref="InvalidOperationException">The database did not take over every changed value.</exception>
         public async Task WriteToDatabase(ConfigData editedData, ApiConnection apiConnection)
         {
             ThrowIfDisposed();
-            ConfigItem[] changedItems = [];
+            ConfigItem[] syncedItems = [];
+            ConfigItem[] committedItems = [];
             await semaphoreSlim.WaitAsync();
-            List<ConfigItem> configItemChanges = [];
             try
             {
-                foreach (PropertyInfo property in GetType().GetProperties())
-                {
-                    // Is Property storing config value?
-                    if (property.GetCustomAttribute<JsonPropertyNameAttribute>() != null)
-                    {
-                        // Was config value changed?
-                        if (!Equals(property.GetValue(this), property.GetValue(editedData)))
-                        {
-                            string key = property.GetCustomAttribute<JsonPropertyNameAttribute>()!.Name;
-
-                            try
-                            {
-                                TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
-                                string stringValue = converter.ConvertToString(property.GetValue(editedData)
-                                                ?? throw new ArgumentNullException($"Config value (with key: {key}) is null"))
-                                                ?? throw new ArgumentException($"Config value (with key: {key}) is not convertible to {property.PropertyType}.");
-                                // Add config item to the list of changed config items
-                                configItemChanges.Add(new ConfigItem { Key = key, Value = stringValue, User = UserId });
-                            }
-                            catch (Exception exception)
-                            {
-                                Log.WriteError("Load Config Items", $"Config item with key \"{key}\" and value: {property.GetValue(editedData)} could not be stored.", exception);
-                            }
-                        }
-                    }
-                }
-                // Update or insert all config item
+                syncedItems = await SyncWithDatabase(apiConnection);
+                List<ConfigItem> configItemChanges = CollectChangedItems(editedData);
                 if (configItemChanges.Count > 0)
                 {
-                    await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItems, new { config_items = configItemChanges });
-                    changedItems = [.. configItemChanges];
-                    ApplyCommittedChanges(changedItems);
+                    ReturnId upsertResult = await apiConnection.SendQueryAsync<ReturnId>(ConfigQueries.upsertConfigItems, new { config_items = configItemChanges });
+                    EnsureAllItemsWritten(upsertResult, configItemChanges);
+                    committedItems = [.. configItemChanges];
+                    ApplyCommittedChanges(committedItems);
                 }
             }
-            finally { semaphoreSlim.Release(); }
-
-            if (changedItems.Length > 0)
+            finally
             {
-                InvokeOnChange(this, changedItems);
+                semaphoreSlim.Release();
+                ConfigItem[] appliedItems = MergeByKey(syncedItems, committedItems);
+                if (appliedItems.Length > 0)
+                {
+                    InvokeOnChange(this, appliedItems);
+                }
             }
+        }
+
+        /// <summary>
+        /// Collects the config values of the edited config that differ from this config.
+        /// </summary>
+        private List<ConfigItem> CollectChangedItems(ConfigData editedData)
+        {
+            List<ConfigItem> configItemChanges = [];
+            foreach (PropertyInfo property in GetType().GetProperties())
+            {
+                // Is Property storing config value? Was config value changed?
+                if (TryGetConfigKey(property, out string? key) && !Equals(property.GetValue(this), property.GetValue(editedData)))
+                {
+                    try
+                    {
+                        TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
+                        string stringValue = converter.ConvertToString(property.GetValue(editedData)
+                                        ?? throw new ArgumentNullException($"Config value (with key: {key}) is null"))
+                                        ?? throw new ArgumentException($"Config value (with key: {key}) is not convertible to {property.PropertyType}.");
+                        configItemChanges.Add(new ConfigItem { Key = key!, Value = stringValue, User = UserId });
+                    }
+                    catch (Exception exception)
+                    {
+                        Log.WriteError("Load Config Items", $"Config item with key \"{key}\" and value: {property.GetValue(editedData)} could not be stored.", exception);
+                    }
+                }
+            }
+            return configItemChanges;
+        }
+
+        /// <summary>
+        /// Throws when the upsert left config items unwritten, e.g. when the role used may not update them. Hasura then
+        /// skips the rows without an error.
+        /// </summary>
+        private static void EnsureAllItemsWritten(ReturnId? upsertResult, List<ConfigItem> configItemChanges)
+        {
+            int writtenCount = upsertResult?.AffectedRows ?? 0;
+            if (writtenCount != configItemChanges.Count)
+            {
+                string keys = string.Join(", ", configItemChanges.Select(item => item.Key));
+                throw new InvalidOperationException($"Only {writtenCount} of {configItemChanges.Count} config items were written to the database ({keys}).");
+            }
+        }
+
+        /// <summary>
+        /// Reads the config items of this config's user from the database and applies those that differ from this config,
+        /// so that a config which missed subscription updates matches the database again. The caller holds the semaphore.
+        /// </summary>
+        /// <param name="connection">Connection used to read the config items.</param>
+        /// <returns>The applied config items.</returns>
+        private async Task<ConfigItem[]> SyncWithDatabase(ApiConnection connection)
+        {
+            ConfigItem[] databaseItems = await connection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { user = UserId }) ?? [];
+            Dictionary<string, string?> knownValues = [];
+            foreach (ConfigItem knownItem in RawConfigItems)
+            {
+                knownValues[knownItem.Key] = knownItem.Value;
+            }
+            ConfigItem[] differingItems = [.. databaseItems.Where(item => !knownValues.TryGetValue(item.Key, out string? knownValue) || knownValue != item.Value)];
+            if (differingItems.Length > 0)
+            {
+                Log.WriteWarning("Config sync", $"{(UserId == 0 ? "Global config" : $"Config of user {UserId}")} differed from the database " +
+                    $"and was updated: {string.Join(", ", differingItems.Select(item => item.Key))}");
+                ApplyCommittedChanges(differingItems);
+            }
+            return differingItems;
+        }
+
+        /// <summary>
+        /// Combines config items, later items replacing earlier ones with the same key.
+        /// </summary>
+        private static ConfigItem[] MergeByKey(ConfigItem[] items, ConfigItem[] replacingItems)
+        {
+            Dictionary<string, ConfigItem> mergedItems = [];
+            foreach (ConfigItem item in items.Concat(replacingItems))
+            {
+                mergedItems[item.Key] = item;
+            }
+            return [.. mergedItems.Values];
         }
 
         /// <summary>
@@ -274,15 +343,46 @@ namespace FWO.Config.Api
             RawConfigItems = [.. mergedItems];
         }
 
+        /// <summary>
+        /// Returns an editable copy of this config, after its values were read again from the database, so that an
+        /// editor shows the stored values even when the subscription of this config missed updates.
+        /// If the database cannot be read, the copy holds the values known so far.
+        /// </summary>
         public async Task<ConfigData> GetEditableConfig()
         {
             ThrowIfDisposed();
+            ConfigItem[] syncedItems = [];
             await semaphoreSlim.WaitAsync();
             try
             {
+                syncedItems = await TrySyncWithDatabase();
                 return (ConfigData)CloneEditable();
             }
-            finally { semaphoreSlim.Release(); }
+            finally
+            {
+                semaphoreSlim.Release();
+                if (syncedItems.Length > 0)
+                {
+                    InvokeOnChange(this, syncedItems);
+                }
+            }
+        }
+
+        private async Task<ConfigItem[]> TrySyncWithDatabase()
+        {
+            if (apiConnection == null)
+            {
+                return [];
+            }
+            try
+            {
+                return await SyncWithDatabase(apiConnection);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("Config sync", $"Config could not be read from the database, the values known so far are shown: {exception.Message}");
+                return [];
+            }
         }
 
         protected void InvokeOnChange(Config config, ConfigItem[] configItems)

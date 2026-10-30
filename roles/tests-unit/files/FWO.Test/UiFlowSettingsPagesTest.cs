@@ -1362,9 +1362,14 @@ namespace FWO.Test
                     }
                 });
             }
+            if (query == ConfigQueries.getConfigItemsByUser && typeof(QueryResponseType) == typeof(ConfigItem[]))
+            {
+                return Task.FromResult((QueryResponseType)(object)Array.Empty<ConfigItem>());
+            }
+
             if (query == ConfigQueries.upsertConfigItems)
             {
-                return Task.FromResult((QueryResponseType)(object)new object());
+                return Task.FromResult(ConfigUpsertTestResult.ForAllItems<QueryResponseType>(variables));
             }
 
             throw new InvalidOperationException($"Unexpected query: {query}");

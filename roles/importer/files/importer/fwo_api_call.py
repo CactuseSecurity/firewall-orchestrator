@@ -48,7 +48,7 @@ class FwoApiCall:
             FWOLogger.error("fwo_api: failed to get config value for key " + key)
             return None
 
-        if "data" in result and "config" in result["data"]:
+        if "data" in result and "config" in result["data"] and len(result["data"]["config"]) > 0:
             first_result = result["data"]["config"][0]
             if "config_value" in first_result:
                 return first_result["config_value"]

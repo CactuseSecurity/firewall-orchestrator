@@ -6,8 +6,6 @@
       update_columns: [config_value]
     }
   ) {
-    returning {
-      id: config_key
-    }
+    affected_rows
   }
 }

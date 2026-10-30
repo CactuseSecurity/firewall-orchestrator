@@ -236,13 +236,18 @@ namespace FWO.Test
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
+                if (query == ConfigQueries.getConfigItemsByUser && typeof(QueryResponseType) == typeof(ConfigItem[]))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Array.Empty<ConfigItem>());
+                }
+
                 if (query == ConfigQueries.upsertConfigItems)
                 {
                     PropertyInfo? configItemsProperty = variables?.GetType().GetProperty("config_items");
                     LastUpsertConfigItems = configItemsProperty == null
                         ? []
                         : ((IEnumerable<ConfigItem>)configItemsProperty.GetValue(variables)!).ToList();
-                    return Task.FromResult(default(QueryResponseType)!);
+                    return Task.FromResult(ConfigUpsertTestResult.ForAllItems<QueryResponseType>(variables));
                 }
 
                 throw new InvalidOperationException($"Unexpected query: {query}");

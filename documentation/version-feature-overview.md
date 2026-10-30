@@ -250,6 +250,9 @@ For a feature-centric, thematically grouped view see
 - The Cisco ASA importer checks the SSH host key of the device against a known hosts file on the importer host; admins see the managements whose key is unknown or changed together with instructions.
 - Hardening of report filters, the Report/Get REST call, external ticket and notification email templates, HTML report exports and firewall API error logging; the network syslog receiver is no longer opened.
 
+### 9.8.5 — 29.10.2026
+- The Tufin SecureChange ticket templates are device specific settings that can be adapted globally, per device type and per management; the upgrade moves the templates stored with the ticket systems.
+
 ### 9.9.0 — 01.11.2026
 - Azure Firewall import module fetches firewall policies (network rules) and IP groups directly via the Azure Resource Manager API (api version 2026-01-01 with fallback to 2024-05-01).
 - Azure parent policies (policy hierarchy) are imported; their rules precede the rules of the child policy.

@@ -406,25 +406,22 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TimeObjectSelector_DisplaysConfiguredOriginSuffix()
+        public async Task TimeObjectSelector_PreservesStoredSuffix()
         {
             await using BunitContext context = new();
             context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
             context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig
             {
-                ReqUseFlowDb = false,
-                ReqTimeObjectOriginSuffixes = "{\"requester\":\"_user\"}"
+                ReqUseFlowDb = false
             });
             context.Services.AddSingleton<DomEventService>();
 
             IRenderedComponent<TimeObjectSelector> component = context.Render<TimeObjectSelector>(parameters => parameters
                 .Add(p => p.SelectedId, -17L)
-                .Add(p => p.SelectedOrigin, TimeObjectOrigin.Requester)
-                .Add(p => p.SelectedName, "maintenance")
-                .Add(p => p.OriginSuffixes, new Dictionary<string, string> { ["requester"] = "_user" })
+                .Add(p => p.SelectedName, "maintenance_user")
                 .Add(p => p.TicketTimeObjects, new List<FlowTimeObject>
                 {
-                    new() { Id = -17, Name = "maintenance" }
+                    new() { Id = -17, Name = "maintenance_user" }
                 }));
 
             Dropdown<FlowTimeObject> dropdown = component.FindComponent<Dropdown<FlowTimeObject>>().Instance;

@@ -59,6 +59,16 @@ namespace FWO.Test
             Assert.That(result, Is.EqualTo("maintenance_approval"));
         }
 
+        [Test]
+        public void BuildDisplayName_PreservesSuffixFromAnotherOrigin()
+        {
+            Dictionary<string, string> suffixes = new() { ["requester"] = "_user", ["approver"] = "_approval" };
+
+            string result = TimeObjectNamingHelper.BuildDisplayName("maintenance_user", TimeObjectOrigin.Approver, suffixes);
+
+            Assert.That(result, Is.EqualTo("maintenance_user"));
+        }
+
         [TestCase(FlowIntegrationTimePrecisionOptions.Date, "2026-08-01 - 2026-08-02")]
         [TestCase(FlowIntegrationTimePrecisionOptions.Hours, "2026-08-01 08 h - 2026-08-02 17 h")]
         [TestCase(FlowIntegrationTimePrecisionOptions.Minutes, "2026-08-01 08:15 - 2026-08-02 17:45")]

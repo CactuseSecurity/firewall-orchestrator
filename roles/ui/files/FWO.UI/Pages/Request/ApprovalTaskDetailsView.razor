@@ -265,12 +265,10 @@
         WfReqElement? parallelTimeElement = TimeObjectReferenceResolver.FindParallelTimeElement(
             WfHandler.ActTicket.Tasks, task, timeObjectId, ticketElementId);
         string? timeObjectName = timeElement?.Name;
-        TimeObjectOrigin? timeObjectOrigin = ParseTimeObjectOrigin(task.GetAddInfoValue(AdditionalInfoKeys.TimeObjectOrigin));
         if (parallelTimeElement != null)
         {
             timeObjectName ??= parallelTimeElement.Name;
             timeObjectId ??= TimeObjectReferenceResolver.GetSelectorId(parallelTimeElement);
-            timeObjectOrigin ??= TimeObjectOrigin.Requester;
             ticketElementId = parallelTimeElement.Id;
         }
         targetDatesEditorModel = new TargetDatesEditorModel
@@ -280,7 +278,6 @@
             FlowTimeObjectId = timeObjectId,
             TicketElementId = parallelTimeElement?.Id ?? ticketElementId,
             FlowTimeObjectName = timeObjectName,
-            FlowTimeObjectOrigin = timeObjectOrigin,
             TicketTimeObjects = GetTicketTimeObjects(),
             TicketTimeObjectElementIds = GetTicketTimeObjectElementIds(),
             ShowBeginDate = AccessTaskVisibility.ShowValidFrom,
@@ -416,7 +413,6 @@
                 if (existingTimeElement.Id > 0)
                     WfHandler.ActReqTask.RemovedElements.Add(existingTimeElement);
             }
-            WfHandler.ActReqTask.RemoveAddInfo(AdditionalInfoKeys.TimeObjectOrigin);
             return;
         }
 
@@ -437,7 +433,6 @@
         timeElement.Name = model.FlowTimeObjectName;
         timeElement.StartTime = model.BeginDate;
         timeElement.EndTime = model.EndDate;
-        WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.TimeObjectOrigin, TimeObjectOrigin.Approver.ToString());
     }
 
     private List<FlowTimeObject> GetTicketTimeObjects()
@@ -460,12 +455,6 @@
             .Where(element => element.Id != 0)
             .GroupBy(TimeObjectReferenceResolver.GetSelectorId)
             .ToDictionary(group => group.Key, group => group.First().Id);
-    }
-
-
-    private static TimeObjectOrigin? ParseTimeObjectOrigin(string value)
-    {
-        return Enum.TryParse(value, true, out TimeObjectOrigin origin) ? origin : null;
     }
 
     private async Task SaveText(string value)

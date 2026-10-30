@@ -225,7 +225,7 @@ internal class UiRequestTaskMetadataEditorTest
     }
 
     [Test]
-    public async Task OnFlowTimeObjectIdChanged_AttachesFlowObjectAndSetsRequesterOrigin()
+    public async Task OnFlowTimeObjectIdChanged_AttachesFlowObject()
     {
         WfReqTask task = new() { Id = 20, TaskType = WfTaskType.access.ToString() };
         WfHandler handler = new() { ActReqTask = task, ActTicket = new WfTicket { Tasks = [task] } };
@@ -238,7 +238,6 @@ internal class UiRequestTaskMetadataEditorTest
         {
             Assert.That(timeElement?.FlowTimeObjectId, Is.EqualTo(42));
             Assert.That(timeElement?.TimeObjectTaskId, Is.Null);
-            Assert.That(task.GetAddInfoValue(AdditionalInfoKeys.TimeObjectOrigin), Is.EqualTo(TimeObjectOrigin.Requester.ToString()));
         });
     }
 
@@ -262,7 +261,7 @@ internal class UiRequestTaskMetadataEditorTest
     }
 
     [Test]
-    public async Task OnFlowTimeObjectIdChanged_ClearsElementDatesAndOrigin()
+    public async Task OnFlowTimeObjectIdChanged_ClearsElementDates()
     {
         WfReqElement oldElement = new()
         {
@@ -280,7 +279,6 @@ internal class UiRequestTaskMetadataEditorTest
             TargetEndDate = oldElement.EndTime,
             Elements = [oldElement]
         };
-        task.SetAddInfo(AdditionalInfoKeys.TimeObjectOrigin, TimeObjectOrigin.Requester.ToString());
         WfHandler handler = new() { ActReqTask = task, ActTicket = new WfTicket { Tasks = [task] } };
         RequestTaskMetadataEditor component = CreateComponent(handler, new SimulatedUserConfig());
 
@@ -292,7 +290,6 @@ internal class UiRequestTaskMetadataEditorTest
             Assert.That(task.RemovedElements, Does.Contain(oldElement));
             Assert.That(task.TargetBeginDate, Is.Null);
             Assert.That(task.TargetEndDate, Is.Null);
-            Assert.That(task.GetAddInfoValue(AdditionalInfoKeys.TimeObjectOrigin), Is.Empty);
         });
     }
 

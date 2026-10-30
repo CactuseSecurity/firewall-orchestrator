@@ -34,9 +34,7 @@
     [Parameter] public bool FullWidthLayout { get; set; }
     [Parameter] public long? SelectedId { get; set; }
     [Parameter] public string? SelectedName { get; set; }
-    [Parameter] public TimeObjectOrigin? SelectedOrigin { get; set; }
     [Parameter] public IReadOnlyList<FlowTimeObject> TicketTimeObjects { get; set; } = [];
-    [Parameter] public IReadOnlyDictionary<string, string> OriginSuffixes { get; set; } = new Dictionary<string, string>();
     [Parameter] public EventCallback<long?> SelectedIdChanged { get; set; }
     [Parameter] public EventCallback<string?> SelectedNameChanged { get; set; }
     [Parameter] public EventCallback<FlowTimeObject> TimeObjectSelected { get; set; }
@@ -120,10 +118,7 @@
     private string DisplayTimeObject(FlowTimeObject timeObject)
     {
         string name = string.IsNullOrWhiteSpace(timeObject.Name) ? timeObject.Id.ToString() : timeObject.Name;
-        return TimeObjectNamingHelper.BuildDisplayName(
-            name,
-            SelectedId == timeObject.Id ? SelectedOrigin : null,
-            OriginSuffixes);
+        return name;
     }
 
     private async Task RestoreSelectedTimeObject()

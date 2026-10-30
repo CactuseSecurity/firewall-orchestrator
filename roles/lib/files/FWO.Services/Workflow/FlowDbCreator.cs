@@ -15,6 +15,7 @@ namespace FWO.Services.Workflow
         private const string LogMessageTitle = "Create Flow";
         private readonly ApiConnection apiConnection;
         private readonly string timeObjectPrecision;
+        private readonly string timeObjectOriginSuffixes;
         private readonly List<FlowCreationRefusal> refusals = [];
 
         /// <summary>
@@ -23,16 +24,25 @@ namespace FWO.Services.Workflow
         /// </summary>
         public IReadOnlyList<FlowCreationRefusal> Refusals => refusals;
 
-        public FlowDbCreator(ApiConnection apiConnection, string timeObjectPrecision = FlowIntegrationTimePrecisionOptions.Seconds)
+        /// <summary>
+        /// Initializes a Flow DB creator with the configured time-object naming behavior.
+        /// </summary>
+        /// <param name="apiConnection">The API connection used for persistence.</param>
+        /// <param name="timeObjectPrecision">The precision used for generated time-object names.</param>
+        /// <param name="timeObjectOriginSuffixes">The serialized origin-to-suffix configuration.</param>
+        public FlowDbCreator(ApiConnection apiConnection, string timeObjectPrecision = FlowIntegrationTimePrecisionOptions.Seconds,
+            string timeObjectOriginSuffixes = "")
         {
             this.apiConnection = apiConnection;
             this.timeObjectPrecision = NormalizeTimeObjectPrecision(timeObjectPrecision);
+            this.timeObjectOriginSuffixes = timeObjectOriginSuffixes;
         }
 
         public async Task<bool?> CreateFlowInFlowDb(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
             FwoOwner? owner, long? ticketId)
         {
-            List<FlowCreationPayload> payloads = BuildFlowCreationPayloads(statefulObject, scope, owner, ticketId, timeObjectPrecision);
+            List<FlowCreationPayload> payloads = BuildFlowCreationPayloads(statefulObject, scope, owner, ticketId,
+                timeObjectPrecision, timeObjectOriginSuffixes);
             if (payloads.Count == 0)
             {
                 Log.WriteWarning(LogMessageTitle, $"Flow creation action '{action.Name}' found no request task flow data.");
@@ -45,24 +55,27 @@ namespace FWO.Services.Workflow
         }
 
         public static List<FlowCreationPayload> BuildFlowCreationPayloads(WfStatefulObject statefulObject, WfObjectScopes scope,
-            FwoOwner? owner, long? ticketId, string timeObjectPrecision = FlowIntegrationTimePrecisionOptions.Seconds)
+            FwoOwner? owner, long? ticketId, string timeObjectPrecision = FlowIntegrationTimePrecisionOptions.Seconds,
+            string timeObjectOriginSuffixes = "")
         {
             string normalizedPrecision = NormalizeTimeObjectPrecision(timeObjectPrecision);
+            IReadOnlyDictionary<string, string> suffixes = TimeObjectNamingHelper.ParseSuffixes(timeObjectOriginSuffixes);
             return scope switch
             {
-                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => BuildTicketFlowPayloads(ticket, owner, ticketId, normalizedPrecision),
-                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => [BuildRequestTaskFlowPayload(reqTask, owner, ticketId, normalizedPrecision)],
+                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => BuildTicketFlowPayloads(ticket, owner, ticketId, normalizedPrecision, suffixes),
+                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => [BuildRequestTaskFlowPayload(reqTask, owner, ticketId, normalizedPrecision, suffixes)],
                 _ => []
             };
         }
 
-        private static List<FlowCreationPayload> BuildTicketFlowPayloads(WfTicket ticket, FwoOwner? owner, long? ticketId, string timeObjectPrecision)
+        private static List<FlowCreationPayload> BuildTicketFlowPayloads(WfTicket ticket, FwoOwner? owner, long? ticketId,
+            string timeObjectPrecision, IReadOnlyDictionary<string, string> suffixes)
         {
             List<FlowCreationPayload> payloads = [];
             foreach (WfReqTask task in ticket.Tasks.Where(IsFlowRelevantTask))
             {
                 SynchronizeReferencedTimeObject(task, ticket.Tasks);
-                payloads.Add(BuildRequestTaskFlowPayload(task, owner, ticketId ?? ticket.Id, timeObjectPrecision));
+                payloads.Add(BuildRequestTaskFlowPayload(task, owner, ticketId ?? ticket.Id, timeObjectPrecision, suffixes));
             }
             return payloads;
         }
@@ -89,7 +102,8 @@ namespace FWO.Services.Workflow
             accessTimeElement.EndTime = definingTimeElement.EndTime;
         }
 
-        private static FlowCreationPayload BuildRequestTaskFlowPayload(WfReqTask task, FwoOwner? owner, long? ticketId, string timeObjectPrecision)
+        private static FlowCreationPayload BuildRequestTaskFlowPayload(WfReqTask task, FwoOwner? owner, long? ticketId,
+            string timeObjectPrecision, IReadOnlyDictionary<string, string> suffixes)
         {
             DateTime? timeStart = NormalizeTimeObjectDate(task.TargetBeginDate, timeObjectPrecision);
             DateTime? timeEnd = NormalizeTimeObjectDate(task.TargetEndDate, timeObjectPrecision);
@@ -105,7 +119,7 @@ namespace FWO.Services.Workflow
                 GroupName = task.GetAddInfoValue(AdditionalInfoKeys.GrpName),
                 TimeStart = timeStart,
                 TimeEnd = timeEnd,
-                TimeName = GetTimeObjectName(task, timeStart, timeEnd, timeObjectPrecision),
+                TimeName = GetTimeObjectName(task, timeStart, timeEnd, timeObjectPrecision, suffixes),
                 Sources = BuildFlowObjects(task.Elements, ElemFieldType.source),
                 Destinations = BuildFlowObjects(task.Elements, ElemFieldType.destination),
                 Services = BuildFlowServices(task.Elements),
@@ -114,12 +128,17 @@ namespace FWO.Services.Workflow
             };
         }
 
-        private static string GetTimeObjectName(WfReqTask task, DateTime? timeStart, DateTime? timeEnd, string timeObjectPrecision)
+        private static string GetTimeObjectName(WfReqTask task, DateTime? timeStart, DateTime? timeEnd,
+            string timeObjectPrecision, IReadOnlyDictionary<string, string> suffixes)
         {
             string configuredName = TimeObjectElementHelper.Find(task.Elements)?.Name ?? "";
-            return !string.IsNullOrWhiteSpace(configuredName)
-                ? configuredName
-                : TimeObjectNamingHelper.BuildDateBasedName(timeStart, timeEnd, timeObjectPrecision);
+            if (!string.IsNullOrWhiteSpace(configuredName))
+            {
+                return configuredName;
+            }
+
+            string generatedName = TimeObjectNamingHelper.BuildDateBasedName(timeStart, timeEnd, timeObjectPrecision);
+            return TimeObjectNamingHelper.BuildDisplayName(generatedName, TimeObjectOrigin.Requester, suffixes);
         }
 
         private static List<FlowObjectSnapshot> BuildFlowObjects(IEnumerable<WfReqElement> elements, ElemFieldType field)

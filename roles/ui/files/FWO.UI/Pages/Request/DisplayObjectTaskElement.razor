@@ -466,13 +466,29 @@ else
         {
             TaskId = ReqTask.Id,
             Field = ElemFieldType.time.ToString(),
-            Name = string.IsNullOrWhiteSpace(objectName) ? null : objectName.Trim(),
+            Name = PersistedTimeObjectName(),
             StartTime = startTime,
             EndTime = endTime,
             TimeObjId = IsModify ? original?.TimeObjId : null,
             RequestAction = requestAction
         };
         return WfObjectTaskHelper.HasTimeMinimum(element) ? element : null;
+    }
+
+    private string? PersistedTimeObjectName()
+    {
+        if (string.IsNullOrWhiteSpace(objectName))
+        {
+            return null;
+        }
+
+        string name = objectName.Trim();
+        return IsModify || selectedTimeObject != null
+            ? name
+            : TimeObjectNamingHelper.BuildDisplayName(
+                name,
+                TimeObjectOrigin.Requester,
+                TimeObjectNamingHelper.ParseSuffixes(userConfig.ReqTimeObjectOriginSuffixes));
     }
 
     private bool IsUnchanged(WfReqElement previous, WfReqElement current)

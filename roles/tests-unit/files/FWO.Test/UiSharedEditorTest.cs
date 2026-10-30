@@ -359,7 +359,6 @@ internal class UiSharedEditorTest
             Assert.That(element?.Name, Is.EqualTo("Business hours"));
             Assert.That(element?.StartTime, Is.EqualTo(model.BeginDate));
             Assert.That(element?.EndTime, Is.EqualTo(model.EndDate));
-            Assert.That(task.GetAddInfoValue(AdditionalInfoKeys.TimeObjectOrigin), Is.EqualTo(TimeObjectOrigin.Approver.ToString()));
         });
     }
 

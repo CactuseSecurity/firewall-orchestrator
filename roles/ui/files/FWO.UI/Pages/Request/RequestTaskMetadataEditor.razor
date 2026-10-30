@@ -108,9 +108,7 @@
                         <TimeObjectSelector FlowIntegration="FlowIntegration"
                             SelectedId="SelectedFlowTimeObjectId"
                             SelectedName="@SelectedFlowTimeObjectName"
-                            SelectedOrigin="SelectedFlowTimeObjectOrigin"
                             TicketTimeObjects="TicketTimeObjects"
-                            OriginSuffixes="TimeObjectOriginSuffixes"
                             SelectedIdChanged="OnFlowTimeObjectIdChanged"
                             SelectedNameChanged="OnFlowTimeObjectNameChanged"
                             TimeObjectSelected="OnFlowTimeObjectSelected" />
@@ -310,14 +308,8 @@
                 null)?.Name ?? "";
         }
     }
-    private string SelectedFlowTimeObjectDisplayName => TimeObjectNamingHelper.BuildDisplayName(
-        SelectedFlowTimeObjectName,
-        SelectedFlowTimeObjectOrigin,
-        TimeObjectOriginSuffixes);
-    private TimeObjectOrigin? SelectedFlowTimeObjectOrigin => Enum.TryParse(
-        WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.TimeObjectOrigin), true, out TimeObjectOrigin origin) ? origin : null;
+    private string SelectedFlowTimeObjectDisplayName => SelectedFlowTimeObjectName;
     private FlowIntegrationConfig FlowIntegration => FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration);
-    private IReadOnlyDictionary<string, string> TimeObjectOriginSuffixes => TimeObjectNamingHelper.ParseSuffixes(userConfig.ReqTimeObjectOriginSuffixes);
     private IReadOnlyList<FlowTimeObject> TicketTimeObjects => [.. TimeObjectReferenceResolver.GetTicketTimeElements(WfHandler.ActTicket.Tasks)
         .Select(element => new FlowTimeObject
         {
@@ -464,7 +456,6 @@
                 if (ticketTimeObjectTask != null)
                     TimeObjectElementHelper.SetTicketTaskReference(timeElement, ticketTimeObjectTask.Id);
             }
-            WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.TimeObjectOrigin, TimeObjectOrigin.Requester.ToString());
         }
         else
         {
@@ -477,7 +468,6 @@
             }
             WfHandler.ActReqTask.TargetBeginDate = null;
             WfHandler.ActReqTask.TargetEndDate = null;
-            WfHandler.ActReqTask.RemoveAddInfo(AdditionalInfoKeys.TimeObjectOrigin);
         }
         return Task.CompletedTask;
     }

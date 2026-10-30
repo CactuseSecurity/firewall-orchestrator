@@ -71,6 +71,12 @@ namespace FWO.Data.Workflow
             return matchingNames.Count == 1 ? matchingNames[0] : null;
         }
 
+        /// <summary>Finds the task defining the time object referenced by an access task.</summary>
+        /// <param name="tasks">All tasks in the ticket.</param>
+        /// <param name="accessTask">The access task whose time reference is resolved.</param>
+        /// <param name="timeObjectId">An optional stored object or selector ID.</param>
+        /// <param name="ticketElementId">An optional ticket-local element ID.</param>
+        /// <returns>The defining task or <see langword="null"/>.</returns>
         public static WfReqTask? FindParallelTimeTask(IEnumerable<WfReqTask> tasks, WfReqTask accessTask,
             long? timeObjectId, long? ticketElementId)
         {

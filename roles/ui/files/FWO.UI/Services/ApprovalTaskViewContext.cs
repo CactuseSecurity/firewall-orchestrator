@@ -4,22 +4,37 @@ using FWO.Ui.Pages.Request;
 
 namespace FWO.Ui.Services
 {
+    /// <summary>Provides display data and callbacks to approval task body components.</summary>
     public sealed class ApprovalTaskViewContext
     {
+        /// <summary>Presentation logic for resolving task values.</summary>
         public ApprovalTaskDisplayLogic DisplayLogic { get; }
+        /// <summary>Fields enabled for display in the current view.</summary>
         public AccessTaskFieldVisibilityConfig Visibility { get; }
+        /// <summary>Protocols available for technical element display.</summary>
         public List<IpProtocol> DisplayIpProtos { get; }
+        /// <summary>Determines whether a field can be edited.</summary>
         public Func<IEnumerable<WfReqTask>, string, bool> CanEdit { get; }
+        /// <summary>Determines whether the time object can be edited.</summary>
         public Func<IEnumerable<WfReqTask>, bool> CanEditTimeObject { get; }
+        /// <summary>Returns the editable time-object field name.</summary>
         public Func<IEnumerable<WfReqTask>, string> EditableTimeObjectField { get; }
+        /// <summary>Opens the owner editor.</summary>
         public Func<WfReqTask, Task> EditOwner { get; }
+        /// <summary>Opens the rule-action editor.</summary>
         public Func<WfReqTask, Task> EditRuleAction { get; }
+        /// <summary>Opens the tracking editor.</summary>
         public Func<WfReqTask, Task> EditTracking { get; }
+        /// <summary>Opens the management editor.</summary>
         public Func<WfReqTask, Task> EditManagement { get; }
+        /// <summary>Opens an element editor.</summary>
         public Func<WfReqTask, string, Task> EditField { get; }
+        /// <summary>Opens a text-field editor.</summary>
         public Func<WfReqTask, string, string, Task> EditText { get; }
+        /// <summary>Opens the target-date editor.</summary>
         public Func<WfReqTask, string, Task> EditTargetDates { get; }
 
+        /// <summary>Initializes the approval task view context.</summary>
         public ApprovalTaskViewContext(
             ApprovalTaskDisplayLogic displayLogic,
             AccessTaskFieldVisibilityConfig visibility,

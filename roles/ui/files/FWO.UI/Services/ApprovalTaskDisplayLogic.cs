@@ -8,10 +8,14 @@ using FWO.Ui.Display;
 
 namespace FWO.Ui.Services
 {
+    /// <summary>Controls how access-task elements are rendered.</summary>
     public enum ApprovalTaskElementDisplayMode
     {
+        /// <summary>Shows resolved object and group values.</summary>
         Resolved,
+        /// <summary>Shows technical values without display-name decoration.</summary>
         Technical,
+        /// <summary>Shows group members without resolving the groups.</summary>
         UnresolvedGroups
     }
 
@@ -29,6 +33,14 @@ namespace FWO.Ui.Services
         private readonly List<ComplianceNetworkZone> networkZones;
         private readonly ApprovalTaskElementDisplayMode displayMode;
 
+        /// <summary>Initializes display logic using the legacy technical/resolved switch.</summary>
+        /// <param name="wfHandler">The workflow handler providing ticket data.</param>
+        /// <param name="userConfig">The current user configuration.</param>
+        /// <param name="ruleActions">The configured rule actions.</param>
+        /// <param name="trackings">The configured tracking options.</param>
+        /// <param name="ipProtocols">The configured IP protocols.</param>
+        /// <param name="networkZones">The configured compliance zones.</param>
+        /// <param name="technicalRuleView">Whether technical values should be shown.</param>
         public ApprovalTaskDisplayLogic(WfHandler wfHandler, UserConfig userConfig,
             List<RuleAction> ruleActions, List<Tracking> trackings, List<IpProtocol> ipProtocols,
             List<ComplianceNetworkZone> networkZones, bool technicalRuleView)
@@ -37,6 +49,14 @@ namespace FWO.Ui.Services
         {
         }
 
+        /// <summary>Initializes display logic for the selected element display mode.</summary>
+        /// <param name="wfHandler">The workflow handler providing ticket data.</param>
+        /// <param name="userConfig">The current user configuration.</param>
+        /// <param name="ruleActions">The configured rule actions.</param>
+        /// <param name="trackings">The configured tracking options.</param>
+        /// <param name="ipProtocols">The configured IP protocols.</param>
+        /// <param name="networkZones">The configured compliance zones.</param>
+        /// <param name="displayMode">The element display mode.</param>
         public ApprovalTaskDisplayLogic(WfHandler wfHandler, UserConfig userConfig,
             List<RuleAction> ruleActions, List<Tracking> trackings, List<IpProtocol> ipProtocols,
             List<ComplianceNetworkZone> networkZones, ApprovalTaskElementDisplayMode displayMode)
@@ -52,35 +72,38 @@ namespace FWO.Ui.Services
 
         private FlowIntegrationConfig FlowIntegration => FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration);
 
-        private IReadOnlyDictionary<string, string> TimeObjectOriginSuffixes =>
-            TimeObjectNamingHelper.ParseSuffixes(userConfig.ReqTimeObjectOriginSuffixes);
-
+        /// <summary>Returns distinct current handlers.</summary>
         public string Handlers(IEnumerable<WfReqTask> tasks) => string.Join(", ", tasks
             .Select(task => task.CurrentHandler?.Name)
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Distinct());
 
+        /// <summary>Returns distinct assigned groups.</summary>
         public string AssignedGroups(IEnumerable<WfReqTask> tasks) => string.Join(", ", tasks
             .Select(task => task.AssignedGroup)
             .Where(group => !string.IsNullOrWhiteSpace(group))
             .Distinct());
 
+        /// <summary>Returns distinct management IDs.</summary>
         public string ManagementIds(IEnumerable<WfReqTask> tasks) => string.Join(", ", tasks
             .Select(task => task.ManagementId?.ToString())
             .Where(id => !string.IsNullOrWhiteSpace(id))
             .Distinct());
 
+        /// <summary>Returns distinct owner names.</summary>
         public string Owners(IEnumerable<WfReqTask> tasks) => string.Join(", ", tasks
             .SelectMany(task => task.Owners)
             .Select(owner => owner.Owner?.Name)
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Distinct());
 
+        /// <summary>Returns distinct non-empty values selected from the tasks.</summary>
         public string DistinctValues(IEnumerable<WfReqTask> tasks, Func<WfReqTask, string?> selector) => string.Join("; ", tasks
             .Select(selector)
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Distinct());
 
+        /// <summary>Formats time-object names and the visible validity interval.</summary>
         public string TimeObjectDisplay(IEnumerable<WfReqTask> tasks, AccessTaskFieldVisibilityConfig visibility)
         {
             string name = string.Join("; ", tasks
@@ -97,16 +120,19 @@ namespace FWO.Ui.Services
                 : $"{name} ({validity})";
         }
 
+        /// <summary>Resolves and formats the rule actions used by the tasks.</summary>
         public string RuleActions(IEnumerable<WfReqTask> tasks) => string.Join("; ", tasks
             .Select(task => ruleActions.FirstOrDefault(action => action.Id == task.RuleAction)?.Name ?? task.RuleAction?.ToString())
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Distinct());
 
+        /// <summary>Resolves and formats the tracking values used by the tasks.</summary>
         public string Trackings(IEnumerable<WfReqTask> tasks) => string.Join("; ", tasks
             .Select(task => trackings.FirstOrDefault(tracking => tracking.Id == task.Tracking)?.Name ?? task.Tracking?.ToString())
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Distinct());
 
+        /// <summary>Returns element values according to the selected display mode.</summary>
         public IEnumerable<string> RuleElementValues(IEnumerable<WfReqTask> tasks, ElemFieldType field)
         {
             return displayMode switch
@@ -146,7 +172,6 @@ namespace FWO.Ui.Services
             WfReqElement? effectiveTimeElement = TimeObjectReferenceResolver.FindParallelTimeElement(
                 wfHandler.ActTicket.Tasks, task, null, null) ?? timeElement;
             string name = effectiveTimeElement?.Name ?? "";
-            TimeObjectOrigin? origin = ParseTimeObjectOrigin(task.GetAddInfoValue(AdditionalInfoKeys.TimeObjectOrigin));
             if (string.IsNullOrWhiteSpace(name))
             {
                 long? timeObjectId = TimeObjectElementHelper.GetSelectorId(timeElement);
@@ -154,10 +179,9 @@ namespace FWO.Ui.Services
                     wfHandler.ActTicket.Tasks, task, timeObjectId, null);
                 name = parallelTimeElement?.Name ?? TimeObjectNamingHelper.BuildDateBasedName(
                     task.TargetBeginDate, task.TargetEndDate, FlowIntegration.TimeObjectPrecision);
-                origin ??= parallelTimeElement == null ? null : TimeObjectOrigin.Requester;
             }
 
-            return TimeObjectNamingHelper.BuildDisplayName(name, origin, TimeObjectOriginSuffixes);
+            return name;
         }
 
         private IEnumerable<string> ResolvedElementValues(IEnumerable<WfReqTask> tasks, ElemFieldType field) => tasks
@@ -320,7 +344,5 @@ namespace FWO.Ui.Services
             };
         }
 
-        private static TimeObjectOrigin? ParseTimeObjectOrigin(string value) =>
-            Enum.TryParse(value, true, out TimeObjectOrigin origin) ? origin : null;
     }
 }

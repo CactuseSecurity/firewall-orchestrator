@@ -13,9 +13,7 @@
             <TimeObjectSelector FullWidthLayout="true"
                                 SelectedId="editingModel.FlowTimeObjectId"
                                 SelectedName="@editingModel.FlowTimeObjectName"
-                                SelectedOrigin="editingModel.FlowTimeObjectOrigin"
                                 TicketTimeObjects="editingModel.TicketTimeObjects"
-                                OriginSuffixes="TimeObjectOriginSuffixes"
                                 SelectedIdChanged="OnSelectedTimeObjectIdChanged"
                                 SelectedNameChanged="OnSelectedTimeObjectNameChanged"
                                 TimeObjectSelected="OnTimeObjectSelected" />
@@ -51,9 +49,6 @@
     private TargetDatesEditorModel editingModel = new();
     private TargetDatesEditorModel? sourceModel;
     private bool targetDatesValid = true;
-    private IReadOnlyDictionary<string, string> TimeObjectOriginSuffixes =>
-        TimeObjectNamingHelper.ParseSuffixes(userConfig.ReqTimeObjectOriginSuffixes);
-
     private bool CanSave => targetDatesValid
         && editingModel.FlowTimeObjectId.HasValue
         && editingModel.FlowTimeObjectId.Value != 0;

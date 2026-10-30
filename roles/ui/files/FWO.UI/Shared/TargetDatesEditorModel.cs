@@ -10,7 +10,6 @@ namespace FWO.Ui.Shared
         public long? FlowTimeObjectId { get; set; }
         public long? TicketElementId { get; set; }
         public string? FlowTimeObjectName { get; set; }
-        public TimeObjectOrigin? FlowTimeObjectOrigin { get; set; }
         public List<FlowTimeObject> TicketTimeObjects { get; set; } = [];
         public Dictionary<long, long> TicketTimeObjectElementIds { get; set; } = [];
         public bool ShowBeginDate { get; set; } = true;
@@ -26,7 +25,6 @@ namespace FWO.Ui.Shared
             FlowTimeObjectId = other.FlowTimeObjectId;
             TicketElementId = other.TicketElementId;
             FlowTimeObjectName = other.FlowTimeObjectName;
-            FlowTimeObjectOrigin = other.FlowTimeObjectOrigin;
             TicketTimeObjects = [.. other.TicketTimeObjects];
             TicketTimeObjectElementIds = new(other.TicketTimeObjectElementIds);
             ShowBeginDate = other.ShowBeginDate;

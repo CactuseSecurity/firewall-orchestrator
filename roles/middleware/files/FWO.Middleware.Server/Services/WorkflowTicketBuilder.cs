@@ -33,7 +33,10 @@ internal sealed class WorkflowTicketBuilder
         Dictionary<string, int> ruleActionIds, Dictionary<string, int> protocolIds, FlowReferenceCatalog flowReferences)
     {
         TicketBuildContext context = new();
-        Dictionary<long, WorkflowTicketEntity> entities = BuildEntityIndex(request, protocolIds, context);
+        IReadOnlyDictionary<string, string> timeObjectOriginSuffixes =
+            TimeObjectNamingHelper.ParseSuffixes(globalConfig.ReqTimeObjectOriginSuffixes);
+        Dictionary<long, WorkflowTicketEntity> entities =
+            BuildEntityIndex(request, protocolIds, context, timeObjectOriginSuffixes);
         List<WfReqTask> tasks = [];
         tasks.AddRange(BuildObjectTasks(request, entities, ticketStateId, context));
         tasks.AddRange(BuildGroupTasks(request, entities, ticketStateId, flowReferences, context));
@@ -92,7 +95,7 @@ internal sealed class WorkflowTicketBuilder
             TaskType = WfTaskType.object_create.ToString(),
             RequestAction = RequestAction.create.ToString(),
             StateId = ticketStateId,
-            AdditionalInfo = entity.Kind == WorkflowTicketEntityKind.TimeObject ? BuildAdditionalInfo(entity) : null,
+            AdditionalInfo = null,
             Elements = [BuildObjectElement(entity)],
             Approvals = [BuildApproval(ticketStateId)],
             Locked = true
@@ -160,7 +163,8 @@ internal sealed class WorkflowTicketBuilder
     /// Builds all group/entity lookup entries and checks for duplicate ids.
     /// </summary>
     private static Dictionary<long, WorkflowTicketEntity> BuildEntityIndex(CreateTicketRequest request,
-        Dictionary<string, int> protocolIds, TicketBuildContext context)
+        Dictionary<string, int> protocolIds, TicketBuildContext context,
+        IReadOnlyDictionary<string, string> timeObjectOriginSuffixes)
     {
         Dictionary<long, WorkflowTicketEntity> entities = [];
 
@@ -222,13 +226,31 @@ internal sealed class WorkflowTicketBuilder
             }
         }
 
+        AddTimeObjectEntities(request, entities, context, timeObjectOriginSuffixes);
+
+        return entities;
+    }
+
+    private static void AddTimeObjectEntities(CreateTicketRequest request,
+        Dictionary<long, WorkflowTicketEntity> entities, TicketBuildContext context,
+        IReadOnlyDictionary<string, string> timeObjectOriginSuffixes)
+    {
         for (int index = 0; index < request.TimeObjects.Count; index++)
         {
             try
             {
                 CreateTicketRequest.CreateTimeObjectRequest timeObject = request.TimeObjects[index];
                 long entityId = ParseLocalEntityId(timeObject.Id, "time object");
-                AddEntity(entities, entityId, WorkflowTicketEntity.FromTimeObject(entityId, timeObject));
+                WorkflowTicketEntity entity = WorkflowTicketEntity.FromTimeObject(entityId, timeObject);
+                if (entityId < 0)
+                {
+                    entity = entity with
+                    {
+                        DisplayName = TimeObjectNamingHelper.BuildDisplayName(
+                            entity.DisplayName, TimeObjectOrigin.Requester, timeObjectOriginSuffixes)
+                    };
+                }
+                AddEntity(entities, entityId, entity);
             }
             catch (ArgumentException exception)
             {
@@ -236,8 +258,6 @@ internal sealed class WorkflowTicketBuilder
                 AddValidationError(context.ValidationErrors, $"timeObjects[{index}]", exception);
             }
         }
-
-        return entities;
     }
 
     private static List<WfReqTask> BuildRuleTasks(CreateTicketRequest request, Dictionary<long, WorkflowTicketEntity> entities,
@@ -427,7 +447,7 @@ internal sealed class WorkflowTicketBuilder
             FreeText = rule.Description,
             TargetBeginDate = timeEntity?.TimeStart,
             TargetEndDate = timeEntity?.TimeEnd,
-            AdditionalInfo = BuildAdditionalInfo(timeEntity),
+            AdditionalInfo = null,
             Elements = elements,
             Approvals = [BuildApproval(taskContext.TicketStateId)],
             Owners = taskOwner == null ? [] : [new() { Owner = taskOwner }],
@@ -691,16 +711,6 @@ internal sealed class WorkflowTicketBuilder
             StateId = stateId,
             InitialApproval = true
         };
-    }
-
-    private static string BuildAdditionalInfo(WorkflowTicketEntity? timeEntity)
-    {
-        Dictionary<string, string> additionalInfo = new();
-        if (timeEntity != null)
-        {
-            additionalInfo[AdditionalInfoKeys.TimeObjectOrigin] = TimeObjectOrigin.Requester.ToString();
-        }
-        return JsonSerializer.Serialize(additionalInfo);
     }
 
     private static long ParseLocalEntityId(long id, string entityType)

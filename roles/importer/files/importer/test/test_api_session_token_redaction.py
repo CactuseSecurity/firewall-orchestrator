@@ -91,8 +91,8 @@ class TestCheckPointApiCall:
     def test_malformed_proxy_keeps_proxy_credentials_out_of_error(
         self, monkeypatch: pytest.MonkeyPatch, proxy_url: str
     ) -> None:
-        # requests itself, not a mock: it repeats a proxy url it cannot parse in its error text, and fails on
-        # parsing before it opens any connection
+        # requests itself, not a mock: it fails on parsing the proxy url before it opens any connection. Whether
+        # its error text repeats that url depends on the urllib3 version, so only the outcome is checked here.
         for proxy_variable in ("HTTPS_PROXY", "https_proxy"):
             monkeypatch.setenv(proxy_variable, proxy_url)
         for no_proxy_variable in ("NO_PROXY", "no_proxy"):
@@ -103,8 +103,21 @@ class TestCheckPointApiCall:
 
         assert "InvalidURL" in str(raised.value)
         assert PROXY_PASSWORD_MARKER not in str(raised.value)
-        assert f"http://{REDACTED_VALUE}@" in str(raised.value)
         assert f"{CP_URL}show-hosts" in str(raised.value)
+
+    def test_transport_error_naming_the_proxy_url_keeps_proxy_credentials_out_of_error(self) -> None:
+        # the text urllib3 before 2.8 gives for a proxy url it cannot parse, credentials included
+        leaking_error = requests.exceptions.InvalidURL(
+            f"Failed to parse: http://proxy-user:{PROXY_PASSWORD_MARKER}@proxy.invalid:80:80"
+        )
+        with (
+            patch.object(cp_getter.requests, "post", side_effect=leaking_error),
+            pytest.raises(FwApiError) as raised,
+        ):
+            cp_getter.cp_api_call(CP_URL, "show-hosts", {"limit": 1}, SID_MARKER)
+
+        assert PROXY_PASSWORD_MARKER not in str(raised.value)
+        assert f"Failed to parse: http://{REDACTED_VALUE}@proxy.invalid:80:80" in str(raised.value)
 
     def test_garbled_response_warnings_show_fingerprint_instead_of_session(
         self, debug_logging: pytest.LogCaptureFixture

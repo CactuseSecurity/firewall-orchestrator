@@ -8525,15 +8525,16 @@ INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> st
         <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Wichtige Request-Felder</th></tr></thead>
         <tbody>
             <tr><td><code>getAddressObjects</code></td><td>Liefert sichtbare Adressobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
-            <tr><td><code>getAddressGroups</code></td><td>Liefert sichtbare Adressgruppen.</td><td>Optional <code>filter.visibleInRequest</code> und <code>option.separateZoneGroups</code>.</td></tr>
+            <tr><td><code>getAddressGroups</code></td><td>Liefert sichtbare Adressgruppen.</td><td>Optional <code>filter.visibleInRequest</code>, <code>filter.includeTechnicalDetails</code> und <code>option.separateZoneGroups</code>.</td></tr>
             <tr><td><code>getServiceObjects</code></td><td>Liefert sichtbare Dienstobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
-            <tr><td><code>getServiceGroups</code></td><td>Liefert sichtbare Dienstgruppen.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceGroups</code></td><td>Liefert sichtbare Dienstgruppen.</td><td>Optional <code>filter.visibleInRequest</code> und <code>filter.includeTechnicalDetails</code>.</td></tr>
             <tr><td><code>getTimeObjects</code></td><td>Liefert sichtbare Zeitobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getServiceObjectId</code></td><td>L&ouml;st ein Dienstobjekt anhand von Protokoll und Portbereich auf.</td><td><code>protocol</code> erforderlich, dazu <code>portStart</code>, <code>portEnd</code> und optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getAddressObjectId</code></td><td>L&ouml;st ein Adressobjekt anhand einer IP-Adresse oder eines IP-Bereichs auf.</td><td>Genau eines von <code>ipHost</code>, <code>ipNetwork</code> oder <code>ipRange</code>, optional <code>filter.visibleInRequest</code>.</td></tr>
         </tbody>
     </table>
     Die Filterstruktur ist f&uuml;r diese Endpunkte bewusst klein gehalten und dient vor allem dazu, nur Objekte zur&uuml;ckzugeben, die im Request-Kontext sichtbar sein sollen.
+    Bei <code>getAddressGroups</code> und <code>getServiceGroups</code> enthalten Mitglieder standardm&auml;&szlig;ig nur <code>id</code> und <code>name</code>. Mit <code>filter.includeTechnicalDetails=true</code> erhalten Adressmitglieder dieselben technischen Felder wie <code>getAddressObjects</code> und Dienstmitglieder dieselben wie <code>getServiceObjects</code>; portlose Dienste enthalten <code>portStart=null</code> und <code>portEnd=null</code>. Der Wert kann mit <code>option.separateZoneGroups=true</code> kombiniert werden. <code>false</code>, <code>null</code> oder ein weggelassenes Feld behalten die kompakte Antwort bei.
     Die Listen-Endpunkte (<code>getAddressObjects</code>, <code>getAddressGroups</code>, <code>getServiceObjects</code>, <code>getServiceGroups</code>, <code>getTimeObjects</code>) liefern eine Seite pro Request: <code>limit</code> (Standard und Maximum ist die Einstellung &quot;Max Objekte pro REST-API-Antwortseite&quot;, Standard 10000) und <code>offset</code> (Standard 0).
     Die Eintr&auml;ge sind nach Name und Id sortiert; der Response-Header <code>X-Has-More</code> gibt an, ob weitere Eintr&auml;ge folgen. Ung&uuml;ltige Werte werden mit 400 beantwortet.
     Passen bei <code>getServiceObjectId</code> mehrere Dienstobjekte (mehrere portlose Dienste desselben Protokolls), wird statt einer Id 409 mit den Kandidaten (<code>candidates</code>) geliefert; Dienste mit Ports und der kanonische ANY-Dienst sind eindeutig.
@@ -8548,15 +8549,16 @@ INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> ex
         <thead><tr><th>Endpoint</th><th>Purpose</th><th>Important request fields</th></tr></thead>
         <tbody>
             <tr><td><code>getAddressObjects</code></td><td>Returns visible address objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
-            <tr><td><code>getAddressGroups</code></td><td>Returns visible address groups.</td><td>Optional <code>filter.visibleInRequest</code> and <code>option.separateZoneGroups</code>.</td></tr>
+            <tr><td><code>getAddressGroups</code></td><td>Returns visible address groups.</td><td>Optional <code>filter.visibleInRequest</code>, <code>filter.includeTechnicalDetails</code>, and <code>option.separateZoneGroups</code>.</td></tr>
             <tr><td><code>getServiceObjects</code></td><td>Returns visible service objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
-            <tr><td><code>getServiceGroups</code></td><td>Returns visible service groups.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getServiceGroups</code></td><td>Returns visible service groups.</td><td>Optional <code>filter.visibleInRequest</code> and <code>filter.includeTechnicalDetails</code>.</td></tr>
             <tr><td><code>getTimeObjects</code></td><td>Returns visible time objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getServiceObjectId</code></td><td>Resolves a service object from protocol and port range.</td><td><code>protocol</code> is required, together with <code>portStart</code>, <code>portEnd</code>, and optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getAddressObjectId</code></td><td>Resolves an address object from an IP address or range.</td><td>Exactly one of <code>ipHost</code>, <code>ipNetwork</code>, or <code>ipRange</code>, with optional <code>filter.visibleInRequest</code>.</td></tr>
         </tbody>
     </table>
     The filter structure is intentionally small for these endpoints and is mainly used to restrict results to objects that should be visible in the request context.
+    Members of <code>getAddressGroups</code> and <code>getServiceGroups</code> contain only <code>id</code> and <code>name</code> by default. With <code>filter.includeTechnicalDetails=true</code>, address members receive the same technical fields as <code>getAddressObjects</code> and service members the same fields as <code>getServiceObjects</code>; protocol-only services contain <code>portStart=null</code> and <code>portEnd=null</code>. The flag can be combined with <code>option.separateZoneGroups=true</code>. <code>false</code>, <code>null</code>, or an omitted field retain the compact response.
     The list endpoints (<code>getAddressObjects</code>, <code>getAddressGroups</code>, <code>getServiceObjects</code>, <code>getServiceGroups</code>, <code>getTimeObjects</code>) return one page per request: <code>limit</code> (default and maximum is the setting &quot;Max objects per REST API response page&quot;, default 10000) and <code>offset</code> (default 0).
     Entries are ordered by name and id; the response header <code>X-Has-More</code> tells whether further entries follow. Invalid values are answered with 400.
     If more than one service object matches <code>getServiceObjectId</code> (several portless services of the same protocol), 409 with the <code>candidates</code> is returned instead of an id; services with ports and the canonical ANY service are unique.

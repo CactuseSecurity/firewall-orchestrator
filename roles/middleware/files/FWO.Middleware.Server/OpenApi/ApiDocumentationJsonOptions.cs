@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using FWO.Middleware.Server.Responses;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
@@ -15,6 +16,7 @@ public static class ApiDocumentationJsonOptions
     public static void Configure(JsonOptions jsonOptions)
     {
         jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = null;
+        jsonOptions.JsonSerializerOptions.TypeInfoResolver = CreateTypeInfoResolver(false);
     }
 
     /// <summary>
@@ -24,7 +26,8 @@ public static class ApiDocumentationJsonOptions
     {
         JsonSerializerOptions options = new(JsonSerializerDefaults.Web)
         {
-            PropertyNamingPolicy = null
+            PropertyNamingPolicy = null,
+            TypeInfoResolver = CreateTypeInfoResolver(false)
         };
         return options;
     }
@@ -38,11 +41,39 @@ public static class ApiDocumentationJsonOptions
     public static JsonSerializerOptions CreateExampleSerializerOptions(JsonSerializerOptions? baseOptions = null)
     {
         JsonSerializerOptions options = baseOptions == null ? CreateSerializerOptions() : new(baseOptions);
-        options.TypeInfoResolver = new DefaultJsonTypeInfoResolver
-        {
-            Modifiers = { OmitEmptyExampleValues }
-        };
+        options.TypeInfoResolver = CreateTypeInfoResolver(true);
         return options;
+    }
+
+    /// <summary>
+    /// Creates the JSON contract resolver shared by runtime responses and API examples.
+    /// </summary>
+    private static DefaultJsonTypeInfoResolver CreateTypeInfoResolver(bool omitEmptyExampleValues)
+    {
+        DefaultJsonTypeInfoResolver resolver = new();
+        resolver.Modifiers.Add(ConfigureOptionalTechnicalDetails);
+        if (omitEmptyExampleValues)
+        {
+            resolver.Modifiers.Add(OmitEmptyExampleValues);
+        }
+        return resolver;
+    }
+
+    /// <summary>
+    /// Makes technical member fields conditional on the response instance's detail flag.
+    /// </summary>
+    private static void ConfigureOptionalTechnicalDetails(JsonTypeInfo typeInfo)
+    {
+        if (!typeof(IOptionalTechnicalDetailsResponse).IsAssignableFrom(typeInfo.Type))
+        {
+            return;
+        }
+
+        foreach (JsonPropertyInfo property in typeInfo.Properties.Where(property => property.Name is not "id" and not "name"))
+        {
+            property.ShouldSerialize = (response, _) =>
+                response is IOptionalTechnicalDetailsResponse { IncludeTechnicalDetails: true };
+        }
     }
 
     /// <summary>
@@ -53,7 +84,11 @@ public static class ApiDocumentationJsonOptions
     {
         foreach (JsonPropertyInfo property in typeInfo.Properties.Where(property => property.PropertyType == typeof(string)))
         {
-            property.ShouldSerialize = (_, value) => value is string text && text.Length > 0;
+            Func<object, object?, bool>? existingPredicate = property.ShouldSerialize;
+            property.ShouldSerialize = (response, value) =>
+                (existingPredicate?.Invoke(response, value) ?? true)
+                && value is string text
+                && text.Length > 0;
         }
 
         if (typeof(Requests.IAddressInput).IsAssignableFrom(typeInfo.Type))

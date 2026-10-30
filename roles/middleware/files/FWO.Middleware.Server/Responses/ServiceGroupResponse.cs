@@ -40,7 +40,7 @@ public sealed class ServiceGroupResponse
     /// <summary>
     /// Represents the ServiceGroupMemberResponse type.
     /// </summary>
-    public sealed class ServiceGroupMemberResponse
+    public sealed class ServiceGroupMemberResponse : IOptionalTechnicalDetailsResponse
     {
         /// <summary>
         /// Gets the Id value.
@@ -53,5 +53,39 @@ public sealed class ServiceGroupResponse
         /// </summary>
         [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets the inclusive starting port, or null for a protocol-only service.
+        /// </summary>
+        [JsonPropertyName("portStart")]
+        public int? PortStart { get; set; }
+
+        /// <summary>
+        /// Gets the inclusive ending port, or null for a protocol-only service.
+        /// </summary>
+        [JsonPropertyName("portEnd")]
+        public int? PortEnd { get; set; }
+
+        /// <summary>
+        /// Gets the service protocol name or identifier.
+        /// </summary>
+        [JsonPropertyName("protocol")]
+        public string Protocol { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets the member state.
+        /// </summary>
+        [JsonPropertyName("state")]
+        public string State { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets whether the member is visible in requests.
+        /// </summary>
+        [JsonPropertyName("showInRequest")]
+        public bool ShowInRequest { get; set; }
+
+        /// <inheritdoc />
+        [JsonIgnore]
+        public bool IncludeTechnicalDetails { get; set; }
     }
 }

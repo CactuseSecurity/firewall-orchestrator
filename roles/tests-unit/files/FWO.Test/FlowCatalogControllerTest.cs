@@ -5,6 +5,7 @@ using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Middleware.Server.Controllers;
+using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
@@ -12,6 +13,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace FWO.Test
 {
@@ -146,6 +148,115 @@ namespace FWO.Test
             Assert.That(separatedGroups.StandardGroups, Is.Empty);
             Assert.That(separatedGroups.ZoneGroups, Has.Count.EqualTo(1));
             Assert.That(separatedGroups.ZoneGroups[0].Name, Is.EqualTo("Address Group"));
+        }
+
+        [Test]
+        public async Task GetAddressGroups_WithTechnicalDetailsAndSeparatedZones_ReturnsDetailedMembers()
+        {
+            GlobalConfig globalConfig = new()
+            {
+                FlowZoneGroupNamePatterns = "[{\"matchType\":\"Exact\",\"caseSensitive\":true,\"value\":\"Address Group\"}]"
+            };
+            using FlowCatalogService service = new(new RecordingApiConnection(), globalConfig);
+            DefaultHttpContext httpContext = new();
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig())
+            {
+                ControllerContext = new ControllerContext { HttpContext = httpContext }
+            };
+
+            ActionResult result = await controller.GetAddressGroups(new GetAddressGroupsRequest
+            {
+                Filter = new FlowCatalogGroupFilter { IncludeTechnicalDetails = true },
+                Option = new AddressGroupsOption { SeparateZoneGroups = true }
+            });
+
+            SeparatedAddressGroupsResponse response = ExtractOkValue<SeparatedAddressGroupsResponse>(result);
+            AddressGroupResponse.AddressGroupMemberResponse member = response.ZoneGroups.Single().Members.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.StandardGroups, Is.Empty);
+                Assert.That(member.IncludeTechnicalDetails, Is.True);
+                Assert.That(member.Type, Is.EqualTo("range"));
+                Assert.That(member.IpRange, Is.EqualTo(new[] { "10.0.0.1", "10.0.0.2" }));
+                Assert.That(member.State, Is.EqualTo(FlowState.Implemented));
+                Assert.That(member.ShowInRequest, Is.True);
+                Assert.That(httpContext.Response.Headers[ListPaging.kHasMoreHeader].ToString(), Is.EqualTo("false"));
+            });
+        }
+
+        [Test]
+        public async Task GetServiceGroups_WithTechnicalDetails_ReturnsDetailedMembers()
+        {
+            using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
+
+            ActionResult<List<ServiceGroupResponse>> result = await controller.GetServiceGroups(new GetServiceGroupsRequest
+            {
+                Filter = new FlowCatalogGroupFilter { IncludeTechnicalDetails = true }
+            });
+
+            ServiceGroupResponse.ServiceGroupMemberResponse member = ExtractValue(result).Single().Members.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(member.IncludeTechnicalDetails, Is.True);
+                Assert.That(member.PortStart, Is.EqualTo(80));
+                Assert.That(member.PortEnd, Is.EqualTo(80));
+                Assert.That(member.Protocol, Is.EqualTo("TCP"));
+                Assert.That(member.State, Is.EqualTo(FlowState.Implemented));
+                Assert.That(member.ShowInRequest, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task GroupEndpoints_OmittedNullAndFalseDetailFlagsReturnIdenticalCompactMembers()
+        {
+            using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
+
+            ActionResult omittedResult = await controller.GetAddressGroups(new GetAddressGroupsRequest());
+            ActionResult nullResult = await controller.GetAddressGroups(new GetAddressGroupsRequest
+            {
+                Filter = new FlowCatalogGroupFilter { IncludeTechnicalDetails = null }
+            });
+            ActionResult falseResult = await controller.GetAddressGroups(new GetAddressGroupsRequest
+            {
+                Filter = new FlowCatalogGroupFilter { IncludeTechnicalDetails = false }
+            });
+            JsonSerializerOptions options = ApiDocumentationJsonOptions.CreateSerializerOptions();
+            string omittedJson = JsonSerializer.Serialize(
+                ExtractOkValue<List<AddressGroupResponse>>(omittedResult).Single().Members.Single(), options);
+            string nullJson = JsonSerializer.Serialize(
+                ExtractOkValue<List<AddressGroupResponse>>(nullResult).Single().Members.Single(), options);
+            string falseJson = JsonSerializer.Serialize(
+                ExtractOkValue<List<AddressGroupResponse>>(falseResult).Single().Members.Single(), options);
+            JsonObject compactMember = JsonNode.Parse(omittedJson)!.AsObject();
+
+            ActionResult<List<ServiceGroupResponse>> omittedServiceResult = await controller.GetServiceGroups(new GetServiceGroupsRequest());
+            ActionResult<List<ServiceGroupResponse>> nullServiceResult = await controller.GetServiceGroups(new GetServiceGroupsRequest
+            {
+                Filter = new FlowCatalogGroupFilter { IncludeTechnicalDetails = null }
+            });
+            ActionResult<List<ServiceGroupResponse>> falseServiceResult = await controller.GetServiceGroups(new GetServiceGroupsRequest
+            {
+                Filter = new FlowCatalogGroupFilter { IncludeTechnicalDetails = false }
+            });
+            string omittedServiceJson = JsonSerializer.Serialize(
+                ExtractValue(omittedServiceResult).Single().Members.Single(), options);
+            string nullServiceJson = JsonSerializer.Serialize(
+                ExtractValue(nullServiceResult).Single().Members.Single(), options);
+            string falseServiceJson = JsonSerializer.Serialize(
+                ExtractValue(falseServiceResult).Single().Members.Single(), options);
+            JsonObject compactServiceMember = JsonNode.Parse(omittedServiceJson)!.AsObject();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(nullJson, Is.EqualTo(omittedJson));
+                Assert.That(falseJson, Is.EqualTo(omittedJson));
+                Assert.That(compactMember.Select(property => property.Key), Is.EquivalentTo(new[] { "id", "name" }));
+                Assert.That(nullServiceJson, Is.EqualTo(omittedServiceJson));
+                Assert.That(falseServiceJson, Is.EqualTo(omittedServiceJson));
+                Assert.That(compactServiceMember.Select(property => property.Key), Is.EquivalentTo(new[] { "id", "name" }));
+            });
         }
 
         [Test]
@@ -343,7 +454,15 @@ namespace FWO.Test
                                 new FlowNwGroupMember
                                 {
                                     NwObjectId = 11,
-                                    NwObject = new FlowNwObject { Id = 11, Name = "Host" }
+                                    NwObject = new FlowNwObject
+                                    {
+                                        Id = 11,
+                                        Name = "Host",
+                                        IpStart = "10.0.0.1",
+                                        IpEnd = "10.0.0.2",
+                                        State = FlowState.Implemented,
+                                        ShowInRequestModule = true
+                                    }
                                 }
                             ]
                         }
@@ -380,7 +499,16 @@ namespace FWO.Test
                                 new FlowSvcGroupMember
                                 {
                                     SvcObjectId = 21,
-                                    SvcObject = new FlowSvcObject { Id = 21, Name = "Web" }
+                                    SvcObject = new FlowSvcObject
+                                    {
+                                        Id = 21,
+                                        Name = "Web",
+                                        PortStart = 80,
+                                        PortEnd = 80,
+                                        ProtoId = 6,
+                                        State = FlowState.Implemented,
+                                        ShowInRequestModule = true
+                                    }
                                 }
                             ]
                         }

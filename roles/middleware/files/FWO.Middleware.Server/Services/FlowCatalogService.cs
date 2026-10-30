@@ -114,10 +114,16 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
     /// <param name="limit">Page size.</param>
     /// <param name="offset">Number of groups skipped before the page; null skips none.</param>
-    public async Task<ListPage<AddressGroupResponse>> GetAddressGroupsAsync(bool? visibleInRequest, int limit, int? offset)
+    /// <param name="includeTechnicalDetails">Whether members include their standalone object fields.</param>
+    public async Task<ListPage<AddressGroupResponse>> GetAddressGroupsAsync(
+        bool? visibleInRequest,
+        int limit,
+        int? offset,
+        bool includeTechnicalDetails = false)
     {
         ListPage<FlowNwGroup> page = await LoadPageAsync<FlowNwGroup>(FlowQueries.getFlowAddressGroups, visibleInRequest, limit, offset);
-        return new ListPage<AddressGroupResponse>(page.Items.Select(ToAddressGroupResponse).ToList(), page.HasMore);
+        return new ListPage<AddressGroupResponse>(
+            page.Items.Select(group => ToAddressGroupResponse(group, includeTechnicalDetails)).ToList(), page.HasMore);
     }
 
     /// <summary>
@@ -127,8 +133,13 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
     /// <param name="limit">Page size, applied to all groups before they are separated.</param>
     /// <param name="offset">Number of groups skipped before the page; null skips none.</param>
+    /// <param name="includeTechnicalDetails">Whether members include their standalone object fields.</param>
     /// <returns>The address groups of the page separated into standard groups and zone groups, and whether further groups follow.</returns>
-    public async Task<(SeparatedAddressGroupsResponse Groups, bool HasMore)> GetSeparatedAddressGroupsAsync(bool? visibleInRequest, int limit, int? offset)
+    public async Task<(SeparatedAddressGroupsResponse Groups, bool HasMore)> GetSeparatedAddressGroupsAsync(
+        bool? visibleInRequest,
+        int limit,
+        int? offset,
+        bool includeTechnicalDetails = false)
     {
         ListPage<FlowNwGroup> page = await LoadPageAsync<FlowNwGroup>(FlowQueries.getFlowAddressGroups, visibleInRequest, limit, offset);
         IReadOnlyList<FlowZoneGroupPattern> configuredZonePatterns = GetZonePatterns();
@@ -136,7 +147,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
 
         foreach (FlowNwGroup flowGroup in page.Items)
         {
-            AddressGroupResponse groupResponse = ToAddressGroupResponse(flowGroup);
+            AddressGroupResponse groupResponse = ToAddressGroupResponse(flowGroup, includeTechnicalDetails);
             if (FlowZoneGroupMatcher.IsZoneGroupName(flowGroup.Name, configuredZonePatterns))
             {
                 separatedGroups.ZoneGroups.Add(groupResponse);
@@ -170,10 +181,17 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
     /// <param name="limit">Page size.</param>
     /// <param name="offset">Number of groups skipped before the page; null skips none.</param>
-    public async Task<ListPage<ServiceGroupResponse>> GetServiceGroupsAsync(bool? visibleInRequest, int limit, int? offset)
+    /// <param name="includeTechnicalDetails">Whether members include their standalone object fields.</param>
+    public async Task<ListPage<ServiceGroupResponse>> GetServiceGroupsAsync(
+        bool? visibleInRequest,
+        int limit,
+        int? offset,
+        bool includeTechnicalDetails = false)
     {
         ListPage<FlowSvcGroup> page = await LoadPageAsync<FlowSvcGroup>(FlowQueries.getFlowServiceGroups, visibleInRequest, limit, offset);
-        return new ListPage<ServiceGroupResponse>(page.Items.Select(ToServiceGroupResponse).ToList(), page.HasMore);
+        IpProtocolCache? protocolCache = includeTechnicalDetails ? await GetIpProtocolCacheAsync() : null;
+        return new ListPage<ServiceGroupResponse>(
+            page.Items.Select(group => ToServiceGroupResponse(group, protocolCache)).ToList(), page.HasMore);
     }
 
     /// <summary>
@@ -540,7 +558,10 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
         }
     }
 
-    private static AddressGroupResponse ToAddressGroupResponse(FlowNwGroup flowGroup)
+    /// <summary>
+    /// Maps an address group and selects its compact or detailed member representation.
+    /// </summary>
+    private static AddressGroupResponse ToAddressGroupResponse(FlowNwGroup flowGroup, bool includeTechnicalDetails)
     {
         return new AddressGroupResponse
         {
@@ -549,13 +570,35 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
             State = flowGroup.State,
             ShowInRequest = flowGroup.ShowInRequestModule,
             Members = flowGroup.NwGroupMembers
-                .Select(member => new AddressGroupResponse.AddressGroupMemberResponse
-                {
-                    Id = member.NwObjectId,
-                    Name = member.NwObject.Name ?? string.Empty
-                })
+                .Select(member => ToAddressGroupMemberResponse(member, includeTechnicalDetails))
                 .ToList()
         };
+    }
+
+    /// <summary>
+    /// Maps an address-group member with optional standalone-object details.
+    /// </summary>
+    private static AddressGroupResponse.AddressGroupMemberResponse ToAddressGroupMemberResponse(
+        FlowNwGroupMember member,
+        bool includeTechnicalDetails)
+    {
+        AddressGroupResponse.AddressGroupMemberResponse response = new()
+        {
+            Id = member.NwObjectId,
+            Name = member.NwObject.Name ?? string.Empty
+        };
+        if (!includeTechnicalDetails)
+        {
+            return response;
+        }
+
+        AddressObjectResponse details = ToAddressObjectResponse(member.NwObject);
+        response.Type = details.Type;
+        response.IpRange = details.IpRange;
+        response.State = details.State;
+        response.ShowInRequest = details.ShowInRequest;
+        response.IncludeTechnicalDetails = true;
+        return response;
     }
 
     private ServiceObjectResponse ToServiceObjectResponse(FlowSvcObject flowObject, IpProtocolCache protocolCache)
@@ -582,7 +625,10 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
         };
     }
 
-    private static ServiceGroupResponse ToServiceGroupResponse(FlowSvcGroup flowGroup)
+    /// <summary>
+    /// Maps a service group and selects its compact or detailed member representation.
+    /// </summary>
+    private ServiceGroupResponse ToServiceGroupResponse(FlowSvcGroup flowGroup, IpProtocolCache? protocolCache)
     {
         return new ServiceGroupResponse
         {
@@ -591,13 +637,36 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
             State = flowGroup.State,
             ShowInRequest = flowGroup.ShowInRequestModule,
             Members = flowGroup.SvcGroupMembers
-                .Select(member => new ServiceGroupResponse.ServiceGroupMemberResponse
-                {
-                    Id = member.SvcObjectId,
-                    Name = member.SvcObject.Name
-                })
+                .Select(member => ToServiceGroupMemberResponse(member, protocolCache))
                 .ToList()
         };
+    }
+
+    /// <summary>
+    /// Maps a service-group member with optional standalone-object details.
+    /// </summary>
+    private ServiceGroupResponse.ServiceGroupMemberResponse ToServiceGroupMemberResponse(
+        FlowSvcGroupMember member,
+        IpProtocolCache? protocolCache)
+    {
+        ServiceGroupResponse.ServiceGroupMemberResponse response = new()
+        {
+            Id = member.SvcObjectId,
+            Name = member.SvcObject.Name
+        };
+        if (protocolCache == null)
+        {
+            return response;
+        }
+
+        ServiceObjectResponse details = ToServiceObjectResponse(member.SvcObject, protocolCache);
+        response.PortStart = details.PortStart;
+        response.PortEnd = details.PortEnd;
+        response.Protocol = details.Protocol;
+        response.State = details.State;
+        response.ShowInRequest = details.ShowInRequest;
+        response.IncludeTechnicalDetails = true;
+        return response;
     }
 
     private static TimeObjectResponse ToTimeObjectResponse(FlowTimeObject flowObject)

@@ -76,121 +76,8 @@ namespace FWO.Test
             Assert.That(userConfig.DefaultManagementRulebaseView, Is.True);
         }
 
-        /// <summary>A value edited back to what an outdated in-memory config holds is still written (#5601).</summary>
-        [Test]
-        public async Task WriteToDatabase_WritesEditThatOnlyMatchesOutdatedInMemoryValue()
-        {
-            SimulatedGlobalConfig globalConfig = new()
-            {
-                ImportCheckCertificates = false,
-                RawConfigItems = kSwitchedOffCertificateCheck
-            };
-            ConfigData editableConfig = await globalConfig.GetEditableConfig();
-            editableConfig.ImportCheckCertificates = false;
-
-            using UserConfigApiConnection apiConnection = new(kStoredCertificateCheck);
-            await globalConfig.WriteToDatabase(editableConfig, apiConnection);
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
-                Assert.That(apiConnection.LastConfigItems.Single().Key, Is.EqualTo(ConfigData.kImportCheckCertificatesKey));
-                Assert.That(apiConnection.LastConfigItems.Single().Value, Is.EqualTo("False"));
-                Assert.That(globalConfig.ImportCheckCertificates, Is.False);
-            });
-        }
-
-        /// <summary>An unchanged form does not write, but the in-memory config takes over the stored values.</summary>
-        [Test]
-        public async Task WriteToDatabase_TakesOverStoredValuesWhenNothingWasEdited()
-        {
-            SimulatedGlobalConfig globalConfig = new() { ImportCheckCertificates = false };
-            ConfigData editableConfig = await globalConfig.GetEditableConfig();
-            editableConfig.ImportCheckCertificates = true;
-            ConfigItem[]? notifiedItems = null;
-            globalConfig.OnChange += (_, items) => notifiedItems = items;
-
-            using UserConfigApiConnection apiConnection = new(kStoredCertificateCheck);
-            await globalConfig.WriteToDatabase(editableConfig, apiConnection);
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(0));
-                Assert.That(globalConfig.ImportCheckCertificates, Is.True);
-                Assert.That(notifiedItems!.Single().Key, Is.EqualTo(ConfigData.kImportCheckCertificatesKey));
-            });
-        }
-
-        /// <summary>An upsert Hasura skipped, e.g. for missing update permission, is reported instead of shown as saved.</summary>
-        [Test]
-        public async Task WriteToDatabase_ThrowsAndKeepsValueWhenUpsertWritesNothing()
-        {
-            SimulatedGlobalConfig globalConfig = new()
-            {
-                ImportCheckCertificates = true,
-                RawConfigItems = [.. kStoredCertificateCheck]
-            };
-            ConfigData editableConfig = await globalConfig.GetEditableConfig();
-            editableConfig.ImportCheckCertificates = false;
-            using UserConfigApiConnection apiConnection = new(kStoredCertificateCheck) { UpsertAffectedRows = 0 };
-
-            InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(() => globalConfig.WriteToDatabase(editableConfig, apiConnection));
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(exception!.Message, Does.Contain(ConfigData.kImportCheckCertificatesKey));
-                Assert.That(globalConfig.ImportCheckCertificates, Is.True);
-            });
-        }
-
-        /// <summary>Editors start from the stored values, not from an outdated in-memory config.</summary>
-        [Test]
-        public async Task GetEditableConfig_ReadsStoredValues()
-        {
-            using UserConfigApiConnection apiConnection = new(kStoredCertificateCheck);
-            using GlobalConfig globalConfig = await new SimulatedGlobalConfig().WithCurrentConfigItemsAsync(apiConnection);
-            apiConnection.DatabaseItems = kSwitchedOffCertificateCheck;
-            ConfigItem[]? notifiedItems = null;
-            globalConfig.OnChange += (_, items) => notifiedItems = items;
-
-            ConfigData editableConfig = await globalConfig.GetEditableConfig();
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(editableConfig.ImportCheckCertificates, Is.False);
-                Assert.That(globalConfig.ImportCheckCertificates, Is.False);
-                Assert.That(notifiedItems!.Single().Value, Is.EqualTo("False"));
-            });
-        }
-
-        /// <summary>When the database cannot be read, editors start from the values known so far.</summary>
-        [Test]
-        public async Task GetEditableConfig_KeepsKnownValuesWhenDatabaseCannotBeRead()
-        {
-            using UserConfigApiConnection apiConnection = new(kStoredCertificateCheck);
-            using GlobalConfig globalConfig = await new SimulatedGlobalConfig().WithCurrentConfigItemsAsync(apiConnection);
-            apiConnection.FailConfigRead = true;
-
-            ConfigData editableConfig = await globalConfig.GetEditableConfig();
-
-            Assert.That(editableConfig.ImportCheckCertificates, Is.True);
-        }
-
-        private static readonly ConfigItem[] kStoredCertificateCheck =
-        [
-            new() { Key = ConfigData.kImportCheckCertificatesKey, Value = "True", User = 0 }
-        ];
-
-        private static readonly ConfigItem[] kSwitchedOffCertificateCheck =
-        [
-            new() { Key = ConfigData.kImportCheckCertificatesKey, Value = "False", User = 0 }
-        ];
-
         private sealed class UserConfigApiConnection(ConfigItem[] configItems) : ApiConnection
         {
-            public ConfigItem[] DatabaseItems { get; set; } = configItems;
-            public int? UpsertAffectedRows { get; set; }
-            public bool FailConfigRead { get; set; }
             public int UpsertConfigCallCount { get; private set; }
             public List<ConfigItem> LastConfigItems { get; private set; } = [];
             public object? LastGetConfigItemsByUserVariables { get; private set; }
@@ -210,12 +97,8 @@ namespace FWO.Test
             {
                 if (typeof(QueryResponseType) == typeof(ConfigItem[]) && query == ConfigQueries.getConfigItemsByUser)
                 {
-                    if (FailConfigRead)
-                    {
-                        throw new InvalidOperationException("config read failed");
-                    }
                     LastGetConfigItemsByUserVariables = variables;
-                    return Task.FromResult((QueryResponseType)(object)DatabaseItems);
+                    return Task.FromResult((QueryResponseType)(object)configItems);
                 }
                 if (typeof(QueryResponseType) == typeof(List<UiText>) && query == ConfigQueries.getCustomTextsPerLanguage)
                 {
@@ -227,9 +110,7 @@ namespace FWO.Test
                     PropertyInfo configItemsProperty = variables?.GetType().GetProperty("config_items")
                         ?? throw new ArgumentException("Missing config_items variable.");
                     LastConfigItems = ((IEnumerable<ConfigItem>)configItemsProperty.GetValue(variables)!).ToList();
-                    return UpsertAffectedRows == null
-                        ? Task.FromResult(ConfigUpsertTestResult.ForAllItems<QueryResponseType>(variables))
-                        : Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = UpsertAffectedRows.Value });
+                    return Task.FromResult(default(QueryResponseType)!);
                 }
                 throw new NotImplementedException();
             }

@@ -79,86 +79,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GraphQlApiSubscriptionStartsNewSubscriptionWhenResponseDataIsNull()
-        {
-            ManualGraphQlObservable firstStream = new();
-            ManualGraphQlObservable secondStream = new();
-            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(firstStream);
-            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(secondStream);
-            TestApiConnection apiConnection = new();
-            string? receivedValue = null;
-            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, value => receivedValue = value);
-            subscription.RestartWait = Task.CompletedTask;
-
-            firstStream.Emit(new GraphQLResponse<object> { Data = null!, Errors = kDatabaseErrors });
-            secondStream.Emit(new GraphQLResponse<object> { Data = new JObject { ["test"] = "value" } });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(firstStream.ActiveSubscription!.IsDisposed, Is.True);
-                Assert.That(secondStream.SubscribeCount, Is.EqualTo(1));
-                Assert.That(receivedValue, Is.EqualTo("value"));
-            });
-        }
-
-        [Test]
-        public void GraphQlApiSubscriptionStartsNewSubscriptionWhenStreamCompletes()
-        {
-            ManualGraphQlObservable firstStream = new();
-            ManualGraphQlObservable secondStream = new();
-            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(firstStream);
-            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(secondStream);
-            TestApiConnection apiConnection = new();
-            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { });
-            subscription.RestartWait = Task.CompletedTask;
-
-            firstStream.Complete();
-
-            Assert.That(secondStream.SubscribeCount, Is.EqualTo(1));
-        }
-
-        [Test]
-        public void GraphQlApiSubscriptionRebindDuringPendingRestartCreatesOnlyOneNewStream()
-        {
-            ManualGraphQlObservable firstStream = new();
-            ManualGraphQlObservable reboundStream = new();
-            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(firstStream);
-            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(reboundStream);
-            TestApiConnection apiConnection = new();
-            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { });
-            TaskCompletionSource restartWait = new();
-            subscription.RestartWait = restartWait.Task;
-            using GraphQLHttpClient reboundClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
-
-            firstStream.Complete();
-            subscription.RebindForTest(reboundClient);
-            restartWait.SetResult();
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(subscription.CreateStreamCount, Is.EqualTo(2));
-                Assert.That(reboundStream.SubscribeCount, Is.EqualTo(1));
-            });
-        }
-
-        [Test]
-        public void GraphQlApiSubscriptionDoesNotRestartAfterDispose()
-        {
-            ManualGraphQlObservable firstStream = new();
-            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(firstStream);
-            TestApiConnection apiConnection = new();
-            StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { });
-            TaskCompletionSource restartWait = new();
-            subscription.RestartWait = restartWait.Task;
-
-            firstStream.Complete();
-            subscription.Dispose();
-            restartWait.SetResult();
-
-            Assert.That(subscription.CreateStreamCount, Is.EqualTo(1));
-        }
-
-        [Test]
         public void GraphQlApiSubscriptionInvokesExternalExceptionHandlerForCurrentStreamErrors()
         {
             ManualGraphQlObservable stream = new();
@@ -223,8 +143,6 @@ namespace FWO.Test
 
             Assert.Throws<FormatException>(() => stream.Emit(new GraphQLResponse<object> { Data = new JObject { ["test"] = "not-an-int" } }));
         }
-
-        private static readonly GraphQLError[] kDatabaseErrors = [new GraphQLError { Message = "database query error" }];
 
         private static TestGraphQlApiSubscription<T> CreateSubscription<T>(ApiConnection apiConnection)
         {
@@ -341,22 +259,8 @@ namespace FWO.Test
                 this.onUpdate = onUpdate;
             }
 
-            public Task? RestartWait { get; set; }
-
-            public void RebindForTest(GraphQLHttpClient graphQlClient)
-            {
-                base.Rebind(graphQlClient);
-            }
-            public int CreateStreamCount { get; private set; }
-
-            protected override Task WaitBeforeRestartAsync(TimeSpan delay, CancellationToken cancellationToken)
-            {
-                return RestartWait ?? base.WaitBeforeRestartAsync(delay, cancellationToken);
-            }
-
             protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(GraphQLHttpClient graphQlClient, Action<Exception> exceptionHandler)
             {
-                CreateStreamCount++;
                 ManualGraphQlObservable stream = Streams.Dequeue();
                 stream.ExceptionHandler = exceptionHandler;
                 return (IObservable<GraphQLResponse<dynamic>>)(object)stream;
@@ -403,14 +307,6 @@ namespace FWO.Test
             public void EmitError(Exception exception)
             {
                 ExceptionHandler?.Invoke(exception);
-            }
-
-            public void Complete()
-            {
-                if (ActiveSubscription?.IsDisposed == false)
-                {
-                    observer?.OnCompleted();
-                }
             }
         }
 

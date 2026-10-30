@@ -1139,11 +1139,6 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)PathAnalysisAlgorithms);
                 }
 
-                if (query == ConfigQueries.getConfigItemsByUser && typeof(QueryResponseType) == typeof(ConfigItem[]))
-                {
-                    return Task.FromResult((QueryResponseType)(object)Array.Empty<ConfigItem>());
-                }
-
                 if (query == ConfigQueries.upsertConfigItems)
                 {
                     UpsertConfigCallCount++;
@@ -1155,7 +1150,7 @@ namespace FWO.Test
                     PropertyInfo configItemsProperty = variables?.GetType().GetProperty("config_items")
                         ?? throw new MissingFieldException("config_items");
                     LastConfigItems = ((IEnumerable<ConfigItem>)configItemsProperty.GetValue(variables)!).ToList();
-                    return Task.FromResult(ConfigUpsertTestResult.ForAllItems<QueryResponseType>(variables));
+                    return Task.FromResult((QueryResponseType)(object)new object());
                 }
 
                 throw new NotImplementedException();

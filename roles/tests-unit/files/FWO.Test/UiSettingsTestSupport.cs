@@ -91,7 +91,7 @@ namespace FWO.Test
                 LastUpsertConfigItems = configItemsProperty == null
                     ? []
                     : ((IEnumerable<ConfigItem>)configItemsProperty.GetValue(variables)!).ToList();
-                return Task.FromResult(ConfigUpsertTestResult.ForAllItems<QueryResponseType>(variables));
+                return Task.FromResult(default(QueryResponseType)!);
             }
 
             if (query == ConfigQueries.getConfigItemsByUser && typeof(QueryResponseType) == typeof(ConfigItem[]))

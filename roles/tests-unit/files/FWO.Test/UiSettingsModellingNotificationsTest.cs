@@ -218,7 +218,7 @@ namespace FWO.Test
                             : ((IEnumerable<ConfigItem>)configItemsProperty.GetValue(variables)!).ToList();
                     }
 
-                    return ConfigUpsertTestResult.ForAllItems<QueryResponseType>(variables);
+                    return default!;
                 }
 
                 return await base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);

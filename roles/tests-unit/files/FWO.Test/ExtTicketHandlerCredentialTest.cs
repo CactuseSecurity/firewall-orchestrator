@@ -138,7 +138,7 @@ namespace FWO.Test
                 ModRolloutBundleTasks = true
             };
 
-            using ExternalRequestHandler handler = new(userConfig, apiConnection, null);
+            using ExternalRequestHandler handler = new(userConfig, apiConnection, null) { SCTemplateSource = new FixedSCTemplateSource(ExtTicketHandlerTest.ticketSystem.Templates) };
             await handler.HandleStateChange(new ExternalRequest
             {
                 Id = 2,

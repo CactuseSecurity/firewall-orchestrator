@@ -64,7 +64,7 @@ namespace FWO.Test
         [Test]
         public async Task GetRulesByFilter_ShouldRejectOwnerAndIpAddressTogether()
         {
-            RuleController controller = new(new DummyApiConnection());
+            RuleController controller = new(new DummyApiConnection(), new SimulatedGlobalConfig());
 
             ActionResult<RulesByFilterResponse> result = await controller.GetRulesByFilter(
                 new RulesByFilterRequest

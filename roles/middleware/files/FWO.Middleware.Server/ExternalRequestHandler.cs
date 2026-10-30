@@ -34,6 +34,17 @@ namespace FWO.Middleware.Server
         private List<IpProtocol> ipProtos = [];
         private List<UserGroup>? ownerGroups = [];
         private bool actInternalWork = false;
+        private SCTemplateLookup scTemplates = new(kNoSCTemplates);
+
+        /// <summary>
+        /// Source of the SecureChange ticket templates, which are device specific settings (settable for unit testing)
+        /// </summary>
+        public ISCTemplateSource SCTemplateSource { get; init; }
+
+        /// <summary>
+        /// SecureChange templates before they are resolved for a ticket
+        /// </summary>
+        private static readonly List<ExternalTicketTemplate> kNoSCTemplates = [];
 
         /// <summary>
         /// States closing an external request without further processing; reaching them sets the finish date,
@@ -70,6 +81,7 @@ namespace FWO.Middleware.Server
             ApiConnection = apiConnection;
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
+            SCTemplateSource = new ApiSCTemplateSource(apiConnection);
             Task.Run(GetInternalGroups).Wait();
             wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, ownerGroups,
                 new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection))
@@ -84,6 +96,7 @@ namespace FWO.Middleware.Server
             ApiConnection = apiConnection;
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
+            SCTemplateSource = new ApiSCTemplateSource(apiConnection);
             wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, userGroups,
                 new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection))
             { SystemContext = true };
@@ -352,8 +365,9 @@ namespace FWO.Middleware.Server
                 return CreateNextRequestResult.Continue;
             }
 
-            int waitCycles = GetWaitCycles(nextTask.TaskType, state.OldRequest);
-            if (nextTask.TaskType == WfTaskType.access.ToString() || nextTask.TaskType == WfTaskType.rule_modify.ToString() || nextTask.TaskType == WfTaskType.rule_delete.ToString())
+            await ApplySecureChangeTemplates(state.Ticket, nextTask);
+            int waitCycles = GetWaitCycles(nextTask.TaskType, state.OldRequest, actSystem);
+            if (nextTask.TaskType == WfTaskType.access.ToString() || IsRuleChangeOrDelete(nextTask.TaskType))
             {
                 List<WfReqTask> bundledTasks = [];
                 List<WfReqTask> handledTasks = [nextTask];
@@ -397,7 +411,26 @@ namespace FWO.Middleware.Server
         }
 
 
-        private static bool CanBundleWithStartTask(WfReqTask furtherTask, WfReqTask startTask, int startSystemId, List<ManagementFwConfigChangeState> managementSettings, List<ExternalTicketSystem> extTicketSystems)
+        /// <summary>
+        /// Gives a SecureChange system the ticket templates in effect for the management of the task. The templates of all
+        /// managements of the ticket are resolved at once, so bundling can compare them.
+        /// </summary>
+        private async Task ApplySecureChangeTemplates(WfTicket ticket, WfReqTask task)
+        {
+            if (!actSystem.IsTufinSecureChange())
+            {
+                return;
+            }
+            List<int> managementIds = [.. ticket.Tasks.Select(t => t.ManagementId).OfType<int>().Distinct()];
+            scTemplates = await SCTemplateSource.Load(managementIds);
+            actSystem.Templates = scTemplates.For(task.ManagementId);
+        }
+
+        /// <summary>
+        /// A further task joins the request of the start task if both are handled by the same external system and, for
+        /// SecureChange, their managements use the same ticket templates.
+        /// </summary>
+        private bool CanBundleWithStartTask(WfReqTask furtherTask, WfReqTask startTask, int startSystemId, List<ManagementFwConfigChangeState> managementSettings, List<ExternalTicketSystem> extTicketSystems)
         {
             if (GetChangeCategory(furtherTask) != GetChangeCategory(startTask))
             {
@@ -406,7 +439,8 @@ namespace FWO.Middleware.Server
 
             return TryResolveExtSystemForTask(furtherTask, managementSettings, extTicketSystems, out ExternalTicketSystem? furtherSystem)
                    && furtherSystem != null
-                   && furtherSystem.Id == startSystemId;
+                   && furtherSystem.Id == startSystemId
+                   && (!furtherSystem.IsTufinSecureChange() || scTemplates.HaveSameTemplates(furtherTask.ManagementId, startTask.ManagementId));
         }
 
         private static bool TryResolveExtSystemForTask(WfReqTask task, List<ManagementFwConfigChangeState> managementSettings, List<ExternalTicketSystem> extTicketSystems, out ExternalTicketSystem? system)
@@ -482,13 +516,15 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// qad heuristic: wait after a network object group change in the external system before sending
         /// the next request (public only for unit testing).
-        /// Waits before an access request, or before any request if the old request created new objects in the group.
+        /// Waits before an access request, before a rule modification or deletion implemented by Tufin SC,
+        /// or before any request if the old request created new objects in the group.
         /// The new object detection only recognizes the Tufin SC request format.
         /// </summary>
         /// <param name="taskType">task type of the next request task</param>
         /// <param name="oldRequest">previously sent external request, if any</param>
+        /// <param name="nextSystem">external system handling the next request task</param>
         /// <returns>number of wait cycles, 0 if no waiting is needed</returns>
-        public int GetWaitCycles(string taskType, ExternalRequest? oldRequest)
+        public int GetWaitCycles(string taskType, ExternalRequest? oldRequest, ExternalTicketSystem nextSystem)
         {
             // TODO: to be refined
             if (oldRequest != null && UserConfig.ExternalRequestWaitCycles > 0 &&
@@ -496,12 +532,24 @@ namespace FWO.Middleware.Server
                 IsNetworkObjectGroupChange(oldRequest.ExtRequestType) &&
                     // now access request
                     (taskType == WfTaskType.access.ToString() ||
+                    // or rule change handled by Tufin SC (independent of the system which handled the group)
+                    (nextSystem.IsTufinSecureChange() && IsRuleChangeOrDelete(taskType)) ||
                     // or last request created new objects in group
                     ContainsNewObj(oldRequest.ExtRequestContent)))
             {
                 return UserConfig.ExternalRequestWaitCycles;
             }
             return 0;
+        }
+
+        /// <summary>
+        /// Checks if a workflow task type is a rule modification or deletion.
+        /// </summary>
+        /// <param name="taskType">workflow task type</param>
+        /// <returns>true if the task type is rule_modify or rule_delete</returns>
+        private static bool IsRuleChangeOrDelete(string taskType)
+        {
+            return taskType == WfTaskType.rule_modify.ToString() || taskType == WfTaskType.rule_delete.ToString();
         }
 
         /// <summary>

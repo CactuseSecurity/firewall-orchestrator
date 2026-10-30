@@ -1,0 +1,39 @@
+# verifies that rsyslog does not accept log messages from the network: program name and message text are
+# chosen by the sender, so a reachable receiver would let anyone forge entries in the audit and alert logs
+
+- debug:
+    msg: starting syslog receiver integration tests
+
+- name: read the TCP and UDP socket tables of the kernel
+  slurp:
+    src: "/proc/net/{{ item }}"
+  loop:
+    - tcp
+    - tcp6
+    - udp
+    - udp6
+  register: syslog_receiver_socket_tables
+  # a table is missing when its address family is disabled
+  failed_when: false
+
+# the tables list the local address and port in hex; TCP listeners have state 0A, bound UDP sockets 07,
+# and loopback addresses are 127.0.0.0/8 (little-endian, ending in 7F) and ::1
+- name: no syslog receiver may listen on port {{ syslog_receiver_port }} beyond the loopback interface
+  vars:
+    syslog_receiver_port: 514
+    syslog_receiver_port_hex: "{{ '%04X' | format(syslog_receiver_port | int) }}"
+    # written without backslashes, as their escaping in templates differs between the supported ansible-core versions
+    syslog_receiver_socket_pattern: >-
+      (?m)^ *[0-9]+: +([0-9A-F]+):{{ syslog_receiver_port_hex }} +[0-9A-F]+:[0-9A-F]+ +(?:0A|07) +[0-9A-F]
+    syslog_receiver_addresses: >-
+      {{ syslog_receiver_socket_tables.results | map(attribute='content', default='') | map('b64decode')
+         | map('regex_findall', syslog_receiver_socket_pattern) | flatten }}
+    syslog_receiver_remote_addresses: >-
+      {{ syslog_receiver_addresses | reject('match', '^([0-9A-F]{6}7F|0{24}01000000)$') | list }}
+  assert:
+    that:
+      - syslog_receiver_remote_addresses | length == 0
+    fail_msg: >-
+      A service listens on port {{ syslog_receiver_port }} on the non-loopback addresses
+      {{ syslog_receiver_remote_addresses | join(', ') }} (hex, as listed in /proc/net). The installer must not
+      open a network syslog receiver.

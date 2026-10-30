@@ -111,6 +111,32 @@ namespace FWO.Test
             });
         }
 
+        [TestCase(250, 250)]
+        [TestCase(10, GlobalConst.kMinRestResponseObjectLimit)]
+        [TestCase(0, GlobalConst.kDefaultMaxRestResponseObjectLimit)]
+        [TestCase(GlobalConst.kMaxRestResponseObjectLimitCeiling + 1, GlobalConst.kMaxRestResponseObjectLimitCeiling)]
+        public async Task SettingsDefaults_SaveStoresTheUsableRestResponseObjectLimit(int enteredLimit, int storedLimit)
+        {
+            await using BunitContext context = CreateSavingContext(out RecordingSettingsApiConn apiConnection);
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+            wrapper.WaitForAssertion(() => Assert.That(wrapper.Find("#maxRestResponseObjectLimit"), Is.Not.Null));
+
+            SettingsDefaults component = wrapper.FindComponent<SettingsDefaults>().Instance;
+            ConfigData configData = GetPrivateField<ConfigData>(component, "configData");
+            configData.MaxRestResponseObjectLimit = enteredLimit;
+
+            await InvokePrivateAsync(component, "Save");
+
+            // only changed values are written, the default is not
+            ConfigItem? storedItem = apiConnection.LastUpsertConfigItems.SingleOrDefault(item => item.Key == "maxRestResponseObjectLimit");
+            Assert.Multiple(() =>
+            {
+                Assert.That(configData.MaxRestResponseObjectLimit, Is.EqualTo(storedLimit));
+                Assert.That(storedItem?.Value ?? GlobalConst.kDefaultMaxRestResponseObjectLimit.ToString(), Is.EqualTo(storedLimit.ToString()));
+            });
+        }
+
         [Test]
         public async Task SettingsDefaults_SaveRejectsInvalidTokenLifetimes()
         {

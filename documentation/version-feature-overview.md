@@ -238,10 +238,17 @@ For a feature-centric, thematically grouped view see
 - The Rules report can show management rulebases instead of gateways: start rulebases are selected per management, including rulebases without a gateway link, and reported together with the layers and sections following them.
 - Configurable default rules report view (gateway rules or management rulebases), globally and personally. Personal settings override the global gateway-based default; saved report templates retain their view.
 
-## 9.8.x
+### 9.8.2 — 24.10.2026
+- Workflow configuration transfer supports selected-phase exports, custom file names, imports into existing configurations, and safe state-definition validation.
 
 ### 9.8.3 — 26.10.2026
 - Implementation tasks are created by the state action "Create implementation tasks"; the device specific settings "Auto plan implementation" and "Auto plan implementation for rules" decide per gateway and management which tasks it creates. Workflow Customizing offers the device input in the request and the path analysis algorithms "For each device" and "First device (if available)".
 
-### 9.8.2 — 24.10.2026
-- Workflow configuration transfer supports selected-phase exports, custom file names, imports into existing configurations, and safe state-definition validation.
+### 9.8.4 — 29.10.2026
+- Every list endpoint of the middleware REST API is paged (`limit`, `offset`, `X-Has-More`) with one central page size, the new setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`, default 10000).
+- Admins see a warning on every page while certificate checking is switched off for firewall connections, external ticket systems or the email server, and the upgrade lists the unchecked connection types.
+- The Cisco ASA importer checks the SSH host key of the device against a known hosts file on the importer host; admins see the managements whose key is unknown or changed together with instructions.
+- Hardening of report filters, the Report/Get REST call, external ticket and notification email templates, HTML report exports and firewall API error logging; the network syslog receiver is no longer opened.
+
+### 9.8.5 — 29.10.2026
+- The Tufin SecureChange ticket templates are device specific settings that can be adapted globally, per device type and per management; the upgrade moves the templates stored with the ticket systems.

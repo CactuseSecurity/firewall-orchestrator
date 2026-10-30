@@ -35,18 +35,23 @@
         <button type="button" @onclick="@(() => ShowMessage("success", "success", MessageType.Success))">success</button>
         <button type="button" @onclick="@(() => {  UIMessageQue.Clear(); UIMessages.Clear(); })">clear</button> *@
         <CascadingValue Value="@DisplayMessageInUiFunction">
-            @if (ambientRoleInitialized)
-            {
-                <UncheckedCertificatesWarning />
-                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
-                    <MissingSshHostKeysWarning />
-                </ExecutionModeAuthorizeView>
-                @Body
-            }
-            else
-            {
-                <Loading />
-            }
+            <CascadingValue Value="@leftSidebarState" IsFixed="true">
+                @if (ambientRoleInitialized)
+                {
+                    @* the warnings are outside the page layouts, which move their content past the left sidebar themselves *@
+                    <LeftSidebarOffset State="@leftSidebarState">
+                        <UncheckedCertificatesWarning />
+                        <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                            <MissingSshHostKeysWarning />
+                        </ExecutionModeAuthorizeView>
+                    </LeftSidebarOffset>
+                    @Body
+                }
+                else
+                {
+                    <Loading />
+                }
+            </CascadingValue>
         </CascadingValue>
     </div>
 </div>
@@ -102,6 +107,7 @@
 @code
 {
     Action<Exception?, string, string, bool> DisplayMessageInUiFunction = DefaultInit.DoNothing;
+    private readonly LeftSidebarState leftSidebarState = new();
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }

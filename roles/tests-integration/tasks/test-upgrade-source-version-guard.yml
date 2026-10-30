@@ -1,10 +1,11 @@
 ---
 # Drives roles/common/tasks/validate-upgrade-source-version.yml itself rather than a copy
 # of its expressions. The defect this guard exists for is an upgrade that starts on a
-# source version whose migration files have been removed: upgrade-database.yml then runs
-# the files it finds instead of the files that version needs, so the run mutates the
-# installation and leaves a schema the API cannot work with, and a test reimplementing the
-# version comparison would stay green through a regression in the real one.
+# source version whose upgrade steps have been removed: upgrade-database.yml then runs
+# the migration files it finds instead of the files that version needs, and a Docker based
+# API is never moved to Podman, so the run mutates the installation and leaves it in a state
+# the services cannot work with. A test reimplementing the version comparison would stay
+# green through a regression in the real one.
 #
 # Runs unprivileged and touches nothing: the guard is a version comparison.
 - name: Set the upgrade source version guard test inputs
@@ -17,10 +18,10 @@
     upgrade_source_versions_supported:
       - "{{ minimum_upgrade_source_version }}"
       - "{{ product_version }}"
-    # A real version from below the floor, whose own remaining migration (7.3.6.sql) is
-    # among the removed files. Deliberately not derived from the floor: raising the floor
-    # later must not turn this case green.
-    upgrade_source_version_unsupported: "7.3.5"
+    # The last release before the move of the API from Docker to Podman, directly below the
+    # floor. Deliberately not derived from the floor: raising the floor later must not turn
+    # this case green.
+    upgrade_source_version_unsupported: "9.0.15"
 
 - name: Verify the guard lets every still supported source version through
   block:
@@ -78,11 +79,13 @@
 
 # The floor is only as good as its agreement with the files on disk: removing further
 # upgrade files without raising it would restore exactly the silent skipping the guard was
-# added against, and nothing else in the repository relates the two.
-- name: Assert that the supported floor still matches the oldest available migration
+# added against, and nothing else in the repository relates the two. The floor may lie
+# above the oldest migration (9.0.16 is set by the move to Podman, not by removed files),
+# never below it.
+- name: Assert that the supported floor is not below the oldest available migration
   assert:
     that:
-      - oldest_available_migration | regex_replace('^(\d+\.\d+).*$', '\1') == minimum_upgrade_source_version | regex_replace('^(\d+\.\d+).*$', '\1')
+      - oldest_available_release is version(minimum_upgrade_source_version | string, '<=')
     fail_msg: >-
       The oldest database migration still present is {{ oldest_available_migration }}, but
       upgrades are declared supported from {{ minimum_upgrade_source_version }} on, so a
@@ -97,3 +100,7 @@
          | map('basename') | map('regex_replace', '\.sql$', '')
          | community.general.version_sort | first)
       }}
+    # the release line the oldest migration belongs to (8.0.1.sql: 8.0). Split rather than
+    # regex_replace: in a conditional the '\1' backreference arrives as a control character,
+    # which made both sides of an earlier comparison collapse to the same value.
+    oldest_available_release: "{{ oldest_available_migration.split('.')[:2] | join('.') }}"

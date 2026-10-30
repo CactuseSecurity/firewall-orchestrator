@@ -249,3 +249,7 @@ For a feature-centric, thematically grouped view see
 - Admins see a warning on every page while certificate checking is switched off for firewall connections, external ticket systems or the email server, and the upgrade lists the unchecked connection types.
 - The Cisco ASA importer checks the SSH host key of the device against a known hosts file on the importer host; admins see the managements whose key is unknown or changed together with instructions.
 - Hardening of report filters, the Report/Get REST call, external ticket and notification email templates, HTML report exports and firewall API error logging; the network syslog receiver is no longer opened.
+
+### 9.8.5 — 30.10.2026
+- The installer handles operating system upgrades: it stops with migration instructions when PostgreSQL moved to a new major version, and rebuilds the python venvs of the importer and the customizing scripts for a new python version.
+- The Docker role was removed; upgrades start from 9.0.16 or newer, older installations upgrade with v9.8.4 first.

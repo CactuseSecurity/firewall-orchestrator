@@ -2,33 +2,32 @@
 
 It is really simple.
 
-## Prerequisite: this host must run 8.0 or newer
+## Prerequisite: this host must run 9.0.16 or newer
 
-Upgrades starting from a version older than 8.0 are not supported any more - the database
-migration files below 8.0 have been removed. The installer checks the installed version
-before it changes anything and stops such an upgrade, because running it would skip the
-schema changes the older version is still missing.
+Upgrades starting from a version older than 9.0.16 are not supported any more. 9.0.16 moved
+the API (Hasura) from Docker to Podman, and the installer no longer carries out that move.
+The installer checks the installed version before it changes anything and stops such an
+upgrade, because running it would leave the old Docker container on the API port.
 
-An installation older than 8.0 gets here in two upgrades. `v8.9.6` is the last release
-that still carries the removed migration files, so check that release out first:
+An installation from 8.0 to 9.0.15 gets here in two upgrades. `v9.8.4` still moves the API
+to Podman, so check that release out first:
 
 ```console
   cd firewall-orchestrator
   git fetch --tags
-  git checkout v8.9.6
+  git checkout v9.8.4
 ```
 
 Then run the interim upgrade **the way that release documents it**, in its own
-`documentation/installer/server-upgrade.md` - the commands below have changed since, and
-the scripts this page uses do not all exist in `v8.9.6`. At the time of writing, that
-release upgrades with:
+`documentation/installer/server-upgrade.md`. Once the host runs 9.8.4, return to the current
+version (`git checkout main`) and upgrade again as described below.
 
-```console
-  ansible-playbook site.yml -K -e "installation_mode=upgrade"
-```
-
-Once the host runs 8.9.6, return to the current version (`git checkout main`) and upgrade
-again as described below.
+An installation older than 8.0 needs one more step first: the database migration files
+below 8.0 have been removed as well, and `v8.9.6` is the last release that still carries
+them. Upgrade with `v8.9.6` the way that release documents it (at the time of writing
+`ansible-playbook site.yml -K -e "installation_mode=upgrade"`), then with `v9.8.4`, then
+with the current version. The `v9.8.4` installer tells you so as well when you skip the
+first step.
 
 Anything you configured for this host belongs in
 `/etc/fworch/fwo-install-settings.yml`, not in `inventory/`. That file is

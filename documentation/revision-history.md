@@ -1,5 +1,12 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.5 - 30.10.2026
+- installer: after an operating system upgrade to a new PostgreSQL major version (e.g. Debian 12 -> 13: 15 -> 17) the upgrade stops before changing PostgreSQL and names the steps to migrate the database (`pg_upgradecluster` on Debian/Ubuntu, `postgresql-setup --upgrade` on Red Hat/Rocky) instead of failing on a missing postgresql.conf; documentation/installer/server-upgrade.md describes the migration (#5598)
+- installer: the importer and customizing script python venvs are rebuilt when they were created for another python version (e.g. 3.11 -> 3.13 after an operating system upgrade), instead of failing with `No module named 'pip'` or leaving the importer without its packages (#5599)
+- installer: remove the unused Docker role, the move of the API from Docker to Podman and the Docker handling of upgrade and uninstall; the ignored parameter `docker_network` is gone (#5519)
+  - breaking: upgrades have to start from 9.0.16 or newer (was 8.0). An installation from 8.0 to 9.0.15 upgrades with v9.8.4 first, which still moves the API to Podman; the installer stops such an upgrade before changing anything and names the way
+- installer tests: the check that the upgrade floor is not below the oldest database migration never failed, because the regex backreference it used arrived as a control character in the assertion
+
 ## 9.8.4 - 29.10.2026
 - installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server
 - importer: sub-managements set to "do not import" are skipped by the import of their super manager instead of having all their rules and objects marked removed (FortiManager ADOMs, Check Point domains; GHSA-hj46-639g-mxq2). A forced import still imports them

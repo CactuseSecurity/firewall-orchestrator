@@ -32,9 +32,6 @@
     - ldap-utils
     - libldap-common
     - libldap
-    - docker-ce
-    - docker-ce-cli
-    - containerd.io
     - podman
     - "dotnet-sdk-{{ dotnet_version }}"
     - make

@@ -172,10 +172,12 @@ ensure_collections() {
     fi
 
     echo "Refreshing required Ansible collections from $requirements_file ..."
-    if ! ansible-galaxy collection install -r "$requirements_file" -p collections --force; then
+    local galaxy_runner
+    galaxy_runner="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run_installer_galaxy.py"
+    if ! python3 "$galaxy_runner" --settings "$install_settings_file" collection install -r "$requirements_file" -p collections --force; then
         echo "Failed to install the required Ansible collections." >&2
         echo "Install them manually before running the playbook:" >&2
-        echo "    ansible-galaxy collection install -r $requirements_file -p collections --force" >&2
+        echo "    python3 scripts/run_installer_galaxy.py collection install -r $requirements_file -p collections --force" >&2
         exit 1
     fi
 }

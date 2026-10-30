@@ -369,6 +369,54 @@ An installation that moved `fworch_parent_dir` away from `/usr/local` sets
 variables to find it. That variable also selects a different file for a single run, and
 the launcher fails rather than continuing silently if it points at a file that is missing.
 
+### Ansible collections from Artifactory or another Galaxy server
+
+Configure collection sources per installation in `/etc/fworch/fwo-install-settings.yml`:
+
+```yaml
+fwo_galaxy_server_list:
+  - artifactory
+fwo_galaxy_servers:
+  artifactory:
+    url: https://artifacts.customer.de/artifactory/api/ansible/ansible-remote/
+```
+
+Before the first installation, create this file at the real path
+`/usr/local/fworch/etc/fwo-install-settings.yml` as described above. A relocated
+installation selects its settings file with `FWORCH_LOCAL_SETTINGS` on the Ansible
+controller. Both `scripts/install-ansible-from-venv.sh` and
+`scripts/run-playbook-with-sudo.sh` read these settings before downloading collections.
+The repository's `ansible.cfg` and collection version pins stay in use. Collections
+already available at their required versions are still reused by the launcher.
+
+`fwo_galaxy_server_list` is a nonempty list in search order, and every name must have an
+entry in `fwo_galaxy_servers`. Names start with a lowercase letter and contain only
+lowercase letters, digits and underscores. Each server entry accepts only `url`: use a
+literal HTTP(S) URL ending in `/`, without embedded credentials, query strings or
+fragments. Listing only `artifactory` makes it the sole configured collection server;
+add other servers explicitly if fallback is required. Leave both settings absent to
+retain the existing Ansible configuration. Invalid settings stop the download.
+
+The scripts translate these settings into `ANSIBLE_GALAXY_SERVER_LIST` and
+`ANSIBLE_GALAXY_SERVER_<NAME>_URL` for the Galaxy process only. Existing environment
+values take precedence. Keep credentials out of the world-readable settings file;
+supply `ANSIBLE_GALAXY_SERVER_ARTIFACTORY_TOKEN`, or the corresponding `USERNAME` and
+`PASSWORD` environment variables, through the installation's credential handling.
+
+These are bootstrap settings, so they must be in the settings file selected by the
+launcher, rather than inventory variables or playbook `-e` arguments: downloading
+collections happens before the playbook runs. A plain `ansible-playbook site.yml`
+does not download collections. To download them separately with the same settings,
+run this from the repository root with the installer virtual environment active:
+
+```console
+python3 scripts/run_installer_galaxy.py collection install -r collections/requirements.yml -p collections --force
+```
+
+This setting controls Ansible collections. Python package indexes, OS repositories,
+NuGet sources and container registries use their own configuration. In particular,
+the bootstrap continues to respect existing pip configuration as described above.
+
 ### Specifying server name and aliases
 
 `ui_server_name` defaults to the name the UI host carries in `inventory/hosts.yml`, and

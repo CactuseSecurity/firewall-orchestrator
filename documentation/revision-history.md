@@ -1,6 +1,7 @@
 # Firewall Orchestrator Revision History
 
 ## 9.8.5 - 29.10.2026
+- installer: Ansible collection sources such as Artifactory can be configured per installation with `fwo_galaxy_server_list` and `fwo_galaxy_servers` in `fwo-install-settings.yml`; bootstrap and subsequent collection downloads use these settings, with environment overrides and credentials kept separate
 - request workflow: the Tufin SecureChange ticket templates move from the ticket system (Settings - External ticket templates) to the device specific settings
   - new settings `scTemplate<TaskType><Part>` per SecureChange task type (AccessRequest, NetworkObjectModify) and template part (ticket, tasks, object, object short, IP, network group, service, ICMP, IP protocol), on the levels Global, device type and management, in the new section "SecureChange ticket templates"
   - an empty template part uses the shipped template (only the AccessRequest ticket and task text are shipped, as before in the default ticket system), so a later correction of it applies

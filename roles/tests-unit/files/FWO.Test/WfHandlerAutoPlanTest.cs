@@ -467,11 +467,12 @@ namespace FWO.Test
             secondTask.Id = 10;
 
             await InvokeAutoCreateImplTasks(handler, firstTask);
+            int queriesAfterFirstTask = SettingsQueryCount(api);
             await InvokeAutoCreateImplTasks(handler, secondTask);
 
             Assert.Multiple(() =>
             {
-                Assert.That(SettingsQueryCount(api), Is.EqualTo(1));
+                Assert.That(SettingsQueryCount(api), Is.EqualTo(queriesAfterFirstTask), "the second task needs no further query");
                 Assert.That(DeviceIds(firstTask), Is.EqualTo(kUnknownGatewayTask));
             });
         }

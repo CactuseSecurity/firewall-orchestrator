@@ -118,6 +118,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GraphQlApiSubscriptionRebindDuringPendingRestartCreatesOnlyOneNewStream()
+        {
+            ManualGraphQlObservable firstStream = new();
+            ManualGraphQlObservable reboundStream = new();
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(firstStream);
+            StreamBackedGraphQlApiSubscription<string>.Streams.Enqueue(reboundStream);
+            TestApiConnection apiConnection = new();
+            using StreamBackedGraphQlApiSubscription<string> subscription = CreateStreamBackedSubscription<string>(apiConnection, _ => { });
+            TaskCompletionSource restartWait = new();
+            subscription.RestartWait = restartWait.Task;
+            using GraphQLHttpClient reboundClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
+
+            firstStream.Complete();
+            subscription.RebindForTest(reboundClient);
+            restartWait.SetResult();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(subscription.CreateStreamCount, Is.EqualTo(2));
+                Assert.That(reboundStream.SubscribeCount, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
         public void GraphQlApiSubscriptionDoesNotRestartAfterDispose()
         {
             ManualGraphQlObservable firstStream = new();
@@ -318,6 +342,11 @@ namespace FWO.Test
             }
 
             public Task? RestartWait { get; set; }
+
+            public void RebindForTest(GraphQLHttpClient graphQlClient)
+            {
+                base.Rebind(graphQlClient);
+            }
             public int CreateStreamCount { get; private set; }
 
             protected override Task WaitBeforeRestartAsync(TimeSpan delay, CancellationToken cancellationToken)

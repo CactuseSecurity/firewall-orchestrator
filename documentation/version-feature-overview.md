@@ -253,3 +253,4 @@ For a feature-centric, thematically grouped view see
 ### 9.8.5 — 30.10.2026
 - The installer handles operating system upgrades: it stops with migration instructions when PostgreSQL moved to a new major version, and rebuilds the python venvs of the importer and the customizing scripts for a new python version.
 - The Docker role was removed; upgrades start from 9.0.16 or newer, older installations upgrade with v9.8.4 first.
+- The Tufin SecureChange ticket templates are device specific settings that can be adapted globally, per device type and per management; the upgrade moves the templates stored with the ticket systems.

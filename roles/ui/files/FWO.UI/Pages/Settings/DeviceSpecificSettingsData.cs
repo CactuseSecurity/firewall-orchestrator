@@ -1,6 +1,7 @@
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.ExternalSystems.FirewallWrite;
+using FWO.ExternalSystems.Tufin.SecureChange;
 using System.Globalization;
 
 namespace FWO.Ui.Pages.Settings
@@ -16,14 +17,16 @@ namespace FWO.Ui.Pages.Settings
         StringList,
         ExtTicketSystem,
         FirewallEndpoint,
-        FirewallTemplate
+        FirewallTemplate,
+        SecureChangeTemplate
     }
 
     /// <summary>Section of the settings page a field is shown in.</summary>
     public enum DeviceSpecificFieldSection
     {
         General,
-        FirewallWrite
+        FirewallWrite,
+        SecureChange
     }
 
     /// <summary>
@@ -53,10 +56,10 @@ namespace FWO.Ui.Pages.Settings
         public DeviceSpecificFieldSection Section { get; init; } = DeviceSpecificFieldSection.General;
 
         /// <summary>
-        /// Default shipped for a device type (by id), shown while the value is empty and restored by "Reset to default".
-        /// Null for fields without device type specific defaults.
+        /// Default shipped for a device type (by id, null at Global), shown while the value is empty and restored by
+        /// "Reset to default". Null for fields without shipped defaults.
         /// </summary>
-        public Func<int, string?>? ShippedDefault { get; init; }
+        public Func<int?, string?>? ShippedDefault { get; init; }
 
         /// <summary>Only shown at Global and for device types supported by the firewall write library.</summary>
         public bool FirewallWriteOnly { get; init; } = false;
@@ -90,8 +93,7 @@ namespace FWO.Ui.Pages.Settings
             && (!FirewallWriteOnly || node.Level == DeviceSpecificScopeType.Global || node.SupportsFirewallWrite);
 
         /// <summary>The default shipped for the node's device type, or null if there is none.</summary>
-        public string? ShippedDefaultFor(DeviceSpecificNode node) =>
-            ShippedDefault != null && node.DeviceTypeId is int deviceTypeId ? ShippedDefault(deviceTypeId) : null;
+        public string? ShippedDefaultFor(DeviceSpecificNode node) => ShippedDefault?.Invoke(node.DeviceTypeId);
     }
 
     /// <summary>
@@ -190,6 +192,29 @@ namespace FWO.Ui.Pages.Settings
             { "dss_fw_write_delete_objects", "H5199t" },
             { "dss_fw_write_endpoint", "H5199p" },
             { "dss_fw_write_template", "H5199q" },
+            { "ext_ticket_template", "H5595" },
+            { "ext_task_template", "H5596" },
+            { "ext_obj_template", "H5596a" },
+            { "ext_obj_short_template", "H5596b" },
+            { "ext_ip_template", "H5596c" },
+            { "ext_nwgroup_template", "H5596d" },
+            { "ext_service_template", "H5596e" },
+            { "ext_icmp_template", "H5596f" },
+            { "ext_ip_protocol_template", "H5596g" },
+        };
+
+        /// <summary>Label text keys of the SecureChange template parts, as on the former external ticket template editor.</summary>
+        private static readonly Dictionary<SecureChangeTemplatePart, string> SecureChangeTemplatePartTextKeys = new()
+        {
+            { SecureChangeTemplatePart.Ticket, "ext_ticket_template" },
+            { SecureChangeTemplatePart.Tasks, "ext_task_template" },
+            { SecureChangeTemplatePart.Object, "ext_obj_template" },
+            { SecureChangeTemplatePart.ObjectShort, "ext_obj_short_template" },
+            { SecureChangeTemplatePart.Ip, "ext_ip_template" },
+            { SecureChangeTemplatePart.NwObjGroup, "ext_nwgroup_template" },
+            { SecureChangeTemplatePart.Service, "ext_service_template" },
+            { SecureChangeTemplatePart.Icmp, "ext_icmp_template" },
+            { SecureChangeTemplatePart.IpProtocol, "ext_ip_protocol_template" },
         };
 
         private static readonly List<DeviceSpecificFieldOption> BoolOptions =
@@ -301,13 +326,20 @@ namespace FWO.Ui.Pages.Settings
             TextField(DeviceSpecificSettingKeys.Templates, "dss_templates", s => s.Templates, DeviceSpecificFieldKind.TemplateText,
                 minLevel: DeviceSpecificScopeType.DeviceType, maxLevel: DeviceSpecificScopeType.DeviceType),
             .. FirewallWriteFields(),
+            .. SecureChangeTemplateFields(),
         ];
 
         /// <summary>Text key of the label of a firewall write operation, e.g. "dss_fw_op_host_create".</summary>
-        public static string OperationTextKey(FirewallWriteOperation operation)
+        public static string OperationTextKey(FirewallWriteOperation operation) => SnakeCaseTextKey("dss_fw_op", operation.ToString());
+
+        /// <summary>Text key of the label of a SecureChange task type, e.g. "dss_sc_task_access_request".</summary>
+        public static string SecureChangeTaskTextKey(SCTaskType taskType) => SnakeCaseTextKey("dss_sc_task", taskType.ToString());
+
+        /// <summary>Appends a CamelCase name to a prefix in snake case, e.g. "dss_fw_op" and "HostCreate" to "dss_fw_op_host_create".</summary>
+        private static string SnakeCaseTextKey(string prefix, string name)
         {
-            System.Text.StringBuilder textKey = new("dss_fw_op");
-            foreach (char character in operation.ToString())
+            System.Text.StringBuilder textKey = new(prefix);
+            foreach (char character in name)
             {
                 if (char.IsUpper(character))
                 {
@@ -336,16 +368,42 @@ namespace FWO.Ui.Pages.Settings
             foreach (FirewallWriteOperation operation in Enum.GetValues<FirewallWriteOperation>())
             {
                 fields.Add(FirewallWriteField(FirewallWriteSettingKeys.Endpoints[operation], operation, DeviceSpecificFieldKind.FirewallEndpoint,
-                    s => s.FwWriteEndpoints, deviceTypeId => FirewallWriteDefaults.GetEndpoint(deviceTypeId, operation)));
+                    s => s.FwWriteEndpoints, deviceTypeId => deviceTypeId is int id ? FirewallWriteDefaults.GetEndpoint(id, operation) : null));
                 fields.Add(FirewallWriteField(FirewallWriteSettingKeys.Templates[operation], operation, DeviceSpecificFieldKind.FirewallTemplate,
-                    s => s.FwWriteTemplates, deviceTypeId => FirewallWriteDefaults.GetTemplate(deviceTypeId, operation)));
+                    s => s.FwWriteTemplates, deviceTypeId => deviceTypeId is int id ? FirewallWriteDefaults.GetTemplate(id, operation) : null));
             }
             return fields;
         }
 
+        /// <summary>
+        /// Fields of the Tufin SecureChange ticket templates: one per task type and template part, offered from Global down to
+        /// the management. Templates show the shipped default while empty; most parts have none.
+        /// </summary>
+        private static IEnumerable<DeviceSpecificFieldDefinition> SecureChangeTemplateFields() =>
+            SecureChangeTemplateSettingKeys.Keys.Select(entry => SecureChangeTemplateField(entry.Value, entry.Key.TaskType, entry.Key.Part));
+
+        private static DeviceSpecificFieldDefinition SecureChangeTemplateField(DeviceSpecificSettingKey<string> key, SCTaskType taskType,
+            SecureChangeTemplatePart part)
+        {
+            string textKey = SecureChangeTemplatePartTextKeys[part];
+            return new()
+            {
+                Key = key,
+                LabelTextKey = textKey,
+                LabelDetailTextKey = SecureChangeTaskTextKey(taskType),
+                HelpTextKey = HelpKey(textKey),
+                Kind = DeviceSpecificFieldKind.SecureChangeTemplate,
+                Section = DeviceSpecificFieldSection.SecureChange,
+                MaxLevel = DeviceSpecificScopeType.Management,
+                ShippedDefault = _ => SCTemplateDefaults.Get(taskType, part),
+                Read = s => (string)key.DtoGetter!(s),
+                SetOverride = (changes, value) => changes.Set(key, value)
+            };
+        }
+
         private static DeviceSpecificFieldDefinition FirewallWriteField(DeviceSpecificSettingKey<string> key, FirewallWriteOperation operation,
             DeviceSpecificFieldKind kind, Func<GlobalDeviceSpecificSettings, Dictionary<FirewallWriteOperation, string>> store,
-            Func<int, string?> shippedDefault)
+            Func<int?, string?> shippedDefault)
         {
             string textKey = kind == DeviceSpecificFieldKind.FirewallEndpoint ? "dss_fw_write_endpoint" : "dss_fw_write_template";
             return new()

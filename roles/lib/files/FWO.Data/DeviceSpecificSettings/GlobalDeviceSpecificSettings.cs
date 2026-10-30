@@ -96,6 +96,11 @@ public class GlobalDeviceSpecificSettings
     /// <summary>Body template overrides per firewall write operation; a missing or empty entry uses the shipped default.</summary>
     public Dictionary<FirewallWriteOperation, string> FwWriteTemplates { get; set; } = [];
 
+    /// <summary>
+    /// Tufin SecureChange ticket template overrides per task type; a missing task type or an empty part uses the shipped default.
+    /// </summary>
+    public Dictionary<SCTaskType, ExternalTicketTemplate> SecureChangeTemplates { get; set; } = [];
+
     /// <summary>Creates global settings.</summary>
     public GlobalDeviceSpecificSettings() => Scope.ScopeType = DeviceSpecificScopeType.Global;
 }

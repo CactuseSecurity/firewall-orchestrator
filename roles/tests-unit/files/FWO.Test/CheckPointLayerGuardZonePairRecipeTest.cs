@@ -13,7 +13,7 @@ using NUnit.Framework;
 namespace FWO.Test;
 
 [TestFixture]
-public class KfwCheckPointPositioningRecipeTest
+public class CheckPointLayerGuardZonePairRecipeTest
 {
     private const int kManagementId = 10;
     private const int kGatewayId = 20;
@@ -43,12 +43,13 @@ public class KfwCheckPointPositioningRecipeTest
     public async Task CompleteRecipe_SelectsGuardedLayerAndReturnsEndOfNormalizedSection()
     {
         RulebaseGraphSnapshot graph = Graph("  [destination] < [source]  ");
-        KfwCheckPointPositioningInput input = Input(graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
+        CheckPointLayerGuardZonePairPositioningInput input = Input(
+            graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
         CreationRuleZoneInput zones = Zones(
             [Zone(1, "source")],
             [Zone(2, "destination")]);
-        KfwCheckPointPositioningRecipeSuccess created = (KfwCheckPointPositioningRecipeSuccess)
-            KfwCheckPointPositioningRecipeFactory.Create(input, zones);
+        CheckPointLayerGuardZonePairRecipeSuccess created = (CheckPointLayerGuardZonePairRecipeSuccess)
+            CheckPointLayerGuardZonePairRecipeFactory.Create(input, zones);
 
         PositioningBlockResult<CheckPointBlockValue> result = await new PositioningRecipeExecutor<
             CheckPointPositioningContext, CheckPointBlockValue>().ExecuteAsync(
@@ -69,9 +70,10 @@ public class KfwCheckPointPositioningRecipeTest
     public async Task IncorrectInteriorSectionWhitespace_IsNotNormalized()
     {
         RulebaseGraphSnapshot graph = Graph("[DESTINATION]<[SOURCE]");
-        KfwCheckPointPositioningInput input = Input(graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
-        KfwCheckPointPositioningRecipeSuccess created = (KfwCheckPointPositioningRecipeSuccess)
-            KfwCheckPointPositioningRecipeFactory.Create(input,
+        CheckPointLayerGuardZonePairPositioningInput input = Input(
+            graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
+        CheckPointLayerGuardZonePairRecipeSuccess created = (CheckPointLayerGuardZonePairRecipeSuccess)
+            CheckPointLayerGuardZonePairRecipeFactory.Create(input,
                 Zones([Zone(1, "source")], [Zone(2, "destination")]));
 
         PositioningBlockFailure<CheckPointBlockValue> failure = (PositioningBlockFailure<CheckPointBlockValue>)
@@ -82,20 +84,23 @@ public class KfwCheckPointPositioningRecipeTest
         Assert.That(failure.OriginatingBlockKind, Is.EqualTo(CheckPointSectionScopeBlock.kKind));
     }
 
-    [TestCase(ZoneCoverage.Partial, ZoneCoverage.Complete, KfwCheckPointPositioningRecipeFailureCategory.ZoneCoverageInvalid)]
-    [TestCase(ZoneCoverage.Complete, ZoneCoverage.None, KfwCheckPointPositioningRecipeFailureCategory.ZoneCoverageInvalid)]
+    [TestCase(ZoneCoverage.Partial, ZoneCoverage.Complete,
+        CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneCoverageInvalid)]
+    [TestCase(ZoneCoverage.Complete, ZoneCoverage.None,
+        CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneCoverageInvalid)]
     public void Factory_RejectsIncompleteCoverage(
         ZoneCoverage sourceCoverage,
         ZoneCoverage destinationCoverage,
-        KfwCheckPointPositioningRecipeFailureCategory expected)
+        CheckPointLayerGuardZonePairRecipeFailureCategory expected)
     {
         RulebaseGraphSnapshot graph = Graph("[DESTINATION] < [SOURCE]");
-        KfwCheckPointPositioningInput input = Input(graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
+        CheckPointLayerGuardZonePairPositioningInput input = Input(
+            graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
         CreationRuleZoneInput zones = new(1, [Zone(1, "source")], [Zone(2, "destination")],
             sourceCoverage, destinationCoverage);
 
-        KfwCheckPointPositioningRecipeFailure failure = (KfwCheckPointPositioningRecipeFailure)
-            KfwCheckPointPositioningRecipeFactory.Create(input, zones);
+        CheckPointLayerGuardZonePairRecipeFailure failure = (CheckPointLayerGuardZonePairRecipeFailure)
+            CheckPointLayerGuardZonePairRecipeFactory.Create(input, zones);
 
         Assert.That(failure.Category, Is.EqualTo(expected));
     }
@@ -104,19 +109,23 @@ public class KfwCheckPointPositioningRecipeTest
     public void Factory_EnforcesCardinalityPersistenceAndZoneData()
     {
         RulebaseGraphSnapshot graph = Graph("[DESTINATION] < [SOURCE]");
-        KfwCheckPointPositioningInput input = Input(graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
+        CheckPointLayerGuardZonePairPositioningInput input = Input(
+            graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
         Assert.Multiple(() =>
         {
-            Assert.That(Failure(KfwCheckPointPositioningRecipeFactory.Create(input, Zones([], [Zone(2, "destination")]))).Category,
-                Is.EqualTo(KfwCheckPointPositioningRecipeFailureCategory.ZoneCardinalityInvalid));
-            Assert.That(Failure(KfwCheckPointPositioningRecipeFactory.Create(input, Zones(
+            Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(
+                input, Zones([], [Zone(2, "destination")]))).Category,
+                Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneCardinalityInvalid));
+            Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(input, Zones(
                 [new PositioningZoneReference(null, "x", "source", false, false, PositioningZoneKind.SyntheticInternetFallback)],
                 [Zone(2, "destination")]))).Category,
-                Is.EqualTo(KfwCheckPointPositioningRecipeFailureCategory.ZoneNotPersisted));
-            Assert.That(Failure(KfwCheckPointPositioningRecipeFactory.Create(input, Zones([Zone(1, "bad[name")], [Zone(2, "destination")]))).Category,
-                Is.EqualTo(KfwCheckPointPositioningRecipeFailureCategory.ZoneDataInvalid));
-            Assert.That(Failure(KfwCheckPointPositioningRecipeFactory.Create(null, Zones([Zone(1, "source")], [Zone(2, "destination")]))).Category,
-                Is.EqualTo(KfwCheckPointPositioningRecipeFailureCategory.InvalidInput));
+                Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneNotPersisted));
+            Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(
+                input, Zones([Zone(1, "bad[name")], [Zone(2, "destination")]))).Category,
+                Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneDataInvalid));
+            Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(
+                null, Zones([Zone(1, "source")], [Zone(2, "destination")]))).Category,
+                Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.InvalidInput));
         });
     }
 
@@ -126,7 +135,7 @@ public class KfwCheckPointPositioningRecipeTest
         RulebaseGraphSnapshot graph = GraphWithTwoInlineLayers();
         CheckPointLayerGuard definiteOne = Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24");
         CheckPointLayerGuard definiteTwo = Guard(11, 1, 4, "10.0.0.0/24", "20.0.0.0/24");
-        KfwCheckPointPositioningInput input = Input(graph, definiteOne, definiteTwo);
+        CheckPointLayerGuardZonePairPositioningInput input = Input(graph, definiteOne, definiteTwo);
         CheckPointLayerGuardScopeBlock block = new();
 
         PositioningBlockFailure<CheckPointBlockValue> failure = (PositioningBlockFailure<CheckPointBlockValue>)
@@ -144,7 +153,7 @@ public class KfwCheckPointPositioningRecipeTest
             11, 1, 4,
             new CheckPointGuardSide(false, [new CheckPointGuardAddressTerm([], [], true, false)]),
             KnownSide("20.0.0.0/24"));
-        KfwCheckPointPositioningInput input = Input(graph, definite, indeterminate);
+        CheckPointLayerGuardZonePairPositioningInput input = Input(graph, definite, indeterminate);
 
         PositioningBlockFailure<CheckPointBlockValue> failure = (PositioningBlockFailure<CheckPointBlockValue>)
             await new CheckPointLayerGuardScopeBlock().EvaluateAsync(Context(graph, input), [], CancellationToken.None);
@@ -152,8 +161,9 @@ public class KfwCheckPointPositioningRecipeTest
         Assert.That(failure.Category, Is.EqualTo(PositioningBlockFailureCategory.ScopeIndeterminate));
     }
 
-    private static KfwCheckPointPositioningRecipeFailure Failure(KfwCheckPointPositioningRecipeResult result) =>
-        (KfwCheckPointPositioningRecipeFailure)result;
+    private static CheckPointLayerGuardZonePairRecipeFailure Failure(
+        CheckPointLayerGuardZonePairRecipeResult result) =>
+        (CheckPointLayerGuardZonePairRecipeFailure)result;
 
     private static PositioningZoneReference Zone(int id, string name) =>
         new(id, id.ToString(), name, false, false, PositioningZoneKind.Persisted);
@@ -163,7 +173,7 @@ public class KfwCheckPointPositioningRecipeTest
         IReadOnlyCollection<PositioningZoneReference> destination) =>
         new(1, source, destination, ZoneCoverage.Complete, ZoneCoverage.Complete);
 
-    private static KfwCheckPointPositioningInput Input(
+    private static CheckPointLayerGuardZonePairPositioningInput Input(
         RulebaseGraphSnapshot graph,
         params CheckPointLayerGuard[] guards) => new(
             new CreationRuleNetworkInput([Range("10.0.0.10")], [Range("20.0.0.10")]),
@@ -188,7 +198,7 @@ public class KfwCheckPointPositioningRecipeTest
 
     private static CheckPointPositioningContext Context(
         RulebaseGraphSnapshot graph,
-        KfwCheckPointPositioningInput input) => new(
+        CheckPointLayerGuardZonePairPositioningInput input) => new(
             new RulePositioningContext(
                 new WfImplTask(),
                 new WfReqTask(),

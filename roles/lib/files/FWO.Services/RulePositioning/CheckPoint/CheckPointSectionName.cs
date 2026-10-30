@@ -1,6 +1,6 @@
 namespace FWO.Services.RulePositioning.CheckPoint;
 
-/// <summary>Builds the single canonical KfW Check Point Section name.</summary>
+/// <summary>Builds the canonical Check Point zone-pair Section name.</summary>
 public static class CheckPointSectionName
 {
     /// <summary>Builds destination-first normalized Section identity.</summary>

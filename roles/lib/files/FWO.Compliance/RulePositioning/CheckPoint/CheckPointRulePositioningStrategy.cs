@@ -136,7 +136,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
             return MapZoneFailure(zoneResult);
         }
 
-        KfwCheckPointPositioningInput positioningInput = new(
+        CheckPointLayerGuardZonePairPositioningInput positioningInput = new(
             networkSuccess.Input,
             guardSuccess.Snapshot);
         CheckPointRecipeSelectionResult selectionResult = recipeCatalog.SelectRecipe(

@@ -1,13 +1,13 @@
 namespace FWO.Data.RulePositioning.CheckPoint;
 
-/// <summary>Immutable KfW-specific Check Point calculation inputs.</summary>
-public sealed record KfwCheckPointPositioningInput
+/// <summary>Immutable Check Point layer-guard zone-pair calculation inputs.</summary>
+public sealed record CheckPointLayerGuardZonePairPositioningInput
 {
     public CreationRuleNetworkInput NetworkInput { get; }
     public CheckPointLayerGuardSnapshot GuardSnapshot { get; }
 
-    /// <summary>Creates customer input without depending on higher-level calculation assemblies.</summary>
-    public KfwCheckPointPositioningInput(
+    /// <summary>Creates layer-guard zone-pair input without depending on higher-level calculation assemblies.</summary>
+    public CheckPointLayerGuardZonePairPositioningInput(
         CreationRuleNetworkInput networkInput,
         CheckPointLayerGuardSnapshot guardSnapshot)
     {

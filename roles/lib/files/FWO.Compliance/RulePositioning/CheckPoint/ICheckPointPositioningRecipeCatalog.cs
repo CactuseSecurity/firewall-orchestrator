@@ -14,7 +14,7 @@ public interface ICheckPointPositioningRecipeCatalog
     /// <summary>Selects one complete recipe for the supplied immutable input.</summary>
     CheckPointRecipeSelectionResult SelectRecipe(
         ProvisioningPositioningAlgorithm positioningAlgorithm,
-        KfwCheckPointPositioningInput positioningInput,
+        CheckPointLayerGuardZonePairPositioningInput positioningInput,
         CreationRuleZoneInput zoneInput);
 }
 
@@ -67,7 +67,7 @@ public enum CheckPointRecipeSelectionFailureCategory
     CatalogInvalid
 }
 
-/// <summary>Maps the customer Check Point algorithm to its complete immutable recipe.</summary>
+/// <summary>Maps the layer-guard zone-pair Check Point algorithm to its complete immutable recipe.</summary>
 public sealed class CheckPointPositioningRecipeCatalog : ICheckPointPositioningRecipeCatalog
 {
     /// <inheritdoc />
@@ -77,7 +77,7 @@ public sealed class CheckPointPositioningRecipeCatalog : ICheckPointPositioningR
     /// <inheritdoc />
     public CheckPointRecipeSelectionResult SelectRecipe(
         ProvisioningPositioningAlgorithm positioningAlgorithm,
-        KfwCheckPointPositioningInput positioningInput,
+        CheckPointLayerGuardZonePairPositioningInput positioningInput,
         CreationRuleZoneInput zoneInput)
     {
         if (!SupportsAlgorithm(positioningAlgorithm))
@@ -86,10 +86,10 @@ public sealed class CheckPointPositioningRecipeCatalog : ICheckPointPositioningR
                 CheckPointRecipeSelectionFailureCategory.NoMatchingRecipe);
         }
 
-        KfwCheckPointPositioningRecipeResult result = KfwCheckPointPositioningRecipeFactory.Create(
+        CheckPointLayerGuardZonePairRecipeResult result = CheckPointLayerGuardZonePairRecipeFactory.Create(
             positioningInput,
             zoneInput);
-        return result is KfwCheckPointPositioningRecipeSuccess success
+        return result is CheckPointLayerGuardZonePairRecipeSuccess success
             ? new CheckPointRecipeSelectionSuccess(success.Recipe)
             : new CheckPointRecipeSelectionFailure(CheckPointRecipeSelectionFailureCategory.CatalogInvalid);
     }

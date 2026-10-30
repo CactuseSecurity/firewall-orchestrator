@@ -6,4 +6,4 @@ namespace FWO.Data.RulePositioning.CheckPoint;
 public sealed record CheckPointPositioningContext(
     RulePositioningContext CalculationContext,
     RulebaseGraphSnapshot Snapshot,
-    KfwCheckPointPositioningInput? KfwInput = null);
+    CheckPointLayerGuardZonePairPositioningInput? LayerGuardZonePairInput = null);

@@ -75,10 +75,10 @@ internal class CheckPointRulePositioningStrategyTest
     }
 
     [Test]
-    public void ProductionCatalog_MapsOnlyCustomerAlgorithmToKfwRecipe()
+    public void ProductionCatalog_MapsOnlyLayerGuardZonePairAlgorithmToMatchingRecipe()
     {
         CheckPointPositioningRecipeCatalog catalog = new();
-        KfwCheckPointPositioningInput input = new(
+        CheckPointLayerGuardZonePairPositioningInput input = new(
             NetworkInput(),
             new CheckPointLayerGuardSnapshot(kManagementId, kGatewayId, 1, []));
 
@@ -983,7 +983,7 @@ internal class CheckPointRulePositioningStrategyTest
         public int SelectCallCount { get; private set; }
         public List<ProvisioningPositioningAlgorithm> SupportedAlgorithms { get; } = [];
         public ProvisioningPositioningAlgorithm SelectedAlgorithm { get; private set; }
-        public KfwCheckPointPositioningInput? PositioningInput { get; private set; }
+        public CheckPointLayerGuardZonePairPositioningInput? PositioningInput { get; private set; }
         public CreationRuleZoneInput? ZoneInput { get; private set; }
 
         public bool SupportsAlgorithm(ProvisioningPositioningAlgorithm positioningAlgorithm)
@@ -996,7 +996,7 @@ internal class CheckPointRulePositioningStrategyTest
 
         public CheckPointRecipeSelectionResult SelectRecipe(
             ProvisioningPositioningAlgorithm positioningAlgorithm,
-            KfwCheckPointPositioningInput positioningInput,
+            CheckPointLayerGuardZonePairPositioningInput positioningInput,
             CreationRuleZoneInput zoneInput)
         {
             SelectCallCount++;

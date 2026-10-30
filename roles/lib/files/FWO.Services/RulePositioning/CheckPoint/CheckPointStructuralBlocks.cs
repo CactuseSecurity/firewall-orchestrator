@@ -182,7 +182,8 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
         {
             return Result(PositioningBlockFailureCategory.InvalidRecipe);
         }
-        if (context.KfwInput == null || !TryValidateSnapshot(context, structure!, out List<GuardCandidate> candidates))
+        if (context.LayerGuardZonePairInput == null ||
+            !TryValidateSnapshot(context, structure!, out List<GuardCandidate> candidates))
         {
             return Result(PositioningBlockFailureCategory.InvalidSnapshot);
         }
@@ -194,9 +195,9 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
         {
             cancellationToken.ThrowIfCancellationRequested();
             CheckPointGuardContainmentResult source = CheckPointGuardContainmentEvaluator.Evaluate(
-                candidate.Guard.Source, context.KfwInput.NetworkInput.SourceRanges, cancellationToken);
+                candidate.Guard.Source, context.LayerGuardZonePairInput.NetworkInput.SourceRanges, cancellationToken);
             CheckPointGuardContainmentResult destination = CheckPointGuardContainmentEvaluator.Evaluate(
-                candidate.Guard.Destination, context.KfwInput.NetworkInput.DestinationRanges, cancellationToken);
+                candidate.Guard.Destination, context.LayerGuardZonePairInput.NetworkInput.DestinationRanges, cancellationToken);
             if (source == CheckPointGuardContainmentResult.Contained && destination == CheckPointGuardContainmentResult.Contained)
             {
                 definiteMatches++;
@@ -232,7 +233,7 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
         out List<GuardCandidate> candidates)
     {
         candidates = [];
-        CheckPointLayerGuardSnapshot guards = context.KfwInput!.GuardSnapshot;
+        CheckPointLayerGuardSnapshot guards = context.LayerGuardZonePairInput!.GuardSnapshot;
         if (guards.ManagementId != context.Snapshot.ManagementId ||
             guards.GatewayId != context.Snapshot.GatewayId || guards.ImportId <= 0)
         {

@@ -8,6 +8,12 @@
         name: "{{ python_venv_package_name }}"
         state: present
 
+    - name: remove a customizing venv built for another python version
+      include_tasks: "{{ role_path }}/../common/tasks/reset-outdated-python-venv.yml"
+      vars:
+        python_venv_dir: "{{ customizing_venv_dir }}"
+        python_venv_interpreter: "{{ customizing_python_interpreter }}"
+
     - name: create python virtual environment for customizing scripts
       ansible.builtin.command:
         cmd: "{{ customizing_python_interpreter }} -m venv {{ customizing_venv_dir }}"

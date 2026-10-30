@@ -1,0 +1,60 @@
+---
+# Refuses to configure PostgreSQL when the installed server version has no "main" cluster.
+# pg_version comes from the installed client (files/get_pg_version.sh), and the config paths
+# are derived from it. An operating system upgrade that moves to a new PostgreSQL major
+# version (Debian 12 -> 13: 15 -> 17) installs the new server and client, but neither
+# migrates the existing cluster nor creates a new one next to it - the database stays in the
+# old cluster. Without this check the next task fails on a postgresql.conf that does not
+# exist, without telling the operator that the cluster has to be migrated first.
+# This is the Debian layout; validate-postgresql-data-version.yml checks the RedHat one.
+#
+# In its own file so roles/tests-integration drives this code rather than a copy of it.
+#
+# Inputs:
+#   pg_version             - the installed PostgreSQL major version (required)
+#   postgresql_config_root - the directory holding <version>/<cluster>/postgresql.conf
+# Output: nothing, or a failure naming the cluster found and how to migrate it.
+
+- name: check for the PostgreSQL {{ pg_version }} main cluster
+  stat:
+    path: "{{ postgresql_config_root }}/{{ pg_version }}/main/postgresql.conf"
+  register: postgresql_cluster_config
+
+- name: refuse to continue without a PostgreSQL {{ pg_version }} main cluster
+  when: not postgresql_cluster_config.stat.exists
+  block:
+    - name: find the main clusters of other PostgreSQL versions
+      find:
+        paths: "{{ postgresql_config_root }}"
+        patterns: main
+        file_type: directory
+        recurse: true
+        depth: 2
+      register: postgresql_other_clusters
+
+    - name: name the newest PostgreSQL version that still has a main cluster
+      set_fact:
+        postgresql_previous_version: >-
+          {{ postgresql_other_clusters.files | map(attribute='path') | map('dirname') | map('basename')
+             | map('float') | max | default('') | string | regex_replace('\.0$', '') }}
+
+    - name: stop because the cluster has to be migrated to PostgreSQL {{ pg_version }} first
+      fail:
+        msg: >-
+          PostgreSQL {{ pg_version }} is installed, but the {{ product_name }} database is
+          still in the PostgreSQL {{ postgresql_previous_version }} cluster
+          ({{ postgresql_config_root }}/{{ postgresql_previous_version }}/main), typically
+          after an operating system upgrade. PostgreSQL has not been changed. Migrate the
+          cluster, then run the upgrade again: stop the {{ product_name }} services, run
+          "pg_upgradecluster {{ postgresql_previous_version }} main", check with
+          "pg_lsclusters" that {{ pg_version }}/main is online on port 5432, and remove the
+          old cluster with "pg_dropcluster {{ postgresql_previous_version }} main" once
+          {{ product_name }} works. See documentation/installer/server-upgrade.md.
+      when: postgresql_previous_version | length > 0
+
+    - name: stop because there is no PostgreSQL cluster at all
+      fail:
+        msg: >-
+          PostgreSQL {{ pg_version }} is installed, but {{ postgresql_config_root }} holds no
+          cluster. Create it with "pg_createcluster {{ pg_version }} main --start", then
+          run the installer again.

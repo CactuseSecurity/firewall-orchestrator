@@ -29,16 +29,18 @@
         state: touch
         mode: "0644"
 
-    - name: Verify the guard stops when only the old cluster exists
+    - name: "expected to fail: cluster guard stops when only the old PostgreSQL cluster exists"
       block:
-        - include_tasks: "{{ role_path }}/../database/tasks/validate-postgresql-cluster.yml"
+        - name: "expected to fail: cluster guard stops when only the old PostgreSQL cluster exists"
+          include_tasks: "{{ role_path }}/../database/tasks/validate-postgresql-cluster.yml"
           vars:
             pg_version: "{{ test_pg_cluster_new_version }}"
             postgresql_config_root: "{{ test_pg_cluster_root.path }}"
         - set_fact:
             test_pg_cluster_migration_rejected: false
       rescue:
-        - set_fact:
+        - name: "expected to fail: rejection of the unmigrated cluster caught"
+          set_fact:
             test_pg_cluster_migration_rejected: true
             test_pg_cluster_migration_message: "{{ ansible_failed_result.msg }}"
 
@@ -83,16 +85,18 @@
         - "{{ test_pg_cluster_old_version }}"
         - "{{ test_pg_cluster_new_version }}"
 
-    - name: Verify the guard stops when there is no cluster at all
+    - name: "expected to fail: cluster guard stops when there is no PostgreSQL cluster"
       block:
-        - include_tasks: "{{ role_path }}/../database/tasks/validate-postgresql-cluster.yml"
+        - name: "expected to fail: cluster guard stops when there is no PostgreSQL cluster"
+          include_tasks: "{{ role_path }}/../database/tasks/validate-postgresql-cluster.yml"
           vars:
             pg_version: "{{ test_pg_cluster_new_version }}"
             postgresql_config_root: "{{ test_pg_cluster_root.path }}"
         - set_fact:
             test_pg_cluster_missing_rejected: false
       rescue:
-        - set_fact:
+        - name: "expected to fail: rejection of the missing cluster caught"
+          set_fact:
             test_pg_cluster_missing_rejected: true
             test_pg_cluster_missing_message: "{{ ansible_failed_result.msg }}"
 

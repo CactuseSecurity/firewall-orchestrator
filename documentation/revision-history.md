@@ -6,6 +6,7 @@
 - installer: remove the unused Docker role, the move of the API from Docker to Podman and the Docker handling of upgrade and uninstall; the ignored parameter `docker_network` is gone (#5519)
   - breaking: upgrades have to start from 9.0.16 or newer (was 8.0). An installation from 8.0 to 9.0.15 upgrades with v9.8.4 first, which still moves the API to Podman; the installer stops such an upgrade before changing anything and names the way
 - installer tests: the check that the upgrade floor is not below the oldest database migration never failed, because the regex backreference it used arrived as a control character in the assertion
+- installer tests: every task around an intended failure of a negative integration test starts with "expected to fail: ", directly before and after the red output, so the run log tells intended failures from real ones (#5545)
 
 ## 9.8.4 - 29.10.2026
 - installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server

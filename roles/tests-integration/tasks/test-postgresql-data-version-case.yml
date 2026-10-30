@@ -6,9 +6,11 @@
 #   test_pg_data_case    - data_version written to PG_VERSION (empty: no PG_VERSION) and
 #                          expected_message (empty: the guard must let the case through)
 #   test_pg_cluster_root - the temporary directory the data directory is created in
-- name: Set the data directory of this case
+- name: Set the data directory and the log prefix of this case
   set_fact:
     test_pg_data_dir: "{{ test_pg_cluster_root.path }}/data"
+    # only the rejecting cases are expected to fail, see tasks/main.yml
+    test_pg_data_prefix: "{{ 'expected to fail: ' if test_pg_data_case.expected_message | length > 0 else '' }}"
 
 - name: Start the case from an empty data directory
   file:
@@ -26,16 +28,18 @@
     mode: "0600"
   when: test_pg_data_case.data_version | length > 0
 
-- name: Run the guard on PG_VERSION {{ test_pg_data_case.data_version | default('missing', true) }}
+- name: "{{ test_pg_data_prefix }}data version guard on PG_VERSION {{ test_pg_data_case.data_version | default('missing', true) }}"
   block:
-    - include_tasks: "{{ role_path }}/../database/tasks/validate-postgresql-data-version.yml"
+    - name: "{{ test_pg_data_prefix }}data version guard on PG_VERSION {{ test_pg_data_case.data_version | default('missing', true) }}"
+      include_tasks: "{{ role_path }}/../database/tasks/validate-postgresql-data-version.yml"
       vars:
         pg_version: "{{ test_pg_cluster_new_version }}"
         postgresql_data_dir: "{{ test_pg_data_dir }}"
     - set_fact:
         test_pg_data_message: ""
   rescue:
-    - set_fact:
+    - name: "{{ test_pg_data_prefix }}rejection of PG_VERSION {{ test_pg_data_case.data_version | default('missing', true) }} caught"
+      set_fact:
         test_pg_data_message: "{{ ansible_failed_result.msg }}"
 
 - name: Assert the guard decision on PG_VERSION {{ test_pg_data_case.data_version | default('missing', true) }}

@@ -54,15 +54,17 @@
   no_log: true
   become: true
 
-- name: Verify the preflight rejects an encrypted Apache TLS key
+- name: "expected to fail: preflight rejects an encrypted Apache TLS key"
   block:
-    - include_tasks: "{{ role_path }}/../common/tasks/apache/validate-unencrypted-tls-key.yml"
+    - name: "expected to fail: preflight rejects an encrypted Apache TLS key"
+      include_tasks: "{{ role_path }}/../common/tasks/apache/validate-unencrypted-tls-key.yml"
       vars:
         apache_ssl_dir: "{{ apache_tls_key_test_directory.path }}"
     - set_fact:
         apache_tls_key_preflight_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection of the encrypted Apache TLS key caught"
+      set_fact:
         apache_tls_key_preflight_rejected: true
   become: true
 
@@ -114,16 +116,18 @@
     mode: "0644"
   become: true
 
-- name: Verify the preflight rejects an encrypted key referenced by the vhost
+- name: "expected to fail: preflight rejects an encrypted key referenced by the vhost"
   block:
-    - include_tasks: "{{ role_path }}/../common/tasks/apache/validate-unencrypted-tls-key.yml"
+    - name: "expected to fail: preflight rejects an encrypted key referenced by the vhost"
+      include_tasks: "{{ role_path }}/../common/tasks/apache/validate-unencrypted-tls-key.yml"
       vars:
         apache_ssl_dir: "{{ apache_vhost_key_test_directory.path }}/absent"
         apache_vhost_conf_file: "{{ apache_vhost_key_test_directory.path }}/vhost.conf"
     - set_fact:
         apache_vhost_key_preflight_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection of the encrypted vhost key caught"
+      set_fact:
         apache_vhost_key_preflight_rejected: true
   become: true
 

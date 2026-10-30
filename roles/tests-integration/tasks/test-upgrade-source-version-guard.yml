@@ -45,15 +45,17 @@
       {{ upgrade_source_versions_supported | join(', ') }}, which are supported:
       {{ upgrade_source_version_guard_block_message | default('no message') }}
 
-- name: Verify the guard stops an upgrade from below the supported floor
+- name: "expected to fail: upgrade guard stops an upgrade from below the supported floor"
   block:
-    - include_tasks: "{{ upgrade_source_version_guard }}"
+    - name: "expected to fail: upgrade guard stops an upgrade from below the supported floor"
+      include_tasks: "{{ upgrade_source_version_guard }}"
       vars:
         upgrade_source_version: "{{ upgrade_source_version_unsupported }}"
     - set_fact:
         upgrade_source_version_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection of the upgrade from below the floor caught"
+      set_fact:
         upgrade_source_version_rejected: true
         upgrade_source_version_reject_message: "{{ ansible_failed_result.msg }}"
 

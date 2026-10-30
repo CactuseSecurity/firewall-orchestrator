@@ -217,9 +217,10 @@
 
 # The case that used to pass the gate and then fail at every LDAP call: the certificate
 # file holds the leaf alone, so nothing bridges it to the configured root.
-- name: Verify the preflight rejects a leaf whose intermediate is missing
+- name: "expected to fail: preflight rejects a leaf whose intermediate is missing"
   block:
-    - include_tasks: "{{ retained_chain_preflight }}"
+    - name: "expected to fail: preflight rejects a leaf whose intermediate is missing"
+      include_tasks: "{{ retained_chain_preflight }}"
       vars:
         retained_chain_subject: OpenLDAP
         retained_chain_certificate: "{{ test_retained_chain_directory.path }}/deep-leaf.crt"
@@ -232,7 +233,8 @@
     - set_fact:
         test_retained_chain_gap_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection of the leaf without its intermediate caught"
+      set_fact:
         test_retained_chain_gap_rejected: true
         test_retained_chain_gap_message: "{{ ansible_failed_result.msg }}"
 
@@ -266,9 +268,10 @@
 
 # The second reachable shape: internalca_peer_ca_certificate names one root, and the
 # retained slapd leaf came from another. The peer CA guard is satisfied either way.
-- name: Verify the preflight rejects a leaf from an unrelated root
+- name: "expected to fail: preflight rejects a leaf from an unrelated root"
   block:
-    - include_tasks: "{{ retained_chain_preflight }}"
+    - name: "expected to fail: preflight rejects a leaf from an unrelated root"
+      include_tasks: "{{ retained_chain_preflight }}"
       vars:
         retained_chain_subject: OpenLDAP
         retained_chain_certificate: "{{ test_retained_chain_directory.path }}/direct-leaf.crt"
@@ -277,7 +280,8 @@
     - set_fact:
         test_retained_chain_root_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection of the leaf from an unrelated root caught"
+      set_fact:
         test_retained_chain_root_rejected: true
 
 - name: Assert a leaf from an unrelated root was rejected
@@ -302,9 +306,10 @@
     ownca_not_after: "+3d"
   changed_when: false
 
-- name: Verify the preflight rejects a not yet valid retained certificate
+- name: "expected to fail: preflight rejects a not yet valid retained certificate"
   block:
-    - include_tasks: "{{ retained_chain_preflight }}"
+    - name: "expected to fail: preflight rejects a not yet valid retained certificate"
+      include_tasks: "{{ retained_chain_preflight }}"
       vars:
         retained_chain_subject: OpenLDAP
         retained_chain_certificate: "{{ test_retained_chain_directory.path }}/future-leaf.crt"
@@ -314,7 +319,8 @@
     - set_fact:
         test_retained_chain_future_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection of the not yet valid certificate caught"
+      set_fact:
         test_retained_chain_future_rejected: true
         test_retained_chain_future_message: "{{ ansible_failed_result.msg }}"
 
@@ -346,9 +352,10 @@
     ownca_not_after: "-1d"
   changed_when: false
 
-- name: Verify the preflight rejects an expired retained certificate
+- name: "expected to fail: preflight rejects an expired retained certificate"
   block:
-    - include_tasks: "{{ retained_chain_preflight }}"
+    - name: "expected to fail: preflight rejects an expired retained certificate"
+      include_tasks: "{{ retained_chain_preflight }}"
       vars:
         retained_chain_subject: OpenLDAP
         retained_chain_certificate: "{{ test_retained_chain_directory.path }}/expired-leaf.crt"
@@ -358,7 +365,8 @@
     - set_fact:
         test_retained_chain_expiry_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection of the expired certificate caught"
+      set_fact:
         test_retained_chain_expiry_rejected: true
         test_retained_chain_expiry_message: "{{ ansible_failed_result.msg }}"
 
@@ -383,9 +391,10 @@
 
 # A caller that passes no replacement remedy has to keep working: the fallback is the
 # chain remedy, so the message stays useful rather than trailing off into nothing.
-- name: Verify the preflight falls back to the chain remedy when no replacement is given
+- name: "expected to fail: preflight rejects with the chain remedy when no replacement is given"
   block:
-    - include_tasks: "{{ retained_chain_preflight }}"
+    - name: "expected to fail: preflight rejects with the chain remedy when no replacement is given"
+      include_tasks: "{{ retained_chain_preflight }}"
       vars:
         retained_chain_subject: OpenLDAP
         retained_chain_certificate: "{{ test_retained_chain_directory.path }}/expired-leaf.crt"
@@ -394,7 +403,8 @@
     - set_fact:
         test_retained_chain_fallback_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection with the chain remedy caught"
+      set_fact:
         test_retained_chain_fallback_rejected: true
         test_retained_chain_fallback_message: "{{ ansible_failed_result.msg }}"
 
@@ -418,9 +428,10 @@
     dest: "{{ test_retained_chain_directory.path }}/not-a-certificate.crt"
     mode: "0600"
 
-- name: Verify the preflight reports an unreadable anchor file as such
+- name: "expected to fail: preflight rejects an unreadable anchor file"
   block:
-    - include_tasks: "{{ retained_chain_preflight }}"
+    - name: "expected to fail: preflight rejects an unreadable anchor file"
+      include_tasks: "{{ retained_chain_preflight }}"
       vars:
         retained_chain_subject: OpenLDAP
         retained_chain_certificate: "{{ test_retained_chain_directory.path }}/direct-leaf.crt"
@@ -430,7 +441,8 @@
     - set_fact:
         test_retained_chain_anchor_read_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection of the unreadable anchor file caught"
+      set_fact:
         test_retained_chain_anchor_read_rejected: true
         test_retained_chain_anchor_read_message: "{{ ansible_failed_result.msg }}"
 
@@ -452,9 +464,10 @@
       The retained chain preflight did not recognise an unreadable anchor file:
       {{ test_retained_chain_anchor_read_message | default('it did not fail at all') }}
 
-- name: Verify the preflight reports a certificate file holding no certificate as such
+- name: "expected to fail: preflight rejects a certificate file holding no certificate"
   block:
-    - include_tasks: "{{ retained_chain_preflight }}"
+    - name: "expected to fail: preflight rejects a certificate file holding no certificate"
+      include_tasks: "{{ retained_chain_preflight }}"
       vars:
         retained_chain_subject: OpenLDAP
         retained_chain_certificate: "{{ test_retained_chain_directory.path }}/not-a-certificate.crt"
@@ -464,7 +477,8 @@
     - set_fact:
         test_retained_chain_cert_read_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection of the file holding no certificate caught"
+      set_fact:
         test_retained_chain_cert_read_rejected: true
         test_retained_chain_cert_read_message: "{{ ansible_failed_result.msg }}"
 

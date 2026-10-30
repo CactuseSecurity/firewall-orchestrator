@@ -1,3 +1,14 @@
+# Negative tests run a production guard on bad input and expect it to fail; a block/rescue
+# (or ignore_errors) catches the failure and an assert checks it. Ansible prints such a
+# failure in red under the name of the production task, so every test task around an
+# expected failure starts with "expected to fail: ":
+# - the block and the task inside it that runs the guard (usually the include_tasks),
+#   whose name is printed right before the red output,
+# - the first rescue task (or, with ignore_errors, the next task), printed right after it.
+# Searching the run log for "expected to fail:" then finds exactly the intended failures.
+# Keep the prefix off positive tests, off rescues that only collect diagnostics, and off
+# the production tasks themselves - operators see those names, and some rescues compare
+# ansible_failed_task.name with them.
 
 - name: install packages necessary for testing
   package:

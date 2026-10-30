@@ -66,6 +66,7 @@
         <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
     </Footer>
 </PopUp>
+<InProgress Display="workInProgress" />
 
 <RuleActionEditor @bind-Display="displayRuleActionEditor" SelectedRuleAction="selectedRuleAction"
     RuleActions="ruleActions" Saved="SaveRuleAction" />
@@ -77,9 +78,20 @@
     Managements="ManagementOptions" Saved="SaveManagement" />
 <TargetDatesEditor @bind-Display="displayTargetDatesEditor"
     Model="targetDatesEditorModel"
+    AllowCreateTimeObjectTask="CanCreateTimeObjectTask"
+    CreateTimeObjectTaskRequested="OpenCreateTimeObjectTaskEditor"
     Saved="SaveTargetDates" />
+<TimeObjectTaskEditor @bind-Display="displayTimeObjectTaskEditor"
+    Model="newTimeObjectTaskModel"
+    ShowBeginDate="@AccessTaskVisibility.ShowValidFrom"
+    ShowEndDate="@AccessTaskVisibility.ShowValidTo"
+    Saved="CreateTimeObjectTask" />
 <TextEditor @bind-Display="displayTextEditor" Text="@textEditorValue" TextKey="@textEditorKey"
     Multiline="@textEditorMultiline" Rows="5" Saved="SaveText" />
+<TimeObjectTaskDeleteConfirmation @bind-Display="displayDeleteFormerTimeObjectTask"
+    Title="@(userConfig.GetText("delete_time_object_task"))"
+    Message="@(userConfig.GetText("delete_time_object_task_message"))"
+    Confirmed="DeleteFormerTimeObjectTask" />
 
 @code {
     [Parameter] public bool Display { get; set; }
@@ -114,8 +126,16 @@
     private Management? selectedManagement;
     private bool displayTargetDatesEditor;
     private WfReqTask? editingTargetDatesTask;
+    private WfReqTask? formerTimeObjectTask;
+    private long? formerTimeObjectSelectorId;
+    private long? formerTimeObjectElementId;
     private TargetDatesEditorModel targetDatesEditorModel = new();
+    private bool displayTimeObjectTaskEditor;
+    private TargetDatesEditorModel newTimeObjectTaskModel = new();
+    private bool displayDeleteFormerTimeObjectTask;
+    private WfReqTask? pendingFormerTimeObjectTask;
     private bool displayTextEditor;
+    private bool workInProgress;
     private WfReqTask? editingTextTask;
     private string textEditorKey = "title";
     private string textEditorValue = "";
@@ -260,7 +280,9 @@
     {
         editingTargetDatesTask = task;
         WfReqElement? timeElement = TimeObjectElementHelper.Find(task.Elements);
-        long? timeObjectId = TimeObjectElementHelper.GetSelectorId(timeElement);
+        long? timeObjectId = timeElement == null
+            ? null
+            : TimeObjectReferenceResolver.GetSelectorId(timeElement);
         long? ticketElementId = null;
         WfReqElement? parallelTimeElement = TimeObjectReferenceResolver.FindParallelTimeElement(
             WfHandler.ActTicket.Tasks, task, timeObjectId, ticketElementId);
@@ -268,9 +290,18 @@
         if (parallelTimeElement != null)
         {
             timeObjectName ??= parallelTimeElement.Name;
-            timeObjectId ??= TimeObjectReferenceResolver.GetSelectorId(parallelTimeElement);
+            timeObjectId = TimeObjectReferenceResolver.GetSelectorId(parallelTimeElement);
             ticketElementId = parallelTimeElement.Id;
         }
+        long? referencedTimeObjectTaskId = timeElement?.TimeObjectTaskId;
+        formerTimeObjectTask = referencedTimeObjectTaskId is > 0
+            ? WfHandler.ActTicket.Tasks.FirstOrDefault(candidate => candidate.Id == referencedTimeObjectTaskId.Value)
+            : parallelTimeElement == null
+                ? null
+                : WfHandler.ActTicket.Tasks.FirstOrDefault(candidate => candidate.Elements.Any(element =>
+                    element.Id == parallelTimeElement.Id));
+        formerTimeObjectSelectorId = timeObjectId;
+        formerTimeObjectElementId = parallelTimeElement?.Id;
         targetDatesEditorModel = new TargetDatesEditorModel
         {
             BeginDate = parallelTimeElement?.StartTime ?? task.TargetBeginDate,
@@ -284,6 +315,28 @@
             ShowEndDate = AccessTaskVisibility.ShowValidTo
         };
         displayTargetDatesEditor = true;
+        return RefreshAfterEditorOpen();
+    }
+
+    private bool CanCreateTimeObjectTask => editingTargetDatesTask != null
+        && (CanEdit([editingTargetDatesTask], WorkflowEditableFieldKeys.ValidFrom)
+            || CanEdit([editingTargetDatesTask], WorkflowEditableFieldKeys.ValidTo));
+
+    private Task OpenCreateTimeObjectTaskEditor()
+    {
+        if (!CanCreateTimeObjectTask)
+        {
+            return Task.CompletedTask;
+        }
+
+        newTimeObjectTaskModel = new TargetDatesEditorModel
+        {
+            BeginDate = AccessTaskVisibility.ShowValidFrom ? targetDatesEditorModel.BeginDate : null,
+            EndDate = AccessTaskVisibility.ShowValidTo ? targetDatesEditorModel.EndDate : null,
+            ShowBeginDate = AccessTaskVisibility.ShowValidFrom,
+            ShowEndDate = AccessTaskVisibility.ShowValidTo
+        };
+        displayTimeObjectTaskEditor = true;
         return RefreshAfterEditorOpen();
     }
 
@@ -310,7 +363,44 @@
         }
     }
 
-    private async Task SaveRuleAction(RuleAction? ruleAction)
+    private async Task RunWithProgress(Func<Task> action)
+    {
+        if (workInProgress)
+        {
+            return;
+        }
+
+        workInProgress = true;
+        await RefreshAfterOperation();
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            workInProgress = false;
+            await RefreshAfterOperation();
+        }
+    }
+
+    private async Task RefreshAfterOperation()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (InvalidOperationException)
+        {
+            // Unit tests can invoke callbacks before the component has a render handle.
+        }
+    }
+
+    private Task SaveRuleAction(RuleAction? ruleAction)
+    {
+        return RunWithProgress(() => SaveRuleActionCore(ruleAction));
+    }
+
+    private async Task SaveRuleActionCore(RuleAction? ruleAction)
     {
         if (editingRuleActionTask == null)
         {
@@ -324,7 +414,12 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task SaveOwner(FwoOwner owner)
+    private Task SaveOwner(FwoOwner owner)
+    {
+        return RunWithProgress(() => SaveOwnerCore(owner));
+    }
+
+    private async Task SaveOwnerCore(FwoOwner owner)
     {
         if (editingOwnerTask == null)
         {
@@ -341,7 +436,12 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task SaveTracking(Tracking? tracking)
+    private Task SaveTracking(Tracking? tracking)
+    {
+        return RunWithProgress(() => SaveTrackingCore(tracking));
+    }
+
+    private async Task SaveTrackingCore(Tracking? tracking)
     {
         if (editingTrackingTask == null)
         {
@@ -355,7 +455,12 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task SaveManagement(Management? management)
+    private Task SaveManagement(Management? management)
+    {
+        return RunWithProgress(() => SaveManagementCore(management));
+    }
+
+    private async Task SaveManagementCore(Management? management)
     {
         if (editingManagementTask == null)
         {
@@ -369,7 +474,12 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task SaveTargetDates(TargetDatesEditorModel model)
+    private Task SaveTargetDates(TargetDatesEditorModel model)
+    {
+        return RunWithProgress(() => SaveTargetDatesCore(model));
+    }
+
+    private async Task SaveTargetDatesCore(TargetDatesEditorModel model)
     {
         if (editingTargetDatesTask == null)
         {
@@ -382,7 +492,145 @@
             ApplyTimeObjectModel(model);
             await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
         }
+        bool offerFormerTimeObjectDeletion = ShouldOfferFormerTimeObjectDeletion(model);
         editingTargetDatesTask = null;
+        if (offerFormerTimeObjectDeletion)
+        {
+            pendingFormerTimeObjectTask = formerTimeObjectTask;
+            displayDeleteFormerTimeObjectTask = true;
+        }
+        formerTimeObjectTask = null;
+        formerTimeObjectSelectorId = null;
+        formerTimeObjectElementId = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task CreateTimeObjectTask(TargetDatesEditorModel model)
+    {
+        return RunWithProgress(() => CreateTimeObjectTaskCore(model));
+    }
+
+    private async Task CreateTimeObjectTaskCore(TargetDatesEditorModel model)
+    {
+        if (editingTargetDatesTask == null || !CanCreateTimeObjectTask)
+        {
+            return;
+        }
+
+        WfReqTask sourceTask = editingTargetDatesTask;
+        string timeObjectName = TimeObjectNamingHelper.BuildDisplayName(
+            model.FlowTimeObjectName?.Trim(),
+            TimeObjectOrigin.Approver,
+            TimeObjectNamingHelper.ParseSuffixes(userConfig.ReqTimeObjectOriginSuffixes));
+        WfReqElement timeElement = new()
+        {
+            Field = ElemFieldType.time.ToString(),
+            RequestAction = RequestAction.create.ToString(),
+            Name = timeObjectName,
+            StartTime = model.BeginDate,
+            EndTime = model.EndDate
+        };
+        WfReqTask newTask = new()
+        {
+            TicketId = WfHandler.ActTicket.Id,
+            TaskNumber = WfHandler.ActTicket.HighestTaskNumber() + 1,
+            TaskType = WfTaskType.object_create.ToString(),
+            RequestAction = RequestAction.create.ToString(),
+            StateId = sourceTask.StateId,
+            Title = timeObjectName,
+            ManagementId = sourceTask.ManagementId,
+            TargetBeginDate = model.BeginDate,
+            TargetEndDate = model.EndDate,
+            Locked = true,
+            Elements = [timeElement],
+            Approvals =
+            [
+                new WfApproval
+                {
+                    StateId = sourceTask.StateId,
+                    TenantId = WfHandler.ActTicket.TenantId,
+                    ApproverGroup = sourceTask.Approvals.FirstOrDefault()?.ApproverGroup ?? "",
+                    InitialApproval = true
+                }
+            ]
+        };
+
+        WfHandler.SelectReqTask(newTask, ObjAction.add);
+        await WfHandler.AddReqTask(allowLockedApprovalUpdate: true);
+        WfReqTask? createdTask = WfHandler.ActTicket.Tasks.FirstOrDefault(task => task.TaskNumber == newTask.TaskNumber);
+        WfReqElement? createdElement = createdTask == null ? null : TimeObjectElementHelper.Find(createdTask.Elements);
+        if (createdTask == null || createdElement == null)
+        {
+            WfHandler.SetReqTaskEnv(sourceTask);
+            return;
+        }
+
+        TargetDatesEditorModel updatedModel = new(targetDatesEditorModel)
+        {
+            BeginDate = createdElement.StartTime,
+            EndDate = createdElement.EndTime,
+            FlowTimeObjectId = TimeObjectReferenceResolver.GetSelectorId(createdElement),
+            TicketElementId = createdElement.Id,
+            FlowTimeObjectName = createdElement.Name,
+            TicketTimeObjects = GetTicketTimeObjects(),
+            TicketTimeObjectElementIds = GetTicketTimeObjectElementIds()
+        };
+        targetDatesEditorModel = updatedModel;
+        WfHandler.SetReqTaskEnv(sourceTask);
+        displayTimeObjectTaskEditor = false;
+        displayTargetDatesEditor = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool ShouldOfferFormerTimeObjectDeletion(TargetDatesEditorModel model)
+    {
+        if (formerTimeObjectTask?.Id is not > 0 || formerTimeObjectSelectorId == model.FlowTimeObjectId
+            || model.FlowTimeObjectId == null)
+        {
+            return false;
+        }
+
+        WfReqTask? accessTask = editingTargetDatesTask;
+        if (accessTask == null)
+        {
+            return false;
+        }
+
+        return !WfHandler.ActTicket.Tasks
+            .Where(task => task.TaskType == WfTaskType.access.ToString()
+                && task.Id != formerTimeObjectTask.Id && task.Id != accessTask.Id)
+            .Any(UsesFormerTimeObject);
+    }
+
+    private bool UsesFormerTimeObject(WfReqTask task)
+    {
+        WfReqElement? timeElement = TimeObjectElementHelper.Find(task.Elements);
+        if (timeElement == null || formerTimeObjectTask == null)
+        {
+            return false;
+        }
+
+        return timeElement.TimeObjectTaskId == formerTimeObjectTask.Id
+            || (formerTimeObjectElementId is > 0 && timeElement.TimeObjId == -formerTimeObjectElementId.Value)
+            || TimeObjectReferenceResolver.FindParallelTimeTask(
+                WfHandler.ActTicket.Tasks, task, null, null)?.Id == formerTimeObjectTask.Id;
+    }
+
+    private Task DeleteFormerTimeObjectTask()
+    {
+        return RunWithProgress(DeleteFormerTimeObjectTaskCore);
+    }
+
+    private async Task DeleteFormerTimeObjectTaskCore()
+    {
+        if (pendingFormerTimeObjectTask == null)
+        {
+            return;
+        }
+
+        WfHandler.SetReqTaskEnv(pendingFormerTimeObjectTask);
+        await WfHandler.ConfDeleteReqTask(allowLockedApprovalUpdate: true);
+        pendingFormerTimeObjectTask = null;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -423,7 +671,12 @@
         }
         else
         {
-            WfReqTask? ticketTimeObjectTask = TimeObjectReferenceResolver.FindParallelTimeTask(
+            WfReqTask? ticketTimeObjectTask = model.TicketElementId is > 0
+                ? WfHandler.ActTicket.Tasks.FirstOrDefault(task => task.Elements.Any(element =>
+                    element.Id == model.TicketElementId.Value
+                    && element.Field == ElemFieldType.time.ToString()))
+                : null;
+            ticketTimeObjectTask ??= TimeObjectReferenceResolver.FindParallelTimeTask(
                 WfHandler.ActTicket.Tasks, WfHandler.ActReqTask, model.FlowTimeObjectId, model.TicketElementId);
             if (ticketTimeObjectTask != null)
                 TimeObjectElementHelper.SetTicketTaskReference(timeElement, ticketTimeObjectTask.Id);
@@ -457,7 +710,12 @@
             .ToDictionary(group => group.Key, group => group.First().Id);
     }
 
-    private async Task SaveText(string value)
+    private Task SaveText(string value)
+    {
+        return RunWithProgress(() => SaveTextCore(value));
+    }
+
+    private async Task SaveTextCore(string value)
     {
         if (editingTextTask == null)
         {

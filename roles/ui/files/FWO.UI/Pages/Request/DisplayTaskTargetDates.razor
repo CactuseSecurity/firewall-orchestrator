@@ -11,7 +11,7 @@
         <div class="form-group row mt-2">
             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_from")):</label>
             <div class="col-sm-8">
-                @if (CanEditTargetBeginDate && ShowManualTimeObjectSelection)
+                @if (CanEditTargetBeginDate && (ShowManualTimeObjectSelection || ForceManualTimeObjectSelection))
                 {
                     <div class="d-flex flex-wrap gap-1">
                         <input type="date" class="form-control form-control-sm" value="@targetBeginDateInput" @oninput="SetTargetBeginDate" />
@@ -39,7 +39,7 @@
         <div class="form-group row mt-2">
             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("valid_to")):</label>
             <div class="col-sm-8">
-                @if (CanEditTargetEndDate && ShowManualTimeObjectSelection)
+                @if (CanEditTargetEndDate && (ShowManualTimeObjectSelection || ForceManualTimeObjectSelection))
                 {
                     <div class="d-flex flex-wrap gap-1">
                         <input type="date" class="form-control form-control-sm" value="@targetEndDateInput" @oninput="SetTargetEndDate" />
@@ -94,6 +94,13 @@
 
     [Parameter]
     public bool FullWidthLayout { get; set; }
+
+    /// <summary>
+    /// Allows a dedicated object-task editor to enter validity dates even when normal request-task
+    /// time-object selection is restricted to the Flow DB.
+    /// </summary>
+    [Parameter]
+    public bool ForceManualTimeObjectSelection { get; set; }
 
     private const string kDateInputFormat = "yyyy-MM-dd";
     private const string kTimeInputFormat = "HH:mm:ss";

@@ -35,6 +35,15 @@ namespace FWO.Data.Workflow
                 }
             }
 
+            if (ticketElementId.HasValue)
+            {
+                WfReqElement? byElementId = timeElements.FirstOrDefault(element => element.Id == ticketElementId);
+                if (byElementId != null)
+                {
+                    return byElementId;
+                }
+            }
+
             long? referencedTaskId = TimeObjectElementHelper.Find(accessTask.Elements)?.TimeObjectTaskId;
             if (referencedTaskId is > 0)
             {
@@ -44,15 +53,6 @@ namespace FWO.Data.Workflow
                 if (referencedElement != null)
                 {
                     return referencedElement;
-                }
-            }
-
-            if (ticketElementId.HasValue)
-            {
-                WfReqElement? byElementId = timeElements.FirstOrDefault(element => element.Id == ticketElementId);
-                if (byElementId != null)
-                {
-                    return byElementId;
                 }
             }
 

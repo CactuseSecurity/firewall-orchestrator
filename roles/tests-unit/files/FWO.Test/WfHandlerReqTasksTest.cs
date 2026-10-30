@@ -532,6 +532,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddReqTask_ApprovalOverrideAddsTaskToLockedTicket()
+        {
+            WfHandler handler = new();
+            handler.ActTicket = new WfTicket { Id = 7, Locked = true };
+            handler.ActReqTask = new WfReqTask
+            {
+                TicketId = 7,
+                TaskNumber = 1,
+                TaskType = WfTaskType.object_create.ToString(),
+                Locked = true,
+                Approvals = [new WfApproval { StateId = 3 }]
+            };
+
+            await handler.AddReqTask(allowLockedApprovalUpdate: true);
+
+            Assert.That(handler.ActTicket.Tasks, Has.Count.EqualTo(1));
+        }
+
+        [Test]
         public async Task ChangeReqTask_ReplacesTaskByTaskNumber()
         {
             WfHandler handler = new();
@@ -853,6 +872,19 @@ namespace FWO.Test
                 Assert.That(handler.ActTicket.Tasks, Has.Count.EqualTo(1));
                 Assert.That(handler.DisplayDeleteReqTaskMode, Is.False);
             });
+        }
+
+        [Test]
+        public async Task ConfDeleteReqTask_ApprovalOverrideRemovesTaskFromLockedTicket()
+        {
+            WfHandler handler = new();
+            WfReqTask reqTask = new() { Id = 11 };
+            handler.ActTicket = new WfTicket { Locked = true, Tasks = { reqTask } };
+            handler.ActReqTask = reqTask;
+
+            await handler.ConfDeleteReqTask(allowLockedApprovalUpdate: true);
+
+            Assert.That(handler.ActTicket.Tasks, Is.Empty);
         }
 
         [Test]

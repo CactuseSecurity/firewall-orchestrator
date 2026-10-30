@@ -41,6 +41,7 @@
 
     private List<FlowTimeObject> flowTimeObjects = [];
     private FlowTimeObject? selectedTimeObjectInternal;
+    private IReadOnlyList<FlowTimeObject>? displayedTicketTimeObjects;
     private int selectionVersion;
     private FlowIntegrationConfig ActiveFlowIntegration => FlowIntegration ?? FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration);
     private string ColumnClass => FullWidthLayout ? "col-12" : "col-sm-3";
@@ -79,6 +80,7 @@
                 .Concat(TicketTimeObjects)
                 .DistinctBy(timeObject => timeObject.Id)
                 .ToList();
+            displayedTicketTimeObjects = TicketTimeObjects;
             AddSelectedFallback();
             await RestoreSelectedTimeObject();
         }
@@ -86,6 +88,17 @@
 
     protected override void OnParametersSet()
     {
+        if (!ReferenceEquals(displayedTicketTimeObjects, TicketTimeObjects))
+        {
+            flowTimeObjects = flowTimeObjects
+                .Where(timeObject => timeObject.Id > 0)
+                .Concat(TicketTimeObjects)
+                .DistinctBy(timeObject => timeObject.Id)
+                .ToList();
+            displayedTicketTimeObjects = TicketTimeObjects;
+            AddSelectedFallback();
+        }
+
         if (SelectedId.HasValue && selectedTimeObjectInternal?.Id != SelectedId.Value)
         {
             FlowTimeObject? matchingTimeObject = flowTimeObjects.FirstOrDefault(timeObject => timeObject.Id == SelectedId.Value);

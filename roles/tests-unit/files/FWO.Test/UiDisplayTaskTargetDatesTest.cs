@@ -664,6 +664,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TimeObjectSelector_RefreshesTicketObjectsWhenParametersChange()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig { ReqUseFlowDb = false });
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<TimeObjectSelector> component = context.Render<TimeObjectSelector>(parameters => parameters
+                .Add(p => p.TicketTimeObjects, new List<FlowTimeObject>
+                {
+                    new() { Id = -7, Name = "Old" }
+                }));
+
+            IReadOnlyList<FlowTimeObject> updatedObjects =
+            [
+                new FlowTimeObject { Id = -7, Name = "Old" },
+                new FlowTimeObject { Id = -8, Name = "Created" }
+            ];
+            UiRequestWorkflowTest.SetMember(component.Instance, nameof(TimeObjectSelector.TicketTimeObjects), updatedObjects);
+            UiRequestWorkflowTest.GetPrivateMethod(typeof(TimeObjectSelector), "OnParametersSet")
+                .Invoke(component.Instance, []);
+
+            List<FlowTimeObject> displayedObjects = UiRequestWorkflowTest.GetMember<List<FlowTimeObject>>(
+                component.Instance, "flowTimeObjects");
+            Assert.That(displayedObjects.Select(timeObject => timeObject.Id), Does.Contain(-8));
+        }
+
+        [Test]
         public async Task TimeObjectSelector_PrivateHelpersClassifySourcesAndDisplayIds()
         {
             await using BunitContext context = new();

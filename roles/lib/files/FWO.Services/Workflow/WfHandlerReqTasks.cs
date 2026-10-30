@@ -301,9 +301,13 @@ namespace FWO.Services.Workflow
             DisplayAssignReqTaskMode = false;
         }
 
-        public async Task AddReqTask()
+        /// <summary>
+        /// Adds the active request task to the ticket.
+        /// </summary>
+        /// <param name="allowLockedApprovalUpdate">Allows the dedicated approval editor to add a task to a locked ticket.</param>
+        public async Task AddReqTask(bool allowLockedApprovalUpdate = false)
         {
-            if (ActTicket.Locked || !CheckActTicketChangeable())
+            if ((ActTicket.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
             {
                 return;
             }
@@ -368,9 +372,22 @@ namespace FWO.Services.Workflow
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.TaskNumber == ActReqTask.TaskNumber)] = ActReqTask;
         }
 
-        public async Task ConfDeleteReqTask()
+        /// <summary>
+        /// Deletes the active request task from the ticket.
+        /// </summary>
+        public Task ConfDeleteReqTask()
         {
-            if (ActTicket.Locked || !CheckActTicketChangeable())
+            return ConfDeleteReqTask(false);
+        }
+
+        /// <summary>
+        /// Deletes the active request task from the ticket, optionally bypassing the locked-ticket guard
+        /// for the dedicated approval editor.
+        /// </summary>
+        /// <param name="allowLockedApprovalUpdate">Allows the dedicated approval editor to delete a task from a locked ticket.</param>
+        public async Task ConfDeleteReqTask(bool allowLockedApprovalUpdate)
+        {
+            if ((ActTicket.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
             {
                 DisplayDeleteReqTaskMode = false;
                 return;

@@ -178,6 +178,83 @@ internal class UiSharedEditorTest
     }
 
     [Test]
+    public async Task TimeObjectTaskEditor_SavesNamedDraft()
+    {
+        await using BunitContext context = CreateContext();
+        TargetDatesEditorModel? saved = null;
+        TargetDatesEditorModel model = new()
+        {
+            FlowTimeObjectName = "maintenance_approval",
+            BeginDate = new DateTime(2026, 11, 1, 8, 0, 0),
+            EndDate = new DateTime(2026, 11, 30, 18, 0, 0)
+        };
+
+        IRenderedComponent<TimeObjectTaskEditor> cut = context.Render<TimeObjectTaskEditor>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.Model, model)
+            .Add(p => p.Saved, value => saved = value));
+
+        cut.Find("button.btn-primary").Click();
+
+        Assert.That(saved?.FlowTimeObjectName, Is.EqualTo("maintenance_approval"));
+        Assert.That(saved?.BeginDate, Is.EqualTo(model.BeginDate));
+    }
+
+    [Test]
+    public async Task TimeObjectTaskDeleteConfirmation_YesConfirmsAndCloses()
+    {
+        await using BunitContext context = CreateContext();
+        bool confirmed = false;
+        bool? displayChanged = null;
+
+        IRenderedComponent<TimeObjectTaskDeleteConfirmation> cut = context.Render<TimeObjectTaskDeleteConfirmation>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.Title, "Delete time object")
+            .Add(p => p.Message, "Delete this task?")
+            .Add(p => p.DisplayChanged, value => displayChanged = value)
+            .Add(p => p.Confirmed, () => confirmed = true));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Markup, Does.Contain("Delete this task?"));
+            Assert.That(cut.FindAll("button.btn-danger"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("button.btn-secondary"), Has.Count.EqualTo(1));
+        });
+
+        await cut.InvokeAsync(() => cut.Find("button.btn-danger").Click());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(confirmed, Is.True);
+            Assert.That(displayChanged, Is.False);
+            Assert.That(cut.Instance.Display, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task TimeObjectTaskDeleteConfirmation_NoClosesWithoutConfirming()
+    {
+        await using BunitContext context = CreateContext();
+        bool confirmed = false;
+        bool? displayChanged = null;
+
+        IRenderedComponent<TimeObjectTaskDeleteConfirmation> cut = context.Render<TimeObjectTaskDeleteConfirmation>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.Message, "Delete this task?")
+            .Add(p => p.DisplayChanged, value => displayChanged = value)
+            .Add(p => p.Confirmed, () => confirmed = true));
+
+        await cut.InvokeAsync(() => cut.Find("button.btn-secondary").Click());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(confirmed, Is.False);
+            Assert.That(displayChanged, Is.False);
+            Assert.That(cut.Instance.Display, Is.False);
+        });
+    }
+
+    [Test]
     public async Task TargetDatesEditor_RendersTimeObjectSelectorAndDateEditor()
     {
         await using BunitContext context = CreateContext();
@@ -197,6 +274,42 @@ internal class UiSharedEditorTest
         {
             Assert.That(cut.FindComponent<TimeObjectSelector>(), Is.Not.Null);
             Assert.That(cut.FindComponent<DisplayTaskTargetDates>(), Is.Not.Null);
+        });
+    }
+
+    [Test]
+    public async Task TargetDatesEditor_CreateTimeObjectTaskButtonRaisesCallback()
+    {
+        await using BunitContext context = CreateContext();
+        bool requested = false;
+        IRenderedComponent<TargetDatesEditor> cut = context.Render<TargetDatesEditor>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.AllowCreateTimeObjectTask, true)
+            .Add(p => p.CreateTimeObjectTaskRequested,
+                EventCallback.Factory.Create(this, () => requested = true)));
+
+        cut.Find("button.btn-warning").Click();
+
+        Assert.That(requested, Is.True);
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_RunWithProgressResetsProgressAfterAction()
+    {
+        ApprovalTaskDetailsView component = new();
+        bool wasInProgress = false;
+        Func<Task> action = () =>
+        {
+            wasInProgress = UiRequestWorkflowTest.GetMember<bool>(component, "workInProgress");
+            return Task.CompletedTask;
+        };
+
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "RunWithProgress", action);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(wasInProgress, Is.True);
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "workInProgress"), Is.False);
         });
     }
 
@@ -363,6 +476,48 @@ internal class UiSharedEditorTest
     }
 
     [Test]
+    public void ApprovalTaskDetailsView_SelectingTicketTimeObjectUsesExplicitElement()
+    {
+        WfReqTask accessTask = new()
+        {
+            Id = 10,
+            TaskType = WfTaskType.access.ToString(),
+            Elements = [new WfReqElement
+            {
+                Field = ElemFieldType.time.ToString(),
+                TimeObjectTaskId = 50
+            }]
+        };
+        WfReqTask oldTimeTask = new()
+        {
+            Id = 50,
+            TaskType = WfTaskType.object_create.ToString(),
+            Elements = [new WfReqElement { Id = 101, Field = ElemFieldType.time.ToString(), Name = "old" }]
+        };
+        WfReqTask newTimeTask = new()
+        {
+            Id = 51,
+            TaskType = WfTaskType.object_create.ToString(),
+            Elements = [new WfReqElement { Id = 102, Field = ElemFieldType.time.ToString(), Name = "new" }]
+        };
+        WfHandler handler = new() { ActReqTask = accessTask, ActTicket = new WfTicket { Tasks = [accessTask, oldTimeTask, newTimeTask] } };
+        ApprovalTaskDetailsView component = new();
+        UiRequestWorkflowTest.SetMember(component, nameof(ApprovalTaskDetailsView.WfHandler), handler);
+        UiRequestWorkflowTest.SetMember(component, "userConfig", new SimulatedUserConfig());
+        TargetDatesEditorModel model = new()
+        {
+            FlowTimeObjectId = -102,
+            TicketElementId = 102,
+            FlowTimeObjectName = "new"
+        };
+
+        MethodInfo method = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "ApplyTimeObjectModel");
+        method.Invoke(component, [model]);
+
+        Assert.That(TimeObjectElementHelper.Find(accessTask.Elements)?.TimeObjectTaskId, Is.EqualTo(51));
+    }
+
+    [Test]
     public void ApprovalTaskDetailsView_DisplayHelpersResolveTaskMetadata()
     {
         WfReqTask task = new()
@@ -509,6 +664,108 @@ internal class UiSharedEditorTest
 
         cut.Find("button.btn-primary").Click();
         Assert.That(displayChanged, Is.False);
+    }
+
+    [Test]
+    public void ApprovalTaskDetailsView_DisplayHelpersCoverModesAndEmptyGroups()
+    {
+        ApprovalTaskDetailsView component = new();
+        WfReqTask accessTask = new() { Id = 71, TaskType = WfTaskType.access.ToString() };
+        WfReqTask objectTask = new() { Id = 72, TaskType = WfTaskType.object_create.ToString() };
+        WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [accessTask, objectTask] } };
+        UiRequestWorkflowTest.SetMember(component, nameof(ApprovalTaskDetailsView.WfHandler), handler);
+        UiRequestWorkflowTest.SetMember(component, "userConfig", new SimulatedUserConfig());
+
+        MethodInfo groupsMethod = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "GetTaskGroups");
+        List<List<WfReqTask>> groups = [.. (IEnumerable<List<WfReqTask>>)groupsMethod.Invoke(component, [])!];
+        MethodInfo detailsOpenMethod = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "DetailsOpen");
+        MethodInfo nextModeMethod = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "NextDisplayModeTextKey");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(groups, Has.Count.EqualTo(2));
+            Assert.That(detailsOpenMethod.Invoke(null, [accessTask]), Is.EqualTo("open"));
+            Assert.That(detailsOpenMethod.Invoke(null, [objectTask]), Is.Null);
+            Assert.That(nextModeMethod.Invoke(component, []), Is.EqualTo("technical_view"));
+        });
+
+        UiRequestWorkflowTest.SetMember(component, "accessElementDisplayMode", ApprovalTaskElementDisplayMode.Technical);
+        Assert.That(nextModeMethod.Invoke(component, []), Is.EqualTo("unresolved_groups_view"));
+        UiRequestWorkflowTest.SetMember(component, "accessElementDisplayMode", ApprovalTaskElementDisplayMode.UnresolvedGroups);
+        Assert.That(nextModeMethod.Invoke(component, []), Is.EqualTo("resolved_view"));
+    }
+
+    [Test]
+    public void ApprovalTaskDetailsView_GetTasksToUpdateFollowsBundleAndState()
+    {
+        SimulatedUserConfig userConfig = new()
+        {
+            ReqConsiderBundling = true,
+            ReqDisplayBundledTasksAsOne = true
+        };
+        WfReqTask selected = BundledAccessTask(81, 9, 2);
+        WfReqTask sameBundle = BundledAccessTask(82, 9, 2);
+        WfReqTask differentState = BundledAccessTask(83, 9, 3);
+        WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [selected, sameBundle, differentState] } };
+        ApprovalTaskDetailsView component = new();
+        UiRequestWorkflowTest.SetMember(component, nameof(ApprovalTaskDetailsView.WfHandler), handler);
+        UiRequestWorkflowTest.SetMember(component, "userConfig", userConfig);
+
+        MethodInfo method = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "GetTasksToUpdate");
+        List<WfReqTask> result = [.. (IEnumerable<WfReqTask>)method.Invoke(component, [selected])!];
+
+        Assert.That(result.Select(task => task.Id), Is.EqualTo(new[] { 81L, 82L }));
+    }
+
+    [Test]
+    public void ApprovalTaskDetailsView_FormerTimeObjectDeletionOnlyOfferedWhenUnused()
+    {
+        WfReqTask formerObjectTask = new()
+        {
+            Id = 91,
+            TaskType = WfTaskType.object_create.ToString(),
+            Elements = [new WfReqElement { Id = 901, Field = ElemFieldType.time.ToString(), Name = "old" }]
+        };
+        WfReqTask selectedAccessTask = new()
+        {
+            Id = 92,
+            TaskType = WfTaskType.access.ToString(),
+            Elements = [new WfReqElement
+            {
+                Field = ElemFieldType.time.ToString(),
+                TimeObjectTaskId = formerObjectTask.Id,
+                Name = "old"
+            }]
+        };
+        WfHandler handler = new()
+        {
+            ActReqTask = selectedAccessTask,
+            ActTicket = new WfTicket { Tasks = [formerObjectTask, selectedAccessTask] }
+        };
+        ApprovalTaskDetailsView component = new();
+        UiRequestWorkflowTest.SetMember(component, nameof(ApprovalTaskDetailsView.WfHandler), handler);
+        UiRequestWorkflowTest.SetMember(component, "formerTimeObjectTask", formerObjectTask);
+        UiRequestWorkflowTest.SetMember(component, "formerTimeObjectSelectorId", -901L);
+        UiRequestWorkflowTest.SetMember(component, "editingTargetDatesTask", selectedAccessTask);
+
+        MethodInfo method = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "ShouldOfferFormerTimeObjectDeletion");
+        TargetDatesEditorModel changedModel = new() { FlowTimeObjectId = 42 };
+
+        Assert.That(method.Invoke(component, [changedModel]), Is.True);
+
+        WfReqTask otherAccessTask = new()
+        {
+            Id = 93,
+            TaskType = WfTaskType.access.ToString(),
+            Elements = [new WfReqElement
+            {
+                Field = ElemFieldType.time.ToString(),
+                TimeObjectTaskId = formerObjectTask.Id
+            }]
+        };
+        handler.ActTicket.Tasks.Add(otherAccessTask);
+
+        Assert.That(method.Invoke(component, [changedModel]), Is.False);
     }
 
     [Test]

@@ -34216,6 +34216,57 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "check": {
+                      "_and": [
+                        {
+                          "task_type": {
+                            "_eq": "object_create"
+                          }
+                        },
+                        {
+                          "request_action": {
+                            "_eq": "create"
+                          }
+                        },
+                        {
+                          "locked": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "ticket": {
+                            "locked": {
+                              "_eq": true
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "columns": [
+                      "ticket_id",
+                      "locked",
+                      "task_type",
+                      "title",
+                      "mgm_id",
+                      "state_id",
+                      "task_number",
+                      "request_action",
+                      "rule_action",
+                      "rule_tracking",
+                      "target_begin_date",
+                      "target_end_date",
+                      "reason",
+                      "additional_info",
+                      "free_text",
+                      "svc_grp_id",
+                      "nw_obj_grp_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "check": {},
@@ -34822,6 +34873,38 @@
                 }
               ],
               "delete_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "filter": {
+                      "_and": [
+                        {
+                          "task_type": {
+                            "_eq": "object_create"
+                          }
+                        },
+                        {
+                          "request_action": {
+                            "_eq": "create"
+                          }
+                        },
+                        {
+                          "locked": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "ticket": {
+                            "locked": {
+                              "_eq": true
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "requester",
                   "permission": {

@@ -28,6 +28,14 @@
                 ShowTargetEndDate="editingModel.ShowEndDate"
                 TargetDatesValidChanged="SetTargetDatesValid"
                 FullWidthLayout="true" />
+            @if (AllowCreateTimeObjectTask)
+            {
+                <div class="d-flex justify-content-end mt-2">
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="CreateTimeObjectTask">
+                        @(DisplayService.DisplayButton(userConfig, "create_time_object_task", Icons.Add))
+                    </button>
+                </div>
+            }
         }
     </Body>
     <Footer>
@@ -45,6 +53,8 @@
     [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
     [Parameter] public TargetDatesEditorModel Model { get; set; } = new();
     [Parameter] public EventCallback<TargetDatesEditorModel> Saved { get; set; }
+    [Parameter] public bool AllowCreateTimeObjectTask { get; set; }
+    [Parameter] public EventCallback CreateTimeObjectTaskRequested { get; set; }
 
     private TargetDatesEditorModel editingModel = new();
     private TargetDatesEditorModel? sourceModel;
@@ -130,6 +140,11 @@
             await Saved.InvokeAsync(editingModel);
             Close();
         }
+    }
+
+    private Task CreateTimeObjectTask()
+    {
+        return CreateTimeObjectTaskRequested.InvokeAsync();
     }
 
     private void Close()

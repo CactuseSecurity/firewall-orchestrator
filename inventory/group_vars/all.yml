@@ -440,6 +440,9 @@ api_docker_service_names:
   - fworch-hasura-docker-api
   - hasura-docker-api
 api_docker_binary: /usr/bin/docker
+api_docker_engine_units:
+  - docker.service
+  - docker.socket
 api_local_listening_ip_address: "127.0.0.1"
 api_network_listening_ip_address: "{{ fwo_endpoint_hostname or groups['apiserver'].0 }}"
 # api_network_listening_ip_address: "{{ hostvars[groups['apiserver'].0].ip_address }}"

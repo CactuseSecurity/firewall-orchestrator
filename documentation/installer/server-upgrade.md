@@ -35,7 +35,9 @@ is set or GitHub cannot be reached. The installer therefore also stops an upgrad
 Docker API service (`fworch-hasura-docker-api` or `hasura-docker-api`) is running or
 enabled, or a Docker container `fworch-api` exists. Upgrade once more with `v9.8.4`, with
 access to GitHub and without `api_keep_existing_hasura_on_upgrade`, then with the current
-version.
+version. The container is only looked up when the Docker engine (`docker.service` or
+`docker.socket`) is installed: the `docker` command of `podman-docker` runs Podman and would
+report the Podman API container under the same name.
 
 Anything you configured for this host belongs in
 `/etc/fworch/fwo-install-settings.yml`, not in `inventory/`. That file is

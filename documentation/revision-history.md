@@ -5,7 +5,7 @@
 - installer: the importer and customizing script python venvs are rebuilt when they were created for another python version (e.g. 3.11 -> 3.13 after an operating system upgrade), instead of failing with `No module named 'pip'` or leaving the importer without its packages (#5599)
 - installer: remove the unused Docker role, the move of the API from Docker to Podman and the Docker handling of upgrade and uninstall; the ignored parameter `docker_network` is gone (#5519)
   - breaking: upgrades have to start from 9.0.16 or newer (was 8.0). An installation from 8.0 to 9.0.15 upgrades with v9.8.4 first, which still moves the API to Podman; the installer stops such an upgrade before changing anything and names the way
-  - an upgrade also stops while the API still runs in Docker (a running or enabled Docker API service, or a Docker container `fworch-api`), which v9.8.4 leaves behind when it deferred the move to Podman; a stopped Docker API unit left by a completed move is removed
+  - an upgrade also stops while the API still runs in Docker (a running or enabled Docker API service, or a Docker container `fworch-api` next to an installed Docker engine - the `docker` command of `podman-docker` does not count), which v9.8.4 leaves behind when it deferred the move to Podman; a stopped Docker API unit left by a completed move is removed
 - installer tests: the check that the upgrade floor is not below the oldest database migration never failed, because the regex backreference it used arrived as a control character in the assertion
 - installer tests: every task around an intended failure of a negative integration test starts with "expected to fail: ", directly before and after the red output, so the run log tells intended failures from real ones (#5545)
 

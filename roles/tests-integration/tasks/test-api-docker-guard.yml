@@ -7,7 +7,9 @@
 #
 # The services come from a fixture instead of the host, and Docker is a stand-in script in a
 # temporary directory that only reports a container for the exact filter the guard has to
-# use. No service or container is touched.
+# use. The same stand-in plays the podman-docker command, which reports the Podman API
+# container under that filter; only the Docker engine units in the fixture tell the two
+# apart. No service or container is touched.
 - name: Create a temporary directory for the Docker API guard test
   tempfile:
     state: directory
@@ -21,6 +23,10 @@
     test_api_docker_missing: "{{ test_api_docker_dir.path }}/docker-missing"
     test_api_docker_podman_service:
       fworch-hasura-api.service: { name: fworch-hasura-api.service, state: running, status: enabled }
+    test_api_docker_engine_service:
+      docker.service: { name: docker.service, state: running, status: enabled }
+    test_api_docker_engine_socket:
+      docker.socket: { name: docker.socket, state: running, status: enabled }
   block:
     - name: Create a Docker stand-in without any container
       copy:
@@ -60,10 +66,17 @@
                  {'name': 'hasura-docker-api.service', 'state': 'stopped', 'status': 'masked'}}) }}
             docker: "{{ test_api_docker_empty }}"
             expected_message: ""
+          # podman-docker: a docker command that runs podman and so reports the Podman API
+          # container, without a Docker engine unit
+          - label: API in Podman, docker command from podman-docker
+            services: "{{ test_api_docker_podman_service }}"
+            docker: "{{ test_api_docker_container }}"
+            expected_message: ""
           # the state v9.8.4 leaves when it deferred the move
           - label: deferred move, Docker unit running
-            services:
-              fworch-hasura-docker-api.service: { name: fworch-hasura-docker-api.service, state: running, status: enabled }
+            services: >-
+              {{ test_api_docker_engine_service | combine({'fworch-hasura-docker-api.service':
+                 {'name': 'fworch-hasura-docker-api.service', 'state': 'running', 'status': 'enabled'}}) }}
             docker: "{{ test_api_docker_container }}"
             expected_message: fworch-hasura-docker-api.service, container {{ api_container_name }}
           - label: Docker unit stopped but still enabled
@@ -71,8 +84,8 @@
               hasura-docker-api.service: { name: hasura-docker-api.service, state: stopped, status: enabled }
             docker: "{{ test_api_docker_missing }}"
             expected_message: hasura-docker-api.service
-          - label: Docker container without its unit
-            services: "{{ test_api_docker_podman_service }}"
+          - label: Docker container without its unit, socket activated Docker engine
+            services: "{{ test_api_docker_podman_service | combine(test_api_docker_engine_socket) }}"
             docker: "{{ test_api_docker_container }}"
             expected_message: container {{ api_container_name }}
 

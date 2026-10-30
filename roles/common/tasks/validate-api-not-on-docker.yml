@@ -14,6 +14,8 @@
 #   api_docker_service_names       - the unit names the Docker based API was installed under
 #   api_container_name             - the name of the API container
 #   api_docker_binary              - the Docker client to ask for that container
+#   api_docker_engine_units        - the units of the Docker engine, one of which has to be
+#                                    installed before the client is asked
 #   fworch_service_facts           - the services of this host (gathered here)
 #   minimum_upgrade_source_release - the release that still moves the API to Podman
 # Output: nothing, or a failure naming what still uses Docker and the way out.
@@ -53,6 +55,21 @@
     path: "{{ api_docker_binary }}"
   register: api_docker_binary_check
 
+# The client alone does not prove Docker: podman-docker installs a docker command that runs
+# podman, which would report the Podman API container under the same name. It brings no
+# Docker engine unit, so only a host with one of those is asked for a container.
+- name: check whether the Docker engine is installed for the Docker API check
+  set_fact:
+    api_docker_engine_installed: >-
+      {{
+        fworch_service_facts.values()
+        | selectattr('name', 'in', api_docker_engine_units)
+        | selectattr('status', 'defined')
+        | rejectattr('status', 'in', fworch_unusable_unit_states)
+        | list
+        | length > 0
+      }}
+
 # --quiet prints container ids only; a full inspect would put the container environment,
 # Hasura admin secret included, into the registered result.
 - name: look for a remaining Docker API container
@@ -68,7 +85,9 @@
   changed_when: false
   failed_when: false
   become: true
-  when: api_docker_binary_check.stat.exists
+  when:
+    - api_docker_binary_check.stat.exists
+    - api_docker_engine_installed | bool
 
 - name: Refuse to upgrade an API that still runs in Docker
   fail:

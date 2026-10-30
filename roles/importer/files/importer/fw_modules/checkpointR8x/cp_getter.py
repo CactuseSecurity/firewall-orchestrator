@@ -56,9 +56,12 @@ def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str |
             timeout=fwo_const.FWO_HTTP_TIMEOUT,
         )
     except requests.exceptions.RequestException as request_error:
-        # the headers carry the session token and are never part of the text, which ends up in alerts and logs
+        # the headers carry the session token and are never part of the text, which ends up in alerts and logs;
+        # the transport reason only names host, port and path, and tells a TLS handshake failure from a certificate error
+        certificate_checking = "off" if fwo_globals.verify_certs is False else "on"
         exception_text = (
-            f"\nerror while sending api_call '{command}' to url '{url}' ({type(request_error).__name__}) "
+            f"\nerror while sending api_call '{command}' to url '{url}' ({type(request_error).__name__}: "
+            f"{request_error}, certificate checking: {certificate_checking}) "
             f"with payload '{json.dumps(redact_sensitive_values(json_payload), indent=2)}'"
         )
         raise FwApiError(exception_text) from None

@@ -120,7 +120,7 @@ class ManagementController(Management):
         )
         domain_info = DomainInfo(domain_name=json_dict.get("configPath"), domain_uid=json_dict.get("domainUid"))
 
-        return cls(
+        management = cls(
             mgm_id=json_dict["id"],
             uid=json_dict["uid"],
             devices=json_dict["devices"],
@@ -132,6 +132,9 @@ class ManagementController(Management):
             domain_info=domain_info,
             import_disabled=json_dict["importDisabled"],
         )
+        management.cloud_tenant_id = json_dict.get("cloudTenantId")
+        management.cloud_subscription_id = json_dict.get("cloudSubscriptionId")
+        return management
 
     def __str__(self):
         return f"{self.hostname}({self.mgm_id})"

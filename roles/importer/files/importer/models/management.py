@@ -27,3 +27,5 @@ class Management(BaseModel):
     domain_uid: str | None
     sub_managers: list[Management]
     additional_credential: AdditionalCredential | None = None
+    cloud_tenant_id: str | None = None
+    cloud_subscription_id: str | None = None

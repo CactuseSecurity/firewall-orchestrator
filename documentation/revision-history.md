@@ -1,5 +1,17 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.0 - 24.10.2026
+- Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs
+  - login with a service principal (client credentials flow); client id and secret are taken from the additional credential, otherwise from the import credential; tenant and subscription from the management's cloud settings, the resource group from the config path
+  - the firewall policy of a device is its local rulebase name, otherwise the device name; each policy becomes a rulebase, each device a gateway
+  - uses api version 2026-01-01 and falls back to 2024-05-01 for clouds that do not support it yet; the version used is stored in the native config
+  - imports network rules of filter rule collections incl. inline addresses, ranges, service tags, FQDNs, IP groups and Kubernetes selector groups; NAT and application rules are not imported yet
+  - imports parent policies (policy hierarchy, also from other resource groups or subscriptions) as own rulebases; the gateway starts with the topmost parent's rulebase, followed by the child policies as sections, as Azure processes inherited rules first
+  - IP groups are listed for the management's subscription; referenced IP groups of other subscriptions (e.g. of parent policies) are fetched individually by their resource id, so read access on these groups suffices
+  - rules are ordered by rule collection group and rule collection priority
+- Azure gateway autodiscovery: Azure managements can now be autodiscovered (scheduled and manually); the Azure Firewalls of the subscription whose firewall policy lies in the configured resource group are proposed as gateways with the policy name as local rulebase; firewalls with classic rules are skipped
+- new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
+## 9.8.4 - 26.10.2026
 ## 9.8.5 - 29.10.2026
 - request workflow: the Tufin SecureChange ticket templates move from the ticket system (Settings - External ticket templates) to the device specific settings
   - new settings `scTemplate<TaskType><Part>` per SecureChange task type (AccessRequest, NetworkObjectModify) and template part (ticket, tasks, object, object short, IP, network group, service, ICMP, IP protocol), on the levels Global, device type and management, in the new section "SecureChange ticket templates"

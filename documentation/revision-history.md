@@ -1,5 +1,16 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.5 - 29.10.2026
+- request workflow: the Tufin SecureChange ticket templates move from the ticket system (Settings - External ticket templates) to the device specific settings
+  - new settings `scTemplate<TaskType><Part>` per SecureChange task type (AccessRequest, NetworkObjectModify) and template part (ticket, tasks, object, object short, IP, network group, service, ICMP, IP protocol), on the levels Global, device type and management, in the new section "SecureChange ticket templates"
+  - an empty template part uses the shipped template (only the AccessRequest ticket and task text are shipped, as before in the default ticket system), so a later correction of it applies
+  - a SecureChange ticket uses the templates of the management of its request tasks; request tasks of managements with different templates are no longer bundled into one ticket. The templates are resolved when the external request is created and stored with it, as before
+  - the ticket system dialog no longer shows or stores templates for SecureChange systems (URL, credentials, timeouts and requester lookup stay there); other ticket system types keep their templates
+  - the upgrade moves the templates of the SecureChange systems: those of the system most managements route their changes to (Settings - Firewall config changes) become the global values, managements routing a change category to another SecureChange system get its differing templates on their own level. Parts equal to the shipped template are not stored. The ticket systems are backed up once in `device_specific_config_backup` (version `9.8.5 extTicketSystems`, without authorization values)
+  - breaking: an AccessRequest template that was missing on a SecureChange system (ticket creation failed before) is now replaced by the shipped one
+  - a task type whose ticket or task template is empty (no setting and no shipped template, e.g. NetworkObjectModify) is refused with a configuration error before a request is created, as when its template was missing before
+  - service group tasks routed to SecureChange are refused with a configuration error; SecureChange only modifies groups of network objects. Before, they created a ticket without tasks. Their templates (NetworkServiceCreate, NetworkServiceUpdate) were never used and are not migrated; they remain in the backup
+
 ## 9.8.4 - 29.10.2026
 - installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server
 - importer: sub-managements set to "do not import" are skipped by the import of their super manager instead of having all their rules and objects marked removed (FortiManager ADOMs, Check Point domains; GHSA-hj46-639g-mxq2). A forced import still imports them

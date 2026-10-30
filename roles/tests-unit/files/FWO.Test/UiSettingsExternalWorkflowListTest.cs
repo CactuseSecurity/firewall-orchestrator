@@ -24,6 +24,8 @@ namespace FWO.Test
         private const int kPasswordCredentialId = 4;
         private const int kKeyPairCredentialId = 3;
         private const int kDeletedCredentialId = 9;
+        private static readonly List<ExternalTicketTemplate> kStoredTemplates =
+            [new() { TaskType = nameof(SCTaskType.AccessRequest), TicketTemplate = "{}", TasksTemplate = "{}" }];
 
         [Test]
         public void OnlyPasswordCredentialsAreOffered()
@@ -80,6 +82,46 @@ namespace FWO.Test
                 Assert.That(GetField<bool>(rendered.Instance, "editMode"), Is.True);
                 Assert.That(saveButtons, Has.Count.EqualTo(2));
                 Assert.That(saveButtons.All(button => button.HasAttribute("disabled") == !writeAllowed), Is.True);
+            });
+        }
+
+        /// <summary>
+        /// The SecureChange templates are device specific settings: the dialog links there instead of showing template tabs,
+        /// which other ticket system types keep.
+        /// </summary>
+        [TestCase(BuiltInExternalTicketSystemTypes.TufinSecureChangeId, true)]
+        [TestCase(BuiltInExternalTicketSystemTypes.GenericId, false)]
+        public async Task TemplatesAreOnlyEditedForOtherTicketSystemTypes(int typeId, bool isSecureChange)
+        {
+            await using BunitContext context = new();
+            IRenderedComponent<SettingsExternalWorkflowList> rendered = RenderPageAs(context, Roles.Admin);
+            ExternalTicketSystem system = new() { Id = 1, Name = "System", TypeId = typeId, Templates = [.. kStoredTemplates] };
+
+            await rendered.InvokeAsync(() => InvokePrivate(rendered.Instance, "EditExternalTicketSystem", system));
+            rendered.Render();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rendered.Markup.Contains(new SimulatedUserConfig().GetText("ext_ticket_sc_templates_moved")), Is.EqualTo(isSecureChange));
+                Assert.That(rendered.FindAll("a[href='/settings/devicespecificsettings']"), Has.Count.EqualTo(isSecureChange ? 1 : 0));
+                Assert.That(rendered.FindAll("textarea").Count > 0, Is.EqualTo(!isSecureChange));
+            });
+        }
+
+        [Test]
+        public void SecureChangeSystemsStoreNoTemplates()
+        {
+            ExternalTicketSystem secureChange = new() { TypeId = BuiltInExternalTicketSystemTypes.TufinSecureChangeId, Templates = [.. kStoredTemplates] };
+            ExternalTicketSystem generic = new() { TypeId = BuiltInExternalTicketSystemTypes.GenericId, Templates = [.. kStoredTemplates] };
+            MethodInfo method = typeof(SettingsExternalWorkflowList).GetMethod("TemplatesToStore", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingMethodException(nameof(SettingsExternalWorkflowList), "TemplatesToStore");
+            List<object?> secureChangeArguments = [secureChange];
+            List<object?> genericArguments = [generic];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That((List<ExternalTicketTemplate>)method.Invoke(null, secureChangeArguments.ToArray())!, Is.Empty);
+                Assert.That((List<ExternalTicketTemplate>)method.Invoke(null, genericArguments.ToArray())!, Is.EqualTo(kStoredTemplates));
             });
         }
 

@@ -249,3 +249,6 @@ For a feature-centric, thematically grouped view see
 - Admins see a warning on every page while certificate checking is switched off for firewall connections, external ticket systems or the email server, and the upgrade lists the unchecked connection types.
 - The Cisco ASA importer checks the SSH host key of the device against a known hosts file on the importer host; admins see the managements whose key is unknown or changed together with instructions.
 - Hardening of report filters, the Report/Get REST call, external ticket and notification email templates, HTML report exports and firewall API error logging; the network syslog receiver is no longer opened.
+
+### 9.8.5 — 29.10.2026
+- The Tufin SecureChange ticket templates are device specific settings that can be adapted globally, per device type and per management; the upgrade moves the templates stored with the ticket systems.

@@ -2,33 +2,45 @@
 
 It is really simple.
 
-## Prerequisite: this host must run 8.0 or newer
+## Prerequisite: this host must run 9.0.16 or newer
 
-Upgrades starting from a version older than 8.0 are not supported any more - the database
-migration files below 8.0 have been removed. The installer checks the installed version
-before it changes anything and stops such an upgrade, because running it would skip the
-schema changes the older version is still missing.
+Upgrades starting from a version older than 9.0.16 are not supported any more. 9.0.16 moved
+the API (Hasura) from Docker to Podman, and the installer no longer carries out that move.
+The installer checks the installed version before it changes anything and stops such an
+upgrade, because running it would leave the old Docker container on the API port.
 
-An installation older than 8.0 gets here in two upgrades. `v8.9.6` is the last release
-that still carries the removed migration files, so check that release out first:
+An installation from 8.0 to 9.0.15 gets here in two upgrades. `v9.8.4` still moves the API
+to Podman, so check that release out first:
 
 ```console
   cd firewall-orchestrator
   git fetch --tags
-  git checkout v8.9.6
+  git checkout v9.8.4
 ```
 
 Then run the interim upgrade **the way that release documents it**, in its own
-`documentation/installer/server-upgrade.md` - the commands below have changed since, and
-the scripts this page uses do not all exist in `v8.9.6`. At the time of writing, that
-release upgrades with:
+`documentation/installer/server-upgrade.md`. Once the host runs 9.8.4, return to the current
+version (`git checkout main`) and upgrade again as described below.
 
-```console
-  ansible-playbook site.yml -K -e "installation_mode=upgrade"
-```
+An installation older than 8.0 needs one more step first: the database migration files
+below 8.0 have been removed as well, and `v8.9.6` is the last release that still carries
+them. Upgrade with `v8.9.6` the way that release documents it (at the time of writing
+`ansible-playbook site.yml -K -e "installation_mode=upgrade"`), then with `v9.8.4`, then
+with the current version. The `v9.8.4` installer tells you so as well when you skip the
+first step.
 
-Once the host runs 8.9.6, return to the current version (`git checkout main`) and upgrade
-again as described below.
+A newer version alone does not prove that the API left Docker: an upgrade with `v9.8.4`
+defers the move and keeps the Docker container when `api_keep_existing_hasura_on_upgrade`
+is set or GitHub cannot be reached. The installer therefore also stops an upgrade while the
+Docker API service (`fworch-hasura-docker-api` or `hasura-docker-api`) is running or
+enabled, or a Docker container `fworch-api` exists. Upgrade once more with `v9.8.4`, with
+access to GitHub and without `api_keep_existing_hasura_on_upgrade`, then with the current
+version. The container is only looked up when the Docker engine (`docker.service` or
+`docker.socket`) is installed: the `docker` command of `podman-docker` runs Podman and would
+report the Podman API container under the same name. When the Docker engine is installed
+but cannot be asked (stopped, and its socket not active), the upgrade stops as well, because
+a container with a restart policy would take the API port again once Docker starts: start
+Docker or remove the unused engine, then upgrade again.
 
 Anything you configured for this host belongs in
 `/etc/fworch/fwo-install-settings.yml`, not in `inventory/`. That file is
@@ -60,3 +72,71 @@ If you do not have a local repo:
   source scripts/install-ansible-from-venv.sh                       # refresh pinned Ansible + collections
   ./scripts/run-playbook-with-sudo.sh site.yml -e "installation_mode=upgrade"
 ```
+
+## After an operating system upgrade
+
+An in-place upgrade of the operating system can move PostgreSQL and python to new major or
+minor versions (e.g. Debian 12 -> 13: PostgreSQL 15 -> 17, python 3.11 -> 3.13). Upgrade the
+operating system first, then upgrade Firewall Orchestrator as described above.
+
+### PostgreSQL major version
+
+The operating system upgrade installs the new PostgreSQL server but leaves the database in
+the old format. The installer detects this and stops before it changes PostgreSQL, naming
+the version it found. Migrate the database, then run the upgrade again.
+
+#### Debian and Ubuntu
+
+```console
+  pg_lsclusters                         # e.g. "15 main ... online" and no 17 main
+  sudo systemctl stop fworch-importer-api fworch-ui fworch-middleware fworch-hasura-api
+  sudo pg_upgradecluster 15 main        # creates 17/main from 15/main, moves 15 to another port
+  pg_lsclusters                         # 17 main must be online on port 5432
+  ./scripts/run-playbook-with-sudo.sh site.yml -e "installation_mode=upgrade"
+```
+
+Keep the default dump method of `pg_upgradecluster` (do not use `-m upgrade` or `-m link`).
+It rebuilds all indexes, which is required after a C library upgrade: the old cluster then
+warns about a "collation version mismatch", and text indexes built with the old sort order
+can return wrong results.
+
+`pg_upgradecluster` refuses to create the new cluster when the locale of your session is
+not installed on the server (e.g. `LC_TIME=de_DE.UTF-8` passed on by ssh). Generate the
+missing locale with `locale-gen`, or run the command with `LC_ALL=C.UTF-8`.
+
+Once Firewall Orchestrator works on the new cluster, remove the old one:
+
+```console
+  sudo pg_dropcluster 15 main
+  sudo apt purge postgresql-15 postgresql-client-15
+```
+
+#### Red Hat and Rocky
+
+```console
+  sudo systemctl stop fworch-importer-api fworch-ui fworch-middleware fworch-hasura-api postgresql
+  sudo dnf install postgresql-upgrade
+  sudo postgresql-setup --upgrade       # moves the old data to /var/lib/pgsql/data-old
+  sudo systemctl start postgresql
+  sudo -u postgres reindexdb --all
+  ./scripts/run-playbook-with-sudo.sh site.yml -e "installation_mode=upgrade"
+```
+
+`postgresql-setup --upgrade` keeps the old index files, so `reindexdb --all` rebuilds them
+with the sort order of the new C library. From PostgreSQL 15 on, then also clear the
+"collation version mismatch" warning in every database
+(`ALTER DATABASE <name> REFRESH COLLATION VERSION`) - never without the reindex.
+
+`postgresql-upgrade` only provides the PostgreSQL version that the distribution shipped
+before the current one. For a larger step, dump the database with `pg_dumpall` before the
+operating system upgrade, and restore it into a new data directory
+(`postgresql-setup --initdb`) afterwards.
+
+Once Firewall Orchestrator works on the new version, remove `/var/lib/pgsql/data-old`.
+
+### Python version
+
+The importer and the customizing scripts run in python venvs. A venv only works with the
+python minor version it was built for, so after the operating system upgrade the importer
+fails with errors like `ModuleNotFoundError: No module named 'urllib3'`. The Firewall
+Orchestrator upgrade rebuilds every venv that was built for another python version.

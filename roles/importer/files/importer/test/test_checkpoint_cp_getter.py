@@ -69,6 +69,21 @@ class TestCpApiCall:
         assert "secret" not in str(exception_info.value)
         assert "<redacted>" in str(exception_info.value)
 
+    @pytest.mark.parametrize(("verify_certs", "expected_state"), [(False, "off"), (True, "on"), (None, "on")])
+    def test_request_error_names_reason_and_certificate_checking(
+        self, monkeypatch: pytest.MonkeyPatch, verify_certs: bool | None, expected_state: str
+    ) -> None:
+        monkeypatch.setattr(cp_getter.fwo_globals, "verify_certs", verify_certs)
+        error = requests.exceptions.SSLError("[SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED] unsafe legacy renegotiation")
+        with (
+            patch.object(cp_getter.requests, "post", side_effect=error),
+            pytest.raises(FwApiError) as exception_info,
+        ):
+            cp_getter.cp_api_call("https://mgm.invalid/", "login", {"password": "secret"}, None)
+
+        assert "SSLError: [SSL: UNSAFE_LEGACY_RENEGOTIATION_DISABLED]" in str(exception_info.value)
+        assert f"certificate checking: {expected_state}" in str(exception_info.value)
+
     def test_request_error_without_password_includes_payload(self):
         error = requests.exceptions.RequestException("boom")
         with (

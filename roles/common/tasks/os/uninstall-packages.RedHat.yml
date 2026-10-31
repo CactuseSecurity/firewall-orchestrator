@@ -20,9 +20,6 @@
     - openldap-clients
     - openldap-servers
     - openldap
-    - docker-ce
-    - docker-ce-cli
-    - containerd.io
     - podman
     - "dotnet-sdk-{{ dotnet_version }}"
     - make

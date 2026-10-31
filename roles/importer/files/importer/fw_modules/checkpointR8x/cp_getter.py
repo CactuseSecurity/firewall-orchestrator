@@ -21,7 +21,7 @@ from fw_modules.checkpointR8x.cp_object_resolver import (
 )
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 from fwo_log import FWOLogger
-from fwo_redaction import redact_sensitive_values, session_fingerprint
+from fwo_redaction import redact_sensitive_values, redact_url_credentials, session_fingerprint
 from services.service_provider import ServiceProvider
 
 if TYPE_CHECKING:
@@ -56,9 +56,14 @@ def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str |
             timeout=fwo_const.FWO_HTTP_TIMEOUT,
         )
     except requests.exceptions.RequestException as request_error:
-        # the headers carry the session token and are never part of the text, which ends up in alerts and logs
+        # the headers carry the session token and are never part of the text, which ends up in alerts and logs;
+        # the transport reason names host, port and path, and tells a TLS handshake failure from a certificate error.
+        # It also repeats a proxy url it cannot parse, credentials included, so user info in urls is redacted.
+        certificate_checking = "off" if fwo_globals.verify_certs is False else "on"
+        transport_reason = redact_url_credentials(str(request_error))
         exception_text = (
-            f"\nerror while sending api_call '{command}' to url '{url}' ({type(request_error).__name__}) "
+            f"\nerror while sending api_call '{command}' to url '{redact_url_credentials(url)}' "
+            f"({type(request_error).__name__}: {transport_reason}, certificate checking: {certificate_checking}) "
             f"with payload '{json.dumps(redact_sensitive_values(json_payload), indent=2)}'"
         )
         raise FwApiError(exception_text) from None

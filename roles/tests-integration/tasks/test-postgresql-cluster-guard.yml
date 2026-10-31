@@ -1,0 +1,138 @@
+---
+# Drives roles/database/tasks/validate-postgresql-cluster.yml itself rather than a copy of
+# it. The defect this guard exists for is an operating system upgrade to a new PostgreSQL
+# major version: the database role then derives its config paths from the new version while
+# the data is still in the old cluster, and fails on a missing postgresql.conf without
+# saying that the cluster has to be migrated.
+#
+# Runs unprivileged on a temporary directory standing in for /etc/postgresql.
+- name: Create a temporary PostgreSQL config root for the cluster guard test
+  tempfile:
+    state: directory
+    prefix: fworch-pg-cluster-guard-
+  register: test_pg_cluster_root
+
+- name: Test the PostgreSQL cluster guard
+  vars:
+    test_pg_cluster_old_version: "15"
+    test_pg_cluster_new_version: "17"
+  block:
+    - name: Create an old main cluster the way the previous OS release left it
+      file:
+        path: "{{ test_pg_cluster_root.path }}/{{ test_pg_cluster_old_version }}/main"
+        state: directory
+        mode: "0755"
+
+    - name: Add the config of the old main cluster
+      file:
+        path: "{{ test_pg_cluster_root.path }}/{{ test_pg_cluster_old_version }}/main/postgresql.conf"
+        state: touch
+        mode: "0644"
+
+    - name: "expected to fail: cluster guard stops when only the old PostgreSQL cluster exists"
+      block:
+        - name: "expected to fail: cluster guard stops when only the old PostgreSQL cluster exists"
+          include_tasks: "{{ role_path }}/../database/tasks/validate-postgresql-cluster.yml"
+          vars:
+            pg_version: "{{ test_pg_cluster_new_version }}"
+            postgresql_config_root: "{{ test_pg_cluster_root.path }}"
+        - set_fact:
+            test_pg_cluster_migration_rejected: false
+      rescue:
+        - name: "expected to fail: rejection of the unmigrated cluster caught"
+          set_fact:
+            test_pg_cluster_migration_rejected: true
+            test_pg_cluster_migration_message: "{{ ansible_failed_result.msg }}"
+
+    - name: Assert that the missing migration was rejected with a usable message
+      assert:
+        that:
+          - test_pg_cluster_migration_rejected | bool
+          # the command that gets the operator out, with the version found on disk
+          - "'pg_upgradecluster ' ~ test_pg_cluster_old_version ~ ' main' in test_pg_cluster_migration_message"
+          - "'server-upgrade.md' in test_pg_cluster_migration_message"
+          - "'\n' not in test_pg_cluster_migration_message"
+        fail_msg: >-
+          The PostgreSQL cluster guard did not usably reject a PostgreSQL
+          {{ test_pg_cluster_new_version }} installation whose data is still in the
+          {{ test_pg_cluster_old_version }} cluster:
+          {{ test_pg_cluster_migration_message | default('it did not fail at all') }}
+
+    - name: Create the migrated main cluster
+      file:
+        path: "{{ test_pg_cluster_root.path }}/{{ test_pg_cluster_new_version }}/main"
+        state: directory
+        mode: "0755"
+
+    - name: Add the config of the migrated main cluster
+      file:
+        path: "{{ test_pg_cluster_root.path }}/{{ test_pg_cluster_new_version }}/main/postgresql.conf"
+        state: touch
+        mode: "0644"
+
+    # the old cluster stays until the operator has verified the new one, so both exist here
+    - name: Verify the guard lets a migrated cluster through
+      include_tasks: "{{ role_path }}/../database/tasks/validate-postgresql-cluster.yml"
+      vars:
+        pg_version: "{{ test_pg_cluster_new_version }}"
+        postgresql_config_root: "{{ test_pg_cluster_root.path }}"
+
+    - name: Remove all clusters
+      file:
+        path: "{{ test_pg_cluster_root.path }}/{{ item }}"
+        state: absent
+      loop:
+        - "{{ test_pg_cluster_old_version }}"
+        - "{{ test_pg_cluster_new_version }}"
+
+    - name: "expected to fail: cluster guard stops when there is no PostgreSQL cluster"
+      block:
+        - name: "expected to fail: cluster guard stops when there is no PostgreSQL cluster"
+          include_tasks: "{{ role_path }}/../database/tasks/validate-postgresql-cluster.yml"
+          vars:
+            pg_version: "{{ test_pg_cluster_new_version }}"
+            postgresql_config_root: "{{ test_pg_cluster_root.path }}"
+        - set_fact:
+            test_pg_cluster_missing_rejected: false
+      rescue:
+        - name: "expected to fail: rejection of the missing cluster caught"
+          set_fact:
+            test_pg_cluster_missing_rejected: true
+            test_pg_cluster_missing_message: "{{ ansible_failed_result.msg }}"
+
+    - name: Assert that a host without cluster was rejected with a usable message
+      assert:
+        that:
+          - test_pg_cluster_missing_rejected | bool
+          - "'pg_createcluster ' ~ test_pg_cluster_new_version ~ ' main' in test_pg_cluster_missing_message"
+        fail_msg: >-
+          The PostgreSQL cluster guard did not usably reject a host without any cluster:
+          {{ test_pg_cluster_missing_message | default('it did not fail at all') }}
+
+    # The RedHat layout: one data directory whose PG_VERSION names the format. Each case
+    # writes the version the data was left in, and whether the guard has to let it through.
+    - name: Define the RedHat data directory cases
+      set_fact:
+        test_pg_data_cases:
+          - data_version: "{{ test_pg_cluster_new_version }}"
+            expected_message: ""
+          - data_version: "{{ test_pg_cluster_old_version }}"
+            expected_message: "postgresql-setup --upgrade"
+          # the module stream was switched back below the version the data was written with
+          - data_version: "18"
+            expected_message: "postgresql:18"
+          - data_version: ""
+            expected_message: "postgresql-setup --initdb"
+
+    - name: Verify the guard on every RedHat data directory case
+      include_tasks: test-postgresql-data-version-case.yml
+      loop: "{{ test_pg_data_cases }}"
+      loop_control:
+        loop_var: test_pg_data_case
+        label: "PG_VERSION {{ test_pg_data_case.data_version | default('missing', true) }}"
+
+  always:
+    - name: Remove the temporary PostgreSQL config root
+      file:
+        path: "{{ test_pg_cluster_root.path }}"
+        state: absent

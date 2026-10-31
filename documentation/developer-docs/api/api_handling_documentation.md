@@ -20,14 +20,14 @@ from compact to pp:
 
 Display api container status
 
-    tim@fworch-comp:~$ sudo docker ps --all
-    CONTAINER ID   IMAGE                           COMMAND                  CREATED        STATUS        PORTS     NAMES
-    6a4941843351   hasura/graphql-engine:v2.0.10   "graphql-engine serve"   15 hours ago   Up 15 hours             fworch-api
+    tim@fworch-comp:~$ sudo podman ps --all
+    CONTAINER ID  IMAGE                                      COMMAND     CREATED       STATUS       PORTS       NAMES
+    6a4941843351  docker.io/hasura/graphql-engine:v2.50.3    serve       15 hours ago  Up 15 hours              fworch-api
     tim@fworch-comp:~$ 
 
-Restart FWORCH API
+Restart FWORCH API (the container is managed by its systemd service)
 
-    sudo docker restart fworch-api
+    sudo systemctl restart fworch-hasura-api
 
 Note that you need to restart at least the middlware server since its subscription will break:
 

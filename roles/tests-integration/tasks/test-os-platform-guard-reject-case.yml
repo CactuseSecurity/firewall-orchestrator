@@ -9,10 +9,11 @@
     msg: "allow_unsupported_os=true was given on the command line, the guard only warns in this run."
   when: allow_unsupported_os | bool
 
-- name: Run the OS platform guard for {{ os_platform.distribution }} {{ os_platform.version }}
+- name: "expected to fail: OS platform guard rejects {{ os_platform.distribution }} {{ os_platform.version }}"
   when: not allow_unsupported_os | bool
   block:
-    - include_tasks: "{{ os_platform_guard }}"
+    - name: "expected to fail: OS platform guard rejects {{ os_platform.distribution }} {{ os_platform.version }}"
+      include_tasks: "{{ os_platform_guard }}"
       vars:
         os_platform_distribution: "{{ os_platform.distribution }}"
         os_platform_version: "{{ os_platform.version }}"
@@ -20,7 +21,8 @@
         os_platforms_not_rejected: "{{ os_platforms_not_rejected + [os_platform.distribution ~ ' ' ~ os_platform.version ~ ': not rejected'] }}"
   rescue:
     # The operator has to see what was found, what is supported and the way out, on one line.
-    - set_fact:
+    - name: "expected to fail: rejection of {{ os_platform.distribution }} {{ os_platform.version }} caught"
+      set_fact:
         os_platforms_not_rejected: "{{ os_platforms_not_rejected + [os_platform.distribution ~ ' ' ~ os_platform.version ~ ': ' ~ ansible_failed_result.msg] }}"
       when: >-
         (os_platform.distribution ~ ' ' ~ os_platform.version) not in ansible_failed_result.msg

@@ -2,3 +2,8 @@
   set_fact:
     postgresql_config_file: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
     postgresql_hba_file: "/etc/postgresql/{{ pg_version }}/main/pg_hba.conf"
+
+- name: make sure the config paths belong to an existing cluster
+  include_tasks: ../validate-postgresql-cluster.yml
+  vars:
+    postgresql_config_root: /etc/postgresql

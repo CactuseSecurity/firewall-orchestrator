@@ -49,6 +49,11 @@
         that: importer_python_version_check.rc == 0
         fail_msg: "The importer requires Python 3.10 or newer ({{ importer_python_interpreter }} is older or not usable)."
 
+    - name: Remove an importer venv built for another Python version
+      include_tasks: "{{ role_path }}/../common/tasks/reset-outdated-python-venv.yml"
+      vars:
+        python_venv_dir: "{{ importer_venv_dir }}"
+        python_venv_interpreter: "{{ importer_python_interpreter }}"
 
     - name: Create Python virtual environment
       ansible.builtin.command:

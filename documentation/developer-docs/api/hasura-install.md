@@ -1,46 +1,57 @@
-# How to install hasura
+# How Hasura is installed
 
-Setup: <https://docs.hasura.io/1.0/graphql/manual/deployment/docker/index.html>
+The installer runs the Hasura GraphQL engine as a Podman container on every host in the
+`apiserver` group. Docker is not used any more (it was replaced by Podman in 9.0.16).
 
-NB: depends on docker role!
+## Roles
 
-- edit docker-run.sh as follows:
+- `roles/podman` installs the Podman runtime and disables the rootless Podman user socket.
+- `roles/api` (`tasks/hasura-install.yml`) installs and starts Hasura and applies the
+  metadata. `site.yml` runs `podman` before `api`.
 
-  ```console
-  \#! /bin/bash
-      docker run -d --net=host -p 8080:8080 \\
-             \-e HASURA_GRAPHQL_DATABASE_URL=postgres://dbadmin:st8chel@localhost:5432/fworchdb \\
-             \-e HASURA_GRAPHQL_ENABLE_CONSOLE=true \\
-             \-e HASURA_GRAPHQL_ADMIN_SECRET=st8chelt1er \\
-             hasura/graphql-engine:v1.0.0
-  ```
+## Steps of `roles/api/tasks/hasura-install.yml`
 
-- startup via
+1. Download the Hasura CLI (`api_hasura_version`) to `{{ fworch_home }}/api/bin/hasura` and
+   verify it against `api_hasura_cli_sha256`.
+2. Write the Hasura environment (database URL, admin secret, JWT secret, proxy settings) to
+   `{{ fworch_secrets_dir }}/hasura.env` (`api_env_file`). The variables are described in
+   `hasura-documentation.md`.
+3. Pull the image `api_hasura_image`, pinned by `api_hasura_image_digest`, and create the
+   container `fworch-api` (`api_container_name`) with host networking, so Hasura listens on
+   `api_local_listening_ip_address:api_port` (127.0.0.1:8080).
+4. Generate a systemd unit for the container (`podman generate systemd --new`) and install it
+   as `/etc/systemd/system/fworch-hasura-api.service` (`api_service_name`). Startup ordering
+   and the restart behaviour are added as a drop-in in `fworch-hasura-api.service.d`, so they
+   survive the regeneration of the unit.
+5. Start the service, wait for the port, check that the running server reports
+   `api_hasura_version`, and import the metadata from `roles/api/files/replace_metadata.json`
+   through the metadata API.
 
-  ```console
-  docker-run.sh
-  ```
+The pins (`api_hasura_version`, `api_hasura_image_digest`, `api_hasura_cli_sha256`) live in
+`inventory/group_vars/apiserver.yml` and have to be updated together.
 
-d) connect to <http://localhost:8080/console>
+## Upgrades
 
-e) configure hasura manually once in the graphical gui
+On an upgrade the container is recreated from the configured image. If the Hasura CLI or the
+image cannot be downloaded (e.g. no access to GitHub or docker.io), the installer keeps the
+installed container and upgrades the metadata only. `-e api_keep_existing_hasura_on_upgrade=true`
+requests this explicitly.
 
-f) install hasura cli (see <https://docs.hasura.io/1.0/graphql/manual/hasura-cli/install-hasura-cli.html>) curl -L <https://github.com/hasura/graphql-engine/raw/master/cli/get.sh> | bash
+## Operating the container
 
-g) export hasura metadata
 ```console
-hasura init --directory DIR --endpoint <http://localhost:8080> --admin-secret XXX
+sudo systemctl status fworch-hasura-api
+sudo systemctl restart fworch-hasura-api
+sudo podman ps --all
+sudo podman logs fworch-api
+```
+
+The Hasura console is served on the local endpoint (`http://127.0.0.1:8080/console`) and
+needs the admin secret from `{{ fworch_secrets_dir }}/hasura_admin_pwd`. To work with the
+metadata by hand, use the Hasura CLI against the same endpoint:
+
+```console
+hasura init --directory DIR --endpoint http://127.0.0.1:8080 --admin-secret XXX
 cd DIR
 hasura metadata export
 ```
-add migrations/metadata.yaml to fworch sources
-
-h) import metadata again when installing fworch (is there a way to do this automatially?)
-```console
-hasura init --directory DIR --endpoint <http://localhost:8080> --admin-secret XXX
-cd DIR
-hasura metadata apply
-```
-i) use <http://json2html.com/#getstarted> to convert json results from api calls to html tables?
-
-Hasura-graphql-engine - Framework to provide graphql for Postgresql databases Hasura: <https://github.com/hasura/graphql-engine/blob/master/architecture/live-queries.md> access gui: <http://localhost:8080/console/api-explorer> (oder <http://localhost:8080/console>)

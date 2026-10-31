@@ -976,7 +976,7 @@ def get_nat_translated_destination(
         )
 
         if nat_obj is None:
-            if vip_obj is not None:
+            if vip_obj is not None and not vip_obj.get("obj_nat_real_server_refs"):
                 FWOLogger.warning(f"DNAT: could not resolve translated destination network object for VIP '{addr}'")
             translated_dst_list.append(addr)
             translated_dst_refs_list.append(addr_ref)
@@ -986,6 +986,43 @@ def get_nat_translated_destination(
         translated_dst_refs_list.append(nat_obj.get("obj_uid", nat_obj["obj_name"]))
 
     return translated_dst_list, translated_dst_refs_list
+
+
+def expand_vip_real_servers(
+    translated_dst_list: list[str],
+    translated_dst_refs_list: list[str],
+    normalized_config_adom: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+) -> tuple[list[str], list[str]]:
+    """
+    Replaces virtual server vips in the translated destination with their real server objects.
+
+    A virtual server vip has no mappedip, so its nat targets were normalized into one object per
+    real server. Classic vips are left untouched.
+    """
+    network_objects = normalized_config_adom.get("network_objects", []) + normalized_config_global.get(
+        "network_objects", []
+    )
+    real_server_refs_by_name = {
+        nw_obj.get("obj_name"): nw_obj["obj_nat_real_server_refs"]
+        for nw_obj in network_objects
+        if nw_obj.get("obj_nat_real_server_refs")
+    }
+
+    expanded_dst_list: list[str] = []
+    expanded_dst_refs_list: list[str] = []
+    for dst_name, dst_ref in zip(translated_dst_list, translated_dst_refs_list, strict=False):
+        real_server_refs = real_server_refs_by_name.get(dst_name)
+        if not real_server_refs:
+            expanded_dst_list.append(dst_name)
+            expanded_dst_refs_list.append(dst_ref)
+            continue
+        for real_server_ref in real_server_refs:
+            if real_server_ref not in expanded_dst_refs_list:
+                expanded_dst_list.append(real_server_ref)
+                expanded_dst_refs_list.append(real_server_ref)
+
+    return expanded_dst_list, expanded_dst_refs_list
 
 
 def parse_nat_ip(
@@ -1079,6 +1116,27 @@ def prepare_translated_nat_fields(
     )
 
 
+def resolve_nat_translated_destination(
+    is_dnat: bool,
+    rule_dst_list: list[str],
+    rule_dst_refs_list: list[str],
+    normalized_config_adom: dict[str, Any],
+    normalized_config_global: dict[str, Any],
+) -> tuple[list[str], list[str]]:
+    """
+    Resolves the translated destination of a NAT rule, expanding virtual server vips
+    to their real servers (they translate to those, not to the vip itself).
+    """
+    translated_dst_list, translated_dst_refs_list = get_nat_translated_destination(
+        is_dnat, rule_dst_list, rule_dst_refs_list, normalized_config_adom, normalized_config_global
+    )
+    if not is_dnat:
+        return translated_dst_list, translated_dst_refs_list
+    return expand_vip_real_servers(
+        translated_dst_list, translated_dst_refs_list, normalized_config_adom, normalized_config_global
+    )
+
+
 def parse_nat_rules_in_rulebase(
     normalized_config_adom: dict[str, Any],
     normalized_config_global: dict[str, Any],
@@ -1132,7 +1190,7 @@ def parse_nat_rules_in_rulebase(
             FWOLogger.warning("NAT rule without UUID, skipping")
             continue
 
-        translated_dst_list, translated_dst_refs_list = get_nat_translated_destination(
+        translated_dst_list, translated_dst_refs_list = resolve_nat_translated_destination(
             is_dnat, rule_dst_list, rule_dst_refs_list, normalized_config_adom, normalized_config_global
         )
         translated_svc_list = list(rule_svc_list)

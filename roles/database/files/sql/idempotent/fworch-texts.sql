@@ -601,6 +601,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
+    <li>Der Import von Cisco ASA, Check Point, FortiManager und FortiOS &uuml;bernimmt nun Quellports und Quellportbereiche von Diensten. Report-Tabellen zeigen Quell- und Zielportbereiche; Regel- und &Auml;nderungsexporte behalten die Quellport-Einschr&auml;nkungen bei. Die Soll-Ist-Analyse ber&uuml;cksichtigt Quellports beim Port/Protokoll-Vergleich.</li>
     <li>Die hierarchischen Provisionierungs-Einstellungen hei&szlig;en nun ger&auml;tespezifische Einstellungen, da sie z.B. auch f&uuml;r den Import genutzt werden. Sie enthalten nun Guardicore-Objektanlage, Modellierungslabels und Verbindungs-IDs, Importer-Host, externes Ticketsystem sowie &Uuml;berschreibungen f&uuml;r Regelumsetzung und Planung.</li>
     <li>Der Importer-Hostname wird nicht mehr pro Management, sondern in den ger&auml;tespezifischen Einstellungen (Global, Ger&auml;tetyp oder Manager) festgelegt. Ist er leer, importiert jeder Importer. Das Upgrade &uuml;bernimmt den h&auml;ufigsten Hostnamen als globalen Wert und abweichende als Manager-Werte.</li>
     <li>Cloud-Zugangsdaten werden als zus&auml;tzliche Zugangsdaten mit verschl&uuml;sseltem Passwort verwaltet. Das Upgrade &uuml;bertr&auml;gt vorhandene Cloud Client IDs und Secrets automatisch. Cisco ASA verwendet das zus&auml;tzliche Passwort f&uuml;r den Enable-Modus.</li>
@@ -641,6 +642,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 ');
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
+    <li>Cisco ASA, Check Point, FortiManager and FortiOS imports now retain service source ports and source port ranges. Report tables show source and destination port ranges; rule and change exports preserve source-port restrictions. Variance analysis regards source ports in the port/protocol comparison.</li>
     <li>The hierarchical provisioning settings are renamed to device specific settings, as they are also used e.g. for importing. They now include Guardicore object creation, modelling labels and connection IDs, importer host and external ticket system, plus rule implementation and planning overrides.</li>
     <li>The importer host name is no longer set per management but in the device specific settings (Global, device type or manager). If it is empty, every importer imports. The upgrade takes the most common host name as global value and differing ones as manager values.</li>
     <li>Cloud credentials are managed as additional credentials with encrypted passwords. The upgrade automatically transfers existing cloud client IDs and secrets. Cisco ASA uses the additional password for enable mode.</li>
@@ -6036,6 +6038,9 @@ INSERT INTO txt VALUES ('H1602', 'English', '<li>Network objects: Name, type, IP
     <li>Users: Name, type, UID, real name, group members if applicable, last changed, comment</li>
 ');
 
+INSERT INTO txt VALUES ('H1603', 'German', 'Dienst-Tabellen zeigen Zielportbereiche in einer eigenen Spalte; die Spalte Quellport erscheint nur, wenn mindestens ein Dienst Quellports einschr&auml;nkt. In Regel- und &Auml;nderungsexporten bedeutet die Schreibweise Quelle &rarr; Ziel, dass beide Portbereiche eingeschr&auml;nkt sind. Ohne Quellportangabe ist der Quellport nicht eingeschr&auml;nkt.');
+INSERT INTO txt VALUES ('H1603', 'English', 'Service tables show destination port ranges in a separate column; the source port column only appears if at least one service restricts source ports. In rule and change exports, source &rarr; destination indicates that both port ranges are restricted. An absent source port means the source port is unrestricted.');
+
 INSERT INTO txt VALUES ('H2001', 'German',  'Es k&ouml;nnen Reports f&uuml;r einen bestimmten Termin oder als wiederkehrende Auftr&auml;ge festgelegt werden.
     Jeder Nutzer kann seine eigenen Terminpl&auml;ne verwalten.
 ');
@@ -8075,6 +8080,7 @@ INSERT INTO txt VALUES ('H5649', 'German',  'Ort Markierung: Gibt an, in welchem
 INSERT INTO txt VALUES ('H5649', 'English', 'Marker Location: Defines the data field in the rule, where this reference should be placed (rulename/comment/customfields, default:"rulename").');
 INSERT INTO txt VALUES ('H5650', 'German',  'Regelerkennungs-Optionen: Legt fest, wann implementierte Regeln als identisch zu den modellierten Verbindungen angesehen werden.
     M&ouml;gliche Kriterien sind - jeweils f&uuml;r Netzwerkobjekte und Dienste - Name, IP-Adresse bzw Port/Protokoll, Gruppennname.
+    Der Port/Protokoll-Vergleich ber&uuml;cksichtigt auch Quellports: ein implementierter Dienst mit eingeschr&auml;nkten Quellports entspricht keinem modellierten Dienst ohne Quellport-Einschr&auml;nkung.
     Ausserdem muss festgelegt werden, ob Gruppen aufgel&ouml;st werden sollen; dann werden die einzelnen Objekte unabh&auml;ngig von der Gruppenzugeh&ouml;rigkeit erkannt.
     Wenn der IP-Adressvergleich aktiv ist, entsprechen importierte Identit&auml;tsobjekte wie Check Point Updatable Objects, Access Roles und Domain-Objekte nicht direkt modellierten App Servern &uuml;ber ihre Platzhalter-IP-Felder. In der Soll-Ist-Analyse werden konfigurierte Platzhalter-Areas f&uuml;r Sonderkonfigurationen mit diesen importierten Objekten nach Objekttyp und Name abgeglichen.
     Bei separater Gruppenanalyse werden die Mitglieder der App-Rollen nach denselben Kriterien verglichen: nur nach IP-Adresse, wenn nur diese gew&auml;hlt ist, nach Name und IP-Adresse, wenn beide gew&auml;hlt sind, sonst nach Name.
@@ -8082,6 +8088,7 @@ INSERT INTO txt VALUES ('H5650', 'German',  'Regelerkennungs-Optionen: Legt fest
 ');
 INSERT INTO txt VALUES ('H5650', 'English', 'Rule Recognition Options: Defines, when implemented rules are regarded as identical to the modelled connections.
     Possible criteria are - separated for network objects and services - Name, IP address resp. Port/Protocol, Group Name.
+    The port/protocol comparison also regards source ports: an implemented service restricted to certain source ports does not match a modelled service without source port restriction.
     Additionally it has to be defined, if groups are resolved; then single objects are identified independently from their group membership.
     When IP address comparison is active, imported identity objects such as Check Point updatable objects, access roles and domain objects do not directly match modelled app servers through their placeholder IP fields. In variance analysis, configured placeholder areas for special configurations are reconciled with these imported objects by object type and name.
     With separate group analysis, the members of app roles are compared using the same criteria: by IP address only if only this is selected, by name and IP address if both are selected, otherwise by name.

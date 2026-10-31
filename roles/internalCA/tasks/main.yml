@@ -74,9 +74,70 @@
 - name: Guard against an expiring internal CA
   include_tasks: check-ca-expiry.yml
 
+- name: Recognise an Apache identity the operator configured
+  include_tasks: select-operator-apache-identity.yml
+
+# Every FWO vhost is about to name this pair, and with issuance switched off FWO creates
+# neither file. Anything wrong with it would otherwise only surface as Apache failing to
+# start after the vhosts have been rewritten and the database has been migrated. Before
+# detection, because detection only runs on an upgrade.
+- name: Validate the Apache identity the operator configured
+  include_tasks: validate-operator-apache-identity.yml
+  vars:
+    operator_apache_certificate: "{{ internalca_operator_apache_certificate }}"
+    operator_apache_private_key: "{{ internalca_operator_apache_private_key }}"
+    operator_apache_required_names: "{{ internalca_endpoint_host_names }}"
+    operator_apache_names_remedy: "{{ internalca_apache_endpoint_names_remedy }}"
+  when: internalca_operator_apache_identity | bool
+
 - name: Detect customer managed certificates during upgrade
   include_tasks: detect-existing-certificates.yml
   when: installation_mode == 'upgrade'
+
+# The peer CA guard only establishes that a root is configured, the intermediate check
+# below only runs when a chain file is configured, and neither proves that FWO's own
+# clients can build the certificate Apache will serve to the trust bundle. A certificate
+# issued under a root other than the configured one - a Let's Encrypt ECDSA leaf below
+# ISRG Root YE while only ISRG Root X1 is configured - or one served without its
+# intermediate otherwise passes the whole run and only fails in the integration tests,
+# with the middleware exiting because it cannot reach the API. After detection, because
+# that is where a retained certificate and its chain are resolved.
+- name: Require the Apache certificate to chain to the trust bundle
+  include_tasks: validate-retained-chain.yml
+  vars:
+    retained_chain_subject: Apache
+    retained_chain_certificate: "{{ internalca_apache_certificate }}"
+    retained_chain_intermediates: "{{ internalca_apache_intermediate_certificates }}"
+    # Only read on an upgrade; a new installation has not inspected the certificate.
+    retained_chain_issuer: >-
+      {{ (internalca_existing_apache_certificate_info.issuer | default({}, true)).get('commonName', '') }}
+    retained_chain_issuer_note: >-
+      {{ ('The certificate names ' ~ retained_chain_issuer ~ ' as its issuer.') if retained_chain_issuer | length > 0 else '' }}
+    retained_chain_consequence: >-
+      the {{ product_name }} components that read that bundle - the UI, the middleware, the
+      importer and the integration tests - would reject the endpoints Apache serves it on,
+      and the middleware would stop at startup because it cannot reach the API
+    retained_chain_remedy: >-
+      {{ retained_chain_issuer_note }} Configure the root at the top of its chain as
+      internalca_peer_ca_certificate - that file is read as a PEM
+      bundle, so several roots can be named in one file - and serve every intermediate in
+      between, in internalca_peer_ca_intermediate_certificates or appended to the
+      certificate file itself (with certbot, fullchain.pem).
+    retained_chain_replacement_remedy: >-
+      Have the certificate renewed or reissued and run the installer again. No trust
+      configuration can make this certificate usable as it stands.
+    # A configured pair is not being kept: on a new installation, and on the run that
+    # switches to it, the vhosts have never served it.
+    retained_chain_lead: >-
+      {{
+        ('The Apache certificate configured for ' ~ inventory_hostname
+          ~ ' (' ~ internalca_apache_certificate ~ ')')
+        if internalca_operator_apache_identity | bool
+        else ''
+      }}
+  when: >-
+    internalca_preserve_apache_certificate | default(false) | bool
+    or internalca_operator_apache_identity | bool
 
 # slapd reads its key as its own service account, so the identity has to be issued
 # to that account rather than to root and chowned afterwards by the openldap-server

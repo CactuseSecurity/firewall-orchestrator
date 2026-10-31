@@ -1,0 +1,61 @@
+---
+# Resolves which Apache identity ownership detection inspects: the pair the installed vhost
+# names, or, when the operator configured one (select-operator-apache-identity.yml), that
+# pair - it is the one the vhosts are about to name, so it then gets the same ownership,
+# trust and endpoint name checks as a retained one, and the rewrites in
+# detect-existing-certificates.yml keep its paths instead of reverting them to the
+# installed vhost.
+#
+# The installed SSLCertificateChainFile belongs to the certificate the installed vhost
+# serves. It is dropped only when the operator pair replaces that certificate; naming the
+# certificate the vhost already serves changes nothing about its chain, and dropping it
+# there stopped an upgrade over a certificate that had not changed.
+#
+# Split out of detect-existing-certificates.yml so the rule can be exercised for each of
+# its inputs without standing up the whole detection chain, the same way
+# use-installed-apache-identity.yml is.
+#
+# Block scalars keep backslashes verbatim, so these patterns use single backslashes.
+# Doubling them would silently never match and fall through to the legacy defaults.
+- name: Determine existing Apache certificate paths
+  set_fact:
+    internalca_existing_apache_certificate: >-
+      {{
+        internalca_operator_apache_certificate
+        if internalca_operator_apache_identity | bool
+        else internalca_installed_apache_certificate
+      }}
+    internalca_existing_apache_private_key: >-
+      {{
+        internalca_operator_apache_private_key
+        if internalca_operator_apache_identity | bool
+        else internalca_installed_apache_private_key
+      }}
+    internalca_existing_peer_ca_intermediate_certificates: >-
+      {{
+        ''
+        if internalca_operator_apache_identity | bool
+          and internalca_operator_apache_certificate != internalca_installed_apache_certificate
+        else internalca_installed_apache_chain
+      }}
+  vars:
+    internalca_installed_apache_configuration_text: >-
+      {{ internalca_existing_apache_configuration_content.content | default('') | b64decode }}
+    internalca_installed_apache_certificate: >-
+      {{
+        (internalca_installed_apache_configuration_text
+          | regex_findall('(?m)^\s*SSLCertificateFile\s+([^\s]+)') | first)
+        | default(internalca_legacy_apache_certificate, true)
+      }}
+    internalca_installed_apache_private_key: >-
+      {{
+        (internalca_installed_apache_configuration_text
+          | regex_findall('(?m)^\s*SSLCertificateKeyFile\s+([^\s]+)') | first)
+        | default(internalca_legacy_apache_private_key, true)
+      }}
+    internalca_installed_apache_chain: >-
+      {{
+        (internalca_installed_apache_configuration_text
+          | regex_findall('(?m)^\s*SSLCertificateChainFile\s+([^\s]+)') | first)
+        | default('', true)
+      }}

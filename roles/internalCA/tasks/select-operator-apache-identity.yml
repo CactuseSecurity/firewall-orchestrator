@@ -1,0 +1,37 @@
+---
+# The documented way to run FWO on an administrator-managed Apache certificate is to switch
+# issuance off and name the pair in internalca_apache_certificate and
+# internalca_apache_private_key. Those usually come from fwo-install-settings.yml, which
+# site.yml loads with include_vars - and every set_fact outranks include_vars. Ownership
+# detection and use-installed-apache-identity.yml rewrite both paths with set_fact to
+# whatever the installed vhost names, so on the run that moves a host from the FWO pair to
+# the operator's one, the settings were silently overruled and the vhosts kept the old
+# certificate. Recorded here, before anything in this role rewrites the two paths, so
+# detection can inspect the identity the vhosts are about to name instead.
+#
+# Split out of main.yml so the rule can be exercised for each of its inputs without standing
+# up the whole detection chain, the same way use-installed-apache-identity.yml is.
+- name: Record the Apache identity the operator configured
+  set_fact:
+    internalca_operator_apache_certificate: "{{ internalca_apache_certificate }}"
+    internalca_operator_apache_private_key: "{{ internalca_apache_private_key }}"
+    # Naming the FWO location keeps the previous meaning of switching issuance off: keep
+    # whatever the installed vhost serves. Only a different path is a request.
+    internalca_operator_apache_identity: >-
+      {{
+        not (internalca_issue_apache_certificate | bool)
+        and ['apiserver', 'middlewareserver', 'frontends'] | intersect(group_names) | length > 0
+        and (
+          internalca_apache_certificate != internalca_fwo_apache_certificate
+          or internalca_apache_private_key != internalca_fwo_apache_private_key
+        )
+      }}
+
+# Ownership detection resolves the served chain only for an identity it retains, and it does
+# not run on a new installation at all, so an operator pair named on a fresh install was
+# served without its intermediates. FWO's own clients validate against the root alone and
+# do not fetch missing intermediates, so they would reject the endpoint.
+- name: Serve the intermediates configured for the operator's Apache identity
+  set_fact:
+    internalca_apache_intermediate_certificates: "{{ internalca_peer_ca_intermediate_certificates }}"
+  when: internalca_operator_apache_identity | bool

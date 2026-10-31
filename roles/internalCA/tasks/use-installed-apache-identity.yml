@@ -8,7 +8,9 @@
 # internalca_apache_certificate keeps its group_vars default and roles/api, roles/middleware,
 # roles/ui and the maintenance vhost all render a path this very run has been told not to
 # create - and Apache refuses to start. Whatever the installed vhost names is by definition
-# the identity the operator maintains, so that is what every FWO vhost has to keep naming.
+# the identity the operator maintains, so that is what every FWO vhost has to keep naming -
+# unless the operator named a pair of their own, which detect-existing-certificates.yml then
+# reports as the existing one (see select-operator-apache-identity.yml).
 #
 # Split out of detect-existing-certificates.yml so the rule can be exercised for each of its
 # three inputs without standing up the whole detection chain, the same way

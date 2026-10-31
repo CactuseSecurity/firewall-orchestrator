@@ -91,8 +91,35 @@
 - name: internal CA name testing
   import_tasks: test-internal-ca-name.yml
 
+# The certificate fixture cases below replace these operator inputs to exercise the
+# production rules; a case whose inputs the operator's settings pin is skipped and says so.
+- name: detect certificate fixture inputs pinned by extra variables
+  include_tasks: detect-pinned-variables.yml
+  vars:
+    test_pinned_variable_probe: fwo-integration-test-probe
+    test_pinned_variable_names:
+      - internalca_apache_certificate
+      - internalca_apache_private_key
+      - internalca_issue_apache_certificate
+      - internalca_peer_ca_intermediate_certificates
+      - internalca_apache_intermediate_certificates
+      - internalca_fwo_apache_certificate
+      - internalca_fwo_apache_private_key
+      - internalca_issue_ldap_certificate
+    internalca_apache_certificate: fwo-integration-test-probe
+    internalca_apache_private_key: fwo-integration-test-probe
+    internalca_issue_apache_certificate: fwo-integration-test-probe
+    internalca_peer_ca_intermediate_certificates: fwo-integration-test-probe
+    internalca_apache_intermediate_certificates: fwo-integration-test-probe
+    internalca_fwo_apache_certificate: fwo-integration-test-probe
+    internalca_fwo_apache_private_key: fwo-integration-test-probe
+    internalca_issue_ldap_certificate: fwo-integration-test-probe
+
 - name: certificate ownership testing
   import_tasks: test-certificate-ownership.yml
+
+- name: operator Apache identity testing
+  import_tasks: test-operator-apache-identity.yml
 
 - name: internal CA reset testing
   import_tasks: test-internal-ca-reset.yml
@@ -133,9 +160,21 @@
   import_tasks: test-maintenance-certificate-selection.yml
   when: "'frontends' in group_names"
 
+- name: Report maintenance certificate reconciliation cases the operator settings pin
+  debug:
+    msg: >-
+      Skipping the maintenance certificate reconciliation cases: they reconcile throwaway
+      vhosts onto a replaced internalca_apache_certificate and internalca_apache_private_key,
+      which extra variables pin on this run.
+  when:
+    - "'frontends' in group_names"
+    - test_pinned_variables | intersect(['internalca_apache_certificate', 'internalca_apache_private_key']) | length > 0
+
 - name: Maintenance certificate reconciliation testing
   import_tasks: test-maintenance-certificate-reconciliation.yml
-  when: "'frontends' in group_names"
+  when:
+    - "'frontends' in group_names"
+    - test_pinned_variables | intersect(['internalca_apache_certificate', 'internalca_apache_private_key']) | length == 0
 
 - name: Dotnet repository migration testing
   import_tasks: test-dotnet-repository-migration.yml

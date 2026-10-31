@@ -18,7 +18,8 @@
 #                                    installed before the client is asked
 #   fworch_service_facts           - the services of this host (gathered here)
 #   minimum_upgrade_source_release - the release that still moves the API to Podman
-# Output: nothing, or a failure naming what still uses Docker and the way out.
+# Output: nothing, or a failure naming what still uses Docker, or that an installed Docker
+#         engine could not be asked, and the way out.
 
 - name: look up the services installed on this host for the Docker API check
   service_facts:
@@ -109,3 +110,20 @@
   when: >-
     api_docker_services_in_use | length > 0
     or api_docker_container_lookup.stdout | default('') | trim | length > 0
+
+# An empty answer only means "no container" when Docker gave it. A stopped engine whose socket
+# is not active cannot list its containers, and one of them with a restart policy would take
+# the API port again as soon as Docker starts.
+- name: Refuse to upgrade an API host whose Docker engine cannot be asked for the API container
+  fail:
+    msg: >-
+      The Docker engine is installed on this host, but asking it for a remaining
+      {{ product_name }} API container failed
+      ({{ api_docker_container_lookup.stderr | default('') | regex_replace('\s+', ' ') | trim
+      | truncate(200) | default('exit code ' ~ api_docker_container_lookup.rc, true) }}),
+      so this upgrade cannot tell whether the API still runs in Docker. Nothing has been
+      changed. Start Docker ("systemctl start docker") or remove the unused Docker engine,
+      then upgrade again. Should Docker then report a container {{ api_container_name }},
+      upgrade this host once more with {{ minimum_upgrade_source_release }} first.
+      See documentation/installer/server-upgrade.md.
+  when: api_docker_container_lookup.rc | default(0) != 0

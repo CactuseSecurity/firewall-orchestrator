@@ -37,7 +37,10 @@ enabled, or a Docker container `fworch-api` exists. Upgrade once more with `v9.8
 access to GitHub and without `api_keep_existing_hasura_on_upgrade`, then with the current
 version. The container is only looked up when the Docker engine (`docker.service` or
 `docker.socket`) is installed: the `docker` command of `podman-docker` runs Podman and would
-report the Podman API container under the same name.
+report the Podman API container under the same name. When the Docker engine is installed
+but cannot be asked (stopped, and its socket not active), the upgrade stops as well, because
+a container with a restart policy would take the API port again once Docker starts: start
+Docker or remove the unused engine, then upgrade again.
 
 Anything you configured for this host belongs in
 `/etc/fworch/fwo-install-settings.yml`, not in `inventory/`. That file is

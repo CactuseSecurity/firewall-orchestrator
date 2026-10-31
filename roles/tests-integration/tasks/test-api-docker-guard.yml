@@ -21,6 +21,7 @@
     test_api_docker_empty: "{{ test_api_docker_dir.path }}/docker-empty"
     test_api_docker_container: "{{ test_api_docker_dir.path }}/docker-container"
     test_api_docker_missing: "{{ test_api_docker_dir.path }}/docker-missing"
+    test_api_docker_unreachable: "{{ test_api_docker_dir.path }}/docker-unreachable"
     test_api_docker_podman_service:
       fworch-hasura-api.service: { name: fworch-hasura-api.service, state: running, status: enabled }
     test_api_docker_engine_service:
@@ -32,6 +33,16 @@
       copy:
         content: "#!/bin/sh\nexit 0\n"
         dest: "{{ test_api_docker_empty }}"
+        mode: "0755"
+
+    - name: Create a Docker stand-in whose engine cannot be reached
+      copy:
+        content: |
+          #!/bin/sh
+          echo "Cannot connect to the Docker daemon at unix:///var/run/docker.sock." >&2
+          echo "Is the docker daemon running?" >&2
+          exit 1
+        dest: "{{ test_api_docker_unreachable }}"
         mode: "0755"
 
     - name: Create a Docker stand-in that still holds the API container
@@ -88,6 +99,13 @@
             services: "{{ test_api_docker_podman_service | combine(test_api_docker_engine_socket) }}"
             docker: "{{ test_api_docker_container }}"
             expected_message: container {{ api_container_name }}
+          # an installed but stopped engine whose socket is not active cannot list its containers
+          - label: API in Podman, Docker engine installed but not reachable
+            services: >-
+              {{ test_api_docker_podman_service | combine({'docker.service':
+                 {'name': 'docker.service', 'state': 'stopped', 'status': 'disabled'}}) }}
+            docker: "{{ test_api_docker_unreachable }}"
+            expected_message: Cannot connect to the Docker daemon
 
     - name: Verify the guard on every Docker API case
       include_tasks: test-api-docker-guard-case.yml

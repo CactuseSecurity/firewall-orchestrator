@@ -1,3 +1,5 @@
+using FWO.Middleware.Server.Services;
+
 namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
@@ -63,8 +65,8 @@ public static class GetImplTaskTargetsValidationSchema
     private static readonly List<RequestKeyDefinition> kOptionsKeys =
     [
         new RequestKeyDefinition("filter", "Optional response filter. Omitted or null applies no restriction."),
-        new RequestKeyDefinition("limit", $"Optional page size between 1 and {GetImplTaskTargetsOptions.kMaxLimit}. Omitted or null returns a page of {GetImplTaskTargetsOptions.kMaxLimit} targets; the X-Has-More response header tells whether further targets follow."),
-        new RequestKeyDefinition("offset", "Optional number of targets to skip, not negative. Omitted or null skips no target.")
+        new RequestKeyDefinition("limit", $"Optional page size. {ListPaging.kLimitDescription}"),
+        new RequestKeyDefinition("offset", $"Optional. {ListPaging.kOffsetDescription}")
     ];
 
     private static readonly List<RequestKeyDefinition> kFilterKeys =

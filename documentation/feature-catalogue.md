@@ -90,6 +90,7 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Configurable execution order for actions assigned to states | 9.1.1 |
 | Workflow configuration transfer with selected-phase export, custom file names, merge support, and state-definition validation | 9.8.2 |
 | Implementation tasks created by the state action "Create implementation tasks", controlled per gateway and management by device specific settings | 9.8.3 |
+| Tufin SecureChange ticket templates as device specific settings (global, per device type and per management) | 9.8.5 |
 
 ## Recertification
 
@@ -180,6 +181,7 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Endpoint for getting rules | 8.8 |
 | `rule_owner` table for REST API | 9.0.1 |
 | JWT refresh token | 9.1.0 |
+| Paging of all REST list endpoints with configurable maximum page size (`maxRestResponseObjectLimit`) | 9.8.4 |
 
 ## User interface
 

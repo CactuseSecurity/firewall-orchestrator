@@ -94,6 +94,10 @@ public static class DeviceSpecificSettingKeys
     public static readonly DeviceSpecificSettingKey<string> Templates =
         new("templates", DeviceTypeScopeTypes);
 
+    /// <summary>
+    /// All canonical keys, including the firewall write keys of <see cref="FirewallWriteSettingKeys"/> and the SecureChange
+    /// template keys of <see cref="SecureChangeTemplateSettingKeys"/>.
+    /// </summary>
     public static IReadOnlyList<DeviceSpecificSettingKey> All { get; } = new List<DeviceSpecificSettingKey>
     {
         InstallOn,
@@ -122,7 +126,7 @@ public static class DeviceSpecificSettingKeys
         ModellingConnectionIdField,
         ModellingConnectionIdTemplate,
         Templates,
-    }.AsReadOnly();
+    }.Concat(FirewallWriteSettingKeys.All).Concat(SecureChangeTemplateSettingKeys.All).ToList().AsReadOnly();
 
     public static IReadOnlyDictionary<string, DeviceSpecificSettingKey> ByDatabaseKey { get; } =
         new ReadOnlyDictionary<string, DeviceSpecificSettingKey>(

@@ -96,6 +96,7 @@ builder.Services.AddSingleton<ReportSchedulerService>();
 builder.Services.AddSingleton<ComplianceSchedulerService>();
 builder.Services.AddSingleton<UpdateRuleOwnerMappingSchedulerService>();
 builder.Services.AddSingleton<UpdateFlowsSchedulerService>();
+builder.Services.AddSingleton<RestApiConfigService>();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -247,6 +248,7 @@ app.Services.GetRequiredService<ReportSchedulerService>();
 app.Services.GetRequiredService<ComplianceSchedulerService>();
 app.Services.GetRequiredService<UpdateRuleOwnerMappingSchedulerService>();
 app.Services.GetRequiredService<UpdateFlowsSchedulerService>();
+app.Services.GetRequiredService<RestApiConfigService>();
 
 await app.RunAsync();
 

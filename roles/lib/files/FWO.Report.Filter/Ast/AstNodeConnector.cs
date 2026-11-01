@@ -15,7 +15,58 @@ namespace FWO.Report.Filter.Ast
         private readonly string CloseBrackets = "}] ";
 
 
+        /// <summary>
+        /// Adds the connected terms to all where statements of the query.
+        /// </summary>
+        /// <remarks>
+        /// A chain such as <c>a or b or c</c> is parsed into connectors that are nested in their left operand,
+        /// one level per term. Its length is bounded by the filter length only, so the left operands are walked
+        /// in a loop instead of recursively to keep long chains from overflowing the stack.
+        /// </remarks>
+        /// <param name="query">Query to extend.</param>
+        /// <param name="reportType">Type of report for which the filter is requested.</param>
         public override void Extract(ref DynGraphqlQuery query, ReportType? reportType)
+        {
+            List<AstNodeConnector> leftChain = CollectLeftChain(out AstNode innermostLeft);
+
+            foreach (AstNodeConnector connector in leftChain)
+            {
+                AppendToAllWhereStatements(query, connector.Connector!.Kind == TokenKind.And ? StartAnd : StartOr);
+            }
+
+            innermostLeft.Extract(ref query, reportType);
+
+            for (int index = leftChain.Count - 1; index >= 0; index--)
+            {
+                AppendToAllWhereStatements(query, Inbetween);
+                leftChain[index].Right!.Extract(ref query, reportType);
+                AppendToAllWhereStatements(query, CloseBrackets);
+            }
+        }
+
+        /// <summary>
+        /// Collects this connector and all connectors nested in its left operands, outermost first, and checks each.
+        /// </summary>
+        /// <param name="innermostLeft">The left operand of the innermost connector, which is no connector itself.</param>
+        /// <returns>The connectors of the chain, starting with this one.</returns>
+        private List<AstNodeConnector> CollectLeftChain(out AstNode innermostLeft)
+        {
+            List<AstNodeConnector> leftChain = [];
+            AstNode currentNode = this;
+            while (currentNode is AstNodeConnector connector)
+            {
+                connector.Validate();
+                leftChain.Add(connector);
+                currentNode = connector.Left!;
+            }
+            innermostLeft = currentNode;
+            return leftChain;
+        }
+
+        /// <summary>
+        /// Checks that the connector has both operands and is an and or an or connector.
+        /// </summary>
+        private void Validate()
         {
             if (Connector == null)
             {
@@ -29,58 +80,19 @@ namespace FWO.Report.Filter.Ast
             {
                 throw new InvalidOperationException(nameof(Right));
             }
-
-            switch (Connector.Kind)
+            if (Connector.Kind != TokenKind.And && Connector.Kind != TokenKind.Or)
             {
-                case TokenKind.And: // and terms should be enclosed in []
-                    query.RuleWhereStatement += StartAnd;
-                    query.NwObjWhereStatement += StartAnd;
-                    query.SvcObjWhereStatement += StartAnd;
-                    query.UserObjWhereStatement += StartAnd;
-                    query.ConnectionWhereStatement += StartAnd;
-                    break;
-                case TokenKind.Or: // or terms need to be enclosed in []
-                    query.RuleWhereStatement += StartOr;
-                    query.NwObjWhereStatement += StartOr;
-                    query.SvcObjWhereStatement += StartOr;
-                    query.UserObjWhereStatement += StartOr;
-                    query.ConnectionWhereStatement += StartOr;
-                    break;
-                default:
-                    throw new SemanticException($"### Compiler Error: Found unexpected and unsupported connector token (prefix): \"{Connector}\". ###", Connector.Position);
+                throw new SemanticException($"### Compiler Error: Found unexpected and unsupported connector token (prefix): \"{Connector}\". ###", Connector.Position);
             }
+        }
 
-            Left.Extract(ref query, reportType);
-
-            switch (Connector.Kind)
-            {
-                case TokenKind.And:
-                case TokenKind.Or:
-                    query.RuleWhereStatement += Inbetween;
-                    query.NwObjWhereStatement += Inbetween;
-                    query.SvcObjWhereStatement += Inbetween;
-                    query.UserObjWhereStatement += Inbetween;
-                    query.ConnectionWhereStatement += Inbetween;
-                    break;
-                default:
-                    throw new SemanticException($"### Compiler Error: Found unexpected and unsupported connector token (operator): \"{Connector}\". ###", Connector.Position);
-            }
-
-            Right.Extract(ref query, reportType);
-
-            switch (Connector.Kind)
-            {
-                case TokenKind.And:
-                case TokenKind.Or:
-                    query.RuleWhereStatement += CloseBrackets;
-                    query.NwObjWhereStatement += CloseBrackets;
-                    query.SvcObjWhereStatement += CloseBrackets;
-                    query.UserObjWhereStatement += CloseBrackets;
-                    query.ConnectionWhereStatement += CloseBrackets;
-                    break;
-                default:
-                    throw new SemanticException($"### Compiler Error: Found unexpected and unsupported connector token (suffix): \"{Connector}\" ###", Connector.Position);
-            }
+        private static void AppendToAllWhereStatements(DynGraphqlQuery query, string text)
+        {
+            query.RuleWhereStatement += text;
+            query.NwObjWhereStatement += text;
+            query.SvcObjWhereStatement += text;
+            query.UserObjWhereStatement += text;
+            query.ConnectionWhereStatement += text;
         }
     }
 }

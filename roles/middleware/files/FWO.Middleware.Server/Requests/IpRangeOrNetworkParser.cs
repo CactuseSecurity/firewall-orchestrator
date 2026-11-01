@@ -38,11 +38,11 @@ public static class IpRangeOrNetworkParser
 
         return (hasStart, hasEnd, hasNetwork) switch
         {
-            (true, true, false)  => TryParseRange(ipBlock.IpStart, ipBlock.IpEnd, out range, out error),
+            (true, true, false) => TryParseRange(ipBlock.IpStart, ipBlock.IpEnd, out range, out error),
             (false, false, true) => TryParseNetwork(ipBlock.IpNetwork, out range, out error),
             (false, false, false) => Fail("requires either 'ipStart' and 'ipEnd' or 'ipNetwork'.", out range, out error),
-            (_, _, true)          => Fail("must not combine 'ipNetwork' with 'ipStart' or 'ipEnd'.", out range, out error),
-            _                     => Fail("requires both 'ipStart' and 'ipEnd'.", out range, out error)
+            (_, _, true) => Fail("must not combine 'ipNetwork' with 'ipStart' or 'ipEnd'.", out range, out error),
+            _ => Fail("requires both 'ipStart' and 'ipEnd'.", out range, out error)
         };
     }
 

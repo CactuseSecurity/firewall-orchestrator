@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data.Middleware;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -18,21 +19,21 @@ namespace FWO.Middleware.Server.Controllers;
 [Route("api/flow")]
 public class FlowCatalogController : ControllerBase
 {
-    private static readonly RequestRootValidationSchema AddressObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetAddressObjects), FlowCatalogPaging.kMaxObjectLimit);
+    private static readonly RequestRootValidationSchema AddressObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetAddressObjects));
     private static readonly RequestFilterValidationSchema AddressObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
     private static readonly List<RequestKeyDefinition> kAddressGroupsRootKeys =
     [
         new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
         new RequestKeyDefinition("option", "Optional option container controlling the response shape."),
-        .. FlowCatalogPaging.KeyDefinitions(FlowCatalogPaging.kMaxGroupLimit)
+        .. FlowCatalogPaging.KeyDefinitions()
     ];
     private static readonly RequestRootValidationSchema AddressGroupsRootSchema = new(nameof(GetAddressGroups), kAddressGroupsRootKeys);
     private static readonly RequestFilterValidationSchema AddressGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
-    private static readonly RequestRootValidationSchema ServiceObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetServiceObjects), FlowCatalogPaging.kMaxObjectLimit);
+    private static readonly RequestRootValidationSchema ServiceObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetServiceObjects));
     private static readonly RequestFilterValidationSchema ServiceObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjects));
-    private static readonly RequestRootValidationSchema ServiceGroupsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetServiceGroups), FlowCatalogPaging.kMaxGroupLimit);
+    private static readonly RequestRootValidationSchema ServiceGroupsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetServiceGroups));
     private static readonly RequestFilterValidationSchema ServiceGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceGroups));
-    private static readonly RequestRootValidationSchema TimeObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetTimeObjects), FlowCatalogPaging.kMaxObjectLimit);
+    private static readonly RequestRootValidationSchema TimeObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetTimeObjects));
     private static readonly RequestFilterValidationSchema TimeObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjects));
     private static readonly RequestRootValidationSchema ServiceObjectIdRootSchema = new(
         nameof(GetServiceObjectId),
@@ -74,21 +75,30 @@ public class FlowCatalogController : ControllerBase
         ]);
 
     private readonly FlowCatalogService flowCatalogService;
+    private readonly GlobalConfig globalConfig;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FlowCatalogController"/> class.
     /// </summary>
     /// <param name="flowCatalogService">The flow catalog service.</param>
-    public FlowCatalogController(FlowCatalogService flowCatalogService)
+    /// <param name="globalConfig">Global configuration holding the maximum page size.</param>
+    public FlowCatalogController(FlowCatalogService flowCatalogService, GlobalConfig globalConfig)
     {
         this.flowCatalogService = flowCatalogService;
+        this.globalConfig = globalConfig;
     }
+
+    /// <summary>
+    /// Maximum and default page size of the list endpoints, read from the configuration at request time.
+    /// </summary>
+    private int MaxLimit => ListPaging.GetMaxObjectLimit(globalConfig);
 
     /// <summary>
     /// Returns address objects for the requested visibility filter from the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
-    /// Returns one page of at most 1000 items (root keys <c>limit</c> and <c>offset</c>, ordered by name and id); the
-    /// <c>X-Has-More</c> response header is <c>true</c> when further items follow.
+    /// Returns one page of at most the configured <c>maxRestResponseObjectLimit</c> items (default 10000; root keys
+    /// <c>limit</c> and <c>offset</c>, ordered by name and id); the <c>X-Has-More</c> response header is <c>true</c>
+    /// when further items follow.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressObjects")]
@@ -96,19 +106,20 @@ public class FlowCatalogController : ControllerBase
     [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     public async Task<ActionResult<List<AddressObjectResponse>>> GetAddressObjects([FromBody] GetAddressObjectsRequest request)
     {
-        if (!TryValidatePagedRequest(request, AddressObjectsRootSchema, AddressObjectsFilterSchema, FlowCatalogPaging.kMaxObjectLimit, out ActionResult? errorResult))
+        if (!TryValidatePagedRequest(request, AddressObjectsRootSchema, AddressObjectsFilterSchema, MaxLimit, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
-        return PageResult(await flowCatalogService.GetAddressObjectsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxObjectLimit), request.Offset));
+        return PageResult(await flowCatalogService.GetAddressObjectsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, MaxLimit), request.Offset));
     }
 
     /// <summary>
     /// Returns address groups for the requested visibility filter from the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
-    /// Returns one page of at most 250 groups (root keys <c>limit</c> and <c>offset</c>, ordered by name and id); the
-    /// <c>X-Has-More</c> response header is <c>true</c> when further groups follow.
+    /// Returns one page of at most the configured <c>maxRestResponseObjectLimit</c> groups (default 10000; root keys
+    /// <c>limit</c> and <c>offset</c>, ordered by name and id); the <c>X-Has-More</c> response header is <c>true</c>
+    /// when further groups follow.
     /// With separated zone groups the page is taken before the groups are separated.
     /// With 'option.separateZoneGroups' set to true the result is a
     /// <see cref="SeparatedAddressGroupsResponse"/> holding the zone groups separately;
@@ -125,7 +136,7 @@ public class FlowCatalogController : ControllerBase
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> GetAddressGroups([FromBody] GetAddressGroupsRequest request)
     {
-        if (!TryValidatePagedRequest(request, AddressGroupsRootSchema, AddressGroupsFilterSchema, FlowCatalogPaging.kMaxGroupLimit, out ActionResult? errorResult))
+        if (!TryValidatePagedRequest(request, AddressGroupsRootSchema, AddressGroupsFilterSchema, MaxLimit, out ActionResult? errorResult))
         {
             return errorResult!;
         }
@@ -138,19 +149,20 @@ public class FlowCatalogController : ControllerBase
         if (request.Option?.SeparateZoneGroups == true)
         {
             (SeparatedAddressGroupsResponse separatedGroups, bool hasMore) =
-                await flowCatalogService.GetSeparatedAddressGroupsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxGroupLimit), request.Offset);
+                await flowCatalogService.GetSeparatedAddressGroupsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, MaxLimit), request.Offset);
             ListPaging.SetHasMoreHeader(HttpContext, hasMore);
             return Ok(separatedGroups);
         }
 
-        return PageResult(await flowCatalogService.GetAddressGroupsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxGroupLimit), request.Offset));
+        return PageResult(await flowCatalogService.GetAddressGroupsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, MaxLimit), request.Offset));
     }
 
     /// <summary>
     /// Returns service objects for the requested visibility filter from the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
-    /// Returns one page of at most 1000 items (root keys <c>limit</c> and <c>offset</c>, ordered by name and id); the
-    /// <c>X-Has-More</c> response header is <c>true</c> when further items follow.
+    /// Returns one page of at most the configured <c>maxRestResponseObjectLimit</c> items (default 10000; root keys
+    /// <c>limit</c> and <c>offset</c>, ordered by name and id); the <c>X-Has-More</c> response header is <c>true</c>
+    /// when further items follow.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceObjects")]
@@ -158,19 +170,20 @@ public class FlowCatalogController : ControllerBase
     [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     public async Task<ActionResult<List<ServiceObjectResponse>>> GetServiceObjects([FromBody] GetServiceObjectsRequest request)
     {
-        if (!TryValidatePagedRequest(request, ServiceObjectsRootSchema, ServiceObjectsFilterSchema, FlowCatalogPaging.kMaxObjectLimit, out ActionResult? errorResult))
+        if (!TryValidatePagedRequest(request, ServiceObjectsRootSchema, ServiceObjectsFilterSchema, MaxLimit, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
-        return PageResult(await flowCatalogService.GetServiceObjectsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxObjectLimit), request.Offset));
+        return PageResult(await flowCatalogService.GetServiceObjectsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, MaxLimit), request.Offset));
     }
 
     /// <summary>
     /// Returns service groups for the requested visibility filter from the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
-    /// Returns one page of at most 250 groups (root keys <c>limit</c> and <c>offset</c>, ordered by name and id); the
-    /// <c>X-Has-More</c> response header is <c>true</c> when further groups follow.
+    /// Returns one page of at most the configured <c>maxRestResponseObjectLimit</c> groups (default 10000; root keys
+    /// <c>limit</c> and <c>offset</c>, ordered by name and id); the <c>X-Has-More</c> response header is <c>true</c>
+    /// when further groups follow.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceGroups")]
@@ -178,12 +191,12 @@ public class FlowCatalogController : ControllerBase
     [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     public async Task<ActionResult<List<ServiceGroupResponse>>> GetServiceGroups([FromBody] GetServiceGroupsRequest request)
     {
-        if (!TryValidatePagedRequest(request, ServiceGroupsRootSchema, ServiceGroupsFilterSchema, FlowCatalogPaging.kMaxGroupLimit, out ActionResult? errorResult))
+        if (!TryValidatePagedRequest(request, ServiceGroupsRootSchema, ServiceGroupsFilterSchema, MaxLimit, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
-        return PageResult(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxGroupLimit), request.Offset));
+        return PageResult(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, MaxLimit), request.Offset));
     }
 
     /// <summary>
@@ -227,8 +240,9 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Returns time objects for the requested visibility filter from the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
-    /// Returns one page of at most 1000 items (root keys <c>limit</c> and <c>offset</c>, ordered by name and id); the
-    /// <c>X-Has-More</c> response header is <c>true</c> when further items follow.
+    /// Returns one page of at most the configured <c>maxRestResponseObjectLimit</c> items (default 10000; root keys
+    /// <c>limit</c> and <c>offset</c>, ordered by name and id); the <c>X-Has-More</c> response header is <c>true</c>
+    /// when further items follow.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getTimeObjects")]
@@ -236,12 +250,12 @@ public class FlowCatalogController : ControllerBase
     [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     public async Task<ActionResult<List<TimeObjectResponse>>> GetTimeObjects([FromBody] GetTimeObjectsRequest request)
     {
-        if (!TryValidatePagedRequest(request, TimeObjectsRootSchema, TimeObjectsFilterSchema, FlowCatalogPaging.kMaxObjectLimit, out ActionResult? errorResult))
+        if (!TryValidatePagedRequest(request, TimeObjectsRootSchema, TimeObjectsFilterSchema, MaxLimit, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
-        return PageResult(await flowCatalogService.GetTimeObjectsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, FlowCatalogPaging.kMaxObjectLimit), request.Offset));
+        return PageResult(await flowCatalogService.GetTimeObjectsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, MaxLimit), request.Offset));
     }
 
     /// <summary>

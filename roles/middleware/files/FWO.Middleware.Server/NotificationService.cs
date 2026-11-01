@@ -656,12 +656,13 @@ namespace FWO.Middleware.Server
             string timeIntervalText = "", NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
             string subject = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(notification.EmailSubject ?? "", owner, timeIntervalText);
-            string body = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, content), owner, timeIntervalText);
+            bool isHtmlBody = notification.Layout == NotificationLayout.HtmlInBody;
+            string body = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, content), owner,
+                timeIntervalText, isHtmlBody);
             if (placeholderValues != null)
             {
                 subject = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(subject, placeholderValues);
-                body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(body, placeholderValues,
-                    renderHtmlLinks: notification.Layout == NotificationLayout.HtmlInBody);
+                body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(body, placeholderValues, isHtmlBody);
             }
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
             EmailHelper? emailHelper = GlobalConfig.UseDummyEmailAddress ? null : await CreateEmailHelper();

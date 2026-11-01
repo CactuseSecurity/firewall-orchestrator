@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:9ce3d036-59b9-47bb-8703-36a0e66c2856",
+  "serialNumber": "urn:uuid:8d4d017f-2d3b-49d4-abd8-7ee24a3e1096",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-10-20T08:45:10Z",
+    "timestamp": "2026-10-27T09:50:21Z",
     "tools": {
       "components": [
         {
@@ -35,20 +35,20 @@
   "components": [
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp@1.8.5",
+      "bom-ref": "pkg:nuget/AngleSharp@1.8.6",
       "authors": [
         {
           "name": "AngleSharp"
         }
       ],
       "name": "AngleSharp",
-      "version": "1.8.5",
+      "version": "1.8.6",
       "description": "AngleSharp is the ultimate angle brackets parser library. It parses HTML5, CSS3, and XML to construct a DOM based on the official W3C specification.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "6C4A3D04294506D724867E879802F293D4C03EA9CF3373941D50513F793768C6E2EF0E728A956C061D9B09B57F7B8299676F7470669885A19B2642D39D564DAA"
+          "content": "441334B15BC1259CD5C864E639C0CE86BBEDB038872BB01864CE07AF02A7E7A2606602D03F3466577F7818D8AF9914A7D6A1468EA3E7EA76B628CC26D2E8E978"
         }
       ],
       "licenses": [
@@ -59,7 +59,7 @@
         }
       ],
       "copyright": "Copyright 2013-2026, AngleSharp.",
-      "purl": "pkg:nuget/AngleSharp@1.8.5",
+      "purl": "pkg:nuget/AngleSharp@1.8.6",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -73,20 +73,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp.Css@1.1.3",
+      "bom-ref": "pkg:nuget/AngleSharp.Css@1.2.0",
       "authors": [
         {
           "name": "AngleSharp.Css"
         }
       ],
       "name": "AngleSharp.Css",
-      "version": "1.1.3",
+      "version": "1.2.0",
       "description": "Extends the CSSOM from the core AngleSharp library.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "DA1D07C680D95B34EF47835FC7B7A307746278B4F396320877155ACD5DF299A27726EBC65349D4B1CC59895D86F1608367F2866DB2437E9C1E534807E2C2E961"
+          "content": "3B2EBA1186A52E5B4AEC8515E487B9D8A04F416E542B962982254B98B70D9D036B04374B971A87FBC128247D486DBADDB865A96BAB8C96EF3631B16BEFD11D8C"
         }
       ],
       "licenses": [
@@ -96,7 +96,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/AngleSharp.Css@1.1.3",
+      "purl": "pkg:nuget/AngleSharp.Css@1.2.0",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -223,20 +223,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/bunit@2.12.5",
+      "bom-ref": "pkg:nuget/bunit@2.13.3",
       "authors": [
         {
           "name": "Egil Hansen"
         }
       ],
       "name": "bunit",
-      "version": "2.12.5",
+      "version": "2.13.3",
       "description": "bUnit is a testing library for Blazor components.\n\n\t\t\tYou can easily define components under test in C# or Razor syntax and verify outcome\n\t\t\tusing semantic HTML diffing/comparison logic.\n\t\t\tYou can interact with and inspect the component under test, trigger event handlers,\n\t\t\tprovide cascading values, and inject services.\n\n\t\t\tbUnit also includes a complete fake implementation of Blazor\u0027s authentication and\n\t\t\tauthorization logic, navigation manager, and\n\t\t\tJSInterop.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "308772C10D2D22E6383F57E544F8E7817586DB16322F4C654C3AD2A6D184EB256B998838E633C84D9FCECE06DE3BA2185B7E472DFC5CBF96457ED3A49271B846"
+          "content": "51C5BA5C20AEF3BA373A6FDEF9F083C2F443CD4CD80A261E9E4AB6FD354C3D0AC6D0EA6CEEB73A00C23E225F690935917DAE9D176981355391B2B74E0EDA056D"
         }
       ],
       "licenses": [
@@ -247,7 +247,7 @@
         }
       ],
       "copyright": "Egil Hansen",
-      "purl": "pkg:nuget/bunit@2.12.5",
+      "purl": "pkg:nuget/bunit@2.13.3",
       "externalReferences": [
         {
           "url": "https://bunit.egilhansen.com/",
@@ -744,20 +744,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/MailKit@4.18.1",
+      "bom-ref": "pkg:nuget/MailKit@4.18.2",
       "authors": [
         {
           "name": "Jeffrey Stedfast"
         }
       ],
       "name": "MailKit",
-      "version": "4.18.1",
+      "version": "4.18.2",
       "description": "An Open Source .NET mail-client library for Windows, Mac, Linux, and mobile platforms such as iOS and Android.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "6C6CBB0F5F61F39058A2EBE255119C357FE1258C83DE243F767F7B0148187EC2570C5334266968D65BED82238D97E561C7D0CFA5BB6617537819EE93254F6041"
+          "content": "72615A8FD46BE80FA51EA01E44232BF1D4C6BB6FDA7BDD63ED5DBB894657DA7F2515DECC532C249BD6FAD17499C0086A6465B83312BBFFF8C03177279A4D64F7"
         }
       ],
       "licenses": [
@@ -768,7 +768,7 @@
         }
       ],
       "copyright": ".NET Foundation and Contributors",
-      "purl": "pkg:nuget/MailKit@4.18.1",
+      "purl": "pkg:nuget/MailKit@4.18.2",
       "externalReferences": [
         {
           "url": "http://www.mimekit.net/",
@@ -820,20 +820,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.App.Internal.Assets",
-      "version": "10.0.13",
-      "description": "ASP.NET Core static framework assets\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
+      "version": "10.0.14",
+      "description": "ASP.NET Core static framework assets\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/0427b9abbead3fa64c6655eb4290c537397131fa",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "FDDB3C4E77F4DDBDB711546FDFB0BA88E5D595E4E7F33A4D55878D6B20C47D4436580CA86AE95B6C3613DB89C2C123D75EABBD7465D1D3A81B212B77DBD24E8C"
+          "content": "3F3BAFAC44748EC89A6907A308CC5DBBD7BE44EA62F5A4EB19030BAF4250A4D8B3626E794335CDBC1A3EF6BDFE3B924D9F90B23FCE3BA564BD49C5397A283AA9"
         }
       ],
       "licenses": [
@@ -844,7 +844,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.14",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -858,20 +858,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Authentication.JwtBearer",
-      "version": "10.0.13",
-      "description": "ASP.NET Core middleware that enables an application to receive an OpenID Connect bearer token.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
+      "version": "10.0.14",
+      "description": "ASP.NET Core middleware that enables an application to receive an OpenID Connect bearer token.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/0427b9abbead3fa64c6655eb4290c537397131fa",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "031501495E234531E442A27CE2714EB9F86FA87723553F05AA00E9DE050F425140C62C56805CA1520759B4ED29452E7787199DDA2BE1DA7209E814F5DA7DEEA8"
+          "content": "82B4497B3E5F2F9E331B1E700FA3A79E3B7504B5EC349824C62986AB0DFE8D1D4AF4437B4C89F2F2248D5F2B1C7DBAE57347EC9EE46167F7E03921D51D8BAED5"
         }
       ],
       "licenses": [
@@ -882,7 +882,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.14",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -896,20 +896,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Authorization@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Authorization@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Authorization",
-      "version": "10.0.13",
-      "description": "ASP.NET Core authorization classes.\nCommonly used types:\nMicrosoft.AspNetCore.Authorization.AllowAnonymousAttribute\nMicrosoft.AspNetCore.Authorization.AuthorizeAttribute\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
+      "version": "10.0.14",
+      "description": "ASP.NET Core authorization classes.\nCommonly used types:\nMicrosoft.AspNetCore.Authorization.AllowAnonymousAttribute\nMicrosoft.AspNetCore.Authorization.AuthorizeAttribute\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/0427b9abbead3fa64c6655eb4290c537397131fa",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "00E6E1A438F59D6780BD84A99030265018B529AC756E074AFD0FF667FC2E0504C645EDF5BCCFF1E35CE6AD42FEA946772AB1A73404383B13751DD17E19732099"
+          "content": "0EF98400E5B14B9D81BFA414A1894C0A6673A324401C74BA2DEF3120FDF51C7E7498590D19A3482F6486708A95A81D263304F14A884D104BB383676D2F4CAB41"
         }
       ],
       "licenses": [
@@ -920,7 +920,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Authorization@10.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Authorization@10.0.14",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -934,20 +934,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Components",
-      "version": "10.0.13",
-      "description": "Components feature for ASP.NET Core.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
+      "version": "10.0.14",
+      "description": "Components feature for ASP.NET Core.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/0427b9abbead3fa64c6655eb4290c537397131fa",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "89D81DDA513B5639B231B27A356553A2704AFB588B0B0F5686A996350103570C09B3F1D6A6982AA93A30A66CD628EB9DE3F124633DD71B59132D52DCAF1EBF16"
+          "content": "628CBE693BDB83647330BDA595F36630F86F0D40A435E0F2E79D0F4315E83943A7BCCAFE47D25C8C3083D62EE5EF70081CE775F20C503A4276B11A7596A01D1C"
         }
       ],
       "licenses": [
@@ -958,7 +958,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Components@10.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Components@10.0.14",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -972,20 +972,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Components.Analyzers",
-      "version": "10.0.13",
-      "description": "Roslyn analyzers for ASP.NET Core Components.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
+      "version": "10.0.14",
+      "description": "Roslyn analyzers for ASP.NET Core Components.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/0427b9abbead3fa64c6655eb4290c537397131fa",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "50E356A3EAF3933CB4F22957C72082A07AA35C4054888D89DE5D884C862C56D1854C931A02F5037ABB76B47168EF6E17CCBB6D0BFAB36D889A8A52F6422AAD2E"
+          "content": "ECD9BA6AA78A6633D3A62448CFA9697B9992A41812AE8C1D7DF64E01373397ECF78CC359137A249713F62196B3D20B1AFCD4B1C8664131E83755FE7C5F457ADF"
         }
       ],
       "licenses": [
@@ -996,7 +996,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@10.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@10.0.14",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1317,20 +1317,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Metadata@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Metadata@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Metadata",
-      "version": "10.0.13",
-      "description": "ASP.NET Core metadata.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
+      "version": "10.0.14",
+      "description": "ASP.NET Core metadata.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/0427b9abbead3fa64c6655eb4290c537397131fa",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "3110D8C458F411230D2F3325FC904B6D6F5FAD3CE3C4D6805AB97F438E362255A5B702D2DD2AAB60F5A615B9692DE4FD1BDF11C729B22F758461C3D9D0C2EE8D"
+          "content": "3FBFE668D2A385A846DB19F63DB434C7D57C6433372D8A185DB54F10249376BF564B365490D4904DB04582CAC52025B672108BA1636432559F921B125B8081EE"
         }
       ],
       "licenses": [
@@ -1341,7 +1341,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Metadata@10.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Metadata@10.0.14",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1355,20 +1355,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Mvc.Testing",
-      "version": "10.0.13",
-      "description": "Support for writing functional tests for MVC applications.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
+      "version": "10.0.14",
+      "description": "Support for writing functional tests for MVC applications.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/0427b9abbead3fa64c6655eb4290c537397131fa",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "D611443770472F5749B01947316CFDFBB82ACE529FC296AC1BD1AB857C98BECE6346B2D5B464BF44B47BAF05BDEC67BA4AB99F4698D50E7F871D4B0C328757C5"
+          "content": "E2FD050EC9580B21A8188FBDE4EF4D16434FA41B4E39DDC5191612444ADA3F30E8ED9084BFF4C9602195A5451C37AF29CDCB1C32AA6CE362D45FE75026E72B6E"
         }
       ],
       "licenses": [
@@ -1379,7 +1379,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.14",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1393,20 +1393,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.OpenApi",
-      "version": "10.0.13",
-      "description": "Provides APIs for annotating route handler endpoints in ASP.NET Core with OpenAPI annotations.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
+      "version": "10.0.14",
+      "description": "Provides APIs for annotating route handler endpoints in ASP.NET Core with OpenAPI annotations.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/0427b9abbead3fa64c6655eb4290c537397131fa",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "E0A8BA5788C7CF8F3FA1FC9DCB89FAEAD5C13AAA2CAD811F3E8D230214385F831BB6937AF5D69641367392CBA9FBADF75DF2E1AF26D160EC34F6F31C5A251372"
+          "content": "F6E9B7CC829E6023DBC343740DBA670AA983540CA6A5AE62182DF62BF7ECAF4D4BE0471DCA9AA6BD8D29ACF6CF83D5CC7C4A292CCD234908E4EE81E792BE53AB"
         }
       ],
       "licenses": [
@@ -1417,7 +1417,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.14",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1431,20 +1431,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.TestHost@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.TestHost@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.TestHost",
-      "version": "10.0.13",
-      "description": "ASP.NET Core web server for writing and running tests.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
+      "version": "10.0.14",
+      "description": "ASP.NET Core web server for writing and running tests.\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/0427b9abbead3fa64c6655eb4290c537397131fa",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "96F99C4EF6CA1B14EFDBF9705DD460475A264FB0A9785417C1A7DAA9CC48D3553B645A4657E539C22773EB275E43E56B46F135823758BB60D63FBC49A43D223E"
+          "content": "686F48C3AAAE4B632D563F067F7D321CF6E9A93874CE1AEDD23ED2A1F49892915F912D012CCBA2BF64965815BBD53BCD12F0BFB7901FA18E90C007D5B6F4A1A0"
         }
       ],
       "licenses": [
@@ -1455,7 +1455,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.TestHost@10.0.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.TestHost@10.0.14",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1698,20 +1698,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Configuration",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Implementation of key-value pair based configuration for Microsoft.Extensions.Configuration. Includes the memory configuration provider.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "A8BF37BD16A58E6BBC489516684B552CD08B1DBD35BD48B6A52EC52FD434E6172EE6916EED229D4C484A232644AE10DFC21153E55CBD81AE7841645DFFF7194F"
+          "content": "6CE73C51E7120DDD3D4B6A4EB2BB338940AEC5F64B18DDF7BEF5202EB4A70BEE86F7A0A951C8BAA18160E1D1950F562ADF79E97085E593ACEF8EF9C009ED4CC6"
         }
       ],
       "licenses": [
@@ -1722,7 +1722,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Configuration@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Configuration@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -1736,20 +1736,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Configuration.Abstractions",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Provides abstractions of key-value pair based configuration. Interfaces defined in this package are implemented by classes in Microsoft.Extensions.Configuration and other configuration packages.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "D729FFBBE957C1451F0129ED643D33B4D2FF2268F613C50CB9A1292C3EA7C0ED71E0A8C31C7CA7EFB6CC79ABAAB0E1714D1C82C34FF328166926CE3CC21E7E14"
+          "content": "05984C9263D2DCCAD09CA14B5C69834BF81E89478B5B6A4DF6C75188B02CC5FDA0CA799242DA95AE43DB0AD019B50FC6F6A239D2BF734EB874A1F245FAB61BDB"
         }
       ],
       "licenses": [
@@ -1760,7 +1760,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -1774,20 +1774,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Configuration.Binder",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Provides the functionality to bind an object to data in configuration providers for Microsoft.Extensions.Configuration. This package enables you to represent the configuration data as strongly-typed classes defined in the application code. To bind a configuration, use the Microsoft.Extensions.Configuration.ConfigurationBinder.Get extension method on the IConfiguration object. To use this package, you also need to install a package for the configuration provider, for example, Microsoft.Extensions.Configuration.Json for the JSON provider.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "115EC772C7E94D8BE4E4A25640B2BFB6722B0FE460496F8BD9739609C5144DD4F415A554DC37B06C7128B16F13CA931A2D373170463EEC2DAE74081CCCBE30DB"
+          "content": "90A0FA89E93AA5EA8FF7789FE2219515AB92B752E4FE248F80AC029A353C0DD97A1D878C9AEDE138DDD0A39554D9A06BF12EFB79C224ED3D728DF4EB36514B26"
         }
       ],
       "licenses": [
@@ -1798,7 +1798,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -1812,20 +1812,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.CommandLine@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.CommandLine@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Configuration.CommandLine",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Command line configuration provider implementation for Microsoft.Extensions.Configuration. This package enables you to read configuration parameters from the command line arguments of your application. You can use CommandLineConfigurationExtensions.AddCommandLine extension method on IConfigurationBuilder to add the command line configuration provider to the configuration builder.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "22BAEA13B47D0CED65EB0B32C3333539326047641F5132DEBE0DAC62A5EE6E7B0F2623F05FA1C3FEA561972ECBEBF5D887456B0D056E5E17BBAE96D67AA3BBB8"
+          "content": "6BB84AE7FA2EB48118D05E70505CAB0D3DFD2970A04ADFC031ADE3979AE516F285CC4CD9C32B76A2145C31287BBFD55463CC19C49CF8CA3F811268F2F174D346"
         }
       ],
       "licenses": [
@@ -1836,7 +1836,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.CommandLine@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.CommandLine@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -1850,20 +1850,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.EnvironmentVariables@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.EnvironmentVariables@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Configuration.EnvironmentVariables",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Environment variables configuration provider implementation for Microsoft.Extensions.Configuration. This package enables you to read configuration parameters from environment variables. You can use EnvironmentVariablesExtensions.AddEnvironmentVariables extension method on IConfigurationBuilder to add the environment variables configuration provider to the configuration builder.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "0C41637F55FD3433A7D66235E283458222E65E87CF449C7D25363910EF3E0119B636C2D508967C48373720C1E2BACBB87219E7E2A6EA02717C75E23B91FF7C92"
+          "content": "B122BB690C262C6513F737A8A13EEE8F71B8918C308A8AC549F15A5F57C0124ABA657A716C2DE9D67598FB80D16316B780C1FB3192807AA4F86483F33C9E2E94"
         }
       ],
       "licenses": [
@@ -1874,7 +1874,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.EnvironmentVariables@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.EnvironmentVariables@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -1888,20 +1888,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.FileExtensions@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.FileExtensions@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Configuration.FileExtensions",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Provides a base class for file-based configuration providers used with Microsoft.Extensions.Configuration and extension methods for configuring them.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "54041546C33F9F8C7DBD917A3A46EF64C0E200F37CF0D3470B9663743167D709D271C8B4844F5A8FFAF89910174652564791B5B80342617F0463DF949AD22904"
+          "content": "BA17E610D69AF6784096EF2BA886E1EEAD1BED33DBD4C7B09E4C5C07D45C8BFC781C3DD221442FC71C927DCA47B538C8F4695F18B83BBCD5B87A13B6818A87CF"
         }
       ],
       "licenses": [
@@ -1912,7 +1912,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.FileExtensions@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.FileExtensions@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -1926,20 +1926,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Configuration.Json",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "JSON configuration provider implementation for Microsoft.Extensions.Configuration. This package enables you to read your application\u0027s settings from a JSON file. You can use JsonConfigurationExtensions.AddJsonFile extension method on IConfigurationBuilder to add the JSON configuration provider to the configuration builder.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "3E4760736476F5442183BBC275A78C07F4D2A2B20B1FB26567BF9CECFB1877F4BE5BA839465DF0EBA5537721EC2C9F42CB22DCF4314D02E2C2A655D342A9E1B5"
+          "content": "7BAB3E9AC4DBADF65396A91BBF0CA343093D7E04DD9D1457C3010B96BCA038EEF93E9BE4E6E03C6119DB2C61EF09C6D693771DC18D5C3FC6CF6188797F0752B2"
         }
       ],
       "licenses": [
@@ -1950,7 +1950,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -1964,20 +1964,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.UserSecrets@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Configuration.UserSecrets@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Configuration.UserSecrets",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "User secrets configuration provider implementation for Microsoft.Extensions.Configuration. User secrets mechanism enables you to override application configuration settings with values stored in the local secrets file. You can use UserSecretsConfigurationExtensions.AddUserSecrets extension method on IConfigurationBuilder to add user secrets provider to the configuration builder.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "308F7444CDFC1A5BAD2F1FFAC54892778D821A64C4390616DC7E1DFC1EE5F1F8B6EF5B82A83F3CB497652F67C1A999C3D278240D6D2F00FA83B88A748A3B736E"
+          "content": "D9C38F7A96B123BBF7131179D1D8ED08DD01A6E50158C8E94B7E5D3B116DA93E1FA2F253F126700F471BB26F11A79A4490DCB495E84977B619E39B97046D07F7"
         }
       ],
       "licenses": [
@@ -1988,7 +1988,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.UserSecrets@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Configuration.UserSecrets@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2002,20 +2002,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.DependencyInjection",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Default implementation of dependency injection for Microsoft.Extensions.DependencyInjection.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "39C1A8DDDF2E8A6A2A1FF8D36EFBBF4F7D6FEB81771039E12EE1C0D9BC38AC5FDBE1DDE8AEE88043EA93DF4040C2D18DC9858B28C0006A071ECC9CB4457D252A"
+          "content": "D7EFCD3DFBBD74C81884D96776328CC660B27274F6F712D4C1BD0B46A6AE5D74AD562E14D05A92065AAA47ABD7B632F46A5CCB0D23120A9BEBA376A49EABFF44"
         }
       ],
       "licenses": [
@@ -2026,7 +2026,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2078,20 +2078,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.DependencyInjection.Abstractions",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Abstractions for dependency injection.\n\nCommonly Used Types:\nMicrosoft.Extensions.DependencyInjection.IServiceCollection",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "B2A9F356A7FB4C11B020D63B150756904EFA2FEC233899532E8E99F825BDA1E8960131ADEDCF2C4F6C8BB749D3362002B52EF95E05FDF50EDB14B94C0EDF4A33"
+          "content": "0E2F0F1718E9D3CBCACA89E9DA96EBD85D12BE4589B7707DBFB1FFE4D11235479BBD026B138BAC4957524CCEA754842BEDC17AA1BA529B98570CC537F97E743A"
         }
       ],
       "licenses": [
@@ -2102,7 +2102,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2154,20 +2154,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.DependencyModel",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Provides abstractions for reading \u0060.deps\u0060 files. When a .NET application is compiled, the SDK generates a JSON manifest file (\u0060\u003CApplicationName\u003E.deps.json\u0060) that contains information about application dependencies. You can use \u0060Microsoft.Extensions.DependencyModel\u0060 to read information from this manifest at run time. This is useful when you want to dynamically compile code (for example, using Roslyn Emit API) referencing the same dependencies as your main application.\n\nBy default, the dependency manifest contains information about the application\u0027s target framework and runtime dependencies. Set the PreserveCompilationContext project property to \u0060true\u0060 to additionally include information about reference assemblies used during compilation.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "B7E0B665BCBF3F6840D8AA04F5AC05AF326DCD44178F9402D444655224B58E483C3CEC4BCAFD22B03F344D88351DCDD1FDD0A64FB35EA01531729D238E9AEBEF"
+          "content": "A7E9FA657394E373E2357F081E4781AFAFB5DE2675B6E538EDCA154EC398DB82996F978401A67885AC7BBCF38F510BC7227F67A060BCC169B8E858B9B586D060"
         }
       ],
       "licenses": [
@@ -2178,7 +2178,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2230,20 +2230,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Diagnostics@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Diagnostics@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Diagnostics",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "This package includes the default implementation of IMeterFactory and additional extension methods to easily register it with the Dependency Injection framework.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "113DFFE5307769A61C6CD125BD332A07C7C7031F260CA961BDF452C360DCF236C8C562B7FB5AE33ABDB35F5E071D969E3E51C517EB17C04A9CF6BFE016FC4E9E"
+          "content": "D45D6E3923726B5146DD1C8DC2B9C57B03673378E9743C6BB8BC2EC65D45F3EF2D5AC348EE7828FBDECB37F321580427FF481660E75E965E2C68111053FEBC9A"
         }
       ],
       "licenses": [
@@ -2254,7 +2254,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Diagnostics@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Diagnostics@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2268,20 +2268,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Diagnostics.Abstractions@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Diagnostics.Abstractions@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Diagnostics.Abstractions",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Diagnostic abstractions for Microsoft.Extensions.Diagnostics.\n\nCommonly Used Types:\nMicrosoft.Extensions.Diagnostics.Metrics.IMetricsBuilder\nMicrosoft.Extensions.Diagnostics.Metrics.IMetricsListener\nMicrosoft.Extensions.Diagnostics.Metrics.InstrumentRule\nMicrosoft.Extensions.Diagnostics.Metrics.MeterScope\nMicrosoft.Extensions.Diagnostics.Metrics.MetricsBuilderExtensions\nMicrosoft.Extensions.Diagnostics.Metrics.MetricsOptions",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "EDCC9927503F15D0E1489C362E916528C8A5537EBB2E8743A64BD19488B587269E3960FBD0DA2887C4FDF47F88BFA33D6D8367E1254F9E78410990F8EE95B5DC"
+          "content": "C8D7CCA68B9D69246E46224C06EBDEA15B6FE0756ABEAD95B0805D9C82647D9CBE6E9218D1C38BB7A65695307F6CB5A49C2480FBF09FAEDE1208338F563145B0"
         }
       ],
       "licenses": [
@@ -2292,7 +2292,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Diagnostics.Abstractions@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Diagnostics.Abstractions@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2382,20 +2382,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.FileProviders.Abstractions",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Abstractions of files and directories.\n\nCommonly Used Types:\nMicrosoft.Extensions.FileProviders.IDirectoryContents\nMicrosoft.Extensions.FileProviders.IFileInfo\nMicrosoft.Extensions.FileProviders.IFileProvider",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "BE0DACF211CC13EF6A456D50C48DFDD91BF02C16D6FC27D3FB07AB2C6D61C1DC62F996BE05BAF110435B65A14284BEE1AD1090EB935C64472BAAF7BB68AD5499"
+          "content": "FFFFA38FABA057224BD84498042239E0FECF58C8E78420483A97F99D288FE35F3BD0A40152C231D154BE61A118F194C324EF78AD6A9E0049137FC523EEA0DCA5"
         }
       ],
       "licenses": [
@@ -2406,7 +2406,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2420,20 +2420,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.FileProviders.Physical",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "File provider for physical files for Microsoft.Extensions.FileProviders.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "E8504FEECA0CA63BA511F977EA9ED5540D9D21A0DF9917FC9DDD6582AE3EFADF43E5ACD188FD286342A3B5745D4F3B1E682F4C9E99857BB30F4E60BC4372574A"
+          "content": "88D3A72957468D1B55AA42CC1882A068FDC460EEDB5F0B12D2CF5F20249E79843BD31AABADD8E1F5E803D4B4DC2109D3D375EF64A1065E11DAD287D99CCAF789"
         }
       ],
       "licenses": [
@@ -2444,7 +2444,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2458,20 +2458,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.FileSystemGlobbing@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.FileSystemGlobbing@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.FileSystemGlobbing",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "File system globbing to find files matching a specified pattern.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "74FA805F2F1DA104F52BE3DE5F40963DE46254AC47028810D4255C68F712F526884DFA562044562F0AF4FEC643A656A3E3F5CBA3945069B3F1A700708BE2B38B"
+          "content": "8D7AEEE240053B18FB25E77650CB186F641E548A8E3C6CF44A9EFB72B94D3A95626CCCEB6B28B072C27C4E97FCF588B0C56890E1B07CF6294CAC7AFECD010243"
         }
       ],
       "licenses": [
@@ -2482,7 +2482,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.FileSystemGlobbing@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.FileSystemGlobbing@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2496,20 +2496,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Hosting@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Hosting@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Hosting",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Hosting and startup infrastructures for applications.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "24CC763F2C96C54E8F44DC7067F1375EA6A0D6CF8763C28500577CC669EA7EBDDE3001539331987CBC74D3E32D9A1D5BEC6FFE9B1D82156664123F7BA0665D37"
+          "content": "338F85B36A130F080AA2A18A856D74727E2785D052A673925A774003A55A83F71F788131949D01131BFFA27CB6742E8781ECD8DB7B8D3975E866EC72E97026A5"
         }
       ],
       "licenses": [
@@ -2520,7 +2520,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Hosting@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Hosting@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2534,20 +2534,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Hosting.Abstractions@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Hosting.Abstractions@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Hosting.Abstractions",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Hosting and startup abstractions for applications.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "B08BFAF993DEDF0759B1250162AB3A4E4D35944A38031528B6F220E9E4BE653451E99478B61828E3C3A19A8B8098E3334119D85FCB355488106ACC11E1FD1BE1"
+          "content": "9C19830AC4FA0763568F0E97967C42EFE8AA43D02C909C6CA99E4033C5460179D1317298A6A8F9BCDCEF8E47D55ACC5272E64F54D6EF6679D629F450883AD860"
         }
       ],
       "licenses": [
@@ -2558,7 +2558,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Hosting.Abstractions@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Hosting.Abstractions@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2648,20 +2648,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Logging",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Logging infrastructure default implementation for Microsoft.Extensions.Logging.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "EBFFD8FCA5DDCC543DF71ABAD4D6701AF020D68109366C213A0DFB2EE6484395496252F44C1FF1E7272BC79850B95392674D09754C067E7C2F7F6296D74409DD"
+          "content": "4AEEF54A8B42625EAC1D45E06BC22B9069071ABF8D7A4A8F9D77771BE6EA0CE16E699B37D54A6BA98A27CB8B44AF859C40EAA2B8C5EC57E54BA436B08BA6D049"
         }
       ],
       "licenses": [
@@ -2672,7 +2672,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Logging@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2724,20 +2724,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Logging.Abstractions",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Logging abstractions for Microsoft.Extensions.Logging.\n\nCommonly Used Types:\nMicrosoft.Extensions.Logging.ILogger\nMicrosoft.Extensions.Logging.ILoggerFactory\nMicrosoft.Extensions.Logging.ILogger\u003CTCategoryName\u003E\nMicrosoft.Extensions.Logging.LogLevel\nMicrosoft.Extensions.Logging.Logger\u003CT\u003E\nMicrosoft.Extensions.Logging.LoggerMessage\nMicrosoft.Extensions.Logging.Abstractions.NullLogger",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "637A1ED88E4210A472B5C2BA60E58564924E145CA4ADCF469A348C589F849B46755C618E31713467EE715A6784A1CDA96471B3E7460316FA2C39A632A587ABC4"
+          "content": "031410D6907366EAF84A4462C504A45E96CCDCFFE4047F414BE5EF3AC860923C346E16BEF7CD57EB647DCEFB35183E56DC054240D11F9B923CFE189C0D24E8B9"
         }
       ],
       "licenses": [
@@ -2748,7 +2748,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2800,20 +2800,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.Configuration@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.Configuration@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Logging.Configuration",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Configuration support for Microsoft.Extensions.Logging.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "BBACA3FB75ECB1CB85295EE7262EF6D33EF189A215E4A4EE5056DB3C897EC599CAA01EE6AA2DBADDD9D7A55EACDD559A9B7CAB7447393FACE9F25F47866F45DB"
+          "content": "1CBDF8329CB928D05BFD0B0C7DDED6448478A55A41F870D7E4493CCC4B8E2AFA8F8FFABFB071A35B37EE75B884F4928C8B5B094F2FECF30E87CA34DDCD008AA4"
         }
       ],
       "licenses": [
@@ -2824,7 +2824,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Logging.Configuration@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Logging.Configuration@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2838,20 +2838,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.Console@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.Console@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Logging.Console",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Console logger provider implementation for Microsoft.Extensions.Logging.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "2AAF577D73CA7947AAB5BDA6816513A73ECB310691CF24F7B5A83032F9482CB0AFEB2676C6057A34F190F448FFA0FA0FE1F950339E5AE7A8DF33B40DAEA4C883"
+          "content": "3F1DECF62A56BC89D75C069934F1AD82C38544C4DF1552E0CC4B377181A3AFAD96F78C495166C1B8C4F373EF51AF866187FDBD4082F7C402F9C29847CD406CA1"
         }
       ],
       "licenses": [
@@ -2862,7 +2862,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Logging.Console@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Logging.Console@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2876,20 +2876,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.Debug@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.Debug@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Logging.Debug",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Debug output logger provider implementation for Microsoft.Extensions.Logging. This logger logs messages to a debugger monitor by writing messages with System.Diagnostics.Debug.WriteLine().",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "748E851C7A40CDD9C8B73322E4CCD7AF1B64A80A229780AEF0637B5FA9AB594EA2F9AA4D54B6B497207028DDEAF041C8CD1BF835327598FBC61F2D42F0A4D9EF"
+          "content": "DE45DAFA1E8F0BFA88386D73474DC385390C9EAB25C3C961E70DCE44C0B2E8222E56A1C6B4BC0B63A911EEF62B34FDD440007ADDE22B8E6A94270802F7F0F18A"
         }
       ],
       "licenses": [
@@ -2900,7 +2900,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Logging.Debug@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Logging.Debug@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2914,20 +2914,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.EventLog@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.EventLog@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Logging.EventLog",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Windows Event Log logger provider implementation for Microsoft.Extensions.Logging.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "71FBD60A42DDEF049301ADE1370B64A8E75C3DEB3367F6DBBC8DFDB2E0DFA59B9C3ED40FB2BA4A4159C8C01BEB992C3A2019B5FDA4B9FE7E583E4AB2327C18DB"
+          "content": "BA68F49F647FE961D5FC943D868A2FF532AD4119BC20590599BA1199B50BE066C9789C798D001703D0506B5AC00A635F825890E339D4DBF8404B76A8A40E8951"
         }
       ],
       "licenses": [
@@ -2938,7 +2938,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Logging.EventLog@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Logging.EventLog@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -2952,20 +2952,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.EventSource@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.EventSource@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Logging.EventSource",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "EventSource/EventListener logger provider implementation for Microsoft.Extensions.Logging.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "EA1AB1AF99FD68DED9537885B4832C065058491893D412DBF0B910F721FA70E68A0A4595160823612AE71732CDD6EB57857954C87FB4FEA25089423CDAAADA36"
+          "content": "427950CCB5473ED7E7271085E4B754F2CEDF5184AFD746D5CB037B561017DCE527D2DD327F8C6C2E97AA56DED627A3640D9BE0B7FF716ABA047A5FFF7A98508E"
         }
       ],
       "licenses": [
@@ -2976,7 +2976,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Logging.EventSource@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Logging.EventSource@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -3028,20 +3028,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Options@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Options@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Options",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Provides a strongly typed way of specifying and accessing settings using dependency injection.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "F275EA3420C9823835CB50D7C111665236DD754A6F47E94A832A3B18E2CFFF88388D33F43AA4C3A899D9845FA15A490BE3C2A1DC2D8F80308DDB9736B6DCB170"
+          "content": "350265139E5AA1EB4425D7181E3D09333C3E3FD6FA4E80F259DDC49F5AA74E0DF7710A66031D0F4AA71DA392A8A49CDF1D69D4D2C253469ED18985D22BB5BD28"
         }
       ],
       "licenses": [
@@ -3052,7 +3052,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Options@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Options@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -3104,20 +3104,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Options.ConfigurationExtensions",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Provides additional configuration specific functionality related to Options.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "23F4F74D206E9920917CFE9479E45C1AFE47DFD0F89CCD009A104533E2CCB2F3D3839942436F8FB80B8131C68BA70F49725A1EFB4C5791BACFFF0C4A33D6F0BB"
+          "content": "2AE0A265850CC236C29987A09FAC2017926449BE1238316CF74445D08AB652597B6FF44A67796FDD527C1E3B1C5FD665573CF65DC588059AD7FAE32C7A489F17"
         }
       ],
       "licenses": [
@@ -3128,7 +3128,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -3142,20 +3142,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Extensions.Primitives",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Primitives shared by framework extensions. Commonly used types include:\n\nCommonly Used Types:\nMicrosoft.Extensions.Primitives.IChangeToken\nMicrosoft.Extensions.Primitives.StringValues\nMicrosoft.Extensions.Primitives.StringSegment",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "8015982C5EDC3EF01B224866E7C03B6B6FF58362AC457DD2CB4EC83A4A4074132DA53B3066B922E034B18AC75F48138803F27233C3292FD19299E11B7C093996"
+          "content": "89300B96490FB223AD78C32FB6008D617E5D2D20610FD23FE686B9D196CA23D57B9DDC29F49FE408A192743D1611EC45766FAF733314741758D9638BAC697C98"
         }
       ],
       "licenses": [
@@ -3166,7 +3166,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13",
+      "purl": "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -3675,20 +3675,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.OpenApi@2.12.2",
+      "bom-ref": "pkg:nuget/Microsoft.OpenApi@2.13.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.OpenApi",
-      "version": "2.12.2",
+      "version": "2.13.0",
       "description": ".NET models with JSON and YAML writers for OpenAPI specification",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "432E3087907C2EF45F2FDB73D5B621E299C6E2A39AAF3598A80037408150DDA76AE1AA0ECC3376B2079E58D371B711538BA7C343F0F17A86C70FCF41F434ECF1"
+          "content": "9ECEA280EF788787A1B2591ECF1B2A0D16C39AAF1F9266F7AFF61C80D37D189E9567B8305BC4E367F58118C6D6A2A437F669C71BC9893F22A0D321B8C3A0E587"
         }
       ],
       "licenses": [
@@ -3699,7 +3699,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.OpenApi@2.12.2",
+      "purl": "pkg:nuget/Microsoft.OpenApi@2.13.0",
       "externalReferences": [
         {
           "url": "https://github.com/Microsoft/OpenAPI.NET",
@@ -3713,20 +3713,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Playwright@1.63.0",
+      "bom-ref": "pkg:nuget/Microsoft.Playwright@1.64.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Playwright",
-      "version": "1.63.0",
+      "version": "1.64.1",
       "description": "Playwright enables reliable end-to-end testing for modern web apps. It is built to enable cross-browser web automation that is ever-green, capable, reliable and fast. Learn more at https://playwright.dev/dotnet/.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "2E74B28CDCFDB6AD039D21EE872D39E7D8B8B7E7E41A1943AA35ECC5B9F9B96EAD86C24B8A627549047D8E03885514687DCE1CE0A013E9158AC178B2699C7A20"
+          "content": "2707C195EFDD0F4EC1BE6B24B61991B061FD16898E27E7A76F193C8B2E64284680F66ADF8B1DF7210DA11F8A01A5C2F980B8EDF9DD2EF11AC7D60B9FC836D916"
         }
       ],
       "licenses": [
@@ -3737,7 +3737,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Playwright@1.63.0",
+      "purl": "pkg:nuget/Microsoft.Playwright@1.64.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/playwright-dotnet",
@@ -4094,20 +4094,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/MimeKit@4.18.1",
+      "bom-ref": "pkg:nuget/MimeKit@4.18.2",
       "authors": [
         {
           "name": "Jeffrey Stedfast"
         }
       ],
       "name": "MimeKit",
-      "version": "4.18.1",
+      "version": "4.18.2",
       "description": "An Open Source library for creating and parsing MIME, S/MIME and PGP messages on desktop and mobile platforms.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "AEB12BAEA4AC2D4B5CEA8712265E2E4B734D34DEEFEDC07E12F3CE2F16B8B9EB76FB8A8A7B73DB0617248801B96322859E0EBB0344757271F5E4E6A2E814BF76"
+          "content": "57CC8B10D926CD8A4321B34E47B7A74846506C4E407D3331C5859E66910AD20B684D8706D32554F78C09A9A62A1FDD20DC15E723F323DEB5C70E34EA1BE594AC"
         }
       ],
       "licenses": [
@@ -4118,7 +4118,7 @@
         }
       ],
       "copyright": ".NET Foundation and Contributors",
-      "purl": "pkg:nuget/MimeKit@4.18.1",
+      "purl": "pkg:nuget/MimeKit@4.18.2",
       "externalReferences": [
         {
           "url": "https://www.mimekit.net/",
@@ -4354,20 +4354,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/PuppeteerSharp@25.14.0",
+      "bom-ref": "pkg:nuget/PuppeteerSharp@25.15.0",
       "authors": [
         {
           "name": "Dar\u00EDo Kondratiuk"
         }
       ],
       "name": "PuppeteerSharp",
-      "version": "25.14.0",
+      "version": "25.15.0",
       "description": "Headless Browser .NET API",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "E75A1CCABEB9FAF9CE12ABC8DF168413BE58C08168CA301D5EF72ECE465DF83885B92F6FEA31DD33F4AC01648B0EEDE9BB54BC81F6FA462E5EDB77B5C8184C8B"
+          "content": "00663F38DE634C1D48E2BA08C41CF69BF079332E8A145A71A9F81F41D3275858F709C21302A1FC8B6485928EDA4EDF0EBF5252CD53FA83B111F1A465473515E9"
         }
       ],
       "licenses": [
@@ -4377,7 +4377,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/PuppeteerSharp@25.14.0",
+      "purl": "pkg:nuget/PuppeteerSharp@25.15.0",
       "externalReferences": [
         {
           "url": "https://github.com/hardkoded/puppeteer-sharp",
@@ -4391,20 +4391,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Quartz@4.6.0",
+      "bom-ref": "pkg:nuget/Quartz@4.6.2",
       "authors": [
         {
           "name": "Marko Lahma, Quartz.NET"
         }
       ],
       "name": "Quartz",
-      "version": "4.6.0",
+      "version": "4.6.2",
       "description": "Quartz.NET job scheduler - cron, calendar and interval triggers, clustering over a persistent job store, and Microsoft.Extensions hosting, logging, options and dependency injection throughout. The core package: everything else builds on this one.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "2B1F56F911852A19EF7E364C0D71D51E4048A6978D674678708C5886851A2D4E6E81F6606E85F55297E20E3A730C265CDE6EB44EC98E324BE7FE4C6FFE030727"
+          "content": "920E40A5760FA501DB9B506BB37D1D45064FCF889C0F2223C8C7C50C86190B654BBDA12812E9DC84FE80FEF277EF80B9238F7513C6CF6EBDEE0C99DB0CA20EE9"
         }
       ],
       "licenses": [
@@ -4415,7 +4415,7 @@
         }
       ],
       "copyright": "Copyright Marko Lahma",
-      "purl": "pkg:nuget/Quartz@4.6.0",
+      "purl": "pkg:nuget/Quartz@4.6.2",
       "externalReferences": [
         {
           "url": "https://www.quartz-scheduler.net/",
@@ -4466,20 +4466,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/RestSharp@114.0.0",
+      "bom-ref": "pkg:nuget/RestSharp@114.1.0",
       "authors": [
         {
           "name": ".NET Foundation and Contributors"
         }
       ],
       "name": "RestSharp",
-      "version": "114.0.0",
+      "version": "114.1.0",
       "description": "Simple REST and HTTP API Client",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "A4516B8302877651D6A809D53AD1D5C209C58481E2BA7734C3CF7717745AEFCB1970D5DCEB35DA067844CAEB58ACDFE8269813899E18DFE8DB30A215A74EF89E"
+          "content": "936049DC854A405058607C00A7FF46DF42E5CF658C0EF7337AE636B468D828B98654A3237119F14F8FF214DE55C264871B8AF0C181B8BFFFB962A018EE8B7338"
         }
       ],
       "licenses": [
@@ -4490,7 +4490,7 @@
         }
       ],
       "copyright": "Copyright \u00A9 .NET Foundation and Contributors 2026",
-      "purl": "pkg:nuget/RestSharp@114.0.0",
+      "purl": "pkg:nuget/RestSharp@114.1.0",
       "externalReferences": [
         {
           "url": "https://restsharp.dev/",
@@ -4504,20 +4504,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@114.0.0",
+      "bom-ref": "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@114.1.0",
       "authors": [
         {
           "name": ".NET Foundation and Contributors"
         }
       ],
       "name": "RestSharp.Serializers.NewtonsoftJson",
-      "version": "114.0.0",
+      "version": "114.1.0",
       "description": "Simple REST and HTTP API Client",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "9721FC3D295A41993F698C60A0669D76285716FE4B27811D83A6518283C6E6CA3B2803C6ACEE101E7B650228350081E84710F015C78945A05DAE3898E6EB92EA"
+          "content": "DFC3CD3D3390C091D95A41688F93C5D549856FF7F7D833D70F2A87A93FA404B016BF6195501A1EFC23B89743A4DB396439F02B1C8561B47D54114069731A5ACE"
         }
       ],
       "licenses": [
@@ -4528,7 +4528,7 @@
         }
       ],
       "copyright": "Copyright \u00A9 .NET Foundation and Contributors 2026",
-      "purl": "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@114.0.0",
+      "purl": "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@114.1.0",
       "externalReferences": [
         {
           "url": "https://restsharp.dev/",
@@ -4542,20 +4542,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.18.0",
+      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.18.3",
       "authors": [
         {
           "name": "Scalar"
         }
       ],
       "name": "Scalar.AspNetCore",
-      "version": "2.18.0",
+      "version": "2.18.3",
       "description": "Generate beautiful interactive API documentation from OpenAPI/Swagger documents.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "785A7521EBBB2F3CD122051D237CDF74B890F95FD5EAB243EBE07117E3C701B2EE56B9529FA68518A17F27EECF886B0D48A7AD1CEAFD3F02B8521638997F8B7A"
+          "content": "394C51142BD8ADA3D13280DBB490FDCC3DF41CB305D9CC97B229CDEFC41AED630ED74C08E689AB13ECA573D372D260DFBF3B7772D93E2629C8689C142C9DFD35"
         }
       ],
       "licenses": [
@@ -4565,7 +4565,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/Scalar.AspNetCore@2.18.0",
+      "purl": "pkg:nuget/Scalar.AspNetCore@2.18.3",
       "externalReferences": [
         {
           "url": "https://scalar.com/",
@@ -4654,20 +4654,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/System.Diagnostics.EventLog@10.0.13",
+      "bom-ref": "pkg:nuget/System.Diagnostics.EventLog@10.0.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "System.Diagnostics.EventLog",
-      "version": "10.0.13",
+      "version": "10.0.14",
       "description": "Provides the System.Diagnostics.EventLog class, which allows the applications to use the Windows event log service.\n\nCommonly Used Types:\nSystem.Diagnostics.EventLog",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "0F000E346977BEDD036785AEF657EF793A5001A67DA29E38B20CCEE126E026612BE507BE325EC570266EA32C2B3BF04E03639B71EEC5E8310768E85D6C847FF4"
+          "content": "599B2F66E48EFCD162488D6B6F978D8011A133D2299DAC6BDA955D39291684E2092D5222072618EB1A1071143E0E133E1FEBAEFDFD77C649039282FD3A7FC0DF"
         }
       ],
       "licenses": [
@@ -4678,7 +4678,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/System.Diagnostics.EventLog@10.0.13",
+      "purl": "pkg:nuget/System.Diagnostics.EventLog@10.0.14",
       "externalReferences": [
         {
           "url": "https://dot.net/",
@@ -4852,54 +4852,53 @@
         "pkg:nuget/GraphQL.Client.Serializer.SystemTextJson@6.1.0",
         "pkg:nuget/IPAddressRange@6.3.0",
         "pkg:nuget/IPNetwork2@4.3.0",
-        "pkg:nuget/Microsoft.AspNetCore.Components@10.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components@10.0.14",
         "pkg:nuget/Microsoft.IdentityModel.Tokens@8.23.0",
         "pkg:nuget/Microsoft.Rest.ClientRuntime@2.3.24",
-        "pkg:nuget/RestSharp@114.0.0",
-        "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@114.0.0",
+        "pkg:nuget/RestSharp@114.1.0",
+        "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@114.1.0",
         "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.23.0",
         "pkg:nuget/HtmlAgilityPack@1.13.1",
-        "pkg:nuget/MailKit@4.18.1",
+        "pkg:nuget/MailKit@4.18.2",
         "pkg:nuget/Microsoft.AspNetCore.Http@2.3.13",
-        "pkg:nuget/MimeKit@4.18.1",
-        "pkg:nuget/PuppeteerSharp@25.14.0",
-        "pkg:nuget/System.Security.Cryptography.Pkcs@10.0.13",
-        "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.13",
-        "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.13",
-        "pkg:nuget/Microsoft.OpenApi@2.12.2",
+        "pkg:nuget/MimeKit@4.18.2",
+        "pkg:nuget/PuppeteerSharp@25.15.0",
+        "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.14",
+        "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.14",
+        "pkg:nuget/Microsoft.OpenApi@2.13.0",
         "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
-        "pkg:nuget/Quartz@4.6.0",
-        "pkg:nuget/Scalar.AspNetCore@2.18.0",
+        "pkg:nuget/Quartz@4.6.2",
+        "pkg:nuget/Scalar.AspNetCore@2.18.3",
         "pkg:nuget/BlazorTable@1.17.0",
-        "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.14",
         "pkg:nuget/SoPro.FancyTable@1.0.8",
-        "pkg:nuget/AngleSharp@1.8.5",
-        "pkg:nuget/bunit@2.12.5",
+        "pkg:nuget/AngleSharp@1.8.6",
+        "pkg:nuget/bunit@2.13.3",
         "pkg:nuget/coverlet.collector@10.1.0",
-        "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.14",
         "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.0",
         "pkg:nuget/Moq@4.21.0",
         "pkg:nuget/NSubstitute@6.2.0",
         "pkg:nuget/NUnit@4.6.1",
         "pkg:nuget/NUnit3TestAdapter@6.3.1",
-        "pkg:nuget/Microsoft.Playwright@1.63.0"
+        "pkg:nuget/Microsoft.Playwright@1.64.1"
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp.Css@1.1.3",
+      "ref": "pkg:nuget/AngleSharp.Css@1.2.0",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.5"
+        "pkg:nuget/AngleSharp@1.8.6"
       ]
     },
     {
       "ref": "pkg:nuget/AngleSharp.Diffing@1.1.1",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.5",
-        "pkg:nuget/AngleSharp.Css@1.1.3"
+        "pkg:nuget/AngleSharp@1.8.6",
+        "pkg:nuget/AngleSharp.Css@1.2.0"
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp@1.8.5",
+      "ref": "pkg:nuget/AngleSharp@1.8.6",
       "dependsOn": []
     },
     {
@@ -4913,26 +4912,26 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/bunit@2.12.5",
+      "ref": "pkg:nuget/bunit@2.13.3",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.5",
-        "pkg:nuget/AngleSharp.Css@1.1.3",
+        "pkg:nuget/AngleSharp@1.8.6",
+        "pkg:nuget/AngleSharp.Css@1.2.0",
         "pkg:nuget/AngleSharp.Diffing@1.1.1",
-        "pkg:nuget/Microsoft.AspNetCore.Components@10.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components@10.0.14",
         "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.13",
         "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.13",
         "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.13",
         "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.Authentication@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Caching.Memory@10.0.13",
         "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Logging@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14"
       ]
     },
     {
       "ref": "pkg:nuget/Castle.Core@5.2.1",
       "dependsOn": [
-        "pkg:nuget/System.Diagnostics.EventLog@10.0.13"
+        "pkg:nuget/System.Diagnostics.EventLog@10.0.14"
       ]
     },
     {
@@ -4997,9 +4996,9 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/MailKit@4.18.1",
+      "ref": "pkg:nuget/MailKit@4.18.2",
       "dependsOn": [
-        "pkg:nuget/MimeKit@4.18.1"
+        "pkg:nuget/MimeKit@4.18.2"
       ]
     },
     {
@@ -5007,49 +5006,49 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.14",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.14",
       "dependsOn": [
         "pkg:nuget/Microsoft.IdentityModel.Protocols.OpenIdConnect@8.19.2"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Authorization@10.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Authorization@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Metadata@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Diagnostics@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13"
+        "pkg:nuget/Microsoft.AspNetCore.Metadata@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Diagnostics@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@10.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@10.0.14",
       "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.13",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Authorization@10.0.13",
-        "pkg:nuget/Microsoft.AspNetCore.Components@10.0.13"
+        "pkg:nuget/Microsoft.AspNetCore.Authorization@10.0.14",
+        "pkg:nuget/Microsoft.AspNetCore.Components@10.0.14"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Forms@10.0.13",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Components@10.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components@10.0.14",
         "pkg:nuget/Microsoft.Extensions.Validation@10.0.13"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.13",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Components@10.0.13",
+        "pkg:nuget/Microsoft.AspNetCore.Components@10.0.14",
         "pkg:nuget/Microsoft.AspNetCore.Components.Forms@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13",
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14",
         "pkg:nuget/Microsoft.JSInterop@10.0.13"
       ]
     },
@@ -5064,17 +5063,17 @@
       "ref": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.13",
       "dependsOn": [
         "pkg:nuget/Microsoft.AspNetCore.Components.Web@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging@10.0.14",
         "pkg:nuget/Microsoft.JSInterop.WebAssembly@10.0.13"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Components@10.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Components@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Authorization@10.0.13",
-        "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@10.0.13"
+        "pkg:nuget/Microsoft.AspNetCore.Authorization@10.0.14",
+        "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@10.0.14"
       ]
     },
     {
@@ -5086,7 +5085,7 @@
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Http.Features@2.3.11",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
@@ -5095,30 +5094,30 @@
         "pkg:nuget/Microsoft.AspNetCore.Http.Abstractions@2.3.12",
         "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.12",
         "pkg:nuget/Microsoft.Extensions.ObjectPool@8.0.11",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14",
         "pkg:nuget/Microsoft.Net.Http.Headers@2.3.12"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Metadata@10.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Metadata@10.0.14",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.TestHost@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Hosting@10.0.13"
+        "pkg:nuget/Microsoft.AspNetCore.TestHost@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Hosting@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.OpenApi@2.12.2"
+        "pkg:nuget/Microsoft.OpenApi@2.13.0"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.TestHost@10.0.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.TestHost@10.0.14",
       "dependsOn": []
     },
     {
@@ -5142,83 +5141,83 @@
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Caching.Abstractions@10.0.13",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Caching.Memory@10.0.13",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Caching.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.CommandLine@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.CommandLine@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.EnvironmentVariables@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.EnvironmentVariables@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.FileExtensions@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.FileExtensions@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.FileExtensions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.FileExtensions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.UserSecrets@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Configuration.UserSecrets@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Configuration@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Configuration@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
       "dependsOn": []
     },
     {
@@ -5226,19 +5225,19 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection@8.0.0",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.14",
       "dependsOn": []
     },
     {
@@ -5246,10 +5245,10 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Diagnostics.Abstractions@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Diagnostics.Abstractions@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14"
       ]
     },
     {
@@ -5260,72 +5259,72 @@
       "ref": "pkg:nuget/Microsoft.Extensions.Diagnostics.HealthChecks@10.0.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions@10.0.0",
-        "pkg:nuget/Microsoft.Extensions.Hosting.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Hosting.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Diagnostics@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Diagnostics@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Diagnostics.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Diagnostics.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.FileSystemGlobbing@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.FileSystemGlobbing@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.FileSystemGlobbing@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.FileSystemGlobbing@10.0.14",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Hosting.Abstractions@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Hosting.Abstractions@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Diagnostics.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Diagnostics.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Hosting@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Hosting@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.CommandLine@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.EnvironmentVariables@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.FileExtensions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.UserSecrets@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Diagnostics@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Hosting.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Configuration@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Console@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Debug@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.EventLog@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.EventSource@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.CommandLine@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.EnvironmentVariables@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.FileExtensions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.UserSecrets@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Diagnostics@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Hosting.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Configuration@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Console@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Debug@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.EventLog@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.EventSource@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14"
       ]
     },
     {
@@ -5335,16 +5334,16 @@
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Localization@3.1.18",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
         "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14"
       ]
     },
     {
@@ -5354,70 +5353,70 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Logging.Configuration@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Logging.Configuration@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Configuration@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Logging.Console@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Logging.Console@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Configuration@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Configuration@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Logging.Debug@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Logging.Debug@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Logging.EventLog@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Logging.EventLog@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13",
-        "pkg:nuget/System.Diagnostics.EventLog@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14",
+        "pkg:nuget/System.Diagnostics.EventLog@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Logging.EventSource@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Logging.EventSource@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Logging@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Logging@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Logging@8.0.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.DependencyInjection@8.0.0",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14"
       ]
     },
     {
@@ -5425,20 +5424,20 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Options@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Options@10.0.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
@@ -5449,7 +5448,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13",
+      "ref": "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14",
       "dependsOn": []
     },
     {
@@ -5459,8 +5458,8 @@
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Validation@10.0.13",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.13",
-        "pkg:nuget/Microsoft.Extensions.Options@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.14",
+        "pkg:nuget/Microsoft.Extensions.Options@10.0.14"
       ]
     },
     {
@@ -5496,7 +5495,7 @@
       "ref": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.23.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.Bcl.Cryptography@10.0.2",
-        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.13",
+        "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.14",
         "pkg:nuget/Microsoft.IdentityModel.Logging@8.23.0"
       ]
     },
@@ -5517,7 +5516,7 @@
     {
       "ref": "pkg:nuget/Microsoft.Net.Http.Headers@2.3.12",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.13"
+        "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
@@ -5528,11 +5527,11 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.OpenApi@2.12.2",
+      "ref": "pkg:nuget/Microsoft.OpenApi@2.13.0",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.Playwright@1.63.0",
+      "ref": "pkg:nuget/Microsoft.Playwright@1.64.1",
       "dependsOn": [
         "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@6.0.0",
         "pkg:nuget/System.ComponentModel.Annotations@5.0.0"
@@ -5591,7 +5590,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/MimeKit@4.18.1",
+      "ref": "pkg:nuget/MimeKit@4.18.2",
       "dependsOn": [
         "pkg:nuget/BouncyCastle.Cryptography@2.7.0",
         "pkg:nuget/System.Security.Cryptography.Pkcs@10.0.13"
@@ -5624,14 +5623,14 @@
     {
       "ref": "pkg:nuget/NUnit3TestAdapter@6.3.1",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.13",
+        "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.14",
         "pkg:nuget/Microsoft.TestPlatform.AdapterUtilities@18.10.1",
         "pkg:nuget/Microsoft.Testing.Extensions.VSTestBridge@2.4.1",
         "pkg:nuget/Microsoft.Testing.Platform.MSBuild@2.4.1"
       ]
     },
     {
-      "ref": "pkg:nuget/PuppeteerSharp@25.14.0",
+      "ref": "pkg:nuget/PuppeteerSharp@25.15.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Logging@8.0.0",
         "pkg:nuget/Microsoft.IO.RecyclableMemoryStream@3.0.1",
@@ -5640,7 +5639,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Quartz@4.6.0",
+      "ref": "pkg:nuget/Quartz@4.6.2",
       "dependsOn": []
     },
     {
@@ -5648,18 +5647,18 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@114.0.0",
+      "ref": "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@114.1.0",
       "dependsOn": [
         "pkg:nuget/Newtonsoft.Json@13.0.3",
-        "pkg:nuget/RestSharp@114.0.0"
+        "pkg:nuget/RestSharp@114.1.0"
       ]
     },
     {
-      "ref": "pkg:nuget/RestSharp@114.0.0",
+      "ref": "pkg:nuget/RestSharp@114.1.0",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Scalar.AspNetCore@2.18.0",
+      "ref": "pkg:nuget/Scalar.AspNetCore@2.18.3",
       "dependsOn": []
     },
     {
@@ -5671,7 +5670,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/System.Diagnostics.EventLog@10.0.13",
+      "ref": "pkg:nuget/System.Diagnostics.EventLog@10.0.14",
       "dependsOn": []
     },
     {

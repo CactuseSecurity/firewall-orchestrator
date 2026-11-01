@@ -620,7 +620,8 @@ namespace FWO.Test
                     Does.Contain("missing workflow state definitions"));
                 Assert.That(StructureError(package => package.States.Add(new WorkflowStateTransferData
                 {
-                    Id = package.States[0].Id, Name = "Duplicate"
+                    Id = package.States[0].Id,
+                    Name = "Duplicate"
                 }))?.Message, Does.Contain("invalid or duplicate workflow state"));
             });
         }

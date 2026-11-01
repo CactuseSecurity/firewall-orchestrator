@@ -77,14 +77,25 @@ namespace FWO.Test
             reqTask.SetAddInfo(AdditionalInfoKeys.GrpName, "group-a");
             WfImplTask implTask = new()
             {
-                Id = 99, TicketId = 10, ReqTaskId = 20, TaskType = WfTaskType.access.ToString(), DeviceId = 66,
-                RuleAction = 3, Tracking = 4, Comments = [new WfCommentDataHelper(new WfComment { CommentText = "first comment" })]
+                Id = 99,
+                TicketId = 10,
+                ReqTaskId = 20,
+                TaskType = WfTaskType.access.ToString(),
+                DeviceId = 66,
+                RuleAction = 3,
+                Tracking = 4,
+                Comments = [new WfCommentDataHelper(new WfComment { CommentText = "first comment" })]
             };
             WfTicket ticket = new() { Id = 10, Tasks = [reqTask] };
             WfHandler handler = new()
             {
-                DisplayImplTaskMode = true, DisplayImplTaskCommentMode = true, ActReqTask = reqTask,
-                ActImplTask = implTask, ActTicket = ticket, TicketList = [ticket], Devices = [new Device { Id = 66, Name = "gw-66" }]
+                DisplayImplTaskMode = true,
+                DisplayImplTaskCommentMode = true,
+                ActReqTask = reqTask,
+                ActImplTask = implTask,
+                ActTicket = ticket,
+                TicketList = [ticket],
+                Devices = [new Device { Id = 66, Name = "gw-66" }]
             };
             SetMatrix(handler, WfTaskType.access.ToString(), CreateMatrix());
             SetMember(component, "userConfig", userConfig);
@@ -141,7 +152,8 @@ namespace FWO.Test
             {
                 ActImplTask = new WfImplTask
                 {
-                    Id = 99, TaskType = WfTaskType.access.ToString(),
+                    Id = 99,
+                    TaskType = WfTaskType.access.ToString(),
                     ImplElements = [new WfImplElement { Id = 1, ImplTaskId = 99, Field = ElemFieldType.service.ToString(), Port = 0, ProtoId = 6, ServiceId = null }]
                 }
             });

@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -17,6 +18,7 @@ namespace FWO.Test
     [TestFixture]
     internal class FlowCatalogControllerTest
     {
+        private const int kMaxLimit = GlobalConst.kDefaultMaxRestResponseObjectLimit;
         private static readonly List<long> kAmbiguousCandidateIds = [61, 62];
 
         [Test]
@@ -24,7 +26,7 @@ namespace FWO.Test
         {
             RecordingApiConnection apiConnection = new();
             using FlowCatalogService service = new(apiConnection, new GlobalConfig());
-            FlowCatalogController controller = new(service);
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
             ActionResult<List<AddressObjectResponse>> addressObjectsResult = await controller.GetAddressObjects(new GetAddressObjectsRequest
             {
@@ -115,7 +117,7 @@ namespace FWO.Test
         public async Task GetAddressObjectId_RejectsLeadingZeroIpv4Octets()
         {
             using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
-            FlowCatalogController controller = new(service);
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
             ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
             {
@@ -133,7 +135,7 @@ namespace FWO.Test
                 FlowZoneGroupNamePatterns = "[{\"matchType\":\"Suffix\",\"caseSensitive\":false,\"value\":\" Group\"}]"
             };
             using FlowCatalogService service = new(new RecordingApiConnection(), globalConfig);
-            FlowCatalogController controller = new(service);
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
             ActionResult result = await controller.GetAddressGroups(new GetAddressGroupsRequest
             {
@@ -150,7 +152,7 @@ namespace FWO.Test
         public async Task FlowCatalogController_GetAddressGroups_WithDisabledSeparation_ReturnsFlatList()
         {
             using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
-            FlowCatalogController controller = new(service);
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
             ActionResult result = await controller.GetAddressGroups(new GetAddressGroupsRequest
             {
@@ -164,7 +166,7 @@ namespace FWO.Test
         public async Task FlowCatalogController_GetAddressGroups_WithUnknownOptionKey_ReturnsBadRequest()
         {
             using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
-            FlowCatalogController controller = new(service);
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
             GetAddressGroupsRequest request = JsonSerializer.Deserialize<GetAddressGroupsRequest>(
                 "{\"option\":{\"separateZoneGroups\":true,\"unknown\":1}}")!;
 
@@ -178,7 +180,7 @@ namespace FWO.Test
         public async Task FlowCatalogController_ReturnsValidationErrorsForInvalidLookupRequests()
         {
             using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
-            FlowCatalogController controller = new(service);
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
             ActionResult<ServiceObjectIdResponse> missingProtocol = await controller.GetServiceObjectId(new GetServiceObjectIdRequest
             {
@@ -203,13 +205,13 @@ namespace FWO.Test
         public async Task FlowCatalogController_ListEndpointsRejectInvalidPaging()
         {
             using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
-            FlowCatalogController controller = new(service);
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
             ActionResult<List<AddressObjectResponse>> addressObjects = await controller.GetAddressObjects(new GetAddressObjectsRequest { Limit = 0, Offset = -1 });
-            ActionResult addressGroups = await controller.GetAddressGroups(new GetAddressGroupsRequest { Limit = FlowCatalogPaging.kMaxGroupLimit + 1 });
+            ActionResult addressGroups = await controller.GetAddressGroups(new GetAddressGroupsRequest { Limit = kMaxLimit + 1 });
             ActionResult<List<ServiceObjectResponse>> serviceObjects = await controller.GetServiceObjects(new GetServiceObjectsRequest { Offset = -1 });
             ActionResult<List<ServiceGroupResponse>> serviceGroups = await controller.GetServiceGroups(new GetServiceGroupsRequest { Limit = 0 });
-            ActionResult<List<TimeObjectResponse>> timeObjects = await controller.GetTimeObjects(new GetTimeObjectsRequest { Limit = FlowCatalogPaging.kMaxObjectLimit + 1 });
+            ActionResult<List<TimeObjectResponse>> timeObjects = await controller.GetTimeObjects(new GetTimeObjectsRequest { Limit = kMaxLimit + 1 });
 
             Assert.Multiple(() =>
             {
@@ -227,7 +229,7 @@ namespace FWO.Test
         {
             using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
             DefaultHttpContext httpContext = new();
-            FlowCatalogController controller = new(service)
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig())
             {
                 ControllerContext = new ControllerContext { HttpContext = httpContext }
             };
@@ -255,7 +257,7 @@ namespace FWO.Test
                 ServiceObjectIdMatches = [new() { Id = 61, Name = "ping" }, new() { Id = 62, Name = "icmp-echo" }]
             };
             using FlowCatalogService service = new(apiConnection, new GlobalConfig());
-            FlowCatalogController controller = new(service);
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
             ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest { Protocol = "TCP" });
 
@@ -272,7 +274,7 @@ namespace FWO.Test
         public async Task FlowCatalogController_GetServiceObjectId_ReturnsEmptyResponseWithoutMatch()
         {
             using FlowCatalogService service = new(new RecordingApiConnection { ServiceObjectIdMatches = [] }, new GlobalConfig());
-            FlowCatalogController controller = new(service);
+            FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
             ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest { Protocol = "TCP" });
 

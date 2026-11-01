@@ -148,7 +148,7 @@ namespace FWO.Services
             WfStatefulObject placeholderContext = placeholderObject ?? statefulObject;
             string subject = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(notification.EmailSubject, placeholderContext, owner, placeholderData);
             string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(BuildWorkflowActionBody(notification, workflowContent, placeholderData), placeholderContext, owner,
-                placeholderData, renderHtmlLinks: notification.Layout == NotificationLayout.HtmlInBody);
+                placeholderData, isHtmlBody: notification.Layout == NotificationLayout.HtmlInBody);
             FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, workflowContent, subject);
             int logId = await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))
@@ -177,7 +177,11 @@ namespace FWO.Services
         {
             if (!string.IsNullOrWhiteSpace(placeholderData?.Content))
             {
-                return NotificationEmailLayoutHelper.BuildBody(notification, placeholderData.Content);
+                // the content is free text of the user, e.g. the reason for a rejection, and never markup
+                string content = notification.Layout == NotificationLayout.HtmlInBody
+                    ? HtmlOutputEncoder.EncodeText(placeholderData.Content)
+                    : placeholderData.Content;
+                return NotificationEmailLayoutHelper.BuildBody(notification, content);
             }
 
             return NotificationEmailLayoutHelper.BuildBody(notification, workflowContent);

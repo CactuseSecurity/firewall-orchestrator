@@ -24,6 +24,11 @@ For maintenance work, read these files in order:
 
 The original customer requirement document was used during Phase 4 planning and is intentionally not part of the product repository. The resulting decisions, implementation brief, and tests are the durable specification.
 
+## Operational validation
+
+- [Acceptance test runbook](ACCEPTANCE-TEST-RUNBOOK.md) — agent-first acceptance procedure, importer-faithful fixture rules, and evidence requirements.
+- [Presenter practice guide](PRESENTER-PRACTICE-GUIDE.md) — rehearsed happy path, missing-Section failure, no-matching-layer failure, and presentation recovery notes.
+
 ## Roadmap boundary
 
 Phase 1 handles one gateway-specific implementation task per calculation. The caller must load all required context, call the positioning manager, and decide independently whether to persist a successful position or clear a stale one after failure.

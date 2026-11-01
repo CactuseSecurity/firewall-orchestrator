@@ -878,6 +878,328 @@ internal class UiSharedEditorTest
     }
 
     [Test]
+    public async Task ApprovalTaskDetailsView_OpenObjectTaskEditorUsesSelectedFieldKind()
+    {
+        WfReqTask accessTask = new()
+        {
+            Id = 91,
+            TaskType = WfTaskType.access.ToString(),
+            ManagementId = 8
+        };
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 12, Tasks = [accessTask] } };
+        ApprovalTaskDetailsView component = new();
+        UiRequestWorkflowTest.SetMember(component, nameof(ApprovalTaskDetailsView.WfHandler), handler);
+        UiRequestWorkflowTest.SetMember(component, "editingElementsTask", accessTask);
+        UiRequestWorkflowTest.SetMember(component, "editingElementsField", WorkflowEditableFieldKeys.Services);
+        UiRequestWorkflowTest.SetMember(component, "userConfig", new SimulatedUserConfig());
+
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "OpenObjectTaskEditor");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayObjectTaskEditor"), Is.True);
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayElementsEditor"), Is.False);
+            Assert.That(UiRequestWorkflowTest.GetMember<ObjectTaskKind>(component, "newObjectTaskKind"), Is.EqualTo(ObjectTaskKind.Service));
+            Assert.That(UiRequestWorkflowTest.GetMember<WfReqTask>(component, "newObjectTask").TaskNumber, Is.EqualTo(1));
+            Assert.That(UiRequestWorkflowTest.GetMember<WfReqTask>(component, "newObjectTask").ManagementId, Is.EqualTo(8));
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_ClosingObjectTaskEditorRestoresElementsEditor()
+    {
+        await using BunitContext context = CreateContext();
+        WfReqTask accessTask = new() { Id = 94, TaskType = WfTaskType.access.ToString() };
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, new WfHandler { ActTicket = new WfTicket { Tasks = [accessTask] } }));
+
+        UiRequestWorkflowTest.SetMember(cut.Instance, "editingElementsTask", accessTask);
+        UiRequestWorkflowTest.SetMember(cut.Instance, "displayObjectTaskEditor", true);
+        UiRequestWorkflowTest.SetMember(cut.Instance, "displayElementsEditor", false);
+
+        await cut.InvokeAsync(async () => await UiRequestWorkflowTest.InvokePrivateTask(
+            cut.Instance, "HandleObjectTaskEditorDisplayChanged", false));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(cut.Instance, "displayObjectTaskEditor"), Is.False);
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(cut.Instance, "displayElementsEditor"), Is.True);
+        });
+    }
+
+    [Test]
+    public void ApprovalTaskDetailsView_ObjectTaskReferenceCheckDistinguishesUsedAndUnusedTasks()
+    {
+        WfReqTask objectTask = new() { Id = 95, TaskType = WfTaskType.object_create.ToString() };
+        WfReqTask usingTask = new()
+        {
+            Id = 96,
+            TaskType = WfTaskType.access.ToString(),
+            Elements = [new WfReqElement { Field = ElemFieldType.source.ToString(), TaskId = objectTask.Id }]
+        };
+        WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [objectTask, usingTask] } };
+        ApprovalTaskDetailsView component = new();
+        UiRequestWorkflowTest.SetMember(component, nameof(ApprovalTaskDetailsView.WfHandler), handler);
+        MethodInfo method = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "IsObjectTaskReferenced");
+
+        Assert.That(method.Invoke(component, [objectTask]), Is.True);
+
+        usingTask.Elements.Clear();
+        Assert.That(method.Invoke(component, [objectTask]), Is.False);
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_DisplayFalseRendersNoTaskCards()
+    {
+        await using BunitContext context = CreateContext();
+        WfReqTask task = new() { Id = 97, Title = "hidden", TaskType = WfTaskType.access.ToString() };
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, false)
+            .Add(p => p.WfHandler, new WfHandler { ActTicket = new WfTicket { Tasks = [task] } }));
+
+        Assert.That(cut.Markup, Does.Not.Contain("hidden"));
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_LookupFailureFallsBackToEmptyDisplayData()
+    {
+        await using BunitContext context = CreateContext();
+        SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
+        userConfig.DesignatedZoneMatrixId = 7;
+        WfReqTask task = new() { Id = 97, Title = "fallback", TaskType = WfTaskType.access.ToString() };
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, new WfHandler { ActTicket = new WfTicket { Tasks = [task] } }));
+
+        Assert.That(cut.Markup, Does.Contain("fallback"));
+        Assert.That(UiRequestWorkflowTest.GetMember<List<RuleAction>>(cut.Instance, "ruleActions"), Is.Empty);
+        Assert.That(UiRequestWorkflowTest.GetMember<List<Tracking>>(cut.Instance, "trackings"), Is.Empty);
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_CoversGuardBranchesAndNonBundledGroups()
+    {
+        ApprovalTaskDetailsView component = new();
+        UiRequestWorkflowTest.SetMember(component, "userConfig", new SimulatedUserConfig
+        {
+            ReqConsiderBundling = false,
+            ReqDisplayBundledTasksAsOne = false
+        });
+        WfReqTask accessTask = new() { Id = 98, TaskType = WfTaskType.access.ToString() };
+        WfReqTask objectTask = new() { Id = 99, TaskType = WfTaskType.object_create.ToString() };
+        UiRequestWorkflowTest.SetMember(component, nameof(ApprovalTaskDetailsView.WfHandler),
+            new WfHandler { ActTicket = new WfTicket { Tasks = [accessTask, objectTask] } });
+
+        MethodInfo groupsMethod = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "GetTaskGroups");
+        List<List<WfReqTask>> groups = [.. (IEnumerable<List<WfReqTask>>)groupsMethod.Invoke(component, [])!];
+        Assert.That(groups, Has.Count.EqualTo(2));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(UiRequestWorkflowTest.InvokePrivateBool(component, "CanEdit", (object)Array.Empty<WfReqTask>(), WorkflowEditableFieldKeys.Title), Is.False);
+            Assert.That(UiRequestWorkflowTest.InvokePrivateBool(component, "CanEditTimeObject", (object)Array.Empty<WfReqTask>()), Is.False);
+            Assert.That(UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "EditableTimeObjectField")
+                .Invoke(component, [Array.Empty<WfReqTask>()]), Is.EqualTo(WorkflowEditableFieldKeys.ValidTo));
+        });
+
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "OpenObjectTaskEditor");
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "OpenCreateTimeObjectTaskEditor");
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "DeleteObjectTask");
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "DeleteFormerTimeObjectTask");
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "SaveElements", WorkflowEditableFieldKeys.Source,
+            Array.Empty<NwObjectElement>(), Array.Empty<NwObjectElement>(), Array.Empty<NwServiceElement>());
+
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "OpenOwnerEditor", accessTask);
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "OpenRuleActionEditor", accessTask);
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "OpenTrackingEditor", accessTask);
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "OpenManagementEditor", accessTask);
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "OpenTextEditor", accessTask, WorkflowEditableFieldKeys.Title, "title");
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "OpenElementsEditor", accessTask, WorkflowEditableFieldKeys.Destination);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayOwnerEditor"), Is.True);
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayRuleActionEditor"), Is.True);
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayTrackingEditor"), Is.True);
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayManagementEditor"), Is.True);
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayTextEditor"), Is.True);
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayElementsEditor"), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_RunWithProgressIgnoresConcurrentInvocation()
+    {
+        ApprovalTaskDetailsView component = new();
+        UiRequestWorkflowTest.SetMember(component, "workInProgress", true);
+        bool executed = false;
+
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "RunWithProgress", new Func<Task>(() =>
+        {
+            executed = true;
+            return Task.CompletedTask;
+        }));
+
+        Assert.That(executed, Is.False);
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_SavesAllMetadataThroughTheWorkflowHandler()
+    {
+        await using BunitContext context = CreateContext();
+        WfReqTask task = new()
+        {
+            Id = 100,
+            TicketId = 10,
+            TaskNumber = 1,
+            TaskType = WfTaskType.access.ToString(),
+            Title = "old title",
+            Reason = "old reason",
+            FreeText = "old text"
+        };
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 10, Tasks = [task] } };
+        UiRequestWorkflowTest.SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix { LowestInputState = 1 });
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, handler));
+
+        RuleAction action = new() { Id = 3, Name = "allow" };
+        Tracking tracking = new() { Id = 4, Name = "log" };
+        Management management = new() { Id = 5, Name = "management" };
+        FwoOwner owner = new() { Id = 6, Name = "owner" };
+
+        UiRequestWorkflowTest.SetMember(cut.Instance, "editingRuleActionTask", task);
+        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveRuleActionCore", action);
+        task = handler.ActTicket.Tasks.Single(currentTask => currentTask.Id == task.Id);
+        UiRequestWorkflowTest.SetMember(cut.Instance, "editingTrackingTask", task);
+        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveTrackingCore", tracking);
+        task = handler.ActTicket.Tasks.Single(currentTask => currentTask.Id == task.Id);
+        UiRequestWorkflowTest.SetMember(cut.Instance, "editingManagementTask", task);
+        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveManagementCore", management);
+        task = handler.ActTicket.Tasks.Single(currentTask => currentTask.Id == task.Id);
+        UiRequestWorkflowTest.SetMember(cut.Instance, "editingOwnerTask", task);
+        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveOwnerCore", owner);
+        task = handler.ActTicket.Tasks.Single(currentTask => currentTask.Id == task.Id);
+
+        foreach (string key in new[] { WorkflowEditableFieldKeys.Title, WorkflowEditableFieldKeys.Reason, WorkflowEditableFieldKeys.FreeText })
+        {
+            UiRequestWorkflowTest.SetMember(cut.Instance, "editingTextTask", task);
+            UiRequestWorkflowTest.SetMember(cut.Instance, "textEditorKey", key);
+            await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveTextCore", $"changed-{key}");
+            task = handler.ActTicket.Tasks.Single(currentTask => currentTask.Id == task.Id);
+        }
+
+        WfReqTask savedTask = task;
+        Assert.Multiple(() =>
+        {
+            Assert.That(savedTask.RuleAction, Is.EqualTo(3));
+            Assert.That(savedTask.Tracking, Is.EqualTo(4));
+            Assert.That(savedTask.ManagementId, Is.EqualTo(5));
+            Assert.That(savedTask.NewOwners.Single().Id, Is.EqualTo(6));
+            Assert.That(savedTask.Title, Is.EqualTo($"changed-{WorkflowEditableFieldKeys.Title}"));
+            Assert.That(savedTask.Reason, Is.EqualTo($"changed-{WorkflowEditableFieldKeys.Reason}"));
+            Assert.That(savedTask.FreeText, Is.EqualTo($"changed-{WorkflowEditableFieldKeys.FreeText}"));
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_SavesNewObjectTaskAndReturnsToElementEditor()
+    {
+        await using BunitContext context = CreateContext();
+        WfReqTask accessTask = new() { Id = 101, TaskNumber = 1, StateId = 2, TaskType = WfTaskType.access.ToString() };
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 11, Tasks = [accessTask] } };
+        UiRequestWorkflowTest.SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix { LowestInputState = 2 });
+        UiRequestWorkflowTest.SetMatrix(handler, WfTaskType.object_create.ToString(), new StateMatrix { LowestInputState = 2 });
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, handler));
+
+        WfReqTask objectTask = new()
+        {
+            Id = 102,
+            TicketId = 11,
+            TaskNumber = 2,
+            StateId = 2,
+            TaskType = WfTaskType.object_create.ToString(),
+            Title = "draft",
+            Elements = [new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "new-source" }]
+        };
+        UiRequestWorkflowTest.SetMember(cut.Instance, "editingElementsTask", accessTask);
+        UiRequestWorkflowTest.SetMember(cut.Instance, "displayObjectTaskEditor", true);
+        UiRequestWorkflowTest.SetMember(cut.Instance, "displayElementsEditor", false);
+
+        await cut.InvokeAsync(async () => await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveObjectTaskCore", objectTask));
+
+        WfReqTask savedObjectTask = handler.ActTicket.Tasks.Single(currentTask => currentTask.Id == objectTask.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(savedObjectTask, Is.Not.SameAs(objectTask));
+            Assert.That(savedObjectTask.Title, Is.EqualTo("new-source"));
+            Assert.That(savedObjectTask.StateId, Is.EqualTo(2));
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(cut.Instance, "displayObjectTaskEditor"), Is.False);
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(cut.Instance, "displayElementsEditor"), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_SavingElementsOffersUnusedFormerObjectTaskForDeletion()
+    {
+        await using BunitContext context = CreateContext();
+        WfReqTask objectTask = new() { Id = 103, TaskNumber = 1, TaskType = WfTaskType.object_create.ToString() };
+        WfReqTask accessTask = new()
+        {
+            Id = 104,
+            TaskNumber = 2,
+            TaskType = WfTaskType.access.ToString(),
+            Elements = [new WfReqElement { Id = 1041, Field = ElemFieldType.source.ToString(), TaskId = objectTask.Id, Name = "old" }]
+        };
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 12, Tasks = [objectTask, accessTask] } };
+        UiRequestWorkflowTest.SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix { LowestInputState = 2 });
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, handler));
+        UiRequestWorkflowTest.SetMember(cut.Instance, "editingElementsTask", accessTask);
+
+        await cut.InvokeAsync(async () => await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveElementsCore",
+            WorkflowEditableFieldKeys.Source, Array.Empty<NwObjectElement>(), Array.Empty<NwObjectElement>(), Array.Empty<NwServiceElement>()));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(cut.Instance, "displayDeleteObjectTask"), Is.True);
+            Assert.That(UiRequestWorkflowTest.GetMember<WfReqTask>(cut.Instance, "pendingObjectTask"), Is.SameAs(objectTask));
+            Assert.That(UiRequestWorkflowTest.GetMember<object?>(cut.Instance, "editingElementsTask"), Is.Null);
+        });
+    }
+
+    [Test]
+    public void ApprovalTaskDetailsView_NewObjectTaskUsesOneInitialStateForTaskAndApproval()
+    {
+        WfHandler handler = new()
+        {
+            ActStateMatrix = new StateMatrix { LowestInputState = 55 }
+        };
+        WfReqTask task = new()
+        {
+            StateId = 49,
+            Approvals = new List<WfApproval> { new() { StateId = 49 } }
+        };
+        ApprovalTaskDetailsView component = new();
+        UiRequestWorkflowTest.SetMember(component, nameof(ApprovalTaskDetailsView.WfHandler), handler);
+
+        MethodInfo method = typeof(ApprovalTaskDetailsView).GetMethod("InitializeNewObjectTaskState", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        List<object> arguments = new() { task };
+        method.Invoke(component, arguments.ToArray());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(task.StateId, Is.EqualTo(55));
+            Assert.That(task.Approvals.Single().StateId, Is.EqualTo(55));
+        });
+    }
+
+    [Test]
     public async Task ApprovalTaskDetailsView_RendersObjectCreateAndModifyTasks()
     {
         await using BunitContext context = CreateContext();

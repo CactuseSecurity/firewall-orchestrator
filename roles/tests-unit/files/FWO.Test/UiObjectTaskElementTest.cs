@@ -78,7 +78,7 @@ namespace FWO.Test
             return context;
         }
 
-        private static IRenderedComponent<DisplayObjectTaskElement> RenderElement(BunitContext context, WfReqTask task, bool isModify, int? managementId, bool editMode = true)
+        private static IRenderedComponent<DisplayObjectTaskElement> RenderElement(BunitContext context, WfReqTask task, bool isModify, int? managementId, bool editMode = true, ObjectTaskKind? fixedKind = null)
         {
             return context.Render<DisplayObjectTaskElement>(parameters => parameters
                 .Add(p => p.ReqTask, task)
@@ -86,7 +86,8 @@ namespace FWO.Test
                 .Add(p => p.ManagementId, managementId)
                 .Add(p => p.EditMode, editMode)
                 .Add(p => p.SelectableIpProtos, kIpProtos)
-                .Add(p => p.DisplayIpProtos, kIpProtos));
+                .Add(p => p.DisplayIpProtos, kIpProtos)
+                .Add(p => p.ObjectKind, fixedKind));
         }
 
         private static void SetMember(object instance, string memberName, object? value)
@@ -859,6 +860,44 @@ namespace FWO.Test
                 Assert.That(GetMember<TimeObject>(editComponent.Instance, "selectedTimeObject")?.Id, Is.EqualTo(77));
                 Assert.That(readOnlyComponent.Markup, Does.Contain("maintenance 2026-11-01 08:00 - 2026-11-30 18:00"));
                 Assert.That(readOnlyComponent.Markup, Does.Contain("maintenance 2026-11-01 08:00 - 2026-12-01 18:00"));
+            });
+        }
+
+        [Test]
+        public async Task ObjectKindNetwork_HidesObjectKindSelector()
+        {
+            await using BunitContext context = CreateContext();
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, new WfReqTask(), false, kManagementId, fixedKind: ObjectTaskKind.Network);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("#objKindNetwork"), Is.Empty);
+                Assert.That(GetMember<ObjectTaskKind>(component.Instance, "kind"), Is.EqualTo(ObjectTaskKind.Network));
+            });
+        }
+
+        [Test]
+        public async Task ObjectKindService_HidesObjectKindSelectorAndUsesServiceInputs()
+        {
+            await using BunitContext context = CreateContext();
+            List<IpProtocol> protocols = [new() { Id = 1, Name = "icmp" }, new() { Id = kTcp, Name = "tcp" }];
+            IRenderedComponent<DisplayObjectTaskElement> component = context.Render<DisplayObjectTaskElement>(parameters => parameters
+                .Add(p => p.ReqTask, new WfReqTask())
+                .Add(p => p.IsModify, false)
+                .Add(p => p.ManagementId, kManagementId)
+                .Add(p => p.EditMode, true)
+                .Add(p => p.SelectableIpProtos, protocols)
+                .Add(p => p.DisplayIpProtos, protocols)
+                .Add(p => p.ObjectKind, ObjectTaskKind.Service));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("#objKindService"), Is.Empty);
+                Assert.That(GetMember<ObjectTaskKind>(component.Instance, "kind"), Is.EqualTo(ObjectTaskKind.Service));
+                Assert.That(component.FindAll("input[placeholder='port_range']"), Has.Count.EqualTo(1));
+                Assert.That(GetMember<int>(component.Instance, "protoId"), Is.EqualTo(kTcp));
+                Assert.That(component.FindAll("div.form-group.row"), Has.Count.EqualTo(3));
+                Assert.That(component.FindAll("label.col-sm-3"), Has.Count.EqualTo(3));
             });
         }
 

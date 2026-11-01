@@ -123,7 +123,8 @@
                             </button>
                         </div>
                         <ApprovalTaskDetailsView @bind-Display="displayApprovalTaskDetailsView"
-                            WfHandler="WfHandler" States="States" EditField="OpenApprovalAccessTaskEditor" />
+                            WfHandler="WfHandler" States="States" EditField="OpenApprovalAccessTaskEditor"
+                            OfferedActions="offeredActions" PerformTicketAction="PerformAction" />
                         <DisplayReqTaskTable Phase="Phase" States="States" ReadOnlyDisplay="true"
                             WfHandler="WfHandler" ResetParent="CloseApprovalAccessTaskEditor"
                             StartPhase="StartRequestPhase" StartImplPhase="StartImplementationPhase"
@@ -319,6 +320,7 @@
 
     private void OpenApprovalTaskDetailsView()
     {
+        approvalAccessTaskField = null;
         displayApprovalTaskDetailsView = true;
     }
 
@@ -327,6 +329,9 @@
         approvalAccessTaskField = fieldKey;
         displayApprovalTaskDetailsView = false;
         await WfHandler.SelectReqTask(task, ObjAction.approve, true);
+        // SelectReqTask is asynchronous. Force the focused legacy editor to be
+        // rendered after the details popup has been closed.
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task CloseApprovalAccessTaskEditor()

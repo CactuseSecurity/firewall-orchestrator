@@ -1,0 +1,48 @@
+@using FWO.Data
+@using FWO.Data.Workflow
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("add_task"))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <DisplayObjectTaskElement @ref="objectTaskElement" ReqTask="Task" IsModify="false"
+                ManagementId="@Task.ManagementId" EditMode="true" SelectableIpProtos="SelectableIpProtos"
+                DisplayIpProtos="DisplayIpProtos" ObjectKind="ObjectKind" />
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+    </Footer>
+</PopUp>
+
+@code {
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public WfReqTask Task { get; set; } = new();
+    [Parameter] public List<IpProtocol> SelectableIpProtos { get; set; } = [];
+    [Parameter] public List<IpProtocol> DisplayIpProtos { get; set; } = [];
+    [Parameter] public ObjectTaskKind ObjectKind { get; set; } = ObjectTaskKind.Network;
+    [Parameter] public Func<WfReqTask, Task> Saved { get; set; } = _ => System.Threading.Tasks.Task.CompletedTask;
+
+    private DisplayObjectTaskElement? objectTaskElement;
+
+    private async Task Save()
+    {
+        if (objectTaskElement == null || objectTaskElement.ApplyToTask() != null)
+        {
+            return;
+        }
+
+        await Saved(Task);
+        Close();
+    }
+
+    private void Close()
+    {
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+}

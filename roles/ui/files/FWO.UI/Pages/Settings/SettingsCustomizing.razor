@@ -217,8 +217,8 @@
                     @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
                 </button>
             </div>
-            <label class="col-form-label col-sm-2">@(userConfig.GetText("approval_edit_mode")):</label>
-            <div class="col-sm-3">
+            <label class="col-form-label col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5576a"))">@(userConfig.GetText("approval_edit_mode")):</label>
+            <div class="col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5576a"))">
                 <Dropdown Id="sel_approval_edit_mode" ElementType="ApprovalEditMode"
                           @bind-SelectedElement="configData!.ReqApprovalEditMode"
                           ElementToString="ApprovalEditModeText"
@@ -235,7 +235,7 @@
                 <textarea id="txt_implicit_approval_comment" class="form-control" rows="2" @bind="configData!.ReqImplicitApprovalComment"></textarea>
             </div>
         </div>
-        <div class="form-group row mt-2">
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5576b"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("time_object_origin_suffixes")):</label>
             <div class="col-sm-2">
                 <button type="button" class="btn btn-sm btn-warning" @onclick="() => editTimeObjectOriginSuffixesMode = true">

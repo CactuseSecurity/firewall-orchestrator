@@ -360,6 +360,7 @@ namespace FWO.Test
             {"replace","Replace" },
             {"E9017","ErrorText" },
             {"from_ticket","From Ticket" },
+            {"flow_database","Flow database" },
             {"FromFlowDb","from Flow DB" },
             {"Manually","manually" },
             {"InterfaceRejected","Interface rejected" },

@@ -63,7 +63,18 @@
         }
     </Body>
     <Footer>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+        <div class="d-flex justify-content-center align-items-center">
+            <div class="btn-group mr-2">
+                @foreach (WfStateAction action in OfferedActions)
+                {
+                    @if (WfHandler.CanPerformActionOnActTicket(action))
+                    {
+                        <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => RunWithProgress(() => PerformTicketAction(action))">@action.ButtonText</button>
+                    }
+                }
+            </div>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+        </div>
     </Footer>
 </PopUp>
 <InProgress Display="workInProgress" />
@@ -88,10 +99,19 @@
     Saved="CreateTimeObjectTask" />
 <TextEditor @bind-Display="displayTextEditor" Text="@textEditorValue" TextKey="@textEditorKey"
     Multiline="@textEditorMultiline" Rows="5" Saved="SaveText" />
+<ApprovalTaskElementsEditor @bind-Display="displayElementsEditor" Task="@(editingElementsTask ?? new WfReqTask())"
+    FieldKey="@editingElementsField" TicketTasks="WfHandler.ActTicket.Tasks" IpProtos="ipProtocols"
+    SelectableIpProtos="selectableIpProtocols" Saved="SaveElements" CreateObjectTaskRequested="OpenObjectTaskEditor" />
+<ApprovalObjectTaskEditor Display="displayObjectTaskEditor" DisplayChanged="HandleObjectTaskEditorDisplayChanged"
+    Task="newObjectTask" ObjectKind="newObjectTaskKind" SelectableIpProtos="selectableIpProtocols"
+    DisplayIpProtos="ipProtocols" Saved="SaveObjectTask" />
 <TimeObjectTaskDeleteConfirmation @bind-Display="displayDeleteFormerTimeObjectTask"
     Title="@(userConfig.GetText("delete_time_object_task"))"
     Message="@(userConfig.GetText("delete_time_object_task_message"))"
     Confirmed="DeleteFormerTimeObjectTask" />
+<TimeObjectTaskDeleteConfirmation @bind-Display="displayDeleteObjectTask"
+    Title="@(userConfig.GetText("delete_task"))" Message="@(userConfig.GetText("delete_unreferenced_object_task_message"))"
+    Confirmed="DeleteObjectTask" />
 
 @code {
     [Parameter] public bool Display { get; set; }
@@ -99,6 +119,8 @@
     [Parameter] public WfHandler WfHandler { get; set; } = new();
     [Parameter] public WfStateDict States { get; set; } = new();
     [Parameter] public Func<WfReqTask, string, Task> EditField { get; set; } = (_, _) => Task.CompletedTask;
+    [Parameter] public IReadOnlyList<WfStateAction> OfferedActions { get; set; } = [];
+    [Parameter] public Func<WfStateAction, Task> PerformTicketAction { get; set; } = _ => Task.CompletedTask;
 
     private ApproverAllowedChangesConfig AllowedChanges =>
         ApproverAllowedChangesConfig.Parse(userConfig.ReqAllowedChangesByApprover);
@@ -109,6 +131,7 @@
     private ApprovalTaskElementDisplayMode accessElementDisplayMode = ApprovalTaskElementDisplayMode.Resolved;
     private List<ComplianceNetworkZone> networkZones = [];
     private List<IpProtocol> ipProtocols = [];
+    private List<IpProtocol> selectableIpProtocols = [];
 
     private List<RuleAction> ruleActions = [];
     private List<Tracking> trackings = [];
@@ -135,6 +158,14 @@
     private bool displayDeleteFormerTimeObjectTask;
     private WfReqTask? pendingFormerTimeObjectTask;
     private bool displayTextEditor;
+    private bool displayElementsEditor;
+    private WfReqTask? editingElementsTask;
+    private string editingElementsField = WorkflowEditableFieldKeys.Source;
+    private bool displayObjectTaskEditor;
+    private WfReqTask newObjectTask = new();
+    private ObjectTaskKind newObjectTaskKind = ObjectTaskKind.Network;
+    private bool displayDeleteObjectTask;
+    private WfReqTask? pendingObjectTask;
     private bool workInProgress;
     private WfReqTask? editingTextTask;
     private string textEditorKey = "title";
@@ -150,7 +181,12 @@
         {
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions) ?? [];
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking) ?? [];
-            ipProtocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols) ?? [];
+            List<IpProtocol> protocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols) ?? [];
+            ipProtocols = ProtocolDisplayHelper.CustomSortProtocols(protocols, null, false);
+            selectableIpProtocols = ProtocolDisplayHelper.CustomSortProtocols(
+                ProtocolDisplayHelper.GetSelectableProtocols(protocols),
+                ProtocolDisplayHelper.ParseProtocolNames(userConfig.ReducedProtocolSetProtocols),
+                userConfig.ReducedProtocolSet);
             if (userConfig.DesignatedZoneMatrixId > 0)
             {
                 networkZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
@@ -163,6 +199,8 @@
             // The IDs remain useful as a fallback when the lookup data is unavailable.
             ruleActions = [];
             trackings = [];
+            ipProtocols = [];
+            selectableIpProtocols = [];
         }
     }
 
@@ -217,7 +255,7 @@
         OpenRuleActionEditor,
         OpenTrackingEditor,
         OpenManagementEditor,
-        EditField,
+        OpenElementsEditor,
         (task, field, value) => OpenTextEditor(task, field, value),
         (task, field) => OpenTargetDatesEditor(task, field));
 
@@ -348,6 +386,146 @@
         textEditorMultiline = fieldKey != WorkflowEditableFieldKeys.Title;
         displayTextEditor = true;
         return RefreshAfterEditorOpen();
+    }
+
+    private Task OpenElementsEditor(WfReqTask task, string fieldKey)
+    {
+        editingElementsTask = task;
+        editingElementsField = fieldKey;
+        displayElementsEditor = true;
+        return RefreshAfterEditorOpen();
+    }
+
+    private Task OpenObjectTaskEditor()
+    {
+        if (editingElementsTask == null)
+        {
+            return Task.CompletedTask;
+        }
+
+        newObjectTask = new WfReqTask
+        {
+            TicketId = WfHandler.ActTicket.Id,
+            TaskNumber = WfHandler.ActTicket.HighestTaskNumber() + 1,
+            TaskType = WfTaskType.object_create.ToString(),
+            RequestAction = RequestAction.create.ToString(),
+            StateId = editingElementsTask.StateId,
+            ManagementId = editingElementsTask.ManagementId,
+            Locked = true,
+            Title = userConfig.GetText("task")
+        };
+        newObjectTaskKind = editingElementsField == WorkflowEditableFieldKeys.Services
+            ? ObjectTaskKind.Service
+            : ObjectTaskKind.Network;
+        displayElementsEditor = false;
+        displayObjectTaskEditor = true;
+        return RefreshAfterEditorOpen();
+    }
+
+    private Task SaveObjectTask(WfReqTask task)
+    {
+        return RunWithProgress(() => SaveObjectTaskCore(task));
+    }
+
+    private async Task HandleObjectTaskEditorDisplayChanged(bool display)
+    {
+        displayObjectTaskEditor = display;
+        if (!display && editingElementsTask != null)
+        {
+            displayElementsEditor = true;
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveObjectTaskCore(WfReqTask task)
+    {
+        task.Title = task.Elements.FirstOrDefault()?.Name ?? task.Title;
+        WfHandler.SetReqTaskEnv(task);
+        await WfHandler.AddReqTask(allowLockedApprovalUpdate: true);
+        displayObjectTaskEditor = false;
+        displayElementsEditor = editingElementsTask != null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task DeleteObjectTask()
+    {
+        return RunWithProgress(DeleteObjectTaskCore);
+    }
+
+    private async Task DeleteObjectTaskCore()
+    {
+        if (pendingObjectTask == null)
+        {
+            return;
+        }
+
+        WfHandler.SetReqTaskEnv(pendingObjectTask);
+        await WfHandler.ConfDeleteReqTask(allowLockedApprovalUpdate: true);
+        pendingObjectTask = null;
+        displayDeleteObjectTask = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task SaveElements(string fieldKey, IReadOnlyList<NwObjectElement> sources,
+        IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services)
+    {
+        return RunWithProgress(() => SaveElementsCore(fieldKey, sources, destinations, services));
+    }
+
+    private async Task SaveElementsCore(string fieldKey, IReadOnlyList<NwObjectElement> sources,
+        IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services)
+    {
+        if (editingElementsTask == null)
+        {
+            return;
+        }
+
+        WfHandler.SetReqTaskEnv(editingElementsTask);
+        WfReqTask activeTask = WfHandler.ActReqTask;
+        ElemFieldType field = fieldKey switch
+        {
+            WorkflowEditableFieldKeys.Source => ElemFieldType.source,
+            WorkflowEditableFieldKeys.Destination => ElemFieldType.destination,
+            _ => ElemFieldType.service
+        };
+        List<WfReqTask> formerObjectTasks = activeTask.Elements
+            .Where(element => element.Field == field.ToString() && element.TaskId > 0)
+            .Select(element => WfHandler.ActTicket.Tasks.FirstOrDefault(task => task.Id == element.TaskId))
+            .Where(task => task != null && WfObjectTaskHelper.IsObjectTask(task.TaskType))
+            .Cast<WfReqTask>()
+            .DistinctBy(task => task.Id)
+            .ToList();
+        List<WfReqElement> replacement = field switch
+        {
+            ElemFieldType.source => sources.Select(element => element.ToReqElement(field)).ToList(),
+            ElemFieldType.destination => destinations.Select(element => element.ToReqElement(field)).ToList(),
+            _ => services.Select(element => element.ToReqElement()).ToList()
+        };
+        HashSet<long> retainedIds = replacement.Where(element => element.Id > 0).Select(element => element.Id).ToHashSet();
+        activeTask.RemovedElements.AddRange(activeTask.Elements
+            .Where(element => element.Field == field.ToString() && element.Id > 0 && !retainedIds.Contains(element.Id))
+            .Where(element => activeTask.RemovedElements.All(removed => removed.Id != element.Id)));
+        activeTask.Elements = activeTask.Elements
+            .Where(element => element.Field != field.ToString())
+            .Concat(replacement)
+            .ToList();
+        await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+        editingElementsTask = null;
+        WfReqTask? formerObjectTask = formerObjectTasks.FirstOrDefault(task => !IsObjectTaskReferenced(task));
+        if (formerObjectTask != null)
+        {
+            pendingObjectTask = formerObjectTask;
+            displayDeleteObjectTask = true;
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool IsObjectTaskReferenced(WfReqTask objectTask)
+    {
+        return WfHandler.ActTicket.Tasks
+            .Where(task => task.Id != objectTask.Id)
+            .SelectMany(task => task.Elements)
+            .Any(element => element.TaskId == objectTask.Id);
     }
 
     private Task RefreshAfterEditorOpen()
@@ -555,6 +733,7 @@
             ]
         };
 
+        InitializeNewObjectTaskState(newTask);
         WfHandler.SelectReqTask(newTask, ObjAction.add);
         await WfHandler.AddReqTask(allowLockedApprovalUpdate: true);
         WfReqTask? createdTask = WfHandler.ActTicket.Tasks.FirstOrDefault(task => task.TaskNumber == newTask.TaskNumber);
@@ -580,6 +759,16 @@
         displayTimeObjectTaskEditor = false;
         displayTargetDatesEditor = true;
         await InvokeAsync(StateHasChanged);
+    }
+
+    private void InitializeNewObjectTaskState(WfReqTask task)
+    {
+        int initialState = WfHandler.ActStateMatrix.LowestInputState;
+        task.StateId = initialState;
+        foreach (WfApproval approval in task.Approvals)
+        {
+            approval.StateId = initialState;
+        }
     }
 
     private bool ShouldOfferFormerTimeObjectDeletion(TargetDatesEditorModel model)

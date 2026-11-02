@@ -14,13 +14,14 @@ namespace FWO.Ui.Pages.Settings
     {
         /// <summary>
         /// Levels whose implementation mode (objects or rules) is external ticket system while no external ticket
-        /// system is selected: nobody implements their tasks.
+        /// system is selected: nobody implements their tasks. Only the level where this arises is listed, not the
+        /// levels below that inherit it.
         /// </summary>
         public List<DeviceSpecificNode> ExternalModeWithoutSystem { get; } = [];
 
         /// <summary>
         /// Levels selecting an external ticket system that neither they nor any level below them use: the selection
-        /// alone has no effect.
+        /// alone has no effect. Only the level that selects the system is listed, not the levels that inherit it.
         /// </summary>
         public List<DeviceSpecificNode> SystemWithoutExternalMode { get; } = [];
 
@@ -86,11 +87,13 @@ namespace FWO.Ui.Pages.Settings
                     CheckGateway(node, settings, settingsByNode, result);
                     continue;
                 }
-                if (UsesExternalTicketSystem(settings) && settings.RerouteToExternalTicketSystem == null)
+                GlobalDeviceSpecificSettings? parentSettings = ParentSettings(node, settingsByNode);
+                if (IsExternalModeWithoutSystem(settings) && (parentSettings == null || !IsExternalModeWithoutSystem(parentSettings)))
                 {
                     result.ExternalModeWithoutSystem.Add(node);
                 }
-                if (settings.RerouteToExternalTicketSystem != null && !SubtreeUsesExternalTicketSystem(node, settingsByNode))
+                if (settings.RerouteToExternalTicketSystem != null && settings.RerouteToExternalTicketSystem != parentSettings?.RerouteToExternalTicketSystem
+                    && !SubtreeUsesExternalTicketSystem(node, settingsByNode))
                 {
                     result.SystemWithoutExternalMode.Add(node);
                 }
@@ -108,6 +111,21 @@ namespace FWO.Ui.Pages.Settings
             {
                 result.GatewayDiffersInExternalMode.Add(gateway);
             }
+        }
+
+        /// <summary>
+        /// Returns the effective settings of the parent level, or null for the root. A level is only reported where a
+        /// finding arises, not on the levels below that merely inherit it.
+        /// </summary>
+        private static GlobalDeviceSpecificSettings? ParentSettings(DeviceSpecificNode node,
+            IReadOnlyDictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settingsByNode)
+        {
+            return node.Parent != null && settingsByNode.TryGetValue(node.Parent, out GlobalDeviceSpecificSettings? parentSettings) ? parentSettings : null;
+        }
+
+        private static bool IsExternalModeWithoutSystem(GlobalDeviceSpecificSettings settings)
+        {
+            return UsesExternalTicketSystem(settings) && settings.RerouteToExternalTicketSystem == null;
         }
 
         private static bool UsesExternalTicketSystem(GlobalDeviceSpecificSettings settings)

@@ -359,6 +359,38 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AccessTaskWithoutManagement_IsDecidedPerGatewayNotByTheGlobalExternalMode()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            SetExternalTicketSystem(api, kGlobalNodeId);
+            api.SetValue(kManagementNodeId, DeviceSpecificSettingKeys.ImplementationModeOverrideForRules, ProvisioningRuleImplementationMode.Automatic);
+            WfHandler handler = CreateHandler(api);
+            WfTicket ticket = new() { Id = 5, Tasks = [CreateAccessTask(8, null, kNoGateway)] };
+
+            await handler.CreateMissingImplTasksForTicket(ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(DeviceIds(handler.ActTicket.Tasks.Single()), Is.EqualTo(kInternalGatewayTasks), "the gateways of the automatic management");
+                Assert.That(AlertRaised(api), Is.True, "the gateway of the external management is implemented by nobody");
+            });
+        }
+
+        [Test]
+        public async Task GroupTaskWithoutManagement_IsDecidedPerTargetNotByTheGlobalExternalMode()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            SetExternalTicketSystem(api, kGlobalNodeId);
+            api.SetValue(kManagementNodeId, DeviceSpecificSettingKeys.ImplementationMode, ProvisioningImplementationMode.Automatic);
+            WfHandler handler = CreateHandler(api);
+            WfReqTask reqTask = CreateGroupTask(7, null);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(ManagementIds(reqTask).Single(), Is.EqualTo(kManagementId));
+        }
+
+        [Test]
         public async Task RuleDeleteTask_GatewayWithManualRuleMode_GetsNoTask()
         {
             InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();

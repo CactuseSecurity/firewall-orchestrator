@@ -7,8 +7,8 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     /// <summary>
-    /// Tests the object creation consistency check with a FortiManager and its ADOMs: the hints follow the targets
-    /// that actually get implementation tasks.
+    /// Tests the object creation consistency check with a FortiManager and its ADOMs: a sub-management whose setting
+    /// differs from the one of its super-management is reported, unless it is set to ignore.
     /// </summary>
     [TestFixture]
     internal class ObjectCreationConsistencyCheckTest
@@ -20,8 +20,8 @@ namespace FWO.Test
         private const int kStandaloneId = 200;
 
         private static readonly List<int> kAllAdoms = [kFirstAdomId, kSecondAdomId, kRootAdomId];
+        private static readonly List<int> kRootAdomOnly = [kRootAdomId];
         private static readonly List<ObjectTaskKind> kAllKinds = [ObjectTaskKind.Network, ObjectTaskKind.Service, ObjectTaskKind.Time];
-        private static readonly List<int> kFortiManagerAndRoot = [kFortiManagerId, kRootAdomId];
 
         private static List<Management> CreateManagements()
         {
@@ -38,7 +38,7 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Settings of every management with the given address object creation and implementation mode.
+        /// Settings of every management with the given creation setting for all kinds of objects.
         /// </summary>
         private static Dictionary<int, GlobalDeviceSpecificSettings> CreateSettings(ProvisioningObjectCreationMode managerCreation,
             ProvisioningObjectCreationMode adomCreation)
@@ -47,14 +47,19 @@ namespace FWO.Test
             foreach (Management management in CreateManagements())
             {
                 ProvisioningObjectCreationMode creation = management.Id == kFortiManagerId ? managerCreation : adomCreation;
-                settings[management.Id] = new GlobalDeviceSpecificSettings { AddressObjectCreation = creation };
+                settings[management.Id] = new GlobalDeviceSpecificSettings
+                {
+                    AddressObjectCreation = creation,
+                    ServiceObjectCreation = creation,
+                    TimeObjectCreation = creation
+                };
             }
             return settings;
         }
 
-        private static List<ObjectCreationFinding> AddressFindings(Dictionary<int, GlobalDeviceSpecificSettings> settings)
+        private static List<ObjectCreationFinding> Check(Dictionary<int, GlobalDeviceSpecificSettings> settings)
         {
-            return [.. ObjectCreationConsistencyCheck.Check(CreateManagements(), settings).Where(finding => finding.Kinds.Contains(ObjectTaskKind.Network))];
+            return ObjectCreationConsistencyCheck.Check(CreateManagements(), settings);
         }
 
         private static List<int> Ids(ObjectCreationFinding finding)
@@ -62,122 +67,101 @@ namespace FWO.Test
             return [.. finding.Managements.Select(management => management.Id)];
         }
 
-        [Test]
-        public void ConsistentSettings_GiveNoFinding()
+        [TestCase(ProvisioningObjectCreationMode.Supermanager)]
+        [TestCase(ProvisioningObjectCreationMode.Submanager)]
+        public void SameSettingOnSuperAndSubs_GivesNoFinding(ProvisioningObjectCreationMode mode)
         {
-            Dictionary<int, GlobalDeviceSpecificSettings> allSuper = CreateSettings(ProvisioningObjectCreationMode.Supermanager, ProvisioningObjectCreationMode.Supermanager);
-            Dictionary<int, GlobalDeviceSpecificSettings> allSub = CreateSettings(ProvisioningObjectCreationMode.Submanager, ProvisioningObjectCreationMode.Submanager);
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(ObjectCreationConsistencyCheck.Check(CreateManagements(), allSuper), Is.Empty);
-                Assert.That(ObjectCreationConsistencyCheck.Check(CreateManagements(), allSub), Is.Empty);
-            });
+            Assert.That(Check(CreateSettings(mode, mode)), Is.Empty);
         }
 
-        [Test]
-        public void SuperSettingDifferentFromAllAdoms_HasNoEffect()
+        [TestCase(ProvisioningObjectCreationMode.Supermanager, ProvisioningObjectCreationMode.Submanager)]
+        [TestCase(ProvisioningObjectCreationMode.Submanager, ProvisioningObjectCreationMode.Supermanager)]
+        public void SubsDifferingFromSuper_AreReportedForAllKindsInOneFinding(ProvisioningObjectCreationMode managerCreation,
+            ProvisioningObjectCreationMode adomCreation)
         {
-            Dictionary<int, GlobalDeviceSpecificSettings> settings = CreateSettings(ProvisioningObjectCreationMode.Supermanager, ProvisioningObjectCreationMode.Submanager);
-
-            ObjectCreationFinding finding = AddressFindings(settings).Single();
+            ObjectCreationFinding finding = Check(CreateSettings(managerCreation, adomCreation)).Single();
 
             Assert.Multiple(() =>
             {
-                Assert.That(finding.Type, Is.EqualTo(ObjectCreationFindingType.SuperSettingWithoutEffect));
                 Assert.That(finding.SuperManagement.Id, Is.EqualTo(kFortiManagerId));
                 Assert.That(Ids(finding), Is.EqualTo(kAllAdoms));
+                Assert.That(finding.Kinds, Is.EqualTo(kAllKinds));
             });
         }
 
         [Test]
-        public void SubmanagerSettingOnSuperWhileAllAdomsPointToIt_HasNoEffect()
-        {
-            Dictionary<int, GlobalDeviceSpecificSettings> settings = CreateSettings(ProvisioningObjectCreationMode.Submanager, ProvisioningObjectCreationMode.Supermanager);
-
-            Assert.That(AddressFindings(settings).Single().Type, Is.EqualTo(ObjectCreationFindingType.SuperSettingWithoutEffect));
-        }
-
-        [Test]
-        public void OneAdomLocal_IsMixedOperation()
+        public void SingleDifferingSub_IsReportedAlone()
         {
             Dictionary<int, GlobalDeviceSpecificSettings> settings = CreateSettings(ProvisioningObjectCreationMode.Supermanager, ProvisioningObjectCreationMode.Supermanager);
             settings[kRootAdomId].AddressObjectCreation = ProvisioningObjectCreationMode.Submanager;
 
-            ObjectCreationFinding finding = AddressFindings(settings).Single();
+            ObjectCreationFinding finding = Check(settings).Single();
 
             Assert.Multiple(() =>
             {
-                Assert.That(finding.Type, Is.EqualTo(ObjectCreationFindingType.MixedCreation));
-                Assert.That(Ids(finding), Is.EquivalentTo(kFortiManagerAndRoot));
+                Assert.That(Ids(finding), Is.EqualTo(kRootAdomOnly));
+                Assert.That(finding.Kinds.Single(), Is.EqualTo(ObjectTaskKind.Network), "every kind is checked on its own");
             });
         }
 
-        [Test]
-        public void MixedOperationWithManualLocalAdom_IsNoLongerMixed()
+        [TestCase(ProvisioningObjectCreationMode.Supermanager)]
+        [TestCase(ProvisioningObjectCreationMode.Submanager)]
+        [TestCase(ProvisioningObjectCreationMode.Ignore)]
+        public void SubsSetToIgnore_AreNotReported(ProvisioningObjectCreationMode managerCreation)
         {
-            Dictionary<int, GlobalDeviceSpecificSettings> settings = CreateSettings(ProvisioningObjectCreationMode.Supermanager, ProvisioningObjectCreationMode.Supermanager);
-            settings[kRootAdomId].AddressObjectCreation = ProvisioningObjectCreationMode.Submanager;
-            settings[kRootAdomId].ImplementationMode = ProvisioningImplementationMode.Manual;
-
-            Assert.That(AddressFindings(settings), Is.Empty);
-        }
-
-        [Test]
-        public void AdomsPointingToManualSuperManagement_GiveNoFinding()
-        {
-            Dictionary<int, GlobalDeviceSpecificSettings> settings = CreateSettings(ProvisioningObjectCreationMode.Supermanager, ProvisioningObjectCreationMode.Supermanager);
-            settings[kFortiManagerId].ImplementationMode = ProvisioningImplementationMode.Manual;
-
-            Assert.That(ObjectCreationConsistencyCheck.Check(CreateManagements(), settings), Is.Empty,
-                "the mode of the ADOMs has no effect when they create on the FortiManager, so this is intended");
-        }
-
-        [Test]
-        public void KindsWithTheSameFinding_AreCombinedIntoOneFinding()
-        {
-            Dictionary<int, GlobalDeviceSpecificSettings> settings = CreateSettings(ProvisioningObjectCreationMode.Supermanager, ProvisioningObjectCreationMode.Submanager);
+            Dictionary<int, GlobalDeviceSpecificSettings> settings = CreateSettings(managerCreation, ProvisioningObjectCreationMode.Supermanager);
             foreach (int adomId in kAllAdoms)
             {
-                settings[adomId].ServiceObjectCreation = ProvisioningObjectCreationMode.Submanager;
-                settings[adomId].TimeObjectCreation = ProvisioningObjectCreationMode.Submanager;
+                settings[adomId].TimeObjectCreation = ProvisioningObjectCreationMode.Ignore;
             }
 
-            ObjectCreationFinding finding = ObjectCreationConsistencyCheck.Check(CreateManagements(), settings).Single();
+            List<ObjectCreationFinding> timeFindings = [.. Check(settings).Where(finding => finding.Kinds.Contains(ObjectTaskKind.Time))];
+
+            Assert.That(timeFindings, Is.Empty, "a sub-management set to ignore wants no objects at all");
+        }
+
+        [Test]
+        public void SuperSetToIgnore_ReportsSubsCreatingObjects()
+        {
+            Dictionary<int, GlobalDeviceSpecificSettings> settings = CreateSettings(ProvisioningObjectCreationMode.Supermanager, ProvisioningObjectCreationMode.Supermanager);
+            settings[kFortiManagerId].TimeObjectCreation = ProvisioningObjectCreationMode.Ignore;
+
+            ObjectCreationFinding finding = Check(settings).Single();
 
             Assert.Multiple(() =>
             {
-                Assert.That(finding.Type, Is.EqualTo(ObjectCreationFindingType.SuperSettingWithoutEffect));
-                Assert.That(finding.Kinds, Is.EqualTo(kAllKinds));
+                Assert.That(finding.Kinds.Single(), Is.EqualTo(ObjectTaskKind.Time));
                 Assert.That(Ids(finding), Is.EqualTo(kAllAdoms));
             });
         }
 
         [Test]
-        public void ManualAdomsCreatingLocally_GiveNoFinding()
+        public void UndefinedSetting_CountsAsSupermanager()
         {
-            Dictionary<int, GlobalDeviceSpecificSettings> settings = CreateSettings(ProvisioningObjectCreationMode.Supermanager, ProvisioningObjectCreationMode.Submanager);
-            foreach (int adomId in kAllAdoms)
-            {
-                settings[adomId].ImplementationMode = ProvisioningImplementationMode.Manual;
-            }
+            Dictionary<int, GlobalDeviceSpecificSettings> settings = CreateSettings(ProvisioningObjectCreationMode.Undefined, ProvisioningObjectCreationMode.Supermanager);
 
-            Assert.That(AddressFindings(settings), Is.Empty, "nothing is created at all, which is intended");
+            Assert.That(Check(settings), Is.Empty);
         }
 
         [Test]
-        public void EveryKindIsCheckedOnItsOwn()
+        public void ImplementationModeDoesNotHideADifference()
+        {
+            Dictionary<int, GlobalDeviceSpecificSettings> settings = CreateSettings(ProvisioningObjectCreationMode.Supermanager, ProvisioningObjectCreationMode.Submanager);
+            foreach (GlobalDeviceSpecificSettings managementSettings in settings.Values)
+            {
+                managementSettings.ImplementationMode = ProvisioningImplementationMode.Manual;
+            }
+
+            Assert.That(Check(settings), Has.Count.EqualTo(1), "the setting differs wherever the task is ordered");
+        }
+
+        [Test]
+        public void ManagementsWithoutSubManagements_GiveNoFinding()
         {
             Dictionary<int, GlobalDeviceSpecificSettings> settings = CreateSettings(ProvisioningObjectCreationMode.Supermanager, ProvisioningObjectCreationMode.Supermanager);
-            settings[kFirstAdomId].ServiceObjectCreation = ProvisioningObjectCreationMode.Submanager;
+            settings[kStandaloneId].AddressObjectCreation = ProvisioningObjectCreationMode.Submanager;
 
-            List<ObjectCreationFinding> findings = ObjectCreationConsistencyCheck.Check(CreateManagements(), settings);
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(findings.Single().Kinds.Single(), Is.EqualTo(ObjectTaskKind.Service));
-                Assert.That(findings.Single().Type, Is.EqualTo(ObjectCreationFindingType.MixedCreation));
-            });
+            Assert.That(Check(settings), Is.Empty);
         }
     }
 }

@@ -114,10 +114,9 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Creates one implementation task per target management of an object task, i.e. a group task
         /// (group_create, group_modify, group_delete) or a single object task (object_create, object_modify).
-        /// The targets come from the hierarchy of the request management, without request management (e.g. ordered
-        /// through the REST interface) from every hierarchy of managements. In the ui, which resolves the targets
-        /// through the middleware endpoint for one management, a task without request management keeps the single
-        /// task without management of the previous behaviour.
+        /// The targets follow the object creation setting of the request management, without request management
+        /// (e.g. "All" or ordered through the REST interface) of every hierarchy of managements. In the ui they are
+        /// resolved through the middleware endpoint, which gives the same result.
         /// </summary>
         /// <param name="reqTask">Object task to create the implementation tasks for; only target managements whose
         /// auto plan device specific settings allow it and whose implementation mode is Automatic get one.</param>
@@ -192,7 +191,7 @@ namespace FWO.Services.Workflow
         /// <param name="reqTask">The object task.</param>
         /// <param name="managementId">Management of the request task, or <see cref="kAllManagements"/>.</param>
         /// <returns>The target managements; null for a task without request management whose targets cannot be
-        /// resolved here, so that the single task without management of the previous behaviour is created.</returns>
+        /// resolved, so that one task without management is created as a fallback.</returns>
         private async Task<List<Management>?> GetObjectTargetManagements(WfReqTask reqTask, int managementId)
         {
             ObjectTaskKind kind = WfObjectTaskHelper.GetCreationKind(reqTask);
@@ -252,15 +251,15 @@ namespace FWO.Services.Workflow
         /// Resolves the target managements with the rights of the middleware server: in the ui through the
         /// middleware, which sees every sub-management and the device specific settings, in the middleware directly.
         /// </summary>
-        /// <param name="managementId">Management of the request task, or <see cref="kAllManagements"/>, which only
-        /// the middleware itself resolves: the middleware endpoint answers for one management.</param>
+        /// <param name="managementId">Management of the request task, or <see cref="kAllManagements"/> for the
+        /// targets of all managements.</param>
         /// <param name="kind">Kind of the created objects.</param>
         /// <returns>The target managements, or null when they cannot be resolved here.</returns>
         private async Task<List<Management>?> ResolveObjectTargetManagements(int managementId, ObjectTaskKind kind)
         {
             if (MiddlewareClient != null)
             {
-                return managementId == kAllManagements ? null : await GetObjectTargetsFromMiddleware(managementId, kind);
+                return await GetObjectTargetsFromMiddleware(managementId == kAllManagements ? null : managementId, kind);
             }
             if (apiConnection == null)
             {
@@ -277,7 +276,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         /// <exception cref="InvalidOperationException">The middleware fails or announces more than
         /// <see cref="kMaxImplTaskTargetPages"/> pages.</exception>
-        private async Task<List<Management>> GetObjectTargetsFromMiddleware(int managementId, ObjectTaskKind kind)
+        private async Task<List<Management>> GetObjectTargetsFromMiddleware(int? managementId, ObjectTaskKind kind)
         {
             List<Management> targets = [];
             for (int page = 0; page < kMaxImplTaskTargetPages; page++)

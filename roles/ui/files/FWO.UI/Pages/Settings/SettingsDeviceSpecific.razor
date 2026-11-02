@@ -410,13 +410,9 @@ else
             @RenderNodeHint("U5508", check.GatewayDiffersInExternalMode)
             @foreach (ObjectCreationFinding finding in check.ObjectCreationFindings)
             {
-                string alertClass = finding.Type == ObjectCreationFindingType.MixedCreation ? "alert alert-info small" : "alert alert-warning-override small";
-                <div class="@alertClass">
-                    @if (finding.Type != ObjectCreationFindingType.MixedCreation)
-                    {
-                        <span class="@Icons.Warning pe-1"></span>
-                    }
-                    @(userConfig.GetText(ObjectCreationFindingTextKey(finding.Type)))
+                <div class="alert alert-warning-override small">
+                    <span class="@Icons.Warning pe-1"></span>
+                    @(userConfig.GetText("U5509"))
                     @($" {finding.SuperManagement.Name} ({string.Join(", ", finding.Kinds.Select(kind => userConfig.GetText(ObjectKindTextKey(kind))))}): ")
                     @(string.Join(", ", finding.Managements.Select(management => management.Name)))
                 </div>
@@ -430,9 +426,6 @@ else
                 <div class="alert alert-warning-override small"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText(textKey)) @(string.Join(", ", nodes.Select(NodeName)))</div>
             }
         </div>;
-
-    private static string ObjectCreationFindingTextKey(ObjectCreationFindingType type) =>
-        type == ObjectCreationFindingType.SuperSettingWithoutEffect ? "U5509" : "U5511";
 
     private static string ObjectKindTextKey(ObjectTaskKind kind) => kind switch
     {

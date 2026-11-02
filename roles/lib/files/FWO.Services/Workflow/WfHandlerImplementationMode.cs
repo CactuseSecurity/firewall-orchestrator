@@ -17,20 +17,22 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Returns whether a request task is handed to an external ticket system as a whole, so that it gets no
-        /// implementation tasks: the implementation mode of its management (the global one without management) is
-        /// external ticket system. Only rule and object tasks are handled by an external ticket system. Without a
-        /// selected external ticket system nobody can implement the task, which is reported with an alert.
+        /// implementation tasks: the implementation mode of its management is external ticket system. Only rule and
+        /// object tasks with a management are handled by an external ticket system, which takes over whole
+        /// managements; a task without management, e.g. "All" or from the REST interface, is decided per gateway or
+        /// target management instead. Without a selected external ticket system nobody can implement the task, which
+        /// is reported with an alert.
         /// </summary>
         /// <param name="reqTask">Request task to check.</param>
         private async Task<bool> IsHandedToExternalTicketSystem(WfReqTask reqTask)
         {
             bool isRuleTask = IsRuleTaskType(reqTask.TaskType);
-            if (!isRuleTask && !WfObjectTaskHelper.IsManagementObjectTask(reqTask.TaskType))
+            if ((!isRuleTask && !WfObjectTaskHelper.IsManagementObjectTask(reqTask.TaskType))
+                || reqTask.ManagementId is not int managementId || managementId <= 0)
             {
                 return false;
             }
-            int? managementId = reqTask.ManagementId > 0 ? reqTask.ManagementId : null;
-            List<int> managementIds = managementId is int id ? [id] : [];
+            List<int> managementIds = [managementId];
             await EnsureAutoPlanSettings(kNoIds, managementIds);
             GlobalDeviceSpecificSettings settings = GetResolvedSettings(DeviceSpecificScopeType.Management, managementId);
             if (!settings.UsesExternalTicketSystem(isRuleTask))
@@ -40,7 +42,7 @@ namespace FWO.Services.Workflow
             if (settings.RerouteToExternalTicketSystem == null)
             {
                 await ReportUnimplementedTarget(reqTask, managementId, null,
-                    $"its implementation mode is external ticket system, but no external ticket system is selected for management {managementId?.ToString() ?? "(global)"}.");
+                    $"its implementation mode is external ticket system, but no external ticket system is selected for management {managementId}.");
             }
             else
             {

@@ -175,7 +175,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ObjectTask_WithoutRequestManagementInUiKeepsSingleTaskWithoutManagement()
+        public async Task ObjectTask_WithoutRequestManagementInUiAsksTheMiddlewareForAllManagements()
         {
             ImplTaskTargetMiddlewareClient middlewareClient = new(CreateApi(ProvisioningObjectCreationMode.Submanager));
             WfHandler handler = CreateUiHandler(middlewareClient);
@@ -185,8 +185,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(ManagementIds(reqTask), Is.EqualTo(kNoManagement));
-                Assert.That(middlewareClient.Calls, Is.Empty, "the endpoint answers for one management only");
+                Assert.That(ManagementIds(reqTask), Is.EqualTo(kBothSubManagements), "the same targets as in the middleware");
+                Assert.That(middlewareClient.Calls.Single().ManagementId, Is.Null);
             });
         }
 
@@ -567,8 +567,10 @@ namespace FWO.Test
                         IsSuccessStatusCode = false
                     };
                 }
-                List<Management> targets = await new ImplTaskManagementResolver(middlewareApi)
-                    .ResolveObjectTargets(parameters.ManagementId, ToKind(parameters));
+                ImplTaskManagementResolver resolver = new(middlewareApi);
+                List<Management> targets = parameters.ManagementId is int managementId
+                    ? await resolver.ResolveObjectTargets(managementId, ToKind(parameters))
+                    : await resolver.ResolveObjectTargetsOfAllManagements(ToKind(parameters));
                 List<Management> page = [.. targets.Skip(parameters.Options.Offset).Take(PageSize)];
                 bool hasMore = AlwaysHasMore || parameters.Options.Offset + page.Count < targets.Count;
                 List<HeaderParameter> headers = [new HeaderParameter(ImplTaskTargetPaging.kHasMoreHeader, hasMore ? "true" : "false")];

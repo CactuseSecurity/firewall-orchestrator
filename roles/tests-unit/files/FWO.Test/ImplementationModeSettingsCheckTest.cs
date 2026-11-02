@@ -19,6 +19,7 @@ namespace FWO.Test
         private const int kSubManagementId = 31;
         private const int kGatewayId = 1;
         private const int kExternalTicketSystemId = 2;
+        private const int kOtherExternalTicketSystemId = 3;
         private const long kGlobalNodeId = 1;
         private const long kDeviceTypeNodeId = 2;
         private const long kManagementNodeId = 3;
@@ -97,7 +98,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void SystemWithoutExternalMode_IsReportedOnlyWhenNoLevelBelowUsesIt()
+        public void InheritedSystem_IsNotReportedOnTheLevelsBelow()
         {
             Tree tree = CreateTree();
             Dictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settings = DefaultSettings(tree);
@@ -110,7 +111,41 @@ namespace FWO.Test
 
             ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, tree.Managements);
 
-            Assert.That(result.SystemWithoutExternalMode.Single(), Is.SameAs(tree.OtherManagement), "global is used below, cp1 itself");
+            Assert.That(result.SystemWithoutExternalMode, Is.Empty, "global selects the system and cp1 uses it, cp2 only inherits it");
+        }
+
+        [Test]
+        public void UnusedSystem_IsReportedOnlyWhereItIsSelected()
+        {
+            Tree tree = CreateTree();
+            Dictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settings = DefaultSettings(tree);
+            foreach (GlobalDeviceSpecificSettings levelSettings in settings.Values)
+            {
+                levelSettings.RerouteToExternalTicketSystem = kExternalTicketSystemId;
+            }
+            settings[tree.OtherManagement].RerouteToExternalTicketSystem = kOtherExternalTicketSystemId;
+
+            List<DeviceSpecificNode> selectingLevels = [tree.Root, tree.OtherManagement];
+
+            ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, tree.Managements);
+
+            Assert.That(result.SystemWithoutExternalMode, Is.EquivalentTo(selectingLevels),
+                "global and cp2 select a system nobody uses, cp1 and the gateway only inherit it");
+        }
+
+        [Test]
+        public void InheritedExternalModeWithoutSystem_IsReportedOnlyWhereItArises()
+        {
+            Tree tree = CreateTree();
+            Dictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settings = DefaultSettings(tree);
+            foreach (GlobalDeviceSpecificSettings levelSettings in settings.Values)
+            {
+                UseExternalTicketSystem(levelSettings, null);
+            }
+
+            ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, tree.Managements);
+
+            Assert.That(result.ExternalModeWithoutSystem.Single(), Is.SameAs(tree.Root));
         }
 
         [Test]
@@ -172,7 +207,8 @@ namespace FWO.Test
 
             ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, managements);
 
-            Assert.That(result.ObjectCreationFindings.Single().Type, Is.EqualTo(ObjectCreationFindingType.SuperSettingWithoutEffect));
+            Assert.That(result.ObjectCreationFindings.Single().Managements.Single().Id, Is.EqualTo(kSubManagementId),
+                "the sub-management differs from the setting of its super-management");
         }
 
         [Test]

@@ -12,14 +12,14 @@ namespace FWO.Services.Workflow
     /// </summary>
     /// <remarks>
     /// The level objects are written to is taken from the device specific settings addressObjectCreation,
-    /// serviceObjectCreation or timeObjectCreation, read for every sub-management of the super-management with its
-    /// inheritance from device type and global level. A sub-management set to Submanager gets its own task, one set
-    /// to Supermanager shares the single task on the super-management, one set to ignore gets none. A task ordered on
-    /// a sub-management only regards that sub-management, a task ordered on the super-management all of them. The setting of a
-    /// super-management with sub-managements is not read: the super-management is only a target, never a source. A
-    /// management without sub-managements is its own target unless it is set to ignore itself. So the result is empty
-    /// when every candidate is set to ignore, which the device specific settings allow for time objects only: no
-    /// implementation task is to be created, and the request dialog rejects such a task beforehand. The implementation
+    /// serviceObjectCreation or timeObjectCreation of the management the task is ordered on, with its inheritance
+    /// from device type and global level. A task on a sub-management only regards that sub-management: Submanager
+    /// creates on itself, Supermanager on its super-management, ignore nowhere. A task on a super-management follows
+    /// the setting of the super-management: Supermanager creates on itself, Submanager on each sub-management except
+    /// those set to ignore, ignore nowhere. A task without management is resolved like a task on every
+    /// super-management and every management without sub-managements. The result is empty when every candidate is
+    /// set to ignore, which the device specific settings allow for time objects only: no implementation task is to be
+    /// created, and the request dialog rejects such a task beforehand. The implementation
     /// mode of the targets is not regarded here; the creation of the implementation tasks and the consistency check of
     /// the settings page filter it with <see cref="IsImplementedAutomatically"/>. Needs read access to all managements
     /// and the device specific settings, so it runs with the middleware-server role only; the ui resolves the targets
@@ -101,8 +101,10 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Resolves the target managements of one hierarchy from settings already loaded, without api access, so the
-        /// creation of implementation tasks and the consistency check of the settings page decide alike.
+        /// Resolves the target managements of an object task ordered on a super-management, or on a management
+        /// without sub-managements, from settings already loaded, without api access. The setting of that management
+        /// decides: Supermanager creates on itself, Submanager on each of its sub-managements except those set to
+        /// ignore, ignore on none. A management without sub-managements is its own target unless set to ignore.
         /// </summary>
         /// <param name="superManagement">Super-management of the hierarchy, or a management without sub-managements.</param>
         /// <param name="managements">All managements with their super-management.</param>
@@ -113,24 +115,19 @@ namespace FWO.Services.Workflow
         public static List<Management> ResolveTargets(Management superManagement, IReadOnlyCollection<Management> managements,
             IReadOnlyDictionary<int, GlobalDeviceSpecificSettings> settingsByManagement, ObjectTaskKind kind)
         {
+            ProvisioningObjectCreationMode superMode = GetCreationMode(SettingsOf(superManagement, settingsByManagement), kind);
+            if (superMode == ProvisioningObjectCreationMode.Ignore)
+            {
+                return [];
+            }
             List<Management> subManagements = SubManagements(superManagement, managements);
-            if (subManagements.Count == 0)
+            if (subManagements.Count == 0 || superMode != ProvisioningObjectCreationMode.Submanager)
             {
-                ProvisioningObjectCreationMode ownMode = GetCreationMode(SettingsOf(superManagement, settingsByManagement), kind);
-                return ownMode == ProvisioningObjectCreationMode.Ignore ? [] : [ToTarget(superManagement)];
+                return [ToTarget(superManagement)];
             }
-            List<Management> targets = [];
-            foreach (Management subManagement in subManagements)
-            {
-                ProvisioningObjectCreationMode mode = GetCreationMode(SettingsOf(subManagement, settingsByManagement), kind);
-                if (mode == ProvisioningObjectCreationMode.Ignore)
-                {
-                    continue;
-                }
-                Management target = mode == ProvisioningObjectCreationMode.Submanager ? subManagement : superManagement;
-                AddMissingTarget(targets, ToTarget(target));
-            }
-            return targets;
+            return [.. subManagements
+                .Where(subManagement => GetCreationMode(SettingsOf(subManagement, settingsByManagement), kind) != ProvisioningObjectCreationMode.Ignore)
+                .Select(ToTarget)];
         }
 
         /// <summary>

@@ -23,7 +23,7 @@ namespace FWO.Test
 
         private static readonly List<int> kSuperOnly = [kSuperManagementId];
         private static readonly List<int> kAllSubs = [kFirstSubManagementId, kSecondSubManagementId];
-        private static readonly List<int> kSuperAndSecondSub = [kSuperManagementId, kSecondSubManagementId];
+        private static readonly List<int> kSecondSubOnly = [kSecondSubManagementId];
         private static readonly List<int> kStandaloneOnly = [kStandaloneManagementId];
         private static readonly List<int> kUnknownOnly = [kUnknownManagementId];
         private static readonly List<int> kFirstSubOnly = [kFirstSubManagementId];
@@ -107,14 +107,21 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ResolveObjectTargets_HonoursOverrideOnSingleSubManagement()
+        public async Task ResolveObjectTargets_RequestOnSuperManagementFollowsItsOwnSetting()
         {
             InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
             api.AddNode(kDomainDeviceTypeNodeId, DeviceSpecificScopeType.DeviceType, kDomainDeviceTypeId.ToString(), kGlobalNodeId);
             api.AddNode(kSecondSubManagementNodeId, DeviceSpecificScopeType.Management, kSecondSubManagementId.ToString(), kDomainDeviceTypeNodeId);
             api.SetValue(kSecondSubManagementNodeId, DeviceSpecificSettingKeys.AddressObjectCreation, ProvisioningObjectCreationMode.Submanager);
 
-            Assert.That(await Resolve(api, kSuperManagementId), Is.EqualTo(kSuperAndSecondSub));
+            List<int> fromSuper = await Resolve(api, kSuperManagementId);
+            List<int> fromSub = await Resolve(api, kSecondSubManagementId);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(fromSuper, Is.EqualTo(kSuperOnly), "the setting of a sub-management has no effect here");
+                Assert.That(fromSub, Is.EqualTo(kSecondSubOnly), "a request on the sub-management follows its setting");
+            });
         }
 
         [Test]
@@ -239,7 +246,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ResolveTargets_ReadsTheSettingOfTheSubManagementsNotOfTheSuperManagement()
+        public void ResolveTargets_FollowsTheSettingOfTheSuperManagement()
         {
             List<Management> managements = [.. CreateApi().Managements];
             Management superManagement = managements.Single(management => management.Id == kSuperManagementId);
@@ -250,7 +257,7 @@ namespace FWO.Test
 
             List<Management> targets = ImplTaskManagementResolver.ResolveTargets(superManagement, managements, settings, ObjectTaskKind.Network);
 
-            Assert.That(targets.Select(target => target.Id), Is.EqualTo(kSuperOnly), "the sub-managements keep the default Supermanager");
+            Assert.That(targets.Select(target => target.Id), Is.EqualTo(kAllSubs), "the sub-managements keep the default Supermanager");
         }
 
         [Test]

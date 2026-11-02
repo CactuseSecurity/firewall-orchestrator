@@ -16,9 +16,9 @@ public static class ComplianceZoneResolver
     /// <param name="activeNetworkZones">The active compliance zones.</param>
     /// <param name="autoCalculatedInternetZoneActive">Whether the internet zone is auto-calculated and therefore should not be added as a fallback.</param>
     /// <param name="internetLocalZoneName">Localized display name for the fallback internet zone.</param>
-    public static List<ComplianceNetworkZone> ResolveZones(
+    public static List<NetworkZone> ResolveZones(
         List<IPAddressRange> ranges,
-        List<ComplianceNetworkZone> activeNetworkZones,
+        List<NetworkZone> activeNetworkZones,
         bool autoCalculatedInternetZoneActive,
         string internetLocalZoneName)
     {
@@ -33,14 +33,14 @@ public static class ComplianceZoneResolver
     /// <param name="autoCalculatedInternetZoneActive">Whether the internet zone is auto-calculated and therefore should not be added as a fallback.</param>
     /// <param name="internetLocalZoneName">Localized display name for the fallback internet zone.</param>
     /// <param name="unassignableRanges">Ranges that matched no zone and that the internet zone cannot cover either.</param>
-    public static List<ComplianceNetworkZone> ResolveZones(
+    public static List<NetworkZone> ResolveZones(
         List<IPAddressRange> ranges,
-        List<ComplianceNetworkZone> activeNetworkZones,
+        List<NetworkZone> activeNetworkZones,
         bool autoCalculatedInternetZoneActive,
         string internetLocalZoneName,
         out List<IPAddressRange> unassignableRanges)
     {
-        List<ComplianceNetworkZone> result = [];
+        List<NetworkZone> result = [];
         List<List<IPAddressRange>> unseenIpAddressRanges = [];
 
         for (int index = 0; index < ranges.Count; index++)
@@ -48,7 +48,7 @@ public static class ComplianceZoneResolver
             unseenIpAddressRanges.Add([new(ranges[index].Begin, ranges[index].End)]);
         }
 
-        foreach (ComplianceNetworkZone zone in activeNetworkZones.Where(zone => zone.OverlapExists(ranges, unseenIpAddressRanges)))
+        foreach (NetworkZone zone in activeNetworkZones.Where(zone => zone.OverlapExists(ranges, unseenIpAddressRanges)))
         {
             result.Add(zone);
         }
@@ -66,7 +66,7 @@ public static class ComplianceZoneResolver
 
         if (undefinedIpRanges.Count > unassignableRanges.Count)
         {
-            result.Add(new ComplianceNetworkZone
+            result.Add(new NetworkZone
             {
                 Name = internetLocalZoneName
             });

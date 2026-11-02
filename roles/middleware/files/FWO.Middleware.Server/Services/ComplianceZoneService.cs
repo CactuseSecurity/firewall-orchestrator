@@ -23,8 +23,8 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
     /// <param name="offset">Number of zones skipped before the page; null skips none.</param>
     public async Task<ListPage<ComplianceDesignatedZoneResponse>> GetDesignatedZoneMatrixZonesAsync(int pageSize, int? offset)
     {
-        List<ComplianceNetworkZone> zones = await LoadDesignatedZoneMatrixZonesAsync();
-        ListPage<ComplianceNetworkZone> page = ListPage<ComplianceNetworkZone>.FromOrderedItems(zones.OrderBy(zone => zone.Id), pageSize, offset);
+        List<NetworkZone> zones = await LoadDesignatedZoneMatrixZonesAsync();
+        ListPage<NetworkZone> page = ListPage<NetworkZone>.FromOrderedItems(zones.OrderBy(zone => zone.Id), pageSize, offset);
         List<ComplianceDesignatedZoneResponse> zoneResponses = page.Items.Select(MapDesignatedZoneResponse).ToList();
         return new ListPage<ComplianceDesignatedZoneResponse>(zoneResponses, page.HasMore);
     }
@@ -40,13 +40,13 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
             return [];
         }
 
-        List<ComplianceNetworkZone> zones = await LoadDesignatedZoneMatrixZonesAsync();
+        List<NetworkZone> zones = await LoadDesignatedZoneMatrixZonesAsync();
         if (zones.Count == 0)
         {
             return [];
         }
 
-        List<ComplianceNetworkZone> resolvedZones = ComplianceZoneResolver.ResolveZones(
+        List<NetworkZone> resolvedZones = ComplianceZoneResolver.ResolveZones(
             ranges,
             zones,
             globalConfig.AutoCalculateInternetZone,
@@ -67,7 +67,7 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
             .ToList();
     }
 
-    private async Task<List<ComplianceNetworkZone>> LoadDesignatedZoneMatrixZonesAsync()
+    private async Task<List<NetworkZone>> LoadDesignatedZoneMatrixZonesAsync()
     {
         if (globalConfig.DesignatedZoneMatrixId <= 0)
         {
@@ -83,7 +83,7 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
             return [];
         }
 
-        return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
+        return await apiConnection.SendQueryAsync<List<NetworkZone>>(
             NetworkZoneQueries.getNetworkZonesForMatrix,
             new { criterionId = globalConfig.DesignatedZoneMatrixId }) ?? [];
     }
@@ -142,12 +142,12 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
         };
     }
 
-    private static bool IsPersistedMatrixZone(ComplianceNetworkZone zone)
+    private static bool IsPersistedMatrixZone(NetworkZone zone)
     {
         return zone.Id > 0;
     }
 
-    private static ComplianceDesignatedZoneResponse MapDesignatedZoneResponse(ComplianceNetworkZone zone)
+    private static ComplianceDesignatedZoneResponse MapDesignatedZoneResponse(NetworkZone zone)
     {
         return new ComplianceDesignatedZoneResponse
         {

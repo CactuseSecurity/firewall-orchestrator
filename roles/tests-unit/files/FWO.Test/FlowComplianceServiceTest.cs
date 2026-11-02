@@ -646,11 +646,11 @@ internal class FlowComplianceServiceTest
         };
     }
 
-    private static List<ComplianceNetworkZone> BuildNetworkZones()
+    private static List<NetworkZone> BuildNetworkZones()
     {
-        List<ComplianceNetworkZone> networkZones =
+        List<NetworkZone> networkZones =
         [
-            new ComplianceNetworkZone
+            new NetworkZone
             {
                 Id = 1,
                 CriterionId = 101,
@@ -658,7 +658,7 @@ internal class FlowComplianceServiceTest
                 IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("128.0.0.1"), IPAddress.Parse("128.0.0.1"))],
                 AllowedCommunicationDestinations = []
             },
-            new ComplianceNetworkZone
+            new NetworkZone
             {
                 Id = 2,
                 CriterionId = 101,
@@ -699,7 +699,7 @@ internal class FlowComplianceServiceTest
         public List<CompliancePolicy> Policies { get; set; } = [];
         public Dictionary<int, CompliancePolicy> PoliciesById { get; } = new();
         public List<Management> Managements { get; set; } = [];
-        public List<ComplianceNetworkZone> NetworkZones { get; set; } = [];
+        public List<NetworkZone> NetworkZones { get; set; } = [];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
@@ -751,7 +751,7 @@ internal class FlowComplianceServiceTest
                 return Task.FromResult((QueryResponseType)(object)Managements);
             }
 
-            if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
+            if (typeof(QueryResponseType) == typeof(List<NetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
             {
                 return Task.FromResult((QueryResponseType)(object)NetworkZones);
             }

@@ -37,7 +37,7 @@ namespace FWO.Ui.Display
             return DisplayJsonString("name", name);
         }
 
-        protected string DisplayRuleSourceZones(NetworkZone[] networkZones)
+        protected string DisplayRuleSourceZones(FirewallZone[] networkZones)
         {
             return DisplayJsonArray("source zones", ListNetworkZones(networkZones));
         }
@@ -52,7 +52,7 @@ namespace FWO.Ui.Display
             return DisplayJsonArray("source", ListNetworkLocations(rule, reportType, true));
         }
 
-        protected string DisplayRuleDestinationZones(NetworkZone[] networkZones)
+        protected string DisplayRuleDestinationZones(FirewallZone[] networkZones)
         {
             return DisplayJsonArray("destination zones", ListNetworkZones(networkZones));
         }
@@ -219,10 +219,10 @@ namespace FWO.Ui.Display
                 );
         }
 
-        protected string ListNetworkZones(NetworkZone[] networkZones)
+        protected string ListNetworkZones(FirewallZone[] networkZones)
         {
             List<string> displayedZones = new List<string>();
-            foreach (NetworkZone networkZone in networkZones)
+            foreach (FirewallZone networkZone in networkZones)
             {
                 displayedZones.Add(JsonConvert.ToString(networkZone.Name));
             }

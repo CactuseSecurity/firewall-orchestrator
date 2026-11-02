@@ -188,10 +188,10 @@ namespace FWO.Ui.Display
                 ?? Enumerable.Empty<string>());
         }
 
-        protected string ListNetworkZones(NetworkZone[] networkZones)
+        protected string ListNetworkZones(FirewallZone[] networkZones)
         {
             List<string> displayedZones = new List<string>();
-            foreach (NetworkZone networkZone in networkZones)
+            foreach (FirewallZone networkZone in networkZones)
             {
                 displayedZones.Add(Quote(networkZone.Name));
             }

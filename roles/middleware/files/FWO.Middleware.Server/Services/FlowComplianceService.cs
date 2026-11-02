@@ -61,7 +61,7 @@ public sealed class FlowComplianceService
         Rule rule = BuildSyntheticRule(request);
         List<FlowComplianceStateResponse> results = [];
         List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames) ?? [];
-        Dictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion = [];
+        Dictionary<int, List<NetworkZone>> networkZonesByCriterion = [];
         Dictionary<int, CompliancePolicy> policiesById = await LoadPoliciesAsync(policyIds);
 
         foreach (int policyId in policyIds)
@@ -96,7 +96,7 @@ public sealed class FlowComplianceService
             .ToDictionary(group => group.Key, group => group.First());
     }
 
-    private async Task EnsureNetworkZonesLoadedAsync(CompliancePolicy policy, IDictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion)
+    private async Task EnsureNetworkZonesLoadedAsync(CompliancePolicy policy, IDictionary<int, List<NetworkZone>> networkZonesByCriterion)
     {
         foreach (int matrixId in policy.Criteria
                      .Where(wrapper => wrapper.Content.CriterionType == nameof(CriterionType.Matrix) && wrapper.Content.Id > 0)
@@ -108,7 +108,7 @@ public sealed class FlowComplianceService
                 continue;
             }
 
-            networkZonesByCriterion[matrixId] = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
+            networkZonesByCriterion[matrixId] = await apiConnection.SendQueryAsync<List<NetworkZone>>(
                 NetworkZoneQueries.getNetworkZonesForMatrix,
                 new { criterionId = matrixId }) ?? [];
         }

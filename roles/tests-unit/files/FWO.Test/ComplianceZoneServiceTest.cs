@@ -21,14 +21,14 @@ internal class ComplianceZoneServiceTest
             [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
             [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
             [
-                new ComplianceNetworkZone
+                new NetworkZone
                 {
                     Id = 20,
                     Name = "Backend",
                     Description = "Backend zone",
                     IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))]
                 },
-                new ComplianceNetworkZone
+                new NetworkZone
                 {
                     Id = 10,
                     Name = "DMZ",
@@ -136,7 +136,7 @@ internal class ComplianceZoneServiceTest
             [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
             [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
             [
-                new ComplianceNetworkZone
+                new NetworkZone
                 {
                     Id = 10,
                     Name = "DMZ",
@@ -171,7 +171,7 @@ internal class ComplianceZoneServiceTest
     {
         ConfigItem[] configItems = [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }];
         List<ComplianceCriterion> matrices = [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }];
-        List<ComplianceNetworkZone> zones = [new ComplianceNetworkZone
+        List<NetworkZone> zones = [new NetworkZone
         {
             Id = 10,
             Name = "IPv4 Zone",
@@ -253,7 +253,7 @@ internal class ComplianceZoneServiceTest
         ComplianceZoneServiceApiConn apiConnection = new(
             [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
             [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
-            [new ComplianceNetworkZone
+            [new NetworkZone
             {
                 Id = 10,
                 Name = "IPv4 Zone",
@@ -269,14 +269,14 @@ internal class ComplianceZoneServiceTest
             [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
             [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
             [
-                new ComplianceNetworkZone
+                new NetworkZone
                 {
                     Id = 10,
                     Name = "Network Zone",
                     Description = "Network zone",
                     IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.2.5"), IPAddress.Parse("10.0.2.5"))]
                 },
-                new ComplianceNetworkZone
+                new NetworkZone
                 {
                     Id = 20,
                     Name = "Range Zone",
@@ -315,7 +315,7 @@ internal class ComplianceZoneServiceTest
             [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
             [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
             [
-                new ComplianceNetworkZone
+                new NetworkZone
                 {
                     Id = 10,
                     Name = "DMZ",
@@ -363,12 +363,12 @@ internal class ComplianceZoneServiceTest
     {
         private readonly ConfigItem[] configItems;
         private readonly List<ComplianceCriterion> matrices;
-        private readonly List<ComplianceNetworkZone> zones;
+        private readonly List<NetworkZone> zones;
 
         public int MatrixQueryCount { get; private set; }
         public int NetworkZoneQueryCount { get; private set; }
 
-        public ComplianceZoneServiceApiConn(ConfigItem[] configItems, List<ComplianceCriterion> matrices, List<ComplianceNetworkZone> zones)
+        public ComplianceZoneServiceApiConn(ConfigItem[] configItems, List<ComplianceCriterion> matrices, List<NetworkZone> zones)
         {
             this.configItems = configItems;
             this.matrices = matrices;
@@ -388,7 +388,7 @@ internal class ComplianceZoneServiceTest
                 return Task.FromResult((QueryResponseType)(object)matrices);
             }
 
-            if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
+            if (typeof(QueryResponseType) == typeof(List<NetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
             {
                 NetworkZoneQueryCount++;
                 return Task.FromResult((QueryResponseType)(object)zones);

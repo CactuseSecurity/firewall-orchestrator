@@ -8,9 +8,9 @@ namespace FWO.Test;
 [TestFixture]
 internal class ComplianceNetworkZoneOverlapTest
 {
-    private static ComplianceNetworkZone CreateZone(string rangeStart, string rangeEnd)
+    private static NetworkZone CreateZone(string rangeStart, string rangeEnd)
     {
-        return new ComplianceNetworkZone
+        return new NetworkZone
         {
             Id = 1,
             Name = "Zone",
@@ -24,7 +24,7 @@ internal class ComplianceNetworkZoneOverlapTest
     }
 
     private static (bool OverlapFound, List<IPAddressRange> Remaining) RemoveZoneOverlap(
-        ComplianceNetworkZone zone,
+        NetworkZone zone,
         string queriedStart,
         string queriedEnd)
     {

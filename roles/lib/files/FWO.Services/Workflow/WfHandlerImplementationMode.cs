@@ -89,7 +89,9 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Keeps the target managements of an object task whose implementation mode is Automatic.
+        /// Keeps the target managements of an object task whose implementation mode is Automatic. A target set to
+        /// external ticket system is left to that system when the ticket hands an object task of that management to
+        /// it; otherwise nobody implements it, which is reported with an alert like for gateways.
         /// </summary>
         /// <param name="reqTask">Object task the targets were determined for.</param>
         /// <param name="targets">Target managements of the object task.</param>
@@ -97,12 +99,24 @@ namespace FWO.Services.Workflow
         {
             List<int> targetManagementIds = [.. targets.Select(target => target.Id)];
             await EnsureAutoPlanSettings(kNoIds, targetManagementIds);
-            List<Management> automaticTargets = [.. targets.Where(target =>
-                GetResolvedSettings(DeviceSpecificScopeType.Management, target.Id).GetImplementationMode(false) == ProvisioningImplementationMode.Automatic)];
-            if (automaticTargets.Count < targets.Count)
+            List<Management> automaticTargets = [];
+            foreach (Management target in targets)
             {
-                Log.WriteDebug(kImplementationModeLogTitle, $"Request task {reqTask.Id}: {targets.Count - automaticTargets.Count} target managements " +
-                    "get no implementation task, their implementation mode is manual or external ticket system.");
+                ProvisioningImplementationMode mode = GetResolvedSettings(DeviceSpecificScopeType.Management, target.Id).GetImplementationMode(false);
+                if (mode == ProvisioningImplementationMode.Automatic)
+                {
+                    automaticTargets.Add(target);
+                }
+                else if (mode == ProvisioningImplementationMode.RerouteToExternalTicketSystem && !IsHandedToExternalTicketSystemByTicket(target.Id, false))
+                {
+                    await ReportUnimplementedTarget(reqTask, target.Id, null,
+                        $"target management {target.Id} is set to external ticket system, but the ticket hands no object task of this management to it.");
+                }
+                else
+                {
+                    Log.WriteDebug(kImplementationModeLogTitle, $"No implementation task created for request task {reqTask.Id} on management {target.Id}: " +
+                        "implementation mode manual or handed to an external ticket system.");
+                }
             }
             return automaticTargets;
         }
@@ -110,7 +124,7 @@ namespace FWO.Services.Workflow
         private async Task HandleExternalTicketSystemGateway(WfReqTask reqTask, int? deviceId)
         {
             int? managementId = deviceId is int id ? GetManagementIdOfDevice(id) : null;
-            if (managementId is int gatewayManagementId && IsHandedToExternalTicketSystemByTicket(gatewayManagementId))
+            if (managementId is int gatewayManagementId && IsHandedToExternalTicketSystemByTicket(gatewayManagementId, true))
             {
                 Log.WriteDebug(kImplementationModeLogTitle, $"No implementation task created for request task {reqTask.Id} on gateway {deviceId}: " +
                     $"the ticket hands management {gatewayManagementId} to an external ticket system.");
@@ -120,15 +134,18 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Returns whether the ticket hands the rules of a management to an external ticket system: it contains a
-        /// rule task of the management, whose implementation mode for rules is external ticket system with a selected
-        /// system.
+        /// Returns whether the ticket hands the rules resp. objects of a management to an external ticket system: it
+        /// contains a rule resp. object or group task of the management, whose implementation mode for that kind of
+        /// task is external ticket system with a selected system.
         /// </summary>
-        private bool IsHandedToExternalTicketSystemByTicket(int managementId)
+        /// <param name="managementId">Management of the gateway or object target.</param>
+        /// <param name="isRuleTask">True for rules, false for objects and groups.</param>
+        private bool IsHandedToExternalTicketSystemByTicket(int managementId, bool isRuleTask)
         {
             GlobalDeviceSpecificSettings settings = GetResolvedSettings(DeviceSpecificScopeType.Management, managementId);
-            return settings.UsesExternalTicketSystem(true) && settings.RerouteToExternalTicketSystem != null
-                && ActTicket.Tasks.Any(task => IsRuleTaskType(task.TaskType) && task.ManagementId == managementId);
+            return settings.UsesExternalTicketSystem(isRuleTask) && settings.RerouteToExternalTicketSystem != null
+                && ActTicket.Tasks.Any(task => task.ManagementId == managementId
+                    && (isRuleTask ? IsRuleTaskType(task.TaskType) : WfObjectTaskHelper.IsManagementObjectTask(task.TaskType)));
         }
 
         /// <summary>

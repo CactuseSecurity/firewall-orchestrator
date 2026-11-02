@@ -228,7 +228,65 @@ namespace FWO.Test
 
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
-            Assert.That(reqTask.ImplementationTasks, Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(reqTask.ImplementationTasks, Is.Empty);
+                Assert.That(AlertRaised(api), Is.False, "manual implementation is intended");
+            });
+        }
+
+        [Test]
+        public async Task GroupTaskWithoutManagement_ExternalTargetWithoutTaskOfItsManagement_RaisesAlert()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            SetExternalTicketSystem(api, kExternalManagementNodeId);
+            WfHandler handler = CreateHandler(api);
+            WfTicket ticket = new() { Id = 5, Tasks = [CreateGroupTask(7, null)] };
+
+            await handler.CreateMissingImplTasksForTicket(ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ManagementIds(handler.ActTicket.Tasks.Single()), Is.EquivalentTo(kAutomaticManagementTasks));
+                Assert.That(AlertRaised(api), Is.True, "nobody creates the object on the external management");
+            });
+        }
+
+        [Test]
+        public async Task GroupTaskWithoutManagement_ExternalTargetWithTaskOfItsManagement_IsLeftToThatTask()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            SetExternalTicketSystem(api, kExternalManagementNodeId);
+            WfHandler handler = CreateHandler(api);
+            WfReqTask allManagementsTask = CreateGroupTask(7, null);
+            WfReqTask externalTask = CreateGroupTask(8, kExternalManagementId);
+            WfTicket ticket = new() { Id = 5, Tasks = [allManagementsTask, externalTask] };
+
+            await handler.CreateMissingImplTasksForTicket(ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ManagementIds(handler.ActTicket.Tasks.Single(task => task.Id == allManagementsTask.Id)), Is.EquivalentTo(kAutomaticManagementTasks));
+                Assert.That(handler.ActTicket.Tasks.Single(task => task.Id == externalTask.Id).ImplementationTasks, Is.Empty);
+                Assert.That(AlertRaised(api), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task GroupTaskOnSubManagement_ExternalSuperManagementTarget_RaisesAlert()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            SetExternalTicketSystem(api, kSuperManagementNodeId);
+            WfHandler handler = CreateHandler(api);
+            WfReqTask reqTask = CreateGroupTask(7, kSubManagementId);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(reqTask.ImplementationTasks, Is.Empty, "the sub-management creates on its external super-management");
+                Assert.That(AlertRaised(api), Is.True);
+            });
         }
 
         [Test]

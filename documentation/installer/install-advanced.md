@@ -188,14 +188,6 @@ Set this parameter only if the installer is allowed to install EPEL and enable C
 ./scripts/run-playbook-with-sudo.sh site.yml -e "allowRepoChangesForRedhat=true"
 ```
 
-### Parameter "docker_network" after the Podman migration
-
-This legacy parameter is ignored by the current installer because Hasura now runs with Podman host networking instead of a Docker bridge.
-
-```console
-./scripts/run-playbook-with-sudo.sh site.yml -e "docker_network=172.26.0.1/16"
-```
-
 ### Parameter "install_syslog" allows disabling of separate syslog installation
 
 Default value is install_syslog=yes but if you already have a syslog service running then you can skip syslog installation and configure your existing service manually.
@@ -205,7 +197,9 @@ run installation without syslog installation:
 ./scripts/run-playbook-with-sudo.sh site.yml -e "install_syslog=no"
 ```
 
-Here is a sample config you can use for configuring your already running syslog:
+Here is a sample config you can use for configuring your already running syslog.
+All Firewall Orchestrator components log locally, so the installer opens no network syslog receiver (versions up to 9.8.2 opened one on TCP port 514; the installation now removes it).
+The routing rules select messages by program name and message text, which the sender chooses. If your syslog service receives messages from the network, keep the rules restricted to local inputs as below, otherwise anyone who can reach the receiver can forge entries in the audit log.
 
 variables (already set in inventory):
 ```console
@@ -228,13 +222,16 @@ rsyslog config
         local6.=info                   /var/log/{{ product_name }}/login_info.log
         local6.debug                   /var/log/{{ product_name }}/debug.log
 
-        if $programname == '{{ product_name }}-database' then /var/log/{{ product_name }}/database.log
-        if $programname == '{{ middleware_server_syslog_id }}' then /var/log/{{ product_name }}/middleware.log
-        if $programname == '{{ ui_syslog_id }}' then /var/log/{{ product_name }}/ui.log
-        if $programname == '{{ ldap_syslog_id }}' then /var/log/{{ product_name }}/ldap.log
-        if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
-        if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
-        if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
+        # only route messages of local inputs, see the note below
+        if ($inputname == 'imuxsock' or $inputname == 'imjournal') then {
+          if $programname == '{{ product_name }}-database' then /var/log/{{ product_name }}/database.log
+          if $programname == '{{ middleware_server_syslog_id }}' then /var/log/{{ product_name }}/middleware.log
+          if $programname == '{{ ui_syslog_id }}' then /var/log/{{ product_name }}/ui.log
+          if $programname == '{{ ldap_syslog_id }}' then /var/log/{{ product_name }}/ldap.log
+          if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
+          if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
+          if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
+        }
   - name: edit logrotate
     blockinfile:
       path: "/etc/logrotate.d/{{ product_name }}"
@@ -520,8 +517,6 @@ The following downloads are outside the pinned checksum/signature checks describ
 - Chrome for Testing, which is downloaded for PDF generation when no system chromium package is available. It is
   deliberately not pinned: it follows the current stable release, so that browser security fixes arrive without an
   installer change.
-- the Docker apt signing key in the developer helper `scripts/preinstall-packages.yml` and in the `docker` role, which
-  the installation no longer uses
 
 ## old
 

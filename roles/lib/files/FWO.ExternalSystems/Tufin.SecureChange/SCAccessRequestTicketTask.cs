@@ -39,9 +39,9 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
             ExtMgtData extMgt = ReqTask.OnManagement != null && ReqTask.OnManagement?.ExtMgtData != null ?
                 System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
             TaskText = template.TasksTemplate
-                .Replace(Placeholder.ORDERNAME, "AR" + ReqTask.TaskNumber.ToString())
-                .Replace(Placeholder.TASKCOMMENT, ReqTask.GetFirstCommentText())
-                .Replace(Placeholder.ACTION, MapActionType(ReqTask))
+                .ReplaceJsonStringPlaceholder(Placeholder.ORDERNAME, "AR" + ReqTask.TaskNumber.ToString())
+                .ReplaceJsonStringPlaceholder(Placeholder.TASKCOMMENT, ReqTask.GetFirstCommentText())
+                .ReplaceJsonStringPlaceholder(Placeholder.ACTION, MapActionType(ReqTask))
                 .Replace(Placeholder.SOURCES, ConvertNetworkElems(template, UseModelled() ? ElemFieldType.modelled_source : ElemFieldType.source, extMgt.ExtName))
                 .Replace(Placeholder.DESTINATIONS, ConvertNetworkElems(template, UseModelled() ? ElemFieldType.modelled_destination : ElemFieldType.destination, extMgt.ExtName))
                 .Replace(Placeholder.SERVICES, ConvertServiceElems(template, extMgt.ExtName));

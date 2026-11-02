@@ -634,6 +634,9 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Workflow-Konfigurationen k&ouml;nnen mit frei w&auml;hlbarem Dateinamen und ausgew&auml;hlten Phasen exportiert werden. Beim Import kann eine neue Konfiguration angelegt oder eine bestehende erweitert werden. Verwendete Status werden mit Namen und Automatik-Eigenschaft &uuml;bertragen; vorhandene Status und Gruppen werden nicht unbemerkt &uuml;berschrieben.</li>
     <li>Neue Bibliothek zum direkten Schreiben von Implementierungs-Auftr&auml;gen auf Firewalls (Check Point, FortiManager, FortiOS, OPNsense, Azure; noch nicht aktiviert). Endpunkt und JSON-Vorlage jeder Operation (Objekte, Services, Gruppen, Regeln, Ver&ouml;ffentlichen, Policy-Installation) sind in den ger&auml;tespezifischen Einstellungen &auml;nderbar und lassen sich auf die mitgelieferte Vorgabe zur&uuml;cksetzen; die Zertifikatspr&uuml;fung ist je Manager abschaltbar. Objekte, Services und Gruppen werden nur gel&ouml;scht, wenn dies ausdr&uuml;cklich eingeschaltet ist.</li>
     <li>Modellierung: In den Modellierungs-Einstellungen k&ouml;nnen Netzwerkareas festgelegt werden, die nicht in Common Services verwendet werden d&uuml;rfen. Sie werden bei der Bearbeitung von Common Services nicht zur Auswahl angeboten.</li>
+    <li>Solange die Zertifikatspr&uuml;fung f&uuml;r eine Verbindungsart ausgeschaltet ist, sehen Administratoren oben auf jeder Seite eine Warnung, und ein Upgrade gibt eine Warnung aus. Der Cisco ASA-Importer pr&uuml;ft den SSH-Host-Key des Ger&auml;ts gegen /usr/local/fworch/etc/ssh_known_hosts auf dem Importer-Server; ist die Zertifikatspr&uuml;fung der Firewall-Verbindungen aktiv, m&uuml;ssen die gepr&uuml;ften Host-Keys vor dem Upgrade dort eingetragen werden. Bis dahin listet eine Warnung f&uuml;r Administratoren die betroffenen Managements mit einer Anleitung auf.</li>
+    <li>Syslog nimmt keine Log-Meldungen mehr &uuml;ber das Netzwerk an (TCP-Port 514); Firewall Orchestrator protokolliert nur lokal.</li>
+    <li>Die Ticket-Vorlagen f&uuml;r Tufin SecureChange sind nun ger&auml;tespezifische Einstellungen und k&ouml;nnen global, je Ger&auml;tetyp und je Management angepasst werden. Das Upgrade &uuml;bernimmt die bisher beim Ticketsystem gespeicherten Vorlagen.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -672,6 +675,9 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>Workflow configurations can be exported with a custom file name and selected phases. During import, a new configuration can be created or an existing one can be extended. Referenced states are transferred with their names and automatic-only property; existing states and groups are not silently overwritten.</li>
     <li>New library for writing implementation tasks directly to firewalls (Check Point, FortiManager, FortiOS, OPNsense, Azure; not activated yet). The endpoint and JSON template of every operation (objects, services, groups, rules, publish, policy installation) can be changed in the device specific settings and reset to the shipped default; certificate checks can be switched off per manager. Objects, services and groups are only deleted if this is switched on explicitly.</li>
     <li>Modelling: network areas which must not be used in common services can be defined in the modelling settings. They are not offered for selection when editing common services.</li>
+    <li>While certificate checking is switched off for a connection type, admins see a warning at the top of every page and an upgrade prints a warning. The Cisco ASA importer checks the SSH host key of the device against /usr/local/fworch/etc/ssh_known_hosts on the importer host; with certificate checking of firewall connections active, add the verified host keys there before upgrading. Until then, a warning for admins lists the affected managements with instructions.</li>
+    <li>Syslog no longer accepts log messages from the network (TCP port 514); Firewall Orchestrator only logs locally.</li>
+    <li>The Tufin SecureChange ticket templates are now device specific settings and can be adapted globally, per device type and per management. The upgrade takes over the templates stored with the ticket system so far.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2841,6 +2847,12 @@ INSERT INTO txt VALUES ('importCheckCertificates',      'German', 	'Zertifikate 
 INSERT INTO txt VALUES ('importCheckCertificates',      'English', 	'Check certificates of firewall connections');
 INSERT INTO txt VALUES ('check_certificates',   'German', 	'Zertifikate pr&uuml;fen');
 INSERT INTO txt VALUES ('check_certificates',   'English', 	'Check certificates');
+INSERT INTO txt VALUES ('cert_check_firewalls',   'German', 	'Firewall-Verbindungen');
+INSERT INTO txt VALUES ('cert_check_firewalls',   'English', 	'Firewall connections');
+INSERT INTO txt VALUES ('cert_check_ticket_systems', 'German', 	'Externe Ticketsysteme');
+INSERT INTO txt VALUES ('cert_check_ticket_systems', 'English', 	'External ticket systems');
+INSERT INTO txt VALUES ('cert_check_email',       'German', 	'E-Mail-Server');
+INSERT INTO txt VALUES ('cert_check_email',       'English', 	'Email server');
 INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'German', 	'Zertifikatswarnungen unterdr&uuml;cken');
 INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'English', 	'Suppress certificate warnings');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','German', 	'FW API - Pro Abruf geholte Elemente');
@@ -3675,6 +3687,18 @@ INSERT INTO txt VALUES ('dss_fw_op_publish', 'German', 	'Ver&ouml;ffentlichen');
 INSERT INTO txt VALUES ('dss_fw_op_publish', 'English', 	'Publish');
 INSERT INTO txt VALUES ('dss_fw_op_install_policy', 'German', 	'Policy installieren');
 INSERT INTO txt VALUES ('dss_fw_op_install_policy', 'English', 	'Install policy');
+INSERT INTO txt VALUES ('dss_sc_template_section', 'German', 	'SecureChange-Ticket-Vorlagen');
+INSERT INTO txt VALUES ('dss_sc_template_section', 'English', 	'SecureChange ticket templates');
+INSERT INTO txt VALUES ('dss_sc_template_section_intro', 'German', 	'Vorlagen, mit denen Antrags-Auftr&auml;ge als Tickets an Tufin SecureChange gesendet werden. Es gelten die Vorlagen des Managements des Auftrags. Ein leerer Wert verwendet die mitgelieferte Vorlage.');
+INSERT INTO txt VALUES ('dss_sc_template_section_intro', 'English', 	'Templates used to send request tasks as tickets to Tufin SecureChange. The templates of the management of the task apply. An empty value uses the shipped template.');
+INSERT INTO txt VALUES ('dss_sc_template_uses_default', 'German', 	'Leer: es gilt die grau angezeigte mitgelieferte Vorlage, auch nach einem Update, das sie korrigiert.');
+INSERT INTO txt VALUES ('dss_sc_template_uses_default', 'English', 	'Empty: the shipped template (shown in grey) applies, also after an update that corrects it.');
+INSERT INTO txt VALUES ('dss_sc_template_no_default', 'German', 	'Hierf&uuml;r wird keine Vorlage mitgeliefert: der Vorlagenteil bleibt leer, solange hier kein Wert gesetzt ist.');
+INSERT INTO txt VALUES ('dss_sc_template_no_default', 'English', 	'No template is shipped for this: the template part stays empty unless a value is set here.');
+INSERT INTO txt VALUES ('dss_sc_task_access_request', 'German', 	'AccessRequest');
+INSERT INTO txt VALUES ('dss_sc_task_access_request', 'English', 	'AccessRequest');
+INSERT INTO txt VALUES ('dss_sc_task_network_object_modify', 'German', 	'NetworkObjectModify');
+INSERT INTO txt VALUES ('dss_sc_task_network_object_modify', 'English', 	'NetworkObjectModify');
 INSERT INTO txt VALUES ('dss_positioning_algorithm', 'German', 	'Positionierungs-Algorithmus');
 INSERT INTO txt VALUES ('dss_positioning_algorithm', 'English', 	'Positioning algorithm');
 INSERT INTO txt VALUES ('dss_common_service_separation', 'German', 	'Common Services trennen');
@@ -3719,6 +3743,8 @@ INSERT INTO txt VALUES ('dss_opt_submanager',                       'German', 	'
 INSERT INTO txt VALUES ('dss_opt_submanager',                       'English', 	'Submanager');
 INSERT INTO txt VALUES ('ext_ticket_templates', 'German', 	'Externe Ticket-Vorlagen');
 INSERT INTO txt VALUES ('ext_ticket_templates', 'English', 	'External ticket templates');
+INSERT INTO txt VALUES ('ext_ticket_sc_templates_moved', 'German', 	'Die Vorlagen f&uuml;r Tufin SecureChange werden in den ger&auml;tespezifischen Einstellungen gepflegt, wo sie je Ger&auml;tetyp und Management angepasst werden k&ouml;nnen:');
+INSERT INTO txt VALUES ('ext_ticket_sc_templates_moved', 'English', 	'The Tufin SecureChange templates are maintained in the device specific settings, where they can be adapted per device type and management:');
 INSERT INTO txt VALUES ('add_ext_ticket_system', 'German',  'Externes Ticket-System anlegen');
 INSERT INTO txt VALUES ('add_ext_ticket_system', 'English', 'Add external ticket system');
 INSERT INTO txt VALUES ('new_ext_ticket_system', 'German',  'Externes Ticket-System anlegen');
@@ -4612,6 +4638,12 @@ INSERT INTO txt VALUES ('U5016', 'German',  'Verwaltung der externen Auftr&auml;
 INSERT INTO txt VALUES ('U5016', 'English', 'Administration of external requests (only by admin)');
 INSERT INTO txt VALUES ('U5017', 'German',  'Verwaltung der Modul-Einstellungen (nur f&uuml;r Admin)');
 INSERT INTO txt VALUES ('U5017', 'English', 'Administration of module settings (only by admin)');
+INSERT INTO txt VALUES ('U5018', 'German',  'Die Zertifikatspr&uuml;fung ist ausgeschaltet. Diese Verbindungen akzeptieren jedes Serverzertifikat, so dass die dar&uuml;ber gesendeten Zugangsdaten abgefangen werden k&ouml;nnen:');
+INSERT INTO txt VALUES ('U5018', 'English', 'Certificate checking is switched off. These connections accept any server certificate, so credentials sent over them can be intercepted:');
+INSERT INTO txt VALUES ('U5019', 'German',  'Diese Cisco ASA-Managements werden nicht importiert, weil der SSH-Host-Key des Ger&auml;ts unbekannt ist oder sich ge&auml;ndert hat:');
+INSERT INTO txt VALUES ('U5019', 'English', 'These Cisco ASA managements are not imported because the SSH host key of the device is unknown or has changed:');
+INSERT INTO txt VALUES ('U5020', 'German',  'Auf dem Importer-Server den Key mit ssh-keyscan -p &lt;Port&gt; &lt;Host&gt; abrufen, seinen Fingerprint (ssh-keygen -lf) mit dem auf dem Ger&auml;t angezeigten Key vergleichen und ihn in /usr/local/fworch/etc/ssh_known_hosts eintragen. Die Warnung verschwindet nach dem n&auml;chsten erfolgreichen Import.');
+INSERT INTO txt VALUES ('U5020', 'English', 'On the importer host, fetch the key with ssh-keyscan -p &lt;port&gt; &lt;host&gt;, compare its fingerprint (ssh-keygen -lf) with the key shown on the device, and add it to /usr/local/fworch/etc/ssh_known_hosts. The warning disappears after the next successful import.');
 INSERT INTO txt VALUES ('U5101', 'German',  'Sind sie sicher, dass sie folgendes Management l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5101', 'English', 'Are you sure you want to delete management: ');
 INSERT INTO txt VALUES ('U5102', 'German',  'L&ouml;scht alle Beispielmanagements (auf "_demo" endend) und alle zugeordneten Gateways');
@@ -5579,7 +5611,8 @@ INSERT INTO txt VALUES ('H1101', 'German',  '<li> Alle Filter sind schreibungsun
     <li> Es gibt verschiedene Varianten f&uuml;r die meisten Schl&uuml;sselw&ouml;rter, z.B. k&ouml;nnen DestinationPort-Filter geschrieben werden als:
         port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port</li>
     <li> Alle Filterausdr&uuml;cke m&uuml;ssen logisch mit den Operatoren: and, or, not miteinander kombiniert werden.</li>
-    <li> Klammern k&ouml;nnen genutzt werden, um die Filterausdr&uuml;cke zu strukturieren.</li>
+    <li> Klammern k&ouml;nnen genutzt werden, um die Filterausdr&uuml;cke zu strukturieren.
+        Ein Ausdruck darf h&ouml;chstens 100 Ebenen tief in Klammern und not-Operatoren eingeschlossen sein, und ein Filter darf h&ouml;chstens 10000 Zeichen lang sein.</li>
     <li> Anf&uuml;hrungszeichen (") k&ouml;nnen optional f&uuml;r Wertdefinitionen genutzt werden. Wenn Leerzeichen im Wert vorkommen (z.B. f&uuml;r Datum/Zeit-Werte), m&uuml;ssen sie genutzt werden.</li>
     <li> Muss ein Gateway ausgew&auml;hlt werden, kann dies manuell oder &uuml;ber die linke Randleiste, von wo die Auswahl automatisch in den Filter integriert wird, erfolgen.</li>
     <li> Workflow-Ticket-Reports unterst&uuml;tzen zus&auml;tzlich die Filterleisten-Schl&uuml;sselw&ouml;rter tasktype, state/states und phase; Workflow-Ticket&auml;nderungen zus&auml;tzlich reference_date.</li>
@@ -5592,7 +5625,8 @@ INSERT INTO txt VALUES ('H1101', 'English', '<li> All filtering is case insensit
     <li> There are multiple variants for most keywords, e.g. DestinationPort filters can be written as:
         port, dport, dst_port, dst-port, dest-port, destination-port, dest_port, destination_port</li>
     <li> All filter statements must be logically combined using either: and, or, not.</li>
-    <li> Brackets can be used for structuring the filter statement.</li>
+    <li> Brackets can be used for structuring the filter statement.
+        A statement may be enclosed in at most 100 levels of brackets and not operators, and a filter may be at most 10000 characters long.</li>
     <li> Quotation marks (") can be used optionally for the value definition. If there are white spaces in the value (e.g. for date/time values) the quotation marks have to be used.</li>
     <li> If a gateway has to be selected, this can be done manually or via the left sidebar, from where the selection is automatically integrated to the filter.</li>
     <li> Workflow ticket reports additionally support the filter-line keywords tasktype, state/states and phase; workflow ticket change reports additionally support reference_date.</li>
@@ -6935,6 +6969,18 @@ INSERT INTO txt VALUES ('H5199t', 'German',  'Objekte l&ouml;schen: ob Netzwerko
 INSERT INTO txt VALUES ('H5199t', 'English', 'Delete objects: whether network objects, services and groups are deleted on the firewall when an implementation task deletes them. Default: No, because they may still be used elsewhere on the firewall; the deletions not sent are listed in the result of the task. Deleting rules is not affected. All levels.');
 INSERT INTO txt VALUES ('H5199u', 'German',  'OPNsense: Gruppen (Aliase) enthalten die Adressen ihrer Mitglieder als CIDR-Eintr&auml;ge, z.B. 10.0.0.1/32; Adressbereiche werden in CIDR-Netze zerlegt. Beim Anlegen einer Gruppe werden daher keine Mitglieds-Aliase angelegt. Mitglieder bestehender Host- und Netzwerk-Aliase werden einzeln per alias_util hinzugef&uuml;gt oder entfernt. OPNsense sperrt dabei die Konfiguration und speichert die jeweilige &Auml;nderung, sodass zwischenzeitliche &Auml;nderungen anderer Mitglieder erhalten bleiben. Mitglieder ohne IP-Adresse werden vor dem Senden abgelehnt, andere Alias-Typen werden nicht ge&auml;ndert. Einzelne Adressen werden dabei ohne /32 bzw. /128 gesendet: OPNsense erg&auml;nzt die Maske in Netzwerk-Aliasen und entfernt einen Eintrag mit und ohne Maske. Ausnahme: IPv6-Adressen, die mit :: beginnen (z.B. ::1), werden mit /128 gesendet, weil OPNsense ihnen sonst die Maske /32 anh&auml;ngen w&uuml;rde. Netze, in Netze zerlegte Adressbereiche und diese IPv6-Adressen k&ouml;nnen nur in Netzwerk-Aliasen ge&auml;ndert werden; f&uuml;r Host-Aliase wird die Aufgabe vor dem Senden abgelehnt. Ein anders geschriebener Eintrag (z.B. eine anders notierte IPv6-Adresse oder eine Alias-Referenz) bleibt bestehen. Alte &Uuml;berschreibungen mit @@MERGED_MEMBERS@@ werden abgelehnt: Endpunkt und Vorlage der Mitglieder-Operationen auf die mitgelieferten Vorgaben zur&uuml;cksetzen.');
 INSERT INTO txt VALUES ('H5199u', 'English', 'OPNsense: groups (aliases) hold the addresses of their members as CIDR entries, e.g. 10.0.0.1/32; address ranges are split into CIDR networks. Creating a group therefore creates no member aliases. Members of existing host and network aliases are added or removed individually via alias_util. OPNsense locks the configuration and persists each change, preserving concurrent changes to other members. Members without an IP address are refused before sending, other alias types are not changed. Single addresses are sent without /32 or /128: OPNsense adds the mask in network aliases and removes an entry with or without the mask. Exception: IPv6 addresses starting with :: (e.g. ::1) are sent with /128, because OPNsense would otherwise append the mask /32 to them. Networks, address ranges split into networks and these IPv6 addresses can only be changed in network aliases; for host aliases the task is refused before sending. An entry written differently (e.g. an IPv6 address in another notation or an alias reference) stays. Old overrides using @@MERGED_MEMBERS@@ are refused: reset the member operation endpoints and templates to the shipped defaults.');
+INSERT INTO txt VALUES ('H5199v', 'German',  'SecureChange-Ticket-Vorlagen: Vorlagen je Tufin-SecureChange-Aufgabentyp (AccessRequest f&uuml;r Zugriff, Regel&auml;nderung und -l&ouml;schung, NetworkObjectModify f&uuml;r Netzwerkgruppen) und Vorlagenteil. Global, Ger&auml;tetyp und Manager.
+    SecureChange &auml;ndert nur Gruppen von Netzwerkobjekten: Antrags-Auftr&auml;ge f&uuml;r Dienstgruppen werden mit einem Konfigurationsfehler abgelehnt.
+    Ein Ticket verwendet die Vorlagen des Managements seiner Antrags-Auftr&auml;ge. Auftr&auml;ge verschiedener Managements werden nur dann in einem Ticket geb&uuml;ndelt, wenn ihre Vorlagen gleich sind.
+    Ein leerer Wert verwendet die mitgelieferte Vorlage; mitgeliefert werden nur Ticket- und Aufgabentext von AccessRequest, alle anderen Vorlagenteile bleiben dann leer. Ist der Ticket- oder Aufgabentext eines Aufgabentyps leer, wird ein Antrags-Auftrag dieses Typs mit einem Konfigurationsfehler abgelehnt.
+    Die Vorlagen werden beim Erzeugen des externen Requests ermittelt und mit ihm gespeichert: ge&auml;nderte Vorlagen gelten f&uuml;r neue Requests, nicht f&uuml;r wartende oder wiederholte.
+    Das Ticketsystem selbst (URL, Login-Daten, Zeitlimits) wird weiterhin unter <a href="/help/settings/exttickettemplates">Externe Ticket-Vorlagen</a> gepflegt.');
+INSERT INTO txt VALUES ('H5199v', 'English', 'SecureChange ticket templates: templates per Tufin SecureChange task type (AccessRequest for access, rule modification and rule deletion, NetworkObjectModify for network groups) and template part. Global, device type and manager.
+    SecureChange only modifies groups of network objects: request tasks for service groups are refused with a configuration error.
+    A ticket uses the templates of the management of its request tasks. Tasks of different managements are only bundled into one ticket if their templates are equal.
+    An empty value uses the shipped template; only the ticket and task text of AccessRequest are shipped, all other template parts then stay empty. If the ticket or task text of a task type is empty, a request task of that type is refused with a configuration error.
+    The templates are determined when the external request is created and stored with it: changed templates apply to new requests, not to waiting or retried ones.
+    The ticket system itself (URL, credentials, timeouts) is still maintained under <a href="/help/settings/exttickettemplates">External ticket templates</a>.');
 INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Ldap-Verbindungen einrichten und verwalten. Sie k&ouml;nnen alle zur Nutzerauthentifizierung genutzt werden.<br>
     Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
     Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.
@@ -7452,9 +7498,9 @@ INSERT INTO txt VALUES ('H5491f','English', 'Use dummy email address: For testin
 INSERT INTO txt VALUES ('H5491g','German',  'Dummy-Email-Addresse: Addresse auf welche die Emails umgeleitet werden, wenn Umleitung aktiviert.');
 INSERT INTO txt VALUES ('H5491g','English', 'Dummy email address: Address where emails are directed, if redirection is activated.');
 INSERT INTO txt VALUES ('H5491h','German',  'Zertifikate pr&uuml;fen: Bei StartTls und Tls wird das Zertifikat des Email-Servers gegen den Zertifikatsspeicher des Hosts gepr&uuml;ft.
-    Nur ausschalten, wenn die ausstellende CA dort nicht hinterlegt werden kann: ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden.');
+    Nur ausschalten, wenn die ausstellende CA dort nicht hinterlegt werden kann: ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden. Solange die Pr&uuml;fung ausgeschaltet ist, sehen Administratoren oben auf jeder Seite eine Warnung.');
 INSERT INTO txt VALUES ('H5491h','English', 'Check certificates: With StartTls and Tls the certificate of the email server is validated against the host trust store.
-    Only switch this off if the issuing CA cannot be added there: without the check the credentials can be intercepted.');
+    Only switch this off if the issuing CA cannot be added there: without the check the credentials can be intercepted. As long as the check is switched off, admins see a warning at the top of every page.');
 INSERT INTO txt VALUES ('H5492','German',   'Verbindung testen: Es wird eine Test-email an die oben eingerichtete email-Adresse versandt.');
 INSERT INTO txt VALUES ('H5492','English',  'Test connection: A test email is sent to the above defined email address.');
 INSERT INTO txt VALUES ('H5495', 'German',  'Die folgenden Einstellungen wirken sich auf das Import-Modul (python) aus. Die Zertifikatspr&uuml;fung der Firewall-Verbindungen gilt au&szlig;erdem f&uuml;r Autodiscovery und Check Point-&Auml;nderungsauftr&auml;ge.');
@@ -7462,17 +7508,17 @@ INSERT INTO txt VALUES ('H5495', 'English', 'The following settings apply to the
 INSERT INTO txt VALUES ('H5496', 'German',  'Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;ufen. Default-Wert = 40.');
 INSERT INTO txt VALUES ('H5496', 'English', 'Import sleep time (in seconds): Time between import loops; default value=40.');
 INSERT INTO txt VALUES ('H5497', 'German',  'Zertifikate der Firewall-Verbindungen pr&uuml;fen: Sollen bei allen Verbindungen zu Firewall-Managements (Import, Autodiscovery, Check Point-&Auml;nderungsauftr&auml;ge) nur Zertifikate akzeptiert werden, denen der Zertifikatsspeicher des Hosts vertraut?
-    F&uuml;r selbstsignierte Zertifikate die ausstellende CA im Zertifikatsspeicher der FWO-Server hinterlegen. Ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden.
+    F&uuml;r selbstsignierte Zertifikate die ausstellende CA im Zertifikatsspeicher der FWO-Server hinterlegen. Ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden. Bei Cisco ASA (Import per SSH) wird stattdessen der SSH-Host-Key gegen die Datei /usr/local/fworch/etc/ssh_known_hosts auf dem Importer-Server gepr&uuml;ft. Solange die Pr&uuml;fung ausgeschaltet ist, sehen Administratoren oben auf jeder Seite eine Warnung.
     Default-Wert bei Neuinstallation = "aktiv"; ein Upgrade &uuml;bernimmt den bisherigen Wert. War die Pr&uuml;fung aktiv, werden nach dem Upgrade auch Autodiscovery und Check Point-&Auml;nderungsauftr&auml;ge gepr&uuml;ft, die bisher jedes Zertifikat akzeptiert haben.
 ');
 INSERT INTO txt VALUES ('H5497', 'English', 'Check certificates of firewall connections: Shall all connections to firewall managements (import, autodiscovery, Check Point change requests) only accept certificates trusted by the host trust store?
-    For self-signed certificates add the issuing CA to the trust store of the FWO servers. Without the check the credentials can be intercepted.
+    For self-signed certificates add the issuing CA to the trust store of the FWO servers. Without the check the credentials can be intercepted. For Cisco ASA (imported over SSH) the SSH host key is checked against the file /usr/local/fworch/etc/ssh_known_hosts on the importer host instead. As long as the check is switched off, admins see a warning at the top of every page.
     Default value for new installations = "active"; an upgrade keeps the previous value. If the check was active, autodiscovery and Check Point change requests, which accepted any certificate so far, are checked as well after the upgrade.
 ');
-INSERT INTO txt VALUES ('H5498', 'German',  'Zertifikatswarnungen unterdr&uuml;cken: Sollen im Log Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifkaten auf zu importierenden
-    Firewalls ausgegeben werden? Default-Wert = "inaktiv".
+INSERT INTO txt VALUES ('H5498', 'German',  'Zertifikatswarnungen unterdr&uuml;cken: Sollen die Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifikaten auf zu importierenden
+    Firewalls im Import-Log weggelassen werden? Default-Wert = "inaktiv".
 ');
-INSERT INTO txt VALUES ('H5498', 'English', 'Suppress certificate warnings: Shall warnings about invalid certificates be written to import log? Default value = "inactive".');
+INSERT INTO txt VALUES ('H5498', 'English', 'Suppress certificate warnings: Shall the warnings about invalid certificates of firewalls to be imported be left out of the import log? Default value = "inactive".');
 INSERT INTO txt VALUES ('H5499', 'German',  'FW API - Pro Abruf geholte Elemente: Wie viele Objekte sollen beim Import per Firewall-API Call auf einmal geholt werden? Default-Wert = 150.');
 INSERT INTO txt VALUES ('H5499', 'English', 'FW API - Elements per fetch: How many objects/rules shall be fetched per API call from a firewall management? Default value = 150.');
 INSERT INTO txt VALUES ('H5501', 'German',  'Aktionen m&uuml;ssen zuerst in den Einstellungen definiert werden und k&ouml;nnen dann den jeweiligen Status zugeordnet werden.
@@ -7759,10 +7805,10 @@ INSERT INTO txt VALUES ('H5593c', 'German', 'Zyklen zwischen Versuchen: Zyklen z
 INSERT INTO txt VALUES ('H5593c', 'English','Cycles between attempts: Cycles between two sending attempts. Will be multiplied with attempt count to enlarge interval with time.');
 INSERT INTO txt VALUES ('H5593d', 'German', 'Zertifikate pr&uuml;fen: Die TLS-Zertifikate aller externen Ticket-Systeme werden gegen den Zertifikatsspeicher des Hosts gepr&uuml;ft.
     Nur ausschalten, wenn die ausstellende CA dort nicht hinterlegt werden kann: ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden.
-    Default-Wert bei Neuinstallation = "aktiv"; ein Upgrade mit bereits konfigurierten Ticket-Systemen beh&auml;lt das bisherige Verhalten ("inaktiv").');
+    Default-Wert bei Neuinstallation = "aktiv"; ein Upgrade mit bereits konfigurierten Ticket-Systemen beh&auml;lt das bisherige Verhalten ("inaktiv"). Solange die Pr&uuml;fung ausgeschaltet ist, sehen Administratoren oben auf jeder Seite eine Warnung.');
 INSERT INTO txt VALUES ('H5593d', 'English','Check certificates: The TLS certificates of all external ticket systems are validated against the host trust store.
     Only switch this off if the issuing CA cannot be added there: without the check the credentials can be intercepted.
-    Default value for new installations = "active"; an upgrade with ticket systems already configured keeps the previous behaviour ("inactive").');
+    Default value for new installations = "active"; an upgrade with ticket systems already configured keeps the previous behaviour ("inactive"). As long as the check is switched off, admins see a warning at the top of every page.');
 INSERT INTO txt VALUES ('H5594', 'German',  'Login-Daten: <a href="/help/settings/credentials">Login-Daten</a> (Benutzername und Passwort), mit denen sich Firewall Orchestrator per Basic Authentication am Ticket-System anmeldet.
     Der Authorization-Header wird vor jedem Aufruf des Ticket-Systems aus den aktuellen Login-Daten gebildet und nicht gespeichert, ge&auml;nderte Passw&ouml;rter gelten daher auch f&uuml;r offene Requests. Login-Daten mit Schl&uuml;sselpaar k&ouml;nnen nicht gew&auml;hlt werden.');
 INSERT INTO txt VALUES ('H5594', 'English', 'Credentials: <a href="/help/settings/credentials">Credentials</a> (username and password) Firewall Orchestrator uses to log into the ticket system via basic authentication.
@@ -7797,10 +7843,12 @@ INSERT INTO txt VALUES ('H5596g', 'German', 'Template Ip-Protokoll: Template f&u
 INSERT INTO txt VALUES ('H5596g', 'English','Template Ip-Protokoll: Template for protocol types not TCP, UDP, ICMP, e.g. ESP. Available placeholders: @@PROTOCOLNAME@@, @@PROTOCOLID@@, @@SERVICENAME@@.');
 INSERT INTO txt VALUES ('H5597', 'German',  'Typ des externen Ticketing Systems: Aktuell wird nur TufinSecureChange unterst&uuml;tzt.');
 INSERT INTO txt VALUES ('H5597', 'English', 'Type of external ticketing system: Currently only TufinSecureChange is supported.');
-INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die globalen Einstellungen f&uuml;r externe Requests sowie die konfigurierten externen Ticket-Systeme und deren Vorlagen verwaltet.');
-INSERT INTO txt VALUES ('H5598', 'English', 'This page is used to manage global external request settings as well as configured external ticket systems and their templates.');
+INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die globalen Einstellungen f&uuml;r externe Requests sowie die konfigurierten externen Ticket-Systeme und deren Vorlagen verwaltet. Die Vorlagen f&uuml;r Tufin SecureChange sind ger&auml;tespezifische Einstellungen.');
+INSERT INTO txt VALUES ('H5598', 'English', 'This page is used to manage global external request settings as well as configured external ticket systems and their templates. The Tufin SecureChange templates are device specific settings.');
 INSERT INTO txt VALUES ('H5599', 'German',  'Tasktyp: Typ des Tasks im externen Auftragssystem.');
 INSERT INTO txt VALUES ('H5599', 'English', 'Task Type: Type of the task in the external ticket system.');
+INSERT INTO txt VALUES ('H5599a', 'German',  'F&uuml;r Tufin SecureChange werden hier keine Vorlagen gepflegt: sie sind <a href="/help/settings/devicespecificsettings">ger&auml;tespezifische Einstellungen</a> und k&ouml;nnen je Ger&auml;tetyp und Management angepasst werden. Das Upgrade auf 9.8.5 &uuml;bernimmt die bisher hier gespeicherten SecureChange-Vorlagen dorthin.');
+INSERT INTO txt VALUES ('H5599a', 'English', 'No templates are maintained here for Tufin SecureChange: they are <a href="/help/settings/devicespecificsettings">device specific settings</a> and can be adapted per device type and management. The upgrade to 9.8.5 moves the SecureChange templates stored here so far to them.');
 INSERT INTO txt VALUES ('H5600', 'German',  'Antragsauftrags-Sortierung: Hier werden die Speichern-Priorit&auml;ten f&uuml;r Gruppenanlage, Gruppen&auml;nderung mit Hinzuf&uuml;gen, Zugriff, Regel&auml;nderung, Regel l&ouml;schen, Gruppen&auml;nderung mit Entfernen und Gruppenl&ouml;schung festgelegt. Wenn eine Gruppen&auml;nderung gleichzeitig Mitglieder hinzuf&uuml;gt und entfernt, kann sie in zwei Teilaufgaben aufgespalten werden.');
 INSERT INTO txt VALUES ('H5600', 'English', 'Request task sorting: Defines the save priorities for group creation, group modification with added members, access, rule modification, rule deletion, group modification with removed members, and group deletion. If a group modification both adds and removes members, it can be split into two separate tasks.');
 

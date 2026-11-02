@@ -1,3 +1,14 @@
+# Negative tests run a production guard on bad input and expect it to fail; a block/rescue
+# (or ignore_errors) catches the failure and an assert checks it. Ansible prints such a
+# failure in red under the name of the production task, so every test task around an
+# expected failure starts with "expected to fail: ":
+# - the block and the task inside it that runs the guard (usually the include_tasks),
+#   whose name is printed right before the red output,
+# - the first rescue task (or, with ignore_errors, the next task), printed right after it.
+# Searching the run log for "expected to fail:" then finds exactly the intended failures.
+# Keep the prefix off positive tests, off rescues that only collect diagnostics, and off
+# the production tasks themselves - operators see those names, and some rescues compare
+# ansible_failed_task.name with them.
 
 - name: install packages necessary for testing
   package:
@@ -164,6 +175,21 @@
 - name: Upgrade source version guard testing
   import_tasks: test-upgrade-source-version-guard.yml
   when: "'databaseserver' in group_names"
+
+# On the API host because that is where roles/common runs this guard.
+- name: Docker API guard testing
+  import_tasks: test-api-docker-guard.yml
+  when: "'apiserver' in group_names"
+
+# On the database host because that is where the database role reads the cluster layout.
+- name: PostgreSQL cluster guard testing
+  import_tasks: test-postgresql-cluster-guard.yml
+  when: "'databaseserver' in group_names"
+
+# On the hosts that build the importer and customizing venvs, which have their interpreter.
+- name: Python venv reset testing
+  import_tasks: test-python-venv-reset.yml
+  when: "['importers', 'middlewareserver'] | intersect(group_names) | length > 0"
 
 - name: OS platform guard testing
   import_tasks: test-os-platform-guard.yml

@@ -160,6 +160,12 @@
           vars:
             upgrade_source_version: "{{ old_version }}"
 
+          # A supported version does not prove that the API left Docker: v9.8.4 can defer
+          # that move and still record its own version.
+        - name: check that the API no longer runs in Docker
+          include_tasks: validate-api-not-on-docker.yml
+          when: "'apiserver' in group_names"
+
       when: already_installed and installation_mode == "upgrade"
 
     - name: include OS specific preparation tasks

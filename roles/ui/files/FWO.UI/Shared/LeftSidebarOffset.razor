@@ -1,0 +1,66 @@
+@implements IDisposable
+
+@* always the same element, so that the content keeps its components when a sidebar comes or goes *@
+<div style="@OffsetStyle">
+    @ChildContent
+</div>
+
+@code
+{
+    // same gap to the left sidebar as the page layouts keep
+    private const int kGapToSidebar = 20;
+
+    /// <summary>
+    /// Widths of the left sidebars shown; without it the content is not moved.
+    /// </summary>
+    [Parameter]
+    public LeftSidebarState? State { get; set; }
+
+    /// <summary>
+    /// Content that starts after the left sidebar.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private LeftSidebarState? subscribedState;
+
+    // null leaves out the style attribute, so without a left sidebar the content is not moved
+    private string? OffsetStyle => State?.HasSidebar == true ? $"margin-left: {State.Width + kGapToSidebar}px;" : null;
+
+    /// <summary>
+    /// Follows the sidebar widths of the given state.
+    /// </summary>
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(subscribedState, State))
+        {
+            Unsubscribe();
+            subscribedState = State;
+            if (subscribedState != null)
+            {
+                subscribedState.OnChange += OnSidebarChanged;
+            }
+        }
+    }
+
+    private void OnSidebarChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void Unsubscribe()
+    {
+        if (subscribedState != null)
+        {
+            subscribedState.OnChange -= OnSidebarChanged;
+        }
+    }
+
+    /// <summary>
+    /// Stops following the sidebar widths.
+    /// </summary>
+    public void Dispose()
+    {
+        Unsubscribe();
+    }
+}

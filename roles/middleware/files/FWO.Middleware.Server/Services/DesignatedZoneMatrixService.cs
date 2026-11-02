@@ -5,6 +5,7 @@ using FWO.Basics.Exceptions;
 using FWO.Compliance;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.NetworkTopology;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using NetTools;
@@ -12,9 +13,9 @@ using NetTools;
 namespace FWO.Middleware.Server.Services;
 
 /// <summary>
-/// Resolves compliance zones for stored and provided network objects.
+/// Resolves network zones for stored and provided network objects.
 /// </summary>
-public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalConfig globalConfig)
+public sealed class DesignatedZoneMatrixService(ApiConnection apiConnection, GlobalConfig globalConfig)
 {
     /// <summary>
     /// Returns one page of the zones defined by the configured designated zone matrix, ordered by zone id.
@@ -46,7 +47,7 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
             return [];
         }
 
-        List<NetworkZone> resolvedZones = ComplianceZoneResolver.ResolveZones(
+        List<NetworkZone> resolvedZones = NetworkZoneResolver.ResolveZones(
             ranges,
             zones,
             globalConfig.AutoCalculateInternetZone,

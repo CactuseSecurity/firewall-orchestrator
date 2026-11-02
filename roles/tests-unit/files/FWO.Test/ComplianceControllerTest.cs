@@ -707,14 +707,14 @@ namespace FWO.Test
             return (T)value!;
         }
 
-        private static ComplianceZoneService CreateZoneService(ApiConnection apiConnection, int matrixId = 0)
+        private static DesignatedZoneMatrixService CreateZoneService(ApiConnection apiConnection, int matrixId = 0)
         {
             SimulatedGlobalConfig globalConfig = new()
             {
                 DesignatedZoneMatrixId = matrixId
             };
 
-            return new ComplianceZoneService(apiConnection, globalConfig);
+            return new DesignatedZoneMatrixService(apiConnection, globalConfig);
         }
 
     }

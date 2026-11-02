@@ -1,4 +1,4 @@
-using FWO.Compliance;
+using FWO.NetworkTopology;
 using FWO.Data;
 using NetTools;
 using NUnit.Framework;
@@ -8,12 +8,12 @@ using System.Net.Sockets;
 namespace FWO.Test;
 
 [TestFixture]
-internal class ComplianceZoneResolverTest
+internal class NetworkZoneResolverTest
 {
     [Test]
     public void ResolveZones_AddsSyntheticInternetFallbackWhenAutoCalculationIsDisabled()
     {
-        List<NetworkZone> result = ComplianceZoneResolver.ResolveZones(
+        List<NetworkZone> result = NetworkZoneResolver.ResolveZones(
             [new IPAddressRange(IPAddress.Parse("203.0.113.10"), IPAddress.Parse("203.0.113.10"))],
             [
                 new NetworkZone
@@ -45,7 +45,7 @@ internal class ComplianceZoneResolverTest
         List<IPAddressRange> ranges = [new IPAddressRange(IPAddress.Parse("2001:db8::"), IPAddress.Parse("2001:db8::ffff"))];
         List<NetworkZone> zones = [Ipv4Zone];
 
-        List<NetworkZone> result = ComplianceZoneResolver.ResolveZones(
+        List<NetworkZone> result = NetworkZoneResolver.ResolveZones(
             ranges,
             zones,
             autoCalculatedInternetZoneActive,
@@ -73,7 +73,7 @@ internal class ComplianceZoneResolverTest
         ];
         List<NetworkZone> zones = [Ipv4Zone];
 
-        List<NetworkZone> result = ComplianceZoneResolver.ResolveZones(
+        List<NetworkZone> result = NetworkZoneResolver.ResolveZones(
             ranges,
             zones,
             autoCalculatedInternetZoneActive: false,
@@ -105,7 +105,7 @@ internal class ComplianceZoneResolverTest
         List<IPAddressRange> ranges = [new IPAddressRange(IPAddress.Parse("2001:db8::1"), IPAddress.Parse("2001:db8::2"))];
         List<NetworkZone> zones = [ipv6Zone];
 
-        List<NetworkZone> result = ComplianceZoneResolver.ResolveZones(
+        List<NetworkZone> result = NetworkZoneResolver.ResolveZones(
             ranges,
             zones,
             autoCalculatedInternetZoneActive: true,

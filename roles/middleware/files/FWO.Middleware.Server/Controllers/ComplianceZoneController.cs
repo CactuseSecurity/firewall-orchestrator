@@ -18,7 +18,7 @@ namespace FWO.Middleware.Server.Controllers;
 [ApiController]
 [Tags("Compliance")]
 [Route("api/Compliance")]
-public class ComplianceZoneController(ComplianceZoneService complianceZoneService, GlobalConfig globalConfig) : ControllerBase
+public class ComplianceZoneController(DesignatedZoneMatrixService complianceZoneService, GlobalConfig globalConfig) : ControllerBase
 {
     /// <summary>
     /// Returns the network zones of the configured designated zone matrix.

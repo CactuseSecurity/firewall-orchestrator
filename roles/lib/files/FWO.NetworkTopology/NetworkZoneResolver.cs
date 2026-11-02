@@ -2,18 +2,18 @@ using FWO.Data;
 using NetTools;
 using System.Net.Sockets;
 
-namespace FWO.Compliance;
+namespace FWO.NetworkTopology;
 
 /// <summary>
-/// Resolves compliance network zones for a set of IP ranges.
+/// Resolves network zones for a set of IP ranges.
 /// </summary>
-public static class ComplianceZoneResolver
+public static class NetworkZoneResolver
 {
     /// <summary>
     /// Resolves the zones that overlap with the provided IP ranges.
     /// </summary>
     /// <param name="ranges">IP ranges to evaluate.</param>
-    /// <param name="activeNetworkZones">The active compliance zones.</param>
+    /// <param name="activeNetworkZones">The active network zones.</param>
     /// <param name="autoCalculatedInternetZoneActive">Whether the internet zone is auto-calculated and therefore should not be added as a fallback.</param>
     /// <param name="internetLocalZoneName">Localized display name for the fallback internet zone.</param>
     public static List<NetworkZone> ResolveZones(
@@ -29,7 +29,7 @@ public static class ComplianceZoneResolver
     /// Resolves the zones that overlap with the provided IP ranges and reports the ranges no zone can cover.
     /// </summary>
     /// <param name="ranges">IP ranges to evaluate.</param>
-    /// <param name="activeNetworkZones">The active compliance zones.</param>
+    /// <param name="activeNetworkZones">The active network zones.</param>
     /// <param name="autoCalculatedInternetZoneActive">Whether the internet zone is auto-calculated and therefore should not be added as a fallback.</param>
     /// <param name="internetLocalZoneName">Localized display name for the fallback internet zone.</param>
     /// <param name="unassignableRanges">Ranges that matched no zone and that the internet zone cannot cover either.</param>

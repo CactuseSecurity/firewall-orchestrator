@@ -117,7 +117,7 @@ builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
 builder.Services.AddSingleton<FlowCatalogService>();
 builder.Services.AddSingleton<IFlowGroupResolver>(serviceProvider => serviceProvider.GetRequiredService<FlowCatalogService>());
-builder.Services.AddSingleton<ComplianceZoneService>();
+builder.Services.AddSingleton<DesignatedZoneMatrixService>();
 builder.Services.AddSingleton<FlowComplianceService>();
 builder.Services.AddSingleton<WorkflowTicketService>();
 builder.Services.AddSingleton<WorkflowChangeHistoryService>();

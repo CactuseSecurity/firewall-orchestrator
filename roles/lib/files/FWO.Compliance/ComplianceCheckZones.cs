@@ -1,6 +1,7 @@
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Basics.Enums;
+using FWO.NetworkTopology;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Ui.Display;
@@ -235,7 +236,7 @@ namespace FWO.Compliance
         private List<NetworkZone> DetermineZones(List<IPAddressRange> ranges, out List<IPAddressRange> unassignableRanges, List<NetworkZone>? networkZonesOverride = null)
         {
             List<NetworkZone> activeNetworkZones = networkZonesOverride ?? NetworkZones;
-            return ComplianceZoneResolver.ResolveZones(
+            return NetworkZoneResolver.ResolveZones(
                 ranges,
                 activeNetworkZones,
                 _autoCalculatedInternetZoneActive,

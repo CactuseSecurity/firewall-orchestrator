@@ -18,7 +18,7 @@ public sealed class ResolvePathDevicesRequest : IRequestWithRootAdditionalData
     private ResolvePathDevicesOptions options = new();
 
     /// <summary>
-    /// Gets or sets the address blocks the paths start at. Required, 1 to 100 entries. Each entry gives
+    /// Gets or sets the address blocks the paths start at. Required, 1 to 500 entries. Each entry gives
     /// exactly one of <c>ipHost</c>, <c>ipNetwork</c> or <c>ipRange</c>; null entries are rejected.
     /// Every source is combined with every destination.
     /// </summary>
@@ -34,7 +34,7 @@ public sealed class ResolvePathDevicesRequest : IRequestWithRootAdditionalData
     public List<AddressInputRequest?>? Sources { get; set; }
 
     /// <summary>
-    /// Gets or sets the address blocks the paths end at. Required, 1 to 100 entries. Each entry gives
+    /// Gets or sets the address blocks the paths end at. Required, 1 to 500 entries. Each entry gives
     /// exactly one of <c>ipHost</c>, <c>ipNetwork</c> or <c>ipRange</c>; null entries are rejected.
     /// Every destination is combined with every source.
     /// </summary>

@@ -18,6 +18,12 @@
   - breaking: an AccessRequest template that was missing on a SecureChange system (ticket creation failed before) is now replaced by the shipped one
   - a task type whose ticket or task template is empty (no setting and no shipped template, e.g. NetworkObjectModify) is refused with a configuration error before a request is created, as when its template was missing before
   - service group tasks routed to SecureChange are refused with a configuration error; SecureChange only modifies groups of network objects. Before, they created a ticket without tasks. Their templates (NetworkServiceCreate, NetworkServiceUpdate) were never used and are not migrated; they remain in the backup
+- middleware REST API: resolvePathDevices takes sources and destinations in the shared address format `ipHost`, `ipNetwork` or the two-entry `ipRange`, up to 500 entries each (#5587)
+  - breaking: `ipStart` and `ipEnd` are no longer accepted
+- middleware REST API: getFlowComplianceState and getPolicyIds report all validation errors at once with the request path of each, in the format `{"errors": [{"path": ..., "message": ...}]}` (#5587)
+  - breaking: the 400 body was plain text naming only the first error; an explicit `null` for `source`, `destination`, `service` or `policies` is now rejected
+- path analysis: the routing based query passed source and destination to the swapped arguments of devices_in_path; the result is unchanged, as the function is symmetric (#5587)
+- help: new page on the path analysis REST API (#5587)
 
 ## 9.8.4 - 29.10.2026
 - installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server

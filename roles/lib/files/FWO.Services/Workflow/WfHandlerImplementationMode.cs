@@ -41,8 +41,7 @@ namespace FWO.Services.Workflow
             }
             if (settings.RerouteToExternalTicketSystem == null)
             {
-                await ReportUnimplementedTarget(reqTask, managementId, null,
-                    $"its implementation mode is external ticket system, but no external ticket system is selected for management {managementId}.");
+                await ReportUnimplementedTarget(reqTask, managementId, null, NoExternalTicketSystemSelectedReason(managementId));
             }
             else
             {
@@ -109,8 +108,8 @@ namespace FWO.Services.Workflow
                 }
                 else if (mode == ProvisioningImplementationMode.RerouteToExternalTicketSystem && !IsHandedToExternalTicketSystemByTicket(target.Id, false))
                 {
-                    await ReportUnimplementedTarget(reqTask, target.Id, null,
-                        $"target management {target.Id} is set to external ticket system, but the ticket hands no object task of this management to it.");
+                    await ReportUnimplementedTarget(reqTask, target.Id, null, GetMissingExternalTicketSystemReason(target.Id)
+                        ?? $"target management {target.Id} is set to external ticket system, but the ticket hands no object task of this management to it.");
                 }
                 else
                 {
@@ -161,9 +160,27 @@ namespace FWO.Services.Workflow
         /// <param name="managementId">Management of the gateway, if known.</param>
         private async Task HandleExternalTicketSystemGatewayWithoutRequestTask(WfReqTask reqTask, int? deviceId, int? managementId)
         {
-            await ReportUnimplementedTarget(reqTask, managementId, deviceId,
+            string? missingSystemReason = managementId is int id ? GetMissingExternalTicketSystemReason(id) : null;
+            await ReportUnimplementedTarget(reqTask, managementId, deviceId, missingSystemReason ??
                 $"gateway {deviceId?.ToString() ?? "(none)"} of management {managementId?.ToString() ?? "(unknown)"} is set to external ticket system, " +
                 "but the ticket hands no rule task of this management to it (not implemented yet).");
+        }
+
+        /// <summary>
+        /// Returns the alert reason for a management without a selected external ticket system, so that a target set to
+        /// external ticket system points to the missing system instead of to the ticket; null if a system is selected.
+        /// </summary>
+        /// <param name="managementId">Management of the gateway or object target.</param>
+        private string? GetMissingExternalTicketSystemReason(int managementId)
+        {
+            return GetResolvedSettings(DeviceSpecificScopeType.Management, managementId).RerouteToExternalTicketSystem == null
+                ? NoExternalTicketSystemSelectedReason(managementId)
+                : null;
+        }
+
+        private static string NoExternalTicketSystemSelectedReason(int managementId)
+        {
+            return $"its implementation mode is external ticket system, but no external ticket system is selected for management {managementId}.";
         }
 
         /// <summary>

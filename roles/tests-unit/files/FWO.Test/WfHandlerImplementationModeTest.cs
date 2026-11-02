@@ -179,6 +179,12 @@ namespace FWO.Test
             return api.Calls.Any(call => call.Query == MonitorQueries.getOpenAlerts);
         }
 
+        private static List<string> AlertDescriptions(InMemoryDeviceSpecificSettingsApiConnection api)
+        {
+            return [.. api.Calls.Where(call => call.Query == MonitorQueries.addAlert)
+                .Select(call => call.Variables?.GetType().GetProperty("description")?.GetValue(call.Variables) as string ?? "")];
+        }
+
         [Test]
         public async Task AccessTask_GatewayWithManualRuleMode_GetsNoTask()
         {
@@ -270,6 +276,37 @@ namespace FWO.Test
                 Assert.That(handler.ActTicket.Tasks.Single(task => task.Id == externalTask.Id).ImplementationTasks, Is.Empty);
                 Assert.That(AlertRaised(api), Is.False);
             });
+        }
+
+        [Test]
+        public async Task GroupTaskWithoutManagement_ExternalTargetWithoutSystem_AlertNamesTheMissingSystem()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            SetExternalTicketSystem(api, kExternalManagementNodeId, withSystem: false);
+            WfHandler handler = CreateHandler(api);
+            WfTicket ticket = new() { Id = 5, Tasks = [CreateGroupTask(7, null), CreateGroupTask(8, kExternalManagementId)] };
+
+            await handler.CreateMissingImplTasksForTicket(ticket);
+
+            List<string> descriptions = AlertDescriptions(api);
+            Assert.Multiple(() =>
+            {
+                Assert.That(descriptions, Has.Count.EqualTo(2), "one alert for the task on the management, one for the target of the other task");
+                Assert.That(descriptions, Has.All.Contains("no external ticket system is selected"));
+            });
+        }
+
+        [Test]
+        public async Task AccessTaskWithoutManagement_ExternalGatewayWithoutSystem_AlertNamesTheMissingSystem()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            SetExternalTicketSystem(api, kExternalManagementNodeId, withSystem: false);
+            WfHandler handler = CreateHandler(api);
+            WfTicket ticket = new() { Id = 5, Tasks = [CreateAccessTask(8, null, kNoGateway)] };
+
+            await handler.CreateMissingImplTasksForTicket(ticket);
+
+            Assert.That(AlertDescriptions(api).Single(), Does.Contain("no external ticket system is selected"));
         }
 
         [Test]

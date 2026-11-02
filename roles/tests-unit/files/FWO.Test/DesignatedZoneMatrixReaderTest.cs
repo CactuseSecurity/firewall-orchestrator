@@ -2,7 +2,11 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Compliance.RulePositioning;
 using FWO.Data;
+using FWO.Data.RulePositioning;
 using NUnit.Framework;
+using DesignatedZoneMatrixReadResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Compliance.RulePositioning.DesignatedZoneMatrixReadValue,
+    FWO.Compliance.RulePositioning.DesignatedZoneMatrixReadFailureCategory>;
 
 namespace FWO.Test;
 
@@ -20,7 +24,7 @@ internal class DesignatedZoneMatrixReaderTest
             [new ComplianceCriterion { Id = kCriterionId, Name = "Matrix" }],
             [new ComplianceNetworkZone { Id = 21, CriterionId = kCriterionId, Name = "Zone" }]);
 
-        DesignatedZoneMatrixReadSuccess success = Success(await new DesignatedZoneMatrixReader(api)
+        DesignatedZoneMatrixReadValue success = Success(await new DesignatedZoneMatrixReader(api)
             .ReadAsync(kCriterionId, CancellationToken.None));
 
         Assert.Multiple(() =>
@@ -37,12 +41,12 @@ internal class DesignatedZoneMatrixReaderTest
     {
         RecordingApiConnection api = new([], []);
 
-        DesignatedZoneMatrixReadFailure failure = Failure(await new DesignatedZoneMatrixReader(api)
+        DesignatedZoneMatrixReadFailureCategory failure = Failure(await new DesignatedZoneMatrixReader(api)
             .ReadAsync(criterionId, CancellationToken.None));
 
         Assert.Multiple(() =>
         {
-            Assert.That(failure.Category, Is.EqualTo(DesignatedZoneMatrixReadFailureCategory.ConfigurationInvalid));
+            Assert.That(failure, Is.EqualTo(DesignatedZoneMatrixReadFailureCategory.ConfigurationInvalid));
             Assert.That(api.Operations, Is.Empty);
         });
     }
@@ -52,11 +56,11 @@ internal class DesignatedZoneMatrixReaderTest
     {
         RecordingApiConnection api = new([], []);
 
-        DesignatedZoneMatrixReadFailure failure = Failure(await Reader(api).ReadAsync(kCriterionId, CancellationToken.None));
+        DesignatedZoneMatrixReadFailureCategory failure = Failure(await Reader(api).ReadAsync(kCriterionId, CancellationToken.None));
 
         Assert.Multiple(() =>
         {
-            Assert.That(failure.Category, Is.EqualTo(DesignatedZoneMatrixReadFailureCategory.MatrixUnavailable));
+            Assert.That(failure, Is.EqualTo(DesignatedZoneMatrixReadFailureCategory.MatrixUnavailable));
             Assert.That(api.Operations, Is.EqualTo(["matrix"]));
         });
     }
@@ -70,11 +74,11 @@ internal class DesignatedZoneMatrixReaderTest
             : [new() { Id = kCriterionId + 1 }];
         RecordingApiConnection api = new(matrices, []);
 
-        DesignatedZoneMatrixReadFailure failure = Failure(await Reader(api).ReadAsync(kCriterionId, CancellationToken.None));
+        DesignatedZoneMatrixReadFailureCategory failure = Failure(await Reader(api).ReadAsync(kCriterionId, CancellationToken.None));
 
         Assert.Multiple(() =>
         {
-            Assert.That(failure.Category, Is.EqualTo(DesignatedZoneMatrixReadFailureCategory.ConfigurationInvalid));
+            Assert.That(failure, Is.EqualTo(DesignatedZoneMatrixReadFailureCategory.ConfigurationInvalid));
             Assert.That(api.Operations, Is.EqualTo(["matrix"]));
         });
     }
@@ -87,7 +91,7 @@ internal class DesignatedZoneMatrixReaderTest
             [new ComplianceCriterion { Id = kCriterionId }],
             nullPayload ? null : []);
 
-        DesignatedZoneMatrixReadSuccess success = Success(await Reader(api).ReadAsync(kCriterionId, CancellationToken.None));
+        DesignatedZoneMatrixReadValue success = Success(await Reader(api).ReadAsync(kCriterionId, CancellationToken.None));
 
         Assert.That(success.NetworkZones, Is.Empty);
     }
@@ -103,16 +107,16 @@ internal class DesignatedZoneMatrixReaderTest
             ThrowOperation = operation
         };
 
-        DesignatedZoneMatrixReadFailure failure = Failure(await Reader(api).ReadAsync(kCriterionId, CancellationToken.None));
+        DesignatedZoneMatrixReadFailureCategory failure = Failure(await Reader(api).ReadAsync(kCriterionId, CancellationToken.None));
 
         Assert.Multiple(() =>
         {
-            Assert.That(failure.Category, Is.EqualTo(DesignatedZoneMatrixReadFailureCategory.QueryFailed));
-            Assert.That(failure.Diagnostic, Does.Not.Contain(kSentinel));
-            Assert.That(failure.Diagnostic, Does.Not.Contain(ComplianceQueries.getMatrixById));
-            Assert.That(failure.Diagnostic, Does.Not.Contain("secret-matrix"));
-            Assert.That(failure.Diagnostic, Does.Not.Contain("secret-zone"));
-            Assert.That(failure.Diagnostic, Does.Not.Contain("192.0.2.1"));
+            Assert.That(failure, Is.EqualTo(DesignatedZoneMatrixReadFailureCategory.QueryFailed));
+            Assert.That(failure.GetDiagnostic(), Does.Not.Contain(kSentinel));
+            Assert.That(failure.GetDiagnostic(), Does.Not.Contain(ComplianceQueries.getMatrixById));
+            Assert.That(failure.GetDiagnostic(), Does.Not.Contain("secret-matrix"));
+            Assert.That(failure.GetDiagnostic(), Does.Not.Contain("secret-zone"));
+            Assert.That(failure.GetDiagnostic(), Does.Not.Contain("192.0.2.1"));
             Assert.That(api.Operations, Is.EqualTo(operation == "matrix" ? ["matrix"] : kMatrixAndZoneOperations));
         });
     }
@@ -151,7 +155,7 @@ internal class DesignatedZoneMatrixReaderTest
     public async Task ReadAsync_CopiesZoneCollectionAndExposesReadOnlyInterface()
     {
         List<ComplianceNetworkZone> zones = [new() { Id = 1, CriterionId = kCriterionId }];
-        DesignatedZoneMatrixReadSuccess success = Success(await Reader(new(
+        DesignatedZoneMatrixReadValue success = Success(await Reader(new(
             [new ComplianceCriterion { Id = kCriterionId }], zones))
             .ReadAsync(kCriterionId, CancellationToken.None));
 
@@ -170,20 +174,26 @@ internal class DesignatedZoneMatrixReaderTest
     [Test]
     public void ResultContracts_RejectNullAndUseConservativeUnknownDiagnostics()
     {
-        Assert.Throws<ArgumentNullException>(() => new DesignatedZoneMatrixReadSuccess(null!));
-        DesignatedZoneMatrixReadFailure unknown = new((DesignatedZoneMatrixReadFailureCategory)999);
+        Assert.Throws<ArgumentNullException>(() => new DesignatedZoneMatrixReadValue(null!));
 
-        Assert.That(unknown.Diagnostic, Is.EqualTo("The designated zone matrix could not be loaded."));
+        Assert.That(((DesignatedZoneMatrixReadFailureCategory)999).GetDiagnostic(),
+            Is.EqualTo("The designated zone matrix could not be loaded."));
     }
 
     private static DesignatedZoneMatrixReader Reader(RecordingApiConnection api) =>
         new(api);
 
-    private static DesignatedZoneMatrixReadSuccess Success(DesignatedZoneMatrixReadResult result) =>
-        (DesignatedZoneMatrixReadSuccess)result;
+    private static DesignatedZoneMatrixReadValue Success(DesignatedZoneMatrixReadResult result)
+    {
+        Assert.That(result.TryGetValue(out DesignatedZoneMatrixReadValue? value), Is.True);
+        return value!;
+    }
 
-    private static DesignatedZoneMatrixReadFailure Failure(DesignatedZoneMatrixReadResult result) =>
-        (DesignatedZoneMatrixReadFailure)result;
+    private static DesignatedZoneMatrixReadFailureCategory Failure(DesignatedZoneMatrixReadResult result)
+    {
+        Assert.That(result.TryGetFailure(out DesignatedZoneMatrixReadFailureCategory failure), Is.True);
+        return failure;
+    }
 
     private sealed class RecordingApiConnection(
         List<ComplianceCriterion>? matrices,

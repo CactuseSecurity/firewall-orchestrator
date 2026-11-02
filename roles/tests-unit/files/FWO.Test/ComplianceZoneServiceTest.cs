@@ -5,11 +5,15 @@ using FWO.Basics.Exceptions;
 using FWO.Compliance.RulePositioning;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.RulePositioning;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
 using System.Net;
+using DesignatedZoneMatrixReadResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Compliance.RulePositioning.DesignatedZoneMatrixReadValue,
+    FWO.Compliance.RulePositioning.DesignatedZoneMatrixReadFailureCategory>;
 
 namespace FWO.Test;
 
@@ -285,7 +289,7 @@ internal class ComplianceZoneServiceTest
         DesignatedZoneMatrixReadFailureCategory category)
     {
         ComplianceZoneService service = new(
-            new StubZoneMatrixReader(new DesignatedZoneMatrixReadFailure(category)),
+            new StubZoneMatrixReader(DesignatedZoneMatrixReadResult.Failure(category)),
             new SimulatedGlobalConfig());
 
         ListPage<ComplianceDesignatedZoneResponse> result = await service.GetDesignatedZoneMatrixZonesAsync(
@@ -297,13 +301,15 @@ internal class ComplianceZoneServiceTest
     [Test]
     public void GetDesignatedZoneMatrixZonesAsync_UsesGenericSafeQueryFailurePath()
     {
-        DesignatedZoneMatrixReadFailure failure = new(DesignatedZoneMatrixReadFailureCategory.QueryFailed);
-        ComplianceZoneService service = new(new StubZoneMatrixReader(failure), new SimulatedGlobalConfig());
+        DesignatedZoneMatrixReadFailureCategory failure = DesignatedZoneMatrixReadFailureCategory.QueryFailed;
+        ComplianceZoneService service = new(
+            new StubZoneMatrixReader(DesignatedZoneMatrixReadResult.Failure(failure)),
+            new SimulatedGlobalConfig());
 
         InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await service.GetDesignatedZoneMatrixZonesAsync(GlobalConst.kDefaultMaxRestResponseObjectLimit, null));
 
-        Assert.That(exception!.Message, Is.EqualTo(failure.Diagnostic));
+        Assert.That(exception!.Message, Is.EqualTo(failure.GetDiagnostic()));
     }
 
     [Test]

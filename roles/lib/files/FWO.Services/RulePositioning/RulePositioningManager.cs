@@ -27,10 +27,11 @@ public sealed class RulePositioningManager
         RulePositioningContext context,
         CancellationToken cancellationToken)
     {
-        RulePositioningFailure? validationFailure = ValidateContext(context);
-        if (validationFailure != null)
+        RulePositioningFailureCategory? validationFailure =
+            RulePositioningContextValidator.ValidateManagerContext(context);
+        if (validationFailure.HasValue)
         {
-            return validationFailure;
+            return Failure(validationFailure.Value);
         }
 
         List<IRulePositioningStrategy> matchingStrategies;
@@ -73,125 +74,6 @@ public sealed class RulePositioningManager
         {
             return Failure(RulePositioningFailureCategory.CalculationFailed);
         }
-    }
-
-    /// <summary>
-    /// Applies validation in a deterministic order before strategies are inspected.
-    /// </summary>
-    private static RulePositioningFailure? ValidateContext(RulePositioningContext context)
-    {
-        if (context == null || HasMissingRequiredReference(context))
-        {
-            return Failure(RulePositioningFailureCategory.InvalidInput);
-        }
-        if (!IsNewAccessRule(context.ImplementationTask, context.ParentRequestTask))
-        {
-            return Failure(RulePositioningFailureCategory.UnsupportedTask);
-        }
-        if (!HasConsistentTaskAndTargetReferences(context))
-        {
-            return Failure(RulePositioningFailureCategory.InvalidInput);
-        }
-        if (!HasUsableConfiguration(context))
-        {
-            return Failure(RulePositioningFailureCategory.ConfigurationInvalid);
-        }
-        return null;
-    }
-
-    /// <summary>
-    /// Detects caller-supplied references that are required before semantic validation.
-    /// </summary>
-    private static bool HasMissingRequiredReference(RulePositioningContext context)
-    {
-        return context.ImplementationTask == null
-            || context.ParentRequestTask == null
-            || context.TargetGateway == null
-            || context.TargetManagement == null
-            || context.TargetGateway.DeviceType == null
-            || context.TargetGateway.DeviceType.Id <= 0;
-    }
-
-    /// <summary>
-    /// Determines whether both workflow tasks represent creation of an access rule.
-    /// </summary>
-    private static bool IsNewAccessRule(WfImplTask implementationTask, WfReqTask requestTask)
-    {
-        string accessTaskType = WfTaskType.access.ToString();
-        string createAction = RequestAction.create.ToString();
-        return implementationTask.TaskType == accessTaskType
-            && requestTask.TaskType == accessTaskType
-            && implementationTask.ImplAction == createAction
-            && requestTask.RequestAction == createAction;
-    }
-
-    /// <summary>
-    /// Verifies task ownership and the single gateway and management relationships.
-    /// </summary>
-    private static bool HasConsistentTaskAndTargetReferences(RulePositioningContext context)
-    {
-        if (context.ImplementationTask.Id <= 0
-            || context.ImplementationTask.ReqTaskId <= 0
-            || context.ImplementationTask.DeviceId is null or <= 0
-            || context.ParentRequestTask.Id <= 0
-            || context.ImplementationTask.ReqTaskId != context.ParentRequestTask.Id)
-        {
-            return false;
-        }
-
-        List<int> requestGatewayIds =
-        [
-            .. context.ParentRequestTask.GetDeviceList()
-                .Distinct()
-        ];
-        bool hasExplicitFiniteGatewaySelection = requestGatewayIds.Count > 0
-            && !requestGatewayIds.Contains(WfReqTaskBase.kAllDevicesId);
-        if (hasExplicitFiniteGatewaySelection
-            && !requestGatewayIds.Contains(context.ImplementationTask.DeviceId.Value))
-        {
-            return false;
-        }
-        if (context.TargetGateway.Id != context.ImplementationTask.DeviceId.Value)
-        {
-            return false;
-        }
-
-        return HasConsistentManagementReferences(context);
-    }
-
-    /// <summary>
-    /// Verifies effective task management and the loaded request, gateway, and supplied context.
-    /// </summary>
-    private static bool HasConsistentManagementReferences(RulePositioningContext context)
-    {
-        int? effectiveManagementId = context.ImplementationTask.ManagementId
-            ?? context.ParentRequestTask.ManagementId;
-        if (effectiveManagementId == null
-            || effectiveManagementId <= 0
-            || context.TargetManagement.Id != effectiveManagementId
-            || context.TargetGateway.Management == null
-            || context.TargetGateway.Management.Id != effectiveManagementId)
-        {
-            return false;
-        }
-
-        return context.ParentRequestTask.OnManagement == null
-            || context.ParentRequestTask.OnManagement.Id == context.ParentRequestTask.ManagementId;
-    }
-
-    /// <summary>
-    /// Determines whether effective settings contain a defined, usable positioning algorithm.
-    /// </summary>
-    private static bool HasUsableConfiguration(RulePositioningContext context)
-    {
-        if (context.EffectiveSettings == null)
-        {
-            return false;
-        }
-
-        ProvisioningPositioningAlgorithm algorithm = context.EffectiveSettings.PositioningAlgorithm;
-        return algorithm != ProvisioningPositioningAlgorithm.Undefined
-            && Enum.IsDefined(algorithm);
     }
 
     /// <summary>

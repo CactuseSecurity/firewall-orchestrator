@@ -9,54 +9,25 @@ namespace FWO.Compliance.RulePositioning;
 public interface ICreationRuleZoneResolver
 {
     /// <summary>Resolves the source and destination zones for a new access rule.</summary>
-    Task<CreationRuleZoneResolutionResult> ResolveAsync(
+    Task<PositioningResult<CreationRuleZoneInput, CreationRuleZoneResolutionFailureCategory>> ResolveAsync(
         WfReqTask requestTask,
         IReadOnlyCollection<ComplianceNetworkZone> networkZones,
         RulePositioningConfiguration configuration,
         CancellationToken cancellationToken);
 
     /// <summary>Resolves already-normalized source and destination ranges to positioning zones.</summary>
-    Task<CreationRuleZoneResolutionResult> ResolveAsync(
+    Task<PositioningResult<CreationRuleZoneInput, CreationRuleZoneResolutionFailureCategory>> ResolveAsync(
         CreationRuleNetworkInput networkInput,
         IReadOnlyCollection<ComplianceNetworkZone> networkZones,
         RulePositioningConfiguration configuration,
         CancellationToken cancellationToken);
 }
 
-/// <summary>Base result for creation-rule zone resolution.</summary>
-public abstract class CreationRuleZoneResolutionResult;
-
-/// <summary>Successful creation-rule zone resolution.</summary>
-public sealed class CreationRuleZoneResolutionSuccess : CreationRuleZoneResolutionResult
+/// <summary>Maps creation-rule zone resolution failures to fixed, non-sensitive diagnostics.</summary>
+public static class CreationRuleZoneResolutionFailureDiagnostics
 {
-    /// <summary>Creates a successful result.</summary>
-    public CreationRuleZoneResolutionSuccess(CreationRuleZoneInput input)
-    {
-        Input = input ?? throw new ArgumentNullException(nameof(input));
-    }
-
-    /// <summary>Gets the immutable positioning input.</summary>
-    public CreationRuleZoneInput Input { get; }
-}
-
-/// <summary>Failed creation-rule zone resolution with a safe diagnostic.</summary>
-public sealed class CreationRuleZoneResolutionFailure : CreationRuleZoneResolutionResult
-{
-    /// <summary>Creates a failed result.</summary>
-    public CreationRuleZoneResolutionFailure(CreationRuleZoneResolutionFailureCategory category)
-    {
-        Category = category;
-        Diagnostic = GetDiagnostic(category);
-    }
-
-    /// <summary>Gets the failure category.</summary>
-    public CreationRuleZoneResolutionFailureCategory Category { get; }
-
-    /// <summary>Gets the fixed, non-sensitive failure diagnostic.</summary>
-    public string Diagnostic { get; }
-
     /// <summary>Maps a category to its safe diagnostic.</summary>
-    private static string GetDiagnostic(CreationRuleZoneResolutionFailureCategory category)
+    public static string GetDiagnostic(this CreationRuleZoneResolutionFailureCategory category)
     {
         return category switch
         {

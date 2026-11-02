@@ -6,6 +6,9 @@ using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using NetTools;
 using NUnit.Framework;
+using CreationRuleZoneResolutionResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Compliance.RulePositioning.CreationRuleZoneInput,
+    FWO.Compliance.RulePositioning.CreationRuleZoneResolutionFailureCategory>;
 using System.Net;
 
 namespace FWO.Test;
@@ -86,7 +89,7 @@ internal class CreationRuleZoneResolverTest
             task.RequestAction = requestAction!;
         }
 
-        CreationRuleZoneResolutionFailure failure = Failure(await resolver.ResolveAsync(
+        FailureValue failure = Failure(await resolver.ResolveAsync(
             task!, [Zone(1, "Zone", "10.0.0.0", "255.255.255.255")], CancellationToken.None));
 
         Assert.That(failure.Category, Is.EqualTo(expected));
@@ -145,7 +148,7 @@ internal class CreationRuleZoneResolverTest
         WfReqTask task = CreateTask(
             Element(ElemFieldType.source, ipStart, ipEnd: ipEnd), Element(ElemFieldType.destination, "10.0.0.1"));
 
-        CreationRuleZoneResolutionFailure failure = Failure(await resolver.ResolveAsync(task,
+        FailureValue failure = Failure(await resolver.ResolveAsync(task,
             [Zone(1, "Zone", "10.0.0.0", "255.255.255.255")], CancellationToken.None));
 
         Assert.That(failure.Category, Is.EqualTo(CreationRuleZoneResolutionFailureCategory.InvalidAddress));
@@ -158,7 +161,7 @@ internal class CreationRuleZoneResolverTest
         WfReqTask task = CreateTask(
             Element(ElemFieldType.source, null), Element(ElemFieldType.destination, "10.0.0.1"));
 
-        CreationRuleZoneResolutionFailure failure = Failure(await resolver.ResolveAsync(task,
+        FailureValue failure = Failure(await resolver.ResolveAsync(task,
             [Zone(1, "Zone", "10.0.0.0", "255.255.255.255")], CancellationToken.None));
 
         Assert.That(failure.Category, Is.EqualTo(CreationRuleZoneResolutionFailureCategory.UnsupportedObject));
@@ -256,13 +259,13 @@ internal class CreationRuleZoneResolverTest
         {
             WfReqElement second = Element(ElemFieldType.source, null);
             second.FlowNetworkGroupId = 10;
-            CreationRuleZoneResolutionFailure duplicateFailure = Failure(await CreateResolver(groupResolver).ResolveAsync(
+            FailureValue duplicateFailure = Failure(await CreateResolver(groupResolver).ResolveAsync(
                 CreateTask(source, second, destination), [Zone(1, "Zone", "0.0.0.0", "255.255.255.255")], CancellationToken.None));
             Assert.That(duplicateFailure.Category, Is.EqualTo(CreationRuleZoneResolutionFailureCategory.GroupUnresolved));
             return;
         }
 
-        CreationRuleZoneResolutionFailure failure = Failure(await CreateResolver(groupResolver).ResolveAsync(
+        FailureValue failure = Failure(await CreateResolver(groupResolver).ResolveAsync(
             CreateTask(source, destination), [Zone(1, "Zone", "0.0.0.0", "255.255.255.255")], CancellationToken.None));
 
         Assert.That(failure.Category, Is.EqualTo(CreationRuleZoneResolutionFailureCategory.GroupUnresolved));
@@ -282,7 +285,7 @@ internal class CreationRuleZoneResolverTest
         WfReqElement source = Element(ElemFieldType.source, null);
         source.FlowNetworkGroupId = 9;
 
-        CreationRuleZoneResolutionFailure failure = Failure(await CreateResolver(groupResolver).ResolveAsync(
+        FailureValue failure = Failure(await CreateResolver(groupResolver).ResolveAsync(
             CreateTask(source, Element(ElemFieldType.destination, "192.0.2.1")),
             [Zone(1, "Zone", "0.0.0.0", "255.255.255.255")], CancellationToken.None));
 
@@ -296,7 +299,7 @@ internal class CreationRuleZoneResolverTest
         WfReqElement source = Element(ElemFieldType.source, null);
         source.FlowNetworkGroupId = 9;
 
-        CreationRuleZoneResolutionFailure failure = Failure(await CreateResolver(groupResolver).ResolveAsync(
+        FailureValue failure = Failure(await CreateResolver(groupResolver).ResolveAsync(
             CreateTask(source, Element(ElemFieldType.destination, "192.0.2.1")),
             [Zone(1, "Zone", "0.0.0.0", "255.255.255.255")], CancellationToken.None));
 
@@ -367,7 +370,7 @@ internal class CreationRuleZoneResolverTest
 
         foreach (IReadOnlyCollection<ComplianceNetworkZone> zones in invalidCollections)
         {
-            CreationRuleZoneResolutionFailure failure = Failure(await CreateResolver(new()).ResolveAsync(task, zones, CancellationToken.None));
+            FailureValue failure = Failure(await CreateResolver(new()).ResolveAsync(task, zones, CancellationToken.None));
             Assert.That(failure.Category, Is.EqualTo(CreationRuleZoneResolutionFailureCategory.InvalidZoneData));
         }
     }
@@ -385,11 +388,11 @@ internal class CreationRuleZoneResolverTest
         ComplianceNetworkZone ipv6Only = Zone(3, "IPv6 Internet", "2001:db8::", "2001:db8::ffff");
         ipv6Only.IsAutoCalculatedInternetZone = true;
 
-        CreationRuleZoneResolutionFailure missing = Failure(await resolver.ResolveAsync(task,
+        FailureValue missing = Failure(await resolver.ResolveAsync(task,
             [Zone(4, "Internal", "10.0.0.0", "10.0.0.255")], configuration, CancellationToken.None));
-        CreationRuleZoneResolutionFailure duplicate = Failure(await resolver.ResolveAsync(
+        FailureValue duplicate = Failure(await resolver.ResolveAsync(
             task, [first, second], configuration, CancellationToken.None));
-        CreationRuleZoneResolutionFailure malformed = Failure(await resolver.ResolveAsync(
+        FailureValue malformed = Failure(await resolver.ResolveAsync(
             task, [ipv6Only], configuration, CancellationToken.None));
 
         Assert.That(new[] { missing.Category, duplicate.Category, malformed.Category },
@@ -474,13 +477,13 @@ internal class CreationRuleZoneResolverTest
         List<PositioningZoneReference> source = [new(1, "one", "One", false, false, PositioningZoneKind.Persisted)];
         CreationRuleZoneInput input = new(kCriterionId, source, [], ZoneCoverage.Complete, ZoneCoverage.None);
         source.Clear();
-        CreationRuleZoneResolutionFailure failure = new((CreationRuleZoneResolutionFailureCategory)999);
+        FailureValue failure = new((CreationRuleZoneResolutionFailureCategory)999);
 
         Assert.Multiple(() =>
         {
             Assert.That(input.SourceZones, Has.Count.EqualTo(1));
             Assert.That(failure.Diagnostic, Is.EqualTo("The creation-rule zones could not be resolved."));
-            Assert.Throws<ArgumentNullException>(() => new CreationRuleZoneResolutionSuccess(null!));
+            Assert.Throws<ArgumentNullException>(() => CreationRuleZoneResolutionResult.Success(null!));
         });
     }
 
@@ -581,14 +584,19 @@ internal class CreationRuleZoneResolverTest
 
     private static CreationRuleZoneInput Success(CreationRuleZoneResolutionResult result)
     {
-        Assert.That(result, Is.TypeOf<CreationRuleZoneResolutionSuccess>());
-        return ((CreationRuleZoneResolutionSuccess)result).Input;
+        Assert.That(result.TryGetValue(out CreationRuleZoneInput? input), Is.True);
+        return input!;
     }
 
-    private static CreationRuleZoneResolutionFailure Failure(CreationRuleZoneResolutionResult result)
+    private static FailureValue Failure(CreationRuleZoneResolutionResult result)
     {
-        Assert.That(result, Is.TypeOf<CreationRuleZoneResolutionFailure>());
-        return (CreationRuleZoneResolutionFailure)result;
+        Assert.That(result.TryGetFailure(out CreationRuleZoneResolutionFailureCategory category), Is.True);
+        return new FailureValue(category);
+    }
+
+    private readonly record struct FailureValue(CreationRuleZoneResolutionFailureCategory Category)
+    {
+        internal string Diagnostic => Category.GetDiagnostic();
     }
 
     private sealed class TestFlowGroupResolver : IFlowGroupResolver

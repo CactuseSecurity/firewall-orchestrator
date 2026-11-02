@@ -11,6 +11,9 @@ using FWO.Services.RulePositioning;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using RulebaseGraphReadResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Services.RulePositioning.RulebaseGraphReadValue,
+    FWO.Services.RulePositioning.RulebaseGraphReadFailureCategory>;
 
 namespace FWO.Test;
 
@@ -85,8 +88,8 @@ public class RulebaseGraphSnapshotReaderTest
         SimulatedApiConnection api = SuccessfulApi();
         RulebaseGraphSnapshotReader reader = new(api);
 
-        RulebaseGraphReadSuccess result = (RulebaseGraphReadSuccess)await reader.ReadAsync(
-            kManagementId, kGatewayId, CancellationToken.None);
+        RulebaseGraphReadValue result = AssertSuccess(await reader.ReadAsync(
+            kManagementId, kGatewayId, CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -115,8 +118,8 @@ public class RulebaseGraphSnapshotReaderTest
         string rulebasesJson = kRulebasesJson.Replace("201", largeRuleId.ToString(), StringComparison.Ordinal);
         SimulatedApiConnection api = new(kImportJson, linksJson, rulebasesJson);
 
-        RulebaseGraphReadSuccess result = (RulebaseGraphReadSuccess)await new RulebaseGraphSnapshotReader(api)
-            .ReadAsync(kManagementId, kGatewayId, CancellationToken.None);
+        RulebaseGraphReadValue result = AssertSuccess(await new RulebaseGraphSnapshotReader(api)
+            .ReadAsync(kManagementId, kGatewayId, CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -238,11 +241,11 @@ public class RulebaseGraphSnapshotReaderTest
     {
         SimulatedApiConnection api = new(Array.Empty<string>());
 
-        RulebaseGraphReadFailure failure = AssertFailure(
+        RulebaseGraphReadFailureCategory failure = AssertFailure(
             await new RulebaseGraphSnapshotReader(api).ReadAsync(managementId, gatewayId, CancellationToken.None),
             RulebaseGraphReadFailureCategory.InvalidInput);
 
-        Assert.That(failure.Diagnostic, Is.EqualTo("The rulebase graph scope is invalid."));
+        Assert.That(failure.GetDiagnostic(), Is.EqualTo("The rulebase graph scope is invalid."));
         Assert.That(api.Calls, Is.Empty);
     }
 
@@ -251,11 +254,11 @@ public class RulebaseGraphSnapshotReaderTest
     {
         SimulatedApiConnection api = new("[]");
 
-        RulebaseGraphReadFailure failure = AssertFailure(
+        RulebaseGraphReadFailureCategory failure = AssertFailure(
             await new RulebaseGraphSnapshotReader(api).ReadAsync(kManagementId, kGatewayId, CancellationToken.None),
             RulebaseGraphReadFailureCategory.NoSuccessfulImport);
 
-        Assert.That(failure.Diagnostic, Is.EqualTo("No successfully completed policy import is available."));
+        Assert.That(failure.GetDiagnostic(), Is.EqualTo("No successfully completed policy import is available."));
         Assert.That(api.Calls, Has.Count.EqualTo(1));
     }
 
@@ -266,11 +269,11 @@ public class RulebaseGraphSnapshotReaderTest
     {
         SimulatedApiConnection api = new(kImportJson, gatewayJson);
 
-        RulebaseGraphReadFailure failure = AssertFailure(
+        RulebaseGraphReadFailureCategory failure = AssertFailure(
             await new RulebaseGraphSnapshotReader(api).ReadAsync(kManagementId, kGatewayId, CancellationToken.None),
             RulebaseGraphReadFailureCategory.ScopeMismatch);
 
-        Assert.That(failure.Diagnostic, Is.EqualTo("The requested management and gateway scope is unavailable or inconsistent."));
+        Assert.That(failure.GetDiagnostic(), Is.EqualTo("The requested management and gateway scope is unavailable or inconsistent."));
         Assert.That(api.Calls, Has.Count.EqualTo(2));
     }
 
@@ -301,11 +304,11 @@ public class RulebaseGraphSnapshotReaderTest
     {
         SimulatedApiConnection api = new(kImportJson, kLinksJson, rulebasesJson);
 
-        RulebaseGraphReadFailure failure = AssertFailure(
+        RulebaseGraphReadFailureCategory failure = AssertFailure(
             await new RulebaseGraphSnapshotReader(api).ReadAsync(kManagementId, kGatewayId, CancellationToken.None),
             RulebaseGraphReadFailureCategory.InvalidGraphData);
 
-        Assert.That(failure.Diagnostic, Is.EqualTo("The imported rulebase graph is incomplete or invalid."));
+        Assert.That(failure.GetDiagnostic(), Is.EqualTo("The imported rulebase graph is incomplete or invalid."));
         Assert.That(api.Calls, Has.Count.EqualTo(3));
     }
 
@@ -318,14 +321,14 @@ public class RulebaseGraphSnapshotReaderTest
         SimulatedApiConnection api = new(responses.Select((json, index) =>
             index == failedStage ? Response.Failure(new InvalidOperationException(kSentinel)) : Response.FromJson(json)).ToArray());
 
-        RulebaseGraphReadFailure failure = AssertFailure(
+        RulebaseGraphReadFailureCategory failure = AssertFailure(
             await new RulebaseGraphSnapshotReader(api).ReadAsync(kManagementId, kGatewayId, CancellationToken.None),
             RulebaseGraphReadFailureCategory.QueryFailed);
 
         Assert.Multiple(() =>
         {
-            Assert.That(failure.Diagnostic, Is.EqualTo("The imported rulebase graph could not be loaded."));
-            Assert.That(failure.Diagnostic, Does.Not.Contain(kSentinel));
+            Assert.That(failure.GetDiagnostic(), Is.EqualTo("The imported rulebase graph could not be loaded."));
+            Assert.That(failure.GetDiagnostic(), Does.Not.Contain(kSentinel));
             Assert.That(api.Calls, Has.Count.EqualTo(failedStage + 1));
         });
     }
@@ -335,12 +338,12 @@ public class RulebaseGraphSnapshotReaderTest
     {
         SimulatedApiConnection api = new("not-json and includes fixture contents");
 
-        RulebaseGraphReadFailure failure = AssertFailure(
+        RulebaseGraphReadFailureCategory failure = AssertFailure(
             await new RulebaseGraphSnapshotReader(api).ReadAsync(kManagementId, kGatewayId, CancellationToken.None),
             RulebaseGraphReadFailureCategory.QueryFailed);
 
-        Assert.That(failure.Diagnostic, Is.EqualTo("The imported rulebase graph could not be loaded."));
-        Assert.That(failure.Diagnostic, Does.Not.Contain("fixture contents"));
+        Assert.That(failure.GetDiagnostic(), Is.EqualTo("The imported rulebase graph could not be loaded."));
+        Assert.That(failure.GetDiagnostic(), Does.Not.Contain("fixture contents"));
     }
 
     [Test]
@@ -377,9 +380,9 @@ public class RulebaseGraphSnapshotReaderTest
     [Test]
     public void ResultContractsRejectNullAndUseSafeFallbackDiagnostic()
     {
-        Assert.Throws<ArgumentNullException>(() => new RulebaseGraphReadSuccess(null!, 1));
-        RulebaseGraphReadFailure failure = new((RulebaseGraphReadFailureCategory)999);
-        Assert.That(failure.Diagnostic, Is.EqualTo("The imported rulebase graph could not be loaded."));
+        Assert.Throws<ArgumentNullException>(() => new RulebaseGraphReadValue(null!, 1));
+        Assert.That(((RulebaseGraphReadFailureCategory)999).GetDiagnostic(),
+            Is.EqualTo("The imported rulebase graph could not be loaded."));
     }
 
     private static IEnumerable<string> InvalidImportCases()
@@ -427,14 +430,19 @@ public class RulebaseGraphSnapshotReaderTest
 
     private static SimulatedApiConnection SuccessfulApi() => new(kImportJson, kLinksJson, kRulebasesJson);
 
-    private static RulebaseGraphReadFailure AssertFailure(
+    private static RulebaseGraphReadFailureCategory AssertFailure(
         RulebaseGraphReadResult result,
         RulebaseGraphReadFailureCategory category)
     {
-        Assert.That(result, Is.TypeOf<RulebaseGraphReadFailure>());
-        RulebaseGraphReadFailure failure = (RulebaseGraphReadFailure)result;
-        Assert.That(failure.Category, Is.EqualTo(category));
+        Assert.That(result.TryGetFailure(out RulebaseGraphReadFailureCategory failure), Is.True);
+        Assert.That(failure, Is.EqualTo(category));
         return failure;
+    }
+
+    private static RulebaseGraphReadValue AssertSuccess(RulebaseGraphReadResult result)
+    {
+        Assert.That(result.TryGetValue(out RulebaseGraphReadValue? value), Is.True);
+        return value!;
     }
 
     private static void AssertExactCalls(

@@ -1,4 +1,5 @@
 using FWO.Data;
+using FWO.Data.RulePositioning;
 using System.Collections.ObjectModel;
 
 namespace FWO.Compliance.RulePositioning;
@@ -7,17 +8,15 @@ namespace FWO.Compliance.RulePositioning;
 public interface IDesignatedZoneMatrixReader
 {
     /// <summary>Loads the selected matrix and its network zones.</summary>
-    Task<DesignatedZoneMatrixReadResult> ReadAsync(int criterionId, CancellationToken cancellationToken);
+    Task<PositioningResult<DesignatedZoneMatrixReadValue, DesignatedZoneMatrixReadFailureCategory>> ReadAsync(
+        int criterionId,
+        CancellationToken cancellationToken);
 }
 
-/// <summary>Base result for a designated-zone-matrix read.</summary>
-public abstract class DesignatedZoneMatrixReadResult;
-
-/// <summary>A successful designated-zone-matrix read.</summary>
-public sealed class DesignatedZoneMatrixReadSuccess : DesignatedZoneMatrixReadResult
+/// <summary>Immutable value returned by a successful designated-zone-matrix read.</summary>
+public sealed class DesignatedZoneMatrixReadValue
 {
-    /// <summary>Creates a successful result with a defensive collection copy.</summary>
-    public DesignatedZoneMatrixReadSuccess(IReadOnlyCollection<ComplianceNetworkZone> networkZones)
+    public DesignatedZoneMatrixReadValue(IReadOnlyCollection<ComplianceNetworkZone> networkZones)
     {
         ArgumentNullException.ThrowIfNull(networkZones);
         NetworkZones = new ReadOnlyCollection<ComplianceNetworkZone>([.. networkZones]);
@@ -27,24 +26,11 @@ public sealed class DesignatedZoneMatrixReadSuccess : DesignatedZoneMatrixReadRe
     public IReadOnlyList<ComplianceNetworkZone> NetworkZones { get; }
 }
 
-/// <summary>A failed designated-zone-matrix read with a safe diagnostic.</summary>
-public sealed class DesignatedZoneMatrixReadFailure : DesignatedZoneMatrixReadResult
+/// <summary>Maps designated-zone-matrix failures to fixed caller-safe diagnostics.</summary>
+public static class DesignatedZoneMatrixReadFailureDiagnostics
 {
-    /// <summary>Creates a failed result.</summary>
-    public DesignatedZoneMatrixReadFailure(DesignatedZoneMatrixReadFailureCategory category)
-    {
-        Category = category;
-        Diagnostic = GetDiagnostic(category);
-    }
-
-    /// <summary>Gets the stable failure category.</summary>
-    public DesignatedZoneMatrixReadFailureCategory Category { get; }
-
-    /// <summary>Gets the fixed caller-safe diagnostic.</summary>
-    public string Diagnostic { get; }
-
     /// <summary>Maps a failure category to its fixed safe diagnostic.</summary>
-    private static string GetDiagnostic(DesignatedZoneMatrixReadFailureCategory category) => category switch
+    public static string GetDiagnostic(this DesignatedZoneMatrixReadFailureCategory category) => category switch
     {
         DesignatedZoneMatrixReadFailureCategory.ConfigurationInvalid =>
             "The designated zone-matrix configuration is invalid.",

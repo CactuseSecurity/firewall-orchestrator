@@ -9,6 +9,10 @@ using FWO.Services.RulePositioning.Blocks;
 using FWO.Services.RulePositioning.CheckPoint;
 using NetTools;
 using NUnit.Framework;
+using CheckPointLayerGuardZonePairRecipeResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Services.RulePositioning.Blocks.PositioningRecipe<FWO.Data.RulePositioning.CheckPoint.CheckPointPositioningContext,
+        FWO.Services.RulePositioning.CheckPoint.CheckPointBlockValue>,
+    FWO.Compliance.RulePositioning.CheckPoint.CheckPointLayerGuardZonePairRecipeFailureCategory>;
 
 namespace FWO.Test;
 
@@ -48,12 +52,12 @@ public class CheckPointLayerGuardZonePairRecipeTest
         CreationRuleZoneInput zones = Zones(
             [Zone(1, "source")],
             [Zone(2, "destination")]);
-        CheckPointLayerGuardZonePairRecipeSuccess created = (CheckPointLayerGuardZonePairRecipeSuccess)
-            CheckPointLayerGuardZonePairRecipeFactory.Create(input, zones);
+        PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> recipe = Success(
+            CheckPointLayerGuardZonePairRecipeFactory.Create(input, zones));
 
         PositioningBlockResult<CheckPointBlockValue> result = await new PositioningRecipeExecutor<
             CheckPointPositioningContext, CheckPointBlockValue>().ExecuteAsync(
-                created.Recipe, Context(graph, input), CancellationToken.None);
+                recipe, Context(graph, input), CancellationToken.None);
 
         CheckPointRulePosition position = ((CheckPointPositionValue)
             ((PositioningBlockSuccess<CheckPointBlockValue>)result).Value).Position;
@@ -72,13 +76,13 @@ public class CheckPointLayerGuardZonePairRecipeTest
         RulebaseGraphSnapshot graph = Graph("[DESTINATION]<[SOURCE]");
         CheckPointLayerGuardZonePairPositioningInput input = Input(
             graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
-        CheckPointLayerGuardZonePairRecipeSuccess created = (CheckPointLayerGuardZonePairRecipeSuccess)
+        PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> recipe = Success(
             CheckPointLayerGuardZonePairRecipeFactory.Create(input,
-                Zones([Zone(1, "source")], [Zone(2, "destination")]));
+                Zones([Zone(1, "source")], [Zone(2, "destination")])));
 
         PositioningBlockFailure<CheckPointBlockValue> failure = (PositioningBlockFailure<CheckPointBlockValue>)
             await new PositioningRecipeExecutor<CheckPointPositioningContext, CheckPointBlockValue>()
-                .ExecuteAsync(created.Recipe, Context(graph, input));
+                .ExecuteAsync(recipe, Context(graph, input));
 
         Assert.That(failure.Category, Is.EqualTo(PositioningBlockFailureCategory.ScopeNotFound));
         Assert.That(failure.OriginatingBlockKind, Is.EqualTo(CheckPointSectionScopeBlock.kKind));
@@ -99,10 +103,10 @@ public class CheckPointLayerGuardZonePairRecipeTest
         CreationRuleZoneInput zones = new(1, [Zone(1, "source")], [Zone(2, "destination")],
             sourceCoverage, destinationCoverage);
 
-        CheckPointLayerGuardZonePairRecipeFailure failure = (CheckPointLayerGuardZonePairRecipeFailure)
-            CheckPointLayerGuardZonePairRecipeFactory.Create(input, zones);
+        CheckPointLayerGuardZonePairRecipeFailureCategory failure = Failure(
+            CheckPointLayerGuardZonePairRecipeFactory.Create(input, zones));
 
-        Assert.That(failure.Category, Is.EqualTo(expected));
+        Assert.That(failure, Is.EqualTo(expected));
     }
 
     [Test]
@@ -114,17 +118,17 @@ public class CheckPointLayerGuardZonePairRecipeTest
         Assert.Multiple(() =>
         {
             Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(
-                input, Zones([], [Zone(2, "destination")]))).Category,
+                input, Zones([], [Zone(2, "destination")]))),
                 Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneCardinalityInvalid));
             Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(input, Zones(
                 [new PositioningZoneReference(null, "x", "source", false, false, PositioningZoneKind.SyntheticInternetFallback)],
-                [Zone(2, "destination")]))).Category,
+                [Zone(2, "destination")]))),
                 Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneNotPersisted));
             Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(
-                input, Zones([Zone(1, "bad[name")], [Zone(2, "destination")]))).Category,
+                input, Zones([Zone(1, "bad[name")], [Zone(2, "destination")]))),
                 Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneDataInvalid));
             Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(
-                null, Zones([Zone(1, "source")], [Zone(2, "destination")]))).Category,
+                null, Zones([Zone(1, "source")], [Zone(2, "destination")]))),
                 Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.InvalidInput));
         });
     }
@@ -161,9 +165,20 @@ public class CheckPointLayerGuardZonePairRecipeTest
         Assert.That(failure.Category, Is.EqualTo(PositioningBlockFailureCategory.ScopeIndeterminate));
     }
 
-    private static CheckPointLayerGuardZonePairRecipeFailure Failure(
-        CheckPointLayerGuardZonePairRecipeResult result) =>
-        (CheckPointLayerGuardZonePairRecipeFailure)result;
+    private static PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> Success(
+        CheckPointLayerGuardZonePairRecipeResult result)
+    {
+        Assert.That(result.TryGetValue(out PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>? recipe),
+            Is.True);
+        return recipe!;
+    }
+
+    private static CheckPointLayerGuardZonePairRecipeFailureCategory Failure(
+        CheckPointLayerGuardZonePairRecipeResult result)
+    {
+        Assert.That(result.TryGetFailure(out CheckPointLayerGuardZonePairRecipeFailureCategory failure), Is.True);
+        return failure;
+    }
 
     private static PositioningZoneReference Zone(int id, string name) =>
         new(id, id.ToString(), name, false, false, PositioningZoneKind.Persisted);

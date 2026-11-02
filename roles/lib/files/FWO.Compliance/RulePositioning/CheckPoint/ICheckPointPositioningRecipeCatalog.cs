@@ -1,4 +1,5 @@
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Services.RulePositioning.Blocks;
 using FWO.Services.RulePositioning.CheckPoint;
@@ -12,47 +13,17 @@ public interface ICheckPointPositioningRecipeCatalog
     bool SupportsAlgorithm(ProvisioningPositioningAlgorithm positioningAlgorithm);
 
     /// <summary>Selects one complete recipe for the supplied immutable input.</summary>
-    CheckPointRecipeSelectionResult SelectRecipe(
+    PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>, CheckPointRecipeSelectionFailureCategory> SelectRecipe(
         ProvisioningPositioningAlgorithm positioningAlgorithm,
         CheckPointLayerGuardZonePairPositioningInput positioningInput,
         CreationRuleZoneInput zoneInput);
 }
 
-/// <summary>Base result for Check Point recipe selection.</summary>
-public abstract class CheckPointRecipeSelectionResult;
-
-/// <summary>A successful Check Point recipe selection.</summary>
-public sealed class CheckPointRecipeSelectionSuccess : CheckPointRecipeSelectionResult
+/// <summary>Maps Check Point recipe selection failures to fixed caller-safe diagnostics.</summary>
+public static class CheckPointRecipeSelectionFailureDiagnostics
 {
-    /// <summary>Creates a successful selection.</summary>
-    public CheckPointRecipeSelectionSuccess(
-        PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> recipe)
-    {
-        Recipe = recipe ?? throw new ArgumentNullException(nameof(recipe));
-    }
-
-    /// <summary>Gets the selected complete recipe.</summary>
-    public PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> Recipe { get; }
-}
-
-/// <summary>A failed Check Point recipe selection with a safe diagnostic.</summary>
-public sealed class CheckPointRecipeSelectionFailure : CheckPointRecipeSelectionResult
-{
-    /// <summary>Creates a failed selection.</summary>
-    public CheckPointRecipeSelectionFailure(CheckPointRecipeSelectionFailureCategory category)
-    {
-        Category = category;
-        Diagnostic = GetDiagnostic(category);
-    }
-
-    /// <summary>Gets the stable failure category.</summary>
-    public CheckPointRecipeSelectionFailureCategory Category { get; }
-
-    /// <summary>Gets the fixed caller-safe diagnostic.</summary>
-    public string Diagnostic { get; }
-
     /// <summary>Maps a failure category to its fixed safe diagnostic.</summary>
-    private static string GetDiagnostic(CheckPointRecipeSelectionFailureCategory category) => category switch
+    public static string GetDiagnostic(this CheckPointRecipeSelectionFailureCategory category) => category switch
     {
         CheckPointRecipeSelectionFailureCategory.NoMatchingRecipe =>
             "No Check Point positioning recipe matches the supplied input.",
@@ -75,22 +46,26 @@ public sealed class CheckPointPositioningRecipeCatalog : ICheckPointPositioningR
         positioningAlgorithm == ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection;
 
     /// <inheritdoc />
-    public CheckPointRecipeSelectionResult SelectRecipe(
+    public PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>, CheckPointRecipeSelectionFailureCategory> SelectRecipe(
         ProvisioningPositioningAlgorithm positioningAlgorithm,
         CheckPointLayerGuardZonePairPositioningInput positioningInput,
         CreationRuleZoneInput zoneInput)
     {
         if (!SupportsAlgorithm(positioningAlgorithm))
         {
-            return new CheckPointRecipeSelectionFailure(
-                CheckPointRecipeSelectionFailureCategory.NoMatchingRecipe);
+            return PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>,
+                CheckPointRecipeSelectionFailureCategory>.Failure(
+                    CheckPointRecipeSelectionFailureCategory.NoMatchingRecipe);
         }
 
-        CheckPointLayerGuardZonePairRecipeResult result = CheckPointLayerGuardZonePairRecipeFactory.Create(
+        PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>,
+            CheckPointLayerGuardZonePairRecipeFailureCategory> result = CheckPointLayerGuardZonePairRecipeFactory.Create(
             positioningInput,
             zoneInput);
-        return result is CheckPointLayerGuardZonePairRecipeSuccess success
-            ? new CheckPointRecipeSelectionSuccess(success.Recipe)
-            : new CheckPointRecipeSelectionFailure(CheckPointRecipeSelectionFailureCategory.CatalogInvalid);
+        return result.TryGetValue(out PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>? recipe)
+            ? PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>,
+                CheckPointRecipeSelectionFailureCategory>.Success(recipe)
+            : PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>,
+                CheckPointRecipeSelectionFailureCategory>.Failure(CheckPointRecipeSelectionFailureCategory.CatalogInvalid);
     }
 }

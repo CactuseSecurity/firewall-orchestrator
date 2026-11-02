@@ -162,6 +162,49 @@ public class RulePositioningContractsTest
     }
 
     [Test]
+    public void GenericResult_SuccessExposesOnlyItsValue()
+    {
+        object value = new();
+
+        PositioningResult<object, TestFailureCategory> result =
+            PositioningResult<object, TestFailureCategory>.Success(value);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Value, Is.SameAs(value));
+            Assert.That(result.FailureCategory, Is.Null);
+            Assert.That(result.TryGetValue(out object? actual), Is.True);
+            Assert.That(actual, Is.SameAs(value));
+            Assert.That(result.TryGetFailure(out _), Is.False);
+        });
+    }
+
+    [Test]
+    public void GenericResult_FailureExposesOnlyItsCategory()
+    {
+        PositioningResult<object, TestFailureCategory> result =
+            PositioningResult<object, TestFailureCategory>.Failure(TestFailureCategory.Invalid);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.Value, Is.Null);
+            Assert.That(result.FailureCategory, Is.EqualTo(TestFailureCategory.Invalid));
+            Assert.That(result.TryGetValue(out _), Is.False);
+            Assert.That(result.TryGetFailure(out TestFailureCategory category), Is.True);
+            Assert.That(category, Is.EqualTo(TestFailureCategory.Invalid));
+        });
+    }
+
+    [Test]
+    public void GenericResult_SuccessRejectsNull()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            PositioningResult<object, TestFailureCategory>.Success(null!));
+    }
+
+    [Test]
     public void Context_ContainsExactlyTheCallerResolvedInputs()
     {
         WfImplTask implementationTask = new();
@@ -272,6 +315,11 @@ public class RulePositioningContractsTest
 
         [JsonProperty("position"), JsonPropertyName("position")]
         public RulePosition? Position { get; set; }
+    }
+
+    private enum TestFailureCategory
+    {
+        Invalid
     }
 
     [RulePositionType(kKnownDiscriminator)]

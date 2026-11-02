@@ -4,9 +4,13 @@ using FWO.Compliance;
 using FWO.Compliance.RulePositioning;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.RulePositioning;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using NetTools;
+using DesignatedZoneMatrixReadResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Compliance.RulePositioning.DesignatedZoneMatrixReadValue,
+    FWO.Compliance.RulePositioning.DesignatedZoneMatrixReadFailureCategory>;
 
 namespace FWO.Middleware.Server.Services;
 
@@ -71,20 +75,20 @@ public sealed class ComplianceZoneService(IDesignatedZoneMatrixReader zoneMatrix
         DesignatedZoneMatrixReadResult result = await zoneMatrixReader.ReadAsync(
             globalConfig.DesignatedZoneMatrixId,
             CancellationToken.None);
-        if (result is DesignatedZoneMatrixReadSuccess success)
+        if (result.TryGetValue(out DesignatedZoneMatrixReadValue? value))
         {
-            return [.. success.NetworkZones];
+            return [.. value.NetworkZones];
         }
-        if (result is DesignatedZoneMatrixReadFailure failure
-            && failure.Category is DesignatedZoneMatrixReadFailureCategory.ConfigurationInvalid
+        if (result.TryGetFailure(out DesignatedZoneMatrixReadFailureCategory failureCategory)
+            && failureCategory is DesignatedZoneMatrixReadFailureCategory.ConfigurationInvalid
                 or DesignatedZoneMatrixReadFailureCategory.MatrixUnavailable)
         {
             return [];
         }
 
-        string diagnostic = result is DesignatedZoneMatrixReadFailure readFailure
-            ? readFailure.Diagnostic
-            : new DesignatedZoneMatrixReadFailure(DesignatedZoneMatrixReadFailureCategory.QueryFailed).Diagnostic;
+        string diagnostic = (result.TryGetFailure(out failureCategory)
+            ? failureCategory
+            : DesignatedZoneMatrixReadFailureCategory.QueryFailed).GetDiagnostic();
         throw new InvalidOperationException(diagnostic);
     }
 

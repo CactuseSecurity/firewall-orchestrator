@@ -255,7 +255,7 @@ For a feature-centric, thematically grouped view see
 - The Docker role was removed; upgrades start from 9.0.16 or newer, older installations upgrade with v9.8.4 first.
 - The Tufin SecureChange ticket templates are device specific settings that can be adapted globally, per device type and per management; the upgrade moves the templates stored with the ticket systems.
 
-### 9.9.0 — 01.11.2026
+### 9.9.0 — 02.11.2026
 - Azure Firewall import module fetches firewall policies (network rules) and IP groups directly via the Azure Resource Manager API (api version 2026-01-01 with fallback to 2024-05-01).
 - Azure parent policies (policy hierarchy) are imported; their rules precede the rules of the child policy.
 - Azure gateway autodiscovery: finds the Azure Firewalls of the subscription and maps each to its firewall policy.

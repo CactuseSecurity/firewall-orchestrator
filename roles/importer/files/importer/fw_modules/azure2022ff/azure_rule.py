@@ -67,7 +67,7 @@ class AzureRuleNormalizer:
         FWOLogger.warning(f"{message} - skipping the rule")
         return False
 
-    def normalize_policy(self, policy: AzureFirewallPolicy, rule_installon: str) -> Generator[RuleNormalized]:
+    def normalize_policy(self, policy: AzureFirewallPolicy) -> Generator[RuleNormalized]:
         """
         Normalize all network rules of filter rule collections of a firewall policy.
 
@@ -77,7 +77,6 @@ class AzureRuleNormalizer:
 
         Args:
             policy: The native Azure firewall policy.
-            rule_installon: The gateways the policy is enforced on.
 
         Yields:
             RuleNormalized: The normalized access rules in processing order.
@@ -95,13 +94,12 @@ class AzureRuleNormalizer:
                 if rule_collection.rule_collection_type != AZURE_FILTER_RULE_COLLECTION:
                     FWOLogger.debug(f"Skipping Azure rule collection '{rule_collection.name}' of unsupported type")
                     continue
-                yield from self.normalize_rule_collection(rule_collection_group, rule_collection, rule_installon)
+                yield from self.normalize_rule_collection(rule_collection_group, rule_collection)
 
     def normalize_rule_collection(
         self,
         rule_collection_group: AzureRuleCollectionGroup,
         rule_collection: AzureRuleCollection,
-        rule_installon: str,
     ) -> Generator[RuleNormalized]:
         is_deny = rule_collection.action is not None and rule_collection.action.type == AZURE_ACTION_DENY
         rule_action = RuleAction.DROP if is_deny else RuleAction.ACCEPT
@@ -114,13 +112,11 @@ class AzureRuleNormalizer:
             if not self.is_supported(rule, rule_uid):
                 continue
             try:
-                yield self.normalize_network_rule(rule, rule_uid, rule_action, rule_installon)
+                yield self.normalize_network_rule(rule, rule_uid, rule_action)
             except FwoImporterError as e:
                 raise FwoImporterError(f"Azure rule '{rule_uid}': {e}") from None
 
-    def normalize_network_rule(
-        self, rule: AzureRule, rule_uid: str, rule_action: RuleAction, rule_installon: str
-    ) -> RuleNormalized:
+    def normalize_network_rule(self, rule: AzureRule, rule_uid: str, rule_action: RuleAction) -> RuleNormalized:
         rule_src, rule_src_refs = join_address_refs(self.get_source_objects(rule))
         rule_dst, rule_dst_refs = join_address_refs(self.get_destination_objects(rule))
         services = [
@@ -145,7 +141,6 @@ class AzureRuleNormalizer:
             rule_svc_neg=False,
             rule_action=rule_action,
             rule_disabled=False,
-            rule_installon=rule_installon,
             rule_track=RuleTrack.NONE,
         )
 

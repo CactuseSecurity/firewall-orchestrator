@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.9.0 - 24.10.2026
+## 9.9.0 - 02.11.2026
 - Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs
   - login with a service principal (client credentials flow); client id and secret are taken from the additional credential, otherwise from the import credential; tenant and subscription from the management's cloud settings, the resource group from the config path
   - the firewall policy of a device is its local rulebase name, otherwise the device name; each policy becomes a rulebase, each device a gateway
@@ -11,7 +11,7 @@
   - rules are ordered by rule collection group and rule collection priority
 - Azure gateway autodiscovery: Azure managements can now be autodiscovered (scheduled and manually); the Azure Firewalls of the subscription whose firewall policy lies in the configured resource group are proposed as gateways with the policy name as local rulebase; firewalls with classic rules are skipped
 - new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
-## 9.8.4 - 26.10.2026
+
 ## 9.8.5 - 29.10.2026
 - installer: after an operating system upgrade to a new PostgreSQL major version (e.g. Debian 12 -> 13: 15 -> 17) the upgrade stops before changing PostgreSQL and names the steps to migrate the database (`pg_upgradecluster` on Debian/Ubuntu, `postgresql-setup --upgrade` on Red Hat/Rocky) instead of failing on a missing postgresql.conf; documentation/installer/server-upgrade.md describes the migration (#5598)
 - installer: the importer and customizing script python venvs are rebuilt when they were created for another python version (e.g. 3.11 -> 3.13 after an operating system upgrade), instead of failing with `No module named 'pip'` or leaving the importer without its packages (#5599)

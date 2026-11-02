@@ -20,10 +20,12 @@ from fw_modules.azure2022ff.azure_rule import priority_sort_key
 from fw_modules.azure2022ff.azure_service import get_rule_services, parse_port_range
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
+from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from models.rule import RuleAction
 from netaddr import IPNetwork
 
 if TYPE_CHECKING:
+    from models.fwconfig_normalized import FwConfigNormalized
     from models.networkobject import NetworkObject
     from pytest_mock import MockerFixture
 
@@ -57,6 +59,16 @@ COUNTRY_CODES = ["US", "CA"]
 
 def load_native_config() -> AzureConfig:
     return AzureConfig.model_validate(json.loads(NATIVE_CONFIG_FILE.read_text()))
+
+
+def get_enforcing_gateway_uids(normalized: FwConfigNormalized) -> dict[str, set[str]]:
+    """Map each rule uid to the gateway uids the import core links it to (rule_enforced_on_gateway)."""
+    enforcing_gateway_uids: dict[str, set[str]] = {}
+    for rule_uid, gateway_uid in FwConfigImportRule.get_rule_to_gw_refs(
+        normalized.rulebases, None, normalized.gateways
+    ):
+        enforcing_gateway_uids.setdefault(rule_uid, set()).add(gateway_uid)
+    return enforcing_gateway_uids
 
 
 def rule_uid(collection: str, rule: str) -> str:
@@ -225,7 +237,7 @@ class TestNormalizeConfig:
         assert deny_rule.rule_src_refs == "1.2.3.4"
         assert deny_rule.rule_dst_refs == "2.3.4.5"
         assert deny_rule.rule_svc_refs == "TCP_443|TCP_80"
-        assert deny_rule.rule_installon == DEVICE.name
+        assert deny_rule.rule_installon is None
 
         group_rule = rules[rule_uid("RuleColl1", "secondrule")]
         assert group_rule.rule_src == "ipGroup1"
@@ -262,8 +274,17 @@ class TestNormalizeConfig:
         assert [gw.Uid for gw in normalized.gateways] == ["azfw1-uid", "azfw2-uid"]
         assert all(gw.RulebaseLinks[0].to_rulebase_uid == POLICY_NAME for gw in normalized.gateways)
         assert all(gw.RulebaseLinks[0].is_initial for gw in normalized.gateways)
-        rule = next(iter(normalized.rulebases[0].rules.values()))
-        assert rule.rule_installon == "AzureFirewall1|AzureFirewall2"
+        assert get_enforcing_gateway_uids(normalized) == {
+            rule_uid: {"azfw1-uid", "azfw2-uid"} for rule_uid in normalized.rulebases[0].rules
+        }
+
+    def test_second_gateway_on_policy_changes_no_rule(self) -> None:
+        second_device = AzureDevice(uid="azfw2-uid", name="AzureFirewall2", policy_name=POLICY_NAME)
+
+        single = normalize_config(load_native_config(), DEVICES, "mgm-uid")
+        both = normalize_config(load_native_config(), [DEVICE, second_device], "mgm-uid")
+
+        assert both.rulebases[0].rules == single.rulebases[0].rules
 
     def test_missing_policy_fails(self) -> None:
         device = AzureDevice(uid="x", name="x", policy_name="unknown-policy")
@@ -319,7 +340,7 @@ class TestPolicyHierarchy:
             f"{PARENT_RCG_ID.lower()}/ruleCollections/RuleColl1/rules/rule1",
             f"{PARENT_RCG_ID.lower()}/ruleCollections/RuleColl1/rules/secondrule",
         ]
-        assert all(rule.rule_installon == DEVICE.name for rule in parent_rulebase.rules.values())
+        assert all(rule.rule_installon is None for rule in parent_rulebase.rules.values())
         initial_link, section_link = normalized.gateways[0].RulebaseLinks
         assert initial_link.to_rulebase_uid == PARENT_POLICY_NAME
         assert initial_link.is_initial
@@ -338,10 +359,12 @@ class TestPolicyHierarchy:
         normalized = normalize_config(native_config, [DEVICE, parent_device], "mgm-uid")
 
         rulebases = {rulebase.uid: rulebase for rulebase in normalized.rulebases}
-        parent_rule = next(iter(rulebases[PARENT_POLICY_NAME].rules.values()))
-        child_rule = next(iter(rulebases[POLICY_NAME].rules.values()))
-        assert parent_rule.rule_installon == "AzureFirewall1|AzureFirewall2"
-        assert child_rule.rule_installon == "AzureFirewall1"
+        enforcing_gateway_uids = get_enforcing_gateway_uids(normalized)
+        assert all(
+            enforcing_gateway_uids[rule_uid] == {"azfw1-uid", "azfw2-uid"}
+            for rule_uid in rulebases[PARENT_POLICY_NAME].rules
+        )
+        assert all(enforcing_gateway_uids[rule_uid] == {"azfw1-uid"} for rule_uid in rulebases[POLICY_NAME].rules)
         parent_gateway_links = normalized.gateways[1].RulebaseLinks
         assert [link.to_rulebase_uid for link in parent_gateway_links] == [PARENT_POLICY_NAME]
 

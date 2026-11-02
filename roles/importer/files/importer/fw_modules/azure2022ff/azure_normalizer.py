@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import fwo_const
 from fw_modules.azure2022ff.azure_const import AZURE_MAX_POLICY_DEPTH
 from fw_modules.azure2022ff.azure_network import normalize_ip_groups
 from fw_modules.azure2022ff.azure_rule import AzureRuleNormalizer
@@ -28,7 +27,8 @@ def normalize_config(
 
     Each firewall policy becomes one rulebase, each device a gateway. A gateway is linked to the rulebase of the
     topmost parent policy of its policy, followed by the rulebases of the child policies down to its own policy,
-    as Azure processes inherited rules before the rules of the child policy.
+    as Azure processes inherited rules before the rules of the child policy. The rules carry no install-on: these
+    rulebase links alone decide which gateways enforce a rule, so a firewall added to a policy changes no rule.
 
     Args:
         native_config: The native Azure configuration.
@@ -47,15 +47,9 @@ def normalize_config(
 
     policy_index = AzurePolicyIndex(native_config.firewall_policies)
     device_policy_chains = [(device, policy_index.get_policy_chain(device.policy_name)) for device in devices]
-    gateway_names_by_policy = get_gateway_names_by_policy(device_policy_chains)
     rulebases = [
-        normalize_rulebase(
-            policy_index.policies_by_name[policy_name],
-            rule_normalizer,
-            fwo_const.LIST_DELIMITER.join(gateway_names),
-            mgm_uid,
-        )
-        for policy_name, gateway_names in sorted(gateway_names_by_policy.items())
+        normalize_rulebase(policy_index.policies_by_name[policy_name], rule_normalizer, mgm_uid)
+        for policy_name in get_used_policy_names(device_policy_chains)
     ]
 
     normalized_config = FwConfigNormalized()
@@ -120,22 +114,16 @@ class AzurePolicyIndex:
         return policy_chain
 
 
-def get_gateway_names_by_policy(
+def get_used_policy_names(
     device_policy_chains: list[tuple[AzureDevice, list[AzureFirewallPolicy]]],
-) -> dict[str, list[str]]:
-    """Collect the gateways each policy is enforced on, parent policies are enforced on the gateways of children."""
-    gateway_names_by_policy: dict[str, list[str]] = {}
-    for device, policy_chain in device_policy_chains:
-        for policy in policy_chain:
-            gateway_names_by_policy.setdefault(policy.name, []).append(device.name)
-    return gateway_names_by_policy
+) -> list[str]:
+    """Collect the names of the policies the devices enforce, their parent policies included, sorted by name."""
+    return sorted({policy.name for _, policy_chain in device_policy_chains for policy in policy_chain})
 
 
-def normalize_rulebase(
-    policy: AzureFirewallPolicy, rule_normalizer: AzureRuleNormalizer, rule_installon: str, mgm_uid: str
-) -> Rulebase:
+def normalize_rulebase(policy: AzureFirewallPolicy, rule_normalizer: AzureRuleNormalizer, mgm_uid: str) -> Rulebase:
     rules: dict[str, RuleNormalized] = {}
-    for rule in rule_normalizer.normalize_policy(policy, rule_installon):
+    for rule in rule_normalizer.normalize_policy(policy):
         if rule.rule_uid in rules:
             raise FwoImporterError(f"Duplicate Azure rule '{rule.rule_uid}'.")
         rules[str(rule.rule_uid)] = rule

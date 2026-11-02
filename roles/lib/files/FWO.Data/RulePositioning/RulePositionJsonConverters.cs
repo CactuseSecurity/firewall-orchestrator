@@ -136,6 +136,7 @@ public sealed class SystemTextRulePositionJsonConverter : System.Text.Json.Seria
 /// </summary>
 public sealed class NewtonsoftRulePositionJsonConverter : Newtonsoft.Json.JsonConverter<RulePosition>
 {
+    /// <inheritdoc />
     public override bool CanWrite => false;
 
     /// <summary>
@@ -281,6 +282,7 @@ public sealed class NewtonsoftRulePositionJsonConverter : Newtonsoft.Json.JsonCo
 public sealed class NewtonsoftUnknownRulePositionJsonConverter :
     Newtonsoft.Json.JsonConverter<UnknownRulePosition>
 {
+    /// <inheritdoc />
     public override bool CanRead => false;
 
     /// <summary>

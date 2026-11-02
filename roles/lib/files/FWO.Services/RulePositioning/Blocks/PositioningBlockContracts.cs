@@ -5,6 +5,7 @@ namespace FWO.Services.RulePositioning.Blocks;
 /// </summary>
 public readonly record struct PositioningBlockRole
 {
+    /// <summary>Gets the stable role name.</summary>
     public string Name { get; }
 
     /// <summary>
@@ -19,6 +20,7 @@ public readonly record struct PositioningBlockRole
         Name = name;
     }
 
+    /// <inheritdoc />
     public override string ToString() => Name;
 }
 
@@ -63,6 +65,7 @@ public abstract class PositioningBlockResult<TOutput>
     /// <summary>Gets the output type represented by this result contract.</summary>
     public Type OutputType { get; } = typeof(TOutput);
 
+    /// <summary>Restricts construction to success and failure block results.</summary>
     private protected PositioningBlockResult()
     { }
 }
@@ -72,6 +75,7 @@ public abstract class PositioningBlockResult<TOutput>
 /// </summary>
 public sealed class PositioningBlockSuccess<TOutput> : PositioningBlockResult<TOutput>
 {
+    /// <summary>Gets the successful block output.</summary>
     public TOutput Value { get; }
 
     /// <summary>
@@ -88,8 +92,11 @@ public sealed class PositioningBlockSuccess<TOutput> : PositioningBlockResult<TO
 /// </summary>
 public sealed class PositioningBlockFailure<TOutput> : PositioningBlockResult<TOutput>
 {
+    /// <summary>Gets the stable block failure category.</summary>
     public PositioningBlockFailureCategory Category { get; }
+    /// <summary>Gets the kind of block that originated the failure.</summary>
     public string OriginatingBlockKind { get; }
+    /// <summary>Gets the fixed safe failure diagnostic.</summary>
     public string Diagnostic { get; }
 
     /// <summary>

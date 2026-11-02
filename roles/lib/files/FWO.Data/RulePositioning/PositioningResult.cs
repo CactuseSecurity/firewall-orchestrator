@@ -16,12 +16,14 @@ public sealed class PositioningResult<TValue, TFailureCategory>
     /// <summary>Gets the failure category, or <see langword="null"/> for a success.</summary>
     public TFailureCategory? FailureCategory { get; }
 
+    /// <summary>Creates a successful result.</summary>
     private PositioningResult(TValue value)
     {
         Value = value;
         IsSuccess = true;
     }
 
+    /// <summary>Creates a failed result.</summary>
     private PositioningResult(TFailureCategory failureCategory)
     {
         FailureCategory = failureCategory;

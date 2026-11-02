@@ -4,6 +4,7 @@ using NetTools;
 
 namespace FWO.Services.RulePositioning.CheckPoint;
 
+/// <summary>Three-state result of evaluating address ranges against one guard side.</summary>
 internal enum CheckPointGuardContainmentResult
 {
     Contained,

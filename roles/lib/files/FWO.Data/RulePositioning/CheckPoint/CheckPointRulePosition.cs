@@ -22,15 +22,19 @@ public enum CheckPointPositionAnchorKind
 [RulePositionType(kDiscriminator)]
 public sealed class CheckPointRulePosition : RulePosition, IJsonOnDeserialized
 {
+    /// <summary>Stable persisted discriminator for Check Point rule positions.</summary>
     public const string kDiscriminator = "check-point.rule-position.v1";
 
     [JsonProperty("layer_uid"), JsonPropertyName("layer_uid"), JsonInclude]
+    /// <summary>Gets the target Check Point layer identifier.</summary>
     public string LayerUid { get; private set; } = "";
 
     [JsonProperty("anchor_kind"), JsonPropertyName("anchor_kind"), JsonInclude]
+    /// <summary>Gets the semantic anchor kind within the target layer.</summary>
     public CheckPointPositionAnchorKind AnchorKind { get; private set; }
 
     [JsonProperty("anchor_rule_uid"), JsonPropertyName("anchor_rule_uid"), JsonInclude]
+    /// <summary>Gets the optional anchor rule identifier.</summary>
     public string? AnchorRuleUid { get; private set; }
 
     /// <summary>

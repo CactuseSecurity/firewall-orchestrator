@@ -18,6 +18,7 @@ public enum RulePositioningFailureCategory
 /// </summary>
 public abstract class RulePositioningResult
 {
+    /// <summary>Restricts construction to success and failure result types.</summary>
     private protected RulePositioningResult()
     { }
 }
@@ -27,6 +28,7 @@ public abstract class RulePositioningResult
 /// </summary>
 public sealed class RulePositioningSuccess : RulePositioningResult
 {
+    /// <summary>Gets the calculated semantic rule position.</summary>
     public RulePosition Position { get; }
 
     /// <summary>
@@ -43,7 +45,9 @@ public sealed class RulePositioningSuccess : RulePositioningResult
 /// </summary>
 public sealed class RulePositioningFailure : RulePositioningResult
 {
+    /// <summary>Gets the stable failure category.</summary>
     public RulePositioningFailureCategory Category { get; }
+    /// <summary>Gets the fixed safe failure diagnostic.</summary>
     public string Diagnostic { get; }
 
     /// <summary>

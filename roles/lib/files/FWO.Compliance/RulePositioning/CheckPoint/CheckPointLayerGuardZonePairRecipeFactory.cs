@@ -69,8 +69,10 @@ public static class CheckPointLayerGuardZonePairRecipeFactory
             CheckPointLayerGuardZonePairRecipeFailureCategory>.Failure(category);
 }
 
+/// <summary>Safe diagnostics for Check Point zone-pair recipe failures.</summary>
 public static class CheckPointLayerGuardZonePairRecipeFailureDiagnostics
 {
+    /// <summary>Returns the fixed safe diagnostic for a recipe-construction failure.</summary>
     public static string GetDiagnostic(this CheckPointLayerGuardZonePairRecipeFailureCategory category) => category switch
     {
         CheckPointLayerGuardZonePairRecipeFailureCategory.InvalidInput =>
@@ -87,6 +89,7 @@ public static class CheckPointLayerGuardZonePairRecipeFailureDiagnostics
     };
 }
 
+/// <summary>Stable failure categories for Check Point zone-pair recipe construction.</summary>
 public enum CheckPointLayerGuardZonePairRecipeFailureCategory
 {
     InvalidInput,

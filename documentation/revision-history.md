@@ -19,6 +19,8 @@
   - a task type whose ticket or task template is empty (no setting and no shipped template, e.g. NetworkObjectModify) is refused with a configuration error before a request is created, as when its template was missing before
   - service group tasks routed to SecureChange are refused with a configuration error; SecureChange only modifies groups of network objects. Before, they created a ticket without tasks. Their templates (NetworkServiceCreate, NetworkServiceUpdate) were never used and are not migrated; they remain in the backup
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
+- compliance: auto-calculated undefined-internal zones now cover complete IPv6 networks instead of only the first address of each remaining network
+- modelling and workflow: shared IP range parsing accepts dotted IPv4 netmasks such as `10.0.2.0/255.255.255.0` in addition to prefix lengths
 
 ## 9.8.4 - 29.10.2026
 - installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server

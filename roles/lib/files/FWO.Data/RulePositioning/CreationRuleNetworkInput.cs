@@ -7,7 +7,9 @@ namespace FWO.Data.RulePositioning;
 /// <summary>Immutable normalized source and destination address input for a creation rule.</summary>
 public sealed class CreationRuleNetworkInput
 {
+    /// <summary>Gets normalized source address ranges.</summary>
     public IReadOnlyList<IPAddressRange> SourceRanges { get; }
+    /// <summary>Gets normalized destination address ranges.</summary>
     public IReadOnlyList<IPAddressRange> DestinationRanges { get; }
 
     /// <summary>Validates and defensively copies both non-empty address collections.</summary>

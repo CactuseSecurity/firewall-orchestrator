@@ -51,8 +51,8 @@ public sealed class CreationRuleZoneInput
         ArgumentNullException.ThrowIfNull(sourceZones);
         ArgumentNullException.ThrowIfNull(destinationZones);
         CriterionId = criterionId;
-        SourceZones = new ReadOnlyCollection<PositioningZoneReference>([.. sourceZones]);
-        DestinationZones = new ReadOnlyCollection<PositioningZoneReference>([.. destinationZones]);
+        SourceZones = new ReadOnlyCollection<PositioningZoneReference>(sourceZones.ToList());
+        DestinationZones = new ReadOnlyCollection<PositioningZoneReference>(destinationZones.ToList());
         SourceCoverage = sourceCoverage;
         DestinationCoverage = destinationCoverage;
     }

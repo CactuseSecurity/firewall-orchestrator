@@ -36,6 +36,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     private readonly IDesignatedZoneMatrixReader zoneMatrixReader;
     private readonly ICreationRuleZoneResolver zoneResolver;
     private readonly ICheckPointPositioningRecipeCatalog recipeCatalog;
+    /// <summary>Executes the selected Check Point positioning recipe.</summary>
     private readonly PositioningRecipeExecutor<CheckPointPositioningContext, CheckPointBlockValue> recipeExecutor = new();
 
     /// <summary>Creates the Check Point positioning orchestration strategy.</summary>
@@ -104,63 +105,20 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
             return Failure(RulePositioningFailureCategory.PositioningMethodNotImplemented);
         }
 
-        RulebaseGraphReadResult graphResult = await graphReader.ReadAsync(
-            context.TargetManagement.Id,
-            context.TargetGateway.Id,
-            cancellationToken);
-        if (!graphResult.TryGetValue(out RulebaseGraphReadValue? graphValue))
+        InputPreparationResult preparation = await PrepareInputsAsync(context, cancellationToken);
+        if (preparation.Failure != null)
         {
-            return MapGraphFailure(graphResult);
+            return preparation.Failure;
         }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        CreationRuleNetworkResolutionResult networkResult = await networkResolver.ResolveAsync(
-            context.ParentRequestTask,
-            context.TicketRequestTasks!,
-            cancellationToken);
-        if (!networkResult.TryGetValue(out CreationRuleNetworkInput? networkInput))
-        {
-            return MapNetworkFailure(networkResult);
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        CheckPointLayerGuardReadResult guardResult = await guardReader.ReadAsync(
-            graphValue.Snapshot,
-            graphValue.ImportId,
-            cancellationToken);
-        if (!guardResult.TryGetValue(out CheckPointLayerGuardSnapshot? guardSnapshot))
-        {
-            return MapGuardFailure(guardResult);
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        RulePositioningConfiguration configuration = context.Configuration!;
-        DesignatedZoneMatrixReadResult matrixResult = await zoneMatrixReader.ReadAsync(
-            configuration.DesignatedZoneMatrixId,
-            cancellationToken);
-        if (!matrixResult.TryGetValue(out DesignatedZoneMatrixReadValue? matrixValue))
-        {
-            return MapMatrixFailure(matrixResult);
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        CreationRuleZoneResolutionResult zoneResult = await zoneResolver.ResolveAsync(
-            networkInput,
-            matrixValue.NetworkZones,
-            configuration,
-            cancellationToken);
-        if (!zoneResult.TryGetValue(out CreationRuleZoneInput? zoneInput))
-        {
-            return MapZoneFailure(zoneResult);
-        }
+        PreparedInputs inputs = preparation.Inputs!;
 
         CheckPointLayerGuardZonePairPositioningInput positioningInput = new(
-            networkInput,
-            guardSnapshot);
+            inputs.NetworkInput,
+            inputs.GuardSnapshot);
         CheckPointRecipeSelectionResult selectionResult = recipeCatalog.SelectRecipe(
             algorithm,
             positioningInput,
-            zoneInput);
+            inputs.ZoneInput);
         if (!selectionResult.TryGetValue(out PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>? recipe))
         {
             return MapSelectionFailure(selectionResult);
@@ -169,7 +127,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         cancellationToken.ThrowIfCancellationRequested();
         CheckPointPositioningContext checkPointContext = new(
             context,
-            graphValue.Snapshot,
+            inputs.Snapshot,
             positioningInput);
         PositioningBlockResult<CheckPointBlockValue> executionResult = await recipeExecutor.ExecuteAsync(
             recipe,
@@ -186,6 +144,85 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         }
 
         return new RulePositioningSuccess(positionValue.Position);
+    }
+
+    /// <summary>Loads and validates the graph, effective networks, guards, matrix, and zones.</summary>
+    private async Task<InputPreparationResult> PrepareInputsAsync(
+        RulePositioningContext context,
+        CancellationToken cancellationToken)
+    {
+        RulebaseGraphReadResult graphResult = await graphReader.ReadAsync(
+            context.TargetManagement.Id,
+            context.TargetGateway.Id,
+            cancellationToken);
+        if (!graphResult.TryGetValue(out RulebaseGraphReadValue? graphValue))
+        {
+            return InputPreparationResult.Failed(MapGraphFailure(graphResult));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        CreationRuleNetworkResolutionResult networkResult = await networkResolver.ResolveAsync(
+            context.ParentRequestTask,
+            context.TicketRequestTasks!,
+            cancellationToken);
+        if (!networkResult.TryGetValue(out CreationRuleNetworkInput? networkInput))
+        {
+            return InputPreparationResult.Failed(MapNetworkFailure(networkResult));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        CheckPointLayerGuardReadResult guardResult = await guardReader.ReadAsync(
+            graphValue.Snapshot,
+            graphValue.ImportId,
+            cancellationToken);
+        if (!guardResult.TryGetValue(out CheckPointLayerGuardSnapshot? guardSnapshot))
+        {
+            return InputPreparationResult.Failed(MapGuardFailure(guardResult));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        RulePositioningConfiguration configuration = context.Configuration!;
+        DesignatedZoneMatrixReadResult matrixResult = await zoneMatrixReader.ReadAsync(
+            configuration.DesignatedZoneMatrixId,
+            cancellationToken);
+        if (!matrixResult.TryGetValue(out DesignatedZoneMatrixReadValue? matrixValue))
+        {
+            return InputPreparationResult.Failed(MapMatrixFailure(matrixResult));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        CreationRuleZoneResolutionResult zoneResult = await zoneResolver.ResolveAsync(
+            networkInput,
+            matrixValue.NetworkZones,
+            configuration,
+            cancellationToken);
+        if (!zoneResult.TryGetValue(out CreationRuleZoneInput? zoneInput))
+        {
+            return InputPreparationResult.Failed(MapZoneFailure(zoneResult));
+        }
+
+        return InputPreparationResult.Succeeded(new PreparedInputs(
+            graphValue.Snapshot,
+            networkInput,
+            guardSnapshot,
+            zoneInput));
+    }
+
+    /// <summary>Validated data required to select and execute one positioning recipe.</summary>
+    private sealed record PreparedInputs(
+        RulebaseGraphSnapshot Snapshot,
+        CreationRuleNetworkInput NetworkInput,
+        CheckPointLayerGuardSnapshot GuardSnapshot,
+        CreationRuleZoneInput ZoneInput);
+
+    /// <summary>Result of preparing positioning inputs without throwing domain failures.</summary>
+    private sealed record InputPreparationResult(PreparedInputs? Inputs, RulePositioningFailure? Failure)
+    {
+        /// <summary>Creates a successful preparation result.</summary>
+        internal static InputPreparationResult Succeeded(PreparedInputs inputs) => new(inputs, null);
+
+        /// <summary>Creates a failed preparation result.</summary>
+        internal static InputPreparationResult Failed(RulePositioningFailure failure) => new(null, failure);
     }
 
     /// <summary>Maps effective-network failures to the public positioning contract.</summary>

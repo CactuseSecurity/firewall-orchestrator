@@ -10,6 +10,7 @@ namespace FWO.Services.RulePositioning;
 /// </summary>
 internal static class RulePositioningGraphCacheScope
 {
+    /// <summary>Operation-local graph cache state.</summary>
     private static readonly AsyncLocal<CacheState?> kCurrent = new();
 
     /// <summary>
@@ -68,12 +69,16 @@ internal static class RulePositioningGraphCacheScope
         }
     }
 
+    /// <summary>Mutable operation-local cache shared by nested leases.</summary>
     private sealed class CacheState
     {
+        /// <summary>Gets or sets the nested cache-scope depth.</summary>
         internal int Depth { get; set; }
+        /// <summary>Gets graph reads keyed by management and gateway.</summary>
         internal Dictionary<(int ManagementId, int GatewayId), Task<RulebaseGraphReadResult>> Reads { get; } = [];
     }
 
+    /// <summary>Releases one nested cache scope.</summary>
     private sealed class ScopeLease(CacheState state) : IDisposable
     {
         private bool disposed;

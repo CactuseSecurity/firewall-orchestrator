@@ -9,9 +9,12 @@ namespace FWO.Services.RulePositioning.CheckPoint;
 /// </summary>
 internal sealed class CheckPointGraphStructure
 {
+    /// <summary>Gets all interpreted selectable layers.</summary>
     internal IReadOnlyList<CheckPointLayerStructure> Layers { get; }
+    /// <summary>Gets the unique initial layer.</summary>
     internal CheckPointLayerStructure InitialLayer { get; }
 
+    /// <summary>Creates an immutable interpreted graph.</summary>
     private CheckPointGraphStructure(
         IEnumerable<CheckPointLayerStructure> layers,
         CheckPointLayerStructure initialLayer)
@@ -38,6 +41,7 @@ internal sealed class CheckPointGraphStructure
         return true;
     }
 
+    /// <summary>Builds the interpreted graph while enforcing structural invariants.</summary>
     private sealed class GraphInterpreter
     {
         private readonly RulebaseGraphSnapshot snapshot;
@@ -47,6 +51,7 @@ internal sealed class CheckPointGraphStructure
         private readonly List<CheckPointLayerStructure> layers = [];
         private readonly HashSet<long> interpretedRulebaseIds = [];
 
+        /// <summary>Creates an interpreter for one immutable graph snapshot.</summary>
         internal GraphInterpreter(RulebaseGraphSnapshot snapshot)
         {
             this.snapshot = snapshot;
@@ -67,29 +72,45 @@ internal sealed class CheckPointGraphStructure
             {
                 return false;
             }
-
-            List<RulebaseGraphLink> initialLinks = snapshot.Links.Where(link => link.IsInitial).ToList();
-            if (initialLinks.Count != 1 || initialLinks[0].IsSection || initialLinks[0].LinkType == RulebaseLinkTypes.Inline)
+            if (!TryResolveInitialLayerId(out long initialLayerId))
             {
                 return false;
             }
-
-            long initialLayerId = initialLinks[0].TargetRulebaseId;
-            if (initialLinks[0].LinkType == RulebaseLinkTypes.Policy)
-            {
-                RulebaseGraphLink? policySuccessor = GetUniqueOrderedSuccessor(initialLayerId);
-                if (policySuccessor == null)
-                {
-                    return false;
-                }
-                initialLayerId = policySuccessor.TargetRulebaseId;
-            }
-
             if (!TryAddLayer(initialLayerId, out initialLayer))
             {
                 return false;
             }
+            return TryAddOrderedLayers(initialLayerId);
+        }
 
+        /// <summary>Resolves the first selectable layer from the unique initial relationship.</summary>
+        private bool TryResolveInitialLayerId(out long initialLayerId)
+        {
+            initialLayerId = 0;
+            List<RulebaseGraphLink> initialLinks = snapshot.Links.Where(link => link.IsInitial).ToList();
+            if (initialLinks.Count != 1 || initialLinks[0].IsSection ||
+                initialLinks[0].LinkType == RulebaseLinkTypes.Inline)
+            {
+                return false;
+            }
+
+            initialLayerId = initialLinks[0].TargetRulebaseId;
+            if (initialLinks[0].LinkType != RulebaseLinkTypes.Policy)
+            {
+                return true;
+            }
+            RulebaseGraphLink? policySuccessor = GetUniqueOrderedSuccessor(initialLayerId);
+            if (policySuccessor == null)
+            {
+                return false;
+            }
+            initialLayerId = policySuccessor.TargetRulebaseId;
+            return true;
+        }
+
+        /// <summary>Adds the ordered layer chain after the initial layer.</summary>
+        private bool TryAddOrderedLayers(long initialLayerId)
+        {
             long currentLayerId = initialLayerId;
             HashSet<long> orderedLayerIds = [currentLayerId];
             while (true)
@@ -223,28 +244,43 @@ internal sealed class CheckPointGraphStructure
         private static bool HasUnambiguousSuccessors(IEnumerable<RulebaseGraphLink> links)
         {
             List<RulebaseGraphLink> graphLinks = links.ToList();
-            bool hasInvalidStructuralSource = graphLinks.Any(link =>
-                (link.IsSection || link.LinkType == RulebaseLinkTypes.Ordered || link.LinkType == RulebaseLinkTypes.Domain) &&
+            return !HasInvalidStructuralSource(graphLinks) &&
+                !HasAmbiguousOrderedSuccessor(graphLinks) &&
+                !HasAmbiguousSectionSuccessor(graphLinks) &&
+                !HasAmbiguousInlineLink(graphLinks) &&
+                !HasInlineLinkWithoutRule(graphLinks);
+        }
+
+        /// <summary>Checks structural links for a missing non-initial source rulebase.</summary>
+        private static bool HasInvalidStructuralSource(List<RulebaseGraphLink> links) =>
+            links.Any(link =>
+                (link.IsSection || link.LinkType == RulebaseLinkTypes.Ordered ||
+                    link.LinkType == RulebaseLinkTypes.Domain) &&
                 !link.IsInitial && !link.SourceRulebaseId.HasValue);
-            bool hasAmbiguousOrderedSuccessor = graphLinks
-                .Where(link => !link.IsSection &&
+
+        /// <summary>Checks for multiple ordered successors of one rulebase.</summary>
+        private static bool HasAmbiguousOrderedSuccessor(List<RulebaseGraphLink> links) =>
+            links.Where(link => !link.IsSection &&
                     (link.LinkType == RulebaseLinkTypes.Ordered || link.LinkType == RulebaseLinkTypes.Domain))
                 .Where(link => link.SourceRulebaseId.HasValue)
                 .GroupBy(link => link.SourceRulebaseId)
                 .Any(group => group.Count() > 1);
-            bool hasAmbiguousSectionSuccessor = graphLinks
-                .Where(link => link.IsSection && link.SourceRulebaseId.HasValue)
+
+        /// <summary>Checks for multiple section successors of one rulebase.</summary>
+        private static bool HasAmbiguousSectionSuccessor(List<RulebaseGraphLink> links) =>
+            links.Where(link => link.IsSection && link.SourceRulebaseId.HasValue)
                 .GroupBy(link => link.SourceRulebaseId)
                 .Any(group => group.Count() > 1);
-            bool hasAmbiguousInlineLink = graphLinks
-                .Where(link => link.LinkType == RulebaseLinkTypes.Inline && link.SourceRuleId.HasValue)
+
+        /// <summary>Checks for multiple inline targets of one source rule.</summary>
+        private static bool HasAmbiguousInlineLink(List<RulebaseGraphLink> links) =>
+            links.Where(link => link.LinkType == RulebaseLinkTypes.Inline && link.SourceRuleId.HasValue)
                 .GroupBy(link => link.SourceRuleId)
                 .Any(group => group.Count() > 1);
-            bool hasInlineLinkWithoutRule = graphLinks.Any(link =>
-                link.LinkType == RulebaseLinkTypes.Inline && !link.SourceRuleId.HasValue);
-            return !hasInvalidStructuralSource && !hasAmbiguousOrderedSuccessor &&
-                !hasAmbiguousSectionSuccessor && !hasAmbiguousInlineLink && !hasInlineLinkWithoutRule;
-        }
+
+        /// <summary>Checks for an inline link without its source rule identity.</summary>
+        private static bool HasInlineLinkWithoutRule(List<RulebaseGraphLink> links) =>
+            links.Any(link => link.LinkType == RulebaseLinkTypes.Inline && !link.SourceRuleId.HasValue);
     }
 }
 
@@ -253,11 +289,16 @@ internal sealed class CheckPointGraphStructure
 /// </summary>
 internal sealed class CheckPointLayerStructure
 {
+    /// <summary>Gets the normalized rulebase node represented by this layer.</summary>
     internal RulebaseGraphNode Node { get; }
+    /// <summary>Gets direct rules and sections in effective order.</summary>
     internal IReadOnlyList<CheckPointLayerItemStructure> Items { get; }
+    /// <summary>Gets sections in their structural chain order.</summary>
     internal IReadOnlyList<CheckPointSectionStructure> Sections { get; }
+    /// <summary>Gets all rules flattened in effective order.</summary>
     internal IReadOnlyList<RulebaseGraphRule> OrderedRules { get; }
 
+    /// <summary>Creates an immutable interpreted layer.</summary>
     internal CheckPointLayerStructure(
         RulebaseGraphNode node,
         IEnumerable<CheckPointSectionStructure> sections)
@@ -356,6 +397,7 @@ internal sealed class CheckPointLayerStructure
 /// </summary>
 internal abstract class CheckPointLayerItemStructure
 {
+    /// <summary>Prevents construction outside the structural item hierarchy.</summary>
     private protected CheckPointLayerItemStructure()
     { }
 }
@@ -365,8 +407,10 @@ internal abstract class CheckPointLayerItemStructure
 /// </summary>
 internal sealed class CheckPointRuleItemStructure : CheckPointLayerItemStructure
 {
+    /// <summary>Gets the direct structural rule.</summary>
     internal RulebaseGraphRule Rule { get; }
 
+    /// <summary>Creates a direct-rule layer item.</summary>
     internal CheckPointRuleItemStructure(RulebaseGraphRule rule)
     {
         Rule = rule;
@@ -378,9 +422,12 @@ internal sealed class CheckPointRuleItemStructure : CheckPointLayerItemStructure
 /// </summary>
 internal sealed class CheckPointSectionStructure : CheckPointLayerItemStructure
 {
+    /// <summary>Gets the normalized section rulebase.</summary>
     internal RulebaseGraphNode Node { get; }
+    /// <summary>Gets the rules contained in the section.</summary>
     internal IReadOnlyList<RulebaseGraphRule> Rules => Node.Rules;
 
+    /// <summary>Creates a section layer item.</summary>
     internal CheckPointSectionStructure(RulebaseGraphNode node)
     {
         Node = node;

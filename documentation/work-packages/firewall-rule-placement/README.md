@@ -30,9 +30,3 @@ Stored positions are versioned JSON objects. Readers tolerate unknown or malform
 The unit suite under `roles/tests-unit/files/FWO.Test/` covers serialization, strategy selection, graph and guard mapping, zone resolution, workflow activation, persistence, malformed stored values, and fail-closed behavior. The 9.8.5 integration fixtures under `roles/tests-integration/files/database/` cover both the rule-position schema migration and the SecureChange migration sharing that release file.
 
 The importer deliberately stores flattened network-group rows for the group itself, nested groups, and leaves. The Check Point guard reader ignores the group rows and evaluates only address-bearing leaves; genuinely addressless non-group leaves remain unresolved and cause safe indeterminate behavior.
-
-## Fixture note
-
-- [Check Point fixture flash card](CHECK-POINT-FIXTURE-FLASH-CARD.md) — concise explanation of why the live import was insufficient and how the importer-faithful presentation fixture was generated.
-
-The flash card documents test-data provenance only. Production behavior is defined by the code, schema, localization, and automated tests listed above.

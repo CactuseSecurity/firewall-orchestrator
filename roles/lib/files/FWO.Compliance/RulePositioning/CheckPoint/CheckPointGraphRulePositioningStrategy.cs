@@ -20,6 +20,7 @@ public sealed class CheckPointGraphRulePositioningStrategy : IRulePositioningStr
 {
     private readonly IRulebaseGraphSnapshotReader graphReader;
     private readonly ICheckPointGraphPositioningRecipeCatalog recipeCatalog;
+    /// <summary>Executes validated graph-only recipes.</summary>
     private readonly PositioningRecipeExecutor<CheckPointPositioningContext, CheckPointBlockValue> recipeExecutor = new();
 
     /// <summary>Creates the graph-only Check Point positioning strategy.</summary>

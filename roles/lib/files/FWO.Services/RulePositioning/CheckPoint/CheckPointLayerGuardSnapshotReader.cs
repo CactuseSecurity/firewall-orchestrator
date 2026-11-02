@@ -18,6 +18,8 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
 {
     private const string kGroupObjectType = "group";
     private const string kOperation = "getCheckPointLayerGuardsAtImport";
+    private static readonly IReadOnlyCollection<CheckPointLayerGuard> kNoGuards =
+        new List<CheckPointLayerGuard>().AsReadOnly();
 
     /// <inheritdoc />
     public async Task<CheckPointLayerGuardReadResult> ReadAsync(
@@ -36,7 +38,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         }
         if (candidates.Count == 0)
         {
-            return Success(graph, importId, []);
+            return Success(graph, importId, kNoGuards);
         }
 
         List<long> sourceRuleIds = candidates.Select(candidate => candidate.SourceRuleId).Order().ToList();
@@ -73,29 +75,50 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         List<RulebaseGraphLink> links = [.. graph.Links.Where(link => link.LinkType == RulebaseLinkTypes.Inline)];
         HashSet<long> initialTargets = [.. graph.Links.Where(link => link.IsInitial)
             .Select(link => link.TargetRulebaseId)];
-        if (links.Any(link => !link.SourceRuleId.HasValue || !link.SourceRulebaseId.HasValue ||
-                link.IsInitial || link.IsSection || link.IsGlobal || initialTargets.Contains(link.TargetRulebaseId)) ||
-            links.GroupBy(link => link.SourceRuleId).Any(group => group.Count() != 1) ||
-            links.GroupBy(link => link.TargetRulebaseId).Any(group => group.Count() != 1))
+        if (!HasValidCandidateLinks(links, initialTargets))
         {
             return false;
         }
         foreach (RulebaseGraphLink link in links)
         {
-            RulebaseGraphNode? source = graph.Rulebases.SingleOrDefault(rulebase =>
-                rulebase.Id == link.SourceRulebaseId);
-            RulebaseGraphNode? target = graph.Rulebases.SingleOrDefault(rulebase =>
-                rulebase.Id == link.TargetRulebaseId);
-            if (source == null || target == null ||
-                source.Rules.Count(rule => rule.Id == link.SourceRuleId) != 1)
+            if (!TryCreateCandidate(graph, link, out GuardCandidate? candidate))
             {
                 return false;
             }
-            candidates.Add(new GuardCandidate(
-                link.SourceRuleId!.Value,
-                link.SourceRulebaseId!.Value,
-                link.TargetRulebaseId));
+            candidates.Add(candidate!);
         }
+        return true;
+    }
+
+    /// <summary>Checks inline-link identity, scope, and one-to-one cardinality.</summary>
+    private static bool HasValidCandidateLinks(
+        List<RulebaseGraphLink> links,
+        HashSet<long> initialTargets) =>
+        links.All(link => link.SourceRuleId.HasValue && link.SourceRulebaseId.HasValue &&
+            !link.IsInitial && !link.IsSection && !link.IsGlobal &&
+            !initialTargets.Contains(link.TargetRulebaseId)) &&
+        links.GroupBy(link => link.SourceRuleId).All(group => group.Count() == 1) &&
+        links.GroupBy(link => link.TargetRulebaseId).All(group => group.Count() == 1);
+
+    /// <summary>Maps one validated inline link to a guard query candidate.</summary>
+    private static bool TryCreateCandidate(
+        RulebaseGraphSnapshot graph,
+        RulebaseGraphLink link,
+        out GuardCandidate? candidate)
+    {
+        candidate = null;
+        RulebaseGraphNode? source = graph.Rulebases.SingleOrDefault(rulebase =>
+            rulebase.Id == link.SourceRulebaseId);
+        RulebaseGraphNode? target = graph.Rulebases.SingleOrDefault(rulebase =>
+            rulebase.Id == link.TargetRulebaseId);
+        if (source == null || target == null || source.Rules.Count(rule => rule.Id == link.SourceRuleId) != 1)
+        {
+            return false;
+        }
+        candidate = new GuardCandidate(
+            link.SourceRuleId!.Value,
+            link.SourceRulebaseId!.Value,
+            link.TargetRulebaseId);
         return true;
     }
 
@@ -108,30 +131,58 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         out List<CheckPointLayerGuard> guards)
     {
         guards = [];
-        if (rules == null || rules.Count != candidates.Count || rules.Any(rule => rule == null) ||
-            rules.GroupBy(rule => rule.Id).Any(group => group.Count() != 1))
+        if (!HasValidGuardRules(rules, candidates.Count))
         {
             return false;
         }
         foreach (GuardCandidate candidate in candidates)
         {
-            RuleWire? rule = rules.SingleOrDefault(rule => rule.Id == candidate.SourceRuleId);
-            if (rule == null || rule.ManagementId != managementId ||
-                rule.RulebaseId != candidate.SourceRulebaseId ||
-                !rule.SourceNegated.HasValue || !rule.DestinationNegated.HasValue ||
-                !IsHistorical(rule.Created, rule.Removed, importId) ||
-                !TryMapSide(rule.Froms, candidate.SourceRuleId, rule.SourceNegated.Value, true, importId, out CheckPointGuardSide? source) ||
-                !TryMapSide(rule.Tos, candidate.SourceRuleId, rule.DestinationNegated.Value, false, importId, out CheckPointGuardSide? destination))
+            if (!TryMapGuard(rules!, candidate, managementId, importId, out CheckPointLayerGuard? guard))
             {
                 return false;
             }
-            guards.Add(new CheckPointLayerGuard(
-                candidate.SourceRuleId,
-                candidate.SourceRulebaseId,
-                candidate.TargetLayerId,
-                source!,
-                destination!));
+            guards.Add(guard!);
         }
+        return true;
+    }
+
+    /// <summary>Checks guard query count, nullability, and rule identity uniqueness.</summary>
+    private static bool HasValidGuardRules(List<RuleWire>? rules, int expectedCount) =>
+        rules != null && rules.Count == expectedCount && rules.All(rule => rule != null) &&
+        rules.GroupBy(rule => rule.Id).All(group => group.Count() == 1);
+
+    /// <summary>Validates and maps one queried guard rule.</summary>
+    private static bool TryMapGuard(
+        List<RuleWire> rules,
+        GuardCandidate candidate,
+        int managementId,
+        long importId,
+        out CheckPointLayerGuard? guard)
+    {
+        guard = null;
+        RuleWire? rule = rules.SingleOrDefault(item => item.Id == candidate.SourceRuleId);
+        if (rule == null || rule.ManagementId != managementId ||
+            rule.RulebaseId != candidate.SourceRulebaseId ||
+            !rule.SourceNegated.HasValue || !rule.DestinationNegated.HasValue ||
+            !IsHistorical(rule.Created, rule.Removed, importId))
+        {
+            return false;
+        }
+        if (!TryMapSide(
+                rule.Froms, candidate.SourceRuleId, rule.SourceNegated.Value, true, importId,
+                out CheckPointGuardSide? source) ||
+            !TryMapSide(
+                rule.Tos, candidate.SourceRuleId, rule.DestinationNegated.Value, false, importId,
+                out CheckPointGuardSide? destination))
+        {
+            return false;
+        }
+        guard = new CheckPointLayerGuard(
+            candidate.SourceRuleId,
+            candidate.SourceRulebaseId,
+            candidate.TargetLayerId,
+            source!,
+            destination!);
         return true;
     }
 
@@ -236,31 +287,50 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
 
         foreach (FlatWire flat in group.Flats)
         {
-            if (!IsValidFlat(flat, group.Id!.Value, importId))
+            if (!TryMapFlat(
+                    flat, group.Id!.Value, importId, included, excluded,
+                    ref unresolvedIncluded, ref unresolvedExcluded))
             {
                 return false;
             }
-            if (IsStructuralGroupRow(flat, group.Id!.Value))
-            {
-                continue;
-            }
-            if (!HasAddress(flat.Object!))
-            {
-                unresolvedIncluded |= !flat.Negated!.Value;
-                unresolvedExcluded |= flat.Negated.Value;
-                continue;
-            }
-            if (!TryParseRange(flat.Object!.Ip, flat.Object.IpEnd, out IPAddressRange? range))
-            {
-                return false;
-            }
-            (flat.Negated!.Value ? excluded : included).Add(range!);
         }
 
         if (included.Count == 0 && excluded.Count == 0 && !unresolvedIncluded && !unresolvedExcluded)
         {
             unresolvedIncluded = true;
         }
+        return true;
+    }
+
+    /// <summary>Maps one flattened group row into address or unresolved-term state.</summary>
+    private static bool TryMapFlat(
+        FlatWire flat,
+        long groupId,
+        long importId,
+        List<IPAddressRange> included,
+        List<IPAddressRange> excluded,
+        ref bool unresolvedIncluded,
+        ref bool unresolvedExcluded)
+    {
+        if (!IsValidFlat(flat, groupId, importId))
+        {
+            return false;
+        }
+        if (IsStructuralGroupRow(flat, groupId))
+        {
+            return true;
+        }
+        if (!HasAddress(flat.Object!))
+        {
+            unresolvedIncluded |= !flat.Negated!.Value;
+            unresolvedExcluded |= flat.Negated.Value;
+            return true;
+        }
+        if (!TryParseRange(flat.Object!.Ip, flat.Object.IpEnd, out IPAddressRange? range))
+        {
+            return false;
+        }
+        (flat.Negated!.Value ? excluded : included).Add(range!);
         return true;
     }
 
@@ -285,16 +355,20 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         return IpOperations.TryParseIPRange(start?.Trim(), end?.Trim(), out range);
     }
 
+    /// <summary>Checks whether an imported object contains address data.</summary>
     private static bool HasAddress(ObjectWire value) =>
         !string.IsNullOrWhiteSpace(value.Ip) || !string.IsNullOrWhiteSpace(value.IpEnd);
 
+    /// <summary>Checks imported object identity and fixed-import visibility.</summary>
     private static bool IsValidObject(ObjectWire? value, long importId) =>
         value?.Id is > 0 && IsHistorical(value.Created, value.Removed, importId) &&
         (string.IsNullOrWhiteSpace(value.IpEnd) || !string.IsNullOrWhiteSpace(value.Ip));
 
+    /// <summary>Applies the fixed-import half-open historical interval.</summary>
     private static bool IsHistorical(long? created, long? removed, long importId) =>
         created is > 0 && created <= importId && (!removed.HasValue || removed > importId);
 
+    /// <summary>Creates a successful immutable guard snapshot result.</summary>
     private static CheckPointLayerGuardReadResult Success(
         RulebaseGraphSnapshot graph,
         long importId,
@@ -302,11 +376,14 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         CheckPointLayerGuardReadResult.Success(
             new CheckPointLayerGuardSnapshot(graph.ManagementId, graph.GatewayId, importId, guards));
 
+    /// <summary>Creates one category-only guard read failure.</summary>
     private static CheckPointLayerGuardReadResult Failure(CheckPointLayerGuardReadFailureCategory category) =>
         CheckPointLayerGuardReadResult.Failure(category);
 
+    /// <summary>Identities required to query and map one inline-layer guard.</summary>
     private sealed record GuardCandidate(long SourceRuleId, long SourceRulebaseId, long TargetLayerId);
 
+    /// <summary>GraphQL shape for one guard rule.</summary>
     private sealed class RuleWire
     {
         [JsonProperty("rule_id")] public long? Id { get; set; }
@@ -320,6 +397,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         [JsonProperty("rule_tos")] public List<AssociationWire>? Tos { get; set; }
     }
 
+    /// <summary>GraphQL shape for one rule-to-object association.</summary>
     private sealed class AssociationWire
     {
         [JsonProperty("rule_id")] public long? RuleId { get; set; }
@@ -331,6 +409,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         [JsonProperty("object")] public ObjectWire? Object { get; set; }
     }
 
+    /// <summary>GraphQL shape for one imported network object.</summary>
     private sealed class ObjectWire
     {
         [JsonProperty("obj_id")] public long? Id { get; set; }
@@ -344,6 +423,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         [JsonProperty("objgrp_flats")] public List<FlatWire>? Flats { get; set; }
     }
 
+    /// <summary>GraphQL shape for one flattened network-group member.</summary>
     private sealed class FlatWire
     {
         [JsonProperty("objgrp_flat_id")] public long? GroupId { get; set; }
@@ -354,6 +434,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         [JsonProperty("object")] public ObjectWire? Object { get; set; }
     }
 
+    /// <summary>GraphQL shape for an imported object type.</summary>
     private sealed class ObjectTypeWire
     {
         [JsonProperty("name")] public string? Name { get; set; }

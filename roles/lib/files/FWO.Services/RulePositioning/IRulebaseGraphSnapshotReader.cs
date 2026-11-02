@@ -2,6 +2,7 @@ using FWO.Data.RulePositioning;
 
 namespace FWO.Services.RulePositioning;
 
+/// <summary>Reads immutable normalized rulebase graphs at one completed import.</summary>
 public interface IRulebaseGraphSnapshotReader
 {
     /// <summary>
@@ -16,7 +17,9 @@ public interface IRulebaseGraphSnapshotReader
 /// <summary>Successful graph-reader value at one fixed import.</summary>
 public sealed record RulebaseGraphReadValue
 {
+    /// <summary>Gets the immutable normalized graph snapshot.</summary>
     public RulebaseGraphSnapshot Snapshot { get; }
+    /// <summary>Gets the import identifier used to build the snapshot.</summary>
     public long ImportId { get; }
 
     /// <summary>Creates a graph value containing one immutable snapshot.</summary>
@@ -43,6 +46,7 @@ public static class RulebaseGraphReadFailureDiagnostics
     };
 }
 
+/// <summary>Stable failure categories for normalized graph reads.</summary>
 public enum RulebaseGraphReadFailureCategory
 {
     InvalidInput,

@@ -3,6 +3,7 @@ using FWO.Data.Workflow;
 
 namespace FWO.Compliance.RulePositioning;
 
+/// <summary>Resolves effective creation-rule address ranges from workflow state.</summary>
 public interface ICreationRuleNetworkInputResolver
 {
     /// <summary>Resolves the effective source and destination address ranges at the access task.</summary>
@@ -12,8 +13,10 @@ public interface ICreationRuleNetworkInputResolver
         CancellationToken cancellationToken);
 }
 
+/// <summary>Safe diagnostics for creation-rule network-resolution failures.</summary>
 public static class CreationRuleNetworkResolutionFailureDiagnostics
 {
+    /// <summary>Returns the fixed safe diagnostic for a network-resolution failure.</summary>
     public static string GetDiagnostic(this CreationRuleNetworkResolutionFailureCategory category) => category switch
     {
         CreationRuleNetworkResolutionFailureCategory.InvalidInput => "The creation-rule network input is invalid.",
@@ -28,6 +31,7 @@ public static class CreationRuleNetworkResolutionFailureDiagnostics
     };
 }
 
+/// <summary>Stable failure categories for creation-rule network resolution.</summary>
 public enum CreationRuleNetworkResolutionFailureCategory
 {
     InvalidInput,

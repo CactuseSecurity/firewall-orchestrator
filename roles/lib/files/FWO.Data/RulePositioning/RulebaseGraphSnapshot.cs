@@ -7,9 +7,13 @@ namespace FWO.Data.RulePositioning;
 /// </summary>
 public sealed class RulebaseGraphSnapshot
 {
+    /// <summary>Gets the management owning the graph.</summary>
     public int ManagementId { get; }
+    /// <summary>Gets the gateway whose reachable graph was loaded.</summary>
     public int GatewayId { get; }
+    /// <summary>Gets immutable normalized rulebase nodes.</summary>
     public IReadOnlyList<RulebaseGraphNode> Rulebases { get; }
+    /// <summary>Gets immutable normalized links between rulebases.</summary>
     public IReadOnlyList<RulebaseGraphLink> Links { get; }
 
     /// <summary>
@@ -229,11 +233,16 @@ public sealed class RulebaseGraphSnapshot
 /// </summary>
 public sealed class RulebaseGraphNode
 {
+    /// <summary>Gets the normalized rulebase identifier.</summary>
     public long Id { get; }
+    /// <summary>Gets the vendor rulebase identifier.</summary>
     public string Uid { get; }
+    /// <summary>Gets the imported rulebase name.</summary>
     public string Name { get; }
+    /// <summary>Gets structural rules in native order.</summary>
     public IReadOnlyList<RulebaseGraphRule> Rules { get; }
 
+    /// <summary>Creates an immutable normalized rulebase node.</summary>
     internal RulebaseGraphNode(
         long id,
         string uid,
@@ -252,10 +261,14 @@ public sealed class RulebaseGraphNode
 /// </summary>
 public sealed class RulebaseGraphRule
 {
+    /// <summary>Gets the normalized rule identifier.</summary>
     public long Id { get; }
+    /// <summary>Gets the vendor rule identifier.</summary>
     public string Uid { get; }
+    /// <summary>Gets the imported native rule order.</summary>
     public double NativeOrder { get; }
 
+    /// <summary>Creates an immutable structural rule identity.</summary>
     internal RulebaseGraphRule(long id, string uid, double nativeOrder)
     {
         Id = id;
@@ -269,14 +282,22 @@ public sealed class RulebaseGraphRule
 /// </summary>
 public sealed class RulebaseGraphLink
 {
+    /// <summary>Gets the optional source rulebase identifier.</summary>
     public long? SourceRulebaseId { get; }
+    /// <summary>Gets the optional source rule identifier.</summary>
     public long? SourceRuleId { get; }
+    /// <summary>Gets the target rulebase identifier.</summary>
     public long TargetRulebaseId { get; }
+    /// <summary>Gets the normalized link type.</summary>
     public int LinkType { get; }
+    /// <summary>Gets whether the link selects the initial layer.</summary>
     public bool IsInitial { get; }
+    /// <summary>Gets whether the link crosses into a global layer.</summary>
     public bool IsGlobal { get; }
+    /// <summary>Gets whether the target represents a section.</summary>
     public bool IsSection { get; }
 
+    /// <summary>Creates an immutable normalized graph link.</summary>
     internal RulebaseGraphLink(
         long? sourceRulebaseId,
         long? sourceRuleId,

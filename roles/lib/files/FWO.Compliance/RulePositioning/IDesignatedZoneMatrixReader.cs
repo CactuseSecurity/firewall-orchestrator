@@ -16,10 +16,11 @@ public interface IDesignatedZoneMatrixReader
 /// <summary>Immutable value returned by a successful designated-zone-matrix read.</summary>
 public sealed class DesignatedZoneMatrixReadValue
 {
+    /// <summary>Creates an immutable copy of the selected designated-zone matrix rows.</summary>
     public DesignatedZoneMatrixReadValue(IReadOnlyCollection<ComplianceNetworkZone> networkZones)
     {
         ArgumentNullException.ThrowIfNull(networkZones);
-        NetworkZones = new ReadOnlyCollection<ComplianceNetworkZone>([.. networkZones]);
+        NetworkZones = new ReadOnlyCollection<ComplianceNetworkZone>(networkZones.ToList());
     }
 
     /// <summary>Gets the network zones returned for the configured matrix.</summary>

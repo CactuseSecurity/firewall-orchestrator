@@ -13,6 +13,8 @@ namespace FWO.Compliance.RulePositioning;
 public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGroupResolver)
     : ICreationRuleNetworkInputResolver
 {
+    private static readonly IReadOnlyCollection<string> kEmptyResolutionPath =
+        new List<string>().AsReadOnly();
     private readonly IFlowGroupResolver flowGroupResolver = flowGroupResolver ??
         throw new ArgumentNullException(nameof(flowGroupResolver));
 
@@ -39,8 +41,8 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
             CatalogIndex catalog = await LoadCatalogAsync(
                 sources.Concat(destinations), orderedTasks, cancellationToken);
             ResolutionContext context = new(accessTask, orderedTasks, catalog, cancellationToken);
-            List<IPAddressRange> sourceRanges = ResolveElements(sources, context, []);
-            List<IPAddressRange> destinationRanges = ResolveElements(destinations, context, []);
+            List<IPAddressRange> sourceRanges = ResolveElements(sources, context, kEmptyResolutionPath);
+            List<IPAddressRange> destinationRanges = ResolveElements(destinations, context, kEmptyResolutionPath);
             return CreationRuleNetworkResolutionResult.Success(new CreationRuleNetworkInput(
                 PositioningAddressRangeNormalizer.Distinct(sourceRanges),
                 PositioningAddressRangeNormalizer.Distinct(destinationRanges)));
@@ -114,7 +116,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
             .Select(reference => reference.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (ids.Count == 0 && names.Count == 0)
         {
-            return new CatalogIndex([]);
+            return new CatalogIndex(new List<FlowNetworkGroupResolution>());
         }
         try
         {
@@ -295,34 +297,48 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
             {
                 throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupAmbiguous);
             }
-            switch (action)
-            {
-                case RequestAction.create:
-                case RequestAction.addAfterCreation:
-                    members.Add(Clone(change));
-                    break;
-                case RequestAction.unchanged:
-                    break;
-                case RequestAction.modify:
-                    if (matches.Count != 1)
-                    {
-                        throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
-                    }
-                    members[matches[0]] = Clone(change);
-                    break;
-                case RequestAction.delete:
-                    if (matches.Count != 1)
-                    {
-                        throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
-                    }
-                    members.RemoveAt(matches[0]);
-                    break;
-                default:
-                    throw Failure(CreationRuleNetworkResolutionFailureCategory.InvalidInput);
-            }
+            ApplyMemberAction(members, change, action, matches);
         }
     }
 
+    /// <summary>Applies one validated group member action.</summary>
+    private static void ApplyMemberAction(
+        List<WfReqElement> members,
+        WfReqElement change,
+        RequestAction action,
+        List<int> matches)
+    {
+        switch (action)
+        {
+            case RequestAction.create:
+            case RequestAction.addAfterCreation:
+                members.Add(Clone(change));
+                return;
+            case RequestAction.unchanged:
+                return;
+            case RequestAction.modify:
+                RequireSingleMemberMatch(matches);
+                members[matches[0]] = Clone(change);
+                return;
+            case RequestAction.delete:
+                RequireSingleMemberMatch(matches);
+                members.RemoveAt(matches[0]);
+                return;
+            default:
+                throw Failure(CreationRuleNetworkResolutionFailureCategory.InvalidInput);
+        }
+    }
+
+    /// <summary>Rejects a group member change without exactly one existing match.</summary>
+    private static void RequireSingleMemberMatch(List<int> matches)
+    {
+        if (matches.Count != 1)
+        {
+            throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
+        }
+    }
+
+    /// <summary>Normalizes the flattened address members of one catalog group.</summary>
     private static List<IPAddressRange> ResolveCatalogMembers(
         FlowNetworkGroupResolution group,
         CancellationToken cancellationToken)
@@ -420,14 +436,17 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
     /// <summary>Creates an internal typed control-flow failure.</summary>
     private static NetworkResolutionException Failure(CreationRuleNetworkResolutionFailureCategory category) => new(category);
 
+    /// <summary>Immutable state shared while resolving nested ticket and catalog elements.</summary>
     private sealed record ResolutionContext(
         WfReqTask AccessTask,
         IReadOnlyList<WfReqTask> Tasks,
         CatalogIndex Catalog,
         CancellationToken CancellationToken);
 
+    /// <summary>Prioritized identities used to match one network group.</summary>
     private sealed record GroupIdentity(long? FlowId, long? NormalizedId, string Name)
     {
+        /// <summary>Gets whether at least one stable group identity is available.</summary>
         internal bool IsUsable => FlowId is > 0 || NormalizedId is > 0 || Name.Length > 0;
         internal string Key
         {
@@ -444,6 +463,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         }
     }
 
+    /// <summary>Lookup index for catalog groups loaded by identifier or name.</summary>
     private sealed class CatalogIndex(IReadOnlyCollection<FlowNetworkGroupResolution> groups)
     {
         /// <summary>Requires exactly one catalog group under the highest available identity.</summary>

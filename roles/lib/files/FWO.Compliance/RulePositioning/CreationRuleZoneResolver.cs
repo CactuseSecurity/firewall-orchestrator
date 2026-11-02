@@ -12,6 +12,7 @@ namespace FWO.Compliance.RulePositioning;
 /// <summary>Resolves a new access rule's normalized address ranges to ordered zone sets.</summary>
 public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
 {
+    /// <summary>Resolved zones and address coverage for one rule side.</summary>
     private sealed record SideResolution(List<PositioningZoneReference> Zones, ZoneCoverage Coverage);
 
     /// <inheritdoc />
@@ -34,8 +35,10 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
                 return Task.FromResult<CreationRuleZoneResolutionResult>(
                     Failure(CreationRuleZoneResolutionFailureCategory.InvalidZoneData));
             }
-            SideResolution source = ResolveSide([.. networkInput.SourceRanges], validatedZones, configuration, cancellationToken);
-            SideResolution destination = ResolveSide([.. networkInput.DestinationRanges], validatedZones, configuration, cancellationToken);
+            List<IPAddressRange> sourceRanges = networkInput.SourceRanges.ToList();
+            List<IPAddressRange> destinationRanges = networkInput.DestinationRanges.ToList();
+            SideResolution source = ResolveSide(sourceRanges, validatedZones, configuration, cancellationToken);
+            SideResolution destination = ResolveSide(destinationRanges, validatedZones, configuration, cancellationToken);
             return Task.FromResult(CreationRuleZoneResolutionResult.Success(
                 new CreationRuleZoneInput(
                     configuration.DesignatedZoneMatrixId,
@@ -68,27 +71,54 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
         out List<ComplianceNetworkZone> validatedZones)
     {
         validatedZones = [];
-        if (configuration == null || configuration.DesignatedZoneMatrixId <= 0 ||
-            networkZones == null || networkZones.Count == 0)
+        if (!HasValidZoneInput(networkZones, configuration))
         {
             return false;
         }
 
         HashSet<int> zoneIds = [];
-        foreach (ComplianceNetworkZone? zone in networkZones)
+        foreach (ComplianceNetworkZone? zone in networkZones!)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (zone == null || zone.Id <= 0 || !zoneIds.Add(zone.Id)
-                || zone.CriterionId != configuration.DesignatedZoneMatrixId || string.IsNullOrWhiteSpace(zone.Name)
-                || zone.IPRanges == null || !TryCloneZone(zone, cancellationToken, out ComplianceNetworkZone validatedZone))
+            if (!TryValidateZone(
+                    zone, configuration.DesignatedZoneMatrixId, zoneIds, cancellationToken,
+                    out ComplianceNetworkZone? validatedZone))
             {
                 return false;
             }
 
-            validatedZones.Add(validatedZone);
+            validatedZones.Add(validatedZone!);
         }
 
         return IsValidAutomaticInternetZone(validatedZones, configuration, cancellationToken);
+    }
+
+    /// <summary>Checks matrix identity and caller-supplied zone collection presence.</summary>
+    private static bool HasValidZoneInput(
+        IReadOnlyCollection<ComplianceNetworkZone>? networkZones,
+        RulePositioningConfiguration? configuration) =>
+        configuration?.DesignatedZoneMatrixId > 0 && networkZones is { Count: > 0 };
+
+    /// <summary>Validates and defensively copies one zone row.</summary>
+    private static bool TryValidateZone(
+        ComplianceNetworkZone? zone,
+        int matrixId,
+        HashSet<int> zoneIds,
+        CancellationToken cancellationToken,
+        out ComplianceNetworkZone? validatedZone)
+    {
+        validatedZone = null;
+        if (zone == null || zone.Id <= 0 || !zoneIds.Add(zone.Id) ||
+            zone.CriterionId != matrixId || string.IsNullOrWhiteSpace(zone.Name) || zone.IPRanges == null)
+        {
+            return false;
+        }
+        if (!TryCloneZone(zone, cancellationToken, out ComplianceNetworkZone clonedZone))
+        {
+            return false;
+        }
+        validatedZone = clonedZone;
+        return true;
     }
 
     /// <summary>Validates the configured automatic Internet-zone invariant.</summary>

@@ -4,6 +4,7 @@ using NetTools;
 
 namespace FWO.Compliance.RulePositioning;
 
+/// <summary>Normalizes and deduplicates positioning address ranges.</summary>
 internal static class PositioningAddressRangeNormalizer
 {
     /// <summary>Parses one workflow leaf with the established compliance address semantics.</summary>
@@ -67,11 +68,13 @@ internal static class PositioningAddressRangeNormalizer
         return result;
     }
 
+    /// <summary>Checks endpoint presence, family, and inclusive order.</summary>
     private static bool IsValid(IPAddressRange range) =>
         range.Begin != null && range.End != null &&
         range.Begin.AddressFamily == range.End.AddressFamily &&
         IpOperations.CompareIpValues(range.Begin, range.End) <= 0;
 
+    /// <summary>Creates the common invalid-address resolution failure.</summary>
     private static NetworkResolutionException InvalidAddress() =>
         new(CreationRuleNetworkResolutionFailureCategory.InvalidAddress);
 }

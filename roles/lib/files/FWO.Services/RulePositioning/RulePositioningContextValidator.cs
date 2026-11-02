@@ -10,25 +10,13 @@ public static class RulePositioningContextValidator
     /// <summary>Checks task shape and identity before external context is loaded.</summary>
     public static bool IsApplicable(WfReqTask? requestTask, WfImplTask? implementationTask)
     {
-        if (requestTask == null
-            || implementationTask == null
-            || requestTask.Id <= 0
-            || implementationTask.Id <= 0
-            || implementationTask.ReqTaskId != requestTask.Id
-            || implementationTask.DeviceId is null or <= 0
-            || EffectiveManagementId(requestTask, implementationTask) <= 0
-            || !IsNewAccessRule(implementationTask, requestTask))
+        if (!HasValidTaskIdentity(requestTask, implementationTask) ||
+            !IsNewAccessRule(implementationTask!, requestTask!))
         {
             return false;
         }
-
-        List<int> requestGatewayIds = [.. requestTask.GetDeviceList().Distinct()];
-        bool hasExplicitFiniteGatewaySelection = requestGatewayIds.Count > 0
-            && !requestGatewayIds.Contains(WfReqTaskBase.kAllDevicesId);
-        return (!hasExplicitFiniteGatewaySelection
-                || requestGatewayIds.Contains(implementationTask.DeviceId.Value))
-            && (requestTask.OnManagement == null
-                || requestTask.OnManagement.Id == requestTask.ManagementId);
+        return HasCompatibleGatewaySelection(requestTask!, implementationTask!.DeviceId!.Value) &&
+            HasConsistentRequestManagementScope(requestTask!);
     }
 
     /// <summary>Returns the implementation override or request-task management.</summary>
@@ -83,6 +71,7 @@ public static class RulePositioningContextValidator
         return ValidateAlgorithm(context.EffectiveSettings);
     }
 
+    /// <summary>Validates fields shared by direct strategy entry points.</summary>
     private static RulePositioningFailureCategory? ValidateDirectContext(
         RulePositioningContext? context,
         bool requireImplementationTask)
@@ -100,11 +89,13 @@ public static class RulePositioningContextValidator
                 : null;
     }
 
+    /// <summary>Checks that the effective positioning algorithm is configured and supported.</summary>
     private static RulePositioningFailureCategory? ValidateAlgorithm(GatewayDeviceSpecificSettings settings) =>
         HasUsableConfiguration(settings)
             ? null
             : RulePositioningFailureCategory.ConfigurationInvalid;
 
+    /// <summary>Checks that both workflow tasks describe creation of a new access rule.</summary>
     private static bool IsNewAccessRule(WfImplTask implementationTask, WfReqTask requestTask)
     {
         string accessTaskType = WfTaskType.access.ToString();
@@ -115,42 +106,53 @@ public static class RulePositioningContextValidator
             && requestTask.RequestAction == createAction;
     }
 
+    /// <summary>Checks workflow identity, gateway, and management relationships.</summary>
     private static bool HasConsistentTaskAndTargetReferences(RulePositioningContext context)
     {
-        if (context.ImplementationTask.Id <= 0
-            || context.ImplementationTask.ReqTaskId <= 0
-            || context.ImplementationTask.DeviceId is null or <= 0
-            || context.ParentRequestTask.Id <= 0
-            || context.ImplementationTask.ReqTaskId != context.ParentRequestTask.Id)
+        if (!HasValidTaskIdentity(context.ParentRequestTask, context.ImplementationTask))
         {
             return false;
         }
 
-        List<int> requestGatewayIds = [.. context.ParentRequestTask.GetDeviceList().Distinct()];
-        bool hasExplicitFiniteGatewaySelection = requestGatewayIds.Count > 0
-            && !requestGatewayIds.Contains(WfReqTaskBase.kAllDevicesId);
-        if (hasExplicitFiniteGatewaySelection
-            && !requestGatewayIds.Contains(context.ImplementationTask.DeviceId.Value))
+        int gatewayId = context.ImplementationTask.DeviceId!.Value;
+        if (!HasCompatibleGatewaySelection(context.ParentRequestTask, gatewayId) ||
+            context.TargetGateway.Id != gatewayId)
         {
             return false;
         }
-        if (context.TargetGateway.Id != context.ImplementationTask.DeviceId.Value)
-        {
-            return false;
-        }
-
-        int effectiveManagementId = EffectiveManagementId(context.ParentRequestTask, context.ImplementationTask);
-        if (effectiveManagementId <= 0
-            || context.TargetManagement.Id != effectiveManagementId
-            || context.TargetGateway.Management == null
-            || context.TargetGateway.Management.Id != effectiveManagementId)
-        {
-            return false;
-        }
-        return context.ParentRequestTask.OnManagement == null
-            || context.ParentRequestTask.OnManagement.Id == context.ParentRequestTask.ManagementId;
+        return HasConsistentTargetManagement(context) &&
+            HasConsistentRequestManagementScope(context.ParentRequestTask);
     }
 
+    /// <summary>Checks workflow task identifiers and the effective target identifiers.</summary>
+    private static bool HasValidTaskIdentity(WfReqTask? requestTask, WfImplTask? implementationTask) =>
+        requestTask != null && implementationTask != null &&
+        requestTask.Id > 0 && implementationTask.Id > 0 &&
+        implementationTask.ReqTaskId == requestTask.Id && implementationTask.DeviceId is > 0 &&
+        EffectiveManagementId(requestTask, implementationTask) > 0;
+
+    /// <summary>Checks an implementation gateway against an optional finite request selection.</summary>
+    private static bool HasCompatibleGatewaySelection(WfReqTask requestTask, int gatewayId)
+    {
+        List<int> requestGatewayIds = [.. requestTask.GetDeviceList().Distinct()];
+        bool hasExplicitFiniteGatewaySelection = requestGatewayIds.Count > 0 &&
+            !requestGatewayIds.Contains(WfReqTaskBase.kAllDevicesId);
+        return !hasExplicitFiniteGatewaySelection || requestGatewayIds.Contains(gatewayId);
+    }
+
+    /// <summary>Checks loaded target management and gateway ownership against the effective management.</summary>
+    private static bool HasConsistentTargetManagement(RulePositioningContext context)
+    {
+        int effectiveManagementId = EffectiveManagementId(context.ParentRequestTask, context.ImplementationTask);
+        return effectiveManagementId > 0 && context.TargetManagement.Id == effectiveManagementId &&
+            context.TargetGateway.Management?.Id == effectiveManagementId;
+    }
+
+    /// <summary>Checks the optional request management object against its identifier.</summary>
+    private static bool HasConsistentRequestManagementScope(WfReqTask requestTask) =>
+        requestTask.OnManagement == null || requestTask.OnManagement.Id == requestTask.ManagementId;
+
+    /// <summary>Checks whether the effective settings select a supported positioning algorithm.</summary>
     private static bool HasUsableConfiguration(GatewayDeviceSpecificSettings? settings)
     {
         if (settings == null)

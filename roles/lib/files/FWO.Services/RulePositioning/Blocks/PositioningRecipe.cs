@@ -5,7 +5,9 @@ namespace FWO.Services.RulePositioning.Blocks;
 /// </summary>
 public sealed class PositioningRecipe<TContext, TOutput>
 {
+    /// <summary>Gets the root positioning block.</summary>
     public IPositioningBlock<TContext, TOutput> Root { get; }
+    /// <summary>Gets the validated immutable execution plan.</summary>
     internal PositioningRecipeNode<TContext, TOutput> PlanRoot { get; }
 
     /// <summary>
@@ -93,9 +95,12 @@ public sealed class PositioningRecipe<TContext, TOutput>
 /// </summary>
 public sealed class PositioningRecipeException : ArgumentException
 {
+    /// <summary>Gets the stable invalid-recipe category.</summary>
     public PositioningBlockFailureCategory Category { get; } = PositioningBlockFailureCategory.InvalidRecipe;
+    /// <summary>Gets the kind of block that failed recipe validation.</summary>
     public string OriginatingBlockKind { get; }
 
+    /// <summary>Creates an internal recipe validation exception.</summary>
     internal PositioningRecipeException(string originatingBlockKind, string message)
         : base(message)
     {
@@ -103,6 +108,7 @@ public sealed class PositioningRecipeException : ArgumentException
     }
 }
 
+/// <summary>One immutable node in a validated positioning execution plan.</summary>
 internal sealed record PositioningRecipeNode<TContext, TOutput>(
     IPositioningBlock<TContext, TOutput> Block,
     string Kind,

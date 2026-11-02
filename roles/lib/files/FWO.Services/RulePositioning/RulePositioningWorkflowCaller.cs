@@ -153,8 +153,7 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
         }
 
         List<WfReqTask> tasks = [.. ticket.Tasks.Where(task =>
-                task != null && task.Id > 0 && task.TaskNumber > 0 &&
-                task.TicketId == ticket.Id && task.ManagementId == managementId)
+                IsValidTicketTask(task, ticket.Id, managementId))
             .OrderBy(task => task.TaskNumber).ThenBy(task => task.Id)];
         if (tasks.Count(task => task.Id == requestTask.Id) != 1)
         {
@@ -162,6 +161,11 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
         }
         return tasks.AsReadOnly();
     }
+
+    /// <summary>Checks one ticket task against the requested ticket and management slice.</summary>
+    private static bool IsValidTicketTask(WfReqTask? task, long ticketId, int managementId) =>
+        task != null && task.Id > 0 && task.TaskNumber > 0 &&
+        task.TicketId == ticketId && task.ManagementId == managementId;
 
     /// <summary>Checks task shape and identity before loading any external context.</summary>
     public bool IsApplicable(WfReqTask? requestTask, WfImplTask? implementationTask)

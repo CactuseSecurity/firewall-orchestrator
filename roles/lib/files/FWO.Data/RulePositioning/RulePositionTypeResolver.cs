@@ -2,6 +2,7 @@ using System.Reflection;
 
 namespace FWO.Data.RulePositioning;
 
+/// <summary>Resolves persisted rule-position discriminators to registered CLR types.</summary>
 internal static class RulePositionTypeResolver
 {
     private static readonly Lazy<Dictionary<string, Type>> kTypesByDiscriminator =

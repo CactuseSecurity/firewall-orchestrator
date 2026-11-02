@@ -3,6 +3,7 @@ using FWO.Data.RulePositioning.CheckPoint;
 
 namespace FWO.Services.RulePositioning.CheckPoint;
 
+/// <summary>Reads immutable Check Point inline-layer guard semantics.</summary>
 public interface ICheckPointLayerGuardSnapshotReader
 {
     /// <summary>Loads inline-layer guards at the graph's exact successful import.</summary>
@@ -25,6 +26,7 @@ public static class CheckPointLayerGuardReadFailureDiagnostics
     };
 }
 
+/// <summary>Stable failure categories for Check Point guard reads.</summary>
 public enum CheckPointLayerGuardReadFailureCategory
 {
     InvalidInput,

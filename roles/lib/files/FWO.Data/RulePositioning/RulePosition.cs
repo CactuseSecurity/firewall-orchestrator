@@ -12,6 +12,7 @@ namespace FWO.Data.RulePositioning;
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 public sealed class RulePositionTypeAttribute : Attribute
 {
+    /// <summary>Gets the stable persisted discriminator.</summary>
     public string Discriminator { get; }
 
     /// <summary>
@@ -37,14 +38,17 @@ public abstract class RulePosition
     private const int kInitialSchemaVersion = 1;
 
     [JsonProperty("position_type"), JsonPropertyName("position_type")]
+    /// <summary>Gets the persisted position type discriminator.</summary>
     public string PositionType { get; protected set; }
 
     [JsonProperty("schema_version"), JsonPropertyName("schema_version")]
+    /// <summary>Gets or sets the persisted payload schema version.</summary>
     public int SchemaVersion { get; set; } = kInitialSchemaVersion;
 
     [JsonProperty("positioning_algorithm"), JsonPropertyName("positioning_algorithm")]
     [Newtonsoft.Json.JsonConverter(typeof(NewtonsoftProvisioningPositioningAlgorithmJsonConverter))]
     [System.Text.Json.Serialization.JsonConverter(typeof(SystemTextProvisioningPositioningAlgorithmJsonConverter))]
+    /// <summary>Gets or sets the algorithm that produced the position.</summary>
     public ProvisioningPositioningAlgorithm PositioningAlgorithm { get; set; }
 
     /// <summary>
@@ -86,6 +90,7 @@ public abstract class RulePosition
 public sealed class UnknownRulePosition : RulePosition
 {
     [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+    /// <summary>Gets an immutable copy of the unrecognized persisted payload.</summary>
     public JsonObject RawPayload { get; }
 
     /// <summary>
@@ -123,9 +128,13 @@ public sealed class UnknownRulePosition : RulePosition
     }
 }
 
+/// <summary>Shared persisted JSON property names for semantic rule positions.</summary>
 internal static class RulePositionJsonProperties
 {
+    /// <summary>Persisted JSON property for the position discriminator.</summary>
     internal const string kPositionType = "position_type";
+    /// <summary>Persisted JSON property for the schema version.</summary>
     internal const string kSchemaVersion = "schema_version";
+    /// <summary>Persisted JSON property for the positioning algorithm.</summary>
     internal const string kPositioningAlgorithm = "positioning_algorithm";
 }

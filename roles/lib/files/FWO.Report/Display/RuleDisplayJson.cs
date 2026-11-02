@@ -219,7 +219,7 @@ namespace FWO.Ui.Display
                 );
         }
 
-        protected string ListFirewallZones(FirewallZone[] firewallZones)
+        protected static string ListFirewallZones(FirewallZone[] firewallZones)
         {
             List<string> displayedZones = new List<string>();
             foreach (FirewallZone networkZone in firewallZones)

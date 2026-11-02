@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Runtime.Loader;
-using System.Text.RegularExpressions;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
@@ -113,7 +112,7 @@ internal class PathAnalysisQueriesTest
     [Test]
     public void PathAnalysisQuery_MapsSourceAndDestinationToMatchingArguments()
     {
-        string query = Regex.Replace(PathAnalysisQueries.pathAnalysis, @"\s+", string.Empty);
+        string query = string.Concat(PathAnalysisQueries.pathAnalysis.Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Multiple(() =>
         {

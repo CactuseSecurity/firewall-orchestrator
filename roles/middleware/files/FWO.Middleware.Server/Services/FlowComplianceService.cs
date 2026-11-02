@@ -96,7 +96,7 @@ public sealed class FlowComplianceService
             .ToDictionary(group => group.Key, group => group.First());
     }
 
-    private async Task EnsureNetworkZonesLoadedAsync(CompliancePolicy policy, IDictionary<int, List<NetworkZone>> networkZonesByCriterion)
+    private async Task EnsureNetworkZonesLoadedAsync(CompliancePolicy policy, Dictionary<int, List<NetworkZone>> networkZonesByCriterion)
     {
         foreach (int matrixId in policy.Criteria
                      .Where(wrapper => wrapper.Content.CriterionType == nameof(CriterionType.Matrix) && wrapper.Content.Id > 0)

@@ -41,14 +41,16 @@ public class WorkflowImplTaskTargetController : ControllerBase
     /// </summary>
     /// <remarks>
     /// The targets follow the device specific settings addressObjectCreation, serviceObjectCreation resp.
-    /// timeObjectCreation of the sub-managements of the super-management: Submanager targets the sub-management,
-    /// Supermanager the super-management, ignore none of them. A management without sub-managements is its own
-    /// target unless it is set to ignore itself. The list is empty when every candidate is set to ignore, which the
-    /// settings allow for time objects only. The targets are resolved with
+    /// timeObjectCreation of the requested management: on a sub-management Submanager targets the sub-management,
+    /// Supermanager its super-management, ignore none; on a super-management Supermanager targets the
+    /// super-management, Submanager each sub-management not set to ignore, ignore none. A management without
+    /// sub-managements is its own target unless it is set to ignore itself. Without managementId the targets of
+    /// all managements are returned, like for an object task without management. The list is empty when every
+    /// candidate is set to ignore, which the settings allow for time objects only. The targets are resolved with
     /// the rights of the middleware server, so the result does not depend on the managements the caller sees.
     /// <para>
     /// Callers other than admin may only ask for a management visible to them (JWT claim
-    /// x-hasura-visible-managements); any other management answers 403. Targets not visible to such a caller
+    /// x-hasura-visible-managements); any other management, and the targets of all managements, answer 403. Targets not visible to such a caller
     /// are returned with their id only and an empty name, so the endpoint does not disclose the names of
     /// managements hidden from the caller; the name filter does not match them either.
     /// </para>
@@ -77,10 +79,10 @@ public class WorkflowImplTaskTargetController : ControllerBase
             return BadRequest(validationErrors);
         }
 
-        // Validation rejects both an absent and a non-positive managementId, so a value is present here.
-        int managementId = request.ManagementId.GetValueOrDefault();
+        // Validation rejects a non-positive managementId; null asks for the targets of all managements.
+        int? managementId = request.ManagementId;
         HashSet<int>? visibleManagementIds = GetVisibleManagementIds();
-        if (visibleManagementIds != null && !visibleManagementIds.Contains(managementId))
+        if (visibleManagementIds != null && (managementId == null || !visibleManagementIds.Contains(managementId.Value)))
         {
             return Forbid();
         }
@@ -93,7 +95,7 @@ public class WorkflowImplTaskTargetController : ControllerBase
         }
         catch (Exception exception)
         {
-            Log.WriteError("Get Implementation Task Targets", $"Error while resolving the target managements of management {managementId}.", exception);
+            Log.WriteError("Get Implementation Task Targets", $"Error while resolving the target managements of {(managementId == null ? "all managements" : $"management {managementId}")}.", exception);
             return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
         }
     }

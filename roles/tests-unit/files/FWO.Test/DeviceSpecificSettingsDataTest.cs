@@ -59,6 +59,39 @@ internal class DeviceSpecificSettingsDataTest
     private static DeviceSpecificFieldDefinition Field(DeviceSpecificSettingKey key) =>
         DeviceSpecificSettingsData.FindField(key) ?? throw new AssertionException($"unknown field {key}");
 
+    private static readonly List<string> kAllRuleModes =
+        [nameof(ProvisioningRuleImplementationMode.Automatic), nameof(ProvisioningRuleImplementationMode.Manual), nameof(ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem)];
+    private static readonly List<string> kGatewayRuleModes =
+        [nameof(ProvisioningRuleImplementationMode.Automatic), nameof(ProvisioningRuleImplementationMode.Manual)];
+
+    [Test]
+    public void ExternalTicketSystemSettings_AreOfferedUpToTheManagementOnly()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(Field(DeviceSpecificSettingKeys.ImplementationMode).AppliesToLevel(DeviceSpecificScopeType.Management), Is.True);
+            Assert.That(Field(DeviceSpecificSettingKeys.ImplementationMode).AppliesToLevel(DeviceSpecificScopeType.Gateway), Is.False);
+            Assert.That(Field(DeviceSpecificSettingKeys.RerouteToExternalTicketSystem).AppliesToLevel(DeviceSpecificScopeType.Gateway), Is.False);
+            Assert.That(Field(DeviceSpecificSettingKeys.ImplementationModeOverrideForRules).AppliesToLevel(DeviceSpecificScopeType.Gateway), Is.True);
+        });
+    }
+
+    [Test]
+    public void RuleImplementationMode_OffersExternalTicketSystemUpToTheManagementOnly()
+    {
+        DeviceSpecificFieldDefinition field = Field(DeviceSpecificSettingKeys.ImplementationModeOverrideForRules);
+        string automatic = nameof(ProvisioningRuleImplementationMode.Automatic);
+        string external = nameof(ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(field.OptionsForLevel(DeviceSpecificScopeType.Management, automatic).Select(option => option.Value), Is.EqualTo(kAllRuleModes));
+            Assert.That(field.OptionsForLevel(DeviceSpecificScopeType.Gateway, automatic).Select(option => option.Value), Is.EqualTo(kGatewayRuleModes));
+            Assert.That(field.OptionsForLevel(DeviceSpecificScopeType.Gateway, external).Select(option => option.Value), Is.EqualTo(kAllRuleModes),
+                "a value stored before the restriction stays visible");
+        });
+    }
+
     private static DeviceSpecificNode Node(DeviceSpecificNode root, DeviceSpecificScopeType scopeType, string objectKey) =>
         DeviceSpecificSettingsData.FindNode(root, new DeviceSpecificSettingsScope { ScopeType = scopeType, ObjectKey = objectKey })
             ?? throw new AssertionException($"unknown node {scopeType}:{objectKey}");

@@ -18,23 +18,25 @@ namespace FWO.Compliance
         /// <param name="criterion">Matrix criterion.</param>
         /// <param name="notAssessableSources">Source objects without an assignable zone.</param>
         /// <param name="notAssessableDestinations">Destination objects without an assignable zone.</param>
+        /// <param name="assessabilityIssue">Reason why the objects cannot be assigned to a zone.</param>
         /// <returns>True when every object could be assigned to a zone.</returns>
         private bool CreateZoneAssessabilityViolations(
             Rule rule,
             ComplianceCriterion criterion,
             List<NetworkObject> notAssessableSources,
-            List<NetworkObject> notAssessableDestinations)
+            List<NetworkObject> notAssessableDestinations,
+            AssessabilityIssue assessabilityIssue = AssessabilityIssue.NoMatchingZone)
         {
             // Flattening groups can yield the same object more than once, which would record the same
             // violation twice.
             foreach (NetworkObject source in notAssessableSources.DistinctBy(GetNetworkObjectIdentity))
             {
-                CreateZoneAssessabilityViolation(rule, criterion, source, true);
+                CreateZoneAssessabilityViolation(rule, criterion, source, true, assessabilityIssue);
             }
 
             foreach (NetworkObject destination in notAssessableDestinations.DistinctBy(GetNetworkObjectIdentity))
             {
-                CreateZoneAssessabilityViolation(rule, criterion, destination, false);
+                CreateZoneAssessabilityViolation(rule, criterion, destination, false, assessabilityIssue);
             }
 
             return notAssessableSources.Count == 0 && notAssessableDestinations.Count == 0;
@@ -75,12 +77,13 @@ namespace FWO.Compliance
         /// <param name="criterion">Matrix criterion.</param>
         /// <param name="networkObject">Object that could not be assigned to a zone.</param>
         /// <param name="isSource">Whether the object is used as source of the rule.</param>
-        private void CreateZoneAssessabilityViolation(Rule rule, ComplianceCriterion criterion, NetworkObject networkObject, bool isSource)
+        /// <param name="assessabilityIssue">Reason why the object cannot be assigned to a zone.</param>
+        private void CreateZoneAssessabilityViolation(Rule rule, ComplianceCriterion criterion, NetworkObject networkObject, bool isSource, AssessabilityIssue assessabilityIssue)
         {
             ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.NotAssessable)
             {
                 Criterion = criterion,
-                AssessabilityIssue = AssessabilityIssue.NoMatchingZone
+                AssessabilityIssue = assessabilityIssue
             };
 
             if (isSource)
@@ -93,6 +96,25 @@ namespace FWO.Compliance
             }
 
             CreateNotAssessableViolation(rule, complianceCheckResult);
+        }
+
+        /// <summary>
+        /// Records that a criterion could not be evaluated for a rule. The rule is reported as not assessable for
+        /// this criterion, and its stored violations of the criterion are kept instead of being marked removed.
+        /// </summary>
+        /// <param name="rule">Rule under test.</param>
+        /// <param name="criterion">Criterion that could not be evaluated.</param>
+        /// <param name="reasonTextKey">Text key describing why the criterion could not be evaluated.</param>
+        private void CreateCriterionNotEvaluatedViolation(Rule rule, ComplianceCriterion criterion, string reasonTextKey)
+        {
+            _criteriaNotEvaluated.TryAdd(((int)rule.Id, criterion.Id), 0);
+
+            ComplianceCheckResult complianceCheckResult = new(rule, ComplianceViolationType.NotAssessable)
+            {
+                Criterion = criterion
+            };
+
+            CreateNotAssessableViolation(rule, complianceCheckResult, $"{_userConfig.GetText(reasonTextKey)}: {criterion.Name}");
         }
 
         /// <summary>

@@ -3335,11 +3335,11 @@ namespace FWO.Test
                 ],
                 AppRolesById = new()
                 {
-                    [501] = new ModellingAppRole { Id = 501, Comment = "Manual app role note\r\nImplementationState: Old | 2024-01-01T00:00:00.0000000Z\r\nKeep app role note" }
+                    [501] = new ModellingAppRole { Id = 501, AppId = kTaskOwnerId, Comment = "Manual app role note\r\nImplementationState: Old | 2024-01-01T00:00:00.0000000Z\r\nKeep app role note" }
                 },
                 ServiceGroupsById = new()
                 {
-                    [601] = new ModellingServiceGroup { Id = 601, Comment = "Manual service group note" }
+                    [601] = new ModellingServiceGroup { Id = 601, AppId = kTaskOwnerId, Comment = "Manual service group note" }
                 }
             };
             List<(string Title, string Message, bool Error)> uiMessages = [];
@@ -3351,9 +3351,9 @@ namespace FWO.Test
             accessTask.SetAddInfo(AdditionalInfoKeys.ConnId, "41");
             WfReqTask ignoredConnectionTask = new() { Id = 2, TaskType = WfTaskType.new_interface.ToString() };
             ignoredConnectionTask.SetAddInfo(AdditionalInfoKeys.ConnId, "42");
-            WfReqTask appRoleTask = new() { Id = 3, TaskType = WfTaskType.group_create.ToString() };
+            WfReqTask appRoleTask = new() { Id = 3, TaskType = WfTaskType.group_create.ToString(), Owners = TaskOwners() };
             appRoleTask.SetAddInfo(AdditionalInfoKeys.AppRoleId, "501");
-            WfReqTask serviceGroupTask = new() { Id = 4, TaskType = WfTaskType.group_modify.ToString() };
+            WfReqTask serviceGroupTask = new() { Id = 4, TaskType = WfTaskType.group_modify.ToString(), Owners = TaskOwners() };
             serviceGroupTask.SetAddInfo(AdditionalInfoKeys.SvcGrpId, "601");
             WfReqTask ignoredGroupTask = new() { Id = 5, TaskType = WfTaskType.access.ToString() };
             ignoredGroupTask.SetAddInfo(AdditionalInfoKeys.AppRoleId, "502");
@@ -3423,14 +3423,14 @@ namespace FWO.Test
             {
                 ConnectionsById = new()
                 {
-                    [41] = new ModellingConnection { Id = 41 },
-                    [42] = new ModellingConnection { Id = 42 }
+                    [41] = new ModellingConnection { Id = 41, AppId = kTaskOwnerId },
+                    [42] = new ModellingConnection { Id = 42, AppId = kTaskOwnerId }
                 }
             };
             WfHandler wfHandler = new() { AuthUser = new System.Security.Claims.ClaimsPrincipal() };
             SetMatrix(wfHandler, WfTaskType.access.ToString());
             ActionHandler handler = new(apiConn, wfHandler);
-            WfReqTask selectedTask = new() { Id = 1, TaskType = WfTaskType.access.ToString() };
+            WfReqTask selectedTask = new() { Id = 1, TaskType = WfTaskType.access.ToString(), Owners = TaskOwners() };
             selectedTask.SetAddInfo(AdditionalInfoKeys.ConnId, "41");
             WfReqTask otherTask = new() { Id = 2, TaskType = WfTaskType.access.ToString() };
             otherTask.SetAddInfo(AdditionalInfoKeys.ConnId, "42");
@@ -3447,6 +3447,61 @@ namespace FWO.Test
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.updateConnectionProperties), Is.EqualTo(1));
             object? connectionVars = apiConn.Variables[apiConn.Queries.IndexOf(ModellingQueries.updateConnectionProperties)];
             Assert.That(GetVariable<int>(connectionVars, "id"), Is.EqualTo(41));
+        }
+
+        private const int kTaskOwnerId = 7;
+        private const int kForeignOwnerId = 8;
+
+        private static List<FwoOwnerDataHelper> TaskOwners()
+        {
+            return [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = kTaskOwnerId } }];
+        }
+
+        /// <summary>
+        /// Ids written into the add-info of a request task must not let UpdateModelling mark modelling objects of other
+        /// owners (GHSA-6g84, fwo-services-actionhandler-001).
+        /// </summary>
+        [Test]
+        public async Task PerformAction_UpdateModelling_SkipsObjectsOfOtherOwners()
+        {
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                ConnectionsById = new()
+                {
+                    [43] = new ModellingConnection { Id = 43, AppId = kForeignOwnerId }
+                },
+                AppRolesById = new()
+                {
+                    [503] = new ModellingAppRole { Id = 503, AppId = kForeignOwnerId }
+                },
+                ServiceGroupsById = new()
+                {
+                    [603] = new ModellingServiceGroup { Id = 603, AppId = kForeignOwnerId }
+                }
+            };
+            WfHandler wfHandler = new() { AuthUser = new System.Security.Claims.ClaimsPrincipal() };
+            SetMatrix(wfHandler, WfTaskType.access.ToString());
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
+            WfReqTask accessTask = new() { Id = 1, TaskType = WfTaskType.access.ToString(), Owners = TaskOwners() };
+            accessTask.SetAddInfo(AdditionalInfoKeys.ConnId, "43");
+            WfReqTask groupTask = new() { Id = 2, TaskType = WfTaskType.group_modify.ToString(), Owners = TaskOwners() };
+            groupTask.SetAddInfo(AdditionalInfoKeys.AppRoleId, "503");
+            groupTask.SetAddInfo(AdditionalInfoKeys.SvcGrpId, "603");
+            WfTicket ticket = CreateTicket(accessTask, groupTask);
+            WfStateAction action = new()
+            {
+                ActionType = StateActionTypes.UpdateModelling.ToString(),
+                ExternalParams = JsonSerializer.Serialize(new UpdateModellingActionParams { ModellingState = "Implemented" })
+            };
+
+            await handler.PerformAction(action, ticket, WfObjectScopes.Ticket, ticketId: 77);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Has.No.Member(ModellingQueries.updateConnectionProperties));
+                Assert.That(apiConn.Queries, Has.No.Member(ModellingQueries.updateNwGroupComment));
+                Assert.That(apiConn.Queries, Has.No.Member(ModellingQueries.updateServiceGroupComment));
+            });
         }
 
         [Test]

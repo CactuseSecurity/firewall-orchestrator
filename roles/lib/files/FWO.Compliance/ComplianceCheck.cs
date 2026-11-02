@@ -99,6 +99,18 @@ namespace FWO.Compliance
         /// </summary>
         private readonly ConcurrentBag<ComplianceViolation> _currentViolations = new();
         /// <summary>
+        /// Rule and criterion pairs of the current check that could not be evaluated. Their stored violations are kept.
+        /// </summary>
+        private readonly ConcurrentDictionary<(int RuleId, int CriterionId), byte> _criteriaNotEvaluated = new();
+        /// <summary>
+        /// Text key for a criterion whose evaluation failed.
+        /// </summary>
+        private const string kCriterionCheckFailedText = "assess_criterion_failed";
+        /// <summary>
+        /// Text key for a criterion with invalid or empty content.
+        /// </summary>
+        private const string kCriterionInvalidContentText = "assess_criterion_invalid";
+        /// <summary>
         /// Multi-threading helper.
         /// </summary>
         private readonly ParallelProcessor _parallelProcessor;
@@ -394,7 +406,8 @@ namespace FWO.Compliance
                 parallelOptions,
                 pair =>
                 {
-                    if (!currentKeySet.Contains(pair.Key))
+                    // A criterion that could not be evaluated for a rule proves nothing about its stored violations.
+                    if (!currentKeySet.Contains(pair.Key) && !_criteriaNotEvaluated.ContainsKey((pair.Violation.RuleId, pair.Violation.CriterionId)))
                     {
                         _violationsToRemove.Add(pair.Violation);
                     }
@@ -591,6 +604,7 @@ namespace FWO.Compliance
                 RulesInCheck = [];
                 CurrentViolationsInCheck.Clear();
                 _currentViolations.Clear();
+                _criteriaNotEvaluated.Clear();
                 _networkZonesByCriterion.Clear();
 
                 // Load data for evaluation.
@@ -645,6 +659,7 @@ namespace FWO.Compliance
             RulesInCheck = [];
             CurrentViolationsInCheck.Clear();
             _currentViolations.Clear();
+            _criteriaNotEvaluated.Clear();
             _networkZonesByCriterion.Clear();
         }
 

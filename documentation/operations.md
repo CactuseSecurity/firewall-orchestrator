@@ -5,7 +5,9 @@
 
 We recommend to backup the following data:
 
-- PostgreSQL database fworchdb using a tool like pg_dump
+- PostgreSQL database fworchdb using a tool like pg_dump. Run it as the OS user postgres over the Unix socket
+  (`sudo -u postgres pg_dump fworchdb`), or give the backup role (e.g. `dbbackup`, member of `dbbackupusers`) a
+  password first: since 9.8.6 loopback logins of these roles require one (`md5` in pg_hba.conf, no `trust`)
 - directory /etc/fworch (which is a link to /usr/local/fworch/etc)
 - optionally any customized settings like /etc/syslog-ng.conf etc. which were not automatically created during the installation process
 

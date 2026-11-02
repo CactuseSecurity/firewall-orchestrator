@@ -73,6 +73,12 @@
     [Parameter]
     public bool StartCollapsed { get; set; } = false;
 
+    /// <summary>
+    /// Receives the width of a left sidebar, so that content outside the page layout can start after it.
+    /// </summary>
+    [CascadingParameter]
+    public LeftSidebarState? LeftSidebarState { get; set; }
+
     private bool Collapsed = false;
 
     private double resizeStartX;
@@ -108,6 +114,15 @@
         {
             ToggleCollapse(true);
         }
+        ReportWidth();
+    }
+
+    private void ReportWidth()
+    {
+        if (PositionLeft)
+        {
+            LeftSidebarState?.SetWidth(this, Width);
+        }
     }
 
     private void ResizeStart(DragEventArgs dragArgs)
@@ -131,6 +146,7 @@
 
             Width = (int)(Width + postitionDiffrence) > 0 ? (int)(Width + postitionDiffrence) : 1;
             AdjustSidebarOverflow();
+            ReportWidth();
             WidthChanged.InvokeAsync(Width);
         }
     }
@@ -164,6 +180,7 @@
 
             Collapsed = !Collapsed;
             AdjustSidebarOverflow();
+            ReportWidth();
         }
     }
 
@@ -189,6 +206,10 @@
         if (disposing && eventService is not null)
         {
             eventService.OnNavbarHeightChanged -= OnNavbarHeightChanged;
+        }
+        if (disposing)
+        {
+            LeftSidebarState?.Remove(this);
         }
 
         _disposed = true;

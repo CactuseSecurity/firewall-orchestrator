@@ -14,28 +14,38 @@ namespace FWO.Test;
 internal class DeviceSpecificSettingsGuardicoreTest
 {
     private static readonly DeviceType kDeviceType = new() { Id = 10, Name = "Guardicore" };
+    // declared before kExpectedKeys, which spreads it during static initialization
+    private static readonly List<string> kSecureChangeTemplateKeys =
+    [
+        "scTemplateAccessRequestTicket", "scTemplateAccessRequestTasks", "scTemplateAccessRequestIp", "scTemplateAccessRequestNwObjGroup",
+        "scTemplateAccessRequestService", "scTemplateAccessRequestIcmp", "scTemplateAccessRequestIpProtocol",
+        "scTemplateNetworkObjectModifyTicket", "scTemplateNetworkObjectModifyTasks", "scTemplateNetworkObjectModifyObject",
+        "scTemplateNetworkObjectModifyObjectShort", "scTemplateNetworkObjectModifyIp", "scTemplateNetworkObjectModifyNwObjGroup"
+    ];
     private static readonly List<string> kExpectedKeys =
     [
         "installOn", "positioningAlgorithm", "ruleLoggingOverride",
         "serviceObjectCreation", "addressObjectCreation", "timeObjectCreation", "labelCreation",
         "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride",
         "implementationMode", "implementationModeOverrideForRules", "rerouteToExternalTicketSystem",
-        "securityProfiles", "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName",
+        "securityProfiles", "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName", "sshLegacyKeyExchange",
         "autoPlanImplementation", "autoPlanImplementationForRules", "modellingCreateAppZones",
         "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
         "modellingConnectionIdField", "modellingConnectionIdTemplate", "templates",
-        .. FirewallWriteKeys()
+        .. FirewallWriteKeys(),
+        .. kSecureChangeTemplateKeys
     ];
     private static readonly HashSet<string> kManagerConfigKeys =
     [
-        "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName",
+        "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName", "sshLegacyKeyExchange",
         "modellingCreateAppZones", "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
         "modellingConnectionIdField", "modellingConnectionIdTemplate"
     ];
     private static readonly HashSet<string> kManagerUiKeys =
     [
         "serviceObjectCreation", "addressObjectCreation", "timeObjectCreation", "labelCreation",
-        "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride", "securityProfiles"
+        "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride", "securityProfiles",
+        "implementationMode", "rerouteToExternalTicketSystem"
     ];
     private static readonly List<DeviceSpecificScopeType> kAllLevels =
         [DeviceSpecificScopeType.Global, DeviceSpecificScopeType.DeviceType, DeviceSpecificScopeType.Management, DeviceSpecificScopeType.Gateway];
@@ -73,6 +83,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "securityProfiles" => kDeviceLevels,
         "fwWriteCheckCertificates" => kManagerLevels,
         _ when IsFirewallWriteRequestKey(key) => kDeviceLevels,
+        _ when kSecureChangeTemplateKeys.Contains(key.DatabaseKey) => kManagerLevels,
         _ => kManagerConfigKeys.Contains(key.DatabaseKey) ? kManagerLevels : kAllLevels
     };
 
@@ -83,6 +94,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "securityProfiles" => kDeviceUiLevels,
         "fwWriteCheckCertificates" => kManagerLevels,
         _ when IsFirewallWriteRequestKey(key) => kDeviceLevels,
+        _ when kSecureChangeTemplateKeys.Contains(key.DatabaseKey) => kManagerLevels,
         _ => kManagerConfigKeys.Contains(key.DatabaseKey) || kManagerUiKeys.Contains(key.DatabaseKey) ? kManagerLevels : kAllLevels
     };
 

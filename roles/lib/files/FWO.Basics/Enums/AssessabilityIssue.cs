@@ -6,6 +6,7 @@ namespace FWO.Basics.Enums
         AllIPs,
         HostAddress,
         Broadcast,
-        NoMatchingZone
+        NoMatchingZone,
+        InvalidIp
     }
 }

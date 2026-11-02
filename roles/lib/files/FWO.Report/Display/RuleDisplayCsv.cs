@@ -17,7 +17,7 @@ namespace FWO.Ui.Display
 
         public string OutputCsv(string? input)
         {
-            return $"\"{input ?? ""}\",";
+            return $"{CsvOutputEncoder.EncodeCell(input)},";
         }
 
         /// <summary>

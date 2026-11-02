@@ -259,6 +259,35 @@ internal sealed class UiSettingsDeviceSpecificTest
         Assert.That(api.ReadValue(2, FirewallWriteSettingKeys.Endpoints[FirewallWriteOperation.HostCreate])?.ToObject<string>(), Is.Empty);
     }
 
+    /// <summary>
+    /// SecureChange templates are offered at Global with the shipped template as placeholder; an override is stored as text,
+    /// and a part without shipped template has no placeholder.
+    /// </summary>
+    [Test]
+    public async Task Admin_EditsSecureChangeTemplatesAtGlobal()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        DeviceSpecificSettingKey<string> ticketKey = SecureChangeTemplateSettingKeys.Keys[(FWO.Data.SCTaskType.AccessRequest, SecureChangeTemplatePart.Ticket)];
+        DeviceSpecificSettingKey<string> ipKey = SecureChangeTemplateSettingKeys.Keys[(FWO.Data.SCTaskType.AccessRequest, SecureChangeTemplatePart.Ip)];
+        IElement Ticket() => page.Find($"#dss-field-{ticketKey.DatabaseKey} textarea");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(Ticket().GetAttribute("placeholder"),
+                Is.EqualTo(FWO.ExternalSystems.Tufin.SecureChange.SCTemplateDefaults.Get(FWO.Data.SCTaskType.AccessRequest, SecureChangeTemplatePart.Ticket)));
+            Assert.That(Ticket().HasAttribute("disabled"), Is.True);
+            Assert.That(page.Find($"#dss-field-{ipKey.DatabaseKey} textarea").HasAttribute("placeholder"), Is.False);
+        }
+
+        await page.Find($"#dss-override-{ticketKey.DatabaseKey}").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
+        await Ticket().ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "{\"ticket\":@@TASKS@@}" });
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        Assert.That(api.ReadValue(kGlobalNodeId, ticketKey)?.ToObject<string>(), Is.EqualTo("{\"ticket\":@@TASKS@@}"));
+    }
+
     private static IRenderedComponent<CascadingAuthenticationState> RenderPage(BunitContext context)
     {
         IRenderedComponent<CascadingAuthenticationState> page = context.Render<CascadingAuthenticationState>(parameters => parameters

@@ -37,6 +37,7 @@ remains effective and is shown as a dormant override that can be cleared there.
 | ownerIdCustomFieldName | string | OwnerId | Global, device type, manager | Global to manager |
 | changeIdCustomFieldName | string | ChangeId | Global, device type, manager | Global to manager |
 | importerHostName | string | empty (every importer is responsible) | Global, device type, manager | Global to manager |
+| sshLegacyKeyExchange | bool | false | Global, device type, manager | Global to manager |
 | autoPlanImplementation | boolean | true | All | All |
 | autoPlanImplementationForRules | boolean | false | All | All |
 | modellingCreateAppZones | boolean | true | Global, device type, manager | Global to manager |
@@ -69,11 +70,16 @@ a provisioned object that carries the ID of the modelling connection, formatted 
 `importerHostName` is the host name of the server whose importer imports the
 managements of a level; it replaces the former column `management.importer_hostname`.
 The importer resolves it for each management along Global > device type > management
-(query `deviceSpecificSettings/getImporterHostName.graphql`; the Hasura role `importer`
-may read only this setting). An importer imports a management if the effective value is
+(query `deviceSpecificSettings/getImporterSettings.graphql`; the Hasura role `importer`
+may read only `importerHostName` and `sshLegacyKeyExchange`). An importer imports a management if the effective value is
 empty or equals its own host name. The compiled default is empty, so with a single
 importer nothing has to be configured; with several distributed importers set the host
 on the levels that each importer is responsible for.
+
+`sshLegacyKeyExchange` makes the Cisco ASA importer offer the SHA-1 key exchange
+`diffie-hellman-group14-sha1` in addition to the OpenSSH defaults. It is off by default since
+9.8.6; before, every ASA connection offered it. A device that offers nothing else fails with an
+error naming this setting.
 
 ## Upgrade to 9.7.4
 

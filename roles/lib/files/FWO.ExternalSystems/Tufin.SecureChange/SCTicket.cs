@@ -11,14 +11,6 @@ using System.Text.Json.Serialization;
 
 namespace FWO.ExternalSystems.Tufin.SecureChange
 {
-    public enum SCTaskType
-    {
-        AccessRequest = 0,
-        NetworkObjectModify = 10,
-        NetworkServiceCreate = 20,
-        NetworkServiceUpdate = 21
-    }
-
     public enum SCTicketPriority
     {
         Low,
@@ -211,32 +203,24 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
         {
             foreach (var task in tasks)
             {
-                SCTicketTask? ticketTask = null;
                 string changeAction;
                 (actTaskType, changeAction) = GetTaskType(task);
-                switch (actTaskType)
+                SCTicketTask ticketTask = actTaskType switch
                 {
-                    case SCTaskType.AccessRequest:
-                        ticketTask = new SCAccessRequestTicketTask(task, ipProtos);
-                        break;
-                    case SCTaskType.NetworkObjectModify:
-                        ticketTask = new SCNetworkObjectModifyTicketTask(task, changeAction, ipProtos, namingConvention);
-                        break;
-                }
-                if (ticketTask != null)
+                    SCTaskType.AccessRequest => new SCAccessRequestTicketTask(task, ipProtos),
+                    SCTaskType.NetworkObjectModify => new SCNetworkObjectModifyTicketTask(task, changeAction, ipProtos, namingConvention),
+                    // SecureChange only modifies groups of network objects
+                    _ => throw new ConfigException($"Tufin SecureChange does not support changes of service groups (task {task.TaskNumber}, {actTaskType}).")
+                };
+                ExternalTicketTemplate? template = TicketSystem.Templates.FirstOrDefault(t => t.TaskType == actTaskType.ToString());
+                // a template without ticket or task text (no device specific setting and no shipped default) counts as missing
+                if (template == null || string.IsNullOrWhiteSpace(template.TicketTemplate) || string.IsNullOrWhiteSpace(template.TasksTemplate))
                 {
-                    ExternalTicketTemplate? template = TicketSystem.Templates.FirstOrDefault(t => t.TaskType == actTaskType.ToString());
-                    if (template == null)
-                    {
-                        throw new ConfigException($"No Template found for task type {actTaskType}.");
-                    }
-                    else
-                    {
-                        ticketTask.FillTaskText(template);
-                        actTicketTemplate = template.TicketTemplate;
-                    }
-                    TicketTasks.Add(ticketTask.TaskText);
+                    throw new ConfigException($"No Template found for task type {actTaskType}. Set its ticket and task templates in the device specific settings.");
                 }
+                ticketTask.FillTaskText(template);
+                actTicketTemplate = template.TicketTemplate;
+                TicketTasks.Add(ticketTask.TaskText);
             }
         }
 

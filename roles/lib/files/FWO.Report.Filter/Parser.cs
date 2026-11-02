@@ -5,7 +5,15 @@ namespace FWO.Report.Filter
 {
     public class Parser
     {
+        /// <summary>
+        /// Maximum number of brackets and negations that may enclose a filter term. Each level costs stack
+        /// frames while parsing and extracting, and a stack overflow cannot be caught, so deeper filters are
+        /// rejected with a syntax error.
+        /// </summary>
+        public const int kMaxNestingDepth = 100;
+
         int position;
+        int nestingDepth;
         readonly List<Token> tokens;
 
         public Parser(List<Token> tokens)
@@ -106,7 +114,9 @@ namespace FWO.Report.Filter
             if (GetNextToken().Kind == TokenKind.Not)
             {
                 rootNode.Operator = CheckToken(TokenKind.Not);
+                EnterNesting(rootNode.Operator);
                 rootNode.Value = ParseNot();
+                LeaveNesting();
                 return rootNode;
             }
 
@@ -124,11 +134,34 @@ namespace FWO.Report.Filter
 
         private AstNode ParseBracket()
         {
-            CheckToken(TokenKind.BL);
+            Token openingBracket = CheckToken(TokenKind.BL);
+            EnterNesting(openingBracket);
             AstNode rootNode = ParseOr();
             CheckToken(TokenKind.BR);
+            LeaveNesting();
 
             return rootNode;
+        }
+
+        /// <summary>
+        /// Opens one nesting level for a bracket or negation and rejects the filter when it gets too deep.
+        /// </summary>
+        /// <param name="nestingToken">The bracket or negation token that opens the level.</param>
+        private void EnterNesting(Token nestingToken)
+        {
+            nestingDepth++;
+            if (nestingDepth > kMaxNestingDepth)
+            {
+                throw new SyntaxException($"Filter is nested too deeply. At most {kMaxNestingDepth} brackets and negations may enclose a term.", nestingToken.Position);
+            }
+        }
+
+        /// <summary>
+        /// Closes the nesting level opened by the last call of <see cref="EnterNesting"/>.
+        /// </summary>
+        private void LeaveNesting()
+        {
+            nestingDepth--;
         }
 
         private AstNode ParseFilter()

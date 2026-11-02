@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Requests;
+using FWO.Middleware.Server.Responses;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using NUnit.Framework;
@@ -112,6 +113,22 @@ internal class OpenApiRequiredSchemaTransformerTest
         {
             Assert.That(propertyNames, Does.Contain("ipHost"));
             Assert.That(propertyNames, Does.Contain("ipNetwork"));
+            Assert.That(propertyNames, Does.Contain("ipRange"));
+            Assert.That(propertyNames, Does.Not.Contain("ipStart"));
+            Assert.That(propertyNames, Does.Not.Contain("ipEnd"));
+        });
+    }
+
+    [TestCase(typeof(AddressObjectResponse))]
+    [TestCase(typeof(ComplianceDesignatedZoneIpRangeResponse))]
+    public void AddressResponseJsonContractsExcludeLegacyBounds(Type responseType)
+    {
+        string[] propertyNames = JsonSerializerOptions.Default.GetTypeInfo(responseType).Properties
+            .Select(property => property.Name)
+            .ToArray();
+
+        Assert.Multiple(() =>
+        {
             Assert.That(propertyNames, Does.Contain("ipRange"));
             Assert.That(propertyNames, Does.Not.Contain("ipStart"));
             Assert.That(propertyNames, Does.Not.Contain("ipEnd"));

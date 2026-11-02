@@ -139,7 +139,9 @@
     }
 }
 
-<DisplayRequestTask Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" StartImplPhase="StartImplPhase"/>
+@* Keep the editor instance while its draft is being validated. TaskType is mutable
+   form data and must not recreate the editor when SaveReqTask prepares the task. *@
+<DisplayRequestTask @key="@($"{WfHandler.DisplayReqTaskMode}-{WfHandler.ActReqTask.Id}")" Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" StartImplPhase="StartImplPhase"/>
 <AssignObject @bind-Display="WfHandler.DisplayAssignReqTaskMode" ResetParent="Reset" StatefulObject="WfHandler.ActReqTask" Assign="WfHandler.AssignReqTaskGroup" AssignBack="WfHandler.AssignReqTaskBack" ObjectName="@WfHandler.ActReqTask.Title" RoleList="validRoles"/>
 <DeleteObject @bind-Display="WfHandler.DisplayDeleteReqTaskMode" ResetParent="Reset" Delete="WfHandler.ConfDeleteReqTask" ObjectName="@WfHandler.ActReqTask.Title"/>
 
@@ -179,6 +181,7 @@
 
     private async Task ShowReqTask(WfReqTask reqTask)
     {
+        WfHandler.ResetReqTaskActions();
         await WfHandler.SelectReqTask(reqTask, ObjAction.display, true);
     }
 
@@ -189,6 +192,7 @@
 
     private async Task EditReqTask(WfReqTask reqTask)
     {
+        WfHandler.ResetReqTaskActions();
         await WfHandler.SelectReqTask(reqTask, ObjAction.edit, true);
     }
 

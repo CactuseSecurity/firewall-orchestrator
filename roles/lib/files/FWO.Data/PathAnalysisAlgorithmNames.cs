@@ -16,12 +16,33 @@ namespace FWO.Data
         /// API name of the network zone tree algorithm.
         /// </summary>
         public const string kNetworkZoneTree = "networkZoneTree";
+        /// <summary>
+        /// API name of the device selection taking every gateway, which analyses no path. Accepted nowhere as a request value.
+        /// </summary>
+        public const string kForEachDevice = "forEachDevice";
+        /// <summary>
+        /// API name of the device selection taking the first gateway, which analyses no path. Accepted nowhere as a request value.
+        /// </summary>
+        public const string kFirstDevice = "firstDevice";
 
         private static readonly Dictionary<string, long> kIdsByName = new(StringComparer.OrdinalIgnoreCase)
         {
             [kNone] = GlobalConst.kPathAnalysisAlgorithmNone,
-            [kNetworkZoneTree] = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree
+            [kNetworkZoneTree] = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree,
+            [kForEachDevice] = GlobalConst.kPathAnalysisAlgorithmForEachDevice,
+            [kFirstDevice] = GlobalConst.kPathAnalysisAlgorithmFirstDevice
         };
+
+        /// <summary>
+        /// Algorithms that do not analyse a path between sources and destinations: none and the device selections used
+        /// when the workflow creates implementation tasks.
+        /// </summary>
+        private static readonly HashSet<long> kIdsWithoutPathAnalysis =
+        [
+            GlobalConst.kPathAnalysisAlgorithmNone,
+            GlobalConst.kPathAnalysisAlgorithmForEachDevice,
+            GlobalConst.kPathAnalysisAlgorithmFirstDevice
+        ];
 
         /// <summary>
         /// Gets every valid algorithm name.
@@ -39,8 +60,15 @@ namespace FWO.Data
         public static string? GetName(long id) => kIdsByName.FirstOrDefault(pair => pair.Value == id).Key;
 
         /// <summary>
-        /// Gets the names a caller may request. Excludes <see cref="kNone"/>, which cannot resolve any device.
+        /// Returns whether an algorithm analyses the path between sources and destinations. False for none, for the
+        /// device selections, which ignore the addresses, and for unknown ids.
         /// </summary>
-        public static IReadOnlyList<string> Requestable { get; } = [.. kIdsByName.Keys.Where(name => name != kNone)];
+        public static bool AnalysesPath(long id) => kIdsByName.ContainsValue(id) && !kIdsWithoutPathAnalysis.Contains(id);
+
+        /// <summary>
+        /// Gets the names a caller may request: only algorithms that analyse a path.
+        /// </summary>
+        public static IReadOnlyList<string> Requestable { get; } =
+            [.. kIdsByName.Where(pair => AnalysesPath(pair.Value)).Select(pair => pair.Key)];
     }
 }

@@ -2,9 +2,64 @@
 -- credentials/secrets encryption
 -- the following functions are needed for the upgrade and during installation (to encrypt the ldap passwords in ldap_connection table)
 -- for existing installations all encrytion/decryption is done in the UI or in the MW server (for ldap binding)
+--
+-- Secrets are encrypted in the authenticated format 'fwo-v2:' || base64(IV | AES-256-CBC ciphertext | HMAC-SHA256 tag)
+-- (encrypt-then-MAC, pgcrypto offers no AES-GCM). Encryption and authentication key are derived from the main key with
+-- HMAC-SHA256. The tag lets decryption with a wrong main key fail reliably (#5476). The legacy format (base64 of
+-- IV | AES-CBC ciphertext with the main key itself) is still read, and encryptText re-encrypts it in the new format.
+-- Same format as FWO.Encryption.AesEnc (C#) and fwo_encrypt.py (importer).
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+CREATE OR REPLACE FUNCTION custom_secret_key(key TEXT, label TEXT) RETURNS BYTEA AS $$
+DECLARE
+    ba_main_key BYTEA := convert_to(key, 'UTF8');
+BEGIN
+    IF ba_main_key IS NULL OR octet_length(ba_main_key) NOT IN (16, 24, 32) THEN
+        RAISE EXCEPTION 'the main key must be 16, 24 or 32 bytes long';
+    END IF;
+    RETURN hmac(convert_to(label, 'UTF8'), ba_main_key, 'sha256');
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION custom_aes_cbc_hmac_encrypt_base64(plaintext TEXT, key TEXT) RETURNS TEXT AS $$
+DECLARE
+    iv BYTEA := gen_random_bytes(16);
+    authenticated_data BYTEA;
+BEGIN
+    authenticated_data := iv || encrypt_iv(convert_to(plaintext, 'UTF8'), custom_secret_key(key, 'fwo-secret-encryption-v2'), iv, 'aes-cbc/pad:pkcs');
+    -- encode wraps base64 lines after 76 characters
+    RETURN 'fwo-v2:' || replace(encode(authenticated_data || hmac(authenticated_data, custom_secret_key(key, 'fwo-secret-authentication-v2'), 'sha256'), 'base64'), E'\n', '');
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION custom_aes_cbc_hmac_decrypt_base64(ciphertext TEXT, key TEXT) RETURNS TEXT AS $$
+DECLARE
+    payload BYTEA;
+    authenticated_data BYTEA;
+    i_ciphertext_length INTEGER;
+BEGIN
+    IF ciphertext IS NULL OR left(ciphertext, 7) <> 'fwo-v2:' THEN
+        RAISE EXCEPTION 'the secret is not encrypted in the authenticated format';
+    END IF;
+    payload := decode(substring(ciphertext from 8), 'base64');
+    i_ciphertext_length := octet_length(payload) - 16 - 32;
+    IF i_ciphertext_length < 16 OR i_ciphertext_length % 16 <> 0 THEN
+        RAISE EXCEPTION 'the secret has an invalid length';
+    END IF;
+
+    -- verify the tag before decrypting anything: a wrong main key or modified data fails here
+    authenticated_data := substring(payload from 1 for 16 + i_ciphertext_length);
+    IF hmac(authenticated_data, custom_secret_key(key, 'fwo-secret-authentication-v2'), 'sha256') <> substring(payload from 17 + i_ciphertext_length) THEN
+        RAISE EXCEPTION 'the authentication tag of the secret does not match';
+    END IF;
+
+    RETURN convert_from(decrypt_iv(substring(authenticated_data from 17), custom_secret_key(key, 'fwo-secret-encryption-v2'),
+        substring(authenticated_data from 1 for 16), 'aes-cbc/pad:pkcs'), 'UTF8');
+END;
+$$ LANGUAGE plpgsql;
+
+-- legacy format, only used for reading secrets encrypted before #5476
 CREATE OR REPLACE FUNCTION custom_aes_cbc_encrypt_base64(plaintext TEXT, key TEXT) RETURNS TEXT AS $$
 DECLARE
     iv BYTEA;
@@ -44,46 +99,47 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- encrypts a secret in the authenticated format, unless it is already encrypted with the key in this format
+-- a secret encrypted in the legacy format is re-encrypted in the authenticated format
 CREATE OR REPLACE FUNCTION encryptText (plaintext_in text, key_in text) RETURNS text AS $$
 DECLARE
-    t_cyphertext TEXT;
     t_plaintext TEXT;
-    t_crypt_algo TEXT := 'cipher-algo=aes256';
-    t_coding_algo TEXT := 'base64';
-    -- ba_iv bytea;
 BEGIN
+    IF plaintext_in IS NULL THEN
+        RETURN NULL;
+    END IF;
     -- check if plaintext is actually ciphertext
     BEGIN
-        SELECT into t_plaintext custom_aes_cbc_decrypt_base64(plaintext_in, key_in);
-        -- if we get here without error, the plaintext passed in was actually already encrypted
-        RETURN plaintext_in;
+        SELECT INTO t_plaintext decryptText(plaintext_in, key_in);
     EXCEPTION WHEN OTHERS THEN
-        RETURN custom_aes_cbc_encrypt_base64(plaintext_in, key_in);
+        RETURN custom_aes_cbc_hmac_encrypt_base64(plaintext_in, key_in);
     END;
-END; 
+    -- if we get here without error, the plaintext passed in was actually already encrypted
+    IF left(plaintext_in, 7) = 'fwo-v2:' THEN
+        RETURN plaintext_in;
+    END IF;
+    RETURN custom_aes_cbc_hmac_encrypt_base64(t_plaintext, key_in);
+END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 CREATE OR REPLACE FUNCTION decryptText (cyphertext_in text, key text) RETURNS text AS $$
-DECLARE
-    t_plaintext TEXT;
-    t_crypt_algo TEXT := 'cipher-algo=aes-256-cbc/pad:pkcs';
-    t_coding_algo TEXT := 'base64';
 BEGIN
-    BEGIN
-        SELECT INTO t_plaintext custom_aes_cbc_decrypt_base64(cyphertext_in, key); 
-        RETURN t_plaintext;
-    EXCEPTION WHEN OTHERS THEN
-        -- decryption did not work out, so assuming that text was not encrypted
-        RAISE EXCEPTION 'decryption with the given key failed!';
-    END;
-
-END; 
+    IF left(cyphertext_in, 7) = 'fwo-v2:' THEN
+        RETURN custom_aes_cbc_hmac_decrypt_base64(cyphertext_in, key);
+    END IF;
+    RETURN custom_aes_cbc_decrypt_base64(cyphertext_in, key);
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'decryption with the given key failed!';
+END;
 $$ LANGUAGE plpgsql VOLATILE;
 
+-- encrypts all stored secrets that are in plain text or still in the legacy format, runs with every installation
 CREATE OR REPLACE FUNCTION encryptPasswords (key text) RETURNS VOID AS $$
 DECLARE
     r_cred RECORD;
     t_encrypted TEXT;
+    t_secret TEXT;
+    j_ticket_system jsonb;
 BEGIN
     -- encrypt pwds in credential table
     FOR r_cred IN 
@@ -108,8 +164,29 @@ BEGIN
     SELECT INTO t_encrypted * FROM encryptText(r_cred.config_value, key);
     UPDATE config SET config_value=t_encrypted WHERE config_key='emailPassword';
 
+    -- encrypted authorization header strings kept by external requests from before 9.7.1 (see upgrade 9.7.1)
+    FOR r_cred IN
+        SELECT id, ext_ticket_system FROM ext_request WHERE ext_ticket_system LIKE '%"Authorization"%'
+    LOOP
+        BEGIN
+            j_ticket_system := r_cred.ext_ticket_system::jsonb;
+        EXCEPTION WHEN OTHERS THEN
+            RAISE WARNING 'ticket system of external request % is no valid JSON and keeps its authorization', r_cred.id;
+            CONTINUE;
+        END;
+        IF jsonb_typeof(j_ticket_system) <> 'object' OR COALESCE(j_ticket_system ->> 'Authorization', '') = '' THEN
+            CONTINUE;
+        END IF;
+        t_secret := j_ticket_system ->> 'Authorization';
+        SELECT INTO t_encrypted * FROM encryptText(t_secret, key);
+        IF t_encrypted IS DISTINCT FROM t_secret THEN
+            UPDATE ext_request SET ext_ticket_system = jsonb_set(j_ticket_system, '{Authorization}', to_jsonb(t_encrypted))::text
+            WHERE id = r_cred.id;
+        END IF;
+    END LOOP;
+
     RETURN;
-END; 
+END;
 $$ LANGUAGE plpgsql;
 
 -- get encryption key from filesystem

@@ -11,6 +11,8 @@ namespace FWO.Services.Modelling
 {
     public static class AppServerHelper
     {
+        private const string kIpSuffixSeparator = "_";
+
         public static async Task<string> ConstructAppServerNameFromDns(ModellingAppServer appServer, ModellingNamingConvention namingConvention,
             bool overwriteExistingNames = false, bool logUnresolvable = false)
         {
@@ -43,6 +45,16 @@ namespace FWO.Services.Modelling
             return ConstructAppServerName(appServer, namingConvention, overwriteExistingNames).SanitizeJsonFieldMand(ref shortened);
         }
 
+        /// <summary>
+        /// Constructs the name of an app server with its ip appended, e.g. "server.example.com_10.1.2.3".
+        /// Used if the regular name is already taken by an existing object with another ip, which must not be changed
+        /// as it may be used in further rules or groups.
+        /// </summary>
+        public static string ConstructIpSuffixedAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
+        {
+            return ConstructAppServerName(appServer, namingConvention) + kIpSuffixSeparator + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd);
+        }
+
         public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames = false)
         {
             if (string.IsNullOrEmpty(appServer.Name) || overwriteExistingNames)
@@ -50,6 +62,21 @@ namespace FWO.Services.Modelling
                 return GetPrefix(appServer, namingConvention) + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd);
             }
             return char.IsLetter(appServer.Name[0]) ? appServer.Name : GetPrefix(appServer, namingConvention) + appServer.Name;
+        }
+
+        /// <summary>
+        /// Constructs the name of the app server stored for an ip address or range assigned to an owner.
+        /// A given name is kept, otherwise the name is built from the ip data following the naming convention.
+        /// </summary>
+        public static string ConstructOwnedIpName(string? name, string ip, string? ipEnd, ModellingNamingConvention namingConvention)
+        {
+            ModellingAppServer appServer = new()
+            {
+                Name = name ?? "",
+                Ip = ip,
+                IpEnd = string.IsNullOrEmpty(ipEnd) ? ip : ipEnd
+            };
+            return ConstructAppServerName(appServer, namingConvention);
         }
 
         public static async Task AdjustAppServerNames(ApiConnection apiConnection, UserConfig userConfig, CancellationToken cancellationToken = default)

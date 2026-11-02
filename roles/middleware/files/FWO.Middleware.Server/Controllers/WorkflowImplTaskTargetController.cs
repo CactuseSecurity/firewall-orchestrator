@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Middleware.Server.Requests;
@@ -22,14 +23,17 @@ public class WorkflowImplTaskTargetController : ControllerBase
 {
     private const string kVisibleManagementsClaim = "x-hasura-visible-managements";
     private readonly ImplTaskTargetService implTaskTargetService;
+    private readonly GlobalConfig globalConfig;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WorkflowImplTaskTargetController"/> class.
     /// </summary>
     /// <param name="implTaskTargetService">The implementation task target service.</param>
-    public WorkflowImplTaskTargetController(ImplTaskTargetService implTaskTargetService)
+    /// <param name="globalConfig">Global configuration holding the maximum page size.</param>
+    public WorkflowImplTaskTargetController(ImplTaskTargetService implTaskTargetService, GlobalConfig globalConfig)
     {
         this.implTaskTargetService = implTaskTargetService;
+        this.globalConfig = globalConfig;
     }
 
     /// <summary>
@@ -50,8 +54,8 @@ public class WorkflowImplTaskTargetController : ControllerBase
     /// </para>
     /// <para>
     /// Targets are ordered by name and then id, visible targets first, so <c>options.limit</c> and
-    /// <c>options.offset</c> page the result deterministically. Without a limit a page of at most
-    /// <see cref="GetImplTaskTargetsOptions.kMaxLimit"/> targets is returned, and the <c>X-Has-More</c> response
+    /// <c>options.offset</c> page the result deterministically. Without a limit a page of at most the configured
+    /// <c>maxRestResponseObjectLimit</c> targets (default 10000) is returned, and the <c>X-Has-More</c> response
     /// header tells whether further targets follow. Every call resolves the targets again, so the endpoint carries
     /// the expensive rate-limit policy.
     /// </para>
@@ -66,7 +70,8 @@ public class WorkflowImplTaskTargetController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<GetImplTaskTargetsResponse>> GetImplTaskTargets([FromBody] GetImplTaskTargetsRequest request)
     {
-        RequestValidationErrorResponse validationErrors = GetImplTaskTargetsRequestValidator.Validate(request);
+        int maxLimit = ListPaging.GetMaxObjectLimit(globalConfig);
+        RequestValidationErrorResponse validationErrors = GetImplTaskTargetsRequestValidator.Validate(request, maxLimit);
         if (validationErrors.Errors.Count > 0)
         {
             return BadRequest(validationErrors);
@@ -82,7 +87,7 @@ public class WorkflowImplTaskTargetController : ControllerBase
         try
         {
             ListPage<ImplTaskTargetResponse> page = await implTaskTargetService.GetImplTaskTargetsAsync(managementId, GetObjectKind(request),
-                request.Options, visibleManagementIds);
+                request.Options, ListPaging.GetPageSize(request.Options.Limit, maxLimit), visibleManagementIds);
             ListPaging.SetHasMoreHeader(HttpContext, page.HasMore);
             return Ok(new GetImplTaskTargetsResponse { Targets = page.Items });
         }

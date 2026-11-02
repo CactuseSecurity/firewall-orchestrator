@@ -1,7 +1,6 @@
 using FWO.Data;
 using FWO.Data.Workflow;
 using NetTools;
-using System.Net;
 
 namespace FWO.Services.Workflow
 {
@@ -231,9 +230,7 @@ namespace FWO.Services.Workflow
                     return [];
                 }
 
-                List<IPAddressRange> ranges = [.. elements
-                    .Where(element => element.Field == field.ToString())
-                    .SelectMany(ElementIpRanges)];
+                List<IPAddressRange> ranges = WfReqElement.GetIpRanges(elements, field);
                 if (ranges.Count == 0)
                 {
                     return [];
@@ -250,46 +247,6 @@ namespace FWO.Services.Workflow
             private static List<List<IPAddressRange>> CloneUnseenRanges(List<IPAddressRange> ranges)
             {
                 return [.. ranges.Select(range => new List<IPAddressRange> { new(range.Begin, range.End) })];
-            }
-
-            private static IEnumerable<IPAddressRange> ElementIpRanges(WfReqElement element)
-            {
-                IPAddressRange? ipRange = ParseIpRange(element.IpString, element.IpEnd);
-                if (ipRange != null)
-                {
-                    yield return ipRange;
-                    yield break;
-                }
-
-                ipRange = ParseIpRange(element.Cidr?.CidrString, element.CidrEnd?.CidrString);
-                if (ipRange != null)
-                {
-                    yield return ipRange;
-                }
-            }
-
-            private static IPAddressRange? ParseIpRange(string? start, string? end)
-            {
-                if (string.IsNullOrWhiteSpace(start))
-                {
-                    return null;
-                }
-
-                try
-                {
-                    if (!string.IsNullOrWhiteSpace(end)
-                        && IPAddress.TryParse(start, out IPAddress? startIp)
-                        && IPAddress.TryParse(end, out IPAddress? endIp))
-                    {
-                        return new(startIp, endIp);
-                    }
-
-                    return IPAddressRange.Parse(start);
-                }
-                catch (Exception)
-                {
-                    return null;
-                }
             }
 
             private static string ZoneKey(ComplianceNetworkZone zone)

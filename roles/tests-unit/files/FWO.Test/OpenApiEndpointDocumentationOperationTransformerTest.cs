@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Requests;
@@ -483,7 +484,7 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(getZoneStatusCodes, Is.EqualTo([200, 401, 403, 500]));
+            Assert.That(getZoneStatusCodes, Is.EqualTo([200, 400, 401, 403, 500]));
             Assert.That(resolveStatusCodes, Is.EqualTo([200, 400, 401, 403, 500]));
         });
     }
@@ -577,7 +578,7 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         MethodInfo buildQueryVariables = typeof(OwnersController).GetMethod("BuildQueryVariables", BindingFlags.NonPublic | BindingFlags.Static)!
             ?? throw new InvalidOperationException("Owner query variable builder is missing.");
 
-        object variables = buildQueryVariables.Invoke(null, [request, new ClaimsPrincipal(new ClaimsIdentity())])!
+        object variables = buildQueryVariables.Invoke(null, [request, new ClaimsPrincipal(new ClaimsIdentity()), GlobalConst.kDefaultMaxRestResponseObjectLimit])!
             ?? throw new InvalidOperationException("Owner query variable builder returned null.");
 
         return JsonSerializer.Serialize(variables);

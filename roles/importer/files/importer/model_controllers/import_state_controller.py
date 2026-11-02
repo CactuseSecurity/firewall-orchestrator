@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import traceback
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 import fwo_globals
 import urllib3
-from dateutil import parser
 from fwo_api import FwoApi
 from fwo_config import read_config
 from fwo_const import FWO_CONFIG_FILENAME, GRAPHQL_QUERY_PATH
@@ -136,9 +134,6 @@ class ImportStateController:
 
     def get_past_import_infos(self):
         try:  # get past import details (LastFullImport, ...):
-            day_string = self.api_call.get_config_value(key="dataRetentionTime")
-            if day_string:
-                self.state.data_retention_days = int(day_string)
             self.state.last_full_import_id, self.state.last_full_import_date = self.api_call.get_last_complete_import(
                 {"mgmId": int(self.state.mgm_details.mgm_id)}
             )
@@ -150,25 +145,6 @@ class ImportStateController:
 
         if self.state.last_full_import_date != "":
             self.state.last_successful_import = self.state.last_full_import_date
-
-            # Convert the string to a datetime object
-            past_date = parser.parse(self.state.last_full_import_date)
-
-            # Ensure "now" is timezone-aware (UTC here)
-            now = datetime.now(timezone.utc)
-
-            # Normalize pastDate too (convert to UTC if it had a tz)
-            past_date = (
-                past_date.replace(tzinfo=timezone.utc)
-                if past_date.tzinfo is None
-                else past_date.astimezone(timezone.utc)
-            )
-
-            difference = now - past_date
-
-            self.state.days_since_last_full_import = difference.days
-        else:
-            self.state.days_since_last_full_import = 0
 
     def set_core_data(self):
         self.set_track_map()

@@ -30,6 +30,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string subscribeUpdateRuleOwnerMappingConfigChanges;
         public static readonly string subscribeFlowSyncConfigChanges;
         public static readonly string subscribeFlowCatalogConfigChanges;
+        public static readonly string subscribeRestApiConfigChanges;
 
 
         static ConfigQueries()
@@ -62,6 +63,7 @@ namespace FWO.Api.Client.Queries
                 subscribeUpdateRuleOwnerMappingConfigChanges = GetQueryText("config/subscribeUpdateRuleOwnerMappingConfigChanges.graphql");
                 subscribeFlowSyncConfigChanges = GetQueryText("config/subscribeFlowSyncConfigChanges.graphql");
                 subscribeFlowCatalogConfigChanges = GetQueryText("config/subscribeFlowCatalogConfigChanges.graphql");
+                subscribeRestApiConfigChanges = GetQueryText("config/subscribeRestApiConfigChanges.graphql");
             }
             catch (Exception exception)
             {

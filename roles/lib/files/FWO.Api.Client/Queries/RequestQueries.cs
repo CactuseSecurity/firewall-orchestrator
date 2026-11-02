@@ -83,7 +83,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string replaceStateMatrixTransitionGroupTransitions;
         public static readonly string getWorkflowConfigurationPhaseMappings;
         public static readonly string createWorkflowConfiguration;
+        public static readonly string addWorkflowConfigurationPhase;
         public static readonly string deleteWorkflowConfiguration;
+        public static readonly string deleteWorkflowConfigurationPhase;
         public static readonly string newComment;
         public static readonly string addCommentToReqTask;
         public static readonly string addCommentToImplTask;
@@ -181,7 +183,9 @@ namespace FWO.Api.Client.Queries
                 replaceStateMatrixTransitionGroupTransitions = GetQueryText("request/replaceStateMatrixTransitionGroupTransitions.graphql");
                 getWorkflowConfigurationPhaseMappings = GetQueryText("request/getWorkflowConfigurationPhaseMappings.graphql");
                 createWorkflowConfiguration = GetQueryText("request/createWorkflowConfiguration.graphql");
+                addWorkflowConfigurationPhase = GetQueryText("request/addWorkflowConfigurationPhase.graphql");
                 deleteWorkflowConfiguration = GetQueryText("request/deleteWorkflowConfiguration.graphql");
+                deleteWorkflowConfigurationPhase = GetQueryText("request/deleteWorkflowConfigurationPhase.graphql");
                 newComment = GetQueryText("request/newComment.graphql");
                 addCommentToReqTask = GetQueryText("request/addCommentToReqTask.graphql");
                 addCommentToImplTask = GetQueryText("request/addCommentToImplTask.graphql");

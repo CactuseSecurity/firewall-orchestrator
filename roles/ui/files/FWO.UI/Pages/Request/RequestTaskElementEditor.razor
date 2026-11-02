@@ -22,32 +22,33 @@ else if (TaskType == WfTaskType.rule_delete)
 }
 else if (TaskType == WfTaskType.group_create)
 {
+    @if (!IsEditable())
+    {
+        <div class="form-group row mt-2">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText(grpTypeSvc ? "service_group" : "network_group")):</label>
+            <div class="col-sm-3">
+                <label class="col-sm-12 h-100 border bg-secondary">@groupName</label>
+            </div>
+        </div>
+    }
     <div class="form-group row mt-2">
         @if (IsEditable())
         {
-            <div class="col-sm-2">
-                <input class="form-check-input" type="radio" checked="@(!grpTypeSvc)" name="shortcutRange" id="nwGrp" @onchange="() => grpTypeSvc = false">
-                <label class="col-sm-1 col-form-label col-form-label-sm" for="nwGrp">@(userConfig.GetText("network_group"))</label>
-            </div>
-            <div class="col-sm-2">
-                <input class="form-check-input" type="radio" checked="@(grpTypeSvc)" name="shortcutRange" id="svcGrp" @onchange="() => grpTypeSvc = true">
-                <label class="col-sm-1 col-form-label col-form-label-sm" for="svcGrp">@(userConfig.GetText("service_group"))</label>
-            </div>
-            <div class="col-sm-4">
-                @if (!grpTypeSvc)
-                {
-                    <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false" />
-                }
-                else
-                {
-                    <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                        IpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false" />
-                }
+            <div class="col-sm-6">
+                <div class="btn-group btn-group-sm" role="group">
+                    <input type="radio" class="btn-check" name="groupKind" id="grpKindNetwork" autocomplete="off"
+                        checked="@(!grpTypeSvc)" @onchange="() => SetGroupType(false)">
+                    <label class="btn btn-outline-primary" for="grpKindNetwork">@(userConfig.GetText("network_group"))</label>
+
+                    <input type="radio" class="btn-check" name="groupKind" id="grpKindService" autocomplete="off"
+                        checked="@(grpTypeSvc)" @onchange="() => SetGroupType(true)">
+                    <label class="btn btn-outline-primary" for="grpKindService">@(userConfig.GetText("service_group"))</label>
+                </div>
             </div>
         }
         else
         {
-            <div class="list-group col-sm-4">
+            <div class="list-group col-sm-6">
                 @foreach (var source in actSources)
                 {
                     <div class="list-group-item border bg-secondary">
@@ -63,6 +64,117 @@ else if (TaskType == WfTaskType.group_create)
             </div>
         }
     </div>
+    @if (IsEditable())
+    {
+        <div class="form-group row mt-2">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+            @if (CanEditField(WorkflowEditableFieldKeys.Name))
+            {
+                <div class="col-sm-3">
+                    <input type="text" class="form-control form-control-sm" value="@groupName" @onchange="GroupNameChangedFromInput" />
+                </div>
+            }
+            else
+            {
+                <div class="col-sm-3">
+                    <label class="col-sm-12 h-100 border bg-secondary">@groupName</label>
+                </div>
+            }
+            <div class="col-sm-6">
+                @if (!grpTypeSvc)
+                {
+                    <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false" />
+                }
+                else
+                {
+                    <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
+                        IpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false" />
+                }
+            </div>
+        </div>
+    }
+}
+else if (TaskType == WfTaskType.group_modify)
+{
+    @if (!IsEditable())
+    {
+        <div class="form-group row mt-2">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText(grpTypeSvc ? "service_group" : "network_group")):</label>
+            <div class="col-sm-3">
+                <label class="col-sm-12 h-100 border bg-secondary">@groupName</label>
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <div class="list-group col-sm-6">
+                @foreach (var source in actSources)
+                {
+                    <div class="list-group-item border bg-secondary">
+                        <span class="badge @GroupMemberBadgeClass(source.RequestAction)">
+                            @GroupMemberAction(source.RequestAction)
+                        </span>
+                        <label>@DisplayObjectElement(source)</label>
+                    </div>
+                }
+                @foreach (var service in actServices)
+                {
+                    <div class="list-group-item border bg-secondary">
+                        <span class="badge @GroupMemberBadgeClass(service.RequestAction)">
+                            @GroupMemberAction(service.RequestAction)
+                        </span>
+                        <label>@DisplayServiceElement(service)</label>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="form-group row mt-2">
+            <div class="col-sm-6">
+                <div class="btn-group btn-group-sm" role="group">
+                    <input type="radio" class="btn-check" name="modifyGroupKind" id="modifyGrpKindNetwork" autocomplete="off"
+                        checked="@(!grpTypeSvc)" @onchange="() => SetGroupType(false)">
+                    <label class="btn btn-outline-primary" for="modifyGrpKindNetwork">@(userConfig.GetText("network_group"))</label>
+
+                    <input type="radio" class="btn-check" name="modifyGroupKind" id="modifyGrpKindService" autocomplete="off"
+                        checked="@(grpTypeSvc)" @onchange="() => SetGroupType(true)">
+                    <label class="btn btn-outline-primary" for="modifyGrpKindService">@(userConfig.GetText("service_group"))</label>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText(grpTypeSvc ? "service_group" : "network_group")):</label>
+            <div class="col-sm-5">
+                @if (ManagementId is > 0)
+                {
+                    <ObjectSelector @key="@($"{ManagementId}-{grpTypeSvc}")" ManagementId="ManagementId.Value" Kind="@(grpTypeSvc ? ObjectTaskKind.Service : ObjectTaskKind.Network)"
+                        GroupMode="true" IpProtos="DisplayIpProtos" SelectedNetworkObject="selectedNetworkGroup" SelectedNetworkObjectChanged="SelectNetworkGroup"
+                        SelectedService="selectedServiceGroup" SelectedServiceChanged="SelectServiceGroup" />
+                }
+                else
+                {
+                    <label class="col-form-label col-form-label-sm text-muted">@(userConfig.GetText("select_management_first"))</label>
+                }
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText(grpTypeSvc ? "service_group" : "network_group")):</label>
+            <div class="col-sm-3">
+                <label class="col-sm-12 h-100 border bg-secondary">@groupName</label>
+            </div>
+            <div class="col-sm-6">
+                @if (!grpTypeSvc)
+                {
+                    <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false" IgnoreGroupName="true" />
+                }
+                else
+                {
+                    <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
+                        IpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false" IgnoreGroupName="true" />
+                }
+            </div>
+        </div>
+    }
 }
 else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 {
@@ -112,6 +224,7 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
     private List<NwObjectElement> actDestinations = [];
     private List<NwServiceElement> actServices = [];
     private List<NwRuleElement> actRules = [];
+    private string? groupName;
 
     private List<NwObjectElement> sourcesToAdd = [];
     private List<NwObjectElement> sourcesToDelete = [];
@@ -120,13 +233,22 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
     private List<NwServiceElement> servicesToAdd = [];
     private List<NwServiceElement> servicesToDelete = [];
     private bool grpTypeSvc;
+    private NetworkObject? selectedNetworkGroup;
+    private NetworkService? selectedServiceGroup;
     private long initializedTaskId = -1;
     private bool initializedBundledDisplay;
-
-    public int SourceCount => actSources.Count;
-    public int DestinationCount => actDestinations.Count;
-    public int ServiceCount => actServices.Count;
+    private WfTaskType initializedTaskType;
+    public int SourceCount => actSources.Count + sourcesToAdd.Count - sourcesToDelete.Count;
+    public int DestinationCount => actDestinations.Count + destinationsToAdd.Count - destinationsToDelete.Count;
+    public int ServiceCount => actServices.Count + servicesToAdd.Count - servicesToDelete.Count;
     public int RuleCount => actRules.Count;
+    public string? CurrentGroupName => groupName;
+
+    private bool IsGroupModifyTask()
+    {
+        return TaskType == WfTaskType.group_modify
+            || string.Equals(WfHandler.ActReqTask.TaskType, WfTaskType.group_modify.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
 
     private bool IsEditable()
     {
@@ -150,10 +272,13 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 
     protected override void OnParametersSet()
     {
-        if (initializedTaskId != WfHandler.ActReqTask.Id || initializedBundledDisplay != (DisplayTask != null))
+        if (initializedTaskId != WfHandler.ActReqTask.Id
+            || initializedBundledDisplay != (DisplayTask != null)
+            || initializedTaskType != TaskType)
         {
             initializedTaskId = WfHandler.ActReqTask.Id;
             initializedBundledDisplay = DisplayTask != null;
+            initializedTaskType = TaskType;
             InitializeElements();
         }
     }
@@ -167,6 +292,20 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
         actServices = displayTask.GetServiceElements();
         actRules = displayTask.GetRuleElements();
         grpTypeSvc = actServices.Count > 0;
+        bool isGroupModify = TaskType == WfTaskType.group_modify
+            || string.Equals(displayTask.TaskType, WfTaskType.group_modify.ToString(), StringComparison.OrdinalIgnoreCase);
+        if (isGroupModify)
+        {
+            sourcesToDelete = actSources
+                .Where(element => string.Equals(element.RequestAction, RequestAction.delete.ToString(), StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            servicesToDelete = actServices
+                .Where(element => string.Equals(element.RequestAction, RequestAction.delete.ToString(), StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        groupName = displayTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+        selectedNetworkGroup = null;
+        selectedServiceGroup = null;
     }
 
     public void ResetPendingChanges()
@@ -179,62 +318,145 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
         servicesToDelete = [];
     }
 
+    /// <summary>
+    /// Clears the group selected in the management-specific group search and its
+    /// management-dependent member draft.
+    /// </summary>
+    public void ClearSelectedGroup()
+    {
+        if (TaskType != WfTaskType.group_modify)
+        {
+            return;
+        }
+
+        selectedNetworkGroup = null;
+        selectedServiceGroup = null;
+        groupName = null;
+        actSources = [];
+        actServices = [];
+        ResetPendingChanges();
+
+        List<WfReqElement> groupElements = WfHandler.ActReqTask.Elements
+            .Where(element => element.Field == ElemFieldType.source.ToString() || element.Field == ElemFieldType.service.ToString())
+            .ToList();
+        foreach (WfReqElement element in groupElements.Where(element => element.Id > 0
+            && !WfHandler.ActReqTask.RemovedElements.Any(removed => removed.Id == element.Id)))
+        {
+            WfHandler.ActReqTask.RemovedElements.Add(element);
+        }
+        WfHandler.ActReqTask.Elements.RemoveAll(element => groupElements.Contains(element));
+    }
+
     public void ApplyChanges(Device? ruleDevice = null)
     {
-        foreach (var src in sourcesToDelete)
+        RemovePendingSources();
+        RemovePendingDestinations();
+        RemovePendingServices();
+        AddPendingSources();
+        AddPendingDestinations();
+        AddPendingServices();
+        ResetPendingChanges();
+        ReplaceRuleElements(ruleDevice);
+    }
+
+    private void RemovePendingSources()
+    {
+        foreach (NwObjectElement source in sourcesToDelete)
         {
-            actSources.Remove(src);
-            RemoveElem(src.ElemId);
-        }
-        foreach (var dst in destinationsToDelete)
-        {
-            actDestinations.Remove(dst);
-            RemoveElem(dst.ElemId);
-        }
-        foreach (var svc in servicesToDelete)
-        {
-            actServices.Remove(svc);
-            RemoveElem(svc.ElemId);
-        }
-        if (TaskType != WfTaskType.group_create || !grpTypeSvc)
-        {
-            foreach (var src in sourcesToAdd)
+            actSources.Remove(source);
+            if (IsGroupModifyTask())
             {
-                src.TaskId = WfHandler.ActReqTask.Id;
-                actSources.Add(src);
-                WfHandler.ActReqTask.Elements.Add(src.ToReqElement(ElemFieldType.source));
+                MarkGroupMemberRemoved(source, ElemFieldType.source);
+            }
+            else
+            {
+                RemoveElem(source.ElemId);
             }
         }
-        foreach (var dst in destinationsToAdd)
+    }
+
+    private void RemovePendingDestinations()
+    {
+        foreach (NwObjectElement destination in destinationsToDelete)
         {
-            dst.TaskId = WfHandler.ActReqTask.Id;
-            actDestinations.Add(dst);
-            WfHandler.ActReqTask.Elements.Add(dst.ToReqElement(ElemFieldType.destination));
+            actDestinations.Remove(destination);
+            RemoveElem(destination.ElemId);
         }
-        if (TaskType != WfTaskType.group_create || grpTypeSvc)
+    }
+
+    private void RemovePendingServices()
+    {
+        foreach (NwServiceElement service in servicesToDelete)
         {
-            foreach (var svc in servicesToAdd)
+            actServices.Remove(service);
+            if (IsGroupModifyTask())
             {
-                svc.TaskId = WfHandler.ActReqTask.Id;
-                actServices.Add(svc);
-                WfHandler.ActReqTask.Elements.Add(svc.ToReqElement());
+                MarkGroupMemberRemoved(service);
+            }
+            else
+            {
+                RemoveElem(service.ElemId);
             }
         }
+    }
 
-        sourcesToDelete = [];
-        destinationsToDelete = [];
-        servicesToDelete = [];
-        sourcesToAdd = [];
-        destinationsToAdd = [];
-        servicesToAdd = [];
-
-        WfHandler.ActReqTask.Elements.RemoveAll(x => x.Field == ElemFieldType.rule.ToString());
-        foreach (var rule in actRules)
+    private void AddPendingSources()
+    {
+        if (TaskType == WfTaskType.group_create && grpTypeSvc)
         {
-            WfReqElement reqElem = rule.ToReqElement();
-            reqElem.DeviceId = (ruleDevice ?? RuleDevice)?.Id;
-            reqElem.RequestAction = WfHandler.ActReqTask.RequestAction;
-            WfHandler.ActReqTask.Elements.Add(reqElem);
+            return;
+        }
+
+        foreach (NwObjectElement source in sourcesToAdd)
+        {
+            source.TaskId = WfHandler.ActReqTask.Id;
+            if (IsGroupModifyTask())
+            {
+                source.GroupName = groupName ?? "";
+            }
+            actSources.Add(source);
+            WfHandler.ActReqTask.Elements.Add(source.ToReqElement(ElemFieldType.source));
+        }
+    }
+
+    private void AddPendingDestinations()
+    {
+        foreach (NwObjectElement destination in destinationsToAdd)
+        {
+            destination.TaskId = WfHandler.ActReqTask.Id;
+            actDestinations.Add(destination);
+            WfHandler.ActReqTask.Elements.Add(destination.ToReqElement(ElemFieldType.destination));
+        }
+    }
+
+    private void AddPendingServices()
+    {
+        if (TaskType == WfTaskType.group_create && !grpTypeSvc)
+        {
+            return;
+        }
+
+        foreach (NwServiceElement service in servicesToAdd)
+        {
+            service.TaskId = WfHandler.ActReqTask.Id;
+            if (IsGroupModifyTask())
+            {
+                service.GroupName = groupName;
+            }
+            actServices.Add(service);
+            WfHandler.ActReqTask.Elements.Add(service.ToReqElement());
+        }
+    }
+
+    private void ReplaceRuleElements(Device? ruleDevice)
+    {
+        WfHandler.ActReqTask.Elements.RemoveAll(element => element.Field == ElemFieldType.rule.ToString());
+        foreach (NwRuleElement rule in actRules)
+        {
+            WfReqElement requestElement = rule.ToReqElement();
+            requestElement.DeviceId = (ruleDevice ?? RuleDevice)?.Id;
+            requestElement.RequestAction = WfHandler.ActReqTask.RequestAction;
+            WfHandler.ActReqTask.Elements.Add(requestElement);
         }
     }
 
@@ -248,13 +470,324 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
         }
     }
 
+    private void MarkGroupMemberRemoved(NwObjectElement element, ElemFieldType field)
+    {
+        WfReqElement? requestElement = FindRequestElement(element.ElemId, field, element.NetworkId, element.Name, element.IpString);
+        if (requestElement == null)
+        {
+            return;
+        }
+        if (requestElement.Id == 0)
+        {
+            if (requestElement.IsMemberToAdd())
+            {
+                WfHandler.ActReqTask.Elements.Remove(requestElement);
+            }
+            else
+            {
+                requestElement.RequestAction = RequestAction.delete.ToString();
+            }
+        }
+        else
+        {
+            requestElement.RequestAction = RequestAction.delete.ToString();
+        }
+    }
+
+    private void MarkGroupMemberRemoved(NwServiceElement element)
+    {
+        WfReqElement? requestElement = FindRequestElement(element.ElemId, ElemFieldType.service, element.ServiceId, element.Name, null);
+        if (requestElement == null)
+        {
+            return;
+        }
+        if (requestElement.Id == 0)
+        {
+            if (requestElement.IsMemberToAdd())
+            {
+                WfHandler.ActReqTask.Elements.Remove(requestElement);
+            }
+            else
+            {
+                requestElement.RequestAction = RequestAction.delete.ToString();
+            }
+        }
+        else
+        {
+            requestElement.RequestAction = RequestAction.delete.ToString();
+        }
+    }
+
+    private WfReqElement? FindRequestElement(long elementId, ElemFieldType field, long? objectId, string? name, string? ip)
+    {
+        return WfHandler.ActReqTask.Elements.FirstOrDefault(element =>
+            element.Field == field.ToString() &&
+            ((elementId > 0 && element.Id == elementId) ||
+             (elementId == 0 && objectId.HasValue && field == ElemFieldType.source && element.NetworkId == objectId) ||
+             (elementId == 0 && objectId.HasValue && field == ElemFieldType.service && element.ServiceId == objectId) ||
+             (elementId == 0 && string.Equals(element.Name, name, StringComparison.OrdinalIgnoreCase)
+                && NetworkAddressesMatch(element.IpString, ip))));
+    }
+
+    private static bool NetworkAddressesMatch(string? left, string? right)
+    {
+        if (string.Equals(left, right, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
+        {
+            return false;
+        }
+        Cidr leftCidr = new(left);
+        Cidr rightCidr = new(right);
+        return leftCidr.Valid && rightCidr.Valid
+            && string.Equals(leftCidr.CidrString, rightCidr.CidrString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private Task SelectNetworkGroup(NetworkObject? group)
+    {
+        if (group == null)
+        {
+            return Task.CompletedTask;
+        }
+        SetGroupType(false);
+        selectedNetworkGroup = group;
+        groupName = group.Name;
+        actSources = ResolveNetworkGroupMembers(group);
+        actServices = [];
+        ReplaceNetworkGroupMembersInTask();
+        SetMemberGroupName(group.Name);
+        return Task.CompletedTask;
+    }
+
+    private Task SelectServiceGroup(NetworkService? group)
+    {
+        if (group == null)
+        {
+            return Task.CompletedTask;
+        }
+        SetGroupType(true);
+        selectedServiceGroup = group;
+        groupName = group.Name;
+        actServices = ResolveServiceGroupMembers(group);
+        actSources = [];
+        ReplaceServiceGroupMembersInTask();
+        SetMemberGroupName(group.Name);
+        return Task.CompletedTask;
+    }
+
+    private void ReplaceNetworkGroupMembersInTask()
+    {
+        List<WfReqElement> previousElements = WfHandler.ActReqTask.Elements
+            .Where(element => element.Field == ElemFieldType.source.ToString())
+            .ToList();
+        List<WfReqElement> resolvedElements = actSources
+            .Select(member => member.ToReqElement(ElemFieldType.source))
+            .ToList();
+        PreserveExistingElementIds(previousElements, resolvedElements, IsMatchingNetworkElement);
+        ApplyResolvedElementIds(actSources, resolvedElements);
+        WfHandler.ActReqTask.Elements.RemoveAll(element => element.Field == ElemFieldType.source.ToString());
+        WfHandler.ActReqTask.Elements.AddRange(resolvedElements);
+    }
+
+    private void ReplaceServiceGroupMembersInTask()
+    {
+        List<WfReqElement> previousElements = WfHandler.ActReqTask.Elements
+            .Where(element => element.Field == ElemFieldType.service.ToString())
+            .ToList();
+        List<WfReqElement> resolvedElements = actServices
+            .Select(member => member.ToReqElement())
+            .ToList();
+        PreserveExistingElementIds(previousElements, resolvedElements, IsMatchingServiceElement);
+        ApplyResolvedElementIds(actServices, resolvedElements);
+        WfHandler.ActReqTask.Elements.RemoveAll(element => element.Field == ElemFieldType.service.ToString());
+        WfHandler.ActReqTask.Elements.AddRange(resolvedElements);
+    }
+
+    private void SetGroupType(bool service)
+    {
+        if (grpTypeSvc == service)
+        {
+            return;
+        }
+
+        grpTypeSvc = service;
+        ElemFieldType oppositeField = service ? ElemFieldType.source : ElemFieldType.service;
+        RemoveGroupElements(oppositeField);
+        groupName = null;
+        selectedNetworkGroup = null;
+        selectedServiceGroup = null;
+    }
+
+    private void RemoveGroupElements(ElemFieldType field)
+    {
+        List<WfReqElement> groupElements = WfHandler.ActReqTask.Elements
+            .Where(element => element.Field == field.ToString())
+            .ToList();
+        foreach (WfReqElement element in groupElements.Where(element => element.Id > 0
+            && !WfHandler.ActReqTask.RemovedElements.Any(removed => removed.Id == element.Id)))
+        {
+            WfHandler.ActReqTask.RemovedElements.Add(element);
+        }
+
+        WfHandler.ActReqTask.Elements.RemoveAll(element => groupElements.Contains(element));
+        if (field == ElemFieldType.source)
+        {
+            actSources = [];
+            sourcesToAdd = [];
+            sourcesToDelete = [];
+        }
+        else
+        {
+            actServices = [];
+            servicesToAdd = [];
+            servicesToDelete = [];
+        }
+    }
+
+    private static void ApplyResolvedElementIds<T>(IReadOnlyList<T> members, IReadOnlyList<WfReqElement> elements)
+        where T : class
+    {
+        for (int index = 0; index < members.Count && index < elements.Count; index++)
+        {
+            switch (members[index])
+            {
+                case NwObjectElement networkMember:
+                    networkMember.ElemId = elements[index].Id;
+                    networkMember.TaskId = elements[index].TaskId;
+                    break;
+                case NwServiceElement serviceMember:
+                    serviceMember.ElemId = elements[index].Id;
+                    serviceMember.TaskId = elements[index].TaskId;
+                    break;
+            }
+        }
+    }
+
+    private void PreserveExistingElementIds(List<WfReqElement> previousElements, List<WfReqElement> resolvedElements,
+        Func<WfReqElement, WfReqElement, bool> matches)
+    {
+        foreach (WfReqElement resolvedElement in resolvedElements)
+        {
+            WfReqElement? previousElement = previousElements.FirstOrDefault(previous => matches(previous, resolvedElement));
+            if (previousElement == null)
+            {
+                continue;
+            }
+            resolvedElement.Id = previousElement.Id;
+            resolvedElement.TaskId = previousElement.TaskId;
+        }
+
+        foreach (WfReqElement previousElement in previousElements.Where(previous => previous.Id > 0
+            && !resolvedElements.Any(resolved => matches(previous, resolved))))
+        {
+            WfHandler.ActReqTask.RemovedElements.Add(previousElement);
+        }
+    }
+
+    private static bool IsMatchingNetworkElement(WfReqElement left, WfReqElement right)
+    {
+        return (left.NetworkId.HasValue && left.NetworkId == right.NetworkId)
+            || (string.Equals(left.Name, right.Name, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(left.IpString, right.IpString, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsMatchingServiceElement(WfReqElement left, WfReqElement right)
+    {
+        return (left.ServiceId.HasValue && left.ServiceId == right.ServiceId)
+            || (string.Equals(left.Name, right.Name, StringComparison.OrdinalIgnoreCase)
+                && left.Port == right.Port
+                && left.PortEnd == right.PortEnd
+                && left.ProtoId == right.ProtoId);
+    }
+
+    private List<NwObjectElement> ResolveNetworkGroupMembers(NetworkObject group)
+    {
+        return group.ObjectGroups
+            .Where(member => member.Object != null)
+            .Select(member =>
+            {
+                long objectId = member.Object!.Id;
+                WfReqElement? existingElement = WfHandler.ActReqTask.Elements.FirstOrDefault(element =>
+                    element.Field == ElemFieldType.source.ToString() && element.NetworkId == objectId);
+                return new NwObjectElement
+                {
+                    NetworkId = objectId,
+                    Name = member.Object.Name,
+                    IpString = member.Object.IP ?? "",
+                    IpEndString = member.Object.IpEnd ?? member.Object.IP ?? "",
+                    GroupName = group.Name,
+                    RequestAction = existingElement?.RequestAction ?? RequestAction.unchanged.ToString()
+                };
+            })
+            .ToList();
+    }
+
+    private List<NwServiceElement> ResolveServiceGroupMembers(NetworkService group)
+    {
+        return group.ServiceGroups
+            .Where(member => member.Object != null)
+            .Select(member =>
+            {
+                long serviceId = member.Object!.Id;
+                WfReqElement? existingElement = WfHandler.ActReqTask.Elements.FirstOrDefault(element =>
+                    element.Field == ElemFieldType.service.ToString() && element.ServiceId == serviceId);
+                return new NwServiceElement
+                {
+                    ServiceId = serviceId,
+                    Name = member.Object.Name,
+                    Port = member.Object.DestinationPort,
+                    PortEnd = member.Object.DestinationPortEnd,
+                    ProtoId = member.Object.ProtoId ?? 0,
+                    HasProtocol = member.Object.ProtoId.HasValue,
+                    GroupName = group.Name,
+                    RequestAction = existingElement?.RequestAction ?? RequestAction.unchanged.ToString()
+                };
+            })
+            .ToList();
+    }
+
+    private void SetMemberGroupName(string name)
+    {
+        foreach (NwObjectElement source in actSources)
+        {
+            source.GroupName = name;
+        }
+        foreach (NwServiceElement service in actServices)
+        {
+            service.GroupName = name;
+        }
+        foreach (WfReqElement element in WfHandler.ActReqTask.Elements.Where(element =>
+            element.Field == ElemFieldType.source.ToString() || element.Field == ElemFieldType.service.ToString()))
+        {
+            element.GroupName = name;
+        }
+    }
+
+    private string GroupMemberAction(string requestAction)
+    {
+        return requestAction switch
+        {
+            nameof(RequestAction.delete) => userConfig.GetText("remove_member"),
+            nameof(RequestAction.unchanged) => userConfig.GetText("unchanged"),
+            _ => userConfig.GetText("add_member")
+        };
+    }
+
+    private static string GroupMemberBadgeClass(string requestAction)
+    {
+        return requestAction switch
+        {
+            nameof(RequestAction.delete) => "text-bg-danger",
+            nameof(RequestAction.unchanged) => "text-bg-secondary",
+            _ => "text-bg-success"
+        };
+    }
+
     private string DisplayObjectElement(NwObjectElement element)
     {
-        if (!string.IsNullOrEmpty(element.GroupName))
-        {
-            return element.GroupName;
-        }
-        if (!string.IsNullOrEmpty(element.Name) && string.IsNullOrEmpty(element.IpString))
+        if (!string.IsNullOrEmpty(element.Name) && !string.Equals(element.Name, element.GroupName, StringComparison.OrdinalIgnoreCase))
         {
             return element.Name;
         }
@@ -263,14 +796,16 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 
     private string DisplayServiceElement(NwServiceElement element)
     {
-        if (!string.IsNullOrEmpty(element.GroupName))
-        {
-            return element.GroupName;
-        }
-        if (!string.IsNullOrEmpty(element.Name) && element.Port is null or 0)
+        if (!string.IsNullOrEmpty(element.Name) && !string.Equals(element.Name, element.GroupName, StringComparison.OrdinalIgnoreCase))
         {
             return element.Name;
         }
         return DisplayBase.DisplayService(element, DisplayIpProtos);
+    }
+
+    private Task GroupNameChangedFromInput(ChangeEventArgs args)
+    {
+        groupName = args.Value?.ToString();
+        return Task.CompletedTask;
     }
 }

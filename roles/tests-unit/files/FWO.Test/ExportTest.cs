@@ -391,6 +391,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void OwnerRecertificationExportEncodesOwnerIdAndName()
+        {
+            const string kPayload = "<b>x</b>\" onmouseover=\"x'";
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            FwoOwner owner = report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner;
+            owner.ExtAppId = kPayload;
+            owner.Name = kPayload;
+
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            string encodedPayload = System.Net.WebUtility.HtmlEncode(kPayload);
+            Assert.That(html, Does.Not.Contain("<b>x</b>"));
+            Assert.That(html, Does.Contain($"<td>{encodedPayload}</td><td>{encodedPayload}</td>"));
+        }
+
+        [Test]
         public void OwnerRecertificationExportShowsConfiguredInitialRecertifierText()
         {
             ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)

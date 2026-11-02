@@ -28,8 +28,10 @@ namespace FWO.Services.Workflow
         private readonly Dictionary<(int ManagementId, ObjectTaskKind Kind), List<Management>> objectTargetCache = [];
 
         /// <summary>
-        /// Creates the implementation tasks still missing for every open request task of a ticket. Existing
-        /// implementation tasks are kept; a gateway or management that already has one is skipped.
+        /// Creates the implementation tasks still missing for every open request task of a ticket, on the gateways and
+        /// managements whose auto plan device specific settings allow it. This state action is the only place where
+        /// implementation tasks are created automatically. Existing implementation tasks are kept; a gateway or
+        /// management that already has one is skipped.
         /// </summary>
         /// <param name="ticket">Ticket whose request tasks get their implementation tasks.</param>
         /// <returns>The number of created implementation tasks.</returns>
@@ -75,24 +77,25 @@ namespace FWO.Services.Workflow
         /// (group_create, group_modify, group_delete) or a single object task (object_create, object_modify).
         /// Without a request management the single task without management of the previous behaviour is created.
         /// </summary>
+        /// <param name="reqTask">Object task to create the implementation tasks for; only target managements whose
+        /// auto plan device specific settings allow it get one.</param>
         private async Task AutoCreateObjectImplTasks(WfReqTask reqTask)
         {
             if (reqTask.ManagementId is not int managementId || managementId <= 0)
             {
-                if (reqTask.ImplementationTasks.Count == 0)
-                {
-                    await CreateGenericImplTask(reqTask);
-                }
+                await AutoCreateSingleImplTask(reqTask);
                 return;
             }
 
             List<Management> targets = await GetObjectTargetManagements(reqTask, managementId);
             if (targets.Count == 0)
             {
+                // ignore is an explicit setting, so no fallback task is created
                 Log.WriteWarning(kImplTaskTargetsLogTitle, $"No implementation task created for request task {reqTask.Id}: " +
                     $"every target management of management {managementId} is set to ignore objects of this kind.");
                 return;
             }
+            targets = await FilterAutoPlannedManagements(targets);
             List<Management> missingTargets = [.. targets.Where(target =>
                 reqTask.ImplementationTasks.All(implTask => (implTask.ManagementId ?? reqTask.ManagementId) != target.Id))];
             bool adaptTitle = targets.Count > 1 || targets.Any(target => target.Id != managementId);

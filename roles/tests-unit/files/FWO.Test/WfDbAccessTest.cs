@@ -1327,7 +1327,10 @@ namespace FWO.Test
                 TaskNumber = 1,
                 TaskType = WfTaskType.access.ToString(),
                 Elements = new List<WfReqElement>(),
-                Approvals = new List<WfApproval>(),
+                Approvals = new List<WfApproval>
+                {
+                    new() { StateId = 1, InitialApproval = true }
+                },
                 Owners = new List<FwoOwnerDataHelper>()
             };
 
@@ -1362,7 +1365,10 @@ namespace FWO.Test
                 TaskNumber = 1,
                 TaskType = WfTaskType.access.ToString(),
                 Elements = new List<WfReqElement>(),
-                Approvals = new List<WfApproval>(),
+                Approvals = new List<WfApproval>
+                {
+                    new() { StateId = 1, InitialApproval = true }
+                },
                 Owners = new List<FwoOwnerDataHelper>()
             };
 
@@ -1370,6 +1376,7 @@ namespace FWO.Test
 
             Assert.That(newId, Is.EqualTo(201));
             Assert.That(reqTask.Id, Is.EqualTo(201));
+            Assert.That(reqTask.Approvals.Single().Id, Is.EqualTo(apiConn.NewApprovalId));
             Assert.That(apiConn.NewReqTaskCallCount, Is.EqualTo(1));
         }
 

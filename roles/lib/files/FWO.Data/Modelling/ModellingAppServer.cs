@@ -54,7 +54,7 @@ namespace FWO.Data.Modelling
             {
                 Id = appServer.Id,
                 Number = appServer.Number,
-                Name = appServer.Name,
+                Name = appServer.Name ?? "",
                 IP = appServer.Ip,
                 IpEnd = appServer.IpEnd
             };

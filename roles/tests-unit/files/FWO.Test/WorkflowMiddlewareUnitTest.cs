@@ -487,6 +487,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task WorkflowController_ExecuteActionsRejectsOversizedNotificationPlaceholdersBeforeTicketLock()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+
+            WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                Phase = WorkflowPhases.request.ToString(),
+                TicketId = 0,
+                NotificationPlaceholders = new NotificationPlaceholderData
+                {
+                    Content = new string('c', NotificationPlaceholderResolver.kMaxCallerContentLength + 1)
+                }
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain(NotificationPlaceholderResolver.kMaxCallerContentLength.ToString()));
+            });
+        }
+
+        [Test]
         public async Task WorkflowController_ExecuteActions_ReturnsErrorWhenApiServerUriIsMissing()
         {
             string? previousApiServerUri = GetApiServerUri();

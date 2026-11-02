@@ -232,3 +232,9 @@ ON CONFLICT (phase_matrix_id, from_state_id) DO UPDATE SET
 
 DROP TABLE IF EXISTS pg_temp.tmp_state_matrix_key;
 DROP TABLE IF EXISTS pg_temp.tmp_state_matrix_seed;
+
+-- Implementation tasks are only created automatically by the state action "Create implementation tasks". It is
+-- provided once, but not attached to a state: an administrator decides where it runs, e.g. at the state approved.
+INSERT INTO request.action (name, action_type, scope, task_type, phase, event, button_text, external_parameters)
+SELECT 'Create implementation tasks', 'CreateImplTasks', 'Ticket', '', '', 'OnSet', '', ''
+WHERE NOT EXISTS (SELECT 1 FROM request.action WHERE action_type = 'CreateImplTasks');

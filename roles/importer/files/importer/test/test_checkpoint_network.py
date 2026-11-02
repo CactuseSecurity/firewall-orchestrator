@@ -1,7 +1,7 @@
 from typing import Any
 
 import fwo_const
-from fw_modules.checkpointR8x import cp_const, cp_getter
+from fw_modules.checkpointR8x import cp_const, cp_object_resolver
 from fw_modules.checkpointR8x.cp_network import normalize_network_objects
 
 
@@ -105,7 +105,9 @@ def test_voip_object_only_referenced_via_object_dictionary_is_resolvable():
     native_config: dict[str, Any] = {"objects": []}
     normalized_config: dict[str, Any] = {}
 
-    cp_getter.resolve_ref_from_object_dictionary(voip_uid, object_dictionary, native_config, field_name="destination")
+    cp_object_resolver.resolve_ref_from_object_dictionary(
+        voip_uid, object_dictionary, native_config, field_name="destination"
+    )
     normalize_network_objects(native_config, normalized_config, import_id=1)
 
     normalized_uids = [nw_obj["obj_uid"] for nw_obj in normalized_config["network_objects"]]

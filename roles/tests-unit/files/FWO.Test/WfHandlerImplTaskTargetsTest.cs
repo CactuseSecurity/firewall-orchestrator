@@ -34,6 +34,7 @@ namespace FWO.Test
         private static readonly List<int?> kAllGateways = [1, 2, 3];
         private static readonly List<int?> kRemainingGateways = [2, 3];
         private static readonly List<int> kOffsetsOfTwoSinglePages = [0, 1];
+        private static readonly List<int> kGatewayIds = [1, 2, 3];
 
         private static InMemoryDeviceSpecificSettingsApiConnection CreateApi(ProvisioningObjectCreationMode globalMode)
         {
@@ -48,9 +49,9 @@ namespace FWO.Test
             return api;
         }
 
-        private static WfHandler CreateMiddlewareHandler(InMemoryDeviceSpecificSettingsApiConnection api, AutoCreateImplTaskOptions option = AutoCreateImplTaskOptions.never)
+        private static WfHandler CreateMiddlewareHandler(InMemoryDeviceSpecificSettingsApiConnection api)
         {
-            return new WfHandler(new SimulatedUserConfig { ReqAutoCreateImplTasks = option }, api, WorkflowPhases.planning, null);
+            return new WfHandler(new SimulatedUserConfig(), api, WorkflowPhases.planning, null);
         }
 
         /// <summary>
@@ -391,8 +392,11 @@ namespace FWO.Test
         [Test]
         public async Task AccessTask_RerunSkipsGatewaysWithExistingTasks()
         {
-            WfHandler handler = CreateMiddlewareHandler(CreateApi(ProvisioningObjectCreationMode.Supermanager), AutoCreateImplTaskOptions.forEachDevice);
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateMiddlewareHandler(api);
             handler.Devices = CreateDevices();
+            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kGatewayIds);
             WfReqTask reqTask = CreateAccessTask(kSuperManagementId);
             reqTask.ImplementationTasks.Add(new WfImplTask { Id = 100, TaskNumber = 1, DeviceId = 1 });
 
@@ -440,7 +444,9 @@ namespace FWO.Test
         [Test]
         public async Task CreateMissingImplTasksForTicket_DoesNotDuplicateGenericTasksOnRerun()
         {
-            WfHandler handler = CreateMiddlewareHandler(CreateApi(ProvisioningObjectCreationMode.Supermanager));
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateMiddlewareHandler(api);
             SetMatrix(handler, WfTaskType.rule_delete.ToString(), new StateMatrix { MinTicketCompleted = kCompletedStateId });
             WfReqTask ruleDeleteTask = new() { Id = 11, TaskType = WfTaskType.rule_delete.ToString(), StateId = kOpenStateId, Title = "Delete rule" };
             WfTicket ticket = new() { Id = 5, Tasks = [ruleDeleteTask] };
@@ -485,11 +491,10 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AccessTask_AfterPathAnalysisCreatesTaskForEveryFoundGateway()
+        public async Task AccessTask_PathAnalysisToolCreatesTaskForEveryFoundGateway()
         {
             PathAnalysisApiConnection api = new(CreateDevices());
-            WfHandler handler = new(new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.afterPathAnalysis },
-                api, WorkflowPhases.planning, null)
+            WfHandler handler = new(new SimulatedUserConfig(), api, WorkflowPhases.planning, null)
             {
                 Devices = CreateDevices()
             };
@@ -497,7 +502,7 @@ namespace FWO.Test
             reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.source.ToString(), Cidr = new Cidr("10.0.0.1/32") });
             reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.destination.ToString(), Cidr = new Cidr("10.0.1.1/32") });
 
-            await InvokeAutoCreateImplTasks(handler, reqTask);
+            await handler.CreateAccessImplTasksFromPathAnalysis(reqTask);
 
             Assert.Multiple(() =>
             {

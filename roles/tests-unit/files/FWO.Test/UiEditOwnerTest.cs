@@ -60,6 +60,11 @@ namespace FWO.Test
             property.SetValue(component, value);
         }
 
+        private static string? GetStringVariable(object? variables, string name)
+        {
+            return variables?.GetType().GetProperty(name)?.GetValue(variables) as string;
+        }
+
         private static IRenderedComponent<EditOwner> RenderEditOwner(
             BunitContext context,
             FwoOwner owner,
@@ -354,6 +359,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EditOwner_AddNetworkOwners_StoresNameForEveryIp()
+        {
+            await using BunitContext context = new();
+            EditOwnerTestApiConn apiConn = new();
+            FwoOwner owner = new() { Id = 9, Name = "Owner E" };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, apiConn: apiConn);
+
+            List<NwObjectElement> ipsToAdd = new()
+            {
+                new NwObjectElement("10.0.6.10/32", 0),
+                new NwObjectElement("10.0.1.128/32-10.0.1.255/32", 0)
+            };
+            SetPrivateField(editOwner.Instance, "IpsToAdd", ipsToAdd);
+
+            await (Task)GetPrivateMethod("AddNetworkOwners").Invoke(editOwner.Instance, null)!;
+
+            List<string?> names = apiConn.NetworkOwnershipVariables.ConvertAll(variables => GetStringVariable(variables, "name"));
+            Assert.That(names, Is.EqualTo(new List<string?> { "10.0.6.10", "10.0.1.128/25" }));
+        }
+
+        [Test]
         public async Task EditOwner_ReinitializeRuleOwnerMapping_MarksTheRebuildAsTriggeredByChange()
         {
             await using BunitContext context = new();
@@ -526,6 +552,7 @@ namespace FWO.Test
         public int GetOwnerRecertCalls { get; private set; }
         public int RecertifyOwnerCalls { get; private set; }
         public int SetOwnerLastRecertCalls { get; private set; }
+        public List<object?> NetworkOwnershipVariables { get; } = [];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
@@ -555,10 +582,15 @@ namespace FWO.Test
                 });
             }
 
+            if (query == OwnerQueries.newNetworkOwnership)
+            {
+                NetworkOwnershipVariables.Add(variables);
+                return Task.FromResult(Activator.CreateInstance<QueryResponseType>());
+            }
+
             if (query == OwnerQueries.deleteOwnerResponsibles
                 || query == OwnerQueries.newOwnerResponsibles
                 || query == OwnerQueries.newRuleOwnership
-                || query == OwnerQueries.newNetworkOwnership
                 || query == OwnerQueries.deleteRuleOwnership
                 || query == OwnerQueries.deleteNetworkOwnership)
             {

@@ -21,6 +21,7 @@ internal class DeviceSpecificSettingsManagerTest
     private static readonly List<DeviceSpecificScopeType> kExpectedLevelOrder =
         [DeviceSpecificScopeType.Global, DeviceSpecificScopeType.DeviceType, DeviceSpecificScopeType.Management,
             DeviceSpecificScopeType.Gateway, DeviceSpecificScopeType.Gateway];
+    private static readonly List<DeviceSpecificScopePath> kNoPaths = [];
     private static readonly DeviceType kFortiGateType = new() { Id = 10, Name = "FortiGate", Version = "5ff", Manufacturer = "Fortinet" };
     private static readonly DeviceType kFortiAdomType = new() { Id = 11, Name = "FortiADOM", Version = "5ff", Manufacturer = "Fortinet" };
 
@@ -523,6 +524,48 @@ internal class DeviceSpecificSettingsManagerTest
         DeviceSpecificSettingsManager manager = new(CreateFourLevelHierarchy(includeGateway: false));
 
         Assert.ThrowsAsync<KeyNotFoundException>(async () => await manager.MoveNodeAsync(GatewayScope(nodeId: 0), 3));
+    }
+
+    [Test]
+    public async Task LoadEffectiveSettings_ResolvesEveryPathWithOneQuery()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateFourLevelHierarchy();
+        api.SetValue(1, DeviceSpecificSettingKeys.RuleLoggingOverride, ProvisioningLoggingMode.LogTrack);
+        api.SetValue(3, DeviceSpecificSettingKeys.InstallOn, ProvisioningInstallOn.GatewaysInPath);
+        api.SetValue(4, DeviceSpecificSettingKeys.RuleZoneToOverride, "dmz");
+        Device gatewayWithoutNode = new() { Id = 201, Name = "Gateway without node" };
+        Management management = new() { Id = 100, Name = "Management", DeviceType = kFortiGateType, Devices = [gatewayWithoutNode] };
+        List<DeviceSpecificScopePath> paths =
+        [
+            DeviceSpecificScopePath.Global(),
+            DeviceSpecificScopePath.ForManagement(management),
+            GatewayPath(),
+            DeviceSpecificScopePath.ForGateway(management, gatewayWithoutNode)
+        ];
+
+        List<GlobalDeviceSpecificSettings> settings = await new DeviceSpecificSettingsManager(api).LoadEffectiveSettingsAsync(paths);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(api.Calls.Count(call => call.Query == DeviceSpecificSettingsQueries.getNodesByNaturalKeys), Is.EqualTo(1));
+            Assert.That(settings.Select(setting => setting.RuleLoggingOverride), Is.All.EqualTo(ProvisioningLoggingMode.LogTrack));
+            Assert.That(settings[0].InstallOn, Is.EqualTo(ProvisioningInstallOn.Any), "global keeps the compiled default");
+            Assert.That(settings[1].InstallOn, Is.EqualTo(ProvisioningInstallOn.GatewaysInPath));
+            Assert.That(settings[2].RuleZoneToOverride, Is.EqualTo("dmz"));
+            Assert.That(settings[3].InstallOn, Is.EqualTo(ProvisioningInstallOn.GatewaysInPath), "inherited from the management");
+            Assert.That(settings[3].RuleZoneToOverride, Is.EqualTo("ANY"), "the override of another gateway does not apply");
+        }
+    }
+
+    [Test]
+    public async Task LoadEffectiveSettings_WithoutPaths_SendsNoQuery()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateFourLevelHierarchy();
+
+        List<GlobalDeviceSpecificSettings> settings = await new DeviceSpecificSettingsManager(api).LoadEffectiveSettingsAsync(kNoPaths);
+
+        Assert.That(settings, Is.Empty);
+        Assert.That(api.Calls, Is.Empty);
     }
 
     /// <summary>The path Global / device type / management 100 / gateway 200, by default below device type 10.</summary>

@@ -170,7 +170,7 @@ internal class DeviceSpecificSettingsDataTest
             Assert.That(fortiManagement, Does.Contain(DeviceSpecificSettingKeys.SecurityProfiles));
             Assert.That(fortiGateway, Does.Not.Contain(DeviceSpecificSettingKeys.RuleZoneFromOverride));
             Assert.That(fortiGateway, Does.Not.Contain(DeviceSpecificSettingKeys.SecurityProfiles));
-            Assert.That(fortiGateway, Does.Contain(DeviceSpecificSettingKeys.PlanImplementation));
+            Assert.That(fortiGateway, Does.Contain(DeviceSpecificSettingKeys.AutoPlanImplementation));
         }
     }
 

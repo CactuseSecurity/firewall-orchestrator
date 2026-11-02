@@ -158,7 +158,7 @@ namespace FWO.Test
             {
                 userConfig = new SimulatedUserConfig
                 {
-                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices,
+                    ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices,
                     ReqConsiderBundling = true
                 }
             };
@@ -778,7 +778,7 @@ namespace FWO.Test
         public MonitorWorkflowUserConfig()
         {
             ReqAvailableTaskTypes = "[\"access\",\"group_create\"]";
-            ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices;
+            ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices;
             ReqConsiderBundling = true;
         }
 

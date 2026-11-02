@@ -1,4 +1,5 @@
 using FWO.Middleware.Server.Responses;
+using System.Diagnostics.CodeAnalysis;
 
 namespace FWO.Middleware.Server.Requests;
 
@@ -99,7 +100,6 @@ public static class FlowComplianceRequestValidator
         {
             return;
         }
-        addresses = addresses ?? [];
         for (int index = 0; index < addresses.Count; index++)
         {
             AddressInputRequestValidator.Validate(addresses[index], $"{path}[{index}]", result);
@@ -116,7 +116,6 @@ public static class FlowComplianceRequestValidator
         {
             return;
         }
-        services = services ?? [];
         for (int index = 0; index < services.Count; index++)
         {
             ValidateService(services[index], $"{path}[{index}]", result);
@@ -170,7 +169,6 @@ public static class FlowComplianceRequestValidator
         {
             return;
         }
-        policies = policies ?? [];
         for (int index = 0; index < policies.Count; index++)
         {
             if (policies[index] <= 0)
@@ -186,7 +184,7 @@ public static class FlowComplianceRequestValidator
     /// Adds an error for a null list or a list with more than <paramref name="maxEntries"/> entries.
     /// </summary>
     /// <returns>True when the list is not null and its entries should be validated one by one.</returns>
-    private static bool ValidateListSize<TItem>(List<TItem>? items, string path, int maxEntries, RequestValidationErrorResponse result)
+    private static bool ValidateListSize<TItem>([NotNullWhen(true)] List<TItem>? items, string path, int maxEntries, RequestValidationErrorResponse result)
     {
         if (items == null)
         {
@@ -194,7 +192,7 @@ public static class FlowComplianceRequestValidator
                 $"'{path}' must not be null. Omit it or use an empty list."));
             return false;
         }
-        if ((items ?? []).Count > maxEntries)
+        if (items.Count > maxEntries)
         {
             result.Errors.Add(AggregatedRequestKeyValidation.BuildError(path,
                 $"'{path}' must not exceed {maxEntries} entries."));

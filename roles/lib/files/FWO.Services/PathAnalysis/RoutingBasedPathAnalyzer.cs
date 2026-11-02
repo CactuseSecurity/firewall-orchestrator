@@ -17,7 +17,7 @@ namespace FWO.Services.PathAnalysis
     /// empty result instead of an exception. The algorithm has no database id and is not created by
     /// <see cref="PathAnalyzerFactory"/>.
     /// </remarks>
-    public class RoutingBasedPathAnalyzer
+    public static class RoutingBasedPathAnalyzer
     {
         /// <summary>
         /// Analyzes one path and returns the names of the devices on it.
@@ -53,8 +53,7 @@ namespace FWO.Services.PathAnalysis
             {
                 foreach (var elemPair in AnalyseElements(elements))
                 {
-                    List<Device> actDevList = [];
-                    actDevList = await AnalyzeSinglePath(elemPair.Key, elemPair.Value, apiConnection);
+                    List<Device> actDevList = await AnalyzeSinglePath(elemPair.Key, elemPair.Value, apiConnection);
                     foreach (var dev in actDevList)
                     {
                         if (DevList.FirstOrDefault(x => x.Id == dev.Id) == null)

@@ -66,7 +66,7 @@ public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalDa
 
         /// <summary>
         /// Gets or sets the protocol name, for example <c>tcp</c> or <c>icmp</c>, or the numeric protocol id, for
-        /// example <c>6</c>; <c>-1</c> means any protocol. Must not be empty.
+        /// example <c>6</c>. Must not be empty.
         /// </summary>
         [JsonPropertyName("protocol")]
         public string Protocol { get; set; } = string.Empty;

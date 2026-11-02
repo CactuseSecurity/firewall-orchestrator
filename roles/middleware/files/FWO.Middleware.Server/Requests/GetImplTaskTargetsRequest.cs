@@ -1,5 +1,4 @@
 using System.Text.Json;
-using FWO.Middleware.Server.OpenApi;
 using System.Text.Json.Serialization;
 
 namespace FWO.Middleware.Server.Requests;
@@ -17,14 +16,10 @@ public sealed class GetImplTaskTargetsRequest : IRequestWithRootAdditionalData
     private GetImplTaskTargetsOptions options = new();
 
     /// <summary>
-    /// Gets or sets the database id of the management the request task belongs to. Required and greater than 0.
+    /// Gets or sets the database id of the management the request task belongs to, greater than 0. Omitted or
+    /// <c>null</c> resolves the targets of all managements, like an object task without management (e.g. ordered
+    /// through the REST interface); only an admin may ask for all managements. Defaults to <c>null</c>.
     /// </summary>
-    /// <remarks>
-    /// Nullable rather than required for the deserializer, so an omitted key is reported together with every
-    /// other error of the request instead of on its own. <see cref="OpenApiRequiredAttribute"/> keeps the key
-    /// mandatory in the generated schema.
-    /// </remarks>
-    [OpenApiRequired]
     [JsonPropertyName("managementId")]
     public int? ManagementId { get; set; }
 

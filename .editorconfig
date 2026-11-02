@@ -12,6 +12,11 @@ charset = utf-8
 indent_style = space
 indent_size = 4
 trim_trailing_whitespace = false
+dotnet_diagnostic.CA1001.severity = warning
+dotnet_diagnostic.CA2213.severity = warning
+dotnet_diagnostic.CA1063.severity = warning
+dotnet_diagnostic.CA1816.severity = warning
+dotnet_diagnostic.CA2215.severity = warning
 
 [*.razor]
 indent_style = space

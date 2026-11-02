@@ -17,7 +17,7 @@ namespace FWO.Test
     /// Unit tests for TokenService using custom mock implementations.
     /// </summary>
     [TestFixture]
-    public class TokenServiceTest
+    public sealed class TokenServiceTest : IDisposable
     {
         private MockMiddlewareClient? mockMiddlewareClient;
         private MockProtectedSessionStorage? mockSessionStorage;
@@ -37,6 +37,7 @@ namespace FWO.Test
         [TearDown]
         public void TearDown()
         {
+            tokenService?.Dispose();
             mockSessionStorage?.Clear();
             mockMiddlewareClient?.Reset();
         }
@@ -886,6 +887,12 @@ namespace FWO.Test
             }
         }
 
+        public void Dispose()
+        {
+            tokenService?.Dispose();
+            mockMiddlewareClient?.Dispose();
+            GC.SuppressFinalize(this);
+        }
         #endregion
     }
 }

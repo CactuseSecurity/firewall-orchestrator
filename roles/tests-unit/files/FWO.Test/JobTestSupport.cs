@@ -17,7 +17,10 @@ namespace FWO.Test
         public override void SwitchBack() { }
         public override void DisposeSubscriptions<T>() { }
         public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct) => Task.CompletedTask;
-        protected override void Dispose(bool disposing) { }
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+        }
         public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(
             Action<Exception> exceptionHandler,
             GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler,

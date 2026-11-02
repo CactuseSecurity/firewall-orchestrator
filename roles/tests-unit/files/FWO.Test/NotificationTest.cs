@@ -19,7 +19,7 @@ namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal class NotificationTest
+    internal sealed class NotificationTest : IDisposable
     {
         readonly NotificationTestApiConn apiConnection = new();
         readonly SimulatedGlobalConfig globalConfig = new() { UseDummyEmailAddress = true, DummyEmailAddress = "x@y.de" };
@@ -1173,6 +1173,13 @@ namespace FWO.Test
 
             Assert.That(connection.CheckCertificates, Is.EqualTo(checkCertificates));
             Assert.That(connection.ServerAddress, Is.EqualTo("smtp.example.test"));
+        }
+
+        public void Dispose()
+        {
+            apiConnection.Dispose();
+            globalConfig.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

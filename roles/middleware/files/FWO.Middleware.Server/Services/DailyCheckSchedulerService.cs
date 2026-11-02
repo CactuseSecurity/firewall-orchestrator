@@ -153,6 +153,8 @@ namespace FWO.Middleware.Server.Services
                     Log.WriteError(SchedulerName, "Error during disposal", ex);
                 }
             }
+
+            GC.SuppressFinalize(this);
         }
 
         private readonly record struct ScheduleFingerprint(DateTime StartAt, TimeSpan Interval);

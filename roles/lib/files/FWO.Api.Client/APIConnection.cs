@@ -6,6 +6,8 @@ namespace FWO.Api.Client
     {
         private bool disposed = false;
 
+        protected bool IsDisposed => disposed;
+
         public event EventHandler<string>? OnAuthHeaderChanged;
         public event EventHandler<string>? OnExecutionModeChanged;
 
@@ -113,20 +115,52 @@ namespace FWO.Api.Client
         public abstract GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler,
             GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null);
 
-        protected abstract void Dispose(bool disposing);
+        /// <summary>
+        /// Releases the registered subscriptions and detaches all event handlers.
+        /// </summary>
+        /// <param name="disposing">True when called from <see cref="Dispose()"/>, false when called from the finalizer.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                List<ApiSubscription> subscriptionsToDispose;
+                lock (subscriptionsLock)
+                {
+                    subscriptionsToDispose = [.. subscriptions];
+                    subscriptions.Clear();
+                }
+
+                // Disposed outside the lock because disposing a subscription reaches back into this instance.
+                foreach (ApiSubscription subscription in subscriptionsToDispose)
+                {
+                    subscription.Dispose();
+                }
+
+                OnAuthHeaderChanged = null;
+                OnExecutionModeChanged = null;
+            }
+
+            disposed = true;
+        }
+
         public abstract void DisposeSubscriptions<T>();
 
         ~ApiConnection()
         {
-            if (disposed) return;
             Dispose(false);
         }
 
+        /// <summary>
+        /// Releases the registered subscriptions and detaches all event handlers.
+        /// </summary>
         public void Dispose()
         {
-            if (disposed) return;
             Dispose(true);
-            disposed = true;
             GC.SuppressFinalize(this);
         }
     }

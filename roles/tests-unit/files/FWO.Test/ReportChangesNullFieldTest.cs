@@ -13,7 +13,7 @@ namespace FWO.Test
     /// </summary>
     [TestFixture]
     [Parallelizable]
-    internal class ReportChangesNullFieldTest
+    internal sealed class ReportChangesNullFieldTest : IDisposable
     {
         private const string NewObjectName = "ObjectWithFilledFields";
         private const string NewObjectComment = "CommentAfterChange";
@@ -33,6 +33,12 @@ namespace FWO.Test
             StartTime = DateTime.Parse("2023-04-19T17:00:04"),
             EndTime = DateTime.Parse("2023-04-20T17:00:04")
         };
+
+        public void Dispose()
+        {
+            userConfig.Dispose();
+            GC.SuppressFinalize(this);
+        }
 
         [Test]
         public void ExportToHtml_RendersChangedObject_WhenPreviousValuesAreNull()

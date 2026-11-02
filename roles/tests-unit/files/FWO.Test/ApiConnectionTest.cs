@@ -114,12 +114,45 @@ namespace FWO.Test
             Assert.That(connection.DisposeCount, Is.EqualTo(1));
         }
 
+        [Test]
+        public void DisposeDisposesRegisteredSubscriptionsAndDetachesEvents()
+        {
+            TrackingApiConnection connection = new();
+            CountingSubscription subscription = new();
+            int authHeaderChanges = 0;
+            connection.AddSubscription(subscription);
+            connection.OnAuthHeaderChanged += (_, _) => authHeaderChanges++;
+
+            connection.Dispose();
+            connection.SetAuthHeader("jwt");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(subscription.DisposeCount, Is.EqualTo(1));
+                Assert.That(authHeaderChanges, Is.EqualTo(0));
+            });
+        }
+
         private static ClaimsPrincipal CreateUser(string role)
         {
             return new ClaimsPrincipal(new ClaimsIdentity(
             [
                 new Claim(ClaimTypes.Role, role)
             ], "test", ClaimTypes.Name, ClaimTypes.Role));
+        }
+
+        private sealed class CountingSubscription : ApiSubscription
+        {
+            public int DisposeCount { get; private set; }
+
+            internal override void Rebind(GraphQL.Client.Http.GraphQLHttpClient graphQlClient)
+            { }
+
+            protected override void Dispose(bool disposing)
+            {
+                DisposeCount++;
+                base.Dispose(disposing);
+            }
         }
 
         private sealed class TrackingApiConnection : ApiConnection
@@ -173,9 +206,19 @@ namespace FWO.Test
                 ActiveRole = previousRoles.TryPop(out string? previousRole) ? previousRole : "";
             }
 
+            public void AddSubscription(ApiSubscription subscription)
+            {
+                subscriptions.Add(subscription);
+            }
+
             protected override void Dispose(bool disposing)
             {
-                DisposeCount++;
+                if (!IsDisposed)
+                {
+                    DisposeCount++;
+                }
+
+                base.Dispose(disposing);
             }
 
             public override void DisposeSubscriptions<T>()

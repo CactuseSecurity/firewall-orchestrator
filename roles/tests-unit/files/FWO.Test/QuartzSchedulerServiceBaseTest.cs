@@ -203,6 +203,44 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisposeAsync_DisposesTheConfigSubscription()
+        {
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            ConfigureQuartzScheduler(scheduler);
+            ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
+            schedulerFactory.GetScheduler().Returns(_ => new ValueTask<IScheduler>(scheduler));
+            CapturingApiConnection apiConnection = new();
+            using TestApplicationLifetime appLifetime = new();
+
+            SubscriptionDrivenTestSchedulerService service = new(schedulerFactory, apiConnection, new SimulatedGlobalConfig(), appLifetime);
+            appLifetime.Start();
+            await WaitUntil(() => apiConnection.LastSubscription != null);
+
+            await service.DisposeAsync();
+
+            Assert.That(apiConnection.LastSubscription!.IsDisposed, Is.True);
+        }
+
+        [Test]
+        public async Task DailyCheckScheduler_DisposeAsync_DisposesTheConfigSubscription()
+        {
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            ConfigureQuartzScheduler(scheduler);
+            ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
+            schedulerFactory.GetScheduler().Returns(_ => new ValueTask<IScheduler>(scheduler));
+            CapturingApiConnection apiConnection = new();
+            using TestApplicationLifetime appLifetime = new();
+
+            DailyCheckSchedulerService service = new(schedulerFactory, apiConnection, new SimulatedGlobalConfig(), appLifetime);
+            appLifetime.Start();
+            await WaitUntil(() => apiConnection.LastSubscription != null);
+
+            await service.DisposeAsync();
+
+            Assert.That(apiConnection.LastSubscription!.IsDisposed, Is.True);
+        }
+
+        [Test]
         public async Task DailyCheckConfigEmissionWithUnchangedSchedule_DoesNotRecreateQuartzJob()
         {
             IScheduler scheduler = Substitute.For<IScheduler>();
@@ -322,6 +360,8 @@ namespace FWO.Test
         {
             public GraphQlApiSubscription<List<ConfigItem>>.SubscriptionUpdate? ConfigUpdateHandler { get; private set; }
 
+            public ApiSubscription? LastSubscription { get; private set; }
+
             public void Emit(List<ConfigItem> configItems)
             {
                 ConfigUpdateHandler?.Invoke(configItems);
@@ -339,12 +379,14 @@ namespace FWO.Test
                     ConfigUpdateHandler = (GraphQlApiSubscription<List<ConfigItem>>.SubscriptionUpdate)(object)subscriptionUpdateHandler;
                 }
 
-                return new SimulatedApiSubscription<SubscriptionResponseType>(
+                SimulatedApiSubscription<SubscriptionResponseType> createdSubscription = new(
                     this,
                     new GraphQLHttpClient(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new()),
                     new GraphQLRequest(subscription, variables, operationName),
                     exceptionHandler,
                     subscriptionUpdateHandler);
+                LastSubscription = createdSubscription;
+                return createdSubscription;
             }
         }
 

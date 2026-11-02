@@ -2603,7 +2603,7 @@ namespace FWO.Test
             public async ValueTask DisposeAsync()
             {
                 cancellationTokenSource.Cancel();
-                listener.Stop();
+                listener.Dispose();
                 try
                 {
                     await worker;

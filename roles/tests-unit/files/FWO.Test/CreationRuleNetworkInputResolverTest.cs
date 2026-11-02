@@ -1,6 +1,7 @@
 using FWO.Compliance.RulePositioning;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using NUnit.Framework;
@@ -39,7 +40,7 @@ public class CreationRuleNetworkInputResolverTest
     [Test]
     public async Task ValidCidr_TakesPrecedenceOverLegacyIpStrings()
     {
-        WfReqElement source = Leaf(ElemFieldType.source, "192.0.2.99", "192.0.2.100");
+        WfReqElement source = Leaf(ElemFieldType.source, "not-an-ip", "also-not-an-ip");
         source.Cidr = new Cidr("10.10.10.0/30");
         WfReqTask access = Access(
             [source],
@@ -53,6 +54,74 @@ public class CreationRuleNetworkInputResolverTest
             Assert.That(success.Input.SourceRanges.Single().Begin.ToString(), Is.EqualTo("10.10.10.0"));
             Assert.That(success.Input.SourceRanges.Single().End.ToString(), Is.EqualTo("10.10.10.3"));
         });
+    }
+
+    [Test]
+    public async Task LegacyIpString_WithDottedNetmaskRemainsSupported()
+    {
+        WfReqTask access = Access(
+            [Leaf(ElemFieldType.source, "10.10.10.0/255.255.255.0", null)],
+            [Leaf(ElemFieldType.destination, "203.0.113.1", null)]);
+
+        CreationRuleNetworkResolutionSuccess success = (CreationRuleNetworkResolutionSuccess)
+            await Resolver().ResolveAsync(access, [access], CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(success.Input.SourceRanges.Single().Begin.ToString(), Is.EqualTo("10.10.10.0"));
+            Assert.That(success.Input.SourceRanges.Single().End.ToString(), Is.EqualTo("10.10.10.255"));
+        });
+    }
+
+    [Test]
+    public async Task CatalogMemberEndpointCidrs_AreTreatedAsExplicitEndpoints()
+    {
+        WfReqTask access = Access(
+            [new WfReqElement { Field = "source", FlowNetworkGroupId = 7 }],
+            [Leaf(ElemFieldType.destination, "203.0.113.1", null)]);
+        FakeFlowGroupResolver groups = new(new FlowGroupResolutionResult
+        {
+            NetworkGroups =
+            [
+                new FlowNetworkGroupResolution
+                {
+                    Id = 7,
+                    Name = "catalog",
+                    Members =
+                    [
+                        new FlowNetworkMemberResolution
+                        {
+                            Id = 1,
+                            IpStart = "10.0.0.1/24",
+                            IpEnd = "10.0.0.2/24"
+                        }
+                    ]
+                }
+            ]
+        });
+
+        CreationRuleNetworkResolutionSuccess success = (CreationRuleNetworkResolutionSuccess)
+            await Resolver(groups).ResolveAsync(access, [access], CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(success.Input.SourceRanges.Single().Begin.ToString(), Is.EqualTo("10.0.0.1"));
+            Assert.That(success.Input.SourceRanges.Single().End.ToString(), Is.EqualTo("10.0.0.2"));
+        });
+    }
+
+    [TestCase("10.0.0.9", "10.0.0.1")]
+    [TestCase("10.0.0.1", "2001:db8::1")]
+    public async Task ExplicitEndpoints_RejectReversedOrMixedAddressFamilies(string start, string end)
+    {
+        WfReqTask access = Access(
+            [Leaf(ElemFieldType.source, start, end)],
+            [Leaf(ElemFieldType.destination, "203.0.113.1", null)]);
+
+        CreationRuleNetworkResolutionFailure failure = (CreationRuleNetworkResolutionFailure)
+            await Resolver().ResolveAsync(access, [access], CancellationToken.None);
+
+        Assert.That(failure.Category, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.InvalidAddress));
     }
 
     [TestCase(null, "192.0.2.1", CreationRuleNetworkResolutionFailureCategory.InvalidInput)]
@@ -584,6 +653,31 @@ public class CreationRuleNetworkInputResolverTest
                 throw Exception;
             }
             return Task.FromResult(resultFactory(parameters));
+        }
+    }
+
+    private sealed class CreationRuleNetworkResolutionSuccess(CreationRuleNetworkInput input)
+    {
+        internal CreationRuleNetworkInput Input { get; } = input;
+
+        public static explicit operator CreationRuleNetworkResolutionSuccess(
+            PositioningResult<CreationRuleNetworkInput, CreationRuleNetworkResolutionFailureCategory> result)
+        {
+            Assert.That(result.TryGetValue(out CreationRuleNetworkInput? input), Is.True);
+            return new CreationRuleNetworkResolutionSuccess(input!);
+        }
+    }
+
+    private sealed class CreationRuleNetworkResolutionFailure(CreationRuleNetworkResolutionFailureCategory category)
+    {
+        internal CreationRuleNetworkResolutionFailureCategory Category { get; } = category;
+        internal string Diagnostic => Category.GetDiagnostic();
+
+        public static explicit operator CreationRuleNetworkResolutionFailure(
+            PositioningResult<CreationRuleNetworkInput, CreationRuleNetworkResolutionFailureCategory> result)
+        {
+            Assert.That(result.TryGetFailure(out CreationRuleNetworkResolutionFailureCategory failure), Is.True);
+            return new CreationRuleNetworkResolutionFailure(failure);
         }
     }
 }

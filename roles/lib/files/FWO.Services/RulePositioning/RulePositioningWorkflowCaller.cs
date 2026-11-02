@@ -51,7 +51,7 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
             cancellationToken.ThrowIfCancellationRequested();
             (Device Gateway, Management Management) target = await LoadTargetAsync(
                 implementationTask.DeviceId!.Value,
-                EffectiveManagementId(requestTask, implementationTask));
+                RulePositioningContextValidator.EffectiveManagementId(requestTask, implementationTask));
             cancellationToken.ThrowIfCancellationRequested();
             DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> settings =
                 await settingsManager.LoadLevelAsync<GatewayDeviceSpecificSettings>(
@@ -166,40 +166,7 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
     /// <summary>Checks task shape and identity before loading any external context.</summary>
     public bool IsApplicable(WfReqTask? requestTask, WfImplTask? implementationTask)
     {
-        if (requestTask == null
-            || implementationTask == null
-            || requestTask.Id <= 0
-            || implementationTask.Id <= 0
-            || implementationTask.ReqTaskId != requestTask.Id
-            || implementationTask.DeviceId is null or <= 0
-            || EffectiveManagementId(requestTask, implementationTask) <= 0)
-        {
-            return false;
-        }
-
-        string accessTaskType = WfTaskType.access.ToString();
-        string createAction = RequestAction.create.ToString();
-        if (requestTask.TaskType != accessTaskType
-            || implementationTask.TaskType != accessTaskType
-            || requestTask.RequestAction != createAction
-            || implementationTask.ImplAction != createAction)
-        {
-            return false;
-        }
-
-        List<int> requestGatewayIds = [.. requestTask.GetDeviceList().Distinct()];
-        bool hasExplicitFiniteGatewaySelection = requestGatewayIds.Count > 0
-            && !requestGatewayIds.Contains(WfReqTaskBase.kAllDevicesId);
-        return (!hasExplicitFiniteGatewaySelection
-                || requestGatewayIds.Contains(implementationTask.DeviceId.Value))
-            && (requestTask.OnManagement == null
-                || requestTask.OnManagement.Id == requestTask.ManagementId);
-    }
-
-    /// <summary>Returns the implementation override or the request task management.</summary>
-    private static int EffectiveManagementId(WfReqTask requestTask, WfImplTask implementationTask)
-    {
-        return implementationTask.ManagementId ?? requestTask.ManagementId ?? 0;
+        return RulePositioningContextValidator.IsApplicable(requestTask, implementationTask);
     }
 
     /// <summary>Loads exactly one gateway and validates its effective management.</summary>

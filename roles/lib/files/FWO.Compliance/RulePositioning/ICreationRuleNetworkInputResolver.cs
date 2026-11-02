@@ -6,25 +6,15 @@ namespace FWO.Compliance.RulePositioning;
 public interface ICreationRuleNetworkInputResolver
 {
     /// <summary>Resolves the effective source and destination address ranges at the access task.</summary>
-    Task<CreationRuleNetworkResolutionResult> ResolveAsync(
+    Task<PositioningResult<CreationRuleNetworkInput, CreationRuleNetworkResolutionFailureCategory>> ResolveAsync(
         WfReqTask accessTask,
         IReadOnlyCollection<WfReqTask> ticketTasks,
         CancellationToken cancellationToken);
 }
 
-public abstract class CreationRuleNetworkResolutionResult;
-
-public sealed class CreationRuleNetworkResolutionSuccess(CreationRuleNetworkInput input)
-    : CreationRuleNetworkResolutionResult
+public static class CreationRuleNetworkResolutionFailureDiagnostics
 {
-    public CreationRuleNetworkInput Input { get; } = input ?? throw new ArgumentNullException(nameof(input));
-}
-
-public sealed class CreationRuleNetworkResolutionFailure(CreationRuleNetworkResolutionFailureCategory category)
-    : CreationRuleNetworkResolutionResult
-{
-    public CreationRuleNetworkResolutionFailureCategory Category { get; } = category;
-    public string Diagnostic { get; } = category switch
+    public static string GetDiagnostic(this CreationRuleNetworkResolutionFailureCategory category) => category switch
     {
         CreationRuleNetworkResolutionFailureCategory.InvalidInput => "The creation-rule network input is invalid.",
         CreationRuleNetworkResolutionFailureCategory.UnsupportedTask => "The request task is not a supported access-rule creation.",

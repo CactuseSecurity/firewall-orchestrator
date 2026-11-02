@@ -7,25 +7,20 @@ public interface IRulebaseGraphSnapshotReader
     /// <summary>
     /// Loads the latest successfully imported structural graph for one management and gateway.
     /// </summary>
-    Task<RulebaseGraphReadResult> ReadAsync(
+    Task<PositioningResult<RulebaseGraphReadValue, RulebaseGraphReadFailureCategory>> ReadAsync(
         int managementId,
         int gatewayId,
         CancellationToken cancellationToken);
 }
 
-public abstract class RulebaseGraphReadResult
-{
-}
-
-public sealed class RulebaseGraphReadSuccess : RulebaseGraphReadResult
+/// <summary>Successful graph-reader value at one fixed import.</summary>
+public sealed record RulebaseGraphReadValue
 {
     public RulebaseGraphSnapshot Snapshot { get; }
     public long ImportId { get; }
 
-    /// <summary>
-    /// Creates a successful result containing one immutable snapshot.
-    /// </summary>
-    public RulebaseGraphReadSuccess(RulebaseGraphSnapshot snapshot, long importId)
+    /// <summary>Creates a graph value containing one immutable snapshot.</summary>
+    public RulebaseGraphReadValue(RulebaseGraphSnapshot snapshot, long importId)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(importId);
@@ -34,23 +29,11 @@ public sealed class RulebaseGraphReadSuccess : RulebaseGraphReadResult
     }
 }
 
-public sealed class RulebaseGraphReadFailure : RulebaseGraphReadResult
+/// <summary>Provides fixed caller-safe diagnostics for graph-reader failures.</summary>
+public static class RulebaseGraphReadFailureDiagnostics
 {
-    public RulebaseGraphReadFailureCategory Category { get; }
-    public string Diagnostic => GetDiagnostic(Category);
-
-    /// <summary>
-    /// Creates a failure with its fixed category-derived diagnostic.
-    /// </summary>
-    public RulebaseGraphReadFailure(RulebaseGraphReadFailureCategory category)
-    {
-        Category = category;
-    }
-
-    /// <summary>
-    /// Maps a failure category to caller-safe diagnostic text.
-    /// </summary>
-    private static string GetDiagnostic(RulebaseGraphReadFailureCategory category) => category switch
+    /// <summary>Maps a graph-reader failure category to fixed diagnostic text.</summary>
+    public static string GetDiagnostic(this RulebaseGraphReadFailureCategory category) => category switch
     {
         RulebaseGraphReadFailureCategory.InvalidInput => "The rulebase graph scope is invalid.",
         RulebaseGraphReadFailureCategory.NoSuccessfulImport => "No successfully completed policy import is available.",

@@ -6,6 +6,9 @@ using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using NetTools;
 using System.Net.Sockets;
+using CreationRuleZoneResolutionResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Compliance.RulePositioning.CreationRuleZoneInput,
+    FWO.Compliance.RulePositioning.CreationRuleZoneResolutionFailureCategory>;
 
 namespace FWO.Compliance.RulePositioning;
 
@@ -47,7 +50,7 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
 
             SideResolution source = ResolveSide(sourceRanges, validatedZones, configuration, cancellationToken);
             SideResolution destination = ResolveSide(destinationRanges, validatedZones, configuration, cancellationToken);
-            return new CreationRuleZoneResolutionSuccess(new CreationRuleZoneInput(
+            return CreationRuleZoneResolutionResult.Success(new CreationRuleZoneInput(
                 configuration.DesignatedZoneMatrixId,
                 source.Zones,
                 destination.Zones,
@@ -90,7 +93,7 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
             List<ComplianceNetworkZone> validatedZones = ValidateZones(networkZones, configuration, cancellationToken);
             SideResolution source = ResolveSide([.. networkInput.SourceRanges], validatedZones, configuration, cancellationToken);
             SideResolution destination = ResolveSide([.. networkInput.DestinationRanges], validatedZones, configuration, cancellationToken);
-            return Task.FromResult<CreationRuleZoneResolutionResult>(new CreationRuleZoneResolutionSuccess(
+            return Task.FromResult(CreationRuleZoneResolutionResult.Success(
                 new CreationRuleZoneInput(
                     configuration.DesignatedZoneMatrixId,
                     source.Zones,
@@ -563,9 +566,9 @@ public sealed class CreationRuleZoneResolver(IFlowGroupResolver flowGroupResolve
     }
 
     /// <summary>Creates a failed result.</summary>
-    private static CreationRuleZoneResolutionFailure Failure(CreationRuleZoneResolutionFailureCategory category)
+    private static CreationRuleZoneResolutionResult Failure(CreationRuleZoneResolutionFailureCategory category)
     {
-        return new CreationRuleZoneResolutionFailure(category);
+        return CreationRuleZoneResolutionResult.Failure(category);
     }
 
     /// <summary>Creates an unresolved-group control-flow exception.</summary>

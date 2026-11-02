@@ -4,9 +4,13 @@ using FWO.Data;
 using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Services.RulePositioning.CheckPoint;
+using NetTools;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using CheckPointLayerGuardReadResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Data.RulePositioning.CheckPoint.CheckPointLayerGuardSnapshot,
+    FWO.Services.RulePositioning.CheckPoint.CheckPointLayerGuardReadFailureCategory>;
 
 namespace FWO.Test;
 
@@ -51,10 +55,10 @@ public class CheckPointLayerGuardSnapshotReaderTest
         RecordingApi api = new(kValidGuardJson);
         CheckPointLayerGuardSnapshotReader reader = new(api);
 
-        CheckPointLayerGuardReadSuccess success = (CheckPointLayerGuardReadSuccess)
-            await reader.ReadAsync(Graph(), kImportId, CancellationToken.None);
+        CheckPointLayerGuardSnapshot snapshot = AssertSuccess(
+            await reader.ReadAsync(Graph(), kImportId, CancellationToken.None));
 
-        CheckPointLayerGuard guard = success.Snapshot.GuardsByTargetLayerId[2];
+        CheckPointLayerGuard guard = snapshot.GuardsByTargetLayerId[2];
         JObject variables = JObject.FromObject(api.Variables!);
         Assert.Multiple(() =>
         {
@@ -62,11 +66,48 @@ public class CheckPointLayerGuardSnapshotReaderTest
             Assert.That((long?)variables["importId"], Is.EqualTo(kImportId));
             Assert.That(variables["sourceRuleIds"]!.Values<long>(), Is.EqualTo(new long[] { 10 }));
             Assert.That(api.OperationName, Is.EqualTo("getCheckPointLayerGuardsAtImport"));
-            Assert.That(success.Snapshot.ImportId, Is.EqualTo(kImportId));
+            Assert.That(snapshot.ImportId, Is.EqualTo(kImportId));
             Assert.That(guard.SourceRuleId, Is.EqualTo(10));
             Assert.That(guard.Source.Terms.Single().IncludedRanges.Single().Begin.ToString(), Is.EqualTo("10.0.0.0"));
             Assert.That(guard.Destination.Terms.Single().IncludedRanges.Single().End.ToString(), Is.EqualTo("20.0.0.255"));
         });
+    }
+
+    [Test]
+    public async Task ImportedAddressRange_TrimsEndpointWhitespace()
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        JObject sourceObject = (JObject)json[0]!["rule_froms"]![0]!["object"]!;
+        sourceObject["obj_ip"] = " 10.0.0.1 ";
+        sourceObject["obj_ip_end"] = " 10.0.0.9 ";
+
+        CheckPointLayerGuardSnapshot snapshot = AssertSuccess(
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
+        IPAddressRange range = snapshot.GuardsByTargetLayerId[2]
+            .Source.Terms.Single().IncludedRanges.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(range.Begin.ToString(), Is.EqualTo("10.0.0.1"));
+            Assert.That(range.End.ToString(), Is.EqualTo("10.0.0.9"));
+        });
+    }
+
+    [TestCase("10.0.0.9", "10.0.0.1")]
+    [TestCase("10.0.0.1", "2001:db8::1")]
+    public async Task ImportedAddressRange_RejectsReversedOrMixedEndpoints(string start, string end)
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        JObject sourceObject = (JObject)json[0]!["rule_froms"]![0]!["object"]!;
+        sourceObject["obj_ip"] = start;
+        sourceObject["obj_ip_end"] = end;
+
+        CheckPointLayerGuardReadFailureCategory failure = AssertFailure(
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
+
+        Assert.That(failure, Is.EqualTo(CheckPointLayerGuardReadFailureCategory.InvalidGuardData));
     }
 
     [Test]
@@ -93,11 +134,11 @@ public class CheckPointLayerGuardSnapshotReaderTest
             ]
             """);
 
-        CheckPointLayerGuardReadSuccess success = (CheckPointLayerGuardReadSuccess)
+        CheckPointLayerGuardSnapshot snapshot = AssertSuccess(
             await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
-                .ReadAsync(Graph(), kImportId, CancellationToken.None);
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
 
-        CheckPointGuardAddressTerm term = success.Snapshot.GuardsByTargetLayerId[2].Source.Terms.Single();
+        CheckPointGuardAddressTerm term = snapshot.GuardsByTargetLayerId[2].Source.Terms.Single();
         Assert.Multiple(() =>
         {
             Assert.That(term.IncludedRanges, Has.Count.EqualTo(1));
@@ -132,11 +173,11 @@ public class CheckPointLayerGuardSnapshotReaderTest
             ]
             """);
 
-        CheckPointLayerGuardReadSuccess success = (CheckPointLayerGuardReadSuccess)
+        CheckPointLayerGuardSnapshot snapshot = AssertSuccess(
             await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
-                .ReadAsync(Graph(), kImportId, CancellationToken.None);
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
 
-        CheckPointGuardAddressTerm term = success.Snapshot.GuardsByTargetLayerId[2].Source.Terms.Single();
+        CheckPointGuardAddressTerm term = snapshot.GuardsByTargetLayerId[2].Source.Terms.Single();
         Assert.Multiple(() =>
         {
             Assert.That(term.IncludedRanges, Has.Count.EqualTo(1));
@@ -167,11 +208,11 @@ public class CheckPointLayerGuardSnapshotReaderTest
             ]
             """);
 
-        CheckPointLayerGuardReadSuccess success = (CheckPointLayerGuardReadSuccess)
+        CheckPointLayerGuardSnapshot snapshot = AssertSuccess(
             await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
-                .ReadAsync(Graph(), kImportId, CancellationToken.None);
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
 
-        CheckPointGuardAddressTerm term = success.Snapshot.GuardsByTargetLayerId[2].Source.Terms.Single();
+        CheckPointGuardAddressTerm term = snapshot.GuardsByTargetLayerId[2].Source.Terms.Single();
         Assert.Multiple(() =>
         {
             Assert.That(term.IncludedRanges, Is.Empty);
@@ -194,11 +235,11 @@ public class CheckPointLayerGuardSnapshotReaderTest
             _ => 101
         };
 
-        CheckPointLayerGuardReadFailure failure = (CheckPointLayerGuardReadFailure)
+        CheckPointLayerGuardReadFailureCategory failure = AssertFailure(
             await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
-                .ReadAsync(Graph(), kImportId, CancellationToken.None);
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
 
-        Assert.That(failure.Category, Is.EqualTo(CheckPointLayerGuardReadFailureCategory.InvalidGuardData));
+        Assert.That(failure, Is.EqualTo(CheckPointLayerGuardReadFailureCategory.InvalidGuardData));
     }
 
     [Test]
@@ -209,10 +250,10 @@ public class CheckPointLayerGuardSnapshotReaderTest
         RulebaseGraphSnapshot graph = new(kManagementId, kGatewayId, [main],
             [Link(null, null, 1, RulebaseLinkTypes.Ordered, true)]);
 
-        CheckPointLayerGuardReadSuccess success = (CheckPointLayerGuardReadSuccess)
-            await new CheckPointLayerGuardSnapshotReader(api).ReadAsync(graph, kImportId, CancellationToken.None);
+        CheckPointLayerGuardSnapshot snapshot = AssertSuccess(
+            await new CheckPointLayerGuardSnapshotReader(api).ReadAsync(graph, kImportId, CancellationToken.None));
 
-        Assert.That(success.Snapshot.GuardsByTargetLayerId, Is.Empty);
+        Assert.That(snapshot.GuardsByTargetLayerId, Is.Empty);
         Assert.That(api.CallCount, Is.Zero);
     }
 
@@ -220,19 +261,31 @@ public class CheckPointLayerGuardSnapshotReaderTest
     public async Task QueryFailure_IsSanitizedAndCancellationPropagates()
     {
         RecordingApi failedApi = new(new InvalidOperationException("secret"));
-        CheckPointLayerGuardReadFailure failure = (CheckPointLayerGuardReadFailure)
-            await new CheckPointLayerGuardSnapshotReader(failedApi).ReadAsync(Graph(), kImportId, CancellationToken.None);
+        CheckPointLayerGuardReadFailureCategory failure = AssertFailure(
+            await new CheckPointLayerGuardSnapshotReader(failedApi).ReadAsync(Graph(), kImportId, CancellationToken.None));
         using CancellationTokenSource cancellation = new();
         cancellation.Cancel();
 
         Assert.Multiple(() =>
         {
-            Assert.That(failure.Category, Is.EqualTo(CheckPointLayerGuardReadFailureCategory.QueryFailed));
-            Assert.That(failure.Diagnostic, Does.Not.Contain("secret"));
+            Assert.That(failure, Is.EqualTo(CheckPointLayerGuardReadFailureCategory.QueryFailed));
+            Assert.That(failure.GetDiagnostic(), Does.Not.Contain("secret"));
             Assert.ThrowsAsync<OperationCanceledException>(() =>
                 new CheckPointLayerGuardSnapshotReader(new RecordingApi(kValidGuardJson))
                     .ReadAsync(Graph(), kImportId, cancellation.Token));
         });
+    }
+
+    private static CheckPointLayerGuardSnapshot AssertSuccess(CheckPointLayerGuardReadResult result)
+    {
+        Assert.That(result.TryGetValue(out CheckPointLayerGuardSnapshot? snapshot), Is.True);
+        return snapshot!;
+    }
+
+    private static CheckPointLayerGuardReadFailureCategory AssertFailure(CheckPointLayerGuardReadResult result)
+    {
+        Assert.That(result.TryGetFailure(out CheckPointLayerGuardReadFailureCategory failure), Is.True);
+        return failure;
     }
 
     private static RulebaseGraphSnapshot Graph()

@@ -3,6 +3,9 @@ using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using NetTools;
+using CreationRuleNetworkResolutionResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Data.RulePositioning.CreationRuleNetworkInput,
+    FWO.Compliance.RulePositioning.CreationRuleNetworkResolutionFailureCategory>;
 
 namespace FWO.Compliance.RulePositioning;
 
@@ -38,7 +41,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
             ResolutionContext context = new(accessTask, orderedTasks, catalog, cancellationToken);
             List<IPAddressRange> sourceRanges = ResolveElements(sources, context, []);
             List<IPAddressRange> destinationRanges = ResolveElements(destinations, context, []);
-            return new CreationRuleNetworkResolutionSuccess(new CreationRuleNetworkInput(
+            return CreationRuleNetworkResolutionResult.Success(new CreationRuleNetworkInput(
                 PositioningAddressRangeNormalizer.Distinct(sourceRanges),
                 PositioningAddressRangeNormalizer.Distinct(destinationRanges)));
         }
@@ -48,11 +51,11 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         }
         catch (NetworkResolutionException exception)
         {
-            return new CreationRuleNetworkResolutionFailure(exception.Category);
+            return CreationRuleNetworkResolutionResult.Failure(exception.Category);
         }
         catch (Exception)
         {
-            return new CreationRuleNetworkResolutionFailure(
+            return CreationRuleNetworkResolutionResult.Failure(
                 CreationRuleNetworkResolutionFailureCategory.UnexpectedFailure);
         }
     }

@@ -4,6 +4,9 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.RulePositioning;
 using Newtonsoft.Json;
+using RulebaseGraphReadResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Services.RulePositioning.RulebaseGraphReadValue,
+    FWO.Services.RulePositioning.RulebaseGraphReadFailureCategory>;
 
 namespace FWO.Services.RulePositioning;
 
@@ -133,9 +136,8 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
 
         try
         {
-            return new RulebaseGraphReadSuccess(
-                new RulebaseGraphSnapshot(managementId, gatewayId, rulebases, links),
-                importId);
+            return RulebaseGraphReadResult.Success(new RulebaseGraphReadValue(
+                new RulebaseGraphSnapshot(managementId, gatewayId, rulebases, links), importId));
         }
         catch (ArgumentException)
         {
@@ -380,7 +382,8 @@ public sealed class RulebaseGraphSnapshotReader : IRulebaseGraphSnapshotReader
     /// <summary>
     /// Creates one category-only reader failure.
     /// </summary>
-    private static RulebaseGraphReadFailure Failure(RulebaseGraphReadFailureCategory category) => new(category);
+    private static RulebaseGraphReadResult Failure(RulebaseGraphReadFailureCategory category) =>
+        RulebaseGraphReadResult.Failure(category);
 
     private sealed record QueryResult<T>(bool Succeeded, T? Value);
 

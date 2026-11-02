@@ -1,6 +1,10 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
+using FWO.Data.RulePositioning;
+using DesignatedZoneMatrixReadResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Compliance.RulePositioning.DesignatedZoneMatrixReadValue,
+    FWO.Compliance.RulePositioning.DesignatedZoneMatrixReadFailureCategory>;
 
 namespace FWO.Compliance.RulePositioning;
 
@@ -41,7 +45,7 @@ public sealed class DesignatedZoneMatrixReader(ApiConnection apiConnection)
                     NetworkZoneQueries.getNetworkZonesForMatrix,
                     new { criterionId })
                 .WaitAsync(cancellationToken);
-            return new DesignatedZoneMatrixReadSuccess(zones ?? []);
+            return DesignatedZoneMatrixReadResult.Success(new DesignatedZoneMatrixReadValue(zones ?? []));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -54,8 +58,8 @@ public sealed class DesignatedZoneMatrixReader(ApiConnection apiConnection)
     }
 
     /// <summary>Creates a failed read result.</summary>
-    private static DesignatedZoneMatrixReadFailure Failure(DesignatedZoneMatrixReadFailureCategory category)
+    private static DesignatedZoneMatrixReadResult Failure(DesignatedZoneMatrixReadFailureCategory category)
     {
-        return new DesignatedZoneMatrixReadFailure(category);
+        return DesignatedZoneMatrixReadResult.Failure(category);
     }
 }

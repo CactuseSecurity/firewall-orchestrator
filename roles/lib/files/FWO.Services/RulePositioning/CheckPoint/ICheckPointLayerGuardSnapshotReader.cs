@@ -6,25 +6,17 @@ namespace FWO.Services.RulePositioning.CheckPoint;
 public interface ICheckPointLayerGuardSnapshotReader
 {
     /// <summary>Loads inline-layer guards at the graph's exact successful import.</summary>
-    Task<CheckPointLayerGuardReadResult> ReadAsync(
+    Task<PositioningResult<CheckPointLayerGuardSnapshot, CheckPointLayerGuardReadFailureCategory>> ReadAsync(
         RulebaseGraphSnapshot graph,
         long importId,
         CancellationToken cancellationToken);
 }
 
-public abstract class CheckPointLayerGuardReadResult;
-
-public sealed class CheckPointLayerGuardReadSuccess(CheckPointLayerGuardSnapshot snapshot)
-    : CheckPointLayerGuardReadResult
+/// <summary>Provides fixed caller-safe diagnostics for layer-guard reader failures.</summary>
+public static class CheckPointLayerGuardReadFailureDiagnostics
 {
-    public CheckPointLayerGuardSnapshot Snapshot { get; } = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
-}
-
-public sealed class CheckPointLayerGuardReadFailure(CheckPointLayerGuardReadFailureCategory category)
-    : CheckPointLayerGuardReadResult
-{
-    public CheckPointLayerGuardReadFailureCategory Category { get; } = category;
-    public string Diagnostic { get; } = category switch
+    /// <summary>Maps a layer-guard failure category to fixed diagnostic text.</summary>
+    public static string GetDiagnostic(this CheckPointLayerGuardReadFailureCategory category) => category switch
     {
         CheckPointLayerGuardReadFailureCategory.InvalidInput => "The layer-guard request is invalid.",
         CheckPointLayerGuardReadFailureCategory.ScopeMismatch => "The layer-guard scope does not match the rulebase graph.",

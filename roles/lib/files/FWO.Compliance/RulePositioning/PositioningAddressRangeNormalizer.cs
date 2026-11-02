@@ -1,5 +1,4 @@
 using FWO.Basics;
-using FWO.Data;
 using FWO.Data.Workflow;
 using NetTools;
 
@@ -24,21 +23,16 @@ internal static class PositioningAddressRangeNormalizer
 
         try
         {
-            NetworkObject networkObject = new()
+            if (!string.IsNullOrWhiteSpace(end))
             {
-                IP = start,
-                IpEnd = end,
-                Type = new NetworkObjectType
-                {
-                    Name = string.IsNullOrWhiteSpace(end) ? ObjectType.Host : ObjectType.IPRange
-                }
-            };
-            List<IPAddressRange> parsed = ComplianceCheck.ParseIpRange(networkObject);
-            if (parsed.Count != 1 || !IsValid(parsed[0]))
+                start = start.StripOffNetmask();
+                end = end.StripOffNetmask();
+            }
+            if (!IpOperations.TryParseIPRange(start, end, out IPAddressRange? parsed) || parsed == null || !IsValid(parsed))
             {
                 throw InvalidAddress();
             }
-            return new IPAddressRange(parsed[0].Begin, parsed[0].End);
+            return new IPAddressRange(parsed.Begin, parsed.End);
         }
         catch (NetworkResolutionException)
         {

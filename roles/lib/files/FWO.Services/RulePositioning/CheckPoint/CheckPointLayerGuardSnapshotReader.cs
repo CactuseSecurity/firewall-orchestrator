@@ -1,4 +1,3 @@
-using System.Net;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -7,6 +6,9 @@ using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using NetTools;
 using Newtonsoft.Json;
+using CheckPointLayerGuardReadResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Data.RulePositioning.CheckPoint.CheckPointLayerGuardSnapshot,
+    FWO.Services.RulePositioning.CheckPoint.CheckPointLayerGuardReadFailureCategory>;
 
 namespace FWO.Services.RulePositioning.CheckPoint;
 
@@ -280,31 +282,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
     /// <summary>Parses normalized IP/end data without crossing address families.</summary>
     private static bool TryParseRange(string? start, string? end, out IPAddressRange? range)
     {
-        range = null;
-        if (string.IsNullOrWhiteSpace(start))
-        {
-            return string.IsNullOrWhiteSpace(end);
-        }
-        if (!IPAddressRange.TryParse(start.Trim(), out IPAddressRange first))
-        {
-            return false;
-        }
-        IPAddress begin = first.Begin;
-        IPAddress finish = first.End;
-        if (!string.IsNullOrWhiteSpace(end))
-        {
-            if (!IPAddressRange.TryParse(end.Trim(), out IPAddressRange last))
-            {
-                return false;
-            }
-            finish = last.End;
-        }
-        if (begin.AddressFamily != finish.AddressFamily || IpOperations.CompareIpValues(begin, finish) > 0)
-        {
-            return false;
-        }
-        range = new IPAddressRange(begin, finish);
-        return true;
+        return IpOperations.TryParseIPRange(start?.Trim(), end?.Trim(), out range);
     }
 
     private static bool HasAddress(ObjectWire value) =>
@@ -317,13 +295,15 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
     private static bool IsHistorical(long? created, long? removed, long importId) =>
         created is > 0 && created <= importId && (!removed.HasValue || removed > importId);
 
-    private static CheckPointLayerGuardReadSuccess Success(
+    private static CheckPointLayerGuardReadResult Success(
         RulebaseGraphSnapshot graph,
         long importId,
         IReadOnlyCollection<CheckPointLayerGuard> guards) =>
-        new(new CheckPointLayerGuardSnapshot(graph.ManagementId, graph.GatewayId, importId, guards));
+        CheckPointLayerGuardReadResult.Success(
+            new CheckPointLayerGuardSnapshot(graph.ManagementId, graph.GatewayId, importId, guards));
 
-    private static CheckPointLayerGuardReadFailure Failure(CheckPointLayerGuardReadFailureCategory category) => new(category);
+    private static CheckPointLayerGuardReadResult Failure(CheckPointLayerGuardReadFailureCategory category) =>
+        CheckPointLayerGuardReadResult.Failure(category);
 
     private sealed record GuardCandidate(long SourceRuleId, long SourceRulebaseId, long TargetLayerId);
 

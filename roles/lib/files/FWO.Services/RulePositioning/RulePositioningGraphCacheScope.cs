@@ -1,3 +1,8 @@
+using FWO.Data.RulePositioning;
+using RulebaseGraphReadResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Services.RulePositioning.RulebaseGraphReadValue,
+    FWO.Services.RulePositioning.RulebaseGraphReadFailureCategory>;
+
 namespace FWO.Services.RulePositioning;
 
 /// <summary>

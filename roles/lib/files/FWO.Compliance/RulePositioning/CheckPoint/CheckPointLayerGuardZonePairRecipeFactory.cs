@@ -1,3 +1,4 @@
+using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Services.RulePositioning.Blocks;
 using FWO.Services.RulePositioning.CheckPoint;
@@ -8,7 +9,8 @@ namespace FWO.Compliance.RulePositioning.CheckPoint;
 public static class CheckPointLayerGuardZonePairRecipeFactory
 {
     /// <summary>Validates layer-guard zone-pair inputs and constructs the complete immutable recipe.</summary>
-    public static CheckPointLayerGuardZonePairRecipeResult Create(
+    public static PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>,
+        CheckPointLayerGuardZonePairRecipeFailureCategory> Create(
         CheckPointLayerGuardZonePairPositioningInput? positioningInput,
         CreationRuleZoneInput? zoneInput)
     {
@@ -43,7 +45,8 @@ public static class CheckPointLayerGuardZonePairRecipeFactory
             CheckPointLayerGuardScopeBlock layer = new();
             CheckPointSectionScopeBlock section = new(layer, CheckPointSectionSelector.ByNormalizedName(sectionName));
             PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> recipe = new(new EndOfBlock(section));
-            return new CheckPointLayerGuardZonePairRecipeSuccess(recipe);
+            return PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>,
+                CheckPointLayerGuardZonePairRecipeFailureCategory>.Success(recipe);
         }
         catch (PositioningRecipeException)
         {
@@ -59,26 +62,16 @@ public static class CheckPointLayerGuardZonePairRecipeFactory
     }
 
     /// <summary>Creates a safe category-only failure.</summary>
-    private static CheckPointLayerGuardZonePairRecipeFailure Failure(
-        CheckPointLayerGuardZonePairRecipeFailureCategory category) => new(category);
+    private static PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>,
+        CheckPointLayerGuardZonePairRecipeFailureCategory> Failure(
+        CheckPointLayerGuardZonePairRecipeFailureCategory category) =>
+        PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>,
+            CheckPointLayerGuardZonePairRecipeFailureCategory>.Failure(category);
 }
 
-public abstract class CheckPointLayerGuardZonePairRecipeResult;
-
-public sealed class CheckPointLayerGuardZonePairRecipeSuccess(
-    PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> recipe)
-    : CheckPointLayerGuardZonePairRecipeResult
+public static class CheckPointLayerGuardZonePairRecipeFailureDiagnostics
 {
-    public PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> Recipe { get; } =
-        recipe ?? throw new ArgumentNullException(nameof(recipe));
-}
-
-public sealed class CheckPointLayerGuardZonePairRecipeFailure(
-    CheckPointLayerGuardZonePairRecipeFailureCategory category)
-    : CheckPointLayerGuardZonePairRecipeResult
-{
-    public CheckPointLayerGuardZonePairRecipeFailureCategory Category { get; } = category;
-    public string Diagnostic { get; } = category switch
+    public static string GetDiagnostic(this CheckPointLayerGuardZonePairRecipeFailureCategory category) => category switch
     {
         CheckPointLayerGuardZonePairRecipeFailureCategory.InvalidInput =>
             "The Check Point layer-guard zone-pair positioning input is invalid.",

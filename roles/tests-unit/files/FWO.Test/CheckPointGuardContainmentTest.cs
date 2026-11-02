@@ -71,6 +71,84 @@ internal class CheckPointGuardContainmentTest
             Is.EqualTo(CheckPointGuardContainmentResult.Contained));
     }
 
+    [TestCase("10.0.0.0-10.0.0.10", "10.0.0.0", "10.0.0.10", "10.0.0.1-10.0.0.9")]
+    [TestCase("2001:db8::-2001:db8::10", "2001:db8::", "2001:db8::10", "2001:db8::1-2001:db8::9")]
+    public void InclusiveBoundaryExclusions_LeaveOnlyTheInterior(
+        string included,
+        string first,
+        string last,
+        string interior)
+    {
+        CheckPointGuardSide side = Side(false,
+        [Term([Range(included)], [Range(first), Range(last)])]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(CheckPointGuardContainmentEvaluator.Evaluate(side, [Range(first)]),
+                Is.EqualTo(CheckPointGuardContainmentResult.NotContained));
+            Assert.That(CheckPointGuardContainmentEvaluator.Evaluate(side, [Range(last)]),
+                Is.EqualTo(CheckPointGuardContainmentResult.NotContained));
+            Assert.That(CheckPointGuardContainmentEvaluator.Evaluate(side, [Range(interior)]),
+                Is.EqualTo(CheckPointGuardContainmentResult.Contained));
+        });
+    }
+
+    [Test]
+    public void OverlappingAndAdjacentExclusions_RemoveTheirWholeUnion()
+    {
+        CheckPointGuardSide side = Side(false,
+        [
+            Term(
+                [Range("10.0.0.0-10.0.0.30")],
+                [Range("10.0.0.5-10.0.0.15"), Range("10.0.0.10-10.0.0.20"), Range("10.0.0.21")])
+        ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(CheckPointGuardContainmentEvaluator.Evaluate(side, [Range("10.0.0.4")]),
+                Is.EqualTo(CheckPointGuardContainmentResult.Contained));
+            Assert.That(CheckPointGuardContainmentEvaluator.Evaluate(side, [Range("10.0.0.5-10.0.0.21")]),
+                Is.EqualTo(CheckPointGuardContainmentResult.NotContained));
+            Assert.That(CheckPointGuardContainmentEvaluator.Evaluate(side, [Range("10.0.0.22-10.0.0.30")]),
+                Is.EqualTo(CheckPointGuardContainmentResult.Contained));
+        });
+    }
+
+    [Test]
+    public void MixedAddressFamilies_DoNotOverlapOrSubtractEachOther()
+    {
+        CheckPointGuardSide ipv4Side = Side(false,
+        [Term([Range("10.0.0.0/24")], [Range("2001:db8::/120")])]);
+        CheckPointGuardSide ipv6Side = Side(false,
+        [Term([Range("2001:db8::/120")], [Range("10.0.0.0/24")])]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(CheckPointGuardContainmentEvaluator.Evaluate(ipv4Side, [Range("10.0.0.10")]),
+                Is.EqualTo(CheckPointGuardContainmentResult.Contained));
+            Assert.That(CheckPointGuardContainmentEvaluator.Evaluate(ipv4Side, [Range("2001:db8::10")]),
+                Is.EqualTo(CheckPointGuardContainmentResult.NotContained));
+            Assert.That(CheckPointGuardContainmentEvaluator.Evaluate(ipv6Side, [Range("2001:db8::10")]),
+                Is.EqualTo(CheckPointGuardContainmentResult.Contained));
+            Assert.That(CheckPointGuardContainmentEvaluator.Evaluate(ipv6Side, [Range("10.0.0.10")]),
+                Is.EqualTo(CheckPointGuardContainmentResult.NotContained));
+        });
+    }
+
+    [Test]
+    public void NegatedGuard_UsesInclusiveOverlapAtExactBoundary()
+    {
+        CheckPointGuardSide side = Side(true, [Term([Range("10.0.0.10-10.0.0.20")])]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(CheckPointGuardContainmentEvaluator.Evaluate(side, [Range("10.0.0.20")]),
+                Is.EqualTo(CheckPointGuardContainmentResult.NotContained));
+            Assert.That(CheckPointGuardContainmentEvaluator.Evaluate(side, [Range("10.0.0.21")]),
+                Is.EqualTo(CheckPointGuardContainmentResult.Contained));
+        });
+    }
+
     [TestCase(false, CheckPointGuardContainmentResult.Contained)]
     [TestCase(true, CheckPointGuardContainmentResult.NotContained)]
     public void FullFamilyAny_RespectsRuleSideNegation(bool negated, CheckPointGuardContainmentResult expected)

@@ -8,6 +8,13 @@ using FWO.Services.RulePositioning;
 using FWO.Services.RulePositioning.Blocks;
 using FWO.Services.RulePositioning.CheckPoint;
 using NUnit.Framework;
+using RulebaseGraphReadResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Services.RulePositioning.RulebaseGraphReadValue,
+    FWO.Services.RulePositioning.RulebaseGraphReadFailureCategory>;
+using CheckPointGraphRecipeSelectionResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Services.RulePositioning.Blocks.PositioningRecipe<FWO.Data.RulePositioning.CheckPoint.CheckPointPositioningContext,
+        FWO.Services.RulePositioning.CheckPoint.CheckPointBlockValue>,
+    FWO.Compliance.RulePositioning.CheckPoint.CheckPointGraphRecipeSelectionFailureCategory>;
 
 namespace FWO.Test;
 
@@ -34,9 +41,8 @@ internal class CheckPointGraphPositioningTest
         Assert.Multiple(() =>
         {
             Assert.That(catalog.SupportsAlgorithm(algorithm), Is.False);
-            Assert.That(result, Is.TypeOf<CheckPointGraphRecipeSelectionFailure>());
-            Assert.That(((CheckPointGraphRecipeSelectionFailure)result).Category,
-                Is.EqualTo(CheckPointGraphRecipeSelectionFailureCategory.NoMatchingRecipe));
+            Assert.That(result.TryGetFailure(out CheckPointGraphRecipeSelectionFailureCategory failure), Is.True);
+            Assert.That(failure, Is.EqualTo(CheckPointGraphRecipeSelectionFailureCategory.NoMatchingRecipe));
         });
     }
 
@@ -45,17 +51,17 @@ internal class CheckPointGraphPositioningTest
     {
         CheckPointGraphPositioningRecipeCatalog catalog = new();
 
-        CheckPointGraphRecipeSelectionSuccess first = (CheckPointGraphRecipeSelectionSuccess)
-            catalog.SelectRecipe(ProvisioningPositioningAlgorithm.DefaultEndOfRulebase);
-        CheckPointGraphRecipeSelectionSuccess second = (CheckPointGraphRecipeSelectionSuccess)
-            catalog.SelectRecipe(ProvisioningPositioningAlgorithm.DefaultEndOfRulebase);
+        Assert.That(catalog.SelectRecipe(ProvisioningPositioningAlgorithm.DefaultEndOfRulebase)
+            .TryGetValue(out PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>? first), Is.True);
+        Assert.That(catalog.SelectRecipe(ProvisioningPositioningAlgorithm.DefaultEndOfRulebase)
+            .TryGetValue(out PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>? second), Is.True);
 
-        EndOfBlock root = (EndOfBlock)first.Recipe.Root;
+        EndOfBlock root = (EndOfBlock)first!.Root;
         CheckPointLayerScopeBlock layer = (CheckPointLayerScopeBlock)root.Children.Single();
         Assert.Multiple(() =>
         {
             Assert.That(catalog.SupportsAlgorithm(ProvisioningPositioningAlgorithm.DefaultEndOfRulebase), Is.True);
-            Assert.That(second.Recipe, Is.Not.SameAs(first.Recipe));
+            Assert.That(second, Is.Not.SameAs(first));
             Assert.That(layer.Selector.Mode, Is.EqualTo(CheckPointLayerSelectionMode.InitialLayer));
             Assert.That(layer.Selector.Value, Is.Null);
         });
@@ -144,6 +150,22 @@ internal class CheckPointGraphPositioningTest
         });
     }
 
+    [Test]
+    public async Task Strategy_RequiresImplementationTaskForDirectInvocation()
+    {
+        RecordingGraphReader reader = new(Snapshot(false));
+        CheckPointGraphRulePositioningStrategy strategy = new(
+            reader,
+            new CheckPointGraphPositioningRecipeCatalog());
+        RulePositioningContext context = Context() with { ImplementationTask = null! };
+
+        RulePositioningResult result = await strategy.CalculateAsync(context, CancellationToken.None);
+
+        Assert.That(((RulePositioningFailure)result).Category,
+            Is.EqualTo(RulePositioningFailureCategory.InvalidInput));
+        Assert.That(reader.CallCount, Is.Zero);
+    }
+
     [TestCase(RulebaseGraphReadFailureCategory.InvalidInput, RulePositioningFailureCategory.InvalidInput)]
     [TestCase(RulebaseGraphReadFailureCategory.ScopeMismatch, RulePositioningFailureCategory.InvalidInput)]
     [TestCase(RulebaseGraphReadFailureCategory.InvalidGraphData, RulePositioningFailureCategory.CalculationFailed)]
@@ -151,7 +173,7 @@ internal class CheckPointGraphPositioningTest
         RulebaseGraphReadFailureCategory graphCategory,
         RulePositioningFailureCategory expectedCategory)
     {
-        RecordingGraphReader reader = new(new RulebaseGraphReadFailure(graphCategory));
+        RecordingGraphReader reader = new(RulebaseGraphReadResult.Failure(graphCategory));
         CheckPointGraphRulePositioningStrategy strategy = new(
             reader,
             new CheckPointGraphPositioningRecipeCatalog());
@@ -285,7 +307,7 @@ internal class CheckPointGraphPositioningTest
         public Exception? Exception { get; set; }
 
         public RecordingGraphReader(RulebaseGraphSnapshot snapshot)
-            : this(new RulebaseGraphReadSuccess(snapshot, 1))
+            : this(RulebaseGraphReadResult.Success(new RulebaseGraphReadValue(snapshot, 1)))
         { }
 
         public RecordingGraphReader(RulebaseGraphReadResult result)
@@ -318,7 +340,7 @@ internal class CheckPointGraphPositioningTest
         public CheckPointGraphRecipeSelectionResult SelectRecipe(
             ProvisioningPositioningAlgorithm positioningAlgorithm)
         {
-            return new CheckPointGraphRecipeSelectionFailure(category);
+            return CheckPointGraphRecipeSelectionResult.Failure(category);
         }
     }
 }

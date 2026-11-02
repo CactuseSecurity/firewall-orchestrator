@@ -112,46 +112,46 @@
 
     private List<NetworkZone> GetSortedNetworkzones()
     {
-        List<NetworkZone> complianceNetworkZones = networkZoneService.NetworkZones.ToList();
+        List<NetworkZone> networkZones = networkZoneService.NetworkZones.ToList();
 
         if(userConfig.GlobalConfig!.SortMatrixByID)
         {
-            complianceNetworkZones = complianceNetworkZones.OrderBy(zone => zone.Id).ToList();
+            networkZones = networkZones.OrderBy(zone => zone.Id).ToList();
         }
 
         NetworkZone? internetZone = networkZoneService.NetworkZones.FirstOrDefault(zone => zone.IsAutoCalculatedInternetZone);
 
         if(internetZone != null)
         {
-            complianceNetworkZones.Remove(internetZone);
+            networkZones.Remove(internetZone);
 
             if(!userConfig.GlobalConfig!.AutoCalculatedZonesAtTheEnd)
             {
-                complianceNetworkZones.Insert(0, internetZone);
+                networkZones.Insert(0, internetZone);
             }
             else
             {
-                complianceNetworkZones.Add(internetZone);
+                networkZones.Add(internetZone);
             }
 
             NetworkZone? undefinedInternalZone = networkZoneService.NetworkZones.FirstOrDefault(zone => zone.IsAutoCalculatedUndefinedInternalZone);
 
             if(undefinedInternalZone != null)
             {
-                complianceNetworkZones.Remove(undefinedInternalZone);
+                networkZones.Remove(undefinedInternalZone);
 
                 if(!userConfig.GlobalConfig!.AutoCalculatedZonesAtTheEnd)
                 {
-                    complianceNetworkZones.Insert(1, undefinedInternalZone);
+                    networkZones.Insert(1, undefinedInternalZone);
                 }
                 else
                 {
-                    complianceNetworkZones.Add(undefinedInternalZone);
+                    networkZones.Add(undefinedInternalZone);
                 }
             }
         }
 
-        return complianceNetworkZones;
+        return networkZones;
     }
 
     private string GetMatrixElementId(NetworkZone sourceZone, NetworkZone destinationZone)

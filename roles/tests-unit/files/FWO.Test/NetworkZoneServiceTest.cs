@@ -446,7 +446,7 @@ namespace FWO.Test
             ApiConnection apiConnection = mock;
             GlobalConfig globalConfig = new GlobalConfig { AutoCalculateInternetZone = true, AutoCalculateUndefinedInternalZone = true };
 
-            List<NetworkZone> predefinedZones = TestDataGenerator.CreateComplianceNetworkZones(4, false, false);
+            List<NetworkZone> predefinedZones = TestDataGenerator.CreateNetworkZones(4, false, false);
             NetworkZone zoneOne = predefinedZones.First();
             NetworkZone internetZoneDummy = predefinedZones.Last();
             internetZoneDummy.IdString = "AUTO_CALCULATED_ZONE_INTERNET";

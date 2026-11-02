@@ -6,7 +6,7 @@ using System.Net;
 namespace FWO.Test;
 
 [TestFixture]
-internal class ComplianceNetworkZoneOverlapTest
+internal class NetworkZoneOverlapTest
 {
     private static NetworkZone CreateZone(string rangeStart, string rangeEnd)
     {

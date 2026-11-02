@@ -4,7 +4,7 @@ namespace FWO.Test
 {
     public static class TestDataGenerator
     {
-        public static List<NetworkZone> CreateComplianceNetworkZones(int numberOfZones, bool createInternetZone, bool createUndefinedInternalZone)
+        public static List<NetworkZone> CreateNetworkZones(int numberOfZones, bool createInternetZone, bool createUndefinedInternalZone)
         {
             List<NetworkZone> zones = new();
 

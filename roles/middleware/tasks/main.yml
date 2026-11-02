@@ -203,6 +203,7 @@
   become: true
   become_user: postgres
   when: installation_mode == "new"
+  no_log: true
 
 - name: insert admin tenant0 to device mapping - tenant0 can see all devices
   postgresql_query:

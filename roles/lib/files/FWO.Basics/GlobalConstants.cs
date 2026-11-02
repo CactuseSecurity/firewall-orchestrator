@@ -107,8 +107,9 @@ namespace FWO.Basics
         public const string kStyleDeleted = "color: red; text-decoration: line-through red;";
         public const string kStyleAdded = "color: green; text-decoration: bold;";
 
-        public const string ChromeBinPathLinux = "/usr/local/fworch/bin";
-        public const string ChromiumHeadlessBinPathLinux = "/usr/local/fworch/bin/chromium-headless";
+        // root owned, outside the fworch home; keep in step with fworch_browser_dir (inventory/group_vars/all.yml)
+        public const string ChromeBinPathLinux = "/usr/local/lib/fworch";
+        public const string ChromiumHeadlessBinPathLinux = "/usr/local/lib/fworch/chromium-headless";
         public const string TestPDFFilePath = "pdffile.pdf";
         public const string TestPDFHtmlTemplate = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
 

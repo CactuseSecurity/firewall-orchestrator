@@ -5,6 +5,7 @@
   register: importer_password_slurp
   delegate_to: "{{ groups['middlewareserver'][0] }}"
   become: true
+  no_log: true
 
 - name: write importer_password to secrets directory
   copy:
@@ -14,4 +15,4 @@
     owner: "{{ fworch_user }}"
     group: "{{ fworch_group }}"
   become: true
-  
+  no_log: true

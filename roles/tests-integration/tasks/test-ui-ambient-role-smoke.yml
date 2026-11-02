@@ -6,7 +6,7 @@
   - name: set ambient role smoke test directory
     set_fact:
       ui_ambient_role_smoke_dir: "/tmp/fworch-ambient-role-smoke"
-      ui_ambient_role_smoke_browser_executable: "{{ fworch_home }}/bin/chrome"
+      ui_ambient_role_smoke_browser_executable: "{{ fworch_browser_dir }}/chrome"
 
   - name: copy ambient role smoke tests
     copy:

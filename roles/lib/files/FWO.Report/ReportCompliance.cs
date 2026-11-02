@@ -652,8 +652,9 @@ namespace FWO.Report
                 return "";
             });
 
-            // Quotes inside a value are doubled, so that a value cannot end its cell and start a new one.
-            return string.Join(_separator, values.Select(value => $"\"{value.Replace("\"", "\"\"")}\""));
+            // Quotes inside a value are doubled, so that a value cannot end its cell and start a new one, and
+            // values that a spreadsheet would read as a formula are neutralised.
+            return string.Join(_separator, values.Select(CsvOutputEncoder.EncodeCell));
         }
 
         private string TransformHtmlToCsv(string propertyName, string htmlInput)

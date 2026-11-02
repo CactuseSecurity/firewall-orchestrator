@@ -19,6 +19,7 @@ from fwo_redaction import (
     SESSION_FINGERPRINT_LENGTH,
     redact_secret_in_text,
     redact_sensitive_values,
+    redact_url_credentials,
     session_fingerprint,
 )
 
@@ -29,6 +30,7 @@ SID_MARKER = "fwo-sweep-sid-marker-3"
 SESSION_MARKER = "fwo-sweep-session-marker-4"
 TOKEN_MARKER = "fwo-sweep-token-marker-5"  # noqa: S105
 PASSWORD_MARKER = "fwo-sweep-password-marker-6"  # noqa: S105
+PROXY_PASSWORD_MARKER = "fwo-sweep-proxy-password-marker-7"  # noqa: S105
 CP_URL = "https://cp.invalid/web_api/"
 FOS_URL = "https://fw.invalid/api/v2/cmdb/firewall/address"
 HTTP_FORBIDDEN = 403
@@ -78,6 +80,44 @@ class TestCheckPointApiCall:
 
         assert PASSWORD_MARKER not in str(raised.value)
         assert "importer" in str(raised.value)
+
+    @pytest.mark.parametrize(
+        "proxy_url",
+        [
+            f"http://proxy-user:{PROXY_PASSWORD_MARKER}@proxy.invalid:80:80",
+            f"http://proxy-user:{PROXY_PASSWORD_MARKER}@[proxy.invalid",
+        ],
+    )
+    def test_malformed_proxy_keeps_proxy_credentials_out_of_error(
+        self, monkeypatch: pytest.MonkeyPatch, proxy_url: str
+    ) -> None:
+        # requests itself, not a mock: it fails on parsing the proxy url before it opens any connection. Whether
+        # its error text repeats that url depends on the urllib3 version, so only the outcome is checked here.
+        for proxy_variable in ("HTTPS_PROXY", "https_proxy"):
+            monkeypatch.setenv(proxy_variable, proxy_url)
+        for no_proxy_variable in ("NO_PROXY", "no_proxy"):
+            monkeypatch.delenv(no_proxy_variable, raising=False)
+
+        with pytest.raises(FwApiError) as raised:
+            cp_getter.cp_api_call(CP_URL, "show-hosts", {"limit": 1}, SID_MARKER)
+
+        assert "InvalidURL" in str(raised.value)
+        assert PROXY_PASSWORD_MARKER not in str(raised.value)
+        assert f"{CP_URL}show-hosts" in str(raised.value)
+
+    def test_transport_error_naming_the_proxy_url_keeps_proxy_credentials_out_of_error(self) -> None:
+        # the text urllib3 before 2.8 gives for a proxy url it cannot parse, credentials included
+        leaking_error = requests.exceptions.InvalidURL(
+            f"Failed to parse: http://proxy-user:{PROXY_PASSWORD_MARKER}@proxy.invalid:80:80"
+        )
+        with (
+            patch.object(cp_getter.requests, "post", side_effect=leaking_error),
+            pytest.raises(FwApiError) as raised,
+        ):
+            cp_getter.cp_api_call(CP_URL, "show-hosts", {"limit": 1}, SID_MARKER)
+
+        assert PROXY_PASSWORD_MARKER not in str(raised.value)
+        assert f"Failed to parse: http://{REDACTED_VALUE}@proxy.invalid:80:80" in str(raised.value)
 
     def test_garbled_response_warnings_show_fingerprint_instead_of_session(
         self, debug_logging: pytest.LogCaptureFixture
@@ -231,6 +271,39 @@ class TestRedaction:
     def test_empty_secret_leaves_text_unchanged(self) -> None:
         assert redact_secret_in_text("some text", "") == "some text"
         assert redact_secret_in_text("some text", None) == "some text"
+
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            (
+                f"Failed to parse: http://user:{PROXY_PASSWORD_MARKER}@proxy.invalid:80:80",
+                f"Failed to parse: http://{REDACTED_VALUE}@proxy.invalid:80:80",
+            ),
+            # an "@" or "/" in the password must not end the redaction early
+            (
+                "Failed to parse: http://user:p@ss/w@proxy.invalid",
+                f"Failed to parse: http://{REDACTED_VALUE}@proxy.invalid",
+            ),
+            (
+                "ProxyError('https://u:p@proxy.invalid:3128', 'http://v:q@other.invalid')",
+                f"ProxyError('https://{REDACTED_VALUE}@proxy.invalid:3128', 'http://{REDACTED_VALUE}@other.invalid')",
+            ),
+            ("http://user@proxy.invalid", f"http://{REDACTED_VALUE}@proxy.invalid"),
+        ],
+    )
+    def test_redacts_user_info_of_every_url_in_text(self, text: str, expected: str) -> None:
+        assert redact_url_credentials(text) == expected
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "https://cp.invalid/web_api/show-hosts",
+            "HTTPSConnectionPool(host='cp.invalid', port=443): Max retries exceeded with url: /web_api/login",
+            "mail admin@example.invalid about https://cp.invalid/",
+        ],
+    )
+    def test_leaves_text_without_url_credentials_unchanged(self, text: str) -> None:
+        assert redact_url_credentials(text) == text
 
     def test_replaces_structures_nested_too_deeply(self) -> None:
         nested: dict[str, Any] = {"session": SESSION_MARKER}

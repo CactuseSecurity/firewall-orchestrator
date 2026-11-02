@@ -188,14 +188,6 @@ Set this parameter only if the installer is allowed to install EPEL and enable C
 ./scripts/run-playbook-with-sudo.sh site.yml -e "allowRepoChangesForRedhat=true"
 ```
 
-### Parameter "docker_network" after the Podman migration
-
-This legacy parameter is ignored by the current installer because Hasura now runs with Podman host networking instead of a Docker bridge.
-
-```console
-./scripts/run-playbook-with-sudo.sh site.yml -e "docker_network=172.26.0.1/16"
-```
-
 ### Parameter "install_syslog" allows disabling of separate syslog installation
 
 Default value is install_syslog=yes but if you already have a syslog service running then you can skip syslog installation and configure your existing service manually.
@@ -525,8 +517,6 @@ The following downloads are outside the pinned checksum/signature checks describ
 - Chrome for Testing, which is downloaded for PDF generation when no system chromium package is available. It is
   deliberately not pinned: it follows the current stable release, so that browser security fixes arrive without an
   installer change.
-- the Docker apt signing key in the developer helper `scripts/preinstall-packages.yml` and in the `docker` role, which
-  the installation no longer uses
 
 ## old
 

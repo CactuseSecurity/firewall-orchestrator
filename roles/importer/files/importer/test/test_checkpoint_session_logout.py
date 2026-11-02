@@ -89,3 +89,21 @@ def test_rules_sessions_are_logged_out_after_an_error() -> None:
         fwcommon.get_rules({"domains": [{}]}, import_state_mock())
 
     assert logged_out_sessions(logout) == ["sid-manager", "sid-global"]
+
+
+def test_super_manager_returns_the_fetched_global_policy_structure() -> None:
+    global_package: dict[str, Any] = {"name": "global-package"}
+
+    def fill_policy_structure(*_args: Any, policy_structure: list[dict[str, Any]], **_kwargs: Any) -> int:
+        policy_structure.append(global_package)
+        return 0
+
+    with (
+        patch.object(cp_getter, "login", side_effect=["sid-mds", "sid-global"]),
+        patch.object(cp_getter, "logout"),
+        patch.object(cp_getter, "get_global_assignments", return_value=GLOBAL_ASSIGNMENTS),
+        patch.object(cp_getter, "get_policy_structure", side_effect=fill_policy_structure),
+    ):
+        result = fwcommon.handle_super_manager(manager_mock(is_super_manager=True), CP_URL, {})
+
+    assert result[1] == [global_package]

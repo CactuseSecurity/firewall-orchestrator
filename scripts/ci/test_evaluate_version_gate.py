@@ -375,3 +375,19 @@ def test_mergeability_query_failure_gets_infrastructure_guidance(tmp_path: Path)
     assert "query pull request mergeability" in completed.stderr
     assert "GitHub connectivity" in completed.stderr
     assert "Resolve the merge conflicts" not in completed.stderr
+
+
+def test_upgrade_file_name_cannot_inject_a_log_line(tmp_path: Path) -> None:
+    """A line break in a file name must not start a new log line, e.g. a workflow command."""
+    repository = create_repository(
+        tmp_path,
+        version_is_bumped=True,
+        added_upgrade_file="9.4.5\n::error::injected.sql",
+        tags=("v9.4.5",),
+    )
+
+    completed = run_gate(tmp_path, repository)
+
+    assert completed.returncode != 0
+    assert not any(line.startswith("::error::") for line in completed.stderr.splitlines())
+    assert "injected.sql" in completed.stderr

@@ -33,10 +33,14 @@ namespace FWO.Ui.Pages.Settings
     /// One selectable option for a SingleSelect field. Value is the name of the underlying data-layer enum member,
     /// TextKey the UI text key of its display name.
     /// </summary>
-    public sealed class DeviceSpecificFieldOption(string value, string textKey)
+    public sealed class DeviceSpecificFieldOption(string value, string textKey,
+        DeviceSpecificScopeType maxLevel = DeviceSpecificScopeType.Gateway)
     {
         public string Value { get; } = value;
         public string TextKey { get; } = textKey;
+
+        /// <summary>Deepest level the option is offered at, e.g. external ticket system only up to the management.</summary>
+        public DeviceSpecificScopeType MaxLevel { get; } = maxLevel;
     }
 
     /// <summary>
@@ -86,6 +90,15 @@ namespace FWO.Ui.Pages.Settings
 
         /// <summary>Whether the field is offered at the given level.</summary>
         public bool AppliesToLevel(DeviceSpecificScopeType level) => level >= MinLevel && level <= MaxLevel;
+
+        /// <summary>
+        /// Returns the options offered at a level. The current value stays in the list even if it is not offered at
+        /// the level, so a value stored before the option was restricted is shown as it is and can be changed.
+        /// </summary>
+        /// <param name="level">Level of the edited node.</param>
+        /// <param name="currentValue">Value shown in the editor.</param>
+        public List<DeviceSpecificFieldOption> OptionsForLevel(DeviceSpecificScopeType level, string currentValue) =>
+            [.. Options.Where(option => level <= option.MaxLevel || option.Value == currentValue)];
 
         /// <summary>Whether the field is offered on the node's current device path.</summary>
         public bool AppliesTo(DeviceSpecificNode node) => AppliesToLevel(node.Level)
@@ -176,6 +189,7 @@ namespace FWO.Ui.Pages.Settings
             { "dss_modelling_implement_network_area_objects", "H5199j" },
             { "dss_modelling_dyn_ip_labels_visible_as_groups", "H5199k" },
             { "dss_importer_host_name", "H5199l" },
+            { "dss_ssh_legacy_key_exchange", "H5199x" },
             { "dss_logging", "H5190" },
             { "dss_service_object_creation", "H5191" },
             { "dss_address_object_creation", "H5192" },
@@ -221,6 +235,17 @@ namespace FWO.Ui.Pages.Settings
         [
             new(bool.TrueString, "yes"),
             new(bool.FalseString, "no")
+        ];
+
+        /// <summary>
+        /// Implementation modes for rules: an external ticket system takes over whole managements, so a gateway offers
+        /// automatic and manual only.
+        /// </summary>
+        private static readonly List<DeviceSpecificFieldOption> RuleImplementationModeOptions =
+        [
+            new(nameof(ProvisioningRuleImplementationMode.Automatic), "dss_opt_automatic"),
+            new(nameof(ProvisioningRuleImplementationMode.Manual), "dss_opt_manual"),
+            new(nameof(ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem), "dss_opt_reroute", DeviceSpecificScopeType.Management)
         ];
 
         /// <summary>Localized editors; config may store deeper overrides than the UI offers (MaxLevel).</summary>
@@ -275,22 +300,21 @@ namespace FWO.Ui.Pages.Settings
                 maxLevel: DeviceSpecificScopeType.Management),
             TextField(DeviceSpecificSettingKeys.RuleZoneToOverride, "dss_zone_to", s => s.RuleZoneToOverride, fortinetOnly: true,
                 maxLevel: DeviceSpecificScopeType.Management),
+            // objects belong to a management, so their implementation mode is set up to the management only
             EnumField(DeviceSpecificSettingKeys.ImplementationMode, "dss_implementation_mode", s => s.ImplementationMode,
                 EnumOptions(
                     (ProvisioningImplementationMode.Automatic, "dss_opt_automatic"),
                     (ProvisioningImplementationMode.Manual, "dss_opt_manual"),
-                    (ProvisioningImplementationMode.RerouteToExternalTicketSystem, "dss_opt_reroute"))),
+                    (ProvisioningImplementationMode.RerouteToExternalTicketSystem, "dss_opt_reroute")), maxLevel: DeviceSpecificScopeType.Management),
             EnumField(DeviceSpecificSettingKeys.ImplementationModeOverrideForRules, "dss_implementation_mode_override_for_rules", s => s.ImplementationModeOverrideForRules,
-                EnumOptions(
-                    (ProvisioningRuleImplementationMode.Automatic, "dss_opt_automatic"),
-                    (ProvisioningRuleImplementationMode.Manual, "dss_opt_manual"),
-                    (ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem, "dss_opt_reroute"))),
+                RuleImplementationModeOptions),
             new()
             {
                 Key = DeviceSpecificSettingKeys.RerouteToExternalTicketSystem,
                 LabelTextKey = "dss_reroute_to_external_ticket_system",
                 HelpTextKey = HelpKey("dss_reroute_to_external_ticket_system"),
                 Kind = DeviceSpecificFieldKind.ExtTicketSystem,
+                MaxLevel = DeviceSpecificScopeType.Management,
                 Read = s => s.RerouteToExternalTicketSystem?.ToString(CultureInfo.InvariantCulture) ?? "",
                 SetOverride = SetExtTicketSystemOverride
             },
@@ -309,6 +333,8 @@ namespace FWO.Ui.Pages.Settings
             TextField(DeviceSpecificSettingKeys.OwnerIdCustomFieldName, "dss_owner_id_custom_field_name", s => s.OwnerIdCustomFieldName, maxLevel: DeviceSpecificScopeType.Management),
             TextField(DeviceSpecificSettingKeys.ChangeIdCustomFieldName, "dss_change_id_custom_field_name", s => s.ChangeIdCustomFieldName, maxLevel: DeviceSpecificScopeType.Management),
             TextField(DeviceSpecificSettingKeys.ImporterHostName, "dss_importer_host_name", s => s.ImporterHostName, maxLevel: DeviceSpecificScopeType.Management),
+            BoolField(DeviceSpecificSettingKeys.SshLegacyKeyExchange, "dss_ssh_legacy_key_exchange", s => s.SshLegacyKeyExchange,
+                DeviceSpecificScopeType.Management),
             BoolField(DeviceSpecificSettingKeys.AutoPlanImplementation, "dss_auto_plan_implementation", s => s.AutoPlanImplementation),
             BoolField(DeviceSpecificSettingKeys.AutoPlanImplementationForRules, "dss_auto_plan_implementation_for_rules", s => s.AutoPlanImplementationForRules),
             BoolField(DeviceSpecificSettingKeys.ModellingCreateAppZones, "dss_modelling_create_app_zones", s => s.ModellingCreateAppZones,

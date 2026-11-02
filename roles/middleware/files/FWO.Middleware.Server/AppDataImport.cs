@@ -408,12 +408,11 @@ namespace FWO.Middleware.Server
             }
 
             string trimmedIdentifier = importedIdentifier.Trim();
-            if (LooksLikeDistinguishedName(trimmedIdentifier))
-            {
-                return trimmedIdentifier;
-            }
-
-            string? resolvedDn = await ResolveImportedResponsibleIdentifierToDn(trimmedIdentifier);
+            // a dn is taken only if it names an existing entry of the directory that owns it: the import assigns
+            // workflow roles to it, so it must not grant them to an arbitrary or foreign dn
+            string? resolvedDn = LooksLikeDistinguishedName(trimmedIdentifier)
+                ? await ResolveImportedDistinguishedName(trimmedIdentifier)
+                : await ResolveImportedResponsibleIdentifierToDn(trimmedIdentifier);
             if (!string.IsNullOrWhiteSpace(resolvedDn))
             {
                 return resolvedDn.Trim();
@@ -425,6 +424,26 @@ namespace FWO.Middleware.Server
             string warningText = $"App \"{appLabel}\": could not resolve imported user id \"{trimmedIdentifier}\" from field \"{fieldName}\". Skipping entry.";
             Log.WriteWarning(LogMessageTitle, warningText);
             await AddLogEntry(1, LevelApp, warningText);
+            return null;
+        }
+
+        /// <summary>
+        /// Checks an imported distinguished name against the directories: it is accepted only if an entry with that
+        /// name exists in the connected LDAP whose search paths own it. A directory that cannot be asked throws, so
+        /// that the app fails and keeps its responsibles instead of losing them as if the entry were gone.
+        /// </summary>
+        /// <param name="distinguishedName">Imported distinguished name of a user or group.</param>
+        /// <returns>The distinguished name as stored in the directory if found; otherwise null.</returns>
+        protected virtual async Task<string?> ResolveImportedDistinguishedName(string distinguishedName)
+        {
+            foreach (Ldap ldap in connectedLdaps.Where(ldap => LdapDnNamespace.IsOwnedBy(connectedLdaps, ldap.Id, distinguishedName)))
+            {
+                LdapEntry? entry = await ldap.ReadEntryIfExists(distinguishedName);
+                if (!string.IsNullOrWhiteSpace(entry?.Dn) && LdapDnNamespace.IsOwnedBy(connectedLdaps, ldap.Id, entry.Dn))
+                {
+                    return entry.Dn;
+                }
+            }
             return null;
         }
 

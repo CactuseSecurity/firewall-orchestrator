@@ -47,6 +47,12 @@ public class GlobalDeviceSpecificSettings
     public string ImporterHostName { get; set; } = "";
 
     /// <summary>
+    /// Whether the importer also offers the SHA-1 SSH key exchange diffie-hellman-group14-sha1, which current
+    /// OpenSSH disables. Off by default; only for devices that offer nothing better (Cisco ASA).
+    /// </summary>
+    public bool SshLegacyKeyExchange { get; set; } = false;
+
+    /// <summary>
     /// Whether the implementation tasks of a request task are created automatically once the request task is
     /// approved. When false, a planner creates them. Applies to every task type; rule tasks additionally need
     /// <see cref="AutoPlanImplementationForRules"/>.
@@ -67,6 +73,36 @@ public class GlobalDeviceSpecificSettings
     public bool IsAutoPlanned(bool isRuleTask)
     {
         return AutoPlanImplementation && (!isRuleTask || AutoPlanImplementationForRules);
+    }
+
+    /// <summary>
+    /// Returns the implementation mode of a kind of task: <see cref="ImplementationModeOverrideForRules"/> for rule
+    /// tasks, <see cref="ImplementationMode"/> for objects. Each setting stands alone, there is no fallback between
+    /// them. Undefined counts as Automatic, the compiled default.
+    /// </summary>
+    /// <param name="isRuleTask">True for access, rule_modify and rule_delete tasks.</param>
+    public ProvisioningImplementationMode GetImplementationMode(bool isRuleTask)
+    {
+        if (!isRuleTask)
+        {
+            return ImplementationMode == ProvisioningImplementationMode.Undefined ? ProvisioningImplementationMode.Automatic : ImplementationMode;
+        }
+        return ImplementationModeOverrideForRules switch
+        {
+            ProvisioningRuleImplementationMode.Manual => ProvisioningImplementationMode.Manual,
+            ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem => ProvisioningImplementationMode.RerouteToExternalTicketSystem,
+            _ => ProvisioningImplementationMode.Automatic
+        };
+    }
+
+    /// <summary>
+    /// Returns whether a kind of task is handed to an external ticket system, i.e. its implementation mode is
+    /// external ticket system. Whether such a system is selected tells <see cref="RerouteToExternalTicketSystem"/>.
+    /// </summary>
+    /// <param name="isRuleTask">True for access, rule_modify and rule_delete tasks.</param>
+    public bool UsesExternalTicketSystem(bool isRuleTask)
+    {
+        return GetImplementationMode(isRuleTask) == ProvisioningImplementationMode.RerouteToExternalTicketSystem;
     }
 
     public bool ModellingCreateAppZones { get; set; } = true;

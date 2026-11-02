@@ -39,6 +39,8 @@ class CiscoAsa9Common(FwCommon):
         return get_config(config_in, import_state)
 
 
+LEGACY_SSH_KEY_EXCHANGE = "diffie-hellman-group14-sha1"
+
 # managements whose unchecked host key was already reported, so the warning is written once per importer process
 _unchecked_host_key_mgm_ids_warned: set[int] = set()
 
@@ -85,7 +87,11 @@ def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
 
     """
     host_key_options = _host_key_options(mgm_details)
-    open_cmd = ["-o", "KexAlgorithms=+diffie-hellman-group14-sha1"]
+    open_cmd: list[str] = []
+    if mgm_details.ssh_legacy_key_exchange:
+        # SHA-1 key exchange, disabled by current OpenSSH; only for devices that offer nothing better, see the
+        # device specific setting sshLegacyKeyExchange
+        open_cmd += ["-o", f"KexAlgorithms=+{LEGACY_SSH_KEY_EXCHANGE}"]
     if host_key_options["auth_strict_key"]:
         # only the FWO known hosts file counts; ssh would otherwise also accept the system-wide ones
         open_cmd += ["-o", "GlobalKnownHostsFile=/dev/null"]
@@ -101,6 +107,13 @@ def _connect_to_device(mgm_details: ManagementController) -> GenericDriver:
     try:
         conn.open()
     except ScrapliAuthenticationFailed as e:
+        # scrapli reports the offer of the device, e.g. "No matching key exchange found for host, their offer: ..."
+        if not mgm_details.ssh_legacy_key_exchange and "no matching key exchange" in str(e).lower():
+            raise FwoImporterError(
+                f"{mgm_details.hostname}:{mgm_details.port} offers no SSH key exchange method that is enabled ({e}). "
+                f"If the device only offers {LEGACY_SSH_KEY_EXCHANGE}, update it or switch on the device specific "
+                'setting "Allow SHA-1 SSH key exchange" for this management.'
+            ) from None
         # ssh stops before the authentication, so no credential has been sent to the unverified host
         if "host key verification failed" in str(e).lower():
             raise SshHostKeyRejectedError(

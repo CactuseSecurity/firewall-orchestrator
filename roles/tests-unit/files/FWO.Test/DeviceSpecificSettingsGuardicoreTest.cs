@@ -28,7 +28,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "serviceObjectCreation", "addressObjectCreation", "timeObjectCreation", "labelCreation",
         "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride",
         "implementationMode", "implementationModeOverrideForRules", "rerouteToExternalTicketSystem",
-        "securityProfiles", "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName",
+        "securityProfiles", "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName", "sshLegacyKeyExchange",
         "autoPlanImplementation", "autoPlanImplementationForRules", "modellingCreateAppZones",
         "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
         "modellingConnectionIdField", "modellingConnectionIdTemplate", "templates",
@@ -37,7 +37,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
     ];
     private static readonly HashSet<string> kManagerConfigKeys =
     [
-        "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName",
+        "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName", "sshLegacyKeyExchange",
         "modellingCreateAppZones", "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
         "modellingConnectionIdField", "modellingConnectionIdTemplate"
     ];

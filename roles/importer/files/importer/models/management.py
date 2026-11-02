@@ -15,6 +15,7 @@ class Management(BaseModel):
     import_disabled: bool
     devices: list[dict[str, Any]]
     importer_hostname: str
+    ssh_legacy_key_exchange: bool = False
     device_type_name: str
     device_type_version: str
     port: int

@@ -190,7 +190,17 @@ namespace FWO.Services
             }
 
             List<RuleOwner> previousRuleOwners = await SetAllActiveRuleOwnersRemoved(importControlId);
-            await InsertNewRuleOwners(newRuleOwners);
+            try
+            {
+                await InsertNewRuleOwners(newRuleOwners);
+            }
+            catch (Exception)
+            {
+                // the insert is chunked and cannot share one transaction with the removal, so a failure here
+                // would leave every rule without owner until the next successful run
+                await RollbackFullReinitialize(importControlId);
+                throw;
+            }
 
             // recorded before the completion so a failure there does not lose the result of the run
             await RecordRun(importControlId, previousRuleOwners, newRuleOwners, pendingImportsBefore);
@@ -454,6 +464,33 @@ namespace FWO.Services
             }
 
             return (rulesToMap, owners, ruleOwnersToRemove);
+        }
+
+        /// <summary>
+        /// Restores the mappings a failed full reinitialize removed and closes the ones it already inserted, and
+        /// marks its import control as finished without success. A failure here is logged and alerted, while the
+        /// caller still reports the original failure.
+        /// </summary>
+        /// <param name="importControlId">Import control of the failed full reinitialize.</param>
+        protected async Task RollbackFullReinitialize(long importControlId)
+        {
+            try
+            {
+                await apiConnection.SendQueryAsync<object>(OwnerQueries.rollbackRuleOwnerReinitialize, new { controlId = importControlId });
+                await apiConnection.SendQueryAsync<ImportControl>(ImportQueries.updateImportControlForRuleOwnerFull,
+                    new
+                    {
+                        controlId = importControlId,
+                        stopTime = DateTime.UtcNow,
+                        successful = false,
+                        rule_owner_mapping_done = false
+                    });
+                Log.WriteWarning(LogMessageTitle, $"FULL rule_owner reinitialize {importControlId} failed; the previous mappings were restored.");
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(LogMessageTitle, $"FULL rule_owner reinitialize {importControlId} failed and the previous mappings could not be restored.", exception);
+            }
         }
 
         protected async Task<long> CreateImportControl()

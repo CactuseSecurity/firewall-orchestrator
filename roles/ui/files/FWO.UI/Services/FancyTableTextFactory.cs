@@ -34,7 +34,24 @@ namespace FWO.Ui.Services
                 NoMatchingRootItemsFormat = userConfig.GetText("no_matching_root_items_format"),
                 ShowingVisibleRowsFormat = userConfig.GetText("showing_visible_rows_format"),
                 ResizeColumnFormat = userConfig.GetText("resize_column_format"),
-                ReorderColumnFormat = userConfig.GetText("reorder_column_format")
+                ReorderColumnFormat = userConfig.GetText("reorder_column_format"),
+                SortColumnFormat = userConfig.GetText("sort_column_format"),
+                HideColumnFormat = userConfig.GetText("hide_column_format"),
+                ClearSearchLabel = userConfig.GetText("clear_search"),
+                FilteredColumnLabel = userConfig.GetText("filtered_column"),
+                FilterColumnFormat = userConfig.GetText("filter_column_format"),
+                FilterValuePlaceholder = userConfig.GetText("value"),
+                ApplyFilterLabel = userConfig.GetText("apply_filter"),
+                ClearFilterLabel = userConfig.GetText("clear_filter"),
+                FilterOperatorLabel = userConfig.GetText("filter_operator"),
+                FilterOperatorEqualsLabel = userConfig.GetText("filter_op_equals"),
+                FilterOperatorNotEqualsLabel = userConfig.GetText("filter_op_not_equals"),
+                FilterOperatorContainsLabel = userConfig.GetText("filter_op_contains"),
+                FilterOperatorNotContainsLabel = userConfig.GetText("filter_op_not_contains"),
+                FilterOperatorStartsWithLabel = userConfig.GetText("filter_op_starts_with"),
+                FilterOperatorEndsWithLabel = userConfig.GetText("filter_op_ends_with"),
+                FilterOperatorIsEmptyLabel = userConfig.GetText("filter_op_is_empty"),
+                FilterOperatorIsNotEmptyLabel = userConfig.GetText("filter_op_is_not_empty")
             };
         }
     }

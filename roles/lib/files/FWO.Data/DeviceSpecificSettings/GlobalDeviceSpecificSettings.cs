@@ -47,6 +47,12 @@ public class GlobalDeviceSpecificSettings
     public string ImporterHostName { get; set; } = "";
 
     /// <summary>
+    /// Whether the importer also offers the SHA-1 SSH key exchange diffie-hellman-group14-sha1, which current
+    /// OpenSSH disables. Off by default; only for devices that offer nothing better (Cisco ASA).
+    /// </summary>
+    public bool SshLegacyKeyExchange { get; set; } = false;
+
+    /// <summary>
     /// Whether the implementation tasks of a request task are created automatically once the request task is
     /// approved. When false, a planner creates them. Applies to every task type; rule tasks additionally need
     /// <see cref="AutoPlanImplementationForRules"/>.

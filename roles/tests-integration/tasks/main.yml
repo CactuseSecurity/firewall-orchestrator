@@ -171,6 +171,11 @@
   import_tasks: test-ldap-client-tls.yml
   when: "'middlewareserver' in group_names"
 
+# On the middleware host because that is where slapd runs.
+- name: LDAP password access testing
+  import_tasks: test-ldap-password-acl.yml
+  when: "'middlewareserver' in group_names"
+
 # On the database host because that is the role whose migration files the guard protects.
 - name: Upgrade source version guard testing
   import_tasks: test-upgrade-source-version-guard.yml
@@ -190,6 +195,11 @@
 - name: Python venv reset testing
   import_tasks: test-python-venv-reset.yml
   when: "['importers', 'middlewareserver'] | intersect(group_names) | length > 0"
+
+# On the hosts that install the browser for the PDF generation (roles/lib).
+- name: Browser migration testing
+  import_tasks: test-browser-migration.yml
+  when: "['frontends', 'middlewareserver'] | intersect(group_names) | length > 0"
 
 - name: OS platform guard testing
   import_tasks: test-os-platform-guard.yml

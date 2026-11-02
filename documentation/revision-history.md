@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.6 - 02.11.2026
+- dependencies: update NuGet packages (AngleSharp to 1.9.1, Quartz to 4.7.0, Scalar.AspNetCore to 2.18.7, SoPro.FancyTable to 1.1.0)
+- UI (FancyTable): the new sort, hide, clear search and column filter labels of SoPro.FancyTable 1.1.0 are localized (German and English) instead of always showing English
+
 ## 9.8.5 - 29.10.2026
 - installer: after an operating system upgrade to a new PostgreSQL major version (e.g. Debian 12 -> 13: 15 -> 17) the upgrade stops before changing PostgreSQL and names the steps to migrate the database (`pg_upgradecluster` on Debian/Ubuntu, `postgresql-setup --upgrade` on Red Hat/Rocky) instead of failing on a missing postgresql.conf; documentation/installer/server-upgrade.md describes the migration (#5598)
 - installer: the importer and customizing script python venvs are rebuilt when they were created for another python version (e.g. 3.11 -> 3.13 after an operating system upgrade), instead of failing with `No module named 'pip'` or leaving the importer without its packages (#5599)
@@ -18,8 +22,6 @@
   - breaking: an AccessRequest template that was missing on a SecureChange system (ticket creation failed before) is now replaced by the shipped one
   - a task type whose ticket or task template is empty (no setting and no shipped template, e.g. NetworkObjectModify) is refused with a configuration error before a request is created, as when its template was missing before
   - service group tasks routed to SecureChange are refused with a configuration error; SecureChange only modifies groups of network objects. Before, they created a ticket without tasks. Their templates (NetworkServiceCreate, NetworkServiceUpdate) were never used and are not migrated; they remain in the backup
-- dependencies: update NuGet packages (AngleSharp to 1.9.1, Quartz to 4.7.0, Scalar.AspNetCore to 2.18.7, SoPro.FancyTable to 1.1.0)
-- UI (FancyTable): the new sort, hide, clear search and column filter labels of SoPro.FancyTable 1.1.0 are localized (German and English) instead of always showing English
 
 ## 9.8.4 - 29.10.2026
 - installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server

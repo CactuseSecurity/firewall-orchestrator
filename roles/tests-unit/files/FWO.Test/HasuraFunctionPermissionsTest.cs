@@ -168,7 +168,7 @@ namespace FWO.Test
             return JsonDocument.Parse(File.ReadAllText(metadataFile.FullName));
         }
 
-        private static IEnumerable<JsonElement> GetSources(JsonDocument metadata)
+        private static JsonElement.ArrayEnumerator GetSources(JsonDocument metadata)
         {
             return metadata.RootElement.GetProperty("args").GetProperty("metadata").GetProperty("sources").EnumerateArray();
         }

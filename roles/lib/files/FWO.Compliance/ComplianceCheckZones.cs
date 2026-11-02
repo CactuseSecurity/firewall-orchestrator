@@ -21,7 +21,9 @@ namespace FWO.Compliance
         /// <returns>List of ranges (empty if parsing is not possible).</returns>
         public static List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
         {
-            TryParseIpRange(networkObject, out List<IPAddressRange> ranges);
+            // the result is deliberately ignored: a value that cannot be parsed adds no range, and the ranges of
+            // parseable group members are still returned; callers that must know use TryParseIpRange
+            _ = TryParseIpRange(networkObject, out List<IPAddressRange> ranges);
             return ranges;
         }
 

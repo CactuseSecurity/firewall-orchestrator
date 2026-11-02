@@ -3,7 +3,7 @@
 
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText(TextKey))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("edit") + ": " + userConfig.GetText(TextKey))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
     <Body>
         @if (Display)
         {

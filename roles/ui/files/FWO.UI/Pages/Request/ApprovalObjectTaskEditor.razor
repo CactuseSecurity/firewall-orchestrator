@@ -4,7 +4,7 @@
 
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText(IsModify ? "object_modify" : "add_task"))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
+<PopUp Title="@PopupTitle" Show="@Display" Size="PopupSize.Small" OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -35,6 +35,15 @@
 
     private DisplayObjectTaskElement? objectTaskElement;
     private string? validationError;
+    private string ObjectName => WfObjectTaskHelper.GetRequestedElement(Task)?.Name ?? "";
+    private string PopupTitle
+    {
+        get
+        {
+            string action = userConfig.GetText(IsModify ? "object_modify" : "object_create");
+            return string.IsNullOrWhiteSpace(ObjectName) ? action : $"{action}: {ObjectName}";
+        }
+    }
 
     private async Task Save()
     {

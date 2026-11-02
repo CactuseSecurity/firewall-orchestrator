@@ -10,7 +10,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("approval_task_details_edit"))" Show="@Display" Size="PopupSize.Medium" OnClose="Close">
+<PopUp Title="@PopupTitle" Show="@Display" Size="PopupSize.Medium" OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -103,7 +103,45 @@
     private bool IsSource => FieldKey == WorkflowEditableFieldKeys.Source;
     private bool IsDestination => FieldKey == WorkflowEditableFieldKeys.Destination;
     private bool NetworkField => IsSource || IsDestination;
-    private string FieldLabel => userConfig.GetText(IsSource ? "source" : IsDestination ? "destination" : "services");
+    private bool IsGroupTask => Task.TaskType is nameof(WfTaskType.group_create) or nameof(WfTaskType.group_modify)
+        or nameof(WfTaskType.group_delete);
+    private bool IsObjectTask => WfObjectTaskHelper.IsObjectTask(Task.TaskType);
+    private string FieldLabel
+    {
+        get
+        {
+            if (IsGroupTask)
+            {
+                return userConfig.GetText("members");
+            }
+            if (IsObjectTask)
+            {
+                ObjectTaskKind objectKind = WfObjectTaskHelper.GetKind(WfObjectTaskHelper.GetRequestedElement(Task));
+                string key = objectKind switch
+                {
+                    ObjectTaskKind.Service => "service_objects",
+                    ObjectTaskKind.Time => "time_object",
+                    _ => "network_object"
+                };
+                return userConfig.GetText(key);
+            }
+            return userConfig.GetText(IsSource ? "source" : IsDestination ? "destination" : "services");
+        }
+    }
+    private string GroupName
+    {
+        get
+        {
+            string addInfoName = Task.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+            return !string.IsNullOrWhiteSpace(addInfoName)
+                ? addInfoName
+                : Task.Elements.Select(element => element.GroupName ?? element.Name)
+                    .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name)) ?? "";
+        }
+    }
+    private string PopupTitle => IsGroupTask
+        ? $"{userConfig.GetText("edit_group")}: {GroupName}"
+        : $"{userConfig.GetText("edit_access_task")}: {Task.Title}";
 
     private IEnumerable<ElementChoice> FlowNetworkChoices => flowNetworkObjects.Where(item => FlowObjectEligibility.IsRequestable(item)).Select(item =>
     {

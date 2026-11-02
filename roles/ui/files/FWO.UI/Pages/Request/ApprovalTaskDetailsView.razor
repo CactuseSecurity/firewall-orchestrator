@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
-<PopUp Title="@(userConfig.GetText("approval_task_details_edit"))" Show="@Display" Size="PopupSize.XLarge" OnClose="Close">
+<PopUp Title="@ApprovalTaskViewTitle" Show="@Display" Size="PopupSize.XLarge" OnClose="Close">
     <Body>
         @if (Display)
         {
@@ -30,7 +30,7 @@
                     <summary class="card-header d-flex justify-content-between align-items-center">
                         <span class="d-flex align-items-start flex-wrap flex-grow-1 gap-2">
                             <small class="text-muted mr-2 text-nowrap" style="min-width: 10rem;">@(userConfig.GetText("id")): @TaskIds(taskGroup)</small>
-                            <strong class="mr-2">@task.Title</strong>
+                            <strong class="mr-2">@TaskDisplayTitle(task)</strong>
                             @if (CanEdit(taskGroup, WorkflowEditableFieldKeys.Title))
                             {
                                 <button type="button" class="btn btn-sm btn-warning" @onclick:stopPropagation @onclick="() => OpenTextEditor(task, WorkflowEditableFieldKeys.Title, task.Title)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
@@ -122,621 +122,314 @@
     [Parameter] public IReadOnlyList<WfStateAction> OfferedActions { get; set; } = [];
     [Parameter] public Func<WfStateAction, Task> PerformTicketAction { get; set; } = _ => Task.CompletedTask;
 
-    private ApproverAllowedChangesConfig AllowedChanges =>
-        ApproverAllowedChangesConfig.Parse(userConfig.ReqAllowedChangesByApprover);
+    private readonly ApprovalTaskDetailsEditorService editorService = new();
 
-    private AccessTaskFieldVisibilityConfig AccessTaskVisibility =>
-        TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask;
+    private string ApprovalTaskViewTitle => $"{userConfig.GetText("ticket")}: {WfHandler.ActTicket.Title} ({userConfig.GetText("id")}: {WfHandler.ActTicket.Id}, {userConfig.GetText("state")}: {States.GetName(WfHandler.ActTicket.StateId)})";
 
-    private ApprovalTaskElementDisplayMode accessElementDisplayMode = ApprovalTaskElementDisplayMode.Resolved;
-    private List<ComplianceNetworkZone> networkZones = [];
-    private List<IpProtocol> ipProtocols = [];
-    private List<IpProtocol> selectableIpProtocols = [];
+    private string TaskDisplayTitle(WfReqTask task)
+    {
+        string taskType = string.IsNullOrWhiteSpace(task.TaskType)
+            ? userConfig.GetText("task")
+            : userConfig.GetText(task.TaskType);
+        return string.IsNullOrWhiteSpace(task.Title) ? taskType : $"{taskType}: {task.Title}";
+    }
 
-    private List<RuleAction> ruleActions = [];
-    private List<Tracking> trackings = [];
-    private bool displayOwnerEditor;
-    private WfReqTask? editingOwnerTask;
-    private FwoOwner selectedOwner = new();
-    private bool displayRuleActionEditor;
-    private WfReqTask? editingRuleActionTask;
-    private RuleAction? selectedRuleAction;
-    private bool displayTrackingEditor;
-    private WfReqTask? editingTrackingTask;
-    private Tracking? selectedTracking;
-    private bool displayManagementEditor;
-    private WfReqTask? editingManagementTask;
-    private Management? selectedManagement;
-    private bool displayTargetDatesEditor;
-    private WfReqTask? editingTargetDatesTask;
-    private WfReqTask? formerTimeObjectTask;
-    private long? formerTimeObjectSelectorId;
-    private long? formerTimeObjectElementId;
-    private TargetDatesEditorModel targetDatesEditorModel = new();
-    private bool displayTimeObjectTaskEditor;
-    private TargetDatesEditorModel newTimeObjectTaskModel = new();
-    private bool displayDeleteFormerTimeObjectTask;
-    private WfReqTask? pendingFormerTimeObjectTask;
-    private bool displayTextEditor;
-    private bool displayElementsEditor;
-    private WfReqTask? editingElementsTask;
-    private string editingElementsField = WorkflowEditableFieldKeys.Source;
-    private bool displayObjectTaskEditor;
-    private bool objectTaskIsExisting;
-    private bool objectTaskIsModify;
-    private WfReqTask newObjectTask = new();
-    private ObjectTaskKind newObjectTaskKind = ObjectTaskKind.Network;
-    private bool displayDeleteObjectTask;
-    private WfReqTask? pendingObjectTask;
-    private bool workInProgress;
-    private WfReqTask? editingTextTask;
-    private string textEditorKey = "title";
-    private string textEditorValue = "";
-    private bool textEditorMultiline;
+    private ApproverAllowedChangesConfig AllowedChanges => editorService.AllowedChanges;
+    private AccessTaskFieldVisibilityConfig AccessTaskVisibility => editorService.AccessTaskVisibility;
+    private ApprovalTaskElementDisplayMode accessElementDisplayMode
+    {
+        get => editorService.accessElementDisplayMode;
+        set => editorService.accessElementDisplayMode = value;
+    }
 
-    private List<FwoOwner> OwnerOptions => WfHandler.AllOwners.Where(owner => owner.Id != 0).ToList();
-    private List<Management> ManagementOptions => WfHandler.Managements;
+    private List<ComplianceNetworkZone> networkZones
+    {
+        get => editorService.networkZones;
+        set => editorService.networkZones = value;
+    }
+    private List<IpProtocol> ipProtocols
+    {
+        get => editorService.ipProtocols;
+        set => editorService.ipProtocols = value;
+    }
+    private List<IpProtocol> selectableIpProtocols
+    {
+        get => editorService.selectableIpProtocols;
+        set => editorService.selectableIpProtocols = value;
+    }
+    private List<RuleAction> ruleActions
+    {
+        get => editorService.ruleActions;
+        set => editorService.ruleActions = value;
+    }
+    private List<Tracking> trackings
+    {
+        get => editorService.trackings;
+        set => editorService.trackings = value;
+    }
+
+    private bool displayOwnerEditor
+    {
+        get => editorService.displayOwnerEditor;
+        set => editorService.displayOwnerEditor = value;
+    }
+    private WfReqTask? editingOwnerTask
+    {
+        get => editorService.editingOwnerTask;
+        set => editorService.editingOwnerTask = value;
+    }
+    private FwoOwner selectedOwner
+    {
+        get => editorService.selectedOwner;
+        set => editorService.selectedOwner = value;
+    }
+    private bool displayRuleActionEditor
+    {
+        get => editorService.displayRuleActionEditor;
+        set => editorService.displayRuleActionEditor = value;
+    }
+    private WfReqTask? editingRuleActionTask
+    {
+        get => editorService.editingRuleActionTask;
+        set => editorService.editingRuleActionTask = value;
+    }
+    private RuleAction? selectedRuleAction
+    {
+        get => editorService.selectedRuleAction;
+        set => editorService.selectedRuleAction = value;
+    }
+    private bool displayTrackingEditor
+    {
+        get => editorService.displayTrackingEditor;
+        set => editorService.displayTrackingEditor = value;
+    }
+    private WfReqTask? editingTrackingTask
+    {
+        get => editorService.editingTrackingTask;
+        set => editorService.editingTrackingTask = value;
+    }
+    private Tracking? selectedTracking
+    {
+        get => editorService.selectedTracking;
+        set => editorService.selectedTracking = value;
+    }
+    private bool displayManagementEditor
+    {
+        get => editorService.displayManagementEditor;
+        set => editorService.displayManagementEditor = value;
+    }
+    private WfReqTask? editingManagementTask
+    {
+        get => editorService.editingManagementTask;
+        set => editorService.editingManagementTask = value;
+    }
+    private Management? selectedManagement
+    {
+        get => editorService.selectedManagement;
+        set => editorService.selectedManagement = value;
+    }
+    private bool displayTargetDatesEditor
+    {
+        get => editorService.displayTargetDatesEditor;
+        set => editorService.displayTargetDatesEditor = value;
+    }
+    private WfReqTask? editingTargetDatesTask
+    {
+        get => editorService.editingTargetDatesTask;
+        set => editorService.editingTargetDatesTask = value;
+    }
+    private WfReqTask? formerTimeObjectTask
+    {
+        get => editorService.formerTimeObjectTask;
+        set => editorService.formerTimeObjectTask = value;
+    }
+    private long? formerTimeObjectSelectorId
+    {
+        get => editorService.formerTimeObjectSelectorId;
+        set => editorService.formerTimeObjectSelectorId = value;
+    }
+    private long? formerTimeObjectElementId
+    {
+        get => editorService.formerTimeObjectElementId;
+        set => editorService.formerTimeObjectElementId = value;
+    }
+    private TargetDatesEditorModel targetDatesEditorModel
+    {
+        get => editorService.targetDatesEditorModel;
+        set => editorService.targetDatesEditorModel = value;
+    }
+    private bool displayTimeObjectTaskEditor
+    {
+        get => editorService.displayTimeObjectTaskEditor;
+        set => editorService.displayTimeObjectTaskEditor = value;
+    }
+    private TargetDatesEditorModel newTimeObjectTaskModel
+    {
+        get => editorService.newTimeObjectTaskModel;
+        set => editorService.newTimeObjectTaskModel = value;
+    }
+    private bool displayDeleteFormerTimeObjectTask
+    {
+        get => editorService.displayDeleteFormerTimeObjectTask;
+        set => editorService.displayDeleteFormerTimeObjectTask = value;
+    }
+    private WfReqTask? pendingFormerTimeObjectTask
+    {
+        get => editorService.pendingFormerTimeObjectTask;
+        set => editorService.pendingFormerTimeObjectTask = value;
+    }
+    private bool displayTextEditor
+    {
+        get => editorService.displayTextEditor;
+        set => editorService.displayTextEditor = value;
+    }
+    private bool displayElementsEditor
+    {
+        get => editorService.displayElementsEditor;
+        set => editorService.displayElementsEditor = value;
+    }
+    private WfReqTask? editingElementsTask
+    {
+        get => editorService.editingElementsTask;
+        set => editorService.editingElementsTask = value;
+    }
+    private string editingElementsField
+    {
+        get => editorService.editingElementsField;
+        set => editorService.editingElementsField = value;
+    }
+    private bool displayObjectTaskEditor
+    {
+        get => editorService.displayObjectTaskEditor;
+        set => editorService.displayObjectTaskEditor = value;
+    }
+    private bool objectTaskIsExisting
+    {
+        get => editorService.objectTaskIsExisting;
+        set => editorService.objectTaskIsExisting = value;
+    }
+    private bool objectTaskIsModify
+    {
+        get => editorService.objectTaskIsModify;
+        set => editorService.objectTaskIsModify = value;
+    }
+    private WfReqTask newObjectTask
+    {
+        get => editorService.newObjectTask;
+        set => editorService.newObjectTask = value;
+    }
+    private ObjectTaskKind newObjectTaskKind
+    {
+        get => editorService.newObjectTaskKind;
+        set => editorService.newObjectTaskKind = value;
+    }
+    private bool displayDeleteObjectTask
+    {
+        get => editorService.displayDeleteObjectTask;
+        set => editorService.displayDeleteObjectTask = value;
+    }
+    private WfReqTask? pendingObjectTask
+    {
+        get => editorService.pendingObjectTask;
+        set => editorService.pendingObjectTask = value;
+    }
+    private bool workInProgress
+    {
+        get => editorService.workInProgress;
+        set => editorService.workInProgress = value;
+    }
+    private WfReqTask? editingTextTask
+    {
+        get => editorService.editingTextTask;
+        set => editorService.editingTextTask = value;
+    }
+    private string textEditorKey
+    {
+        get => editorService.textEditorKey;
+        set => editorService.textEditorKey = value;
+    }
+    private string textEditorValue
+    {
+        get => editorService.textEditorValue;
+        set => editorService.textEditorValue = value;
+    }
+    private bool textEditorMultiline
+    {
+        get => editorService.textEditorMultiline;
+        set => editorService.textEditorMultiline = value;
+    }
+
+    private List<FwoOwner> OwnerOptions => editorService.OwnerOptions;
+    private List<Management> ManagementOptions => editorService.ManagementOptions;
+    private bool CanCreateTimeObjectTask => editorService.CanCreateTimeObjectTask;
+
+    protected override void OnParametersSet()
+    {
+        ConfigureEditorService();
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions) ?? [];
-            trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking) ?? [];
-            List<IpProtocol> protocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols) ?? [];
-            ipProtocols = ProtocolDisplayHelper.CustomSortProtocols(protocols, null, false);
-            selectableIpProtocols = ProtocolDisplayHelper.CustomSortProtocols(
-                ProtocolDisplayHelper.GetSelectableProtocols(protocols),
-                ProtocolDisplayHelper.ParseProtocolNames(userConfig.ReducedProtocolSetProtocols),
-                userConfig.ReducedProtocolSet);
-            if (userConfig.DesignatedZoneMatrixId > 0)
-            {
-                networkZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
-                    NetworkZoneQueries.getNetworkZonesForMatrix,
-                    new { criterionId = userConfig.DesignatedZoneMatrixId }) ?? [];
-            }
-        }
-        catch
-        {
-            // The IDs remain useful as a fallback when the lookup data is unavailable.
-            ruleActions = [];
-            trackings = [];
-            ipProtocols = [];
-            selectableIpProtocols = [];
-        }
+        ConfigureEditorService();
+        await editorService.InitializeAsync(apiConnection);
     }
+
+    private void ConfigureEditorService() => editorService.Configure(WfHandler, userConfig, RefreshAfterOperation);
 
     private IEnumerable<List<WfReqTask>> GetTaskGroups()
     {
-        IEnumerable<WfReqTask> tasks = WfHandler.ActTicket.Tasks
-            .Where(task => task.TaskType == WfTaskType.access.ToString()
-                || WfObjectTaskHelper.IsManagementObjectTask(task.TaskType));
-
-        if (!userConfig.ReqDisplayBundledTasksAsOne || !userConfig.ReqConsiderBundling)
-        {
-            return tasks.Select(task => new List<WfReqTask> { task });
-        }
-
-        return tasks.GroupBy(task =>
-        {
-            if (WfObjectTaskHelper.IsManagementObjectTask(task.TaskType))
-            {
-                return $"task:{task.Id}";
-            }
-
-            string bundleId = task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
-            return string.IsNullOrWhiteSpace(bundleId)
-                ? $"task:{task.Id}"
-                : $"bundle:{bundleId}:state:{task.StateId}";
-        }).Select(group => group.OrderBy(task => task.Id).ToList());
+        ConfigureEditorService();
+        return editorService.GetTaskGroups();
     }
 
-    private static bool IsAccessTask(WfReqTask task) => task.TaskType == WfTaskType.access.ToString();
+    private static bool IsAccessTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsAccessTask(task);
 
-    private static bool IsGroupTask(WfReqTask task) => task.TaskType == WfTaskType.group_create.ToString()
-        || task.TaskType == WfTaskType.group_modify.ToString()
-        || task.TaskType == WfTaskType.group_delete.ToString();
+    private static bool IsGroupTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsGroupTask(task);
 
-    private static string? DetailsOpen(WfReqTask task) => IsAccessTask(task) ? "open" : null;
+    private static string? DetailsOpen(WfReqTask task) => ApprovalTaskDetailsEditorService.DetailsOpen(task);
 
-    private ApprovalTaskViewContext CreateTaskViewContext() => new(
-        new ApprovalTaskDisplayLogic(
-        WfHandler,
-        userConfig,
-        ruleActions,
-        trackings,
-        ipProtocols,
-        networkZones,
-        accessElementDisplayMode),
-        AccessTaskVisibility,
-        ipProtocols,
-        CanEdit,
-        CanEditTimeObject,
-        EditableTimeObjectField,
-        OpenOwnerEditor,
-        OpenRuleActionEditor,
-        OpenTrackingEditor,
-        OpenManagementEditor,
-        OpenElementsEditor,
-        OpenGroupMembersEditor,
-        OpenExistingObjectTaskEditor,
-        (task, field, value) => OpenTextEditor(task, field, value),
-        (task, field) => OpenTargetDatesEditor(task, field));
+    private ApprovalTaskViewContext CreateTaskViewContext()
+    {
+        ConfigureEditorService();
+        return editorService.CreateTaskViewContext();
+    }
 
     private bool CanEdit(IEnumerable<WfReqTask> tasks, string fieldKey)
     {
-        List<WfReqTask> taskList = tasks.ToList();
-        if (taskList.Count == 0
-            || taskList.Any(task => !WfHandler.CanActOnReqTaskInCurrentPhase(task))
-            || taskList.Any(WfObjectTaskHelper.HasFlowDbReference))
-        {
-            return false;
-        }
-
-        WfReqTask? firstTask = taskList.FirstOrDefault();
-        WfTaskType taskType = Enum.TryParse(firstTask?.TaskType ?? "", true, out WfTaskType parsedTaskType)
-            ? parsedTaskType
-            : WfTaskType.access;
-        return ApproverAllowedChangesAccess.CanEditTaskField(AllowedChanges, new()
-        {
-            IsApprovalPhase = true,
-            ApproveReqTaskMode = true,
-            ReadOnlyMode = WfHandler.ReadOnlyMode,
-            TaskType = taskType,
-            HasImplementationTasks = taskList.Any(task => task.ImplementationTasks.Count > 0)
-        }, fieldKey);
+        ConfigureEditorService();
+        return editorService.CanEdit(tasks, fieldKey);
     }
 
-    private Task OpenOwnerEditor(WfReqTask task)
-    {
-        editingOwnerTask = task;
-        FwoOwner? owner = task.Owners.FirstOrDefault()?.Owner;
-        selectedOwner = OwnerOptions.FirstOrDefault(candidate => candidate.Id == owner?.Id) ?? new FwoOwner();
-        displayOwnerEditor = true;
-        return RefreshAfterEditorOpen();
-    }
+    private Task OpenOwnerEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenOwnerEditor(task));
+    private Task OpenRuleActionEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenRuleActionEditor(task));
+    private Task OpenTrackingEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenTrackingEditor(task));
+    private Task OpenManagementEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenManagementEditor(task));
+    private Task OpenTargetDatesEditor(WfReqTask task, string fieldKey) => RunEditorOperation(() => editorService.OpenTargetDatesEditor(task, fieldKey));
+    private Task OpenCreateTimeObjectTaskEditor() => RunEditorOperation(editorService.OpenCreateTimeObjectTaskEditor);
+    private Task OpenTextEditor(WfReqTask task, string fieldKey, string value) => RunEditorOperation(() => editorService.OpenTextEditor(task, fieldKey, value));
+    private Task OpenElementsEditor(WfReqTask task, string fieldKey) => RunEditorOperation(() => editorService.OpenElementsEditor(task, fieldKey));
+    private Task OpenGroupMembersEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenGroupMembersEditor(task));
+    private Task OpenExistingObjectTaskEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenExistingObjectTaskEditor(task));
+    private Task OpenObjectTaskEditor() => RunEditorOperation(editorService.OpenObjectTaskEditor);
 
-    private Task OpenRuleActionEditor(WfReqTask task)
-    {
-        editingRuleActionTask = task;
-        selectedRuleAction = ruleActions.FirstOrDefault(action => action.Id == task.RuleAction);
-        displayRuleActionEditor = true;
-        return RefreshAfterEditorOpen();
-    }
+    private Task SaveObjectTask(WfReqTask task) => InvokeEditor(() => editorService.SaveObjectTask(task));
+    private Task HandleObjectTaskEditorDisplayChanged(bool display) => InvokeEditor(() => editorService.HandleObjectTaskEditorDisplayChanged(display));
+    private Task SaveObjectTaskCore(WfReqTask task) => InvokeEditor(() => editorService.SaveObjectTaskCore(task));
+    private Task RefreshAccessTasksUsingObject(WfReqTask task) => InvokeEditor(() => editorService.RefreshAccessTasksUsingObject(task));
+    private static void CopyObjectSnapshot(WfReqElement target, WfReqElement source) => ApprovalTaskDetailsEditorService.CopyObjectSnapshot(target, source);
+    private static bool SamePositiveId(long? left, long? right) => ApprovalTaskDetailsEditorService.SamePositiveId(left, right);
+    private Task DeleteObjectTask() => InvokeEditor(editorService.DeleteObjectTask);
+    private Task DeleteObjectTaskCore() => InvokeEditor(editorService.DeleteObjectTaskCore);
+    private Task SaveElements(string fieldKey, IReadOnlyList<NwObjectElement> sources, IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services) => InvokeEditor(() => editorService.SaveElements(fieldKey, sources, destinations, services));
+    private Task SaveElementsCore(string fieldKey, IReadOnlyList<NwObjectElement> sources, IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services) => InvokeEditor(() => editorService.SaveElementsCore(fieldKey, sources, destinations, services));
+    private Task RefreshAccessTasksUsingGroup(WfReqTask task) => InvokeEditor(() => editorService.RefreshAccessTasksUsingGroup(task));
+    private static WfReqElement? FindGroupMemberByReference(WfReqElement accessElement, IEnumerable<WfReqElement> currentElements) => ApprovalTaskDetailsEditorService.FindGroupMemberByReference(accessElement, currentElements);
+    private bool IsObjectTaskReferenced(WfReqTask task) => InvokeEditor(() => editorService.IsObjectTaskReferenced(task));
+    private Task RefreshAfterEditorOpen() => InvokeEditor(editorService.RefreshAfterEditorOpen);
+    private Task RunWithProgress(Func<Task> action) => InvokeEditor(() => editorService.RunWithProgress(action));
+    private Task RefreshAfterOperation() => RefreshAfterOperationCore();
 
-    private Task OpenTrackingEditor(WfReqTask task)
-    {
-        editingTrackingTask = task;
-        selectedTracking = trackings.FirstOrDefault(tracking => tracking.Id == task.Tracking);
-        displayTrackingEditor = true;
-        return RefreshAfterEditorOpen();
-    }
-
-    private Task OpenManagementEditor(WfReqTask task)
-    {
-        editingManagementTask = task;
-        selectedManagement = ManagementOptions.FirstOrDefault(management => management.Id == task.ManagementId);
-        displayManagementEditor = true;
-        return RefreshAfterEditorOpen();
-    }
-
-    private Task OpenTargetDatesEditor(WfReqTask task, string fieldKey)
-    {
-        editingTargetDatesTask = task;
-        WfReqElement? timeElement = TimeObjectElementHelper.Find(task.Elements);
-        long? timeObjectId = timeElement == null
-            ? null
-            : TimeObjectReferenceResolver.GetSelectorId(timeElement);
-        long? ticketElementId = null;
-        WfReqElement? parallelTimeElement = TimeObjectReferenceResolver.FindParallelTimeElement(
-            WfHandler.ActTicket.Tasks, task, timeObjectId, ticketElementId);
-        string? timeObjectName = timeElement?.Name;
-        if (parallelTimeElement != null)
-        {
-            timeObjectName ??= parallelTimeElement.Name;
-            timeObjectId = TimeObjectReferenceResolver.GetSelectorId(parallelTimeElement);
-            ticketElementId = parallelTimeElement.Id;
-        }
-        long? referencedObjectTaskId = timeElement?.ObjectTaskId;
-        formerTimeObjectTask = referencedObjectTaskId is > 0
-            ? WfHandler.ActTicket.Tasks.FirstOrDefault(candidate => candidate.Id == referencedObjectTaskId.Value)
-            : parallelTimeElement == null
-                ? null
-                : WfHandler.ActTicket.Tasks.FirstOrDefault(candidate => candidate.Elements.Any(element =>
-                    element.Id == parallelTimeElement.Id));
-        formerTimeObjectSelectorId = timeObjectId;
-        formerTimeObjectElementId = parallelTimeElement?.Id;
-        targetDatesEditorModel = new TargetDatesEditorModel
-        {
-            BeginDate = parallelTimeElement?.StartTime ?? task.TargetBeginDate,
-            EndDate = parallelTimeElement?.EndTime ?? task.TargetEndDate,
-            FlowTimeObjectId = timeObjectId,
-            TicketElementId = parallelTimeElement?.Id ?? ticketElementId,
-            FlowTimeObjectName = timeObjectName,
-            TicketTimeObjects = GetTicketTimeObjects(),
-            TicketTimeObjectElementIds = GetTicketTimeObjectElementIds(),
-            ShowBeginDate = AccessTaskVisibility.ShowValidFrom,
-            ShowEndDate = AccessTaskVisibility.ShowValidTo
-        };
-        displayTargetDatesEditor = true;
-        return RefreshAfterEditorOpen();
-    }
-
-    private bool CanCreateTimeObjectTask => editingTargetDatesTask != null
-        && (CanEdit([editingTargetDatesTask], WorkflowEditableFieldKeys.ValidFrom)
-            || CanEdit([editingTargetDatesTask], WorkflowEditableFieldKeys.ValidTo));
-
-    private Task OpenCreateTimeObjectTaskEditor()
-    {
-        if (!CanCreateTimeObjectTask)
-        {
-            return Task.CompletedTask;
-        }
-
-        newTimeObjectTaskModel = new TargetDatesEditorModel
-        {
-            BeginDate = AccessTaskVisibility.ShowValidFrom ? targetDatesEditorModel.BeginDate : null,
-            EndDate = AccessTaskVisibility.ShowValidTo ? targetDatesEditorModel.EndDate : null,
-            ShowBeginDate = AccessTaskVisibility.ShowValidFrom,
-            ShowEndDate = AccessTaskVisibility.ShowValidTo
-        };
-        displayTimeObjectTaskEditor = true;
-        return RefreshAfterEditorOpen();
-    }
-
-    private Task OpenTextEditor(WfReqTask task, string fieldKey, string value)
-    {
-        editingTextTask = task;
-        textEditorKey = fieldKey;
-        textEditorValue = value;
-        textEditorMultiline = fieldKey != WorkflowEditableFieldKeys.Title;
-        displayTextEditor = true;
-        return RefreshAfterEditorOpen();
-    }
-
-    private Task OpenElementsEditor(WfReqTask task, string fieldKey)
-    {
-        editingElementsTask = task;
-        editingElementsField = fieldKey;
-        displayElementsEditor = true;
-        return RefreshAfterEditorOpen();
-    }
-
-    private Task OpenGroupMembersEditor(WfReqTask task)
-    {
-        string fieldKey = task.GetNwObjectElements(ElemFieldType.source).Any()
-            ? WorkflowEditableFieldKeys.Source
-            : WorkflowEditableFieldKeys.Services;
-        return OpenElementsEditor(task, fieldKey);
-    }
-
-    private Task OpenExistingObjectTaskEditor(WfReqTask task)
-    {
-        newObjectTask = task;
-        objectTaskIsExisting = true;
-        objectTaskIsModify = task.TaskType == WfTaskType.object_modify.ToString();
-        newObjectTaskKind = WfObjectTaskHelper.GetKind(WfObjectTaskHelper.GetRequestedElement(task)
-            ?? WfObjectTaskHelper.GetOriginalElement(task));
-        displayObjectTaskEditor = true;
-        return RefreshAfterEditorOpen();
-    }
-
-    private Task OpenObjectTaskEditor()
-    {
-        if (editingElementsTask == null)
-        {
-            return Task.CompletedTask;
-        }
-
-        newObjectTask = new WfReqTask
-        {
-            TicketId = WfHandler.ActTicket.Id,
-            TaskNumber = WfHandler.ActTicket.HighestTaskNumber() + 1,
-            TaskType = WfTaskType.object_create.ToString(),
-            RequestAction = RequestAction.create.ToString(),
-            StateId = editingElementsTask.StateId,
-            ManagementId = editingElementsTask.ManagementId,
-            Locked = true,
-            Title = userConfig.GetText("task")
-        };
-        newObjectTaskKind = editingElementsField == WorkflowEditableFieldKeys.Services
-            ? ObjectTaskKind.Service
-            : ObjectTaskKind.Network;
-        objectTaskIsExisting = false;
-        objectTaskIsModify = false;
-        displayElementsEditor = false;
-        displayObjectTaskEditor = true;
-        return RefreshAfterEditorOpen();
-    }
-
-    private Task SaveObjectTask(WfReqTask task)
-    {
-        return RunWithProgress(() => SaveObjectTaskCore(task));
-    }
-
-    private async Task HandleObjectTaskEditorDisplayChanged(bool display)
-    {
-        displayObjectTaskEditor = display;
-        if (!display)
-        {
-            objectTaskIsExisting = false;
-            objectTaskIsModify = false;
-        }
-        if (!display && editingElementsTask != null)
-        {
-            displayElementsEditor = true;
-        }
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task SaveObjectTaskCore(WfReqTask task)
-    {
-        if (!objectTaskIsModify)
-        {
-            task.Title = task.Elements.FirstOrDefault()?.Name ?? task.Title;
-        }
-        WfHandler.SetReqTaskEnv(task);
-        if (objectTaskIsExisting)
-        {
-            await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
-        }
-        else
-        {
-            await WfHandler.AddReqTask(allowLockedApprovalUpdate: true);
-        }
-        await RefreshAccessTasksUsingObject(task);
-        displayObjectTaskEditor = false;
-        objectTaskIsExisting = false;
-        objectTaskIsModify = false;
-        displayElementsEditor = editingElementsTask != null;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    /// <summary>
-    /// Refreshes the object snapshots in access tasks after an object task was changed.
-    /// </summary>
-    /// <param name="objectTask">The saved object task.</param>
-    private async Task RefreshAccessTasksUsingObject(WfReqTask objectTask)
-    {
-        WfReqElement? requested = WfObjectTaskHelper.GetRequestedElement(objectTask);
-        if (requested == null || !WfObjectTaskHelper.IsObjectTask(objectTask.TaskType))
-        {
-            return;
-        }
-
-        List<WfReqTask> affectedTasks = WfHandler.ActTicket.Tasks
-            .Where(task => task.TaskType == WfTaskType.access.ToString())
-            .Where(task => task.Elements.Any(element => element.ObjectTaskId == objectTask.Id))
-            .ToList();
-
-        foreach (WfReqTask accessTask in affectedTasks)
-        {
-            bool changed = false;
-            foreach (WfReqElement element in accessTask.Elements.Where(element => element.ObjectTaskId == objectTask.Id))
-            {
-                CopyObjectSnapshot(element, requested);
-                changed = true;
-            }
-
-            if (changed)
-            {
-                WfHandler.SetReqTaskEnv(accessTask);
-                await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Copies the changed object data while preserving the access element identity and action.
-    /// </summary>
-    private static void CopyObjectSnapshot(WfReqElement target, WfReqElement source)
-    {
-        string field = target.Field;
-        long elementId = target.Id;
-        long taskId = target.TaskId;
-        string requestAction = target.RequestAction;
-        long? objectTaskId = target.ObjectTaskId;
-        target.IpString = source.IpString ?? source.Cidr?.CidrString;
-        target.IpEnd = source.IpEnd ?? source.CidrEnd?.CidrString;
-        target.Cidr = source.Cidr;
-        target.CidrEnd = source.CidrEnd;
-        target.Port = source.Port;
-        target.PortEnd = source.PortEnd;
-        target.ProtoId = source.ProtoId;
-        target.NetworkId = source.NetworkId ?? target.NetworkId;
-        target.ServiceId = source.ServiceId ?? target.ServiceId;
-        target.FlowNetworkObjectId = source.FlowNetworkObjectId ?? target.FlowNetworkObjectId;
-        target.FlowNetworkGroupId = source.FlowNetworkGroupId ?? target.FlowNetworkGroupId;
-        target.FlowServiceObjectId = source.FlowServiceObjectId ?? target.FlowServiceObjectId;
-        target.FlowServiceGroupId = source.FlowServiceGroupId ?? target.FlowServiceGroupId;
-        target.TimeObjId = source.TimeObjId ?? target.TimeObjId;
-        target.FlowTimeObjectId = source.FlowTimeObjectId ?? target.FlowTimeObjectId;
-        target.GroupName = source.GroupName;
-        target.Name = source.Name;
-        target.Field = field;
-        target.Id = elementId;
-        target.TaskId = taskId;
-        target.RequestAction = requestAction;
-        target.ObjectTaskId = objectTaskId;
-    }
-
-    private static bool SamePositiveId(long? left, long? right)
-    {
-        return left is > 0 && left == right;
-    }
-
-    private Task DeleteObjectTask()
-    {
-        return RunWithProgress(DeleteObjectTaskCore);
-    }
-
-    private async Task DeleteObjectTaskCore()
-    {
-        if (pendingObjectTask == null)
-        {
-            return;
-        }
-
-        WfHandler.SetReqTaskEnv(pendingObjectTask);
-        await WfHandler.ConfDeleteReqTask(allowLockedApprovalUpdate: true);
-        pendingObjectTask = null;
-        displayDeleteObjectTask = false;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private Task SaveElements(string fieldKey, IReadOnlyList<NwObjectElement> sources,
-        IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services)
-    {
-        return RunWithProgress(() => SaveElementsCore(fieldKey, sources, destinations, services));
-    }
-
-    private async Task SaveElementsCore(string fieldKey, IReadOnlyList<NwObjectElement> sources,
-        IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services)
-    {
-        if (editingElementsTask == null)
-        {
-            return;
-        }
-
-        WfHandler.SetReqTaskEnv(editingElementsTask);
-        WfReqTask activeTask = WfHandler.ActReqTask;
-        ElemFieldType field = fieldKey switch
-        {
-            WorkflowEditableFieldKeys.Source => ElemFieldType.source,
-            WorkflowEditableFieldKeys.Destination => ElemFieldType.destination,
-            _ => ElemFieldType.service
-        };
-        List<WfReqTask> formerObjectTasks = activeTask.Elements
-            .Where(element => element.Field == field.ToString() && element.TaskId > 0)
-            .Where(element => element.ObjectTaskId is > 0)
-            .Select(element => WfHandler.ActTicket.Tasks.FirstOrDefault(task => task.Id == element.ObjectTaskId))
-            .Where(task => task != null && WfObjectTaskHelper.IsManagementObjectTask(task.TaskType))
-            .Cast<WfReqTask>()
-            .DistinctBy(task => task.Id)
-            .ToList();
-        List<WfReqElement> replacement = field switch
-        {
-            ElemFieldType.source => sources.Select(element => element.ToReqElement(field)).ToList(),
-            ElemFieldType.destination => destinations.Select(element => element.ToReqElement(field)).ToList(),
-            _ => services.Select(element => element.ToReqElement()).ToList()
-        };
-        HashSet<long> retainedIds = replacement.Where(element => element.Id > 0).Select(element => element.Id).ToHashSet();
-        activeTask.RemovedElements.AddRange(activeTask.Elements
-            .Where(element => element.Field == field.ToString() && element.Id > 0 && !retainedIds.Contains(element.Id))
-            .Where(element => activeTask.RemovedElements.All(removed => removed.Id != element.Id)));
-        activeTask.Elements = activeTask.Elements
-            .Where(element => element.Field != field.ToString())
-            .Concat(replacement)
-            .ToList();
-        await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
-        if (IsGroupTask(activeTask))
-        {
-            await RefreshAccessTasksUsingGroup(activeTask);
-        }
-        editingElementsTask = null;
-        WfReqTask? formerObjectTask = formerObjectTasks.FirstOrDefault(task => !IsObjectTaskReferenced(task));
-        if (formerObjectTask != null)
-        {
-            pendingObjectTask = formerObjectTask;
-            displayDeleteObjectTask = true;
-        }
-        await InvokeAsync(StateHasChanged);
-    }
-
-    /// <summary>
-    /// Refreshes access snapshots that were selected from a group task.
-    /// </summary>
-    private async Task RefreshAccessTasksUsingGroup(WfReqTask groupTask)
-    {
-        List<WfReqElement> currentElements = groupTask.Elements
-            .Where(element => element.Field == ElemFieldType.source.ToString()
-                || element.Field == ElemFieldType.service.ToString())
-            .Where(element => element.RequestAction != RequestAction.delete.ToString())
-            .ToList();
-
-        foreach (WfReqTask accessTask in WfHandler.ActTicket.Tasks.Where(task =>
-            task.TaskType == WfTaskType.access.ToString()))
-        {
-            bool changed = false;
-            foreach (WfReqElement accessElement in accessTask.Elements.Where(element =>
-                element.ObjectTaskId == groupTask.Id))
-            {
-                WfReqElement? currentElement = FindGroupMemberByReference(accessElement, currentElements);
-                if (currentElement != null)
-                {
-                    CopyObjectSnapshot(accessElement, currentElement);
-                    changed = true;
-                }
-            }
-
-            if (changed)
-            {
-                WfHandler.SetReqTaskEnv(accessTask);
-                await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
-            }
-        }
-    }
-
-    private static WfReqElement? FindGroupMemberByReference(WfReqElement accessElement,
-        IEnumerable<WfReqElement> currentElements)
-    {
-        IEnumerable<WfReqElement> candidates = currentElements.Where(element => element.Field == accessElement.Field);
-        if (accessElement.Field == ElemFieldType.service.ToString())
-        {
-            return candidates.FirstOrDefault(element =>
-                SamePositiveId(element.ServiceId, accessElement.ServiceId)
-                || SamePositiveId(element.FlowServiceObjectId, accessElement.FlowServiceObjectId)
-                || SamePositiveId(element.FlowServiceGroupId, accessElement.FlowServiceGroupId));
-        }
-
-        return candidates.FirstOrDefault(element =>
-            SamePositiveId(element.NetworkId, accessElement.NetworkId)
-            || SamePositiveId(element.FlowNetworkObjectId, accessElement.FlowNetworkObjectId)
-            || SamePositiveId(element.FlowNetworkGroupId, accessElement.FlowNetworkGroupId));
-    }
-
-    private bool IsObjectTaskReferenced(WfReqTask objectTask)
-    {
-        return WfHandler.ActTicket.Tasks
-            .Where(task => task.Id != objectTask.Id)
-            .SelectMany(task => task.Elements)
-            .Any(element => element.ObjectTaskId == objectTask.Id);
-    }
-
-    private Task RefreshAfterEditorOpen()
-    {
-        try
-        {
-            return InvokeAsync(StateHasChanged);
-        }
-        catch (InvalidOperationException)
-        {
-            // Private callbacks are also exercised on an unrendered component in unit tests.
-            return Task.CompletedTask;
-        }
-    }
-
-    private async Task RunWithProgress(Func<Task> action)
-    {
-        if (workInProgress)
-        {
-            return;
-        }
-
-        workInProgress = true;
-        await RefreshAfterOperation();
-        try
-        {
-            await action();
-        }
-        finally
-        {
-            workInProgress = false;
-            await RefreshAfterOperation();
-        }
-    }
-
-    private async Task RefreshAfterOperation()
+    private async Task RefreshAfterOperationCore()
     {
         try
         {
@@ -748,399 +441,61 @@
         }
     }
 
-    private Task SaveRuleAction(RuleAction? ruleAction)
+    private Task SaveRuleAction(RuleAction? ruleAction) => InvokeEditor(() => editorService.SaveRuleAction(ruleAction));
+    private Task SaveRuleActionCore(RuleAction? ruleAction) => InvokeEditor(() => editorService.SaveRuleActionCore(ruleAction));
+    private Task SaveOwner(FwoOwner owner) => InvokeEditor(() => editorService.SaveOwner(owner));
+    private Task SaveOwnerCore(FwoOwner owner) => InvokeEditor(() => editorService.SaveOwnerCore(owner));
+    private Task SaveTracking(Tracking? tracking) => InvokeEditor(() => editorService.SaveTracking(tracking));
+    private Task SaveTrackingCore(Tracking? tracking) => InvokeEditor(() => editorService.SaveTrackingCore(tracking));
+    private Task SaveManagement(Management? management) => InvokeEditor(() => editorService.SaveManagement(management));
+    private Task SaveManagementCore(Management? management) => InvokeEditor(() => editorService.SaveManagementCore(management));
+    private Task SaveTargetDates(TargetDatesEditorModel model) => InvokeEditor(() => editorService.SaveTargetDates(model));
+    private Task SaveTargetDatesCore(TargetDatesEditorModel model) => InvokeEditor(() => editorService.SaveTargetDatesCore(model));
+    private Task CreateTimeObjectTask(TargetDatesEditorModel model) => InvokeEditor(() => editorService.CreateTimeObjectTask(model));
+    private void InitializeNewObjectTaskState(WfReqTask task) => InvokeEditor(() => editorService.InitializeNewObjectTaskState(task));
+    private bool ShouldOfferFormerTimeObjectDeletion(TargetDatesEditorModel model) => InvokeEditor(() => editorService.ShouldOfferFormerTimeObjectDeletion(model));
+    private bool UsesFormerTimeObject(WfReqTask task) => InvokeEditor(() => editorService.UsesFormerTimeObject(task));
+    private Task DeleteFormerTimeObjectTask() => InvokeEditor(editorService.DeleteFormerTimeObjectTask);
+    private Task DeleteFormerTimeObjectTaskCore() => InvokeEditor(editorService.DeleteFormerTimeObjectTaskCore);
+    private IEnumerable<WfReqTask> GetTasksToUpdate(WfReqTask task) => InvokeEditor(() => editorService.GetTasksToUpdate(task));
+    private void ApplyTimeObjectModel(TargetDatesEditorModel model) => InvokeEditor(() => editorService.ApplyTimeObjectModel(model));
+    private List<FlowTimeObject> GetTicketTimeObjects() => InvokeEditor(editorService.GetTicketTimeObjects);
+    private Dictionary<long, long> GetTicketTimeObjectElementIds() => InvokeEditor(editorService.GetTicketTimeObjectElementIds);
+    private Task SaveText(string value) => InvokeEditor(() => editorService.SaveText(value));
+    private Task SaveTextCore(string value) => InvokeEditor(() => editorService.SaveTextCore(value));
+    private static string TaskIds(IEnumerable<WfReqTask> tasks) => ApprovalTaskDetailsEditorService.TaskIds(tasks);
+    private bool CanEditTimeObject(IEnumerable<WfReqTask> tasks) => InvokeEditor(() => editorService.CanEditTimeObject(tasks));
+    private string EditableTimeObjectField(IEnumerable<WfReqTask> tasks) => InvokeEditor(() => editorService.EditableTimeObjectField(tasks));
+    private void ToggleAccessElementDisplay() => InvokeEditor(editorService.ToggleAccessElementDisplay);
+    private string NextDisplayModeTextKey() => InvokeEditor(editorService.NextDisplayModeTextKey);
+
+    private Task InvokeEditor(Func<Task> operation)
     {
-        return RunWithProgress(() => SaveRuleActionCore(ruleAction));
+        ConfigureEditorService();
+        return operation();
     }
 
-    private async Task SaveRuleActionCore(RuleAction? ruleAction)
+    private T InvokeEditor<T>(Func<T> operation)
     {
-        if (editingRuleActionTask == null)
-        {
-            return;
-        }
-
-        WfHandler.SetReqTaskEnv(editingRuleActionTask);
-        WfHandler.ActReqTask.RuleAction = ruleAction?.Id;
-        await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
-        editingRuleActionTask = null;
-        await InvokeAsync(StateHasChanged);
+        ConfigureEditorService();
+        return operation();
     }
 
-    private Task SaveOwner(FwoOwner owner)
+    private void InvokeEditor(Action operation)
     {
-        return RunWithProgress(() => SaveOwnerCore(owner));
+        ConfigureEditorService();
+        operation();
     }
 
-    private async Task SaveOwnerCore(FwoOwner owner)
+    private async Task RunEditorOperation(Func<Task> operation)
     {
-        if (editingOwnerTask == null)
-        {
-            return;
-        }
-
-        WfHandler.SetReqTaskEnv(editingOwnerTask);
-        FwoOwner? oldOwner = editingOwnerTask.Owners.FirstOrDefault()?.Owner;
-        WfHandler.ActReqTask.RemovedOwners = oldOwner == null || oldOwner.Id == owner.Id ? [] : [oldOwner];
-        WfHandler.ActReqTask.NewOwners = oldOwner != null && oldOwner.Id == owner.Id ? [] : [owner];
-        WfHandler.ActReqTask.Owners = oldOwner == null ? [] : [new FwoOwnerDataHelper { Owner = oldOwner }];
-        await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
-        editingOwnerTask = null;
-        await InvokeAsync(StateHasChanged);
+        ConfigureEditorService();
+        await operation();
     }
-
-    private Task SaveTracking(Tracking? tracking)
-    {
-        return RunWithProgress(() => SaveTrackingCore(tracking));
-    }
-
-    private async Task SaveTrackingCore(Tracking? tracking)
-    {
-        if (editingTrackingTask == null)
-        {
-            return;
-        }
-
-        WfHandler.SetReqTaskEnv(editingTrackingTask);
-        WfHandler.ActReqTask.Tracking = tracking?.Id;
-        await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
-        editingTrackingTask = null;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private Task SaveManagement(Management? management)
-    {
-        return RunWithProgress(() => SaveManagementCore(management));
-    }
-
-    private async Task SaveManagementCore(Management? management)
-    {
-        if (editingManagementTask == null)
-        {
-            return;
-        }
-
-        WfHandler.SetReqTaskEnv(editingManagementTask);
-        WfHandler.ActReqTask.ManagementId = management?.Id;
-        await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
-        editingManagementTask = null;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private Task SaveTargetDates(TargetDatesEditorModel model)
-    {
-        return RunWithProgress(() => SaveTargetDatesCore(model));
-    }
-
-    private async Task SaveTargetDatesCore(TargetDatesEditorModel model)
-    {
-        if (editingTargetDatesTask == null)
-        {
-            return;
-        }
-
-        foreach (WfReqTask task in GetTasksToUpdate(editingTargetDatesTask))
-        {
-            WfHandler.SetReqTaskEnv(task);
-            ApplyTimeObjectModel(model);
-            await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
-        }
-        bool offerFormerTimeObjectDeletion = ShouldOfferFormerTimeObjectDeletion(model);
-        editingTargetDatesTask = null;
-        if (offerFormerTimeObjectDeletion)
-        {
-            pendingFormerTimeObjectTask = formerTimeObjectTask;
-            displayDeleteFormerTimeObjectTask = true;
-        }
-        formerTimeObjectTask = null;
-        formerTimeObjectSelectorId = null;
-        formerTimeObjectElementId = null;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private Task CreateTimeObjectTask(TargetDatesEditorModel model)
-    {
-        return RunWithProgress(() => CreateTimeObjectTaskCore(model));
-    }
-
-    private async Task CreateTimeObjectTaskCore(TargetDatesEditorModel model)
-    {
-        if (editingTargetDatesTask == null || !CanCreateTimeObjectTask)
-        {
-            return;
-        }
-
-        WfReqTask sourceTask = editingTargetDatesTask;
-        string timeObjectName = TimeObjectNamingHelper.BuildDisplayName(
-            model.FlowTimeObjectName?.Trim(),
-            TimeObjectOrigin.Approver,
-            TimeObjectNamingHelper.ParseSuffixes(userConfig.ReqTimeObjectOriginSuffixes));
-        WfReqElement timeElement = new()
-        {
-            Field = ElemFieldType.time.ToString(),
-            RequestAction = RequestAction.create.ToString(),
-            Name = timeObjectName,
-            StartTime = model.BeginDate,
-            EndTime = model.EndDate
-        };
-        WfReqTask newTask = new()
-        {
-            TicketId = WfHandler.ActTicket.Id,
-            TaskNumber = WfHandler.ActTicket.HighestTaskNumber() + 1,
-            TaskType = WfTaskType.object_create.ToString(),
-            RequestAction = RequestAction.create.ToString(),
-            StateId = sourceTask.StateId,
-            Title = timeObjectName,
-            ManagementId = sourceTask.ManagementId,
-            TargetBeginDate = model.BeginDate,
-            TargetEndDate = model.EndDate,
-            Locked = true,
-            Elements = [timeElement],
-            Approvals =
-            [
-                new WfApproval
-                {
-                    StateId = sourceTask.StateId,
-                    TenantId = WfHandler.ActTicket.TenantId,
-                    ApproverGroup = sourceTask.Approvals.FirstOrDefault()?.ApproverGroup ?? "",
-                    InitialApproval = true
-                }
-            ]
-        };
-
-        InitializeNewObjectTaskState(newTask);
-        WfHandler.SelectReqTask(newTask, ObjAction.add);
-        await WfHandler.AddReqTask(allowLockedApprovalUpdate: true);
-        WfReqTask? createdTask = WfHandler.ActTicket.Tasks.FirstOrDefault(task => task.TaskNumber == newTask.TaskNumber);
-        WfReqElement? createdElement = createdTask == null ? null : TimeObjectElementHelper.Find(createdTask.Elements);
-        if (createdTask == null || createdElement == null)
-        {
-            WfHandler.SetReqTaskEnv(sourceTask);
-            return;
-        }
-
-        TargetDatesEditorModel updatedModel = new(targetDatesEditorModel)
-        {
-            BeginDate = createdElement.StartTime,
-            EndDate = createdElement.EndTime,
-            FlowTimeObjectId = TimeObjectReferenceResolver.GetSelectorId(createdElement),
-            TicketElementId = createdElement.Id,
-            FlowTimeObjectName = createdElement.Name,
-            TicketTimeObjects = GetTicketTimeObjects(),
-            TicketTimeObjectElementIds = GetTicketTimeObjectElementIds()
-        };
-        targetDatesEditorModel = updatedModel;
-        WfHandler.SetReqTaskEnv(sourceTask);
-        displayTimeObjectTaskEditor = false;
-        displayTargetDatesEditor = true;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private void InitializeNewObjectTaskState(WfReqTask task)
-    {
-        int initialState = WfHandler.ActStateMatrix.LowestInputState;
-        task.StateId = initialState;
-        foreach (WfApproval approval in task.Approvals)
-        {
-            approval.StateId = initialState;
-        }
-    }
-
-    private bool ShouldOfferFormerTimeObjectDeletion(TargetDatesEditorModel model)
-    {
-        if (formerTimeObjectTask?.Id is not > 0 || formerTimeObjectSelectorId == model.FlowTimeObjectId
-            || model.FlowTimeObjectId == null)
-        {
-            return false;
-        }
-
-        WfReqTask? accessTask = editingTargetDatesTask;
-        if (accessTask == null)
-        {
-            return false;
-        }
-
-        return !WfHandler.ActTicket.Tasks
-            .Where(task => task.TaskType == WfTaskType.access.ToString()
-                && task.Id != formerTimeObjectTask.Id && task.Id != accessTask.Id)
-            .Any(UsesFormerTimeObject);
-    }
-
-    private bool UsesFormerTimeObject(WfReqTask task)
-    {
-        WfReqElement? timeElement = TimeObjectElementHelper.Find(task.Elements);
-        if (timeElement == null || formerTimeObjectTask == null)
-        {
-            return false;
-        }
-
-        return timeElement.ObjectTaskId == formerTimeObjectTask.Id
-            || (formerTimeObjectElementId is > 0 && timeElement.TimeObjId == -formerTimeObjectElementId.Value)
-            || TimeObjectReferenceResolver.FindParallelTimeTask(
-                WfHandler.ActTicket.Tasks, task, null, null)?.Id == formerTimeObjectTask.Id;
-    }
-
-    private Task DeleteFormerTimeObjectTask()
-    {
-        return RunWithProgress(DeleteFormerTimeObjectTaskCore);
-    }
-
-    private async Task DeleteFormerTimeObjectTaskCore()
-    {
-        if (pendingFormerTimeObjectTask == null)
-        {
-            return;
-        }
-
-        WfHandler.SetReqTaskEnv(pendingFormerTimeObjectTask);
-        await WfHandler.ConfDeleteReqTask(allowLockedApprovalUpdate: true);
-        pendingFormerTimeObjectTask = null;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private IEnumerable<WfReqTask> GetTasksToUpdate(WfReqTask task)
-    {
-        string bundleId = task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
-        if (!userConfig.ReqDisplayBundledTasksAsOne || !userConfig.ReqConsiderBundling || string.IsNullOrWhiteSpace(bundleId))
-        {
-            return new List<WfReqTask> { task };
-        }
-
-        return WfHandler.ActTicket.Tasks.Where(candidate =>
-            candidate.TaskType == task.TaskType
-            && candidate.StateId == task.StateId
-            && candidate.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId);
-    }
-
-    private void ApplyTimeObjectModel(TargetDatesEditorModel model)
-    {
-        WfHandler.ActReqTask.TargetBeginDate = model.BeginDate;
-        WfHandler.ActReqTask.TargetEndDate = model.EndDate;
-        if (!model.FlowTimeObjectId.HasValue || model.FlowTimeObjectId.Value == 0)
-        {
-            WfReqElement? existingTimeElement = TimeObjectElementHelper.Find(WfHandler.ActReqTask.Elements);
-            if (existingTimeElement != null)
-            {
-                WfHandler.ActReqTask.Elements.Remove(existingTimeElement);
-                if (existingTimeElement.Id > 0)
-                    WfHandler.ActReqTask.RemovedElements.Add(existingTimeElement);
-            }
-            return;
-        }
-
-        WfReqElement timeElement = TimeObjectElementHelper.GetOrCreate(WfHandler.ActReqTask);
-        if (model.FlowTimeObjectId.Value > 0)
-        {
-            TimeObjectElementHelper.SetReference(timeElement, model.FlowTimeObjectId.Value);
-        }
-        else
-        {
-            WfReqTask? ticketTimeObjectTask = model.TicketElementId is > 0
-                ? WfHandler.ActTicket.Tasks.FirstOrDefault(task => task.Elements.Any(element =>
-                    element.Id == model.TicketElementId.Value
-                    && element.Field == ElemFieldType.time.ToString()))
-                : null;
-            ticketTimeObjectTask ??= TimeObjectReferenceResolver.FindParallelTimeTask(
-                WfHandler.ActTicket.Tasks, WfHandler.ActReqTask, model.FlowTimeObjectId, model.TicketElementId);
-            if (ticketTimeObjectTask != null)
-                TimeObjectElementHelper.SetTicketTaskReference(timeElement, ticketTimeObjectTask.Id);
-            else
-                TimeObjectElementHelper.ClearReference(timeElement);
-        }
-        timeElement.Name = model.FlowTimeObjectName;
-        timeElement.StartTime = model.BeginDate;
-        timeElement.EndTime = model.EndDate;
-    }
-
-    private List<FlowTimeObject> GetTicketTimeObjects()
-    {
-        return [.. TimeObjectReferenceResolver.GetTicketTimeElements(WfHandler.ActTicket.Tasks)
-            .Select(element => new FlowTimeObject
-            {
-                Id = TimeObjectReferenceResolver.GetSelectorId(element),
-                Name = element.Name ?? "",
-                StartTime = element.StartTime,
-                EndTime = element.EndTime
-            })
-            .Where(timeObject => timeObject.Id != 0)
-            .DistinctBy(timeObject => timeObject.Id)];
-    }
-
-    private Dictionary<long, long> GetTicketTimeObjectElementIds()
-    {
-        return TimeObjectReferenceResolver.GetTicketTimeElements(WfHandler.ActTicket.Tasks)
-            .Where(element => element.Id != 0)
-            .GroupBy(TimeObjectReferenceResolver.GetSelectorId)
-            .ToDictionary(group => group.Key, group => group.First().Id);
-    }
-
-    private Task SaveText(string value)
-    {
-        return RunWithProgress(() => SaveTextCore(value));
-    }
-
-    private async Task SaveTextCore(string value)
-    {
-        if (editingTextTask == null)
-        {
-            return;
-        }
-
-        WfHandler.SetReqTaskEnv(editingTextTask);
-        switch (textEditorKey)
-        {
-            case WorkflowEditableFieldKeys.Title:
-                WfHandler.ActReqTask.Title = value;
-                break;
-            case WorkflowEditableFieldKeys.Reason:
-                WfHandler.ActReqTask.Reason = value;
-                break;
-            case WorkflowEditableFieldKeys.FreeText:
-                WfHandler.ActReqTask.FreeText = value;
-                break;
-            case WorkflowEditableFieldKeys.Name:
-                WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, value);
-                WfHandler.ActReqTask.Title = value;
-                break;
-        }
-
-        await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
-        editingTextTask = null;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private static string TaskIds(IEnumerable<WfReqTask> tasks) => string.Join(", ", tasks.Select(task => task.Id));
-
-    private bool CanEditTimeObject(IEnumerable<WfReqTask> tasks) =>
-        (AccessTaskVisibility.ShowValidFrom && CanEdit(tasks, WorkflowEditableFieldKeys.ValidFrom))
-        || (AccessTaskVisibility.ShowValidTo && CanEdit(tasks, WorkflowEditableFieldKeys.ValidTo));
-
-    private string EditableTimeObjectField(IEnumerable<WfReqTask> tasks) =>
-        AccessTaskVisibility.ShowValidFrom && CanEdit(tasks, WorkflowEditableFieldKeys.ValidFrom)
-            ? WorkflowEditableFieldKeys.ValidFrom
-            : WorkflowEditableFieldKeys.ValidTo;
-
-    private void ToggleAccessElementDisplay()
-    {
-        accessElementDisplayMode = accessElementDisplayMode switch
-        {
-            ApprovalTaskElementDisplayMode.Resolved => ApprovalTaskElementDisplayMode.Technical,
-            ApprovalTaskElementDisplayMode.Technical => ApprovalTaskElementDisplayMode.UnresolvedGroups,
-            _ => ApprovalTaskElementDisplayMode.Resolved
-        };
-    }
-
-    private string NextDisplayModeTextKey() => accessElementDisplayMode switch
-    {
-        ApprovalTaskElementDisplayMode.Resolved => "technical_view",
-        ApprovalTaskElementDisplayMode.Technical => "unresolved_groups_view",
-        _ => "resolved_view"
-    };
 
     private void Close()
     {
         Display = false;
         _ = DisplayChanged.InvokeAsync(false);
     }
-
 }

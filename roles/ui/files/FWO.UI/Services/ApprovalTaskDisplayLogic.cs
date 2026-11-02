@@ -15,7 +15,7 @@ namespace FWO.Ui.Services
         Resolved,
         /// <summary>Shows technical values without display-name decoration.</summary>
         Technical,
-        /// <summary>Shows group members without resolving the groups.</summary>
+        /// <summary>Shows group references as groups instead of expanding their members.</summary>
         UnresolvedGroups
     }
 
@@ -184,53 +184,161 @@ namespace FWO.Ui.Services
             return name;
         }
 
-        private IEnumerable<string> ResolvedElementValues(IEnumerable<WfReqTask> tasks, ElemFieldType field) => tasks
-            .SelectMany(task => task.Elements)
-            .Where(element => element.Field == field.ToString())
-            .SelectMany(element => ExpandTicketGroup(element, field))
-            .Select(ResolvedElementValue)
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Distinct();
+        private IEnumerable<string> ResolvedElementValues(IEnumerable<WfReqTask> tasks, ElemFieldType field) =>
+            DisplayElements(tasks, field)
+                .Select(ResolvedElementValue)
+                .Where(value => !string.IsNullOrWhiteSpace(value));
 
-        private IEnumerable<string> TechnicalElementValues(IEnumerable<WfReqTask> tasks, ElemFieldType field) => tasks
-            .SelectMany(task => task.Elements)
-            .Where(element => element.Field == field.ToString())
-            .SelectMany(element => ExpandTicketGroup(element, field))
-            .Select(TechnicalElementValue)
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Distinct();
+        private IEnumerable<string> TechnicalElementValues(IEnumerable<WfReqTask> tasks, ElemFieldType field) =>
+            DisplayElements(tasks, field)
+                .Select(TechnicalElementValue)
+                .Where(value => !string.IsNullOrWhiteSpace(value));
 
-        private IEnumerable<string> UnresolvedGroupElementValues(IEnumerable<WfReqTask> tasks, ElemFieldType field) => tasks
-            .SelectMany(task => task.Elements)
-            .Where(element => element.Field == field.ToString())
-            .Select(UnresolvedGroupElementValue)
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Distinct();
+        private IEnumerable<string> UnresolvedGroupElementValues(IEnumerable<WfReqTask> tasks, ElemFieldType field) =>
+            DisplayElements(tasks, field)
+                .Select(UnresolvedGroupElementValue)
+                .Where(value => !string.IsNullOrWhiteSpace(value));
+
+        private IEnumerable<WfReqElement> DisplayElements(IEnumerable<WfReqTask> tasks, ElemFieldType field)
+        {
+            IEnumerable<WfReqElement> elements = tasks
+                .SelectMany(task => task.Elements)
+                .Where(element => element.Field == field.ToString())
+                .SelectMany(element => DisplayCandidates(element, field))
+                .Select(ResolveObjectTaskElement);
+
+            return elements.DistinctBy(ElementIdentity, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private IEnumerable<WfReqElement> DisplayCandidates(WfReqElement element, ElemFieldType field)
+        {
+            if (displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups && IsGroupElement(element, field))
+            {
+                return Enumerable.Repeat(element, 1);
+            }
+
+            return ExpandTicketGroup(element, field);
+        }
+
+        private bool IsGroupElement(WfReqElement element, ElemFieldType field)
+        {
+            if (!string.IsNullOrWhiteSpace(element.GroupName)
+                || element.FlowNetworkGroupId is > 0
+                || element.FlowServiceGroupId is > 0)
+            {
+                return true;
+            }
+
+            string memberField = field == ElemFieldType.service
+                ? ElemFieldType.service.ToString()
+                : ElemFieldType.source.ToString();
+            if (element.ObjectTaskId is > 0)
+            {
+                return wfHandler.ActTicket.Tasks.Any(task => task.Id == element.ObjectTaskId
+                    && IsGroupTask(task)
+                    && task.Elements.Any(candidate => candidate.Field == memberField));
+            }
+
+            if (HasConcreteElementData(element))
+            {
+                return false;
+            }
+
+            string groupName = element.Name ?? "";
+            return !string.IsNullOrWhiteSpace(groupName)
+                && wfHandler.ActTicket.Tasks.Any(task => IsGroupTask(task)
+                    && MatchesTicketGroup(task, element, groupName, memberField));
+        }
+
+        private static bool IsGroupTask(WfReqTask task) => task.TaskType is nameof(WfTaskType.group_create)
+            or nameof(WfTaskType.group_modify);
+
+        private static bool HasConcreteElementData(WfReqElement element)
+        {
+            return element.ObjectTaskId is > 0
+                || element.NetworkId is > 0
+                || element.ServiceId is > 0
+                || element.FlowNetworkObjectId is > 0
+                || element.FlowServiceObjectId is > 0
+                || !string.IsNullOrWhiteSpace(element.IpString)
+                || !string.IsNullOrWhiteSpace(element.IpEnd)
+                || element.Port.HasValue
+                || element.PortEnd.HasValue
+                || element.ProtoId.HasValue;
+        }
+
+        private static string ElementIdentity(WfReqElement element)
+        {
+            string reference = element.ObjectTaskId is > 0 ? $"task:{element.ObjectTaskId}" : "";
+            reference = !string.IsNullOrWhiteSpace(reference) ? reference
+                : element.FlowNetworkObjectId is > 0 ? $"flow-nw:{element.FlowNetworkObjectId}" : reference;
+            reference = !string.IsNullOrWhiteSpace(reference) ? reference
+                : element.FlowNetworkGroupId is > 0 ? $"flow-nw-group:{element.FlowNetworkGroupId}" : reference;
+            reference = !string.IsNullOrWhiteSpace(reference) ? reference
+                : element.FlowServiceObjectId is > 0 ? $"flow-svc:{element.FlowServiceObjectId}" : reference;
+            reference = !string.IsNullOrWhiteSpace(reference) ? reference
+                : element.FlowServiceGroupId is > 0 ? $"flow-svc-group:{element.FlowServiceGroupId}" : reference;
+            reference = !string.IsNullOrWhiteSpace(reference) ? reference
+                : element.NetworkId is > 0 ? $"nw:{element.NetworkId}" : reference;
+            reference = !string.IsNullOrWhiteSpace(reference) ? reference
+                : element.ServiceId is > 0 ? $"svc:{element.ServiceId}" : reference;
+
+            if (!string.IsNullOrWhiteSpace(reference))
+            {
+                return string.Join('|', element.Field, reference, element.RequestAction);
+            }
+
+            return string.Join('|',
+                element.Field,
+                element.Name,
+                element.GroupName,
+                element.IpString,
+                element.IpEnd,
+                element.Port,
+                element.PortEnd,
+                element.ProtoId,
+                element.RequestAction);
+        }
 
         private string UnresolvedGroupElementValue(WfReqElement element)
         {
-            bool isNetworkGroup = element.FlowNetworkGroupId.HasValue;
-            bool isServiceGroup = element.FlowServiceGroupId.HasValue;
-            if (!string.IsNullOrWhiteSpace(element.GroupName) || isNetworkGroup || isServiceGroup)
+            ElemFieldType field = element.Field == ElemFieldType.service.ToString()
+                ? ElemFieldType.service
+                : ElemFieldType.source;
+            bool isNetworkGroup = element.FlowNetworkGroupId is > 0;
+            bool isServiceGroup = element.FlowServiceGroupId is > 0;
+            if (IsGroupElement(element, field))
             {
-                string name = element.GroupName ?? element.Name
-                    ?? (isNetworkGroup ? element.FlowNetworkGroupId?.ToString() : element.FlowServiceGroupId?.ToString())
-                    ?? "";
+                WfReqTask? groupTask = element.ObjectTaskId is > 0
+                    ? wfHandler.ActTicket.Tasks.FirstOrDefault(task => task.Id == element.ObjectTaskId && IsGroupTask(task))
+                    : null;
+                string name = FirstNonEmpty(element.GroupName, element.Name,
+                    groupTask?.GetAddInfoValue(AdditionalInfoKeys.GrpName),
+                    groupTask?.Elements.FirstOrDefault(member => member.Field == field.ToString())?.GroupName,
+                    isNetworkGroup ? element.FlowNetworkGroupId?.ToString() : null,
+                    isServiceGroup ? element.FlowServiceGroupId?.ToString() : null) ?? "";
                 return AddZones(element, name);
             }
 
             return ResolvedElementValue(element);
         }
 
+        private static string? FirstNonEmpty(params string?[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
         private IEnumerable<WfReqElement> ExpandTicketGroup(WfReqElement element, ElemFieldType field)
         {
+            if (!IsGroupElement(element, field))
+            {
+                return Enumerable.Repeat(element, 1);
+            }
+
             string groupName = !string.IsNullOrWhiteSpace(element.GroupName) ? element.GroupName : element.Name ?? "";
             string memberField = field == ElemFieldType.service
                 ? ElemFieldType.service.ToString()
                 : ElemFieldType.source.ToString();
 
             List<WfReqTask> groupTasks = [.. wfHandler.ActTicket.Tasks
-                .Where(task => task.TaskType is nameof(WfTaskType.group_create) or nameof(WfTaskType.group_modify))
+                .Where(IsGroupTask)
                 .Where(task => MatchesTicketGroup(task, element, groupName, memberField))];
 
             List<WfReqElement> members = [.. groupTasks
@@ -244,6 +352,11 @@ namespace FWO.Ui.Services
 
         private static bool MatchesTicketGroup(WfReqTask task, WfReqElement element, string groupName, string memberField)
         {
+            if (element.ObjectTaskId is > 0 && task.Id == element.ObjectTaskId && IsGroupTask(task))
+            {
+                return true;
+            }
+
             if (!string.IsNullOrWhiteSpace(groupName)
                 && string.Equals(task.GetAddInfoValue(AdditionalInfoKeys.GrpName).Trim(), groupName.Trim(), StringComparison.OrdinalIgnoreCase))
             {

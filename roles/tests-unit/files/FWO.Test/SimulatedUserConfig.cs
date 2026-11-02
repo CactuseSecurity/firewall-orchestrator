@@ -404,6 +404,8 @@ namespace FWO.Test
             {"group_create","Create Group" },
             {"group_modify","Modify Group" },
             {"group_delete","Delete Group" },
+            {"object_create","Create Object" },
+            {"object_modify","Modify Object" },
             {"creation_date","Creation Date" },
             {"reason","Reason" },
             {"all_open","All Open" },

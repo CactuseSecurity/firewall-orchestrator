@@ -5,7 +5,7 @@
 
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("valid_from") + " / " + userConfig.GetText("valid_to"))"
+<PopUp Title="@(userConfig.GetText("edit") + ": " + userConfig.GetText("time_object"))"
        Show="@Display" Size="PopupSize.Small" OnClose="Close">
     <Body>
         @if (Display)

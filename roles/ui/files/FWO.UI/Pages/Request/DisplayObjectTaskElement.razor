@@ -46,8 +46,8 @@
         </div>
     }
     <div class="form-group row mt-2">
-        <label class="@(kind == ObjectTaskKind.Service ? "col-sm-3" : "col-sm-1") col-form-label col-form-label-sm text-nowrap">@(userConfig.GetText("name")):</label>
-        <div class="@(kind == ObjectTaskKind.Service ? "col-sm-8" : "col-sm-3")">
+        <label class="@(kind is ObjectTaskKind.Service or ObjectTaskKind.Time ? "col-sm-4" : "col-sm-1") col-form-label col-form-label-sm text-nowrap">@(userConfig.GetText("name")):</label>
+        <div class="@(kind is ObjectTaskKind.Service or ObjectTaskKind.Time ? "col-sm-8" : "col-sm-3")">
             <input type="text" class="form-control form-control-sm" @bind="objectName" />
         </div>
         @if (kind == ObjectTaskKind.Network)
@@ -57,20 +57,20 @@
                     @bind="NetworkInput" @bind:event="oninput" />
             </div>
         }
-        @if (kind == ObjectTaskKind.Time)
-        {
-            <label class="col-sm-1 col-form-label col-form-label-sm" for="objStartDate">@(userConfig.GetText("start_time")):</label>
-            <div class="col-sm-3 d-flex gap-1">
-                <input id="objStartDate" type="date" class="form-control form-control-sm @(ValidationClass(startInputValid))" value="@startDateInput" @oninput="SetStartDate" />
-                <input id="objStartTime" type="time" class="form-control form-control-sm @(ValidationClass(startInputValid))" value="@startTimeInput" @oninput="SetStartTime" />
-            </div>
-            <label class="col-sm-1 col-form-label col-form-label-sm" for="objEndDate">@(userConfig.GetText("end_time")):</label>
-            <div class="col-sm-3 d-flex gap-1">
-                <input id="objEndDate" type="date" class="form-control form-control-sm @(ValidationClass(EndInputValid))" value="@endDateInput" @oninput="SetEndDate" />
-                <input id="objEndTime" type="time" class="form-control form-control-sm @(ValidationClass(EndInputValid))" value="@endTimeInput" @oninput="SetEndTime" />
-            </div>
-        }
     </div>
+    @if (kind == ObjectTaskKind.Time)
+    {
+        <DisplayTaskTargetDates TargetBeginDate="@startTime" TargetBeginDateChanged="SetStartTimeValue"
+            TargetEndDate="@endTime" TargetEndDateChanged="SetEndTimeValue"
+            CanEditTargetBeginDate="true" CanEditTargetEndDate="true"
+            ShowTargetBeginDate="@TimeObjectVisibility.ShowValidFrom" ShowTargetEndDate="@TimeObjectVisibility.ShowValidTo"
+            TargetDatesValidChanged="SetTargetDatesValid" FullWidthLayout="true"
+            ForceManualTimeObjectSelection="true" ValidateDateOrder="true"
+            BeginDateInputId="objStartDate" BeginTimeInputId="objStartTime" BeginHourInputId="objStartHour"
+            EndDateInputId="objEndDate" EndTimeInputId="objEndTime" EndHourInputId="objEndHour"
+            DefaultStartTimeInput="@WfObjectTaskHelper.kDefaultStartTimeInput"
+            DefaultEndTimeInput="@WfObjectTaskHelper.kDefaultEndTimeInput" />
+    }
     @if (kind == ObjectTaskKind.Service)
     {
         <div class="form-group row mt-2">
@@ -170,13 +170,7 @@
     private TimeObject? selectedTimeObject;
     private DateTime? startTime;
     private DateTime? endTime;
-    // the inputs are kept as typed: a date or time entered alone must not be cleared by the next rendering
-    private string startDateInput = "";
-    private string startTimeInput = "";
-    private string endDateInput = "";
-    private string endTimeInput = "";
-    private bool? startInputValid;
-    private bool? endInputValid;
+    private bool? targetDatesValid;
     private string? objectName;
     private string networkInput = "";
     private bool? networkInputValid;
@@ -207,12 +201,8 @@
     /// <summary>
     /// False when both bounds are entered and the start lies after the end, otherwise null (no marking).
     /// </summary>
-    private bool? TimeBoundsValid => startTime.HasValue && endTime.HasValue && startTime > endTime ? false : null;
-
-    /// <summary>
-    /// Marks the end input as invalid when it cannot be read or lies before the start.
-    /// </summary>
-    private bool? EndInputValid => endInputValid ?? TimeBoundsValid;
+    private AccessTaskFieldVisibilityConfig TimeObjectVisibility =>
+        TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility).AccessTask;
 
     private int ProtoId
     {
@@ -348,56 +338,22 @@
     {
         startTime = start;
         endTime = end;
-        startDateInput = WfObjectTaskHelper.FormatDateInput(start);
-        startTimeInput = WfObjectTaskHelper.FormatTimeInput(start);
-        endDateInput = WfObjectTaskHelper.FormatDateInput(end);
-        endTimeInput = WfObjectTaskHelper.FormatTimeInput(end);
-        startInputValid = null;
-        endInputValid = null;
+        targetDatesValid = null;
     }
 
-    private void SetStartDate(ChangeEventArgs args)
+    private void SetStartTimeValue(DateTime? value)
     {
-        startDateInput = args.Value?.ToString() ?? "";
-        if (!string.IsNullOrWhiteSpace(startDateInput) && string.IsNullOrWhiteSpace(startTimeInput))
-        {
-            startTimeInput = WfObjectTaskHelper.kDefaultStartTimeInput;
-        }
-        UpdateStartTime();
+        startTime = value;
     }
 
-    private void SetStartTime(ChangeEventArgs args)
+    private void SetEndTimeValue(DateTime? value)
     {
-        startTimeInput = args.Value?.ToString() ?? "";
-        UpdateStartTime();
+        endTime = value;
     }
 
-    private void SetEndDate(ChangeEventArgs args)
+    private void SetTargetDatesValid(bool valid)
     {
-        endDateInput = args.Value?.ToString() ?? "";
-        if (!string.IsNullOrWhiteSpace(endDateInput) && string.IsNullOrWhiteSpace(endTimeInput))
-        {
-            endTimeInput = WfObjectTaskHelper.kDefaultEndTimeInput;
-        }
-        UpdateEndTime();
-    }
-
-    private void SetEndTime(ChangeEventArgs args)
-    {
-        endTimeInput = args.Value?.ToString() ?? "";
-        UpdateEndTime();
-    }
-
-    private void UpdateStartTime()
-    {
-        bool valid = WfObjectTaskHelper.TryParseDateTimeInput(startDateInput, startTimeInput, WfObjectTaskHelper.kDefaultStartTimeInput, out startTime);
-        startInputValid = valid ? null : false;
-    }
-
-    private void UpdateEndTime()
-    {
-        bool valid = WfObjectTaskHelper.TryParseDateTimeInput(endDateInput, endTimeInput, WfObjectTaskHelper.kDefaultEndTimeInput, out endTime);
-        endInputValid = valid ? null : false;
+        targetDatesValid = valid ? null : false;
     }
 
     /// <summary>
@@ -473,7 +429,7 @@
 
     private WfReqElement? BuildTimeElement(string requestAction)
     {
-        if (startInputValid == false || endInputValid == false)
+        if (targetDatesValid == false)
         {
             return null;
         }

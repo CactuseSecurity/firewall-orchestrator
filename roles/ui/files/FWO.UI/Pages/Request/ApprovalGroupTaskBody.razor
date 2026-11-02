@@ -77,28 +77,26 @@
 
     private string DisplayObject(NwObjectElement element)
     {
-        if (!string.IsNullOrWhiteSpace(element.Name) && !string.Equals(element.Name, element.GroupName, StringComparison.OrdinalIgnoreCase))
+        string details = NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
+        if (string.IsNullOrWhiteSpace(element.Name) || string.IsNullOrWhiteSpace(details))
         {
-            return element.Name;
+            return !string.IsNullOrWhiteSpace(element.Name)
+                ? element.Name
+                : details;
         }
-        if (element.FlowNetworkObjectId.HasValue || element.FlowNetworkGroupId.HasValue)
-        {
-            return element.FlowNetworkObjectId?.ToString() ?? element.FlowNetworkGroupId?.ToString() ?? "";
-        }
-        return NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
+        return $"{element.Name} ({details})";
     }
 
     private string DisplayService(NwServiceElement element)
     {
-        if (!string.IsNullOrWhiteSpace(element.Name) && !string.Equals(element.Name, element.GroupName, StringComparison.OrdinalIgnoreCase))
+        string details = DisplayBase.DisplayService(element, Context.DisplayIpProtos);
+        if (string.IsNullOrWhiteSpace(element.Name) || string.IsNullOrWhiteSpace(details))
         {
-            return element.Name;
+            return !string.IsNullOrWhiteSpace(element.Name)
+                ? element.Name
+                : details;
         }
-        if (element.FlowServiceObjectId.HasValue || element.FlowServiceGroupId.HasValue)
-        {
-            return element.FlowServiceObjectId?.ToString() ?? element.FlowServiceGroupId?.ToString() ?? "";
-        }
-        return DisplayBase.DisplayService(element, Context.DisplayIpProtos);
+        return $"{element.Name} ({details})";
     }
 
     private RenderFragment MemberRow(string requestAction, string value) => builder =>

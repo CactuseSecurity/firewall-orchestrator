@@ -198,6 +198,32 @@ internal sealed class UiApprovalTaskEditorsTest
     }
 
     [Test]
+    public async Task ApprovalObjectTaskEditor_UsesObjectSpecificTitle()
+    {
+        WfReqTask objectTask = new()
+        {
+            TaskType = WfTaskType.object_modify.ToString(),
+            Elements =
+            [
+                new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    Name = "server"
+                }
+            ]
+        };
+
+        await using BunitContext context = CreateContext(new EditorApiConnection());
+        IRenderedComponent<ApprovalObjectTaskEditor> cut = context.Render<ApprovalObjectTaskEditor>(parameters => parameters
+            .Add(parameter => parameter.Display, true)
+            .Add(parameter => parameter.IsModify, true)
+            .Add(parameter => parameter.ObjectKind, ObjectTaskKind.Network)
+            .Add(parameter => parameter.Task, objectTask));
+
+        Assert.That(cut.Markup, Does.Contain("server"));
+    }
+
+    [Test]
     public async Task ApprovalTaskElementsEditor_ListsTicketBeforeFlowDbAndCopiesTicketElementToCurrentTask()
     {
         EditorApiConnection apiConnection = new();
@@ -436,5 +462,43 @@ internal sealed class UiApprovalTaskEditorsTest
         await cut.InvokeAsync(() => cut.Find("button.btn-secondary").Click());
 
         Assert.That(displayChanged, Is.False);
+    }
+
+    [Test]
+    public async Task ApprovalTaskElementsEditor_UsesContextualGroupTitle()
+    {
+        WfReqTask groupTask = new() { Id = 70, TaskType = WfTaskType.group_modify.ToString() };
+        groupTask.SetAddInfo(AdditionalInfoKeys.GrpName, "web-group");
+
+        await using BunitContext context = CreateContext(new EditorApiConnection());
+        IRenderedComponent<ApprovalTaskElementsEditor> cut = context.Render<ApprovalTaskElementsEditor>(parameters => parameters
+            .Add(parameter => parameter.Display, true)
+            .Add(parameter => parameter.Task, groupTask)
+            .Add(parameter => parameter.FieldKey, WorkflowEditableFieldKeys.Source));
+
+        Assert.That(cut.Markup, Does.Contain("web-group"));
+    }
+
+    [Test]
+    public async Task ApprovalTaskElementsEditor_UsesAccessTaskTitleInsteadOfFieldName()
+    {
+        WfReqTask accessTask = new()
+        {
+            Id = 71,
+            TaskType = WfTaskType.access.ToString(),
+            Title = "Allow web traffic"
+        };
+
+        await using BunitContext context = CreateContext(new EditorApiConnection());
+        IRenderedComponent<ApprovalTaskElementsEditor> cut = context.Render<ApprovalTaskElementsEditor>(parameters => parameters
+            .Add(parameter => parameter.Display, true)
+            .Add(parameter => parameter.Task, accessTask)
+            .Add(parameter => parameter.FieldKey, WorkflowEditableFieldKeys.Source));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Markup, Does.Contain("Allow web traffic"));
+            Assert.That(cut.Markup, Does.Not.Contain("Edit access task: Source"));
+        });
     }
 }

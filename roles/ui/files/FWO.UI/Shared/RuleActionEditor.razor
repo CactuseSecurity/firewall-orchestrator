@@ -4,7 +4,7 @@
 
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("rule_action"))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
+<PopUp Title="@(userConfig.GetText("edit") + ": " + userConfig.GetText("rule_action"))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
     <Body>
         @if (Display)
         {

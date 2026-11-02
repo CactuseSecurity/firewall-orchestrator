@@ -769,6 +769,78 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TimeInputs_RespectConfiguredPrecisionAndVisibility()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Date
+                }.ToConfigValue(),
+                ReqTicketFieldVisibility = new TicketFieldVisibilityConfig
+                {
+                    AccessTask = new AccessTaskFieldVisibilityConfig
+                    {
+                        ShowValidFrom = false,
+                        ShowValidTo = true
+                    }
+                }.ToConfigValue()
+            };
+
+            await using BunitContext context = CreateContext(userConfig: userConfig);
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(
+                context,
+                new WfReqTask { TaskType = WfTaskType.object_create.ToString() },
+                false,
+                kManagementId);
+
+            component.Find("#objKindTime").Change(true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("#objStartDate"), Is.Empty);
+                Assert.That(component.FindAll("#objEndDate"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("#objStartTime, #objEndTime, #objStartHour, #objEndHour"), Is.Empty);
+                Assert.That(component.Markup, Does.Not.Contain("end_time"));
+                Assert.That(component.Markup, Does.Contain("valid_to"));
+                Assert.That(component.Find("input[type=text]").ParentElement!.ClassName, Does.Contain("col-sm-8"));
+            });
+        }
+
+        [Test]
+        public async Task TimeInputs_UseHourPrecisionWithoutShowingMinuteInputs()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Hours
+                }.ToConfigValue()
+            };
+
+            await using BunitContext context = CreateContext(userConfig: userConfig);
+            WfReqTask task = new() { TaskType = WfTaskType.object_create.ToString() };
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, false, kManagementId);
+
+            component.Find("#objKindTime").Change(true);
+            SetMember(component.Instance, "objectName", "maintenance");
+            component.Find("#objStartDate").Input("2026-11-01");
+            component.Find("#objEndDate").Input("2026-11-30");
+            component.Find("#objStartHour").Input("8");
+            component.Find("#objEndHour").Input("18");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("#objStartTime, #objEndTime"), Is.Empty);
+                Assert.That(component.Find("#objStartHour").GetAttribute("value"), Is.EqualTo("8"));
+                Assert.That(component.Find("#objEndHour").GetAttribute("value"), Is.EqualTo("18"));
+                Assert.That(component.Instance.ApplyToTask(), Is.Null);
+                Assert.That(task.Elements.Single().StartTime, Is.EqualTo(new DateTime(2026, 11, 1, 8, 0, 0)));
+                Assert.That(task.Elements.Single().EndTime, Is.EqualTo(new DateTime(2026, 11, 30, 18, 0, 0)));
+            });
+        }
+
+        [Test]
         public async Task TimeInputs_KeepATypedDateAndTakeTheDefaultTime()
         {
             await using BunitContext context = CreateContext();
@@ -785,8 +857,8 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(component.Find("#objStartDate").GetAttribute("value"), Is.EqualTo("2026-11-01"));
-                Assert.That(component.Find("#objStartTime").GetAttribute("value"), Is.EqualTo(WfObjectTaskHelper.kDefaultStartTimeInput));
-                Assert.That(component.Find("#objEndTime").GetAttribute("value"), Is.EqualTo("18:00"));
+                Assert.That(component.Find("#objStartTime").GetAttribute("value"), Is.EqualTo("00:00:00"));
+                Assert.That(component.Find("#objEndTime").GetAttribute("value"), Is.EqualTo("18:00:00"));
                 Assert.That(error, Is.Null);
                 Assert.That(task.Elements[0].StartTime, Is.EqualTo(kTimeStart.Date));
                 Assert.That(task.Elements[0].EndTime, Is.EqualTo(kTimeEnd));
@@ -831,14 +903,15 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(component.Find("#objStartDate").GetAttribute("value"), Is.EqualTo("2026-11-01"));
-                Assert.That(component.Find("#objStartTime").GetAttribute("value"), Is.EqualTo("08:00"));
+                Assert.That(component.Find("#objStartTime").GetAttribute("value"), Is.EqualTo("08:00:00"));
                 Assert.That(unchangedError, Is.EqualTo("E5125"));
                 Assert.That(error, Is.Null);
                 Assert.That(WfObjectTaskHelper.HasValidElementStructure(task), Is.True);
                 Assert.That(WfObjectTaskHelper.GetOriginalElement(task)?.TimeObjId, Is.EqualTo(77));
                 Assert.That(WfObjectTaskHelper.GetOriginalElement(task)?.EndTime, Is.EqualTo(kTimeEnd));
                 Assert.That(WfObjectTaskHelper.GetRequestedElement(task)?.TimeObjId, Is.EqualTo(77));
-                Assert.That(WfObjectTaskHelper.GetRequestedElement(task)?.EndTime, Is.EqualTo(kTimeEnd.AddDays(1)));
+                Assert.That(WfObjectTaskHelper.GetRequestedElement(task)?.EndTime,
+                    Is.EqualTo(new DateTime(2026, 12, 1, 23, 59, 0)));
             });
         }
 
@@ -897,7 +970,7 @@ namespace FWO.Test
                 Assert.That(component.FindAll("input[placeholder='port_range']"), Has.Count.EqualTo(1));
                 Assert.That(GetMember<int>(component.Instance, "protoId"), Is.EqualTo(kTcp));
                 Assert.That(component.FindAll("div.form-group.row"), Has.Count.EqualTo(3));
-                Assert.That(component.FindAll("label.col-sm-3"), Has.Count.EqualTo(3));
+                Assert.That(component.FindAll("label.col-sm-3"), Has.Count.EqualTo(2));
             });
         }
 

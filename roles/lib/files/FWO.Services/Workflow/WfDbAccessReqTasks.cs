@@ -86,7 +86,8 @@ namespace FWO.Services.Workflow
             {
                 // The stored Flow references are authoritative. Do this check after loading the previous
                 // ticket, because a stale editor may omit or clear the references in its update payload.
-                if (previousTask != null && WfObjectTaskHelper.HasFlowDbReference(previousTask))
+                if (previousTask != null && WfObjectTaskHelper.HasFlowDbReference(previousTask)
+                    && !IsGroupTask(previousTask))
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8019"), true);
                     return;
@@ -258,6 +259,13 @@ namespace FWO.Services.Workflow
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_element"), "", true);
             }
+        }
+
+        private static bool IsGroupTask(WfReqTask task)
+        {
+            return task.TaskType == WfTaskType.group_create.ToString()
+                || task.TaskType == WfTaskType.group_modify.ToString()
+                || task.TaskType == WfTaskType.group_delete.ToString();
         }
 
         /// <summary>

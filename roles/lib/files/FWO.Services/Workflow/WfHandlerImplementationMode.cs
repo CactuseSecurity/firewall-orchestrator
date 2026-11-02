@@ -180,7 +180,7 @@ namespace FWO.Services.Workflow
 
         private static string NoExternalTicketSystemSelectedReason(int managementId)
         {
-            return $"its implementation mode is external ticket system, but no external ticket system is selected for management {managementId}.";
+            return $"management {managementId} is set to external ticket system, but no external ticket system is selected for it.";
         }
 
         /// <summary>

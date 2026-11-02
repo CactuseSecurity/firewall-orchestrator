@@ -238,7 +238,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
             {
                 return false;
             }
-            if (flat.MemberId == group.Id || flat.Object!.Type?.Name == kGroupObjectType)
+            if (IsStructuralGroupRow(flat, group.Id!.Value))
             {
                 continue;
             }
@@ -260,6 +260,12 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
             unresolvedIncluded = true;
         }
         return true;
+    }
+
+    /// <summary>Returns whether a flattened member represents group structure rather than an address leaf.</summary>
+    private static bool IsStructuralGroupRow(FlatWire flat, long groupId)
+    {
+        return flat.MemberId == groupId || flat.Object!.Type?.Name == kGroupObjectType;
     }
 
     /// <summary>Validates one flattened member against its group and fixed import.</summary>

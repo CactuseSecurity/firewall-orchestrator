@@ -106,9 +106,9 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         }
 
         InputPreparationResult preparation = await PrepareInputsAsync(context, cancellationToken);
-        if (preparation.Failure != null)
+        if (preparation.PreparationFailure != null)
         {
-            return preparation.Failure;
+            return preparation.PreparationFailure;
         }
         PreparedInputs inputs = preparation.Inputs!;
 
@@ -216,7 +216,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         CreationRuleZoneInput ZoneInput);
 
     /// <summary>Result of preparing positioning inputs without throwing domain failures.</summary>
-    private sealed record InputPreparationResult(PreparedInputs? Inputs, RulePositioningFailure? Failure)
+    private sealed record InputPreparationResult(PreparedInputs? Inputs, RulePositioningFailure? PreparationFailure)
     {
         /// <summary>Creates a successful preparation result.</summary>
         internal static InputPreparationResult Succeeded(PreparedInputs inputs) => new(inputs, null);

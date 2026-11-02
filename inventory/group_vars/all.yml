@@ -2,16 +2,20 @@
 product_version: "9.8.5"
 # The oldest product version an upgrade may start from, enforced by
 # roles/common/tasks/validate-upgrade-source-version.yml before anything touches the
-# database. It exists because 9.5.0 removed the migration files below 8.0:
-# upgrade-database.yml runs the upgrade files it finds above the installed version, not
-# the ones that version needs, so a source below this floor would skip schema changes
-# without saying so. Raise it with every further removal of upgrade files - the floor and
-# the oldest file under roles/database/files/upgrade must stay adjacent releases - and
-# keep documentation/installer/server-upgrade.md in sync.
-minimum_upgrade_source_version: "8.0"
-# The last release that still carries the removed migration files, so an installation
-# below the floor can get here in two upgrades instead of a reinstall.
-minimum_upgrade_source_release: "v8.9.6"
+# installation. A source below it needs upgrade steps this repository no longer carries:
+# - 9.5.0 removed the database migration files below 8.0. upgrade-database.yml runs the
+#   upgrade files it finds above the installed version, not the ones that version needs,
+#   so such a source would skip schema changes without saying so.
+# - 9.0.16 moved the Hasura API from Docker to Podman, and the Docker role and the
+#   migration of its container were removed afterwards. A source below 9.0.16 would keep
+#   its Docker container on the API port next to the new Podman one.
+# Never lower it below the oldest file under roles/database/files/upgrade, and keep
+# documentation/installer/server-upgrade.md in sync.
+minimum_upgrade_source_version: "9.0.16"
+# A release that still accepts every source from 8.0 on and still carries the steps the
+# floor stands for, so an installation below the floor gets here in two upgrades instead
+# of a reinstall. Its own check sends a source below 8.0 to v8.9.6 first.
+minimum_upgrade_source_release: "v9.8.4"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -94,7 +98,6 @@ add_demo_data: "{{ testkeys | default(false) | bool }}"
 api_docu: false
 force_install: false
 allowRepoChangesForRedhat: false
-docker_network: ""
 
 ### SBOM generation
 generate_sbom: false
@@ -133,12 +136,9 @@ fworch_systemd_vendor_unit_dir: /lib/systemd/system
 fworch_systemd_unit_search_dirs:
   - "{{ fworch_systemd_unit_dir }}"
   - "{{ fworch_systemd_vendor_unit_dir }}"
-# all systemd units owned by fworch (current and legacy names), used for relocation and uninstall
+# all systemd units owned by fworch, used for relocation and uninstall
 fworch_systemd_unit_names: >-
-  {{
-    [api_service_name, middleware_service_name, product_name ~ '-ui', product_name ~ '-importer-api']
-    + (api_legacy_service_names | default([]))
-  }}
+  {{ [api_service_name, middleware_service_name, product_name ~ '-ui', product_name ~ '-importer-api'] }}
 # restart delay for all fworch services - long enough to keep a service that waits for a
 # dependency from running into the default systemd start rate limit
 fworch_systemd_restart_sec: 10
@@ -433,9 +433,16 @@ fworch_db_connect_host: >-
 api_service_name: fworch-hasura-api
 api_container_name: "{{ product_name }}-api"
 api_env_file: "{{ fworch_secrets_dir }}/hasura.env"
-api_legacy_service_names:
+# The units the API ran under before 9.0.16 moved it from Docker to Podman. Only read to
+# refuse an upgrade while one is still in use (roles/common/tasks/validate-api-not-on-docker.yml)
+# and to remove the unit files a completed move left behind.
+api_docker_service_names:
   - fworch-hasura-docker-api
   - hasura-docker-api
+api_docker_binary: /usr/bin/docker
+api_docker_engine_units:
+  - docker.service
+  - docker.socket
 api_local_listening_ip_address: "127.0.0.1"
 api_network_listening_ip_address: "{{ fwo_endpoint_hostname or groups['apiserver'].0 }}"
 # api_network_listening_ip_address: "{{ hostvars[groups['apiserver'].0].ip_address }}"

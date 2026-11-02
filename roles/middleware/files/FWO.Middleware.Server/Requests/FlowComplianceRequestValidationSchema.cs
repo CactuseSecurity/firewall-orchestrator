@@ -80,9 +80,9 @@ public static class FlowComplianceRequestValidationSchema
         new RequestKeyDefinition("protocol",
             "Protocol name, for example 'tcp', 'udp' or 'icmp', or numeric protocol id, for example '6'. Must not be empty."),
         new RequestKeyDefinition("portStart",
-            $"First port of the inclusive port range, {kMinPort} to {kMaxPort}: destination port for tcp and udp, ICMP type for icmp, not evaluated for other protocols. Omitted means {kMinPort}."),
+            $"First port of the inclusive port range, {kMinPort} to {kMaxPort}, compared with the port range of forbidden service definitions of the same protocol: destination port for tcp and udp, ICMP type for icmp; for other protocols give the range of the definitions to check. Omitted means {kMinPort}."),
         new RequestKeyDefinition("portEnd",
-            $"Last port of the inclusive port range, {kMinPort} to {kMaxPort}, not lower than 'portStart': destination port for tcp and udp, ICMP type for icmp, not evaluated for other protocols. Omitted means {kMinPort}.")
+            $"Last port of the inclusive port range, {kMinPort} to {kMaxPort}, not lower than 'portStart', compared with the port range of forbidden service definitions of the same protocol: destination port for tcp and udp, ICMP type for icmp; for other protocols give the range of the definitions to check. Omitted means {kMinPort}.")
     ];
 
     /// <summary>

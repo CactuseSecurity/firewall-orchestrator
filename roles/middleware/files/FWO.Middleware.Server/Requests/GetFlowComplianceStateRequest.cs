@@ -50,15 +50,17 @@ public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalDa
     public sealed class ServiceRangeRequest : IRequestWithAdditionalData
     {
         /// <summary>
-        /// Gets or sets the first port of the inclusive port range, 0 to 65535: the destination port for tcp and udp,
-        /// the ICMP type for icmp. Not evaluated for other protocols. Omitted means 0.
+        /// Gets or sets the first port of the inclusive port range, 0 to 65535, compared with the port range of forbidden
+        /// service definitions of the same protocol: the destination port for tcp and udp, the ICMP type for icmp; for
+        /// other protocols give the range of the definitions to check. Omitted means 0.
         /// </summary>
         [JsonPropertyName("portStart")]
         public int PortStart { get; set; }
 
         /// <summary>
-        /// Gets or sets the last port of the inclusive port range, 0 to 65535, not lower than <c>portStart</c>:
-        /// the destination port for tcp and udp, the ICMP type for icmp. Not evaluated for other protocols.
+        /// Gets or sets the last port of the inclusive port range, 0 to 65535, not lower than <c>portStart</c>,
+        /// compared with the port range of forbidden service definitions of the same protocol: the destination port
+        /// for tcp and udp, the ICMP type for icmp; for other protocols give the range of the definitions to check.
         /// Omitted means 0.
         /// </summary>
         [JsonPropertyName("portEnd")]

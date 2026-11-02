@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
@@ -11,7 +12,7 @@ import requests
 from fw_modules.checkpointR8x import cp_getter
 from fw_modules.fortiadom5ff import fmgr_getter
 from fw_modules.fortiosmanagementREST import fos_getter
-from fwo_exceptions import FwApiCallFailedError, FwApiError
+from fwo_exceptions import FwApiCallFailedError, FwApiError, FwLogoutFailedError
 from fwo_log import FWOLogger
 from fwo_redaction import (
     MAX_REDACTION_DEPTH,
@@ -156,6 +157,24 @@ class TestFortiManagerApiCall:
         assert PASSWORD_MARKER not in debug_logging.text
         assert "https://fmg.invalid/jsonrpc" in debug_logging.text
 
+    def test_caller_payload_does_not_receive_the_session(self) -> None:
+        payload = self.payload()
+        with patch.object(fmgr_getter.requests, "post") as post:
+            post.return_value.json.return_value = {"result": [{"status": {"code": 0}}]}
+            fmgr_getter.api_call("https://fmg.invalid/jsonrpc", "sys/status", payload, SESSION_MARKER)
+
+        assert SESSION_MARKER not in json.dumps(payload)
+        assert SESSION_MARKER in post.call_args.kwargs["data"]
+
+    def test_failed_logout_keeps_session_out_of_error(self) -> None:
+        with patch.object(fmgr_getter.requests, "post") as post:
+            post.return_value.json.return_value = {"result": [{"status": {"code": -11}}]}
+            with pytest.raises(FwLogoutFailedError) as raised:
+                fmgr_getter.logout("https://fmg.invalid/jsonrpc", SESSION_MARKER)
+
+        assert SESSION_MARKER not in str(raised.value)
+        assert raised.value.__context__ is None or SESSION_MARKER not in str(raised.value.__context__)
+
 
 class TestFortiOsApiCall:
     def test_transport_error_keeps_access_token_out_of_error(self) -> None:
@@ -199,6 +218,16 @@ class TestFortiOsApiCall:
 
         assert TOKEN_MARKER not in str(raised.value)
         assert "invalid request" in str(raised.value)
+
+    def test_access_token_is_sent_as_header_not_in_the_url(self) -> None:
+        response = MagicMock(status_code=fos_getter.HTTP_OK)
+        response.json.return_value = {"results": []}
+        with patch.object(fos_getter.requests, "get", return_value=response) as get:
+            fos_getter.fortios_api_call(FOS_URL, TOKEN_MARKER)
+
+        assert get.call_args.kwargs["headers"]["Authorization"] == f"Bearer {TOKEN_MARKER}"
+        assert "params" not in get.call_args.kwargs
+        assert TOKEN_MARKER not in get.call_args.args[0]
 
 
 class TestRedaction:

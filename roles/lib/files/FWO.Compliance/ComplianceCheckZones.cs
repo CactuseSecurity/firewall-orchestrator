@@ -21,34 +21,58 @@ namespace FWO.Compliance
         /// <returns>List of ranges (empty if parsing is not possible).</returns>
         public static List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
         {
-            List<IPAddressRange> ranges = [];
+            TryParseIpRange(networkObject, out List<IPAddressRange> ranges);
+            return ranges;
+        }
+
+        /// <summary>
+        /// Extracts the IP ranges represented by a network object in all supported forms without throwing.
+        /// </summary>
+        /// <param name="networkObject">Network object to parse.</param>
+        /// <param name="ranges">All ranges that could be parsed.</param>
+        /// <returns>False if an IP string of the object or of one of its group members cannot be parsed.</returns>
+        public static bool TryParseIpRange(NetworkObject networkObject, out List<IPAddressRange> ranges)
+        {
+            ranges = [];
 
             if ((networkObject.Type.Name == ObjectType.IPRange || networkObject.Type.Name == ObjectType.Network)
                 && !string.IsNullOrWhiteSpace(networkObject.IP)
                 && !string.IsNullOrWhiteSpace(networkObject.IpEnd)
                 && (networkObject.Type.Name == ObjectType.IPRange || !string.Equals(networkObject.IP, networkObject.IpEnd, StringComparison.Ordinal)))
             {
-                if (IPAddress.TryParse(networkObject.IP.StripOffNetmask(), out IPAddress? ipStart) && IPAddress.TryParse(networkObject.IpEnd.StripOffNetmask(), out IPAddress? ipEnd))
+                if (!IPAddress.TryParse(networkObject.IP.StripOffNetmask(), out IPAddress? ipStart) || !IPAddress.TryParse(networkObject.IpEnd.StripOffNetmask(), out IPAddress? ipEnd))
                 {
-                    ranges.Add(new IPAddressRange(ipStart, ipEnd));
+                    return false;
                 }
+
+                ranges.Add(new IPAddressRange(ipStart, ipEnd));
             }
             else if (networkObject.Type.Name != ObjectType.Group && networkObject.ObjectGroupFlats.Length > 0)
             {
+                bool allMembersParsed = true;
+
                 foreach (NetworkObject groupMember in networkObject.ObjectGroupFlats
                     .Select(groupFlat => groupFlat.Object)
                     .OfType<NetworkObject>())
                 {
-                    ranges.AddRange(ParseIpRange(groupMember));
+                    allMembersParsed &= TryParseIpRange(groupMember, out List<IPAddressRange> memberRanges);
+                    ranges.AddRange(memberRanges);
                 }
+
+                return allMembersParsed;
             }
             else if (networkObject.IP != null)
             {
                 // CIDR notation or single (host) IP can be parsed directly
-                ranges.Add(IPAddressRange.Parse(networkObject.IP));
+                if (!IPAddressRange.TryParse(networkObject.IP, out IPAddressRange range))
+                {
+                    return false;
+                }
+
+                ranges.Add(range);
             }
 
-            return ranges;
+            return true;
         }
 
         /// <summary>
@@ -69,16 +93,25 @@ namespace FWO.Compliance
         /// Builds a helper structure combining network objects with the IP ranges they represent.
         /// </summary>
         /// <param name="networkObjects">Objects that should be resolved to ranges.</param>
-        private static Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> GetNetworkObjectsWithIpRanges(List<NetworkObject> networkObjects)
+        /// <param name="unparseableObjects">Objects with an IP string that cannot be parsed. They cannot be compared against the matrix.</param>
+        private static List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> GetNetworkObjectsWithIpRanges(List<NetworkObject> networkObjects, out List<NetworkObject> unparseableObjects)
         {
             List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> networkObjectsWithIpRange = [];
+            unparseableObjects = [];
 
             foreach (NetworkObject networkObject in networkObjects)
             {
-                networkObjectsWithIpRange.Add((networkObject, ParseIpRange(networkObject)));
+                if (TryParseIpRange(networkObject, out List<IPAddressRange> ranges))
+                {
+                    networkObjectsWithIpRange.Add((networkObject, ranges));
+                }
+                else
+                {
+                    unparseableObjects.Add(networkObject);
+                }
             }
 
-            return Task.FromResult(networkObjectsWithIpRange);
+            return networkObjectsWithIpRange;
         }
 
         /// <summary>

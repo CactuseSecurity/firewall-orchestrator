@@ -8974,28 +8974,6 @@
                   }
                 },
                 {
-                  "role": "recertifier",
-                  "permission": {
-                    "columns": [
-                      "name",
-                      "id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "reporter",
-                  "permission": {
-                    "columns": [
-                      "name",
-                      "id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
@@ -37292,7 +37270,33 @@
               "function": {
                 "name": "devices_in_path",
                 "schema": "public"
-              }
+              },
+              "permissions": [
+                {
+                  "role": "approver"
+                },
+                {
+                  "role": "auditor"
+                },
+                {
+                  "role": "implementer"
+                },
+                {
+                  "role": "middleware-server"
+                },
+                {
+                  "role": "modeller"
+                },
+                {
+                  "role": "planner"
+                },
+                {
+                  "role": "requester"
+                },
+                {
+                  "role": "reviewer"
+                }
+              ]
             },
             {
               "function": {
@@ -37304,19 +37308,34 @@
               "function": {
                 "name": "get_visible_devices_per_tenant",
                 "schema": "public"
-              }
+              },
+              "permissions": [
+                {
+                  "role": "middleware-server"
+                }
+              ]
             },
             {
               "function": {
                 "name": "get_visible_managements_per_tenant",
                 "schema": "public"
-              }
+              },
+              "permissions": [
+                {
+                  "role": "middleware-server"
+                }
+              ]
             },
             {
               "function": {
                 "name": "recert_get_one_owner_one_mgm",
                 "schema": "public"
-              }
+              },
+              "permissions": [
+                {
+                  "role": "middleware-server"
+                }
+              ]
             },
             {
               "function": {
@@ -37326,7 +37345,12 @@
               "configuration": {
                 "custom_root_fields": {},
                 "exposed_as": "query"
-              }
+              },
+              "permissions": [
+                {
+                  "role": "middleware-server"
+                }
+              ]
             }
           ],
           "configuration": {

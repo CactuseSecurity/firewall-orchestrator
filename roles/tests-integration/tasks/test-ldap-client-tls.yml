@@ -289,6 +289,41 @@
       issued, so an installation naming the wrong root would pass the gate and then fail
       at every LDAP call.
 
+# Only the FWO trust bundle counts as anchor set. A certificate the operating system trusts
+# must not pass the preflight when the configured bundle did not issue it.
+- name: Find the operating system trust bundle for retained chain preflight tests
+  stat:
+    path: "{{ item }}"
+  loop:
+    - /etc/ssl/certs/ca-certificates.crt
+    - /etc/pki/tls/certs/ca-bundle.crt
+  register: test_retained_chain_os_bundles
+
+- name: Verify the preflight rejects a certificate only the operating system trusts
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: >-
+          {{ test_retained_chain_os_bundles.results | selectattr('stat.exists') | map(attribute='item') | first }}
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+        retained_chain_remedy: Configure the root that issued it.
+    - set_fact:
+        test_retained_chain_os_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_os_rejected: true
+        test_retained_chain_os_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert a certificate only the operating system trusts was rejected
+  assert:
+    that:
+      - test_retained_chain_os_rejected | bool
+      - "'cannot be built to any anchor' in test_retained_chain_os_message"
+    fail_msg: >-
+      The retained chain preflight accepted a certificate anchored only in the operating
+      system trust store: {{ test_retained_chain_os_message | default('it did not fail at all') }}
+
 # The other half of the validity window, and it is not covered by the expired case: a
 # mutation that drops the not-yet-valid phrase survived until this case existed.
 - name: Create a not yet valid leaf for retained chain preflight tests

@@ -142,6 +142,10 @@ namespace FWO.Middleware.Server.Controllers
             string email = parameters.Email ?? "";
 
             int userId = 0;
+            if (!PasswordCompliesWithPolicy(parameters.Password, "AddUser"))
+            {
+                return userId;
+            }
             // The local user belongs to the directory that holds the account: the dn alone does not
             // identify it, as the same dn may exist in another LDAP connection (SEC-11).
             Ldap? targetLdap = SelectLdapForNewUser(parameters);
@@ -266,7 +270,12 @@ namespace FWO.Middleware.Server.Controllers
                 return BadRequest(kWrongLdapId);
             }
 
-            string errorMsg = "";
+            if (!PasswordPolicyValidator.CheckPolicy(parameters.NewPassword, globalConfig, globalConfig, out string errorMsg))
+            {
+                Log.WriteWarning("ChangePassword", $"new password of user {user.DbId} does not comply with the password policy");
+                return errorMsg;
+            }
+
             if (userLdap.IsWritable())
             {
                 errorMsg = await userLdap.ChangePassword(user.Dn, parameters.OldPassword, parameters.NewPassword);
@@ -278,6 +287,22 @@ namespace FWO.Middleware.Server.Controllers
 
             // Return status and result
             return errorMsg;
+        }
+
+        /// <summary>
+        /// Enforces the password policy for a password set through the middleware.
+        /// </summary>
+        /// <param name="password">The new password.</param>
+        /// <param name="operation">Operation name for the log.</param>
+        /// <returns>True if the password complies with the policy.</returns>
+        private bool PasswordCompliesWithPolicy(string password, string operation)
+        {
+            if (PasswordPolicyValidator.CheckPolicy(password, globalConfig, globalConfig, out string errorMsg))
+            {
+                return true;
+            }
+            Log.WriteWarning(operation, $"password does not comply with the password policy: {errorMsg}");
+            return false;
         }
 
         /// <summary>
@@ -320,7 +345,12 @@ namespace FWO.Middleware.Server.Controllers
                 return BadRequest(kWrongLdapId);
             }
 
-            string errorMsg = "";
+            if (!PasswordPolicyValidator.CheckPolicy(parameters.NewPassword, globalConfig, globalConfig, out string errorMsg))
+            {
+                Log.WriteWarning("ResetPassword", $"new password of user {user.DbId} does not comply with the password policy");
+                return Problem(errorMsg);
+            }
+
             if (userLdap.IsWritable())
             {
                 errorMsg = await userLdap.SetPassword(user.Dn, parameters.NewPassword);

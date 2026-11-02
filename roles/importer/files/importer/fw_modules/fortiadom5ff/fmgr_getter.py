@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 # library for API get functions
+import copy
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -23,6 +24,8 @@ if TYPE_CHECKING:
 
 def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, method: str = "") -> dict[str, Any]:
     request_headers = {"Content-Type": "application/json"}
+    # work on a copy, so that the session id never lands in a dict the caller keeps and may put into an error text
+    json_payload = copy.deepcopy(json_payload)
     if sid != "":
         json_payload.update({"session": sid})
     if command != "":
@@ -95,8 +98,7 @@ def logout(v_url: str, sid: str, method: str = "exec"):
         FWOLogger.debug("successfully logged out")
     else:
         raise FwLogoutFailedError(
-            "fmgr_getter ERROR: did not get status code 0 when logging out, "
-            "api call: url: " + str(v_url) + ",  + payload: " + str(payload)
+            "fmgr_getter ERROR: did not get status code 0 when logging out, api call: url: " + str(v_url)
         )
 
 

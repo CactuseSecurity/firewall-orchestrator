@@ -100,12 +100,15 @@
   register: chrome_bin
   become: true
 
+# {{ fworch_home }} belongs to {{ fworch_user }}, who could replace the binary behind the link,
+# so the installed browser is only ever run as that user, never as root.
 - name: verify existing chrome installation
   command: "{{ fworch_home }}/bin/chrome --version"
   register: installed_ver
   changed_when: false
   failed_when: false
   become: true
+  become_user: "{{ fworch_user }}"
   when: chrome_bin.stat.exists
 
 - name: record whether existing chrome can run
@@ -255,9 +258,20 @@
                 remote_src: yes
               when: (chrome_pkg is defined and chrome_pkg.changed) or not chrome_target_bin.stat.exists
 
+            # some archives (seen with 152) unpack with root only permissions; the browser must be
+            # readable before it can be verified as {{ fworch_user }}
+            - name: allow all users to traverse and run the unpacked chrome
+              file:
+                path: "{{ chrome_dest }}"
+                state: directory
+                recurse: true
+                mode: "u=rwX,g=rX,o=rX"
+
+            # run as {{ fworch_user }}, never as root: the browser lies below {{ fworch_home }}
             - name: verify target chrome installation
               command: "{{ chrome_dest }}/chrome-linux64/chrome --version"
               changed_when: false
+              become_user: "{{ fworch_user }}"
 
             - name: create symlinks {{ chrome_dest }}/chrome-linux64 to {{ fworch_home }}/bin/*
               file:
@@ -315,10 +329,15 @@
 
           when: chrome_major_update_needed or (not chrome_existing_usable)
 
-        - name: add {{ fworch_home }}/bin to every users path
+        # Appended, never prepended, and not for root: {{ fworch_home }}/bin is writable for
+        # {{ fworch_user }}, who could otherwise shadow any command run in a login shell.
+        - name: add {{ fworch_home }}/bin to the path of non-root users
           copy:
             dest: /etc/profile.d/custom_path.sh
-            content: 'export PATH="{{ fworch_home }}/bin:$PATH"'
+            content: |
+              if [ "$(id -u)" -ne 0 ]; then
+                  export PATH="$PATH:{{ fworch_home }}/bin"
+              fi
             mode: "0644"
 
       become: true

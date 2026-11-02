@@ -41,12 +41,7 @@ public static class GetImplTaskTargetsRequestValidator
 
     private static void ValidateManagementId(GetImplTaskTargetsRequest request, RequestValidationErrorResponse result)
     {
-        if (request.ManagementId == null)
-        {
-            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kManagementIdPath,
-                $"'{GetImplTaskTargetsValidationSchema.kManagementIdPath}' is required."));
-        }
-        else if (request.ManagementId <= 0)
+        if (request.ManagementId <= 0)
         {
             result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kManagementIdPath,
                 $"'{GetImplTaskTargetsValidationSchema.kManagementIdPath}' must be greater than 0."));

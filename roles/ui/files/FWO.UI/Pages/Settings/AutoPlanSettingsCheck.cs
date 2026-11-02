@@ -68,7 +68,8 @@ namespace FWO.Ui.Pages.Settings
 
         /// <summary>
         /// Returns whether the planning phase is active, by task type. If the matrices cannot be read, nothing is
-        /// returned, so no task type is reported.
+        /// returned, so no task type is reported. New interface tasks are left out: their implementation task is
+        /// created with the request task, independently of the auto plan settings.
         /// </summary>
         private static async Task<Dictionary<string, bool>> LoadPlanningPhases(ApiConnection apiConnection)
         {
@@ -77,7 +78,7 @@ namespace FWO.Ui.Pages.Settings
                 StateMatrixDict stateMatrices = new();
                 await stateMatrices.Init(WorkflowPhases.request, apiConnection);
                 return stateMatrices.Matrices
-                    .Where(entry => entry.Key != WfTaskType.master.ToString())
+                    .Where(entry => !IsIndependentOfAutoPlan(entry.Key))
                     .ToDictionary(entry => entry.Key,
                         entry => entry.Value.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool active) && active);
             }
@@ -111,7 +112,7 @@ namespace FWO.Ui.Pages.Settings
             {
                 RulesAutomaticWithoutAlgorithm = summary.AnyRulesAutomatic && pathAnalysisAlgorithm == GlobalConst.kPathAnalysisAlgorithmNone
             };
-            foreach ((string taskType, bool active) in planningActive.OrderBy(entry => entry.Key))
+            foreach ((string taskType, bool active) in planningActive.Where(entry => !IsIndependentOfAutoPlan(entry.Key)).OrderBy(entry => entry.Key))
             {
                 bool manual = WfHandler.IsRuleTaskType(taskType) ? summary.AnyRulesManual : summary.AnyOthersManual;
                 if (manual && !active)
@@ -120,6 +121,15 @@ namespace FWO.Ui.Pages.Settings
                 }
             }
             return result;
+        }
+
+        /// <summary>
+        /// Returns whether the implementation tasks of a task type do not depend on the auto plan settings: the master
+        /// matrix has no tasks of its own, new interface tasks get their implementation task with the request task.
+        /// </summary>
+        private static bool IsIndependentOfAutoPlan(string taskType)
+        {
+            return taskType == WfTaskType.master.ToString() || taskType == WfTaskType.new_interface.ToString();
         }
 
         private sealed class LevelSummary

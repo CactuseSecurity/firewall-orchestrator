@@ -631,8 +631,10 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Creates the implementation tasks still missing for the ticket of the stateful object, using the same
-        /// logic as the automatic creation. Bundles from a preceding bundle tasks action are taken into account.
+        /// Creates the implementation tasks still missing, using the same logic as the automatic creation: in the
+        /// ticket scope for every open request task of the ticket, in the request task scope only for that task, a
+        /// bundled task together with its bundle once every member has reached the state. Bundles from a preceding
+        /// bundle tasks action are taken into account.
         /// </summary>
         /// <param name="action">The executed action.</param>
         /// <param name="statefulObject">Ticket or request task the action is attached to.</param>
@@ -645,7 +647,8 @@ namespace FWO.Services.Workflow
                 Log.WriteWarning("Create Implementation Tasks", $"Action '{action.Name}' found no ticket request tasks.");
                 return;
             }
-            int createdCount = await wfHandler.CreateMissingImplTasksForTicket(ticket);
+            WfReqTask? scopeTask = scope == WfObjectScopes.RequestTask ? statefulObject as WfReqTask : null;
+            int createdCount = await wfHandler.CreateMissingImplTasksForTicket(ticket, scopeTask);
             Log.WriteDebug("Create Implementation Tasks", $"Action '{action.Name}' created {createdCount} implementation tasks for ticket {ticket.Id}.");
         }
 

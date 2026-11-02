@@ -33,10 +33,14 @@ namespace FWO.Ui.Pages.Settings
     /// One selectable option for a SingleSelect field. Value is the name of the underlying data-layer enum member,
     /// TextKey the UI text key of its display name.
     /// </summary>
-    public sealed class DeviceSpecificFieldOption(string value, string textKey)
+    public sealed class DeviceSpecificFieldOption(string value, string textKey,
+        DeviceSpecificScopeType maxLevel = DeviceSpecificScopeType.Gateway)
     {
         public string Value { get; } = value;
         public string TextKey { get; } = textKey;
+
+        /// <summary>Deepest level the option is offered at, e.g. external ticket system only up to the management.</summary>
+        public DeviceSpecificScopeType MaxLevel { get; } = maxLevel;
     }
 
     /// <summary>
@@ -86,6 +90,15 @@ namespace FWO.Ui.Pages.Settings
 
         /// <summary>Whether the field is offered at the given level.</summary>
         public bool AppliesToLevel(DeviceSpecificScopeType level) => level >= MinLevel && level <= MaxLevel;
+
+        /// <summary>
+        /// Returns the options offered at a level. The current value stays in the list even if it is not offered at
+        /// the level, so a value stored before the option was restricted is shown as it is and can be changed.
+        /// </summary>
+        /// <param name="level">Level of the edited node.</param>
+        /// <param name="currentValue">Value shown in the editor.</param>
+        public List<DeviceSpecificFieldOption> OptionsForLevel(DeviceSpecificScopeType level, string currentValue) =>
+            [.. Options.Where(option => level <= option.MaxLevel || option.Value == currentValue)];
 
         /// <summary>Whether the field is offered on the node's current device path.</summary>
         public bool AppliesTo(DeviceSpecificNode node) => AppliesToLevel(node.Level)
@@ -223,6 +236,17 @@ namespace FWO.Ui.Pages.Settings
             new(bool.FalseString, "no")
         ];
 
+        /// <summary>
+        /// Implementation modes for rules: an external ticket system takes over whole managements, so a gateway offers
+        /// automatic and manual only.
+        /// </summary>
+        private static readonly List<DeviceSpecificFieldOption> RuleImplementationModeOptions =
+        [
+            new(nameof(ProvisioningRuleImplementationMode.Automatic), "dss_opt_automatic"),
+            new(nameof(ProvisioningRuleImplementationMode.Manual), "dss_opt_manual"),
+            new(nameof(ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem), "dss_opt_reroute", DeviceSpecificScopeType.Management)
+        ];
+
         /// <summary>Localized editors; config may store deeper overrides than the UI offers (MaxLevel).</summary>
         public static readonly IReadOnlyList<DeviceSpecificFieldDefinition> Fields =
         [
@@ -274,22 +298,21 @@ namespace FWO.Ui.Pages.Settings
                 maxLevel: DeviceSpecificScopeType.Management),
             TextField(DeviceSpecificSettingKeys.RuleZoneToOverride, "dss_zone_to", s => s.RuleZoneToOverride, fortinetOnly: true,
                 maxLevel: DeviceSpecificScopeType.Management),
+            // objects belong to a management, so their implementation mode is set up to the management only
             EnumField(DeviceSpecificSettingKeys.ImplementationMode, "dss_implementation_mode", s => s.ImplementationMode,
                 EnumOptions(
                     (ProvisioningImplementationMode.Automatic, "dss_opt_automatic"),
                     (ProvisioningImplementationMode.Manual, "dss_opt_manual"),
-                    (ProvisioningImplementationMode.RerouteToExternalTicketSystem, "dss_opt_reroute"))),
+                    (ProvisioningImplementationMode.RerouteToExternalTicketSystem, "dss_opt_reroute")), maxLevel: DeviceSpecificScopeType.Management),
             EnumField(DeviceSpecificSettingKeys.ImplementationModeOverrideForRules, "dss_implementation_mode_override_for_rules", s => s.ImplementationModeOverrideForRules,
-                EnumOptions(
-                    (ProvisioningRuleImplementationMode.Automatic, "dss_opt_automatic"),
-                    (ProvisioningRuleImplementationMode.Manual, "dss_opt_manual"),
-                    (ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem, "dss_opt_reroute"))),
+                RuleImplementationModeOptions),
             new()
             {
                 Key = DeviceSpecificSettingKeys.RerouteToExternalTicketSystem,
                 LabelTextKey = "dss_reroute_to_external_ticket_system",
                 HelpTextKey = HelpKey("dss_reroute_to_external_ticket_system"),
                 Kind = DeviceSpecificFieldKind.ExtTicketSystem,
+                MaxLevel = DeviceSpecificScopeType.Management,
                 Read = s => s.RerouteToExternalTicketSystem?.ToString(CultureInfo.InvariantCulture) ?? "",
                 SetOverride = SetExtTicketSystemOverride
             },

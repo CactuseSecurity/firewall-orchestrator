@@ -22,4 +22,7 @@ api_rollback_is_running: false
 # debug > info > warn > error
 api_HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, websocket-log"
 # api_HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, websocket-log, query-log"
-api_HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS: "true"
+# Tracked SQL functions are only exposed to the roles listed in their explicit function permissions
+# (replace_metadata.json). Inferring them from the return table's select permission would hand
+# functions with free arguments, such as get_visible_devices_per_tenant, to every reporter.
+api_HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS: "false"

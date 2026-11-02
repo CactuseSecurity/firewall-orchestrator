@@ -7,6 +7,17 @@
 - debug:
     msg: starting database integration tests
 
+# the read-only role has no password, so a loopback login without one has to be refused (no trust in pg_hba.conf)
+- name: test that the read-only database role cannot log in over loopback without a password
+  command: >-
+    psql -X -w -h 127.0.0.1 -p {{ fworch_db_port }} -U {{ fwo_db_ro_user | default('fwo_ro') }}
+    -d "{{ fworch_db_name }}" -c "select 1"
+  register: test_ro_loopback_login
+  changed_when: false
+  failed_when: test_ro_loopback_login.rc == 0
+  become: true
+  become_user: postgres
+
 # the probe runs in a single transaction that is always rolled back and fails on the first wrong visibility
 - name: test that rule_from / rule_to tenant visibility only depends on the rule itself (GHSA-v8hx-cx2q-j75v)
   command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"

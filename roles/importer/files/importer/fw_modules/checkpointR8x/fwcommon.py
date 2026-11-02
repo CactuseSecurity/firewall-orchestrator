@@ -340,13 +340,13 @@ def handle_super_manager(
     manager_details: ManagementController,
     cp_manager_api_base_url: str,
     show_params_policy_structure: dict[str, Any],
-) -> tuple[list[Any], None, Any | None, str]:
+) -> tuple[list[Any], list[dict[str, Any]] | None, Any | None, str]:
     # global assignments are fetched from mds domain
     with cp_getter.api_session(manager_details) as mds_sid:
         global_assignments = cp_getter.get_global_assignments(
             cp_manager_api_base_url, mds_sid, show_params_policy_structure
         )
-    global_policy_structure = None
+    global_policy_structure: list[dict[str, Any]] | None = None
     global_domain = None
     global_sid = ""
     # import global policies if at least one global assignment exists
@@ -359,6 +359,8 @@ def handle_super_manager(
             manager_details.domain_uid = global_domain
             # stays open for the sub-managers; the caller logs it out, or this function does when it fails
             global_sid: str = cp_getter.login(manager_details)
+            # get_policy_structure fills the list it is given; passing None would discard the fetched structure
+            global_policy_structure = []
             try:
                 cp_getter.get_policy_structure(
                     cp_manager_api_base_url,

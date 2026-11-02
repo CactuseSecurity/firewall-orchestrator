@@ -233,9 +233,10 @@
                     }
                     else
                     {
-                        // Probably the middleware server is unreachable
-                        errorMessage = "Middleware Api Error: " + authResponse.ErrorMessage;
-                        Log.WriteError("Login", $"Login of user {Username} failed: " + errorMessage);
+                        // Probably the middleware server is unreachable. The details name internal hosts and
+                        // errors, so they only go to the log and the not yet authenticated visitor gets a generic text.
+                        errorMessage = userConfig.GetText("E0012");
+                        Log.WriteError("Login", $"Login of user {Username} failed: Middleware Api Error: {authResponse.ErrorMessage}");
                     }
 
                     await focusInput();

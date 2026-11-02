@@ -68,6 +68,10 @@ public static class DeviceSpecificSettingKeys
     public static readonly DeviceSpecificSettingKey<string> ImporterHostName =
         new("importerHostName", ManagerScopeTypes);
 
+    /// <summary>Whether the importer offers the SHA-1 SSH key exchange diffie-hellman-group14-sha1 (Cisco ASA).</summary>
+    public static readonly DeviceSpecificSettingKey<bool> SshLegacyKeyExchange =
+        new("sshLegacyKeyExchange", ManagerScopeTypes);
+
     /// <summary>Automatic creation of implementation tasks for every task type.</summary>
     public static readonly DeviceSpecificSettingKey<bool> AutoPlanImplementation =
         new("autoPlanImplementation", AllScopeTypes);
@@ -118,6 +122,7 @@ public static class DeviceSpecificSettingKeys
         OwnerIdCustomFieldName,
         ChangeIdCustomFieldName,
         ImporterHostName,
+        SshLegacyKeyExchange,
         AutoPlanImplementation,
         AutoPlanImplementationForRules,
         ModellingCreateAppZones,

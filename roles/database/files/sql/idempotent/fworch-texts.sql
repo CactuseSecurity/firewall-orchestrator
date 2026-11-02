@@ -636,6 +636,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Solange die Zertifikatspr&uuml;fung f&uuml;r eine Verbindungsart ausgeschaltet ist, sehen Administratoren oben auf jeder Seite eine Warnung, und ein Upgrade gibt eine Warnung aus. Der Cisco ASA-Importer pr&uuml;ft den SSH-Host-Key des Ger&auml;ts gegen /usr/local/fworch/etc/ssh_known_hosts auf dem Importer-Server; ist die Zertifikatspr&uuml;fung der Firewall-Verbindungen aktiv, m&uuml;ssen die gepr&uuml;ften Host-Keys vor dem Upgrade dort eingetragen werden. Bis dahin listet eine Warnung f&uuml;r Administratoren die betroffenen Managements mit einer Anleitung auf.</li>
     <li>Syslog nimmt keine Log-Meldungen mehr &uuml;ber das Netzwerk an (TCP-Port 514); Firewall Orchestrator protokolliert nur lokal.</li>
     <li>Die Ticket-Vorlagen f&uuml;r Tufin SecureChange sind nun ger&auml;tespezifische Einstellungen und k&ouml;nnen global, je Ger&auml;tetyp und je Management angepasst werden. Das Upgrade &uuml;bernimmt die bisher beim Ticketsystem gespeicherten Vorlagen.</li>
+    <li>Die Compliance-Pr&uuml;fung schl&auml;gt sicher fehl: ein nicht auswertbares Kriterium macht die Regel nicht bewertbar statt konform. Weitere Sicherheitsh&auml;rtung u.a. der API-Berechtigungen, der Passwortrichtlinie in der Middleware, der CSV- und HTML-Exporte und des Installers. Der Cisco-ASA-Importer bietet den SHA-1-SSH-Schl&uuml;sselaustausch nur noch an, wenn die ger&auml;tespezifische Einstellung &quot;SHA-1-SSH-Schl&uuml;sselaustausch erlauben&quot; eingeschaltet ist.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -676,6 +677,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>While certificate checking is switched off for a connection type, admins see a warning at the top of every page and an upgrade prints a warning. The Cisco ASA importer checks the SSH host key of the device against /usr/local/fworch/etc/ssh_known_hosts on the importer host; with certificate checking of firewall connections active, add the verified host keys there before upgrading. Until then, a warning for admins lists the affected managements with instructions.</li>
     <li>Syslog no longer accepts log messages from the network (TCP port 514); Firewall Orchestrator only logs locally.</li>
     <li>The Tufin SecureChange ticket templates are now device specific settings and can be adapted globally, per device type and per management. The upgrade takes over the templates stored with the ticket system so far.</li>
+    <li>The compliance check fails closed: a criterion that cannot be evaluated makes the rule not assessable instead of compliant. Further security hardening, among others of the API permissions, the password policy in the middleware, CSV and HTML exports and the installer. The Cisco ASA importer only offers the SHA-1 SSH key exchange when the device specific setting &quot;Allow SHA-1 SSH key exchange&quot; is switched on.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3567,6 +3569,8 @@ INSERT INTO txt VALUES ('dss_auto_plan_rules_hint', 'German', 'Wirkt nur, wenn &
 INSERT INTO txt VALUES ('dss_auto_plan_rules_hint', 'English', 'Only effective if &quot;Auto plan implementation&quot; is set to Yes.');
 INSERT INTO txt VALUES ('dss_importer_host_name', 'German', 'Importer-Hostname');
 INSERT INTO txt VALUES ('dss_importer_host_name', 'English', 'Importer host name');
+INSERT INTO txt VALUES ('dss_ssh_legacy_key_exchange', 'German', 'SHA-1-SSH-Schl&uuml;sselaustausch erlauben');
+INSERT INTO txt VALUES ('dss_ssh_legacy_key_exchange', 'English', 'Allow SHA-1 SSH key exchange');
 INSERT INTO txt VALUES ('dss_modelling_create_app_zones', 'German', 'Modellierte App-Zonen anlegen');
 INSERT INTO txt VALUES ('dss_modelling_create_app_zones', 'English', 'Create modelling app zones');
 INSERT INTO txt VALUES ('dss_modelling_implement_network_area_objects', 'German', 'Modellierte Netzwerk-Areas umsetzen');
@@ -6983,6 +6987,8 @@ INSERT INTO txt VALUES ('H5199v', 'English', 'SecureChange ticket templates: tem
     An empty value uses the shipped template; only the ticket and task text of AccessRequest are shipped, all other template parts then stay empty. If the ticket or task text of a task type is empty, a request task of that type is refused with a configuration error.
     The templates are determined when the external request is created and stored with it: changed templates apply to new requests, not to waiting or retried ones.
     The ticket system itself (URL, credentials, timeouts) is still maintained under <a href="/help/settings/exttickettemplates">External ticket templates</a>.');
+INSERT INTO txt VALUES ('H5199w', 'German',  'SHA-1-SSH-Schl&uuml;sselaustausch erlauben: ob der Importer beim SSH-Verbindungsaufbau zus&auml;tzlich den Schl&uuml;sselaustausch diffie-hellman-group14-sha1 anbietet, den aktuelle OpenSSH-Versionen abschalten (Cisco ASA). Nur f&uuml;r Ger&auml;te einschalten, die nichts Besseres anbieten, und diese besser aktualisieren. Standard: Nein. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5199w', 'English', 'Allow SHA-1 SSH key exchange: whether the importer also offers the key exchange diffie-hellman-group14-sha1, which current OpenSSH versions disable, when connecting via SSH (Cisco ASA). Only switch it on for devices that offer nothing better, and better update them. Default: No. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Ldap-Verbindungen einrichten und verwalten. Sie k&ouml;nnen alle zur Nutzerauthentifizierung genutzt werden.<br>
     Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
     Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.

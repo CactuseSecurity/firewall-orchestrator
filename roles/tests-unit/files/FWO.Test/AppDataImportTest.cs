@@ -1861,6 +1861,42 @@ namespace FWO.Test
             Assert.That(import.ResolvedIdentifiers, Is.EqualTo(new[] { "missing.user", "missing.user" }));
         }
 
+        private static readonly List<string> kExistingGroupDn = ["cn=group1,ou=groups,dc=example,dc=com"];
+
+        /// <summary>
+        /// An imported dn receives workflow roles only if it names an existing directory entry
+        /// (GHSA-6g84, fwo-middleware-server-apistartupprobe-002).
+        /// </summary>
+        [Test]
+        public async Task NormalizeImportedUserReferences_DropsDnsWithoutDirectoryEntry()
+        {
+            ResolverTestAppDataImport import = new(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+                existingDns: kExistingGroupDn);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-Forged",
+                ExtAppId = "APP-FORGED",
+                MainUser = "cn=forged.admin,ou=users,dc=example,dc=com",
+                Responsibles = new Dictionary<string, List<string>>
+                {
+                    ["1"] =
+                    [
+                        "cn=forged.admin,ou=users,dc=example,dc=com",
+                        "cn=group1,ou=groups,dc=example,dc=com"
+                    ]
+                }
+            };
+
+            ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(normalizedApp.MainUser, Is.Null);
+                Assert.That(normalizedApp.Responsibles?["1"], Is.EqualTo(kExistingGroupDn));
+                Assert.That(import.CheckedDns, Has.Count.EqualTo(3));
+            });
+        }
+
         [Test]
         public async Task NormalizeImportedUserReferences_ResolvesPlainGroupNamesToGroupDns()
         {
@@ -2697,7 +2733,9 @@ namespace FWO.Test
             private readonly Dictionary<string, UiUser> uiUsersByDn;
             private readonly Dictionary<string, List<string>> groupMembersByDn;
             private readonly Dictionary<string, string?> groupResolutions;
+            private readonly HashSet<string>? existingDns;
             public List<string> ResolvedIdentifiers { get; } = [];
+            public List<string> CheckedDns { get; } = [];
             public List<string> ResolvedGroupIdentifiers { get; } = [];
 
             public ResolverTestAppDataImport(
@@ -2705,9 +2743,12 @@ namespace FWO.Test
                 Dictionary<string, UiUser>? uiUsersByDn = null,
                 Dictionary<string, List<string>>? groupMembersByDn = null,
                 Dictionary<string, string?>? groupResolutions = null,
-                ApiConnection? apiConnection = null)
+                ApiConnection? apiConnection = null,
+                IEnumerable<string>? existingDns = null)
                 : base(apiConnection ?? new SimulatedApiConnection(), new GlobalConfig())
             {
+                // null: every imported dn names an existing directory entry
+                this.existingDns = existingDns == null ? null : new HashSet<string>(existingDns, StringComparer.OrdinalIgnoreCase);
                 this.resolutions = resolutions;
                 this.uiUsersByDn = uiUsersByDn ?? new(StringComparer.OrdinalIgnoreCase);
                 this.groupMembersByDn = groupMembersByDn ?? new(StringComparer.OrdinalIgnoreCase);
@@ -2728,6 +2769,12 @@ namespace FWO.Test
             protected override Task<List<string>> ResolveImportedGroupMembers(Ldap ldap, string groupDn)
             {
                 return Task.FromResult(groupMembersByDn.TryGetValue(groupDn, out List<string>? members) ? members : []);
+            }
+
+            protected override Task<string?> ResolveImportedDistinguishedName(string distinguishedName)
+            {
+                CheckedDns.Add(distinguishedName);
+                return Task.FromResult(existingDns == null || existingDns.Contains(distinguishedName) ? distinguishedName : null);
             }
 
             protected override Task<string?> ResolveImportedGroupIdentifierToDn(string groupIdentifier)

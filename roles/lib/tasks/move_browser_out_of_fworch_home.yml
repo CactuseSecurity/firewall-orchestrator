@@ -1,0 +1,52 @@
+# Versions before 9.8.6 installed Chrome for Testing below {{ fworch_home }}/bin, which belongs to
+# {{ fworch_user }}, and ran and unpacked it there as root. It now lives in the root owned
+# {{ fworch_browser_dir }}. An existing installation is moved there once instead of being downloaded
+# again, so an upgrade without internet access keeps its browser. The moved files are given to root,
+# so {{ fworch_user }} can no longer change what the installer runs.
+
+- name: check for a browser installed below {{ fworch_home }}/bin
+  stat:
+    path: "{{ fworch_home }}/bin/Chrome"
+  register: legacy_browser_dir
+  become: true
+
+- name: check for a browser in {{ fworch_browser_dir }}
+  stat:
+    path: "{{ fworch_browser_dir }}/Chrome"
+  register: browser_dir_chrome
+  become: true
+
+# rename does not follow a symbolic link, and a link instead of the directory is not moved at all
+- name: move the browser below {{ fworch_home }}/bin to {{ fworch_browser_dir }}
+  command: mv "{{ fworch_home }}/bin/Chrome" "{{ fworch_browser_dir }}/Chrome"
+  args:
+    creates: "{{ fworch_browser_dir }}/Chrome"
+  become: true
+  when:
+    - legacy_browser_dir.stat.isdir | default(false)
+    - not (legacy_browser_dir.stat.islnk | default(false))
+    - not browser_dir_chrome.stat.exists
+
+# -h changes a symbolic link itself instead of the file it points to; -R does not follow links
+- name: give the moved browser to root
+  command: chown -R -h root:root "{{ fworch_browser_dir }}/Chrome"
+  become: true
+  when:
+    - legacy_browser_dir.stat.isdir | default(false)
+    - not (legacy_browser_dir.stat.islnk | default(false))
+    - not browser_dir_chrome.stat.exists
+
+# removed as {{ fworch_user }}, who owns the directory, so root never deletes along a path that user controls
+- name: remove the browser links of versions before 9.8.6 from {{ fworch_home }}/bin
+  file:
+    path: "{{ fworch_home }}/bin/{{ item }}"
+    state: absent
+  loop:
+    - chrome
+    - chrome-wrapper
+    - chrome_crashpad_handler
+    - chrome_sandbox
+    - chromium-headless
+  become: true
+  become_user: "{{ fworch_user }}"
+  failed_when: false

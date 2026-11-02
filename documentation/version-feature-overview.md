@@ -252,3 +252,8 @@ For a feature-centric, thematically grouped view see
 
 ### 9.8.5 — 29.10.2026
 - The Tufin SecureChange ticket templates are device specific settings that can be adapted globally, per device type and per management; the upgrade moves the templates stored with the ticket systems.
+
+### 9.8.6 — 02.11.2026
+- The compliance check fails closed: a criterion that cannot be evaluated makes the rule not assessable instead of compliant, also in the conditional auto-promote of the workflow.
+- The Cisco ASA importer offers the SHA-1 SSH key exchange only when the new device specific setting "Allow SHA-1 SSH key exchange" is switched on.
+- Security hardening of the API permissions, password policy enforcement in the middleware, CSV and HTML exports, installer secrets and local privileges (database, LDAP, browser location, sudoers handling).

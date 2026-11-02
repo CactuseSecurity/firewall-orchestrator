@@ -106,3 +106,30 @@
   when:
       - installed_version is version('9.8.4', '<')
       - asa_managements_needing_host_keys.query_result | default([]) | length > 0
+
+# from 9.8.6 on the Cisco ASA importer no longer offers the SHA-1 SSH key exchange diffie-hellman-group14-sha1 unless
+# the device specific setting sshLegacyKeyExchange is switched on; devices that offer nothing else fail to import
+- name: read the Cisco ASA managements whose import may need the SHA-1 SSH key exchange
+  community.postgresql.postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >-
+          SELECT m.mgm_name FROM management m
+          WHERE m.dev_typ_id IN (28, 29) AND NOT m.do_not_import
+          ORDER BY m.mgm_name
+  register: asa_managements_legacy_key_exchange
+  changed_when: false
+  become: true
+  become_user: postgres
+  when: installed_version is version('9.8.6', '<')
+
+- name: warn about Cisco ASA managements that may need the SHA-1 SSH key exchange
+  debug:
+      msg: >-
+          WARNING: from this version on, the Cisco ASA importer no longer offers the SHA-1 SSH key exchange
+          diffie-hellman-group14-sha1. If a device of
+          {{ asa_managements_legacy_key_exchange.query_result | map(attribute='mgm_name') | join(', ') }}
+          offers nothing else, its import fails with an error naming the setting; update the device or switch on
+          "Allow SHA-1 SSH key exchange" in the device specific settings (Global, device type or management).
+  when:
+      - installed_version is version('9.8.6', '<')
+      - asa_managements_legacy_key_exchange.query_result | default([]) | length > 0

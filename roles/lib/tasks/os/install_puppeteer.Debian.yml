@@ -48,7 +48,7 @@
               abi <abi/4.0>,
               include <tunables/global>
 
-              profile /usr/local/fworch/bin/**/chrome flags=(unconfined) {
+              profile {{ fworch_browser_dir }}/**/chrome flags=(unconfined) {
                   userns,
 
                   # Site-specific additions and overrides. See local/README for details.

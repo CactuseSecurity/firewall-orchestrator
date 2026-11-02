@@ -160,6 +160,11 @@
   import_tasks: test-ldap-client-tls.yml
   when: "'middlewareserver' in group_names"
 
+# On the middleware host because that is where slapd runs.
+- name: LDAP password access testing
+  import_tasks: test-ldap-password-acl.yml
+  when: "'middlewareserver' in group_names"
+
 # On the database host because that is the role whose migration files the guard protects.
 - name: Upgrade source version guard testing
   import_tasks: test-upgrade-source-version-guard.yml

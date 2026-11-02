@@ -1,20 +1,12 @@
 using FWO.Data;
 using FWO.Data.RulePositioning;
-using FWO.Data.Workflow;
 using System.Collections.ObjectModel;
 
 namespace FWO.Compliance.RulePositioning;
 
-/// <summary>Resolves workflow network elements to positioning-zone input.</summary>
+/// <summary>Resolves normalized network ranges to positioning-zone input.</summary>
 public interface ICreationRuleZoneResolver
 {
-    /// <summary>Resolves the source and destination zones for a new access rule.</summary>
-    Task<PositioningResult<CreationRuleZoneInput, CreationRuleZoneResolutionFailureCategory>> ResolveAsync(
-        WfReqTask requestTask,
-        IReadOnlyCollection<ComplianceNetworkZone> networkZones,
-        RulePositioningConfiguration configuration,
-        CancellationToken cancellationToken);
-
     /// <summary>Resolves already-normalized source and destination ranges to positioning zones.</summary>
     Task<PositioningResult<CreationRuleZoneInput, CreationRuleZoneResolutionFailureCategory>> ResolveAsync(
         CreationRuleNetworkInput networkInput,

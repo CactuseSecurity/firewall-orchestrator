@@ -979,12 +979,6 @@ internal class CheckPointRulePositioningStrategyTest
         public CancellationToken Token { get; private set; }
 
         public async Task<CreationRuleZoneResolutionResult> ResolveAsync(
-            WfReqTask requestTask,
-            IReadOnlyCollection<ComplianceNetworkZone> networkZones,
-            RulePositioningConfiguration configuration,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public async Task<CreationRuleZoneResolutionResult> ResolveAsync(
             CreationRuleNetworkInput networkInput,
             IReadOnlyCollection<ComplianceNetworkZone> networkZones,
             RulePositioningConfiguration configuration,
@@ -1118,15 +1112,6 @@ internal class CheckPointRulePositioningStrategyTest
 
     private sealed class DynamicZoneResolver : ICreationRuleZoneResolver
     {
-        public Task<CreationRuleZoneResolutionResult> ResolveAsync(
-            WfReqTask requestTask,
-            IReadOnlyCollection<ComplianceNetworkZone> networkZones,
-            RulePositioningConfiguration configuration,
-            CancellationToken cancellationToken)
-        {
-            throw new NotSupportedException();
-        }
-
         public Task<CreationRuleZoneResolutionResult> ResolveAsync(
             CreationRuleNetworkInput networkInput,
             IReadOnlyCollection<ComplianceNetworkZone> networkZones,

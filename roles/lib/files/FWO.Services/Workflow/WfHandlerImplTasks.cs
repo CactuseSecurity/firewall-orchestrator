@@ -507,12 +507,16 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Creates the implementation tasks of a request task by task type, following the auto plan device specific
-        /// settings.
+        /// Creates the implementation tasks of a request task by task type, following the auto plan and implementation
+        /// mode device specific settings. A request task handed to an external ticket system gets none.
         /// </summary>
         /// <param name="reqTask">Request task to create the implementation tasks for.</param>
         private async Task AutoCreateImplTasks(WfReqTask reqTask)
         {
+            if (await IsHandedToExternalTicketSystem(reqTask))
+            {
+                return;
+            }
             if (reqTask.TaskType == WfTaskType.access.ToString())
             {
                 await EnsureDevicesLoaded();

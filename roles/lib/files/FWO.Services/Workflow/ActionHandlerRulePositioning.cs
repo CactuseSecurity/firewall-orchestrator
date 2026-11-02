@@ -7,9 +7,10 @@ namespace FWO.Services.Workflow;
 /// <summary>Rule-positioning activation owned by the workflow action handler.</summary>
 public partial class ActionHandler
 {
+    private static readonly TimeSpan kDefaultRulePositioningTimeout = TimeSpan.FromSeconds(30);
     private readonly IRulePositioningWorkflowCaller? rulePositioningWorkflowCaller;
 
-    internal TimeSpan RulePositioningTimeout { get; set; } = TimeSpan.FromSeconds(30);
+    internal TimeSpan RulePositioningTimeout { get; set; } = kDefaultRulePositioningTimeout;
 
     /// <summary>Attempts positioning for one durable implementation-task creation event.</summary>
     private async Task ActivateRulePositioningForCreation(

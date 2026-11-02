@@ -2,17 +2,12 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Basics;
-using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
-using FWO.Services;
-using FWO.Services.Workflow;
 using GraphQL;
 using GraphQL.Client.Serializer.Newtonsoft;
 using Newtonsoft.Json;
@@ -288,55 +283,6 @@ public class RulePositionPersistenceTest
     }
 
     [Test]
-    public async Task DedicatedOperation_StoresReplacesAndClearsOnlyRulePosition()
-    {
-        RecordingApiConnection apiConnection = new() { UpdatedId = 42 };
-        WfDbAccess dbAccess = CreateDbAccess(apiConnection);
-        PersistedTestRulePosition first = KnownPosition("first");
-        PersistedTestRulePosition replacement = KnownPosition("replacement");
-
-        bool stored = await dbAccess.UpdateImplTaskRulePositionInDb(42, first);
-        bool replaced = await dbAccess.UpdateImplTaskRulePositionInDb(42, replacement);
-        bool cleared = await dbAccess.UpdateImplTaskRulePositionInDb(42, null);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(stored, Is.True);
-            Assert.That(replaced, Is.True);
-            Assert.That(cleared, Is.True);
-            Assert.That(apiConnection.Calls, Has.Count.EqualTo(3));
-            Assert.That(apiConnection.Calls.All(call => call.Query == RequestQueries.updateImplementationTaskRulePosition), Is.True);
-        });
-        AssertVariables(apiConnection.Calls[0].Variables, 42, first);
-        AssertVariables(apiConnection.Calls[1].Variables, 42, replacement);
-        AssertVariables(apiConnection.Calls[2].Variables, 42, null);
-    }
-
-    [Test]
-    public async Task DedicatedOperation_ReturnsFalseForUnexpectedUpdatedTask()
-    {
-        RecordingApiConnection apiConnection = new() { UpdatedId = 99 };
-        WfDbAccess dbAccess = CreateDbAccess(apiConnection);
-
-        bool stored = await dbAccess.UpdateImplTaskRulePositionInDb(42, KnownPosition("first"));
-
-        Assert.That(stored, Is.False);
-        Assert.That(apiConnection.Calls, Has.Count.EqualTo(1));
-    }
-
-    [Test]
-    public async Task DedicatedOperation_ReturnsFalseWhenPersistenceFails()
-    {
-        RecordingApiConnection apiConnection = new() { ThrowOnUpdate = true };
-        WfDbAccess dbAccess = CreateDbAccess(apiConnection);
-
-        bool stored = await dbAccess.UpdateImplTaskRulePositionInDb(42, KnownPosition("first"));
-
-        Assert.That(stored, Is.False);
-        Assert.That(apiConnection.Calls, Has.Count.EqualTo(1));
-    }
-
-    [Test]
     public void DedicatedMutation_UpdatesOnlyRulePosition()
     {
         string mutation = RequestQueries.updateImplementationTaskRulePosition;
@@ -518,31 +464,6 @@ public class RulePositionPersistenceTest
         });
     }
 
-    private static WfDbAccess CreateDbAccess(RecordingApiConnection apiConnection)
-    {
-        WfHandler handler = new();
-        ActionHandler actionHandler = new(apiConnection, handler);
-        return new WfDbAccess(
-            DefaultInit.DoNothing,
-            new UserConfig(),
-            apiConnection,
-            actionHandler,
-            false,
-            WorkflowPhases.implementation);
-    }
-
-    private static void AssertVariables(object? variables, long expectedId, RulePosition? expectedPosition)
-    {
-        Assert.That(variables, Is.Not.Null);
-        PropertyInfo[] properties = variables!.GetType().GetProperties();
-        Assert.Multiple(() =>
-        {
-            Assert.That(properties.Select(property => property.Name), Is.EquivalentTo(new List<string> { "id", "rulePosition" }));
-            Assert.That(properties.Single(property => property.Name == "id").GetValue(variables), Is.EqualTo(expectedId));
-            Assert.That(properties.Single(property => property.Name == "rulePosition").GetValue(variables), Is.SameAs(expectedPosition));
-        });
-    }
-
     private static List<string> SerializeGraphQlVariables(RulePosition? position)
     {
         GraphQLRequest request = new()
@@ -564,24 +485,4 @@ public class RulePositionPersistenceTest
         public List<string> Markers { get; set; } = [];
     }
 
-    private sealed class RecordingApiConnection : SimulatedApiConnection
-    {
-        public long UpdatedId { get; set; }
-        public bool ThrowOnUpdate { get; set; }
-        public List<(string Query, object? Variables)> Calls { get; } = [];
-
-        public override Task<T> SendQueryAsync<T>(
-            string query,
-            object? variables = null,
-            string? operationName = null,
-            QueryChunkingOptions? chunkingOptions = null)
-        {
-            Calls.Add((query, variables));
-            if (ThrowOnUpdate)
-            {
-                throw new InvalidOperationException("persistence failed");
-            }
-            return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedId });
-        }
-    }
 }

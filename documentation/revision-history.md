@@ -1,13 +1,24 @@
 # Firewall Orchestrator Revision History
 
 ## 9.8.5 - 29.10.2026
-- add nullable, forward-compatible rule-position storage to implementation tasks
-- add a dedicated GraphQL persistence operation that stores, replaces, or clears only the rule position
-- add a graph-only Check Point end-of-rulebase positioning strategy and an independently callable best-effort workflow service
-- remove the inactive speculative Check Point rule-position renderer; semantic positions remain the terminal output
-- preserve stored rule positions across GraphQL naming policies by writing positioning algorithms numerically and accepting legacy enum, EnumMember, and GraphQL names when reading
-- package repository-contract fixtures with installed C# tests so fresh installations and upgrades can run the rule-positioning source-contract checks
-- add a selectable Check Point layer-guard zone-pair Section algorithm that automatically calculates and persists the semantic end-of-Section position when a gateway-specific access-rule implementation task is created
+- installer: after an operating system upgrade to a new PostgreSQL major version (e.g. Debian 12 -> 13: 15 -> 17) the upgrade stops before changing PostgreSQL and names the steps to migrate the database (`pg_upgradecluster` on Debian/Ubuntu, `postgresql-setup --upgrade` on Red Hat/Rocky) instead of failing on a missing postgresql.conf; documentation/installer/server-upgrade.md describes the migration (#5598)
+- installer: the importer and customizing script python venvs are rebuilt when they were created for another python version (e.g. 3.11 -> 3.13 after an operating system upgrade), instead of failing with `No module named 'pip'` or leaving the importer without its packages (#5599)
+- installer: remove the unused Docker role, the move of the API from Docker to Podman and the Docker handling of upgrade and uninstall; the ignored parameter `docker_network` is gone (#5519)
+  - breaking: upgrades have to start from 9.0.16 or newer (was 8.0). An installation from 8.0 to 9.0.15 upgrades with v9.8.4 first, which still moves the API to Podman; the installer stops such an upgrade before changing anything and names the way
+  - an upgrade also stops while the API still runs in Docker (a running or enabled Docker API service, or a Docker container `fworch-api` next to an installed Docker engine - the `docker` command of `podman-docker` does not count, and an installed Docker engine that cannot be asked for the container stops it as well), which v9.8.4 leaves behind when it deferred the move to Podman; a stopped Docker API unit left by a completed move is removed
+- installer tests: the check that the upgrade floor is not below the oldest database migration never failed, because the regex backreference it used arrived as a control character in the assertion
+- installer tests: every task around an intended failure of a negative integration test starts with "expected to fail: ", directly before and after the red output, so the run log tells intended failures from real ones (#5545)
+- importer (Check Point): transport errors of API calls name the reason (e.g. TLS handshake failure, certificate error, refused connection, unparsable proxy url) and whether certificate checking is on; user info in urls (`user:password@`, e.g. proxy credentials) is redacted from the error text, which ends up in alerts and logs
+- request workflow: the Tufin SecureChange ticket templates move from the ticket system (Settings - External ticket templates) to the device specific settings
+  - new settings `scTemplate<TaskType><Part>` per SecureChange task type (AccessRequest, NetworkObjectModify) and template part (ticket, tasks, object, object short, IP, network group, service, ICMP, IP protocol), on the levels Global, device type and management, in the new section "SecureChange ticket templates"
+  - an empty template part uses the shipped template (only the AccessRequest ticket and task text are shipped, as before in the default ticket system), so a later correction of it applies
+  - a SecureChange ticket uses the templates of the management of its request tasks; request tasks of managements with different templates are no longer bundled into one ticket. The templates are resolved when the external request is created and stored with it, as before
+  - the ticket system dialog no longer shows or stores templates for SecureChange systems (URL, credentials, timeouts and requester lookup stay there); other ticket system types keep their templates
+  - the upgrade moves the templates of the SecureChange systems: those of the system most managements route their changes to (Settings - Firewall config changes) become the global values, managements routing a change category to another SecureChange system get its differing templates on their own level. Parts equal to the shipped template are not stored. The ticket systems are backed up once in `device_specific_config_backup` (version `9.8.5 extTicketSystems`, without authorization values)
+  - breaking: an AccessRequest template that was missing on a SecureChange system (ticket creation failed before) is now replaced by the shipped one
+  - a task type whose ticket or task template is empty (no setting and no shipped template, e.g. NetworkObjectModify) is refused with a configuration error before a request is created, as when its template was missing before
+  - service group tasks routed to SecureChange are refused with a configuration error; SecureChange only modifies groups of network objects. Before, they created a ticket without tasks. Their templates (NetworkServiceCreate, NetworkServiceUpdate) were never used and are not migrated; they remain in the backup
+- request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
 
 ## 9.8.4 - 26.10.2026
 - middleware REST API: every list endpoint is paged with one central page size (#5561)

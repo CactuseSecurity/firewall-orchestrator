@@ -4,7 +4,6 @@ using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
-using FWO.Data.RulePositioning;
 
 namespace FWO.Services.Workflow
 {
@@ -97,29 +96,6 @@ namespace FWO.Services.Workflow
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
-            }
-        }
-
-        /// <summary>
-        /// Stores or clears only the calculated rule position of an implementation task.
-        /// </summary>
-        /// <param name="implementationTaskId">Database id of the implementation task.</param>
-        /// <param name="rulePosition">Position to store, or null to clear the stored position.</param>
-        /// <returns>True when the database updated the requested implementation task.</returns>
-        public async Task<bool> UpdateImplTaskRulePositionInDb(long implementationTaskId, RulePosition? rulePosition)
-        {
-            try
-            {
-                var variables = new { id = implementationTaskId, rulePosition };
-                long updatedId = (await ApiConnection.SendQueryAsync<ReturnId>(
-                    RequestQueries.updateImplementationTaskRulePosition,
-                    variables)).UpdatedIdLong;
-                return updatedId == implementationTaskId;
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
-                return false;
             }
         }
 

@@ -107,6 +107,80 @@ public class CheckPointLayerGuardSnapshotReaderTest
         });
     }
 
+    [Test]
+    public async Task FlattenedGroup_SkipsSelfAndNestedGroupRows()
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        JObject sourceObject = (JObject)json[0]!["rule_froms"]![0]!["object"]!;
+        sourceObject["obj_ip"] = null;
+        sourceObject["obj_ip_end"] = null;
+        sourceObject["type"] = JObject.Parse("""{ "name": "group" }""");
+        sourceObject["objgrp_flats"] = JArray.Parse("""
+            [
+              { "objgrp_flat_id": 101, "objgrp_flat_member_id": 101, "negated": false,
+                "import_created": 90, "removed": null,
+                "object": { "obj_id": 101, "obj_ip": null, "obj_ip_end": null,
+                            "obj_create": 90, "removed": null, "type": { "name": "group" } } },
+              { "objgrp_flat_id": 101, "objgrp_flat_member_id": 201, "negated": false,
+                "import_created": 90, "removed": null,
+                "object": { "obj_id": 201, "obj_ip": null, "obj_ip_end": null,
+                            "obj_create": 90, "removed": null, "type": { "name": "group" } } },
+              { "objgrp_flat_id": 101, "objgrp_flat_member_id": 202, "negated": false,
+                "import_created": 90, "removed": null,
+                "object": { "obj_id": 202, "obj_ip": "10.0.0.0/24", "obj_ip_end": null,
+                            "obj_create": 90, "removed": null, "type": { "name": "network" } } }
+            ]
+            """);
+
+        CheckPointLayerGuardReadSuccess success = (CheckPointLayerGuardReadSuccess)
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None);
+
+        CheckPointGuardAddressTerm term = success.Snapshot.GuardsByTargetLayerId[2].Source.Terms.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(term.IncludedRanges, Has.Count.EqualTo(1));
+            Assert.That(term.IncludedRanges.Single().Begin.ToString(), Is.EqualTo("10.0.0.0"));
+            Assert.That(term.HasUnresolvedIncludedTerms, Is.False);
+            Assert.That(term.HasUnresolvedExcludedTerms, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task FlattenedGroup_WithOnlyStructuralGroupRowsRemainsUnresolved()
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        JObject sourceObject = (JObject)json[0]!["rule_froms"]![0]!["object"]!;
+        sourceObject["obj_ip"] = null;
+        sourceObject["obj_ip_end"] = null;
+        sourceObject["type"] = JObject.Parse("""{ "name": "group" }""");
+        sourceObject["objgrp_flats"] = JArray.Parse("""
+            [
+              { "objgrp_flat_id": 101, "objgrp_flat_member_id": 101, "negated": false,
+                "import_created": 90, "removed": null,
+                "object": { "obj_id": 101, "obj_ip": null, "obj_ip_end": null,
+                            "obj_create": 90, "removed": null, "type": { "name": "group" } } },
+              { "objgrp_flat_id": 101, "objgrp_flat_member_id": 201, "negated": false,
+                "import_created": 90, "removed": null,
+                "object": { "obj_id": 201, "obj_ip": null, "obj_ip_end": null,
+                            "obj_create": 90, "removed": null, "type": { "name": "group" } } }
+            ]
+            """);
+
+        CheckPointLayerGuardReadSuccess success = (CheckPointLayerGuardReadSuccess)
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None);
+
+        CheckPointGuardAddressTerm term = success.Snapshot.GuardsByTargetLayerId[2].Source.Terms.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(term.IncludedRanges, Is.Empty);
+            Assert.That(term.ExcludedRanges, Is.Empty);
+            Assert.That(term.HasUnresolvedIncludedTerms, Is.True);
+            Assert.That(term.HasUnresolvedExcludedTerms, Is.False);
+        });
+    }
+
     [TestCase("rule_src_neg")]
     [TestCase("rulebase_id")]
     [TestCase("rule_create")]

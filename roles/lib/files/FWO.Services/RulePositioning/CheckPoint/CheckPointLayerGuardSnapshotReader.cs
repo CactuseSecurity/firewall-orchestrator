@@ -14,6 +14,7 @@ namespace FWO.Services.RulePositioning.CheckPoint;
 public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnection)
     : ICheckPointLayerGuardSnapshotReader
 {
+    private const string kGroupObjectType = "group";
     private const string kOperation = "getCheckPointLayerGuardsAtImport";
 
     /// <inheritdoc />
@@ -236,6 +237,10 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
             if (!IsValidFlat(flat, group.Id!.Value, importId))
             {
                 return false;
+            }
+            if (flat.MemberId == group.Id || flat.Object!.Type?.Name == kGroupObjectType)
+            {
+                continue;
             }
             if (!HasAddress(flat.Object!))
             {

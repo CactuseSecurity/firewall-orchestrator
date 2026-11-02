@@ -18,8 +18,6 @@ namespace FWO.Compliance.RulePositioning.CheckPoint;
 /// <summary>Calculates the generic graph-only Check Point rule position.</summary>
 public sealed class CheckPointGraphRulePositioningStrategy : IRulePositioningStrategy
 {
-    private const int kCheckPointR8xDeviceTypeId = 9;
-
     private readonly IRulebaseGraphSnapshotReader graphReader;
     private readonly ICheckPointGraphPositioningRecipeCatalog recipeCatalog;
     private readonly PositioningRecipeExecutor<CheckPointPositioningContext, CheckPointBlockValue> recipeExecutor = new();
@@ -37,7 +35,7 @@ public sealed class CheckPointGraphRulePositioningStrategy : IRulePositioningStr
     public bool CanHandle(DeviceType deviceType, ProvisioningPositioningAlgorithm positioningAlgorithm)
     {
         return deviceType != null
-            && deviceType.Id == kCheckPointR8xDeviceTypeId
+            && deviceType.Id == DeviceTypeIds.kCheckPointR8x
             && recipeCatalog.SupportsAlgorithm(positioningAlgorithm);
     }
 

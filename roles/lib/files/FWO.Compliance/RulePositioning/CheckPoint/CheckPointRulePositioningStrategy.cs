@@ -30,8 +30,6 @@ namespace FWO.Compliance.RulePositioning.CheckPoint;
 /// <summary>Orchestrates the ticket-aware Check Point layer-guard positioning calculation.</summary>
 public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
 {
-    private const int kCheckPointR8xDeviceTypeId = 9;
-
     private readonly IRulebaseGraphSnapshotReader graphReader;
     private readonly ICreationRuleNetworkInputResolver networkResolver;
     private readonly ICheckPointLayerGuardSnapshotReader guardReader;
@@ -61,7 +59,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     public bool CanHandle(DeviceType deviceType, ProvisioningPositioningAlgorithm positioningAlgorithm)
     {
         return deviceType != null
-            && deviceType.Id == kCheckPointR8xDeviceTypeId
+            && deviceType.Id == DeviceTypeIds.kCheckPointR8x
             && IsUsableAlgorithm(positioningAlgorithm)
             && recipeCatalog.SupportsAlgorithm(positioningAlgorithm);
     }

@@ -20,8 +20,6 @@
   - service group tasks routed to SecureChange are refused with a configuration error; SecureChange only modifies groups of network objects. Before, they created a ticket without tasks. Their templates (NetworkServiceCreate, NetworkServiceUpdate) were never used and are not migrated; they remain in the backup
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
 
-## 9.8.4 - 26.10.2026
-
 ## 9.8.4 - 29.10.2026
 - installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server
 - importer: sub-managements set to "do not import" are skipped by the import of their super manager instead of having all their rules and objects marked removed (FortiManager ADOMs, Check Point domains; GHSA-hj46-639g-mxq2). A forced import still imports them

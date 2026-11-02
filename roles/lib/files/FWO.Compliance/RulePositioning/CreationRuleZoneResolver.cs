@@ -14,12 +14,6 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
 {
     private sealed record SideResolution(List<PositioningZoneReference> Zones, ZoneCoverage Coverage);
 
-    /// <summary>Internal control-flow failure carrying a safe public category.</summary>
-    private sealed class ResolutionFailureException(CreationRuleZoneResolutionFailureCategory category) : Exception
-    {
-        public CreationRuleZoneResolutionFailureCategory Category { get; } = category;
-    }
-
     /// <inheritdoc />
     public Task<CreationRuleZoneResolutionResult> ResolveAsync(
         CreationRuleNetworkInput networkInput,
@@ -35,7 +29,11 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
                 return Task.FromResult<CreationRuleZoneResolutionResult>(
                     Failure(CreationRuleZoneResolutionFailureCategory.InvalidInput));
             }
-            List<ComplianceNetworkZone> validatedZones = ValidateZones(networkZones, configuration, cancellationToken);
+            if (!TryValidateZones(networkZones, configuration, cancellationToken, out List<ComplianceNetworkZone> validatedZones))
+            {
+                return Task.FromResult<CreationRuleZoneResolutionResult>(
+                    Failure(CreationRuleZoneResolutionFailureCategory.InvalidZoneData));
+            }
             SideResolution source = ResolveSide([.. networkInput.SourceRanges], validatedZones, configuration, cancellationToken);
             SideResolution destination = ResolveSide([.. networkInput.DestinationRanges], validatedZones, configuration, cancellationToken);
             return Task.FromResult(CreationRuleZoneResolutionResult.Success(
@@ -50,10 +48,6 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
         {
             throw;
         }
-        catch (ResolutionFailureException exception)
-        {
-            return Task.FromResult<CreationRuleZoneResolutionResult>(Failure(exception.Category));
-        }
         catch (Exception exception) when (exception is FormatException or ArgumentException or OverflowException)
         {
             return Task.FromResult<CreationRuleZoneResolutionResult>(
@@ -67,45 +61,45 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
     }
 
     /// <summary>Validates and copies caller-supplied zone rows.</summary>
-    private static List<ComplianceNetworkZone> ValidateZones(
+    private static bool TryValidateZones(
         IReadOnlyCollection<ComplianceNetworkZone> networkZones,
         RulePositioningConfiguration configuration,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        out List<ComplianceNetworkZone> validatedZones)
     {
+        validatedZones = [];
         if (configuration == null || configuration.DesignatedZoneMatrixId <= 0 ||
             networkZones == null || networkZones.Count == 0)
         {
-            throw new ResolutionFailureException(CreationRuleZoneResolutionFailureCategory.InvalidZoneData);
+            return false;
         }
 
         HashSet<int> zoneIds = [];
-        List<ComplianceNetworkZone> validatedZones = [];
         foreach (ComplianceNetworkZone? zone in networkZones)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (zone == null || zone.Id <= 0 || !zoneIds.Add(zone.Id)
                 || zone.CriterionId != configuration.DesignatedZoneMatrixId || string.IsNullOrWhiteSpace(zone.Name)
-                || zone.IPRanges == null)
+                || zone.IPRanges == null || !TryCloneZone(zone, cancellationToken, out ComplianceNetworkZone validatedZone))
             {
-                throw new ResolutionFailureException(CreationRuleZoneResolutionFailureCategory.InvalidZoneData);
+                return false;
             }
 
-            validatedZones.Add(CloneZone(zone, cancellationToken));
+            validatedZones.Add(validatedZone);
         }
 
-        ValidateAutomaticInternetZone(validatedZones, configuration, cancellationToken);
-        return validatedZones;
+        return IsValidAutomaticInternetZone(validatedZones, configuration, cancellationToken);
     }
 
     /// <summary>Validates the configured automatic Internet-zone invariant.</summary>
-    private static void ValidateAutomaticInternetZone(
+    private static bool IsValidAutomaticInternetZone(
         List<ComplianceNetworkZone> networkZones,
         RulePositioningConfiguration configuration,
         CancellationToken cancellationToken)
     {
         if (!configuration.AutoCalculateInternetZone)
         {
-            return;
+            return true;
         }
 
         List<ComplianceNetworkZone> internetZones = [.. networkZones.Where(zone => zone.IsAutoCalculatedInternetZone)];
@@ -119,10 +113,7 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
             }
         }
 
-        if (internetZones.Count != 1 || !containsIpv4Range)
-        {
-            throw new ResolutionFailureException(CreationRuleZoneResolutionFailureCategory.InvalidZoneData);
-        }
+        return internetZones.Count == 1 && containsIpv4Range;
     }
 
     /// <summary>Resolves and converts one side of the rule.</summary>
@@ -174,21 +165,25 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
     }
 
     /// <summary>Copies only zone state used by overlap resolution and positioning output.</summary>
-    private static ComplianceNetworkZone CloneZone(ComplianceNetworkZone zone, CancellationToken cancellationToken)
+    private static bool TryCloneZone(
+        ComplianceNetworkZone zone,
+        CancellationToken cancellationToken,
+        out ComplianceNetworkZone clonedZone)
     {
+        clonedZone = null!;
         List<IPAddressRange> ranges = [];
         foreach (IPAddressRange? range in zone.IPRanges)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!IsValidRange(range))
             {
-                throw new ResolutionFailureException(CreationRuleZoneResolutionFailureCategory.InvalidZoneData);
+                return false;
             }
 
             ranges.Add(new IPAddressRange(range!.Begin, range.End));
         }
 
-        return new ComplianceNetworkZone
+        clonedZone = new ComplianceNetworkZone
         {
             Id = zone.Id,
             IdString = zone.IdString,
@@ -198,6 +193,7 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
             IsAutoCalculatedUndefinedInternalZone = zone.IsAutoCalculatedUndefinedInternalZone,
             IPRanges = [.. ranges]
         };
+        return true;
     }
 
     /// <summary>Creates a failed result.</summary>

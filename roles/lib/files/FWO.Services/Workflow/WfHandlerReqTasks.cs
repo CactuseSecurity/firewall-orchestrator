@@ -346,7 +346,7 @@ namespace FWO.Services.Workflow
         /// <param name="allowLockedApprovalUpdate">Allows the explicitly permitted approval-phase field update on a locked task.</param>
         public async Task ChangeReqTask(bool allowLockedApprovalUpdate = false)
         {
-            if ((ActReqTask.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
+            if (!CanEditActiveReqTask || (ActReqTask.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
             {
                 return;
             }

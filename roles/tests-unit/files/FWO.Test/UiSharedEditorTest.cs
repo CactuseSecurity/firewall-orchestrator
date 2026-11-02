@@ -485,7 +485,7 @@ internal class UiSharedEditorTest
             Elements = [new WfReqElement
             {
                 Field = ElemFieldType.time.ToString(),
-                TimeObjectTaskId = 50
+                ObjectTaskId = 50
             }]
         };
         WfReqTask oldTimeTask = new()
@@ -514,7 +514,7 @@ internal class UiSharedEditorTest
         MethodInfo method = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "ApplyTimeObjectModel");
         method.Invoke(component, [model]);
 
-        Assert.That(TimeObjectElementHelper.Find(accessTask.Elements)?.TimeObjectTaskId, Is.EqualTo(51));
+        Assert.That(TimeObjectElementHelper.Find(accessTask.Elements)?.ObjectTaskId, Is.EqualTo(51));
     }
 
     [Test]
@@ -564,6 +564,37 @@ internal class UiSharedEditorTest
             Assert.That(displayLogic.Trackings([task]), Is.EqualTo("log"));
             Assert.That(displayLogic.TimeObjectDisplay([task], new AccessTaskFieldVisibilityConfig()), Does.StartWith("maintenance ("));
         });
+    }
+
+    [Test]
+    public void ApprovalTaskDetailsView_DoesNotOfferEditsAfterFlowDbReference()
+    {
+        WfReqTask task = new()
+        {
+            Id = 11,
+            StateId = 2,
+            TaskType = WfTaskType.access.ToString(),
+            FlowAccessId = 901
+        };
+        WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [task] } };
+        StateMatrixDict matrices = new();
+        matrices.Matrices[WfTaskType.access.ToString()] = new StateMatrix { LowestInputState = 1, LowestEndState = 10 };
+        UiRequestWorkflowTest.SetMember(handler, "stateMatrixDict", matrices);
+
+        ApprovalTaskDetailsView component = new();
+        UiRequestWorkflowTest.SetMember(component, nameof(ApprovalTaskDetailsView.WfHandler), handler);
+        ApproverAllowedChangesConfig allowedChanges = new();
+        allowedChanges.SetTaskField(WfTaskType.access, WorkflowEditableFieldKeys.Services, true);
+        UiRequestWorkflowTest.SetMember(component, "userConfig", new SimulatedUserConfig
+        {
+            ReqAllowedChangesByApprover = allowedChanges.ToConfigValue()
+        });
+
+        MethodInfo method = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "CanEdit");
+        bool canEdit = (bool)method.Invoke(component,
+            new object[] { new List<WfReqTask> { task }, WorkflowEditableFieldKeys.Services })!;
+
+        Assert.That(canEdit, Is.False);
     }
 
     [Test]
@@ -733,7 +764,7 @@ internal class UiSharedEditorTest
             Elements = [new WfReqElement
             {
                 Field = ElemFieldType.time.ToString(),
-                TimeObjectTaskId = formerObjectTask.Id,
+                ObjectTaskId = formerObjectTask.Id,
                 Name = "old"
             }]
         };
@@ -760,7 +791,7 @@ internal class UiSharedEditorTest
             Elements = [new WfReqElement
             {
                 Field = ElemFieldType.time.ToString(),
-                TimeObjectTaskId = formerObjectTask.Id
+                ObjectTaskId = formerObjectTask.Id
             }]
         };
         handler.ActTicket.Tasks.Add(otherAccessTask);

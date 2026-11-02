@@ -66,7 +66,7 @@ create table request.reqelement
 	end_time Timestamp with time zone,
 	time_obj_id bigint,
 	flow_timeobj_id bigint,
-	time_object_task_id bigint
+	object_task_id bigint
 );
 
 create table request.approval 
@@ -279,7 +279,7 @@ create table request.implelement
 	start_time Timestamp with time zone,
 	end_time Timestamp with time zone,
 	time_obj_id bigint,
-	time_object_task_id bigint
+	object_task_id bigint
 );
 
 create table request.impltask

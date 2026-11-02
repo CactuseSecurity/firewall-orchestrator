@@ -26,6 +26,13 @@ namespace FWO.Data.Workflow
         [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
         public long? TimeObjectEntityId { get; set; }
 
+        /// <summary>
+        /// Temporary correlation to the negative API entity id of a ticket-local object or group.
+        /// It is resolved to <see cref="WfElementBase.ObjectTaskId"/> after request-task IDs exist.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public long? ObjectTaskEntityId { get; set; }
+
         public Cidr? Cidr { get; set; } = new();
         public Cidr? CidrEnd { get; set; } = new();
 
@@ -40,6 +47,7 @@ namespace FWO.Data.Workflow
             RequestAction = element.RequestAction;
             DeviceId = element.DeviceId;
             TimeObjectEntityId = element.TimeObjectEntityId;
+            ObjectTaskEntityId = element.ObjectTaskEntityId;
             Cidr = element.Cidr;
             CidrEnd = element.CidrEnd;
         }

@@ -20,6 +20,14 @@
 </div>
 <div class="form-group row">
     <div class="col-12">
+        @if (CanEditObject)
+        {
+            <div class="d-flex justify-content-end mb-2">
+                <button type="button" class="btn btn-sm btn-warning" @onclick="EditObject">
+                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                </button>
+            </div>
+        }
         <DisplayObjectTaskElement ReqTask="Task" IsModify="IsModify" EditMode="false" DisplayIpProtos="Context.DisplayIpProtos" />
     </div>
 </div>
@@ -40,8 +48,11 @@
     private bool ShowReason => Visibility.ShowReason;
     private bool CanEditManagement => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Management);
     private bool CanEditReason => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Reason);
+    private bool CanEditObject => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Name)
+        || Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Content);
     private Func<Task> EditManagement => () => Context.EditManagement(Task);
     private Func<Task> EditReason => () => Context.EditText(Task, WorkflowEditableFieldKeys.Reason, Task.Reason ?? "");
+    private Func<Task> EditObject => () => Context.EditObjectTask(Task);
 
     private static RenderFragment ReadOnlyValue(string label, string value) => builder =>
     {

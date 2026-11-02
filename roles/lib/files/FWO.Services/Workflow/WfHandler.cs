@@ -61,6 +61,28 @@ namespace FWO.Services.Workflow
         public bool DisplayPromoteImplTaskMode = false;
 
         /// <summary>
+        /// Indicates whether the active persisted request task already references Flow DB data.
+        /// The ticket copy is used when available so a modified editor copy cannot remove the guard.
+        /// </summary>
+        public bool ActiveReqTaskHasFlowDbReference
+        {
+            get
+            {
+                WfReqTask task = ActReqTask.Id > 0
+                    ? ActTicket.Tasks.FirstOrDefault(item => item.Id == ActReqTask.Id) ?? ActReqTask
+                    : ActReqTask;
+                return WfObjectTaskHelper.HasFlowDbReference(task)
+                    || WfObjectTaskHelper.HasFlowDbReference(ActReqTask);
+            }
+        }
+
+        /// <summary>
+        /// Indicates whether the active request task may be edited. New tasks are editable until persisted;
+        /// existing tasks become read-only after Flow DB has stored a reference.
+        /// </summary>
+        public bool CanEditActiveReqTask => AddReqTaskMode || !ActiveReqTaskHasFlowDbReference;
+
+        /// <summary>
         /// Database id of the authenticated user this handler acts for, null when it acts for automation.
         /// Handed to the change history writer so entries made outside the UI stay resolvable to a user record.
         /// </summary>

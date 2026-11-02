@@ -63,6 +63,7 @@ namespace FWO.Test
             public int DeleteReqTaskCallCount { get; private set; }
             public int NewReqElementCallCount { get; private set; }
             public int UpdateReqElementCallCount { get; private set; }
+            public int UpdateReqElementObjectTaskIdCallCount { get; private set; }
             public int DeleteReqElementCallCount { get; private set; }
             public int NewImplTaskCallCount { get; private set; }
             public int UpdateImplTaskCallCount { get; private set; }
@@ -281,6 +282,11 @@ namespace FWO.Test
                 if (query == RequestQueries.updateRequestElement)
                 {
                     UpdateReqElementCallCount++;
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedReqElementId });
+                }
+                if (query == RequestQueries.updateRequestElementObjectTaskId)
+                {
+                    UpdateReqElementObjectTaskIdCallCount++;
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedReqElementId });
                 }
                 if (query == RequestQueries.deleteRequestElement)
@@ -554,8 +560,60 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(TimeObjectElementHelper.Find(savedAccessTask.Elements)?.TimeObjectTaskId, Is.EqualTo(210));
-                Assert.That(apiConnection.UpdateReqElementCallCount, Is.EqualTo(1));
+                Assert.That(TimeObjectElementHelper.Find(savedAccessTask.Elements)?.ObjectTaskId, Is.EqualTo(210));
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task LinkTicketObjectTasks_UsesLocalEntityCorrelationForAccessElements()
+        {
+            WfDbAccessTestApiConn apiConnection = new();
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConnection, WorkflowPhases.request);
+            WfReqTask sourceObjectTask = new()
+            {
+                WorkflowEntityId = -8,
+                TaskNumber = 1,
+                TaskType = WfTaskType.object_create.ToString(),
+                Elements = [new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    ObjectTaskEntityId = -8
+                }]
+            };
+            WfReqTask sourceAccessTask = new()
+            {
+                TaskNumber = 2,
+                TaskType = WfTaskType.access.ToString(),
+                Elements =
+                [
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), FlowNetworkObjectId = 17 },
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), ObjectTaskEntityId = -8 }
+                ]
+            };
+            WfReqTask savedObjectTask = new() { Id = 210, TaskNumber = 1, TaskType = WfTaskType.object_create.ToString() };
+            WfReqTask savedAccessTask = new()
+            {
+                Id = 110,
+                TaskNumber = 2,
+                TaskType = WfTaskType.access.ToString(),
+                Elements =
+                [
+                    new WfReqElement { Id = 111, Field = ElemFieldType.source.ToString(), FlowNetworkObjectId = 17 },
+                    new WfReqElement { Id = 112, Field = ElemFieldType.source.ToString() }
+                ]
+            };
+
+            MethodInfo method = typeof(WfDbAccess).GetMethod("LinkTicketObjectTasks", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            await (Task)method.Invoke(dbAccess,
+                [new WfTicket { Tasks = [sourceObjectTask, sourceAccessTask] },
+                 new WfTicket { Tasks = [savedObjectTask, savedAccessTask] }])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(savedAccessTask.Elements[0].ObjectTaskId, Is.Null);
+                Assert.That(savedAccessTask.Elements[1].ObjectTaskId, Is.EqualTo(210));
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.EqualTo(1));
             });
         }
 
@@ -1447,6 +1505,45 @@ namespace FWO.Test
             await dbAccess.UpdateReqTaskInDb(reqTask);
 
             Assert.That(apiConn.UpdateReqTaskCallCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task UpdateReqTaskInDb_RefusesTaskThatAlreadyReferencesFlowDb()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                Ticket = new WfTicket
+                {
+                    Id = 77,
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 100,
+                            FlowAccessId = 901,
+                            Elements = [new WfReqElement { FlowNetworkObjectId = 902 }]
+                        }
+                    ]
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+
+            await dbAccess.UpdateReqTaskInDb(new WfReqTask
+            {
+                Id = 100,
+                TicketId = 77,
+                Title = "stale editor value"
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.UpdateReqTaskCallCount, Is.EqualTo(0));
+                Assert.That(apiConn.UpdateReqElementCallCount, Is.EqualTo(0));
+            });
         }
 
         [Test]

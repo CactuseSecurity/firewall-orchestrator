@@ -367,7 +367,7 @@ namespace FWO.Test
             accessTask.Elements.Add(new WfReqElement
             {
                 Field = ElemFieldType.time.ToString(),
-                TimeObjectTaskId = 12,
+                ObjectTaskId = 12,
                 Name = "old-name",
                 StartTime = accessTask.TargetBeginDate,
                 EndTime = accessTask.TargetEndDate

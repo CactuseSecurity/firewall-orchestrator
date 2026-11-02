@@ -41,7 +41,7 @@ namespace FWO.Test
             accessTask.Elements.Add(new WfReqElement
             {
                 Field = ElemFieldType.time.ToString(),
-                TimeObjectTaskId = 200
+                ObjectTaskId = 200
             });
             WfReqTask objectTask = BuildObjectTask(
                 new WfReqElement
@@ -68,7 +68,7 @@ namespace FWO.Test
             accessTask.Elements.Add(new WfReqElement
             {
                 Field = ElemFieldType.time.ToString(),
-                TimeObjectTaskId = 200
+                ObjectTaskId = 200
             });
             WfReqTask objectTask = BuildObjectTask(new WfReqElement
             {

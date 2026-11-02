@@ -38,7 +38,7 @@
                         SelectedService="selectedService" SelectedServiceChanged="SelectService"
                         SelectedTimeObject="selectedTimeObject" SelectedTimeObjectChanged="SelectTimeObject" />
                 }
-                @if (ManagementId is not > 0)
+                @if (ManagementId is not > 0 && original == null)
                 {
                     <label class="col-form-label col-form-label-sm text-muted">@(userConfig.GetText("select_management_first"))</label>
                 }
@@ -408,7 +408,7 @@
     {
         // like group_create, an object to be created may be requested for all managements ("All");
         // a modified object references an imported object of exactly one management
-        if (IsModify && ManagementId is not > 0)
+        if (IsModify && original == null && ManagementId is not > 0)
         {
             return "E5127";
         }

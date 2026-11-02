@@ -18,7 +18,7 @@ mutation updateImplementationElement(
   $startTime: timestamptz
   $endTime: timestamptz
   $timeObjId: bigint
-  $timeObjectTaskId: bigint
+  $objectTaskId: bigint
   ) {
   update_request_implelement_by_pk(
     pk_columns: { id: $id }
@@ -41,7 +41,7 @@ mutation updateImplementationElement(
       start_time: $startTime
       end_time: $endTime
       time_obj_id: $timeObjId
-      time_object_task_id: $timeObjectTaskId
+      object_task_id: $objectTaskId
   }) {
     UpdatedIdLong: id
   }

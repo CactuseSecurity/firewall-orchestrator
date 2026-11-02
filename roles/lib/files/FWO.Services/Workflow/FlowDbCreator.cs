@@ -83,7 +83,7 @@ namespace FWO.Services.Workflow
         private static void SynchronizeReferencedTimeObject(WfReqTask task, IEnumerable<WfReqTask> ticketTasks)
         {
             WfReqElement? accessTimeElement = TimeObjectElementHelper.Find(task.Elements);
-            if (accessTimeElement?.TimeObjectTaskId is not > 0)
+            if (accessTimeElement?.ObjectTaskId is not > 0)
             {
                 return;
             }

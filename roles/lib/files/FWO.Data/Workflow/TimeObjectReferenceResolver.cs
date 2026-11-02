@@ -44,7 +44,7 @@ namespace FWO.Data.Workflow
                 }
             }
 
-            long? referencedTaskId = TimeObjectElementHelper.Find(accessTask.Elements)?.TimeObjectTaskId;
+            long? referencedTaskId = TimeObjectElementHelper.Find(accessTask.Elements)?.ObjectTaskId;
             if (referencedTaskId is > 0)
             {
                 WfReqTask? referencedTask = tasks.FirstOrDefault(task => task.Id == referencedTaskId.Value);

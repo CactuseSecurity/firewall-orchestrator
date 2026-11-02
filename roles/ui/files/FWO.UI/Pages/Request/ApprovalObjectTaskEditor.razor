@@ -4,11 +4,15 @@
 
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("add_task"))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
+<PopUp Title="@(userConfig.GetText(IsModify ? "object_modify" : "add_task"))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
     <Body>
         @if (Display)
         {
-            <DisplayObjectTaskElement @ref="objectTaskElement" ReqTask="Task" IsModify="false"
+            @if (!string.IsNullOrWhiteSpace(validationError))
+            {
+                <div class="alert alert-danger" role="alert">@(userConfig.GetText(validationError))</div>
+            }
+            <DisplayObjectTaskElement @ref="objectTaskElement" ReqTask="Task" IsModify="IsModify"
                 ManagementId="@Task.ManagementId" EditMode="true" SelectableIpProtos="SelectableIpProtos"
                 DisplayIpProtos="DisplayIpProtos" ObjectKind="ObjectKind" />
         }
@@ -26,14 +30,23 @@
     [Parameter] public List<IpProtocol> SelectableIpProtos { get; set; } = [];
     [Parameter] public List<IpProtocol> DisplayIpProtos { get; set; } = [];
     [Parameter] public ObjectTaskKind ObjectKind { get; set; } = ObjectTaskKind.Network;
+    [Parameter] public bool IsModify { get; set; }
     [Parameter] public Func<WfReqTask, Task> Saved { get; set; } = _ => System.Threading.Tasks.Task.CompletedTask;
 
     private DisplayObjectTaskElement? objectTaskElement;
+    private string? validationError;
 
     private async Task Save()
     {
-        if (objectTaskElement == null || objectTaskElement.ApplyToTask() != null)
+        if (objectTaskElement == null)
         {
+            return;
+        }
+
+        validationError = objectTaskElement.ApplyToTask();
+        if (validationError != null)
+        {
+            await InvokeAsync(StateHasChanged);
             return;
         }
 

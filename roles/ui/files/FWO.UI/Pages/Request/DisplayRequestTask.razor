@@ -146,7 +146,7 @@
             </div>
             <div class="d-flex flex-fill justify-content-end">
                 <div class="btn-group">
-                    @if (WfHandler.EditReqTaskMode)
+                    @if (WfHandler.EditReqTaskMode && WfHandler.CanEditActiveReqTask)
                     {
                         <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
                             <Authorized>
@@ -600,7 +600,7 @@
 
     private async Task SaveReqTask()
     {
-        if (WfHandler.ReadOnlyMode)
+        if (WfHandler.ReadOnlyMode || !WfHandler.CanEditActiveReqTask)
         {
             return;
         }
@@ -924,13 +924,15 @@
             return !WfHandler.ReadOnlyMode;
         }
 
-        return (FocusField == null || FocusField == fieldKey)
+        return WfHandler.CanEditActiveReqTask
+            && (FocusField == null || FocusField == fieldKey)
             && ApproverAllowedChangesAccess.CanEditTaskField(GetApproverAllowedChanges(), GetTaskFieldEditContext(), fieldKey);
     }
 
     private bool CanSaveReqTaskChanges()
     {
-        return ApproverAllowedChangesAccess.CanSaveTaskChanges(GetApproverAllowedChanges(), GetTaskFieldEditContext());
+        return WfHandler.CanEditActiveReqTask
+            && ApproverAllowedChangesAccess.CanSaveTaskChanges(GetApproverAllowedChanges(), GetTaskFieldEditContext());
     }
 
     private void SetTargetDatesValid(bool datesValid)

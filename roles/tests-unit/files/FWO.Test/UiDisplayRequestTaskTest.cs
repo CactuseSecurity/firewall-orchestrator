@@ -56,6 +56,38 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CanEditAndSaveFields_RefusesTaskWithFlowDbReference()
+        {
+            DisplayRequestTask component = new();
+            SimulatedUserConfig userConfig = new();
+            ApproverAllowedChangesConfig config = new();
+            config.SetTaskField(WfTaskType.access, WorkflowEditableFieldKeys.Services, true);
+            userConfig.ReqAllowedChangesByApprover = config.ToConfigValue();
+            SetPrivateField(component, "userConfig", userConfig);
+
+            WfReqTask storedTask = new()
+            {
+                Id = 100,
+                TaskType = WfTaskType.access.ToString(),
+                FlowAccessId = 901
+            };
+            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = new WfReqTask(storedTask),
+                ActTicket = new WfTicket { Tasks = [storedTask] },
+                ApproveReqTaskMode = true
+            });
+            SetPrivateField(component, nameof(DisplayRequestTask.Phase), WorkflowPhases.approval);
+            SetPrivateField(component, "actTaskType", WfTaskType.access);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(component, "CanEditReqTaskField", WorkflowEditableFieldKeys.Services), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "CanSaveReqTaskChanges"), Is.False);
+            });
+        }
+
+        [Test]
         public void AccessTaskVisibilityConfigControlsDescriptiveFields()
         {
             DisplayRequestTask component = new();

@@ -103,7 +103,7 @@
     FieldKey="@editingElementsField" TicketTasks="WfHandler.ActTicket.Tasks" IpProtos="ipProtocols"
     SelectableIpProtos="selectableIpProtocols" Saved="SaveElements" CreateObjectTaskRequested="OpenObjectTaskEditor" />
 <ApprovalObjectTaskEditor Display="displayObjectTaskEditor" DisplayChanged="HandleObjectTaskEditorDisplayChanged"
-    Task="newObjectTask" ObjectKind="newObjectTaskKind" SelectableIpProtos="selectableIpProtocols"
+    Task="newObjectTask" ObjectKind="newObjectTaskKind" IsModify="objectTaskIsModify" SelectableIpProtos="selectableIpProtocols"
     DisplayIpProtos="ipProtocols" Saved="SaveObjectTask" />
 <TimeObjectTaskDeleteConfirmation @bind-Display="displayDeleteFormerTimeObjectTask"
     Title="@(userConfig.GetText("delete_time_object_task"))"
@@ -162,6 +162,8 @@
     private WfReqTask? editingElementsTask;
     private string editingElementsField = WorkflowEditableFieldKeys.Source;
     private bool displayObjectTaskEditor;
+    private bool objectTaskIsExisting;
+    private bool objectTaskIsModify;
     private WfReqTask newObjectTask = new();
     private ObjectTaskKind newObjectTaskKind = ObjectTaskKind.Network;
     private bool displayDeleteObjectTask;
@@ -256,13 +258,17 @@
         OpenTrackingEditor,
         OpenManagementEditor,
         OpenElementsEditor,
+        OpenGroupMembersEditor,
+        OpenExistingObjectTaskEditor,
         (task, field, value) => OpenTextEditor(task, field, value),
         (task, field) => OpenTargetDatesEditor(task, field));
 
     private bool CanEdit(IEnumerable<WfReqTask> tasks, string fieldKey)
     {
         List<WfReqTask> taskList = tasks.ToList();
-        if (taskList.Count == 0 || taskList.Any(task => !WfHandler.CanActOnReqTaskInCurrentPhase(task)))
+        if (taskList.Count == 0
+            || taskList.Any(task => !WfHandler.CanActOnReqTaskInCurrentPhase(task))
+            || taskList.Any(WfObjectTaskHelper.HasFlowDbReference))
         {
             return false;
         }
@@ -331,9 +337,9 @@
             timeObjectId = TimeObjectReferenceResolver.GetSelectorId(parallelTimeElement);
             ticketElementId = parallelTimeElement.Id;
         }
-        long? referencedTimeObjectTaskId = timeElement?.TimeObjectTaskId;
-        formerTimeObjectTask = referencedTimeObjectTaskId is > 0
-            ? WfHandler.ActTicket.Tasks.FirstOrDefault(candidate => candidate.Id == referencedTimeObjectTaskId.Value)
+        long? referencedObjectTaskId = timeElement?.ObjectTaskId;
+        formerTimeObjectTask = referencedObjectTaskId is > 0
+            ? WfHandler.ActTicket.Tasks.FirstOrDefault(candidate => candidate.Id == referencedObjectTaskId.Value)
             : parallelTimeElement == null
                 ? null
                 : WfHandler.ActTicket.Tasks.FirstOrDefault(candidate => candidate.Elements.Any(element =>
@@ -396,6 +402,25 @@
         return RefreshAfterEditorOpen();
     }
 
+    private Task OpenGroupMembersEditor(WfReqTask task)
+    {
+        string fieldKey = task.GetNwObjectElements(ElemFieldType.source).Any()
+            ? WorkflowEditableFieldKeys.Source
+            : WorkflowEditableFieldKeys.Services;
+        return OpenElementsEditor(task, fieldKey);
+    }
+
+    private Task OpenExistingObjectTaskEditor(WfReqTask task)
+    {
+        newObjectTask = task;
+        objectTaskIsExisting = true;
+        objectTaskIsModify = task.TaskType == WfTaskType.object_modify.ToString();
+        newObjectTaskKind = WfObjectTaskHelper.GetKind(WfObjectTaskHelper.GetRequestedElement(task)
+            ?? WfObjectTaskHelper.GetOriginalElement(task));
+        displayObjectTaskEditor = true;
+        return RefreshAfterEditorOpen();
+    }
+
     private Task OpenObjectTaskEditor()
     {
         if (editingElementsTask == null)
@@ -417,6 +442,8 @@
         newObjectTaskKind = editingElementsField == WorkflowEditableFieldKeys.Services
             ? ObjectTaskKind.Service
             : ObjectTaskKind.Network;
+        objectTaskIsExisting = false;
+        objectTaskIsModify = false;
         displayElementsEditor = false;
         displayObjectTaskEditor = true;
         return RefreshAfterEditorOpen();
@@ -430,6 +457,11 @@
     private async Task HandleObjectTaskEditorDisplayChanged(bool display)
     {
         displayObjectTaskEditor = display;
+        if (!display)
+        {
+            objectTaskIsExisting = false;
+            objectTaskIsModify = false;
+        }
         if (!display && editingElementsTask != null)
         {
             displayElementsEditor = true;
@@ -439,12 +471,98 @@
 
     private async Task SaveObjectTaskCore(WfReqTask task)
     {
-        task.Title = task.Elements.FirstOrDefault()?.Name ?? task.Title;
+        if (!objectTaskIsModify)
+        {
+            task.Title = task.Elements.FirstOrDefault()?.Name ?? task.Title;
+        }
         WfHandler.SetReqTaskEnv(task);
-        await WfHandler.AddReqTask(allowLockedApprovalUpdate: true);
+        if (objectTaskIsExisting)
+        {
+            await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+        }
+        else
+        {
+            await WfHandler.AddReqTask(allowLockedApprovalUpdate: true);
+        }
+        await RefreshAccessTasksUsingObject(task);
         displayObjectTaskEditor = false;
+        objectTaskIsExisting = false;
+        objectTaskIsModify = false;
         displayElementsEditor = editingElementsTask != null;
         await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Refreshes the object snapshots in access tasks after an object task was changed.
+    /// </summary>
+    /// <param name="objectTask">The saved object task.</param>
+    private async Task RefreshAccessTasksUsingObject(WfReqTask objectTask)
+    {
+        WfReqElement? requested = WfObjectTaskHelper.GetRequestedElement(objectTask);
+        if (requested == null || !WfObjectTaskHelper.IsObjectTask(objectTask.TaskType))
+        {
+            return;
+        }
+
+        List<WfReqTask> affectedTasks = WfHandler.ActTicket.Tasks
+            .Where(task => task.TaskType == WfTaskType.access.ToString())
+            .Where(task => task.Elements.Any(element => element.ObjectTaskId == objectTask.Id))
+            .ToList();
+
+        foreach (WfReqTask accessTask in affectedTasks)
+        {
+            bool changed = false;
+            foreach (WfReqElement element in accessTask.Elements.Where(element => element.ObjectTaskId == objectTask.Id))
+            {
+                CopyObjectSnapshot(element, requested);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                WfHandler.SetReqTaskEnv(accessTask);
+                await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Copies the changed object data while preserving the access element identity and action.
+    /// </summary>
+    private static void CopyObjectSnapshot(WfReqElement target, WfReqElement source)
+    {
+        string field = target.Field;
+        long elementId = target.Id;
+        long taskId = target.TaskId;
+        string requestAction = target.RequestAction;
+        long? objectTaskId = target.ObjectTaskId;
+        target.IpString = source.IpString ?? source.Cidr?.CidrString;
+        target.IpEnd = source.IpEnd ?? source.CidrEnd?.CidrString;
+        target.Cidr = source.Cidr;
+        target.CidrEnd = source.CidrEnd;
+        target.Port = source.Port;
+        target.PortEnd = source.PortEnd;
+        target.ProtoId = source.ProtoId;
+        target.NetworkId = source.NetworkId ?? target.NetworkId;
+        target.ServiceId = source.ServiceId ?? target.ServiceId;
+        target.FlowNetworkObjectId = source.FlowNetworkObjectId ?? target.FlowNetworkObjectId;
+        target.FlowNetworkGroupId = source.FlowNetworkGroupId ?? target.FlowNetworkGroupId;
+        target.FlowServiceObjectId = source.FlowServiceObjectId ?? target.FlowServiceObjectId;
+        target.FlowServiceGroupId = source.FlowServiceGroupId ?? target.FlowServiceGroupId;
+        target.TimeObjId = source.TimeObjId ?? target.TimeObjId;
+        target.FlowTimeObjectId = source.FlowTimeObjectId ?? target.FlowTimeObjectId;
+        target.GroupName = source.GroupName;
+        target.Name = source.Name;
+        target.Field = field;
+        target.Id = elementId;
+        target.TaskId = taskId;
+        target.RequestAction = requestAction;
+        target.ObjectTaskId = objectTaskId;
+    }
+
+    private static bool SamePositiveId(long? left, long? right)
+    {
+        return left is > 0 && left == right;
     }
 
     private Task DeleteObjectTask()
@@ -490,8 +608,9 @@
         };
         List<WfReqTask> formerObjectTasks = activeTask.Elements
             .Where(element => element.Field == field.ToString() && element.TaskId > 0)
-            .Select(element => WfHandler.ActTicket.Tasks.FirstOrDefault(task => task.Id == element.TaskId))
-            .Where(task => task != null && WfObjectTaskHelper.IsObjectTask(task.TaskType))
+            .Where(element => element.ObjectTaskId is > 0)
+            .Select(element => WfHandler.ActTicket.Tasks.FirstOrDefault(task => task.Id == element.ObjectTaskId))
+            .Where(task => task != null && WfObjectTaskHelper.IsManagementObjectTask(task.TaskType))
             .Cast<WfReqTask>()
             .DistinctBy(task => task.Id)
             .ToList();
@@ -510,6 +629,10 @@
             .Concat(replacement)
             .ToList();
         await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+        if (IsGroupTask(activeTask))
+        {
+            await RefreshAccessTasksUsingGroup(activeTask);
+        }
         editingElementsTask = null;
         WfReqTask? formerObjectTask = formerObjectTasks.FirstOrDefault(task => !IsObjectTaskReferenced(task));
         if (formerObjectTask != null)
@@ -520,12 +643,64 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    /// <summary>
+    /// Refreshes access snapshots that were selected from a group task.
+    /// </summary>
+    private async Task RefreshAccessTasksUsingGroup(WfReqTask groupTask)
+    {
+        List<WfReqElement> currentElements = groupTask.Elements
+            .Where(element => element.Field == ElemFieldType.source.ToString()
+                || element.Field == ElemFieldType.service.ToString())
+            .Where(element => element.RequestAction != RequestAction.delete.ToString())
+            .ToList();
+
+        foreach (WfReqTask accessTask in WfHandler.ActTicket.Tasks.Where(task =>
+            task.TaskType == WfTaskType.access.ToString()))
+        {
+            bool changed = false;
+            foreach (WfReqElement accessElement in accessTask.Elements.Where(element =>
+                element.ObjectTaskId == groupTask.Id))
+            {
+                WfReqElement? currentElement = FindGroupMemberByReference(accessElement, currentElements);
+                if (currentElement != null)
+                {
+                    CopyObjectSnapshot(accessElement, currentElement);
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                WfHandler.SetReqTaskEnv(accessTask);
+                await WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+            }
+        }
+    }
+
+    private static WfReqElement? FindGroupMemberByReference(WfReqElement accessElement,
+        IEnumerable<WfReqElement> currentElements)
+    {
+        IEnumerable<WfReqElement> candidates = currentElements.Where(element => element.Field == accessElement.Field);
+        if (accessElement.Field == ElemFieldType.service.ToString())
+        {
+            return candidates.FirstOrDefault(element =>
+                SamePositiveId(element.ServiceId, accessElement.ServiceId)
+                || SamePositiveId(element.FlowServiceObjectId, accessElement.FlowServiceObjectId)
+                || SamePositiveId(element.FlowServiceGroupId, accessElement.FlowServiceGroupId));
+        }
+
+        return candidates.FirstOrDefault(element =>
+            SamePositiveId(element.NetworkId, accessElement.NetworkId)
+            || SamePositiveId(element.FlowNetworkObjectId, accessElement.FlowNetworkObjectId)
+            || SamePositiveId(element.FlowNetworkGroupId, accessElement.FlowNetworkGroupId));
+    }
+
     private bool IsObjectTaskReferenced(WfReqTask objectTask)
     {
         return WfHandler.ActTicket.Tasks
             .Where(task => task.Id != objectTask.Id)
             .SelectMany(task => task.Elements)
-            .Any(element => element.TaskId == objectTask.Id);
+            .Any(element => element.ObjectTaskId == objectTask.Id);
     }
 
     private Task RefreshAfterEditorOpen()
@@ -799,7 +974,7 @@
             return false;
         }
 
-        return timeElement.TimeObjectTaskId == formerTimeObjectTask.Id
+        return timeElement.ObjectTaskId == formerTimeObjectTask.Id
             || (formerTimeObjectElementId is > 0 && timeElement.TimeObjId == -formerTimeObjectElementId.Value)
             || TimeObjectReferenceResolver.FindParallelTimeTask(
                 WfHandler.ActTicket.Tasks, task, null, null)?.Id == formerTimeObjectTask.Id;
@@ -922,6 +1097,10 @@
                 break;
             case WorkflowEditableFieldKeys.FreeText:
                 WfHandler.ActReqTask.FreeText = value;
+                break;
+            case WorkflowEditableFieldKeys.Name:
+                WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, value);
+                WfHandler.ActReqTask.Title = value;
                 break;
         }
 

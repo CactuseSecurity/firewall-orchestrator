@@ -29,6 +29,10 @@ namespace FWO.Ui.Services
         public Func<WfReqTask, Task> EditManagement { get; }
         /// <summary>Opens an element editor.</summary>
         public Func<WfReqTask, string, Task> EditField { get; }
+        /// <summary>Opens the group-member editor.</summary>
+        public Func<WfReqTask, Task> EditGroupMembers { get; }
+        /// <summary>Opens the object-task editor.</summary>
+        public Func<WfReqTask, Task> EditObjectTask { get; }
         /// <summary>Opens a text-field editor.</summary>
         public Func<WfReqTask, string, string, Task> EditText { get; }
         /// <summary>Opens the target-date editor.</summary>
@@ -47,6 +51,8 @@ namespace FWO.Ui.Services
             Func<WfReqTask, Task> editTracking,
             Func<WfReqTask, Task> editManagement,
             Func<WfReqTask, string, Task> editField,
+            Func<WfReqTask, Task> editGroupMembers,
+            Func<WfReqTask, Task> editObjectTask,
             Func<WfReqTask, string, string, Task> editText,
             Func<WfReqTask, string, Task> editTargetDates)
         {
@@ -61,6 +67,8 @@ namespace FWO.Ui.Services
             EditTracking = editTracking;
             EditManagement = editManagement;
             EditField = editField;
+            EditGroupMembers = editGroupMembers;
+            EditObjectTask = editObjectTask;
             EditText = editText;
             EditTargetDates = editTargetDates;
         }

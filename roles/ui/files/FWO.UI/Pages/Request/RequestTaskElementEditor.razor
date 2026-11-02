@@ -179,7 +179,7 @@ else if (TaskType == WfTaskType.group_modify)
 else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 {
     <DisplayObjectTaskElement @ref="objectTaskElement" ReqTask="WfHandler.ActReqTask" IsModify="@(TaskType == WfTaskType.object_modify)"
-        ManagementId="ManagementId" EditMode="WfHandler.EditReqTaskMode" SelectableIpProtos="SelectableIpProtos" DisplayIpProtos="DisplayIpProtos" />
+        ManagementId="ManagementId" EditMode="IsEditable()" SelectableIpProtos="SelectableIpProtos" DisplayIpProtos="DisplayIpProtos" />
 }
 
 @code
@@ -256,7 +256,7 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 
     private bool IsEditable()
     {
-        return DisplayTask == null && WfHandler.EditReqTaskMode;
+        return DisplayTask == null && WfHandler.EditReqTaskMode && WfHandler.CanEditActiveReqTask;
     }
 
     private bool CanEditBundledField(string fieldKey)

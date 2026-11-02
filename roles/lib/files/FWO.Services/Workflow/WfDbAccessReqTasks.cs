@@ -84,6 +84,14 @@ namespace FWO.Services.Workflow
             WfReqTask? previousTask = previousTicket?.Tasks.FirstOrDefault(task => task.Id == reqtask.Id);
             try
             {
+                // The stored Flow references are authoritative. Do this check after loading the previous
+                // ticket, because a stale editor may omit or clear the references in its update payload.
+                if (previousTask != null && WfObjectTaskHelper.HasFlowDbReference(previousTask))
+                {
+                    DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8019"), true);
+                    return;
+                }
+
                 // inside the try: the check asks the API, so a transient failure has to reach the user
                 // as a message like every other failure of this method rather than as an exception
                 if (!await FlowReferencesAreWritable(reqtask, taskIsBeingCreated: false))
@@ -326,7 +334,7 @@ namespace FWO.Services.Workflow
             var variables = BuildElementBaseVariables(element, element.Cidr, element.CidrEnd);
             variables["requestAction"] = element.RequestAction;
             variables["taskId"] = element.TaskId;
-            variables["timeObjectTaskId"] = element.TimeObjectTaskId;
+            variables["objectTaskId"] = element.ObjectTaskId;
             variables["deviceId"] = element.DeviceId;
             variables["flowNwObjId"] = element.FlowNetworkObjectId;
             variables["flowNwGrpId"] = element.FlowNetworkGroupId;

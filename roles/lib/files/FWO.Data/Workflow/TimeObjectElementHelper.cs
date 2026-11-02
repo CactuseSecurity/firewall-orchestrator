@@ -59,7 +59,7 @@ namespace FWO.Data.Workflow
             // They must not be written to time_obj_id because that column is
             // a foreign key to the persistent time_object table.
             element.TimeObjId = null;
-            element.TimeObjectTaskId = null;
+            element.ObjectTaskId = null;
         }
 
         /// <summary>Stores a reference to the task defining the ticket-local time object.</summary>
@@ -74,7 +74,7 @@ namespace FWO.Data.Workflow
 
             element.FlowTimeObjectId = null;
             element.TimeObjId = null;
-            element.TimeObjectTaskId = taskId;
+            element.ObjectTaskId = taskId;
         }
 
         /// <summary>Clears all persisted time-object references from an element.</summary>
@@ -83,7 +83,7 @@ namespace FWO.Data.Workflow
         {
             element.FlowTimeObjectId = null;
             element.TimeObjId = null;
-            element.TimeObjectTaskId = null;
+            element.ObjectTaskId = null;
         }
     }
 }

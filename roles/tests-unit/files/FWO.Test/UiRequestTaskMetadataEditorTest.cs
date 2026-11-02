@@ -237,7 +237,7 @@ internal class UiRequestTaskMetadataEditorTest
         Assert.Multiple(() =>
         {
             Assert.That(timeElement?.FlowTimeObjectId, Is.EqualTo(42));
-            Assert.That(timeElement?.TimeObjectTaskId, Is.Null);
+            Assert.That(timeElement?.ObjectTaskId, Is.Null);
         });
     }
 
@@ -257,7 +257,7 @@ internal class UiRequestTaskMetadataEditorTest
 
         await InvokePrivateTask(component, "OnFlowTimeObjectIdChanged", -17L);
 
-        Assert.That(TimeObjectElementHelper.Find(accessTask.Elements)?.TimeObjectTaskId, Is.EqualTo(77));
+        Assert.That(TimeObjectElementHelper.Find(accessTask.Elements)?.ObjectTaskId, Is.EqualTo(77));
     }
 
     [Test]

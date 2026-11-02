@@ -59,7 +59,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(element.TimeObjectTaskId, Is.EqualTo(19));
+                Assert.That(element.ObjectTaskId, Is.EqualTo(19));
                 Assert.That(element.FlowTimeObjectId, Is.Null);
                 Assert.That(element.TimeObjId, Is.Null);
             });
@@ -71,12 +71,12 @@ namespace FWO.Test
             WfReqElement requestElement = new()
             {
                 Field = ElemFieldType.time.ToString(),
-                TimeObjectTaskId = 19
+                ObjectTaskId = 19
             };
 
             WfImplElement implementationElement = new(requestElement);
 
-            Assert.That(implementationElement.TimeObjectTaskId, Is.EqualTo(19));
+            Assert.That(implementationElement.ObjectTaskId, Is.EqualTo(19));
         }
     }
 }

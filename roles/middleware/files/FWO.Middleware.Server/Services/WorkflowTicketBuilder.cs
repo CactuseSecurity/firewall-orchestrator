@@ -90,6 +90,7 @@ internal sealed class WorkflowTicketBuilder
 
         tasks.Add(new WfReqTask
         {
+            WorkflowEntityId = entity.Id,
             Title = entity.DisplayName,
             TaskNumber = context.TaskNumber++,
             TaskType = WfTaskType.object_create.ToString(),
@@ -108,6 +109,7 @@ internal sealed class WorkflowTicketBuilder
         {
             WorkflowTicketEntityKind.AddressObject => new WfReqElement
             {
+                ObjectTaskEntityId = entity.Id,
                 Field = ElemFieldType.source.ToString(),
                 RequestAction = entity.LeafRequestAction,
                 Name = entity.DisplayName,
@@ -116,6 +118,7 @@ internal sealed class WorkflowTicketBuilder
             },
             WorkflowTicketEntityKind.ServiceObject => new WfReqElement
             {
+                ObjectTaskEntityId = entity.Id,
                 Field = ElemFieldType.service.ToString(),
                 RequestAction = entity.LeafRequestAction,
                 Name = entity.DisplayName,
@@ -125,6 +128,7 @@ internal sealed class WorkflowTicketBuilder
             },
             WorkflowTicketEntityKind.TimeObject => new WfReqElement
             {
+                ObjectTaskEntityId = entity.Id,
                 Field = ElemFieldType.time.ToString(),
                 RequestAction = RequestAction.create.ToString(),
                 Name = entity.DisplayName,
@@ -322,6 +326,7 @@ internal sealed class WorkflowTicketBuilder
         }
         return new WfReqTask
         {
+            WorkflowEntityId = group.Id,
             Title = groupEntity.DisplayName,
             TaskNumber = taskNumber,
             TaskType = WfTaskType.group_create.ToString(),
@@ -346,6 +351,7 @@ internal sealed class WorkflowTicketBuilder
         }
         return new WfReqTask
         {
+            WorkflowEntityId = group.Id,
             Title = groupEntity.DisplayName,
             TaskNumber = taskNumber,
             TaskType = WfTaskType.group_create.ToString(),
@@ -428,6 +434,7 @@ internal sealed class WorkflowTicketBuilder
                 Name = timeEntity.DisplayName,
                 StartTime = timeEntity.TimeStart,
                 EndTime = timeEntity.TimeEnd,
+                ObjectTaskEntityId = timeEntity.Id,
                 TimeObjId = null,
                 TimeObjectEntityId = timeEntity.Id < 0 ? timeEntity.Id : null,
                 FlowTimeObjectId = timeEntity.Id > 0 ? timeEntity.Id : null
@@ -576,6 +583,7 @@ internal sealed class WorkflowTicketBuilder
             {
                 WorkflowTicketEntityKind.ServiceObject => new WfReqElement
                 {
+                    ObjectTaskEntityId = entity.Id,
                     Field = field.ToString(),
                     RequestAction = entity.LeafRequestAction,
                     Name = entity.DisplayName,
@@ -585,6 +593,7 @@ internal sealed class WorkflowTicketBuilder
                 },
                 WorkflowTicketEntityKind.ServiceGroup => new WfReqElement
                 {
+                    ObjectTaskEntityId = entity.Id,
                     Field = field.ToString(),
                     RequestAction = RequestAction.create.ToString(),
                     Name = entity.DisplayName,
@@ -600,6 +609,7 @@ internal sealed class WorkflowTicketBuilder
             {
                 WorkflowTicketEntityKind.AddressObject => new WfReqElement
                 {
+                    ObjectTaskEntityId = entity.Id,
                     Field = field.ToString(),
                     RequestAction = entity.LeafRequestAction,
                     Name = entity.DisplayName,
@@ -608,6 +618,7 @@ internal sealed class WorkflowTicketBuilder
                 },
                 WorkflowTicketEntityKind.AddressGroup => new WfReqElement
                 {
+                    ObjectTaskEntityId = entity.Id,
                     Field = field.ToString(),
                     RequestAction = RequestAction.create.ToString(),
                     Name = entity.DisplayName,
@@ -641,6 +652,7 @@ internal sealed class WorkflowTicketBuilder
         {
             WorkflowTicketEntityKind.AddressObject => new WfReqElement
             {
+                ObjectTaskEntityId = entity.Id,
                 Field = field.ToString(),
                 RequestAction = entity.LeafRequestAction,
                 Name = entity.DisplayName,
@@ -649,6 +661,7 @@ internal sealed class WorkflowTicketBuilder
             },
             WorkflowTicketEntityKind.ServiceObject => new WfReqElement
             {
+                ObjectTaskEntityId = entity.Id,
                 Field = field.ToString(),
                 RequestAction = entity.LeafRequestAction,
                 Name = entity.DisplayName,

@@ -1,4 +1,4 @@
-﻿-- text codes (roughly) categorized:
+-- text codes (roughly) categorized:
 -- U: user texts (explanation or confirmation texts)
 -- E: error texts
 -- A: Api errors
@@ -5321,6 +5321,8 @@ INSERT INTO txt VALUES ('E8017', 'German',  'Die Aufgabe verweist auf ein Flow-O
 INSERT INTO txt VALUES ('E8017', 'English', 'The task references a flow object or protocol that may not be requested in the request module. Please select the affected elements again.');
 INSERT INTO txt VALUES ('E8018', 'German',  'Die Aktionen dieses Statuswechsels wurden nicht ausgef&uuml;hrt, weil sie f&uuml;r diesen Status bereits ausgef&uuml;hrt wurden. Der Statuswechsel selbst ist gespeichert. Wurde der Status zwischenzeitlich ohne Aktionen gesetzt, etwa &uuml;ber die Workflow-&Uuml;berwachung, m&uuml;ssen Email, externer Antrag und Flow-Erzeugung erneut angesto&szlig;en werden.');
 INSERT INTO txt VALUES ('E8018', 'English', 'The actions of this state change were not executed, because they had already been executed for this state. The state change itself is saved. If the state was set in between without its actions, for instance through workflow monitoring, then mail, external request and flow creation have to be triggered again.');
+INSERT INTO txt VALUES ('E8019', 'German',  'Die Aufgabe kann nicht mehr ge&auml;ndert werden, weil sie bereits auf Flow-Daten verweist.');
+INSERT INTO txt VALUES ('E8019', 'English', 'The task cannot be changed because it already references Flow DB data.');
 
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');

@@ -251,5 +251,5 @@ For a feature-centric, thematically grouped view see
 - Hardening of report filters, the Report/Get REST call, external ticket and notification email templates, HTML report exports and firewall API error logging; the network syslog receiver is no longer opened.
 
 ### 9.8.5 - 29.10.2026
-- Access-task time objects reference their ticket-local object-create task, keeping name and validity changes consistent.
+- Access-task elements reference their ticket-local object-create task, keeping object changes consistent.
 - Workflow state matrices can configure whether phases after request are promoted from the ticket, from individual tasks, or both. The request phase remains ticket-driven.

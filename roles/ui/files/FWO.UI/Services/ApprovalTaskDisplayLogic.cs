@@ -260,22 +260,32 @@ namespace FWO.Ui.Services
 
         private string ResolvedElementValue(WfReqElement element)
         {
-            string value = element.Field == ElemFieldType.service.ToString()
-                ? ServiceValue(element)
-                : ObjectValue(element);
-            return AddZones(element, value);
+            WfReqElement displayElement = ResolveObjectTaskElement(element);
+            string value = displayElement.Field == ElemFieldType.service.ToString()
+                ? ServiceValue(displayElement)
+                : ObjectValue(displayElement);
+            return AddZones(displayElement, value);
         }
 
         private string TechnicalElementValue(WfReqElement element)
         {
-            if (element.Field == ElemFieldType.service.ToString())
+            WfReqElement displayElement = ResolveObjectTaskElement(element);
+            if (displayElement.Field == ElemFieldType.service.ToString())
             {
-                string service = DisplayBase.DisplayService(ToServiceElement(element), ipProtocols);
-                return AddZones(element, string.IsNullOrWhiteSpace(service) ? ServiceValue(element) : service);
+                string service = DisplayBase.DisplayService(ToServiceElement(displayElement), ipProtocols);
+                return AddZones(displayElement, string.IsNullOrWhiteSpace(service) ? ServiceValue(displayElement) : service);
             }
 
-            string ip = NwObjDisplay.DisplayIp(element.IpString, element.IpEnd);
-            return AddZones(element, string.IsNullOrWhiteSpace(ip) ? ObjectValue(element) : ip);
+            string ip = NwObjDisplay.DisplayIp(displayElement.IpString, displayElement.IpEnd);
+            return AddZones(displayElement, string.IsNullOrWhiteSpace(ip) ? ObjectValue(displayElement) : ip);
+        }
+
+        /// <summary>
+        /// Resolves the current requested state of a ticket-local object task for display.
+        /// </summary>
+        private WfReqElement ResolveObjectTaskElement(WfReqElement element)
+        {
+            return WfObjectTaskHelper.ResolveReferencedElement(element, wfHandler.ActTicket.Tasks);
         }
 
         private string ObjectValue(WfReqElement element) =>

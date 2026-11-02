@@ -19,6 +19,8 @@ namespace FWO.Data.Workflow
         public const string Source = "source";
         public const string Destination = "destination";
         public const string Services = "services";
+        public const string Content = "content";
+        public const string GroupMembers = "group_members";
         public const string Rules = "rules";
         public const string Owner = "owner";
         public const string RequestingOwner = "requesting_owner";
@@ -257,12 +259,15 @@ namespace FWO.Data.Workflow
                 new(WorkflowEditableFieldKeys.Title),
                 new(WorkflowEditableFieldKeys.Management),
                 new(WorkflowEditableFieldKeys.Name),
+                new(WorkflowEditableFieldKeys.GroupMembers),
                 new(WorkflowEditableFieldKeys.Reason)
             ],
             [WfTaskType.group_modify] =
             [
                 new(WorkflowEditableFieldKeys.Title),
                 new(WorkflowEditableFieldKeys.Management),
+                new(WorkflowEditableFieldKeys.Name),
+                new(WorkflowEditableFieldKeys.GroupMembers),
                 new(WorkflowEditableFieldKeys.Reason)
             ],
             // the object itself, its name included, is part of the element and stays with the requester
@@ -270,12 +275,16 @@ namespace FWO.Data.Workflow
             [
                 new(WorkflowEditableFieldKeys.Title),
                 new(WorkflowEditableFieldKeys.Management),
+                new(WorkflowEditableFieldKeys.Name),
+                new(WorkflowEditableFieldKeys.Content),
                 new(WorkflowEditableFieldKeys.Reason)
             ],
             // no management either: the task references an object of exactly that management
             [WfTaskType.object_modify] =
             [
                 new(WorkflowEditableFieldKeys.Title),
+                new(WorkflowEditableFieldKeys.Name),
+                new(WorkflowEditableFieldKeys.Content),
                 new(WorkflowEditableFieldKeys.Reason)
             ]
         };

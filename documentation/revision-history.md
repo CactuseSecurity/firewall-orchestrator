@@ -1,6 +1,8 @@
 # Firewall Orchestrator Revision History
 
 ## 9.8.6 - 02.11.2026
+- dependencies: update NuGet packages (AngleSharp to 1.9.1, Quartz to 4.7.0, Scalar.AspNetCore to 2.18.7, SoPro.FancyTable to 1.1.0)
+- UI (FancyTable): the new sort, hide, clear search and column filter labels of SoPro.FancyTable 1.1.0 are localized (German and English) instead of always showing English
 - compliance: the check of a rule fails closed (GHSA-f36h-2vqp-p8fm). A criterion that throws, a criterion with invalid or empty content (MinimumCIDRLength, ForbidZonesAsSource/-Destination) and network objects whose IP address cannot be parsed now make the rule not compliant with a "not assessable" violation naming the criterion or object, instead of compliant; the remaining criteria are still checked. Stored violations of a criterion that could not be evaluated are kept instead of being marked removed. This also applies to the conditional auto-promote policy check of the workflow
 - API: Hasura no longer infers function permissions (`api_HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS` default `false`); every tracked SQL function lists the roles that may call it. Reporter and recertifier lose the select permission on `device_type`, so they can no longer list the devices and managements of other tenants via `get_visible_devices_per_tenant`/`get_visible_managements_per_tenant` (GHSA-8gr4-j8hq-4m35)
 - importer (Cisco ASA): breaking: the SHA-1 SSH key exchange `diffie-hellman-group14-sha1` is only offered when the new device specific setting "Allow SHA-1 SSH key exchange" (`sshLegacyKeyExchange`, Global, device type, management, default off) is switched on. A device that offers nothing else fails to import with an error naming the setting; the upgrade lists the ASA managements

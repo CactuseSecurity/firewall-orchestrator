@@ -515,6 +515,38 @@ INSERT INTO txt VALUES ('resize_column_format', 'German',   'Breite der Spalte {
 INSERT INTO txt VALUES ('resize_column_format', 'English',  'Resize column {0}');
 INSERT INTO txt VALUES ('reorder_column_format','German',   'Spalte {0} verschieben');
 INSERT INTO txt VALUES ('reorder_column_format','English',  'Reorder column {0}');
+INSERT INTO txt VALUES ('sort_column_format',   'German',   'Nach Spalte {0} sortieren');
+INSERT INTO txt VALUES ('sort_column_format',   'English',  'Sort column {0}');
+INSERT INTO txt VALUES ('hide_column_format',   'German',   'Spalte {0} ausblenden');
+INSERT INTO txt VALUES ('hide_column_format',   'English',  'Hide column {0}');
+INSERT INTO txt VALUES ('clear_search',         'German',   'Suche l&ouml;schen');
+INSERT INTO txt VALUES ('clear_search',         'English',  'Clear search');
+INSERT INTO txt VALUES ('filtered_column',      'German',   'gefiltert');
+INSERT INTO txt VALUES ('filtered_column',      'English',  'filtered');
+INSERT INTO txt VALUES ('filter_column_format', 'German',   'Spalte {0} filtern');
+INSERT INTO txt VALUES ('filter_column_format', 'English',  'Filter column {0}');
+INSERT INTO txt VALUES ('apply_filter',         'German',   'Anwenden');
+INSERT INTO txt VALUES ('apply_filter',         'English',  'Apply');
+INSERT INTO txt VALUES ('clear_filter',         'German',   'Zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('clear_filter',         'English',  'Clear');
+INSERT INTO txt VALUES ('filter_operator',      'German',   'Operator');
+INSERT INTO txt VALUES ('filter_operator',      'English',  'Operator');
+INSERT INTO txt VALUES ('filter_op_equals',     'German',   'Ist');
+INSERT INTO txt VALUES ('filter_op_equals',     'English',  'Is');
+INSERT INTO txt VALUES ('filter_op_not_equals', 'German',   'Ist nicht');
+INSERT INTO txt VALUES ('filter_op_not_equals', 'English',  'Is not');
+INSERT INTO txt VALUES ('filter_op_contains',   'German',   'Enth&auml;lt');
+INSERT INTO txt VALUES ('filter_op_contains',   'English',  'Contains');
+INSERT INTO txt VALUES ('filter_op_not_contains','German',  'Enth&auml;lt nicht');
+INSERT INTO txt VALUES ('filter_op_not_contains','English', 'Does not contain');
+INSERT INTO txt VALUES ('filter_op_starts_with','German',   'Beginnt mit');
+INSERT INTO txt VALUES ('filter_op_starts_with','English',  'Starts with');
+INSERT INTO txt VALUES ('filter_op_ends_with',  'German',   'Endet mit');
+INSERT INTO txt VALUES ('filter_op_ends_with',  'English',  'Ends with');
+INSERT INTO txt VALUES ('filter_op_is_empty',   'German',   'Ist leer');
+INSERT INTO txt VALUES ('filter_op_is_empty',   'English',  'Is empty');
+INSERT INTO txt VALUES ('filter_op_is_not_empty','German',  'Ist nicht leer');
+INSERT INTO txt VALUES ('filter_op_is_not_empty','English', 'Is not empty');
 
 -- (re)login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');

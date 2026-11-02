@@ -4222,6 +4222,8 @@ INSERT INTO txt VALUES ('flow_request_api',     'German',   'Flow-Antr&auml;ge')
 INSERT INTO txt VALUES ('flow_request_api',     'English',  'Flow Requests');
 INSERT INTO txt VALUES ('workflow_api',         'German',   'Workflow API');
 INSERT INTO txt VALUES ('workflow_api',         'English',  'Workflow API');
+INSERT INTO txt VALUES ('path_analysis_api',    'German',   'Pfadanalyse API');
+INSERT INTO txt VALUES ('path_analysis_api',    'English',  'Path Analysis API');
 INSERT INTO txt VALUES ('api_user_mgmt_head',   'German', 	'REST Dokumentation');
 INSERT INTO txt VALUES ('api_user_mgmt_head',   'English', 	'REST Documentation');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'German', 	'Authentisierung');
@@ -5139,6 +5141,8 @@ INSERT INTO txt VALUES ('E8017', 'German',  'Die Aufgabe verweist auf ein Flow-O
 INSERT INTO txt VALUES ('E8017', 'English', 'The task references a flow object or protocol that may not be requested in the request module. Please select the affected elements again.');
 INSERT INTO txt VALUES ('E8018', 'German',  'Die Aktionen dieses Statuswechsels wurden nicht ausgef&uuml;hrt, weil sie f&uuml;r diesen Status bereits ausgef&uuml;hrt wurden. Der Statuswechsel selbst ist gespeichert. Wurde der Status zwischenzeitlich ohne Aktionen gesetzt, etwa &uuml;ber die Workflow-&Uuml;berwachung, m&uuml;ssen Email, externer Antrag und Flow-Erzeugung erneut angesto&szlig;en werden.');
 INSERT INTO txt VALUES ('E8018', 'English', 'The actions of this state change were not executed, because they had already been executed for this state. The state change itself is saved. If the state was set in between without its actions, for instance through workflow monitoring, then mail, external request and flow creation have to be triggered again.');
+INSERT INTO txt VALUES ('E8019', 'German',  'Es ist kein Pfadanalyse-Algorithmus eingestellt, daher wurden keine Ger&auml;te ermittelt. Der Algorithmus wird unter Einstellungen &gt; Workflow &gt; Einstellungen gew&auml;hlt.');
+INSERT INTO txt VALUES ('E8019', 'English', 'No path analysis algorithm is configured, so no devices were determined. The algorithm is selected under Settings &gt; Workflow &gt; Customizing.');
 
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
@@ -8451,6 +8455,48 @@ INSERT INTO txt VALUES ('H6944', 'English', 'The Workflow REST API provides read
         <li>Timestamps are returned without an offset on the wall clock of the installation, because the underlying columns store no time zone.</li>
         <li>For <code>getTicket</code>, request tasks and implementation tasks are ordered by task number, elements, approvals and owners by their id, and comments by creation time (oldest first), so repeated calls return the same order.</li>
         <li>Invalid requests are answered with 400, an unknown <code>ticketId</code> with 404. Both report every detected error together in the format <code>{"errors": [{"path": "options.filter.taskType", "message": "..."}]}</code>.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6945', 'German',  'Die Pfadanalyse-REST-API ermittelt die Firewalls auf den Pfaden zwischen Quell- und Zieladressen unter <code>/api/pathAnalysis</code>.
+    Der Endpunkt verwendet <code>POST</code> und steht Administratoren und Auditoren zur Verf&uuml;gung. Das Ergebnis wird nicht nach Mandanten gefiltert, daher ist er f&uuml;r mandantenbeschr&auml;nkte Rollen nicht freigegeben.
+    <table class="table table-sm">
+        <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Request / Response</th></tr></thead>
+        <tbody>
+            <tr><td><code>resolvePathDevices</code></td><td>Liefert die Firewalls auf den Pfaden von jeder Quelle zu jedem Ziel. Jedes Ger&auml;t erscheint einmal, ohne feste Reihenfolge, zusammen mit dem tats&auml;chlich verwendeten Algorithmus und der verwendeten Zonenmatrix.</td>
+                <td>Request: <code>{"sources": [{"ipHost": "10.1.0.5"}], "destinations": [{"ipNetwork": "10.2.0.0/24"}], "options": {"algorithm": "networkZoneTree", "matrixId": 3, "filter": {"name": "fw-core"}}}</code><br>
+                    Response: <code>{"devices": [{"id": 4, "name": "fw-core"}], "algorithm": "networkZoneTree", "matrixId": 3}</code></td></tr>
+        </tbody>
+    </table>
+    Regeln:
+    <ul>
+        <li><code>sources</code> und <code>destinations</code> sind Pflicht und enthalten je 1 bis 500 Eintr&auml;ge. Jeder Eintrag hat genau einen der Schl&uuml;ssel <code>ipHost</code> (eine Adresse ohne Maske), <code>ipNetwork</code> (CIDR; Host-Bits werden auf die Netzadresse gesetzt) oder <code>ipRange</code> (genau zwei Adressen ohne Maske, untere zuerst, gleiche Adressfamilie).</li>
+        <li><code>options</code> ist optional und hat den Standardwert <code>{}</code>. <code>options.algorithm</code> w&auml;hlt den Algorithmus (derzeit <code>networkZoneTree</code>, Gro&szlig;-/Kleinschreibung egal); ohne Angabe gilt der Algorithmus aus den Workflow-Einstellungen.</li>
+        <li><code>options.matrixId</code> w&auml;hlt die Zonenmatrix und ist nur zusammen mit <code>networkZoneTree</code> erlaubt; ohne Angabe gilt die festgelegte Zonenmatrix.</li>
+        <li><code>options.filter.id</code> und <code>options.filter.name</code> schr&auml;nken die gelieferten Ger&auml;te ein (exakter Vergleich, der Name ohne Beachtung der Gro&szlig;-/Kleinschreibung); ein fehlender Schl&uuml;ssel oder <code>null</code> schr&auml;nkt nicht ein.</li>
+        <li>Ung&uuml;ltige Requests werden mit 400 beantwortet, auch wenn ein ben&ouml;tigter Standardwert (Algorithmus oder Zonenmatrix) nicht eingestellt ist. Eine angegebene <code>matrixId</code>, die nicht existiert oder keine Zonen enth&auml;lt, ergibt 404. Beide liefern alle gefundenen Fehler gemeinsam im Format <code>{"errors": [{"path": "sources[0]", "message": "..."}]}</code>.</li>
+        <li>Ist die festgelegte Zonenmatrix bei der Analyse unbrauchbar, antwortet der Endpunkt mit 500; die explizite Angabe von <code>options.matrixId</code> vermeidet das.</li>
+        <li>Der Endpunkt gilt als aufw&auml;ndig: Pro Benutzer laufen standardm&auml;&szlig;ig h&ouml;chstens zwei Anfragen gleichzeitig, weitere werden kurz eingereiht oder mit 429 abgewiesen. Der Request-Body darf h&ouml;chstens 1 MiB gro&szlig; sein.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6945', 'English', 'The path analysis REST API determines the firewalls on the paths between source and destination addresses below <code>/api/pathAnalysis</code>.
+    The endpoint uses <code>POST</code> and is available to administrators and auditors. Its result is not filtered by tenant, so it is not available to tenant-restricted roles.
+    <table class="table table-sm">
+        <thead><tr><th>Endpoint</th><th>Purpose</th><th>Request / Response</th></tr></thead>
+        <tbody>
+            <tr><td><code>resolvePathDevices</code></td><td>Returns the firewalls on the paths from every source to every destination. Each device is listed once, in no particular order, together with the algorithm and zone matrix actually used.</td>
+                <td>Request: <code>{"sources": [{"ipHost": "10.1.0.5"}], "destinations": [{"ipNetwork": "10.2.0.0/24"}], "options": {"algorithm": "networkZoneTree", "matrixId": 3, "filter": {"name": "fw-core"}}}</code><br>
+                    Response: <code>{"devices": [{"id": 4, "name": "fw-core"}], "algorithm": "networkZoneTree", "matrixId": 3}</code></td></tr>
+        </tbody>
+    </table>
+    Rules:
+    <ul>
+        <li><code>sources</code> and <code>destinations</code> are required and hold 1 to 500 entries each. Every entry has exactly one of <code>ipHost</code> (one address without a mask), <code>ipNetwork</code> (CIDR; host bits are cleared to the network address) or <code>ipRange</code> (exactly two addresses without a mask, lower bound first, same address family).</li>
+        <li><code>options</code> is optional and defaults to <code>{}</code>. <code>options.algorithm</code> selects the algorithm (currently <code>networkZoneTree</code>, case-insensitive); without it the algorithm from the workflow customizing settings applies.</li>
+        <li><code>options.matrixId</code> selects the zone matrix and is only valid together with <code>networkZoneTree</code>; without it the designated zone matrix applies.</li>
+        <li><code>options.filter.id</code> and <code>options.filter.name</code> restrict the returned devices (exact match, the name case-insensitively); an omitted key or <code>null</code> does not restrict the result.</li>
+        <li>Invalid requests are answered with 400, including a missing option whose configured default (algorithm or zone matrix) is not set. A given <code>matrixId</code> that does not exist or holds no zones is answered with 404. Both report every detected error together in the format <code>{"errors": [{"path": "sources[0]", "message": "..."}]}</code>.</li>
+        <li>If the designated zone matrix turns out to be unusable during the analysis, the endpoint answers 500; naming <code>options.matrixId</code> explicitly avoids this.</li>
+        <li>The endpoint counts as expensive: by default at most two requests per user run at the same time, further ones are queued briefly or rejected with 429. The request body may be at most 1 MiB.</li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.

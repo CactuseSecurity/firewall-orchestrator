@@ -196,6 +196,11 @@
   import_tasks: test-python-venv-reset.yml
   when: "['importers', 'middlewareserver'] | intersect(group_names) | length > 0"
 
+# On the hosts that install the browser for the PDF generation (roles/lib).
+- name: Browser migration testing
+  import_tasks: test-browser-migration.yml
+  when: "['frontends', 'middlewareserver'] | intersect(group_names) | length > 0"
+
 - name: OS platform guard testing
   import_tasks: test-os-platform-guard.yml
   run_once: true

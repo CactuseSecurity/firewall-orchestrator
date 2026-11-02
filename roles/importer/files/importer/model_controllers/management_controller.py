@@ -69,7 +69,7 @@ class ManagementController(Management):
         domain_info: DomainInfo,
         import_disabled: bool = False,
         ssh_legacy_key_exchange: bool = False,
-    ):
+    ) -> None:
         super().__init__(
             mgm_id=mgm_id,
             uid=uid,

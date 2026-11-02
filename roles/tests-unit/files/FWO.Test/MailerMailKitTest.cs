@@ -246,6 +246,9 @@ namespace FWO.Test
             });
         }
 
+        // SendAsync works on a copy of the recipient lists, so the shared list is not changed
+        private static readonly List<string> kUnparseableCc = ["also bad @@"];
+
         [Test]
         public async Task SendAsync_SkipsUnparseableRecipientAndSendsToTheOthers()
         {
@@ -256,7 +259,7 @@ namespace FWO.Test
             MailData mail = new(new List<string> { "not an address <<", "good@example.test" }, "Subject")
             {
                 Body = "Body",
-                Cc = ["also bad @@"]
+                Cc = kUnparseableCc
             };
             EmailConnection connection = new("127.0.0.1", port, EmailEncryptionMethod.None, "", "", "sender@example.test");
 

@@ -836,10 +836,8 @@ namespace FWO.Test
         public async Task PasswordEndpointsRejectPasswordsViolatingThePolicy()
         {
             RecordingLdapClient ldapClient = new();
-            UserControllerTestApiConnection apiConnection = new()
-            {
-                Users = new UiUser[] { CreateUser(42) }
-            };
+            UiUser[] users = [CreateUser(42)];
+            UserControllerTestApiConnection apiConnection = new() { Users = users };
             UserController controller = CreateController(
                 new List<Ldap> { CreateWritableLdap(2, ldapClient) },
                 apiConnection,

@@ -10,6 +10,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Middleware.Server;
+using Novell.Directory.Ldap;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 
@@ -1862,6 +1863,70 @@ namespace FWO.Test
         }
 
         private static readonly List<string> kExistingGroupDn = ["cn=group1,ou=groups,dc=example,dc=com"];
+        private const string kDirectoryUserDn = "cn=user1,ou=users,dc=example,dc=com";
+        private const int kDirectoryLdapId = 7;
+        private static readonly List<string> kDirectoryUserDnList = [kDirectoryUserDn];
+        private static readonly List<string> kForgedAndExistingDns =
+            ["cn=forged.admin,ou=users,dc=example,dc=com", "cn=group1,ou=groups,dc=example,dc=com"];
+
+        /// <summary>
+        /// A directory that cannot be asked must fail the app, so that it keeps its responsibles and their roles,
+        /// instead of dropping the imported dn as if its entry were gone.
+        /// </summary>
+        [Test]
+        public void NormalizeImportedUserReferences_FailsWhenDirectoryCannotBeRead()
+        {
+            RecordingLdapClient ldapClient = new() { ReadException = new LdapException("busy", LdapException.Busy, null) };
+            AppDataImport import = CreateImportWithDirectory(ldapClient);
+
+            Assert.ThrowsAsync<LdapException>(async () => await InvokeNormalizeImportedUserReferences(import, CreateAppWithDirectoryUser()));
+        }
+
+        /// <summary>
+        /// The real directory check keeps a dn whose entry exists and drops one the directory does not know.
+        /// </summary>
+        [Test]
+        public async Task NormalizeImportedUserReferences_ChecksDnsAgainstDirectory()
+        {
+            RecordingLdapClient existingClient = new();
+            existingClient.ReadResultsByDn[kDirectoryUserDn] = LdapTestSupport.CreateEntry(kDirectoryUserDn);
+            RecordingLdapClient missingClient = new() { ReadException = new LdapException("no such object", LdapException.NoSuchObject, null) };
+
+            ModellingImportAppData keptApp = await InvokeNormalizeImportedUserReferences(CreateImportWithDirectory(existingClient), CreateAppWithDirectoryUser());
+            ModellingImportAppData droppedApp = await InvokeNormalizeImportedUserReferences(CreateImportWithDirectory(missingClient), CreateAppWithDirectoryUser());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(keptApp.MainUser, Is.EqualTo(kDirectoryUserDn));
+                Assert.That(keptApp.Responsibles?["1"], Is.EqualTo(kDirectoryUserDnList));
+                Assert.That(droppedApp.MainUser, Is.Null);
+                Assert.That(droppedApp.Responsibles?["1"], Is.Empty);
+            });
+        }
+
+        private static AppDataImport CreateImportWithDirectory(RecordingLdapClient ldapClient)
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            TestableLdap ldap = new(ldapClient)
+            {
+                Id = kDirectoryLdapId,
+                UserSearchPath = "ou=users,dc=example,dc=com"
+            };
+            List<Ldap> connectedLdaps = [ldap];
+            SetConnectedLdaps(import, connectedLdaps);
+            return import;
+        }
+
+        private static ModellingImportAppData CreateAppWithDirectoryUser()
+        {
+            return new()
+            {
+                Name = "App-Directory",
+                ExtAppId = "APP-DIRECTORY",
+                MainUser = kDirectoryUserDn,
+                Responsibles = new Dictionary<string, List<string>> { ["1"] = new List<string>(kDirectoryUserDnList) }
+            };
+        }
 
         /// <summary>
         /// An imported dn receives workflow roles only if it names an existing directory entry
@@ -1877,14 +1942,7 @@ namespace FWO.Test
                 Name = "App-Forged",
                 ExtAppId = "APP-FORGED",
                 MainUser = "cn=forged.admin,ou=users,dc=example,dc=com",
-                Responsibles = new Dictionary<string, List<string>>
-                {
-                    ["1"] =
-                    [
-                        "cn=forged.admin,ou=users,dc=example,dc=com",
-                        "cn=group1,ou=groups,dc=example,dc=com"
-                    ]
-                }
+                Responsibles = new Dictionary<string, List<string>> { ["1"] = new List<string>(kForgedAndExistingDns) }
             };
 
             ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);

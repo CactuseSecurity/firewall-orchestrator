@@ -85,7 +85,7 @@ def login(user: str, password: str, base_url: str) -> str | None:
     return response["session"]
 
 
-def logout(v_url: str, sid: str, method: str = "exec"):
+def logout(v_url: str, sid: str, method: str = "exec") -> None:
     payload: dict[str, Any] = {"params": [{}]}
 
     response = api_call(v_url, "sys/logout", payload, sid, method=method)

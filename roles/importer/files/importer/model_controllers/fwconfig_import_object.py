@@ -528,7 +528,7 @@ class FwConfigImportObject:
             "usergrp": "firewall_nw_user_group",
         }.get(prefix, prefix)
 
-    def remove_outdated_memberships(self, prev_config: FwConfigNormalized, typ: Type):
+    def remove_outdated_memberships(self, prev_config: FwConfigNormalized, typ: Type) -> None:
         removed_members: list[dict[str, Any]] = []
         removed_flats: list[dict[str, Any]] = []
 

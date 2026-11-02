@@ -266,6 +266,7 @@
                 path: "{{ chrome_dest }}"
                 state: directory
                 recurse: true
+                follow: false
                 mode: "u=rwX,g=rX,o=rX"
 
             # run as {{ fworch_user }}, never as root
@@ -348,6 +349,8 @@
     path: "{{ fworch_browser_dir }}/Chrome"
     state: directory
     recurse: true
+    # a followed link would let root change the mode of any file of the system
+    follow: false
     mode: "u=rwX,g=rX,o=rX"
   become: true
   when: chrome_root_stat.stat.exists

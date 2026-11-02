@@ -429,7 +429,8 @@ namespace FWO.Middleware.Server
 
         /// <summary>
         /// Checks an imported distinguished name against the directories: it is accepted only if an entry with that
-        /// name exists in the connected LDAP whose search paths own it.
+        /// name exists in the connected LDAP whose search paths own it. A directory that cannot be asked throws, so
+        /// that the app fails and keeps its responsibles instead of losing them as if the entry were gone.
         /// </summary>
         /// <param name="distinguishedName">Imported distinguished name of a user or group.</param>
         /// <returns>The distinguished name as stored in the directory if found; otherwise null.</returns>
@@ -437,7 +438,7 @@ namespace FWO.Middleware.Server
         {
             foreach (Ldap ldap in connectedLdaps.Where(ldap => LdapDnNamespace.IsOwnedBy(connectedLdaps, ldap.Id, distinguishedName)))
             {
-                LdapEntry? entry = await ldap.GetUserDetailsFromLdap(distinguishedName);
+                LdapEntry? entry = await ldap.ReadEntryIfExists(distinguishedName);
                 if (!string.IsNullOrWhiteSpace(entry?.Dn) && LdapDnNamespace.IsOwnedBy(connectedLdaps, ldap.Id, entry.Dn))
                 {
                     return entry.Dn;

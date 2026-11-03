@@ -1,5 +1,10 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.7 - 02.11.2026
+- request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
+- compliance: auto-calculated undefined-internal zones now cover complete IPv6 networks instead of only the first address of each remaining network
+- modelling and workflow: shared IP range parsing accepts dotted IPv4 netmasks such as `10.0.2.0/255.255.255.0` in addition to prefix lengths
+
 ## 9.8.6 - 02.11.2026
 - dependencies: update NuGet packages (AngleSharp to 1.9.1, Quartz to 4.7.0, Scalar.AspNetCore to 2.18.7, SoPro.FancyTable to 1.1.0)
 - UI (FancyTable): the new sort, hide, clear search and column filter labels of SoPro.FancyTable 1.1.0 are localized (German and English) instead of always showing English
@@ -36,7 +41,6 @@
   - breaking: an AccessRequest template that was missing on a SecureChange system (ticket creation failed before) is now replaced by the shipped one
   - a task type whose ticket or task template is empty (no setting and no shipped template, e.g. NetworkObjectModify) is refused with a configuration error before a request is created, as when its template was missing before
   - service group tasks routed to SecureChange are refused with a configuration error; SecureChange only modifies groups of network objects. Before, they created a ticket without tasks. Their templates (NetworkServiceCreate, NetworkServiceUpdate) were never used and are not migrated; they remain in the backup
-
 ## 9.8.4 - 29.10.2026
 - installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server
 - importer: sub-managements set to "do not import" are skipped by the import of their super manager instead of having all their rules and objects marked removed (FortiManager ADOMs, Check Point domains; GHSA-hj46-639g-mxq2). A forced import still imports them
@@ -514,7 +518,6 @@
   does not report the managements it has not reached as deleted
 - middleware: jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now allows
   180 seconds (TimeoutStopSec) before killing the process
-
 ## 9.5.10 - 29.09.2026
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration

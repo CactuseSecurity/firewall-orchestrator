@@ -178,6 +178,10 @@ namespace FWO.Test
                         ReturnIds = new ReturnId[] { new ReturnId { NewIdLong = NewImplTaskId } }
                     });
                 }
+                if (query == RequestQueries.recordStateChangeExecution)
+                {
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
+                }
                 if (query == RequestQueries.updateImplementationTask)
                 {
                     UpdateImplTaskCallCount++;
@@ -1159,7 +1163,9 @@ namespace FWO.Test
             };
             WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.implementation);
 
-            await dbAccess.AddImplTaskToDb(new WfImplTask { Id = 0, TicketId = 101, Title = "New implementation" });
+            await dbAccess.AddImplTaskToDb(
+                new WfImplTask { Id = 0, TicketId = 101, Title = "New implementation" },
+                new WfReqTask());
 
             Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
             Assert.That(HistoryStringValue(apiConn, "objectType"), Is.EqualTo(((int)ChangeHistoryObjectType.ImplementationTask).ToString()));
@@ -1961,7 +1967,7 @@ namespace FWO.Test
                 RemovedElements = new List<WfImplElement>()
             };
 
-            long newId = await dbAccess.AddImplTaskToDb(implTask);
+            long newId = await dbAccess.AddImplTaskToDb(implTask, new WfReqTask { Id = 77 });
 
             Assert.That(newId, Is.EqualTo(0));
             Assert.That(apiConn.NewImplTaskCallCount, Is.EqualTo(1));
@@ -1995,7 +2001,7 @@ namespace FWO.Test
                 RemovedElements = new List<WfImplElement>()
             };
 
-            long newId = await dbAccess.AddImplTaskToDb(implTask);
+            long newId = await dbAccess.AddImplTaskToDb(implTask, new WfReqTask { Id = 77 });
 
             Assert.That(newId, Is.EqualTo(401));
             Assert.That(implTask.Id, Is.EqualTo(401));
@@ -2035,12 +2041,94 @@ namespace FWO.Test
                 RemovedElements = new List<WfImplElement>()
             };
 
-            long newId = await dbAccess.AddImplTaskToDb(implTask);
+            long newId = await dbAccess.AddImplTaskToDb(implTask, new WfReqTask { Id = 77 });
 
             Assert.That(newId, Is.EqualTo(401));
             Assert.That(implTask.Comments[0].Comment.Id, Is.EqualTo(777));
             Assert.That(apiConn.NewCommentCallCount, Is.EqualTo(1));
             Assert.That(apiConn.AssignImplCommentCallCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task AddImplTaskToDb_ActivatesAfterDurableNestedPersistenceWithExactParent()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                NewImplTaskId = 401,
+                NewImplElementId = 501,
+                NewCommentId = 601,
+                Ticket = new WfTicket { Id = 101 }
+            };
+            WfReqTask requestTask = new()
+            {
+                Id = 77,
+                TicketId = 101,
+                ManagementId = 11,
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString()
+            };
+            requestTask.SetDeviceList([21]);
+            WfImplTask implementationTask = new()
+            {
+                TicketId = 101,
+                ReqTaskId = 77,
+                DeviceId = 21,
+                StateId = 1,
+                TaskType = WfTaskType.access.ToString(),
+                ImplAction = RequestAction.create.ToString(),
+                ImplElements = [new WfImplElement()],
+                Comments = [new WfCommentDataHelper(new WfComment { CommentText = "persist first" })]
+            };
+            RecordingRulePositioningWorkflowCaller caller = new()
+            {
+                Applicability = (parent, createdTask) =>
+                {
+                    Assert.Multiple(() =>
+                    {
+                        Assert.That(parent, Is.SameAs(requestTask));
+                        Assert.That(createdTask, Is.SameAs(implementationTask));
+                        Assert.That(createdTask!.Id, Is.EqualTo(401));
+                        Assert.That(createdTask.ImplElements[0].Id, Is.EqualTo(501));
+                        Assert.That(createdTask.Comments[0].Comment.Id, Is.EqualTo(601));
+                        Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+                    });
+                    return true;
+                }
+            };
+            WfDbAccess dbAccess = await CreatePositioningDbAccess(apiConn, caller);
+
+            long newId = await dbAccess.AddImplTaskToDb(implementationTask, requestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(newId, Is.EqualTo(401));
+                Assert.That(caller.CalculationCount, Is.EqualTo(1));
+                Assert.That(caller.LastRequestTask, Is.SameAs(requestTask));
+            });
+        }
+
+        [Test]
+        public async Task AddImplTaskToDb_MissingInsertResultDoesNotActivateRulePositioning()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                ReturnNullNewImplTaskIds = true,
+                Ticket = new WfTicket { Id = 101 }
+            };
+            RecordingRulePositioningWorkflowCaller caller = new();
+            WfDbAccess dbAccess = await CreatePositioningDbAccess(apiConn, caller);
+            WfReqTask requestTask = new() { Id = 77, TicketId = 101 };
+
+            long newId = await dbAccess.AddImplTaskToDb(
+                new WfImplTask { TicketId = 101, ReqTaskId = 77, StateId = 1 },
+                requestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(newId, Is.Zero);
+                Assert.That(caller.ApplicabilityCount, Is.Zero);
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
         }
 
         [Test]
@@ -2631,7 +2719,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildImplTaskUpdateVariables_DoesNotIncludeTaskType()
+        public void BuildImplTaskUpdateVariables_DoesNotIncludeTaskTypeOrRulePosition()
         {
             WfImplTask implTask = new()
             {
@@ -2657,6 +2745,7 @@ namespace FWO.Test
             Assert.That(variables["reqTaskId"], Is.EqualTo((long)11));
             Assert.That(variables["state"], Is.EqualTo(4));
             Assert.That(variables["device"], Is.EqualTo(7));
+            Assert.That(variables.ContainsKey("rulePosition"), Is.False);
         }
 
         [Test]
@@ -2812,7 +2901,10 @@ namespace FWO.Test
             WfTicket? storedTicket = await dbAccess.LoadPreviousTicket(101);
             int readsAfterLoad = apiConn.GetTicketByIdCallCount;
 
-            await dbAccess.AddImplTaskToDb(new WfImplTask { Id = 0, TicketId = 101, Title = "New implementation" }, storedTicket);
+            await dbAccess.AddImplTaskToDb(
+                new WfImplTask { Id = 0, TicketId = 101, Title = "New implementation" },
+                new WfReqTask(),
+                storedTicket);
             await dbAccess.DeleteImplTaskFromDb(new WfImplTask { Id = 200, TicketId = 101, Title = "Removed implementation" }, storedTicket);
 
             Assert.That(apiConn.GetTicketByIdCallCount, Is.EqualTo(readsAfterLoad));
@@ -3092,6 +3184,24 @@ namespace FWO.Test
             ActionHandler actionHandler = new(apiConnection, wfHandler);
             await actionHandler.Init(new List<WfState>());
             return new WfDbAccess(DefaultInit.DoNothing, userConfig, apiConnection, actionHandler, false, phase, isUiContext) { ChangerId = changerId };
+        }
+
+        private static async Task<WfDbAccess> CreatePositioningDbAccess(
+            WfDbAccessTestApiConn apiConnection,
+            RecordingRulePositioningWorkflowCaller caller)
+        {
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConnection, 42, false);
+            ActionHandler actionHandler = new(apiConnection, new WfHandler(), null, true, null, null, caller);
+            await actionHandler.Init([]);
+            return new WfDbAccess(
+                DefaultInit.DoNothing,
+                userConfig,
+                apiConnection,
+                actionHandler,
+                false,
+                WorkflowPhases.implementation,
+                false);
         }
 
         private static object? HistoryEntryProperty(object? entry, string name)

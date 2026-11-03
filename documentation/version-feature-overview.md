@@ -261,6 +261,10 @@ For a feature-centric, thematically grouped view see
 - Security hardening of the API permissions, password policy enforcement in the middleware, CSV and HTML exports, installer secrets and local privileges (database, LDAP, browser location, sudoers handling).
 - Updated NuGet packages; the sort, hide, clear search and column filter labels of the FancyTable based tables are shown in the user's language.
 
+### 9.8.7 — 02.11.2026
+- Rule positioning calculates and persists semantic positions for Check Point access-rule implementation tasks, including placement at the end of a uniquely matched zone-pair section.
+- Auto-calculated undefined-internal zones cover complete IPv6 networks, and shared IP range parsing accepts dotted IPv4 netmasks.
+
 ### 9.9.0 — 02.11.2026
 - Azure Firewall import module fetches firewall policies (network rules) and IP groups directly via the Azure Resource Manager API (api version 2026-01-01 with fallback to 2024-05-01).
 - Azure parent policies (policy hierarchy) are imported; their rules precede the rules of the child policy.

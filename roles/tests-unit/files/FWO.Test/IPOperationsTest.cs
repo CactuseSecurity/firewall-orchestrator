@@ -503,6 +503,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Subtract_IPv6AddressRange_PreservesUnsubtractedIntervals()
+        {
+            IPAddressRange source = new(
+                IPAddress.Parse("2001:db8::"),
+                IPAddress.Parse("2001:db8::10"));
+            List<IPAddressRange> subtract =
+            [
+                new(IPAddress.Parse("2001:db8::"), IPAddress.Parse("2001:db8::")),
+                new(IPAddress.Parse("2001:db8::10"), IPAddress.Parse("2001:db8::10"))
+            ];
+
+            List<IPAddressRange> result = source.Subtract(subtract);
+
+            Assert.That(result, Has.Count.EqualTo(1),
+                () => string.Join(", ", result.Select(range => $"{range.Begin}-{range.End}")));
+            Assert.Multiple(() =>
+            {
+                Assert.That(result[0].Begin.ToString(), Is.EqualTo("2001:db8::1"));
+                Assert.That(result[0].End.ToString(), Is.EqualTo("2001:db8::f"));
+            });
+        }
+
+        [Test]
         public void ToMergedRanges_AdjacentNetworks_Succeeds()
         {
             // Arrange
@@ -517,6 +540,21 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, merged.Count);
             ClassicAssert.AreEqual("192.168.10.0", merged[0].Begin.ToString());
             ClassicAssert.AreEqual("192.168.10.255", merged[0].End.ToString());
+        }
+
+        [Test]
+        public void ToMergedRanges_IPv6Network_IncludesTheWholeNetwork()
+        {
+            List<IPNetwork2> networks = [IPNetwork2.Parse("2001:db8::/126")];
+
+            List<IPAddressRange> merged = networks.ToMergedRanges();
+
+            Assert.That(merged, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(merged[0].Begin.ToString(), Is.EqualTo("2001:db8::"));
+                Assert.That(merged[0].End.ToString(), Is.EqualTo("2001:db8::3"));
+            });
         }
 
         [Test]
@@ -695,6 +733,7 @@ namespace FWO.Test
 
         [TestCase("10.0.0.1", null, "10.0.0.1", "10.0.0.1")]
         [TestCase("10.0.2.0/24", null, "10.0.2.0", "10.0.2.255")]
+        [TestCase("10.0.2.0/255.255.255.0", null, "10.0.2.0", "10.0.2.255")]
         [TestCase("10.0.1.1", "10.0.1.9", "10.0.1.1", "10.0.1.9")]
         [TestCase("10.0.0.1/32", "10.0.0.5/32", "10.0.0.1", "10.0.0.5")]
         [TestCase("2001:db8::1", null, "2001:db8::1", "2001:db8::1")]

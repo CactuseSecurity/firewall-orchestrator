@@ -37,15 +37,16 @@ namespace FWO.Data
         {  
             // Mgmt -> Supermgmt
             { 11, 12 }, // FortiADOM 5ff -> FortiManager 5ff
-            { 9, 13 }  // Check Point R8x -> Check Point MDS R8x
+            { DeviceTypeIds.kCheckPointR8x, 13 }  // Check Point R8x -> Check Point MDS R8x
         };
         private static readonly Dictionary<int, int> SupermanagerGatewayMap = new()
         {  
             // Supermgmt -> Gateway
             { 12, 10},  // FortiManager 5ff-> FortiGate 5ff
-            { 13, 9 },   // Check Point MDS R8x-> Check Point R8x (?)
-            { 9, 9 },   // Check Point R8x Mgr-> Check Point R8x Mgr
-            { 14, 16},  // Cisco Firepower
+
+            { 13, DeviceTypeIds.kCheckPointR8x },   // Check Point MDS R8x-> Check Point R8x (?)
+            { DeviceTypeIds.kCheckPointR8x, DeviceTypeIds.kCheckPointR8x },   // Check Point R8x Mgr-> Check Point R8x Mgr
+            { 14, 16},   // Cisco Firepower
             { kAzureManagementTypeId, kAzureFirewallTypeId }   // Azure 2022ff -> Azure Firewall 2022ff
         };
 
@@ -61,7 +62,7 @@ namespace FWO.Data
 
         public static readonly IReadOnlyList<int> CheckPointManagerTypeIds =
         [
-            13, 9   // Check Point MDS R8x and Check Point R8x
+            13, DeviceTypeIds.kCheckPointR8x   // Check Point MDS R8x and Check Point R8x
         ];
 
         private static readonly List<int> FortiManagers =

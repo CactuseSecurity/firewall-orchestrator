@@ -59,13 +59,16 @@ Only entries with the flag run the heavier flow; every other entry runs
 a plain install, which keeps that flow off all 15 full-matrix combos.
 The flagged entries run, in order:
 
-1. an install with `--skip-tags integrationtests`
-2. the JWT refresh integration test
-3. the Ansible `--tags integrationtests` cleanup step
-4. a certificate reset upgrade,
+1. the sample LDAP seeding regression tests
+   (`scripts/tests/test-sample-auth-data.sh`), which stub `ldapmodify`
+   and therefore need neither an installation nor an LDAP server
+2. an install with `--skip-tags integrationtests`
+3. the JWT refresh integration test
+4. the Ansible `--tags integrationtests` cleanup step
+5. a certificate reset upgrade,
    `-e "installation_mode=upgrade internalca_reset_certificates=true"`
 
-Step 4 is a full run rather than a tag-limited one on purpose:
+Step 5 is a full run rather than a tag-limited one on purpose:
 `roles/tests-integration` asserts on facts the reset itself produces —
 which CA was retired, which identities were reissued, which
 customer-managed pairs were left untouched — and those exist only inside

@@ -22,6 +22,8 @@ namespace FWO.Test
     {
         private const int kMaxLimit = GlobalConst.kDefaultMaxRestResponseObjectLimit;
         private static readonly List<long> kAmbiguousCandidateIds = [61, 62];
+        private static readonly List<string> kDetailedAddressIpRange = ["10.0.0.1", "10.0.0.2"];
+        private static readonly List<string> kCompactMemberPropertyNames = ["id", "name"];
 
         [Test]
         public async Task FlowCatalogController_ReturnsMappedResultsForCatalogAndLookupEndpoints()
@@ -177,7 +179,7 @@ namespace FWO.Test
                 Assert.That(response.StandardGroups, Is.Empty);
                 Assert.That(member.IncludeTechnicalDetails, Is.True);
                 Assert.That(member.Type, Is.EqualTo("range"));
-                Assert.That(member.IpRange, Is.EqualTo(new[] { "10.0.0.1", "10.0.0.2" }));
+                Assert.That(member.IpRange, Is.EqualTo(kDetailedAddressIpRange));
                 Assert.That(member.State, Is.EqualTo(FlowState.Implemented));
                 Assert.That(member.ShowInRequest, Is.True);
                 Assert.That(httpContext.Response.Headers[ListPaging.kHasMoreHeader].ToString(), Is.EqualTo("false"));
@@ -252,10 +254,10 @@ namespace FWO.Test
             {
                 Assert.That(nullJson, Is.EqualTo(omittedJson));
                 Assert.That(falseJson, Is.EqualTo(omittedJson));
-                Assert.That(compactMember.Select(property => property.Key), Is.EquivalentTo(new[] { "id", "name" }));
+                Assert.That(compactMember.Select(property => property.Key), Is.EquivalentTo(kCompactMemberPropertyNames));
                 Assert.That(nullServiceJson, Is.EqualTo(omittedServiceJson));
                 Assert.That(falseServiceJson, Is.EqualTo(omittedServiceJson));
-                Assert.That(compactServiceMember.Select(property => property.Key), Is.EquivalentTo(new[] { "id", "name" }));
+                Assert.That(compactServiceMember.Select(property => property.Key), Is.EquivalentTo(kCompactMemberPropertyNames));
             });
         }
 

@@ -11,6 +11,10 @@ namespace FWO.Test;
 internal class FlowCatalogGroupResponseSerializationTest
 {
     private static readonly JsonSerializerOptions kSerializerOptions = ApiDocumentationJsonOptions.CreateSerializerOptions();
+    private static readonly List<string> kCompactMemberPropertyNames = ["id", "name"];
+    private static readonly List<string> kDetailedAddressMemberPropertyNames =
+        ["id", "name", "type", "ipRange", "state", "showInRequest"];
+    private static readonly List<string> kDetailedAddressIpRange = ["192.0.2.0", "192.0.2.255"];
 
     [Test]
     public void CompactAddressMember_OmitsEveryTechnicalField()
@@ -23,7 +27,7 @@ internal class FlowCatalogGroupResponseSerializationTest
 
         JsonObject json = Serialize(member);
 
-        Assert.That(json.Select(property => property.Key), Is.EquivalentTo(new[] { "id", "name" }));
+        Assert.That(json.Select(property => property.Key), Is.EquivalentTo(kCompactMemberPropertyNames));
         Assert.That(json["id"]!.GetValue<long>(), Is.EqualTo(1001));
         Assert.That(json["name"]!.GetValue<string>(), Is.EqualTo("app-server-1"));
     }
@@ -46,11 +50,10 @@ internal class FlowCatalogGroupResponseSerializationTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(json.Select(property => property.Key), Is.EquivalentTo(
-                new[] { "id", "name", "type", "ipRange", "state", "showInRequest" }));
+            Assert.That(json.Select(property => property.Key), Is.EquivalentTo(kDetailedAddressMemberPropertyNames));
             Assert.That(json["type"]!.GetValue<string>(), Is.EqualTo("network"));
             Assert.That(json["ipRange"]!.AsArray().Select(value => value!.GetValue<string>()),
-                Is.EqualTo(new[] { "192.0.2.0", "192.0.2.255" }));
+                Is.EqualTo(kDetailedAddressIpRange));
             Assert.That(json["state"]!.GetValue<string>(), Is.EqualTo(FlowState.Implemented));
             Assert.That(json["showInRequest"]!.GetValue<bool>(), Is.True);
         });
@@ -67,7 +70,7 @@ internal class FlowCatalogGroupResponseSerializationTest
 
         JsonObject json = Serialize(member);
 
-        Assert.That(json.Select(property => property.Key), Is.EquivalentTo(new[] { "id", "name" }));
+        Assert.That(json.Select(property => property.Key), Is.EquivalentTo(kCompactMemberPropertyNames));
     }
 
     [TestCase(false)]
@@ -90,7 +93,7 @@ internal class FlowCatalogGroupResponseSerializationTest
 
         JsonObject json = JsonNode.Parse(JsonSerializer.Serialize(member, options))!.AsObject();
 
-        Assert.That(json.Select(property => property.Key), Is.EquivalentTo(new[] { "id", "name" }));
+        Assert.That(json.Select(property => property.Key), Is.EquivalentTo(kCompactMemberPropertyNames));
     }
 
     [Test]

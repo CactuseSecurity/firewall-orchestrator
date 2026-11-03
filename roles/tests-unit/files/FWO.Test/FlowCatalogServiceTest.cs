@@ -24,6 +24,7 @@ internal class FlowCatalogServiceTest
     private static readonly List<string> kIpv6HostRange = ["2001:db8::1", "2001:db8::1"];
     private static readonly List<string> kIpv4NetworkRange = ["10.0.0.0", "10.0.0.255"];
     private static readonly List<string> kEmptyIpRange = [];
+    private static readonly List<string> kDetailedAddressIpRange = ["192.0.2.0", "192.0.2.255"];
 
     [Test]
     public void Dispose_ReleasesTheOwnedProtocolCacheLock()
@@ -211,7 +212,7 @@ internal class FlowCatalogServiceTest
             Assert.That(compact.All(member => !member.IncludeTechnicalDetails), Is.True);
             Assert.That(detailed.All(member => member.IncludeTechnicalDetails), Is.True);
             Assert.That(detailed[0].Type, Is.EqualTo("network"));
-            Assert.That(detailed[0].IpRange, Is.EqualTo(new[] { "192.0.2.0", "192.0.2.255" }));
+            Assert.That(detailed[0].IpRange, Is.EqualTo(kDetailedAddressIpRange));
             Assert.That(detailed[0].State, Is.EqualTo(FlowState.Implemented));
             Assert.That(detailed[0].ShowInRequest, Is.True);
             Assert.That(detailed[1].Type, Is.EqualTo("fqdn"));

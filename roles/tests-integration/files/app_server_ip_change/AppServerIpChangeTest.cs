@@ -20,8 +20,8 @@ namespace FWO.Test.AppServerIpChange
     /// Runs against an installed system: two app data imports deliver the same app, whose app server changes its ip
     /// while both ips resolve to the same dns name. The variance analysis has to detect the changed ip although the
     /// name is unchanged, and has to request the new member under the ip suffixed name. Nothing is requested or
-    /// written to a firewall. Set up and cleaned up by roles/tests-integration/tasks/test-app-server-ip-change.yml,
-    /// which also provides the name server answering the reverse lookups of the test ips.
+    /// written to a firewall. Set up and cleaned up by roles/tests-integration/tasks/test-app-server-ip-change.yml.
+    /// The reverse lookups of the test ips are answered in memory, see CreateTestReverseLookup.
     /// </summary>
     [TestFixture]
     [NonParallelizable]
@@ -46,7 +46,6 @@ namespace FWO.Test.AppServerIpChange
         public async Task ChangedIpWithUnchangedDnsNameIsDetectedByVarianceAnalysis()
         {
             AppServerIpChangeSettings settings = AppServerIpChangeSettings.FromEnvironment();
-            await AssertTestIpsResolveToServerName(settings);
 
             using ApiConnection apiConnection = CreateMiddlewareConnection();
             using GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection);
@@ -67,17 +66,17 @@ namespace FWO.Test.AppServerIpChange
         }
 
         /// <summary>
-        /// The test name server answers the reverse lookups only inside the mount namespace of the test run,
-        /// so a failure here means the harness was started without it.
+        /// Reverse lookup used by the app data import instead of the dns: both test ips resolve to the server name,
+        /// every other ip is unresolvable. Avoids a test name server, which would have to run as root.
         /// </summary>
-        private static async Task AssertTestIpsResolveToServerName(AppServerIpChangeSettings settings)
+        private static Func<IPAddress, Task<string>> CreateTestReverseLookup(AppServerIpChangeSettings settings)
         {
-            List<string> testIps = [settings.OldIp, settings.NewIp];
-            foreach (string testIp in testIps)
+            Dictionary<IPAddress, string> serverNamesByIp = new()
             {
-                string dnsName = await IpOperations.DnsReverseLookUpPreferredAsync(IPAddress.Parse(testIp));
-                Assert.That(dnsName, Is.EqualTo(settings.ServerName), $"reverse lookup of {testIp} does not use the test name server");
-            }
+                [IPAddress.Parse(settings.OldIp)] = settings.ServerName,
+                [IPAddress.Parse(settings.NewIp)] = settings.ServerName
+            };
+            return address => Task.FromResult(serverNamesByIp.GetValueOrDefault(address, ""));
         }
 
         private static GraphQlApiConnection CreateMiddlewareConnection()
@@ -100,7 +99,7 @@ namespace FWO.Test.AppServerIpChange
             globalConfig.ImportAppDataPath = JsonSerializer.Serialize(importSources);
             globalConfig.DnsLookup = true;
 
-            using AppDataImport appDataImport = new(apiConnection, globalConfig);
+            using AppDataImport appDataImport = new(apiConnection, globalConfig, CreateTestReverseLookup(settings));
             List<string> failedImports = await appDataImport.Run();
 
             Assert.That(failedImports, Is.EqualTo(expectedFailedImports), $"app data import of {importSource} failed");

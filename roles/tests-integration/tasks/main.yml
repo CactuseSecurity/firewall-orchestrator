@@ -123,7 +123,10 @@
 # and local database queries.
 - name: app server ip change testing
   import_tasks: test-app-server-ip-change.yml
-  when: "['middlewareserver', 'importers', 'databaseserver'] | difference(group_names) | length == 0"
+  when:
+    # only on test systems: the test creates a temporary app and firewall in the database
+    - "'sampleserver' in group_names"
+    - "['middlewareserver', 'importers', 'databaseserver'] | difference(group_names) | length == 0"
 
 - name: testing all exposed web services
   import_tasks: test-web.yml

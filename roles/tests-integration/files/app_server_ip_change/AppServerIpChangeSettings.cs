@@ -28,7 +28,7 @@ namespace FWO.Test.AppServerIpChange
         /// <summary>Name of the app role, which is also the name of its group on the test firewall.</summary>
         public string AppRoleName { get; private init; } = "";
 
-        /// <summary>Dns name of both ips.</summary>
+        /// <summary>Name the test reverse lookup returns for both ips.</summary>
         public string ServerName { get; private init; } = "";
 
         /// <summary>Ip of the app server in the first import.</summary>

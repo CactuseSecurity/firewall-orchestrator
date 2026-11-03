@@ -6,19 +6,20 @@
 # - the test firewall is a management imported from a local normalized config file. It only holds the app role
 #   group with the app server at the old ip and no rules, so the rule owner mapping has nothing to map for it.
 # - the harness (files/app_server_ip_change) runs the real AppDataImport and ModellingVarianceAnalysis in its own
-#   process against the installed api. Import paths and dns lookup are only set in its memory, so neither the
-#   stored config nor the middleware jobs are touched.
+#   process against the installed api, as {{ fworch_user }}. Import paths and dns lookup are only set in its
+#   memory, so neither the stored config nor the middleware jobs are touched.
 # - each app data import run also reads an invalid guard file, which closes the owner import control of the run
 #   as unsuccessful. The rule owner mapping only takes up successful owner imports, so it never sees the test app.
-# - the reverse lookups are answered by a test name server that only the harness process sees (private mount
-#   namespace with its own resolv.conf), see run_with_test_dns.sh.
+# - the reverse lookups of the test ips are answered by the harness itself (injected into AppDataImport), so
+#   neither a test name server nor any change of the resolver configuration is needed.
 # Everything the test creates is named with test_postfix and removed in the always section.
 
 - name: set the names of the app server ip change test
   set_fact:
     app_ip_test_old_ip: "1.2.3.4"
     app_ip_test_new_ip: "2.3.4.5"
-    app_ip_test_server_name: "app-srv-1"
+    # unique, so that the cleanup can find the log entries naming the app server
+    app_ip_test_server_name: "app-srv-1{{ test_postfix }}"
     app_ip_test_app_name: "app_ip_change{{ test_postfix }}"
     app_ip_test_ext_app_id: "APP-IP-CHANGE{{ test_postfix }}"
     app_ip_test_import_source: "app_ip_change{{ test_postfix }}"
@@ -30,8 +31,6 @@
     app_ip_test_import_dir: "{{ fworch_conf_dir }}/app_ip_change{{ test_postfix }}"
     # next to FWO.Test, so that the project references of the harness resolve to the installed sources
     app_ip_test_harness_dir: "{{ test_dir }}/csharp/FWO.Test.AppServerIpChange{{ test_postfix }}"
-    app_ip_test_dns_address: "127.0.0.2"
-    app_ip_test_dns_max_seconds: 1800
     app_ip_test_mapping_wait_retries: 30
     app_ip_test_mapping_wait_delay: 10
     app_ip_test_app_data_log_source: "importAppData"
@@ -165,15 +164,6 @@
         - "--chmod=D0755,F0644"
         - "--exclude=bin/"
         - "--exclude=obj/"
-        - "--exclude=__pycache__/"
-
-  - name: write the resolver configuration of the test run
-    copy:
-      dest: "{{ app_ip_test_harness_dir }}/resolv.conf"
-      content: "nameserver {{ app_ip_test_dns_address }}\n"
-      owner: "{{ fworch_user }}"
-      group: "{{ fworch_group }}"
-      mode: "0644"
 
   # the lib role creates it as well, but the tests also run on their own (tag test)
   - name: create the runtime directory for dotnet commands run as {{ fworch_user }}
@@ -184,29 +174,20 @@
       group: "{{ fworch_group }}"
       mode: "0700"
 
-  - name: find the home directory of {{ fworch_user }}
-    getent:
-      database: passwd
-      key: "{{ fworch_user }}"
-
   - name: run the app data imports and the variance analysis
     command:
       argv:
-        - unshare
-        - --mount
-        - --propagation
-        - private
-        - bash
-        - "{{ app_ip_test_harness_dir }}/run_with_test_dns.sh"
+        - dotnet
+        - test
+        - "{{ app_ip_test_harness_dir }}/FWO.Test.AppServerIpChange.csproj"
+        - --configuration
+        - Debug
+        - --nologo
+      chdir: "{{ app_ip_test_harness_dir }}"
+    become_user: "{{ fworch_user }}"
     environment: >-
       {{
         dotnet_env | combine({
-          'FWO_TEST_HARNESS_DIR': app_ip_test_harness_dir,
-          'FWO_TEST_PYTHON': ansible_facts['python']['executable'],
-          'FWO_TEST_DNS_ADDRESS': app_ip_test_dns_address,
-          'FWO_TEST_DNS_MAX_SECONDS': app_ip_test_dns_max_seconds | string,
-          'FWO_TEST_RUN_USER': fworch_user,
-          'FWO_TEST_RUN_HOME': ansible_facts['getent_passwd'][fworch_user][4],
           'FWO_TEST_FIRST_IMPORT_SOURCE': app_ip_test_import_dir ~ '/first_import',
           'FWO_TEST_SECOND_IMPORT_SOURCE': app_ip_test_import_dir ~ '/second_import',
           'FWO_TEST_GUARD_IMPORT_SOURCE': app_ip_test_import_dir ~ '/guard',
@@ -293,64 +274,105 @@
 
   # owner deletion cascades to the app servers, responsibles and owner change log of the test app.
   # The owner import controls are only deleted if no mapping of another owner refers to them - deleting them
-  # would cascade to that mapping, so the cleanup stops instead.
+  # would cascade to that mapping, so the cleanup deletes nothing instead and fails.
+  # Single statement: the owner imports are found through the owner change log, which the owner deletion removes.
+  # Log entries are matched by the unique names of the test only, never by its ips.
   - name: delete the test app with its app servers, owner imports and log entries
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
-        DO $do$
-        DECLARE
-          v_owner_ids INTEGER[];
-          v_control_ids BIGINT[];
-        BEGIN
-          SELECT COALESCE(array_agg(id), '{}') INTO v_owner_ids FROM owner
-          WHERE app_id_external = '{{ app_ip_test_ext_app_id }}' OR import_source = '{{ app_ip_test_import_source }}';
-          SELECT COALESCE(array_agg(DISTINCT control_id), '{}') INTO v_control_ids FROM changelog_owner
-          WHERE new_owner_id = ANY(v_owner_ids) OR old_owner_id = ANY(v_owner_ids);
-          IF EXISTS (
-            SELECT 1 FROM rule_owner
-            WHERE (created = ANY(v_control_ids) OR removed = ANY(v_control_ids)) AND NOT owner_id = ANY(v_owner_ids)
-          ) THEN
-            RAISE EXCEPTION 'rule_owner mappings of other owners refer to the owner imports % of the test app', v_control_ids;
-          END IF;
-          DELETE FROM change_history WHERE app_id = ANY(v_owner_ids);
-          DELETE FROM owner WHERE id = ANY(v_owner_ids);
-          DELETE FROM import_control WHERE control_id = ANY(v_control_ids) AND import_type_id = 2;
+        WITH test_owners AS (
+          SELECT id FROM owner WHERE app_id_external = %(ext_app_id)s OR import_source = %(import_source)s
+        ), test_owner_imports AS (
+          SELECT DISTINCT control_id FROM changelog_owner
+          WHERE new_owner_id IN (SELECT id FROM test_owners) OR old_owner_id IN (SELECT id FROM test_owners)
+        ), foreign_mappings AS (
+          SELECT count(*) AS refs FROM rule_owner
+          WHERE (created IN (SELECT control_id FROM test_owner_imports) OR removed IN (SELECT control_id FROM test_owner_imports))
+            AND owner_id NOT IN (SELECT id FROM test_owners)
+        ), deleted_history AS (
+          DELETE FROM change_history
+          WHERE app_id IN (SELECT id FROM test_owners) AND (SELECT refs FROM foreign_mappings) = 0
+          RETURNING 1
+        ), deleted_owners AS (
+          DELETE FROM owner
+          WHERE id IN (SELECT id FROM test_owners) AND (SELECT refs FROM foreign_mappings) = 0
+          RETURNING 1
+        ), deleted_owner_imports AS (
+          DELETE FROM import_control
+          WHERE control_id IN (SELECT control_id FROM test_owner_imports) AND import_type_id = 2
+            AND (SELECT refs FROM foreign_mappings) = 0
+          RETURNING 1
+        ), deleted_log_entries AS (
           DELETE FROM log_data_issue
-          WHERE source = '{{ app_ip_test_app_data_log_source }}'
-            AND issue_timestamp >= '{{ app_ip_test_start.query_result.0.start_time }}'::timestamptz
-            AND (description LIKE '%{{ app_ip_test_import_dir }}%'
-              OR description LIKE '%{{ app_ip_test_app_name }}%'
-              OR description LIKE '%{{ app_ip_test_server_name }}%'
-              OR description LIKE '%{{ app_ip_test_old_ip }}%'
-              OR description LIKE '%{{ app_ip_test_new_ip }}%');
-        END $do$
+          WHERE source = %(log_source)s AND issue_timestamp >= %(start_time)s::timestamptz
+            AND (strpos(description, %(import_dir)s) > 0 OR strpos(description, %(app_name)s) > 0
+              OR strpos(description, %(server_name)s) > 0)
+          RETURNING 1
+        )
+        SELECT (SELECT refs FROM foreign_mappings) AS foreign_mapping_refs,
+          (SELECT count(*) FROM deleted_history) AS deleted_history_entries,
+          (SELECT count(*) FROM deleted_owners) AS deleted_owners,
+          (SELECT count(*) FROM deleted_owner_imports) AS deleted_owner_imports,
+          (SELECT count(*) FROM deleted_log_entries) AS deleted_log_entries;
+      named_args:
+        ext_app_id: "{{ app_ip_test_ext_app_id }}"
+        import_source: "{{ app_ip_test_import_source }}"
+        log_source: "{{ app_ip_test_app_data_log_source }}"
+        start_time: "{{ app_ip_test_start.query_result.0.start_time }}"
+        import_dir: "{{ app_ip_test_import_dir }}"
+        app_name: "{{ app_ip_test_app_name }}"
+        server_name: "{{ app_ip_test_server_name }}"
     become_user: postgres
     register: app_ip_test_app_cleanup
+    failed_when: >
+      app_ip_test_app_cleanup.query_result is not defined
+      or app_ip_test_app_cleanup.query_result.0.foreign_mapping_refs != 0
     # the remaining cleanup has to run anyway, the failure is reported by the last task
     ignore_errors: true
 
-  - name: delete the test firewall and its credential
+  # management deletion cascades to the imports and the rule metadata of the test firewall. Nothing is deleted
+  # if a rule owner mapping refers to one of its imports.
+  - name: delete the test firewall
     postgresql_query:
       db: "{{ fworch_db_name }}"
       query: >
-        DO $do$
-        DECLARE
-          v_mgm_ids INTEGER[];
-        BEGIN
-          SELECT COALESCE(array_agg(mgm_id), '{}') INTO v_mgm_ids FROM management WHERE mgm_name = '{{ app_ip_test_mgm_name }}';
-          IF EXISTS (
-            SELECT 1 FROM rule_owner ro JOIN import_control ic ON ic.control_id IN (ro.created, ro.removed)
-            WHERE ic.mgm_id = ANY(v_mgm_ids)
-          ) THEN
-            RAISE EXCEPTION 'rule_owner mappings refer to the imports of the test firewall %', v_mgm_ids;
-          END IF;
-          DELETE FROM rule_metadata WHERE mgm_id = ANY(v_mgm_ids);
-          DELETE FROM management WHERE mgm_id = ANY(v_mgm_ids);
-          DELETE FROM credential WHERE credential_name = '{{ app_ip_test_credential_name }}';
-        END $do$
+        WITH test_managements AS (
+          SELECT mgm_id FROM management WHERE mgm_name = %(mgm_name)s
+        ), mappings AS (
+          SELECT count(*) AS refs FROM rule_owner ro JOIN import_control ic ON ic.control_id IN (ro.created, ro.removed)
+          WHERE ic.mgm_id IN (SELECT mgm_id FROM test_managements)
+        ), deleted_rule_metadata AS (
+          DELETE FROM rule_metadata
+          WHERE mgm_id IN (SELECT mgm_id FROM test_managements) AND (SELECT refs FROM mappings) = 0
+          RETURNING 1
+        ), deleted_managements AS (
+          DELETE FROM management
+          WHERE mgm_id IN (SELECT mgm_id FROM test_managements) AND (SELECT refs FROM mappings) = 0
+          RETURNING 1
+        )
+        SELECT (SELECT refs FROM mappings) AS rule_owner_refs,
+          (SELECT count(*) FROM deleted_rule_metadata) AS deleted_rule_metadata,
+          (SELECT count(*) FROM deleted_managements) AS deleted_managements;
+      named_args:
+        mgm_name: "{{ app_ip_test_mgm_name }}"
     become_user: postgres
     register: app_ip_test_fw_cleanup
+    failed_when: >
+      app_ip_test_fw_cleanup.query_result is not defined
+      or app_ip_test_fw_cleanup.query_result.0.rule_owner_refs != 0
+    ignore_errors: true
+
+  # separate statement: the management refers to the credential with on delete restrict
+  - name: delete the credential of the test firewall
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: DELETE FROM credential WHERE credential_name = %s;
+      positional_args:
+        - "{{ app_ip_test_credential_name }}"
+    become_user: postgres
+    register: app_ip_test_credential_cleanup
+    when: app_ip_test_fw_cleanup is not failed
     ignore_errors: true
 
   - name: delete the test import files and the test harness
@@ -384,14 +406,16 @@
       that:
         - app_ip_test_app_cleanup is not failed
         - app_ip_test_fw_cleanup is not failed
+        - app_ip_test_credential_cleanup is not failed
         - app_ip_test_leftovers.query_result.0.owners == 0
         - app_ip_test_leftovers.query_result.0.app_servers == 0
         - app_ip_test_leftovers.query_result.0.managements == 0
         - app_ip_test_leftovers.query_result.0.credentials == 0
       fail_msg: >
         The app server ip change test left data behind.
-        app cleanup={{ app_ip_test_app_cleanup.msg | default('ok') }},
-        firewall cleanup={{ app_ip_test_fw_cleanup.msg | default('ok') }},
+        app cleanup={{ app_ip_test_app_cleanup.msg | default(app_ip_test_app_cleanup.query_result | default('')) }},
+        firewall cleanup={{ app_ip_test_fw_cleanup.msg | default(app_ip_test_fw_cleanup.query_result | default('')) }},
+        credential cleanup={{ app_ip_test_credential_cleanup.msg | default('ok') }},
         leftovers={{ app_ip_test_leftovers.query_result.0 }}
 
   become: true

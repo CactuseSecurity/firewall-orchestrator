@@ -966,6 +966,7 @@ namespace FWO.Test
 
         private const string kDnsName = "app-srv-1";
         private const string kFileName = "name-from-file";
+        private const string kDnsTestImportSource = "SRC-DNS";
         private static readonly List<FwoOwner> kNoExistingApps = [];
 
         private static ModellingImportAppData BuildNewAppWithServer(string ip)
@@ -974,7 +975,7 @@ namespace FWO.Test
             {
                 Name = "App-Dns",
                 ExtAppId = "APP-DNS",
-                ImportSource = "SRC-DNS",
+                ImportSource = kDnsTestImportSource,
                 AppServers = [new() { Name = kFileName, Ip = ip, IpEnd = "" }]
             };
         }
@@ -1048,6 +1049,101 @@ namespace FWO.Test
 
             Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(1));
             Assert.That(apiConn.LastNewAppServerName, Is.EqualTo(kDnsName));
+        }
+
+        [Test]
+        public async Task SaveApp_NewApp_KeepsFileNameAndLogsError_WhenDnsLookupFails()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig { DnsLookup = true },
+                _ => throw new InvalidOperationException("Simulated dns failure."));
+            SetUserConfig(import, new SimulatedUserConfig());
+            SetExistingApps(import, kNoExistingApps);
+
+            bool imported = await InvokeSaveApp(import, BuildNewAppWithServer("10.0.0.1/32"), new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.LastNewAppServerName, Is.EqualTo(kFileName));
+            Assert.That(apiConn.LogEntryDescriptions,
+                Does.Contain($"App Server name {kFileName} could not be set according to naming conventions."));
+        }
+
+        [Test]
+        public async Task ImportAppServers_ContinuesWithNextServer_WhenIpIsInvalid()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetUserConfig(import, new SimulatedUserConfig());
+            apiConn.AppServersByOwner[(54, kDnsTestImportSource)] = BuildExistingAppServer(54, "deleted-srv", isDeleted: true, customType: 0);
+            ModellingImportAppData incomingApp = BuildNewAppWithServer("no-ip");
+            incomingApp.AppServers.Add(new() { Name = "valid-srv", Ip = "10.0.0.2/32", IpEnd = "" });
+
+            await InvokeImportAppServers(import, incomingApp, 54);
+
+            Assert.That(apiConn.LogEntryDescriptions, Does.Contain($"App Server {kFileName} could not be processed."));
+            Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.LastNewAppServerName, Is.EqualTo("valid-srv"));
+        }
+
+        [Test]
+        public async Task ImportAppServers_StopsServer_WhenReactivationFails()
+        {
+            AppDataImportSaveAppApiConn apiConn = new() { FailingQueries = { ModellingQueries.setAppServerDeletedState } };
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetUserConfig(import, new SimulatedUserConfig());
+            apiConn.AppServersByOwner[(55, kDnsTestImportSource)] = BuildExistingAppServer(55, kFileName, isDeleted: true, customType: 0);
+
+            await InvokeImportAppServers(import, BuildNewAppWithServer("10.0.0.1/32"), 55);
+
+            Assert.That(apiConn.LogEntryDescriptions, Does.Contain($"App Server {kFileName} could not be reactivated."));
+            Assert.That(apiConn.SetAppServerTypeCalls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task ImportAppServers_StopsServer_WhenNameUpdateFails()
+        {
+            AppDataImportSaveAppApiConn apiConn = new() { FailingQueries = { ModellingQueries.setAppServerName } };
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetUserConfig(import, new SimulatedUserConfig());
+            apiConn.AppServersByOwner[(56, kDnsTestImportSource)] = BuildExistingAppServer(56, "old-name", isDeleted: false, customType: null);
+
+            await InvokeImportAppServers(import, BuildNewAppWithServer("10.0.0.1/32"), 56);
+
+            Assert.That(apiConn.LogEntryDescriptions, Does.Contain($"Name of App Server old-name could not be set to {kFileName}."));
+            Assert.That(apiConn.SetAppServerTypeCalls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task ImportAppServers_ReportsFailure_WhenTypeUpdateFails()
+        {
+            AppDataImportSaveAppApiConn apiConn = new() { FailingQueries = { ModellingQueries.setAppServerType } };
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetUserConfig(import, new SimulatedUserConfig());
+            apiConn.AppServersByOwner[(57, kDnsTestImportSource)] = BuildExistingAppServer(57, kFileName, isDeleted: false, customType: null);
+
+            await InvokeImportAppServers(import, BuildNewAppWithServer("10.0.0.1/32"), 57);
+
+            Assert.That(apiConn.LogEntryDescriptions, Does.Contain($"Type of App Server {kFileName} could not be set."));
+            Assert.That(apiConn.SetAppServerNameCalls, Is.EqualTo(0));
+        }
+
+        private static List<ModellingAppServer> BuildExistingAppServer(int appId, string name, bool isDeleted, int? customType)
+        {
+            return
+            [
+                new ModellingAppServer
+                {
+                    Id = 900 + appId,
+                    AppId = appId,
+                    Name = name,
+                    Ip = "10.0.0.1/32",
+                    IpEnd = "10.0.0.1/32",
+                    ImportSource = kDnsTestImportSource,
+                    CustomType = customType,
+                    IsDeleted = isDeleted
+                }
+            ];
         }
 
         [Test]
@@ -2550,9 +2646,16 @@ namespace FWO.Test
             public (long id, string name)? LastSetAppServerName { get; private set; }
             public (long id, int customType)? LastSetAppServerType { get; private set; }
             public List<(long id, bool deleted)> SetAppServerDeletedStates { get; } = [];
+            public HashSet<string> FailingQueries { get; init; } = [];
+            public List<string> LogEntryDescriptions { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
+                if (FailingQueries.Contains(query))
+                {
+                    throw new InvalidOperationException("Simulated api failure.");
+                }
+
                 if (query == OwnerQueries.newOwner)
                 {
                     ++NewOwnerCalls;
@@ -2665,6 +2768,7 @@ namespace FWO.Test
 
                 if (query == MonitorQueries.addDataImportLogEntry)
                 {
+                    LogEntryDescriptions.Add(GetAnonymousString(variables, "description"));
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                     {
                         ReturnIds = [new ReturnId { NewId = 1 }]

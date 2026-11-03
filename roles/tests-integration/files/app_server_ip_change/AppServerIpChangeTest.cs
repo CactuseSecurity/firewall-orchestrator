@@ -53,11 +53,9 @@ namespace FWO.Test.AppServerIpChange
 
             await ImportAppData(apiConnection, globalConfig, settings, settings.FirstImportSource);
             FwoOwner owner = await LoadTestOwner(apiConnection, settings);
-            await AdjustTestAppServerNames(apiConnection, globalConfig, owner, settings);
             AssertAppServersAfterFirstImport(await LoadAppServers(apiConnection, owner, settings), settings);
 
             await ImportAppData(apiConnection, globalConfig, settings, settings.SecondImportSource);
-            await AdjustTestAppServerNames(apiConnection, globalConfig, owner, settings);
             List<ModellingAppServer> appServers = await LoadAppServers(apiConnection, owner, settings);
             AssertAppServersAfterSecondImport(appServers, settings);
 
@@ -127,30 +125,9 @@ namespace FWO.Test.AppServerIpChange
         }
 
         /// <summary>
-        /// Second step of the ImportAppDataJob (AppServerHelper.AdjustAppServerNames), limited to the test app,
-        /// because the job step renames the app servers of all apps: a new app takes the names of its app servers
-        /// from the import file, the dns names are only set by this step.
+        /// The import file names the app server by its ip, so the dns name shows that the import resolved it
+        /// already for the new app.
         /// </summary>
-        private static async Task AdjustTestAppServerNames(ApiConnection apiConnection, GlobalConfig globalConfig, FwoOwner owner, AppServerIpChangeSettings settings)
-        {
-            ModellingNamingConvention namingConvention = ModellingNamingConvention.FromJson(globalConfig.ModNamingConvention);
-            List<ModellingAppServer> appServers = await LoadAppServers(apiConnection, owner, settings);
-            foreach (ModellingAppServer appServer in appServers.Where(appServer => !appServer.IsDeleted))
-            {
-                string oldName = appServer.Name;
-                string newName = await AppServerHelper.ConstructAppServerNameFromDns(appServer, namingConvention, globalConfig.OverwriteExistingNames);
-                if (newName != oldName)
-                {
-                    var variables = new
-                    {
-                        id = appServer.Id,
-                        newName
-                    };
-                    await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.setAppServerName, variables);
-                }
-            }
-        }
-
         private static void AssertAppServersAfterFirstImport(List<ModellingAppServer> appServers, AppServerIpChangeSettings settings)
         {
             List<ModellingAppServer> activeAppServers = [.. appServers.Where(appServer => !appServer.IsDeleted)];

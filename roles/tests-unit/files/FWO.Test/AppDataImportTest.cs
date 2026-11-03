@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using FWO.Api.Client;
 using FWO.Basics;
@@ -961,6 +962,92 @@ namespace FWO.Test
             Assert.That(apiConn.LastSetAppServerType, Is.EqualTo((902L, 0)));
             Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(0));
             Assert.That(apiConn.AddHistoryEntryCalls, Is.EqualTo(2));
+        }
+
+        private const string kDnsName = "app-srv-1";
+        private const string kFileName = "name-from-file";
+        private static readonly List<FwoOwner> kNoExistingApps = [];
+
+        private static ModellingImportAppData BuildNewAppWithServer(string ip)
+        {
+            return new()
+            {
+                Name = "App-Dns",
+                ExtAppId = "APP-DNS",
+                ImportSource = "SRC-DNS",
+                AppServers = [new() { Name = kFileName, Ip = ip, IpEnd = "" }]
+            };
+        }
+
+        [Test]
+        public async Task SaveApp_NewApp_NamesAppServerFromDns_WhenDnsLookupIsOn()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            List<IPAddress> lookedUpAddresses = [];
+            AppDataImport import = new(apiConn, new GlobalConfig { DnsLookup = true }, address =>
+            {
+                lookedUpAddresses.Add(address);
+                return Task.FromResult(kDnsName);
+            });
+            SetUserConfig(import, new SimulatedUserConfig());
+            SetExistingApps(import, kNoExistingApps);
+
+            bool imported = await InvokeSaveApp(import, BuildNewAppWithServer("10.0.0.1/32"), new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.LastNewAppServerName, Is.EqualTo(kDnsName));
+            Assert.That(apiConn.LastNewAppServerIpEnd, Is.EqualTo("10.0.0.1/32"));
+            Assert.That(lookedUpAddresses, Has.Count.EqualTo(1));
+            Assert.That(lookedUpAddresses[0], Is.EqualTo(IPAddress.Parse("10.0.0.1")));
+        }
+
+        [Test]
+        public async Task SaveApp_NewApp_KeepsFileName_WhenDnsLookupIsOff()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            int lookups = 0;
+            AppDataImport import = new(apiConn, new GlobalConfig { DnsLookup = false }, _ =>
+            {
+                ++lookups;
+                return Task.FromResult(kDnsName);
+            });
+            SetUserConfig(import, new SimulatedUserConfig());
+            SetExistingApps(import, kNoExistingApps);
+
+            bool imported = await InvokeSaveApp(import, BuildNewAppWithServer("10.0.0.1/32"), new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastNewAppServerName, Is.EqualTo(kFileName));
+            Assert.That(apiConn.LastNewAppServerIpEnd, Is.EqualTo("10.0.0.1/32"));
+            Assert.That(lookups, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task SaveApp_NewApp_KeepsFileName_WhenIpIsNotResolvable()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig { DnsLookup = true }, _ => Task.FromResult(""));
+            SetUserConfig(import, new SimulatedUserConfig());
+            SetExistingApps(import, kNoExistingApps);
+
+            bool imported = await InvokeSaveApp(import, BuildNewAppWithServer("10.0.0.1/32"), new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastNewAppServerName, Is.EqualTo(kFileName));
+        }
+
+        [Test]
+        public async Task ImportAppServers_NamesNewServerOfExistingAppFromDns_WhenDnsLookupIsOn()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig { DnsLookup = true }, _ => Task.FromResult(kDnsName));
+            SetUserConfig(import, new SimulatedUserConfig());
+
+            await InvokeImportAppServers(import, BuildNewAppWithServer("10.0.0.2/32"), 53);
+
+            Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.LastNewAppServerName, Is.EqualTo(kDnsName));
         }
 
         [Test]
@@ -2459,6 +2546,7 @@ namespace FWO.Test
             public int SetAppServerTypeCalls { get; private set; }
             public int AddHistoryEntryCalls { get; private set; }
             public string? LastNewAppServerIpEnd { get; private set; }
+            public string? LastNewAppServerName { get; private set; }
             public (long id, string name)? LastSetAppServerName { get; private set; }
             public (long id, int customType)? LastSetAppServerType { get; private set; }
             public List<(long id, bool deleted)> SetAppServerDeletedStates { get; } = [];
@@ -2519,6 +2607,7 @@ namespace FWO.Test
                 {
                     ++NewAppServerCalls;
                     LastNewAppServerIpEnd = GetAnonymousString(variables, "ipEnd");
+                    LastNewAppServerName = GetAnonymousString(variables, "name");
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                     {
                         ReturnIds = [new ReturnId { NewIdLong = 777 }]

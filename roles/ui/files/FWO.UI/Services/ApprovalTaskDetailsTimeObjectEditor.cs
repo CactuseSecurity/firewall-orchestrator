@@ -180,6 +180,7 @@ internal sealed class ApprovalTaskDetailsTimeObjectEditor
         if (createdTask == null || createdElement == null)
         {
             context.WfHandler.SetReqTaskEnv(sourceTask);
+            context.WfHandler.ResetReqTaskActions();
             return;
         }
 
@@ -195,6 +196,7 @@ internal sealed class ApprovalTaskDetailsTimeObjectEditor
         };
         state.TargetDatesEditorModel = updatedModel;
         context.WfHandler.SetReqTaskEnv(sourceTask);
+        context.WfHandler.ResetReqTaskActions();
         state.DisplayTimeObjectTaskEditor = false;
         state.DisplayTargetDatesEditor = true;
         await context.RefreshUi();
@@ -268,7 +270,7 @@ internal sealed class ApprovalTaskDetailsTimeObjectEditor
         return context.WfHandler.ActTicket.Tasks.Where(candidate =>
             candidate.TaskType == task.TaskType
             && candidate.StateId == task.StateId
-            && candidate.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId);
+            && candidate.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId).ToList();
     }
 
     internal void ApplyTimeObjectModel(TargetDatesEditorModel model)

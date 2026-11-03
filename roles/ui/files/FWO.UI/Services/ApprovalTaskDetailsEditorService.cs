@@ -313,9 +313,7 @@ internal sealed class ApprovalTaskDetailsEditorService
     {
         List<WfReqTask> taskList = tasks.ToList();
         if (taskList.Count == 0
-            || taskList.Any(task => !context.WfHandler.CanActOnReqTaskInCurrentPhase(task))
-            || taskList.Any(task => WfObjectTaskHelper.IsObjectTask(task.TaskType)
-                && WfObjectTaskHelper.HasFlowDbReference(task)))
+            || taskList.Any(task => !context.WfHandler.CanActOnReqTaskInCurrentPhase(task)))
         {
             return false;
         }
@@ -324,6 +322,13 @@ internal sealed class ApprovalTaskDetailsEditorService
         WfTaskType taskType = Enum.TryParse(firstTask?.TaskType ?? "", true, out WfTaskType parsedTaskType)
             ? parsedTaskType
             : WfTaskType.access;
+        if (WfObjectTaskHelper.IsObjectTask(taskType)
+            && WfObjectTaskHelper.HasFlowDbReference(firstTask!)
+            && (fieldKey == WorkflowEditableFieldKeys.Name || fieldKey == WorkflowEditableFieldKeys.Content))
+        {
+            return false;
+        }
+
         return ApproverAllowedChangesAccess.CanEditTaskField(AllowedChanges, new()
         {
             IsApprovalPhase = true,

@@ -56,7 +56,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void CanEditAndSaveFields_RefusesTaskWithFlowDbReference()
+        public void CanEditAndSaveFields_AllowsTaskFieldsWithFlowDbReference()
         {
             DisplayRequestTask component = new();
             SimulatedUserConfig userConfig = new();
@@ -82,8 +82,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(InvokePrivate<bool>(component, "CanEditReqTaskField", WorkflowEditableFieldKeys.Services), Is.False);
-                Assert.That(InvokePrivate<bool>(component, "CanSaveReqTaskChanges"), Is.False);
+                Assert.That(InvokePrivate<bool>(component, "CanEditReqTaskField", WorkflowEditableFieldKeys.Services), Is.True);
+                Assert.That(InvokePrivate<bool>(component, "CanSaveReqTaskChanges"), Is.True);
             });
         }
 

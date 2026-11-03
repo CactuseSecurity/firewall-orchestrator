@@ -648,6 +648,106 @@ internal sealed class UiApprovalTaskDetailsEditorServiceTest
     }
 
     [Test]
+    public async Task TimeObjectEditor_SavesTargetDatesForAllTasksInTheBundle()
+    {
+        WfReqTask first = new()
+        {
+            Id = 130,
+            TaskNumber = 1,
+            StateId = 2,
+            TaskType = WfTaskType.access.ToString()
+        };
+        WfReqTask second = new()
+        {
+            Id = 131,
+            TaskNumber = 2,
+            StateId = 2,
+            TaskType = WfTaskType.access.ToString()
+        };
+        first.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "time-bundle");
+        second.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "time-bundle");
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 13, Tasks = [first, second] } };
+        UiRequestWorkflowTest.SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix { LowestInputState = 1 });
+        ApprovalTaskDetailsEditorContext context = new();
+        ApprovalTaskDetailsEditorState state = new() { EditingTargetDatesTask = first };
+        SimulatedUserConfig config = new() { ReqConsiderBundling = true, ReqDisplayBundledTasksAsOne = true };
+        context.Configure(handler, config, () => Task.CompletedTask);
+        ApprovalTaskDetailsLookupService lookup = new(context, state);
+        ApprovalTaskDetailsTimeObjectEditor editor = new(context, state, lookup, (_, _) => true,
+            () => Task.CompletedTask);
+        DateTime begin = new(2026, 12, 1, 8, 0, 0);
+        DateTime end = new(2026, 12, 31, 18, 0, 0);
+
+        await editor.SaveTargetDatesCore(new TargetDatesEditorModel
+        {
+            BeginDate = begin,
+            EndDate = end
+        });
+
+        WfReqTask savedFirst = handler.ActTicket.Tasks.Single(task => task.Id == first.Id);
+        WfReqTask savedSecond = handler.ActTicket.Tasks.Single(task => task.Id == second.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(savedFirst.TargetBeginDate, Is.EqualTo(begin));
+            Assert.That(savedFirst.TargetEndDate, Is.EqualTo(end));
+            Assert.That(savedSecond.TargetBeginDate, Is.EqualTo(begin));
+            Assert.That(savedSecond.TargetEndDate, Is.EqualTo(end));
+            Assert.That(state.EditingTargetDatesTask, Is.Null);
+            Assert.That(state.DisplayDeleteFormerTimeObjectTask, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task TimeObjectEditor_CreatesTicketTimeObjectTaskAndReturnsToDateEditor()
+    {
+        WfReqTask accessTask = new()
+        {
+            Id = 140,
+            TaskNumber = 1,
+            StateId = 2,
+            TaskType = WfTaskType.access.ToString(),
+            ManagementId = 7,
+            Approvals = [new WfApproval { StateId = 2, ApproverGroup = "approvers" }]
+        };
+        WfTicket ticket = new() { Id = 14, Tasks = [accessTask], TenantId = 3 };
+        WfHandler handler = new()
+        {
+            ActTicket = ticket,
+            ActStateMatrix = new StateMatrix { LowestInputState = 2 }
+        };
+        UiRequestWorkflowTest.SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix { LowestInputState = 2 });
+        UiRequestWorkflowTest.SetMatrix(handler, WfTaskType.object_create.ToString(), new StateMatrix { LowestInputState = 2 });
+        ApprovalTaskDetailsEditorContext context = new();
+        ApprovalTaskDetailsEditorState state = new() { EditingTargetDatesTask = accessTask };
+        context.Configure(handler, new SimulatedUserConfig(), () => Task.CompletedTask);
+        ApprovalTaskDetailsLookupService lookup = new(context, state);
+        ApprovalTaskDetailsTimeObjectEditor editor = new(context, state, lookup, (_, _) => true,
+            () => Task.CompletedTask);
+        TargetDatesEditorModel model = new()
+        {
+            FlowTimeObjectName = "maintenance",
+            BeginDate = new DateTime(2026, 11, 1, 8, 0, 0),
+            EndDate = new DateTime(2026, 11, 30, 18, 0, 0)
+        };
+
+        await editor.CreateTimeObjectTaskCore(model);
+
+        WfReqTask createdTask = ticket.Tasks.Single(task => task.TaskType == WfTaskType.object_create.ToString());
+        Assert.Multiple(() =>
+        {
+            Assert.That(createdTask.Title, Does.Contain("maintenance"));
+            Assert.That(createdTask.StateId, Is.EqualTo(2));
+            Assert.That(createdTask.Elements.Single().Name, Does.Contain("maintenance"));
+            Assert.That(state.DisplayTimeObjectTaskEditor, Is.False);
+            Assert.That(state.DisplayTargetDatesEditor, Is.True);
+            Assert.That(state.TargetDatesEditorModel.FlowTimeObjectName, Does.Contain("maintenance"));
+            Assert.That(handler.DisplayReqTaskMode, Is.False);
+            Assert.That(handler.EditReqTaskMode, Is.False);
+            Assert.That(handler.AddReqTaskMode, Is.False);
+        });
+    }
+
+    [Test]
     public async Task EditorService_TracksProgressAndRefreshesAroundAnOperation()
     {
         ApprovalTaskDetailsEditorService service = new();

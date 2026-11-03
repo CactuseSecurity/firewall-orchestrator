@@ -11,6 +11,7 @@ using FWO.Ui.Services;
 using FWO.Ui.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Reflection;
 
 namespace FWO.Test;
 
@@ -499,6 +500,72 @@ internal sealed class UiApprovalTaskEditorsTest
         {
             Assert.That(cut.Markup, Does.Contain("Allow web traffic"));
             Assert.That(cut.Markup, Does.Not.Contain("Edit access task: Source"));
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskElementsEditor_TogglesNetworkRemovalOnAndOff()
+    {
+        NwObjectElement element = new("192.0.2.60", 60) { Name = "server" };
+        WfReqTask task = new() { Id = 60, Elements = [element.ToReqElement(ElemFieldType.source)] };
+        await using BunitContext context = CreateContext(new EditorApiConnection());
+        IRenderedComponent<ApprovalTaskElementsEditor> cut = context.Render<ApprovalTaskElementsEditor>(parameters => parameters
+            .Add(parameter => parameter.Display, true)
+            .Add(parameter => parameter.Task, task)
+            .Add(parameter => parameter.FieldKey, WorkflowEditableFieldKeys.Source));
+
+        MethodInfo toggle = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskElementsEditor), "ToggleNetworkRemoval");
+        toggle.Invoke(cut.Instance, [element]);
+        Assert.That(UiRequestWorkflowTest.GetMember<List<NwObjectElement>>(cut.Instance, "sourcesToDelete"), Has.Count.EqualTo(1));
+        toggle.Invoke(cut.Instance, [element]);
+        Assert.That(UiRequestWorkflowTest.GetMember<List<NwObjectElement>>(cut.Instance, "sourcesToDelete"), Is.Empty);
+    }
+
+    [Test]
+    public async Task ApprovalTaskElementsEditor_TogglesServiceRemovalAndBuildsFlowGroupChoice()
+    {
+        NwServiceElement service = new() { Name = "https", ProtoId = 6, HasProtocol = true, Port = 443 };
+        WfReqTask task = new() { Id = 61, Elements = [service.ToReqElement()] };
+        await using BunitContext context = CreateContext(new EditorApiConnection());
+        IRenderedComponent<ApprovalTaskElementsEditor> cut = context.Render<ApprovalTaskElementsEditor>(parameters => parameters
+            .Add(parameter => parameter.Display, true)
+            .Add(parameter => parameter.Task, task)
+            .Add(parameter => parameter.FieldKey, WorkflowEditableFieldKeys.Services)
+            .Add(parameter => parameter.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }));
+
+        MethodInfo toggle = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskElementsEditor), "ToggleServiceRemoval");
+        toggle.Invoke(cut.Instance, [service]);
+        Assert.That(UiRequestWorkflowTest.GetMember<List<NwServiceElement>>(cut.Instance, "servicesToDelete"), Has.Count.EqualTo(1));
+        toggle.Invoke(cut.Instance, [service]);
+        Assert.That(UiRequestWorkflowTest.GetMember<List<NwServiceElement>>(cut.Instance, "servicesToDelete"), Is.Empty);
+
+        FlowSvcGroup group = new()
+        {
+            Id = 62,
+            Name = "web-services",
+            SvcGroupMembers =
+            [
+                new FlowSvcGroupMember
+                {
+                    SvcObject = new FlowSvcObject
+                    {
+                        Id = 63,
+                        Name = "https",
+                        ProtoId = 6,
+                        PortStart = 443,
+                        PortEnd = 443
+                    }
+                }
+            ]
+        };
+        MethodInfo buildChoice = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskElementsEditor), "BuildFlowServiceGroupChoice");
+        object choice = buildChoice.Invoke(cut.Instance, [group])!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(UiRequestWorkflowTest.GetMember<string>(choice, "Label"), Does.Contain("web-services"));
+            Assert.That(UiRequestWorkflowTest.GetMember<string>(choice, "Label"), Does.Contain("https"));
+            Assert.That(UiRequestWorkflowTest.GetMember<NwServiceElement>(choice, "ServiceElement").FlowServiceGroupId, Is.EqualTo(62));
         });
     }
 }

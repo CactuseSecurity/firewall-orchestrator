@@ -93,7 +93,7 @@
                     CanEditField="CanEditReqTaskField" DisplayIpProtos="displayIpProtos"
                     SelectableIpProtos="selectableIpProtos" RuleDevice="actRuleDevice"
                     ManagementId="@(actManagement?.Id ?? WfHandler.ActReqTask.ManagementId)"
-                    DisplayTask="@(WfHandler.EditReqTaskMode && actTaskType == WfTaskType.group_modify ? null : GetBundledDisplayTask())" />
+                    DisplayTask="@(IsClassicApprovalEditMode || WfHandler.EditReqTaskMode || WfHandler.ApproveReqTaskMode ? null : GetBundledDisplayTask())" />
 
                 <hr />
                 @if(!WfHandler.EditReqTaskMode && (actTaskType != WfTaskType.access || AccessTaskVisibility.ShowComments))
@@ -101,10 +101,9 @@
                     <div class="form-group row mt-2">
                         <div class="col-sm-1">
                             <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
-                            @if(WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode)
+                            @if((WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode) && !WfHandler.ReadOnlyMode)
                             {
-                                @* read-only users follow the phase, but cannot comment *@
-                                <button type="button" class="btn btn-sm btn-success" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="InitAddComment">
+                                <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
                                     @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                             }
                         </div>
@@ -146,13 +145,13 @@
             </div>
             <div class="d-flex flex-fill justify-content-end">
                 <div class="btn-group">
-                    @if (WfHandler.EditReqTaskMode && WfHandler.CanEditActiveReqTask)
+                    @if (WfHandler.EditReqTaskMode)
                     {
                         <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
                             <Authorized>
                                 @if(WfHandler.AddReqTaskMode)
                                 {
-                                    <button type="button" class="btn btn-sm btn-primary" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                                    <button type="button" class="btn btn-sm btn-success" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="SaveReqTask">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                                 }
                                 else
                                 {
@@ -175,7 +174,7 @@
                             </NotAuthorized>
                         </ExecutionModeAuthorizeView>
                     }
-                    else if (WfHandler.ApproveReqTaskMode && FocusField != null && CanSaveReqTaskChanges())
+                    else if ((WfHandler.ApproveReqTaskMode || IsClassicApprovalEditMode) && CanSaveReqTaskChanges())
                     {
                         <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}")">
                             <Authorized>
@@ -252,7 +251,6 @@
     /// </summary>
     [Parameter]
     public string? FocusField { get; set; }
-
 
     private List<WfTaskType> availableTaskTypes { get; set; } = [];
     private List<RuleAction> ruleActions = [];
@@ -600,7 +598,7 @@
 
     private async Task SaveReqTask()
     {
-        if (WfHandler.ReadOnlyMode || !WfHandler.CanEditActiveReqTask)
+        if (WfHandler.ReadOnlyMode)
         {
             return;
         }
@@ -679,12 +677,14 @@
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
         }
         ApplyTaskTypeSpecificValues();
+        // Apply the editor state before validation. Otherwise newly selected elements and
+        // ticket-local time-object references are not part of the task being checked yet.
+        elementEditor?.ApplyChanges(actRuleDevice);
 
         if (!await CheckTaskValues())
         {
             return false;
         }
-        elementEditor?.ApplyChanges(actRuleDevice);
 
         WfHandler.ActReqTask.SetDeviceList(selectedDevices.Any(dev => dev.Id == WfReqTaskBase.kAllDevicesId)
             ? [WfReqTaskBase.kAllDevicesId]
@@ -777,8 +777,8 @@
     private bool RejectInvalidAccessTask()
     {
         WfReqElement? timeElement = TimeObjectElementHelper.Find(WfHandler.ActReqTask.Elements);
-        bool hasTimeObjectReference = TimeObjectElementHelper.GetSelectorId(timeElement) is long timeObjectId
-            && timeObjectId != 0;
+        bool hasTimeObjectReference = timeElement?.ObjectTaskId is > 0
+            || (TimeObjectElementHelper.GetSelectorId(timeElement) is long timeObjectId && timeObjectId != 0);
         if (!hasTimeObjectReference || elementEditor is null || elementEditor.SourceCount == 0 || elementEditor.DestinationCount == 0 || elementEditor.ServiceCount == 0 ||
             (metadataEditor?.NeedsManualDeviceSelection == true && selectedDevices.Count<Device>() == 0))
         {
@@ -876,7 +876,7 @@
     private async Task<bool> RejectInvalidObjectTask()
     {
         string? error;
-        if (!WfHandler.EditReqTaskMode)
+        if (!WfHandler.EditReqTaskMode && !WfHandler.ApproveReqTaskMode && !IsClassicApprovalEditMode)
         {
             error = WfObjectTaskHelper.HasValidElementStructure(WfHandler.ActReqTask) ? null : "E5124";
         }
@@ -924,15 +924,31 @@
             return !WfHandler.ReadOnlyMode;
         }
 
-        return WfHandler.CanEditActiveReqTask
-            && (FocusField == null || FocusField == fieldKey)
-            && ApproverAllowedChangesAccess.CanEditTaskField(GetApproverAllowedChanges(), GetTaskFieldEditContext(), fieldKey);
+        if (WfObjectTaskHelper.IsObjectTask(actTaskType)
+            && WfObjectTaskHelper.HasFlowDbReference(WfHandler.ActReqTask)
+            && (fieldKey == WorkflowEditableFieldKeys.Name || fieldKey == WorkflowEditableFieldKeys.Content))
+        {
+            return false;
+        }
+
+        if (WfHandler.ReadOnlyMode
+            || (!IsClassicApprovalEditMode && FocusField != null && FocusField != fieldKey))
+        {
+            return false;
+        }
+
+        bool approvalEditMode = WfHandler.ApproveReqTaskMode || IsClassicApprovalEditMode;
+        if (!WfHandler.EditReqTaskMode && !approvalEditMode)
+        {
+            return false;
+        }
+
+        return ApproverAllowedChangesAccess.CanEditTaskField(GetApproverAllowedChanges(), GetTaskFieldEditContext(), fieldKey);
     }
 
     private bool CanSaveReqTaskChanges()
     {
-        return WfHandler.CanEditActiveReqTask
-            && ApproverAllowedChangesAccess.CanSaveTaskChanges(GetApproverAllowedChanges(), GetTaskFieldEditContext());
+        return ApproverAllowedChangesAccess.CanSaveTaskChanges(GetApproverAllowedChanges(), GetTaskFieldEditContext());
     }
 
     private void SetTargetDatesValid(bool datesValid)
@@ -970,10 +986,15 @@
         {
             IsApprovalPhase = Phase == WorkflowPhases.approval,
             EditReqTaskMode = WfHandler.EditReqTaskMode,
-            ApproveReqTaskMode = WfHandler.ApproveReqTaskMode,
+            ApproveReqTaskMode = WfHandler.ApproveReqTaskMode || IsClassicApprovalEditMode,
             ReadOnlyMode = WfHandler.ReadOnlyMode,
             TaskType = actTaskType,
             HasImplementationTasks = WfHandler.ActReqTask.ImplementationTasks.Count > 0
         };
     }
+
+    private bool IsClassicApprovalEditMode => Phase == WorkflowPhases.approval
+        && userConfig.ReqApprovalEditMode == ApprovalEditMode.Classic
+        && WfHandler.EditTicketMode
+        && !WfHandler.ReadOnlyMode;
 }

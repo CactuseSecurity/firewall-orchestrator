@@ -346,9 +346,7 @@ namespace FWO.Services.Workflow
         /// <param name="allowLockedApprovalUpdate">Allows the explicitly permitted approval-phase field update on a locked task.</param>
         public async Task ChangeReqTask(bool allowLockedApprovalUpdate = false)
         {
-            bool canEditFlowBackedGroup = allowLockedApprovalUpdate && IsGroupTask(ActReqTask);
-            if ((!CanEditActiveReqTask && !canEditFlowBackedGroup)
-                || (ActReqTask.Locked && !allowLockedApprovalUpdate)
+            if ((ActReqTask.Locked && !allowLockedApprovalUpdate)
                 || !CheckActTicketChangeable())
             {
                 return;
@@ -359,13 +357,6 @@ namespace FWO.Services.Workflow
                 await dbAcc.UpdateReqTaskInDb(ActReqTask, allowLockedApprovalUpdate);
             }
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.TaskNumber == ActReqTask.TaskNumber)] = ActReqTask;
-        }
-
-        private static bool IsGroupTask(WfReqTask task)
-        {
-            return task.TaskType == WfTaskType.group_create.ToString()
-                || task.TaskType == WfTaskType.group_modify.ToString()
-                || task.TaskType == WfTaskType.group_delete.ToString();
         }
 
         public async Task ChangeOwner()

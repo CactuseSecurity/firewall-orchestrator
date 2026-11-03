@@ -256,8 +256,14 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 
     private bool IsEditable()
     {
-        return DisplayTask == null && WfHandler.EditReqTaskMode && WfHandler.CanEditActiveReqTask;
+        return DisplayTask == null
+            && (WfHandler.EditReqTaskMode || WfHandler.ApproveReqTaskMode || IsClassicApprovalEditMode);
     }
+
+    private bool IsClassicApprovalEditMode => WfHandler.Phase == WorkflowPhases.approval
+        && userConfig.ReqApprovalEditMode == ApprovalEditMode.Classic
+        && WfHandler.EditTicketMode
+        && !WfHandler.ReadOnlyMode;
 
     private bool CanEditBundledField(string fieldKey)
     {

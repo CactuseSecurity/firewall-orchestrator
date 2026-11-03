@@ -97,17 +97,6 @@
                     </div>
                 </div>
                 }
-                <div class="col-sm-12 mt-2">
-                    <div class="btn-group">
-                        @foreach(var action in offeredActions)
-                        {
-                            @if(WfHandler.CanPerformActionOnActTicket(action))
-                            {
-                                <button type="button" class="btn btn-sm btn-dark ml-13" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
-                            }
-                        }
-                    </div>
-                </div>
                 <br>
 
                 @if(Phase < WorkflowPhases.implementation)
@@ -116,15 +105,10 @@
 
                     @if (UseApprovalTaskDetailsView)
                     {
-                        <div class="mb-2">
-                        <button type="button" class="btn btn-sm btn-warning" disabled="@WfHandler.ReadOnlyMode" @onclick="OpenApprovalTaskDetailsView">
-                                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
-                                @(userConfig.GetText("approval_task_details_edit"))
-                            </button>
-                        </div>
                         <ApprovalTaskDetailsView @bind-Display="displayApprovalTaskDetailsView"
                             WfHandler="WfHandler" States="States" EditField="OpenApprovalAccessTaskEditor"
-                            OfferedActions="offeredActions" PerformTicketAction="PerformAction" />
+                            OfferedActions="offeredActions" PerformTicketAction="PerformAction"
+                            Closed="CloseApprovalTaskDetailsView" />
                         <DisplayReqTaskTable Phase="Phase" States="States" ReadOnlyDisplay="true"
                             WfHandler="WfHandler" ResetParent="CloseApprovalAccessTaskEditor"
                             StartPhase="StartRequestPhase" StartImplPhase="StartImplementationPhase"
@@ -132,7 +116,7 @@
                     }
                     else
                     {
-                        <DisplayReqTaskTable Phase="Phase" States="States"
+                        <DisplayReqTaskTable Phase="Phase" States="States" ReadOnlyDisplay="@IsReadOnlyDisplay"
                             WfHandler="WfHandler" ResetParent="Reset" StartPhase="StartRequestPhase"/>
                     }
                 }
@@ -148,10 +132,10 @@
                     <div class="form-group row mt-2">
                         <div class="col-sm-1">
                             <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
-                            @if (Phase == WorkflowPhases.planning || Phase == WorkflowPhases.approval)
+                            @if ((Phase == WorkflowPhases.planning || Phase == WorkflowPhases.approval) && !IsReadOnlyDisplay)
                             {
                                 @* read-only users follow the phase, but cannot comment *@
-                                <button type="button" class="btn btn-sm btn-success" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="InitAddComment">
+                                <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
                                     @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                             }
                         </div>
@@ -164,7 +148,24 @@
         }
     </Body>
     <Footer>
-        <div class="btn-group">
+        <div class="row w-100 align-items-center">
+            <div class="col-sm-4"></div>
+            <div class="col-sm-4 d-flex justify-content-center">
+                @if (offeredActions.Any(CanShowOfferedAction))
+                {
+                    <div class="btn-group">
+                        @foreach(var action in offeredActions)
+                        {
+                            @if(CanShowOfferedAction(action))
+                            {
+                                <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+                            }
+                        }
+                    </div>
+                }
+            </div>
+            <div class="col-sm-4 d-flex justify-content-end">
+                <div class="btn-group">
             @if(WfHandler.EditTicketMode && !UseApprovalTaskDetailsView)
             {
                 <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
@@ -207,6 +208,8 @@
             {
                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Close">@(userConfig.GetText("ok"))</button>
             }
+                </div>
+            </div>
         </div>
     </Footer>
 </PopUp>
@@ -255,6 +258,9 @@
     [Parameter]
     public Func<WfImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
+    [Parameter]
+    public bool OpenApprovalTaskDetails { get; set; }
+
 
     private List<int> possibleStates = new ();
     private List<WfStateAction> offeredActions = new ();
@@ -265,10 +271,19 @@
     private WfPriority? selectedPriority;
     private bool firstParamSet = true;
     private bool displayApprovalTaskDetailsView = false;
+    private bool lastOpenApprovalTaskDetails;
     private string? approvalAccessTaskField;
 
     private bool UseApprovalTaskDetailsView => Phase == WorkflowPhases.approval
         && userConfig.ReqApprovalEditMode == ApprovalEditMode.AccessTaskView;
+
+    private bool CanShowOfferedAction(WfStateAction action)
+    {
+        return WfHandler.CanPerformActionOnActTicket(action)
+            && (!IsReadOnlyDisplay || WfStateAction.IsReadonlyType(action.ActionType));
+    }
+
+    private bool IsReadOnlyDisplay => WfHandler.ReadOnlyMode || !WfHandler.EditTicketMode;
 
     private string TicketRequesterDisplay => BuildTicketRequesterDisplay();
 
@@ -306,6 +321,11 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        if (OpenApprovalTaskDetails != lastOpenApprovalTaskDetails)
+        {
+            displayApprovalTaskDetailsView = OpenApprovalTaskDetails;
+            lastOpenApprovalTaskDetails = OpenApprovalTaskDetails;
+        }
         if(firstParamSet && WfHandler.DisplayTicketMode)
         {
             firstParamSet = false;
@@ -316,12 +336,6 @@
     private async Task Close()
     {
         await ResetParent();
-    }
-
-    private void OpenApprovalTaskDetailsView()
-    {
-        approvalAccessTaskField = null;
-        displayApprovalTaskDetailsView = true;
     }
 
     private async Task OpenApprovalAccessTaskEditor(WfReqTask task, string fieldKey)
@@ -339,6 +353,12 @@
         approvalAccessTaskField = null;
         WfHandler.ResetReqTaskActions();
         await Reset();
+    }
+
+    private async Task CloseApprovalTaskDetailsView()
+    {
+        approvalAccessTaskField = null;
+        await ResetParent();
     }
 
     private bool Cancel()
@@ -410,7 +430,7 @@
 
     private async Task PerformAction(WfStateAction action)
     {
-        if (WorkInProgress || !WfHandler.CanPerformActionOnActTicket(action))
+        if (WorkInProgress || !CanShowOfferedAction(action))
         {
             return;
         }
@@ -475,6 +495,10 @@
 
     private bool CheckPromoteTicket()
     {
+        if (IsReadOnlyDisplay)
+        {
+            return false;
+        }
         if (!WfHandler.CanPromoteTicketInCurrentPhase())
         {
             return false;
@@ -577,7 +601,7 @@
 
     private bool CanSaveTicketChanges()
     {
-        if (UseApprovalTaskDetailsView)
+        if (UseApprovalTaskDetailsView || IsReadOnlyDisplay)
         {
             return false;
         }

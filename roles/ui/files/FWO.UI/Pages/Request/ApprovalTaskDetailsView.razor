@@ -63,22 +63,25 @@
         }
     </Body>
     <Footer>
-        <div class="d-flex justify-content-center align-items-center">
-            <div class="btn-group mr-2">
-                @foreach (WfStateAction action in OfferedActions)
-                {
-                    @if (WfHandler.CanPerformActionOnActTicket(action))
+        <div class="row w-100 align-items-center">
+            <div class="col-sm-4"></div>
+            <div class="col-sm-4 d-flex justify-content-center">
+                <div class="btn-group">
+                    @foreach (WfStateAction action in OfferedActions)
                     {
-                        <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => RunWithProgress(() => PerformTicketAction(action))">@action.ButtonText</button>
+                        @if (WfHandler.CanPerformActionOnActTicket(action))
+                        {
+                            <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => RunWithProgress(() => PerformTicketAction(action))">@action.ButtonText</button>
+                        }
                     }
-                }
+                </div>
             </div>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+            <div class="col-sm-4 d-flex justify-content-end">
+                <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+            </div>
         </div>
     </Footer>
 </PopUp>
-<InProgress Display="workInProgress" />
-
 <RuleActionEditor @bind-Display="displayRuleActionEditor" SelectedRuleAction="selectedRuleAction"
     RuleActions="ruleActions" Saved="SaveRuleAction" />
 <OwnerEditor @bind-Display="displayOwnerEditor" SelectedOwner="selectedOwner"
@@ -112,6 +115,7 @@
 <TimeObjectTaskDeleteConfirmation @bind-Display="displayDeleteObjectTask"
     Title="@(userConfig.GetText("delete_task"))" Message="@(userConfig.GetText("delete_unreferenced_object_task_message"))"
     Confirmed="DeleteObjectTask" />
+<InProgress Display="workInProgress" />
 
 @code {
     [Parameter] public bool Display { get; set; }
@@ -121,6 +125,7 @@
     [Parameter] public Func<WfReqTask, string, Task> EditField { get; set; } = (_, _) => Task.CompletedTask;
     [Parameter] public IReadOnlyList<WfStateAction> OfferedActions { get; set; } = [];
     [Parameter] public Func<WfStateAction, Task> PerformTicketAction { get; set; } = _ => Task.CompletedTask;
+    [Parameter] public Func<Task> Closed { get; set; } = DefaultInit.DoNothing;
 
     private readonly ApprovalTaskDetailsEditorService editorService = new();
 
@@ -493,9 +498,10 @@
         await operation();
     }
 
-    private void Close()
+    private async void Close()
     {
         Display = false;
-        _ = DisplayChanged.InvokeAsync(false);
+        await DisplayChanged.InvokeAsync(false);
+        await Closed();
     }
 }

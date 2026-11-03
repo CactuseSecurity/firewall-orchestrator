@@ -226,6 +226,39 @@ internal class UiSharedEditorTest : UiSharedEditorTestBase
     }
 
     [Test]
+    public async Task TimeObjectTaskEditor_DateCallbacksUpdateDraftAndValidityControlsSaving()
+    {
+        TargetDatesEditorModel model = new()
+        {
+            FlowTimeObjectName = "maintenance",
+            BeginDate = new DateTime(2026, 11, 1, 8, 0, 0),
+            EndDate = new DateTime(2026, 11, 30, 18, 0, 0)
+        };
+        await using BunitContext context = CreateContext();
+        IRenderedComponent<TimeObjectTaskEditor> cut = context.Render<TimeObjectTaskEditor>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.Model, model));
+
+        MethodInfo validMethod = UiRequestWorkflowTest.GetPrivateMethod(typeof(TimeObjectTaskEditor), "SetTargetDatesValid");
+        validMethod.Invoke(cut.Instance, [false]);
+        Assert.That(UiRequestWorkflowTest.GetMember<bool>(cut.Instance, "CanSave"), Is.False);
+
+        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "OnTargetBeginDateChanged",
+            new DateTime(2026, 12, 1, 7, 0, 0));
+        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "OnTargetEndDateChanged",
+            new DateTime(2026, 12, 31, 19, 0, 0));
+        validMethod.Invoke(cut.Instance, [true]);
+
+        TargetDatesEditorModel editingModel = UiRequestWorkflowTest.GetMember<TargetDatesEditorModel>(cut.Instance, "editingModel");
+        Assert.Multiple(() =>
+        {
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(cut.Instance, "CanSave"), Is.True);
+            Assert.That(editingModel.BeginDate, Is.EqualTo(new DateTime(2026, 12, 1, 7, 0, 0)));
+            Assert.That(editingModel.EndDate, Is.EqualTo(new DateTime(2026, 12, 31, 19, 0, 0)));
+        });
+    }
+
+    [Test]
     public async Task TimeObjectTaskDeleteConfirmation_YesConfirmsAndCloses()
     {
         await using BunitContext context = CreateContext();

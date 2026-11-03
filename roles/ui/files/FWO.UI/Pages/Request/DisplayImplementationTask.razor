@@ -224,10 +224,9 @@
                 <div class="form-group row mt-2">
                     <div class="col-sm-1">
                         <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
-                        @if(WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode)
+                        @if((WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !WfHandler.ReadOnlyMode)
                         {
-                            @* read-only users follow the phase, but cannot comment *@
-                            <button type="button" class="btn btn-sm btn-success" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="InitAddComment">
+                            <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
                                 @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                         }
                     </div>

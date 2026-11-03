@@ -186,7 +186,8 @@ Every request to the middleware REST API with a user token counts against a budg
 the `x-hasura-uuid` claim): by default 600 requests per minute, with bursts of up to one minute's budget. The budget
 is refilled at least every 10 seconds (below 60 per minute: one request every 60 / value seconds); a configured value
 that cannot be refilled exactly within such a period is rounded by at most 3 requests per minute. Endpoints
-whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwners`, the Flow catalog lists
+whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwners`, `getAvailableInterfacesForApp`,
+`getAppRolesPerApp`, `getNetworkAreas`, the Flow catalog lists
 `getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects`, and
 `getImplTaskTargets`, `getAuditProofCriticalChanges`, `Rule/GetRulesByFilter`, `owners/get`,
 `Compliance/designatedZoneMatrix/zones` and the user, tenant and LDAP lists `GET User`, `User/Get`, `GET Tenant`,
@@ -218,6 +219,7 @@ are ordered:
 |---|---|---|
 | `flow/getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects` | root `limit`, `offset` | name, id |
 | `modelling/getIpDataForOwners` | `options.limit`, `options.offset` | name, external app id, id |
+| `modelling/getAvailableInterfacesForApp`, `getAppRolesPerApp`, `getNetworkAreas` | `options.limit`, `options.offset` | name, id |
 | `workflow/getImplTaskTargets` | `options.limit`, `options.offset` | visible targets by name, then id |
 | `workflow/getAuditProofCriticalChanges` | `options.limit`, `options.offset` | newest first |
 | `Rule/GetRulesByFilter` | `options.limit`, `options.offset` | rule id |

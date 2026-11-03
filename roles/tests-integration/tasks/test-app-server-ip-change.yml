@@ -147,14 +147,25 @@
         status={{ app_ip_test_fw_import_status.query_result | default([]) }},
         stderr={{ app_ip_test_fw_import.stderr | default('') }}
 
-  - name: copy the test harness
-    copy:
-      src: app_server_ip_change/
-      dest: "{{ app_ip_test_harness_dir }}/"
+  - name: create the directory of the test harness
+    file:
+      path: "{{ app_ip_test_harness_dir }}"
+      state: directory
       owner: "{{ fworch_user }}"
       group: "{{ fworch_group }}"
-      mode: "0644"
-      directory_mode: "0755"
+      mode: "0755"
+
+  # build output of a local build of the harness must not reach the test system, it is rebuilt there
+  - name: copy the test harness
+    ansible.posix.synchronize:
+      src: app_server_ip_change/
+      dest: "{{ app_ip_test_harness_dir }}/"
+      rsync_opts:
+        - "--chown={{ fworch_user }}:{{ fworch_group }}"
+        - "--chmod=D0755,F0644"
+        - "--exclude=bin/"
+        - "--exclude=obj/"
+        - "--exclude=__pycache__/"
 
   - name: write the resolver configuration of the test run
     copy:

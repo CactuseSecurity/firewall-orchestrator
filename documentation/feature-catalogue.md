@@ -91,6 +91,7 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Workflow configuration transfer with selected-phase export, custom file names, merge support, and state-definition validation | 9.8.2 |
 | Implementation tasks created by the state action "Create implementation tasks", controlled per gateway and management by device specific settings | 9.8.3 |
 | Tufin SecureChange ticket templates as device specific settings (global, per device type and per management) | 9.8.5 |
+| Semantic rule positioning for Check Point access-rule implementation tasks | 9.8.7 |
 
 ## Recertification
 

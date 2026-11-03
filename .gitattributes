@@ -30,3 +30,4 @@ roles/test/** -linguist-detectable
 ######################## merge strategies ###################
 documentation/revision-history.md merge=union
 #############################################################
+*.pdf binary

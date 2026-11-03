@@ -55,6 +55,33 @@ internal sealed class UiSettingsDeviceSpecificTest
         Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementation)?.ToObject<bool>(), Is.False);
     }
 
+    [Test]
+    public async Task Admin_CanSaveLayerGuardSectionTemplateAndSeeItAtGateway()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        string key = DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey;
+        string fieldSelector = $"#dss-field-{key} input[type=text]";
+
+        await page.Find($"#dss-override-{key}").ChangeAsync(
+            new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
+        await page.Find(fieldSelector).ChangeAsync(
+            new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "fixed @@SOURCE_ZONE@@ fixed" });
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        Assert.That(api.ReadValue(kGlobalNodeId,
+            DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate)?.ToObject<string>(),
+            Is.EqualTo("fixed @@SOURCE_ZONE@@ fixed"));
+
+        await TreeButton(page, "Check Point R8x").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        page.WaitForAssertion(() => TreeButton(page, "cp-mgr"));
+        await TreeButton(page, "cp-mgr").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        page.WaitForAssertion(() => TreeButton(page, "cp-gw-a"));
+        await TreeButton(page, "cp-gw-a").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        page.WaitForAssertion(() => page.Find(fieldSelector));
+    }
+
     /// <summary>Install-on targets are restricted to the two contract values.</summary>
     [Test]
     public async Task InstallOn_UsesABoundedSelector()

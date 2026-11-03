@@ -2,6 +2,7 @@
 
 ## 9.8.7 - 02.11.2026
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
+- request workflow: the Check Point LayerGuard section name is configurable at every device-specific-settings level with optional, repeatable source- and destination-zone placeholders; fixed names avoid zone-matrix resolution (#5626)
 - compliance: auto-calculated undefined-internal zones now cover complete IPv6 networks instead of only the first address of each remaining network
 - modelling and workflow: shared IP range parsing accepts dotted IPv4 netmasks such as `10.0.2.0/255.255.255.0` in addition to prefix lengths
 

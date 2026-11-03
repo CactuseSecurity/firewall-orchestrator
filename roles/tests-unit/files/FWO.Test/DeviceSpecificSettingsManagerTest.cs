@@ -56,6 +56,52 @@ internal class DeviceSpecificSettingsManagerTest
     }
 
     [Test]
+    public async Task LoadLevel_ResolvesLayerGuardSectionNameTemplateAtEveryScope()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateFourLevelHierarchy();
+        DeviceSpecificSettingsManager manager = new(api);
+
+        DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> compiledDefault =
+            await manager.LoadLevelAsync<GatewayDeviceSpecificSettings>(GatewayPath());
+        api.SetValue(1, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "global");
+        DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> global =
+            await manager.LoadLevelAsync<GatewayDeviceSpecificSettings>(GatewayPath());
+        api.SetValue(2, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "device-type");
+        DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> deviceType =
+            await manager.LoadLevelAsync<GatewayDeviceSpecificSettings>(GatewayPath());
+        api.SetValue(3, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "management");
+        DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> management =
+            await manager.LoadLevelAsync<GatewayDeviceSpecificSettings>(GatewayPath());
+        api.SetValue(4, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "gateway");
+        DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> gateway =
+            await manager.LoadLevelAsync<GatewayDeviceSpecificSettings>(GatewayPath());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(compiledDefault.Settings.CheckPointLayerGuardSectionNameTemplate,
+                Is.EqualTo("[@@SOURCE_ZONE@@] -> [@@DESTINATION_ZONE@@]"));
+            Assert.That(compiledDefault.ValueSources[DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate].UsesCompiledDefault,
+                Is.True);
+            Assert.That(global.Settings.CheckPointLayerGuardSectionNameTemplate, Is.EqualTo("global"));
+            Assert.That(global.ValueSources[DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate].Scope?.NodeId, Is.EqualTo(1));
+            Assert.That(deviceType.Settings.CheckPointLayerGuardSectionNameTemplate, Is.EqualTo("device-type"));
+            Assert.That(deviceType.ValueSources[DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate].Scope?.NodeId, Is.EqualTo(2));
+            Assert.That(management.Settings.CheckPointLayerGuardSectionNameTemplate, Is.EqualTo("management"));
+            Assert.That(management.ValueSources[DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate].Scope?.NodeId, Is.EqualTo(3));
+            Assert.That(gateway.Settings.CheckPointLayerGuardSectionNameTemplate, Is.EqualTo("gateway"));
+            Assert.That(gateway.ValueSources[DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate].Scope?.NodeId, Is.EqualTo(4));
+            Assert.That(DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.AllowedScopes,
+                Is.EquivalentTo(new[]
+                {
+                    DeviceSpecificScopeType.Global,
+                    DeviceSpecificScopeType.DeviceType,
+                    DeviceSpecificScopeType.Management,
+                    DeviceSpecificScopeType.Gateway
+                }));
+        }
+    }
+
+    [Test]
     public async Task LoadEffectiveValue_ReturnsNearestValueAndItsSource()
     {
         InMemoryDeviceSpecificSettingsApiConnection api = CreateFourLevelHierarchy();

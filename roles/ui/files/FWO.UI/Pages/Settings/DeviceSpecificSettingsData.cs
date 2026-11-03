@@ -196,6 +196,7 @@ namespace FWO.Ui.Pages.Settings
             { "dss_rule_type", "H5193" },
             { "dss_templates", "H5194" },
             { "dss_positioning_algorithm", "H5195" },
+            { "dss_cp_layer_guard_section_name_template", "H5199y" },
             { "dss_common_service_separation", "H5196" },
             { "dss_zone_from", "H5198" },
             { "dss_zone_to", "H5199" },
@@ -264,6 +265,8 @@ namespace FWO.Ui.Pages.Settings
                     (ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "dss_opt_default_end_of_rulebase"),
                     (ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection, "dss_opt_cp_layer_guard_end_of_zone_pair_section"),
                     (ProvisioningPositioningAlgorithm.AllowCategoryEndOfAppSectionDistinguishCommonServices, "dss_opt_allow_category"))),
+            TextField(DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "dss_cp_layer_guard_section_name_template",
+                s => s.CheckPointLayerGuardSectionNameTemplate),
             EnumField(DeviceSpecificSettingKeys.RuleLoggingOverride, "dss_logging", s => s.RuleLoggingOverride,
                 EnumOptions(
                     (ProvisioningLoggingMode.Log, "dss_opt_log"),

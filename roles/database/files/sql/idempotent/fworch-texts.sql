@@ -3745,6 +3745,8 @@ INSERT INTO txt VALUES ('dss_sc_task_network_object_modify', 'German', 	'Network
 INSERT INTO txt VALUES ('dss_sc_task_network_object_modify', 'English', 	'NetworkObjectModify');
 INSERT INTO txt VALUES ('dss_positioning_algorithm', 'German', 	'Positionierungs-Algorithmus');
 INSERT INTO txt VALUES ('dss_positioning_algorithm', 'English', 	'Positioning algorithm');
+INSERT INTO txt VALUES ('dss_cp_layer_guard_section_name_template', 'German', 	'Check-Point-LayerGuard-Sektionsnamensvorlage');
+INSERT INTO txt VALUES ('dss_cp_layer_guard_section_name_template', 'English', 	'Check Point LayerGuard section name template');
 INSERT INTO txt VALUES ('dss_common_service_separation', 'German', 	'Common Services trennen');
 INSERT INTO txt VALUES ('dss_common_service_separation', 'English', 	'Common service separation');
 INSERT INTO txt VALUES ('dss_security_profiles', 'German', 	'Sicherheitsprofile');
@@ -6971,6 +6973,8 @@ INSERT INTO txt VALUES ('H5194', 'German',  'Vorlagen: Freitext-Vorlage(n) mit P
 INSERT INTO txt VALUES ('H5194', 'English', 'Templates: free-text template(s) with placeholders such as {{rule_name}}. Device type only. Default: {}.');
 INSERT INTO txt VALUES ('H5195', 'German', 'Positionierungsalgorithmus: auf allen Ebenen verf&uuml;gbar. Die Check-Point-Layer-Guard-Option positioniert neue Regeln automatisch am Ende der Zonenpaar-Sektion in dem eindeutig durch Quell- und Zieladressen bestimmten Inline-Layer. Standard: Ende der Rulebase.');
 INSERT INTO txt VALUES ('H5195', 'English', 'Positioning algorithm: available at all levels. The Check Point layer-guard option automatically places new rules at the end of the zone-pair section in the inline layer uniquely selected by the source and destination addresses. Default: end of rulebase.');
+INSERT INTO txt VALUES ('H5199y', 'German', 'Check-Point-LayerGuard-Sektionsnamensvorlage: bestimmt den Namen der Sektion f&uuml;r den LayerGuard-Positionierungsalgorithmus. Die Platzhalter <code>@@SOURCE_ZONE@@</code> und <code>@@DESTINATION_ZONE@@</code> sind optional und d&uuml;rfen beliebig oft vorkommen. Nur referenzierte Seiten m&uuml;ssen vollst&auml;ndig und eindeutig zu genau einer gespeicherten Zone aufgel&ouml;st werden. Unbekannte oder unvollst&auml;ndige Platzhalter machen die Konfiguration ung&uuml;ltig. Standard: <code>[@@SOURCE_ZONE@@] -&gt; [@@DESTINATION_ZONE@@]</code>. Global, Ger&auml;tetyp, Manager und Gateway.');
+INSERT INTO txt VALUES ('H5199y', 'English', 'Check Point LayerGuard section name template: determines the section name for the LayerGuard positioning algorithm. The placeholders <code>@@SOURCE_ZONE@@</code> and <code>@@DESTINATION_ZONE@@</code> are optional and may occur any number of times. Only referenced sides must resolve completely and uniquely to exactly one persisted zone. Unknown or incomplete placeholders make the configuration invalid. Default: <code>[@@SOURCE_ZONE@@] -&gt; [@@DESTINATION_ZONE@@]</code>. Global, device type, manager and gateway.');
 INSERT INTO txt VALUES ('H5196', 'German', 'Common Services trennen: ob Common-Service-Regeln getrennt von Applikationsregeln behandelt werden. Standard: Nein. Global, Ger&auml;tetyp und Manager.');
 INSERT INTO txt VALUES ('H5196', 'English', 'Common service separation: whether common-service rules are handled separately from application rules. Default: No. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5197', 'German', 'Sicherheitsprofile: Namen der anzuwendenden Profile, ein Eintrag pro Zeile. Ger&auml;tetyp und Manager.');

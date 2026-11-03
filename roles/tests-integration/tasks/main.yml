@@ -119,6 +119,15 @@
   import_tasks: test-importer.yml
   when: "'sampleserver' in group_names"
 
+# On a host with middleware, importer and database, because the test runs the middleware code, the importer
+# and local database queries.
+- name: app server ip change testing
+  import_tasks: test-app-server-ip-change.yml
+  when:
+    # only on test systems: the test creates a temporary app and firewall in the database
+    - "'sampleserver' in group_names"
+    - "['middlewareserver', 'importers', 'databaseserver'] | difference(group_names) | length == 0"
+
 - name: testing all exposed web services
   import_tasks: test-web.yml
 

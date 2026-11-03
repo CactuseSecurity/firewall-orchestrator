@@ -229,6 +229,12 @@ are ordered:
 | `GET Group` | query parameters `limit`, `offset` | dn |
 | `GET Compliance/designatedZoneMatrix/zones` | query parameters `limit`, `offset` | zone id |
 
+The page size counts only the listed items. Objects nested in an item are not paged but returned complete: the
+members of the groups in `flow/getAddressGroups` and `getServiceGroups`, the network and service objects of the
+interfaces in `modelling/getAvailableInterfacesForApp`, the app servers in `getAppRolesPerApp` and the subnets in
+`getNetworkAreas`. A page of these endpoints can therefore be much larger than the same number of plain objects;
+clients send a smaller `limit` if needed, and the setting lowers the maximum for all endpoints.
+
 Callers that receive fewer items than the maximum see no difference. The UI reads every page of the user, tenant
 and LDAP group lists it uses, at most 1000 pages per list; a list with further pages after that is reported as an
 error instead of being shown incomplete. The LDAP lists are read completely from the directory for every page and

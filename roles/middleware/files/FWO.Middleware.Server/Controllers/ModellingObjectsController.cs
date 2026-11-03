@@ -41,6 +41,8 @@ public class ModellingObjectsController(ApiConnection apiConnection, GlobalConfi
     /// <c>port/protocol</c>, <c>portStart-portEnd/protocol</c>, or the protocol alone. Interfaces are ordered by name
     /// and id; <c>options.limit</c> (at most the configured <c>maxRestResponseObjectLimit</c>, default 10000) and
     /// <c>options.offset</c> page them, and the <c>X-Has-More</c> response header tells whether further interfaces follow.
+    /// The members of an interface are not paged but always returned complete, so a page holds every object of its
+    /// interfaces; clients receiving too large pages send a smaller <c>options.limit</c>.
     /// </remarks>
     [HttpPost("getAvailableInterfacesForApp")]
     [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
@@ -101,6 +103,7 @@ public class ModellingObjectsController(ApiConnection apiConnection, GlobalConfi
     /// app servers and the distinct addresses of all of them in compact notation. App roles are ordered by name and
     /// id; <c>options.limit</c> (at most the configured <c>maxRestResponseObjectLimit</c>, default 10000) and
     /// <c>options.offset</c> page them, and the <c>X-Has-More</c> response header tells whether further app roles follow.
+    /// The app servers of an app role are not paged but always returned complete.
     /// </remarks>
     [HttpPost("getAppRolesPerApp")]
     [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
@@ -160,7 +163,8 @@ public class ModellingObjectsController(ApiConnection apiConnection, GlobalConfi
     /// wildcards; without wildcards it must match exactly. Each area lists the distinct addresses of its subnets in
     /// compact notation. Areas are ordered by name and id; <c>options.limit</c> (at most the configured
     /// <c>maxRestResponseObjectLimit</c>, default 10000) and <c>options.offset</c> page them, and the
-    /// <c>X-Has-More</c> response header tells whether further areas follow.
+    /// <c>X-Has-More</c> response header tells whether further areas follow. The subnets of an area are not paged but
+    /// always returned complete; clients receiving too large pages send a smaller <c>options.limit</c>.
     /// </remarks>
     [HttpPost("getNetworkAreas")]
     [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]

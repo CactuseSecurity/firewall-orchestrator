@@ -15,7 +15,7 @@ public static class ModellingObjectRequestLimits
     /// <summary>
     /// Maximum length of the external application id and of each text filter value.
     /// </summary>
-    public const int kMaxTextLength = 10000;
+    public const int kMaxTextLength = 256;
 }
 
 /// <summary>
@@ -26,7 +26,7 @@ public sealed class GetAvailableInterfacesRequest
 {
     /// <summary>
     /// Gets or sets the required external id of the application using the interfaces. Matching ignores case; at
-    /// most 10000 characters.
+    /// most 256 characters.
     /// </summary>
     [JsonPropertyName("appIdExternal")]
     public string? AppIdExternal { get; set; }
@@ -46,7 +46,7 @@ public sealed class GetAppRolesPerAppRequest
 {
     /// <summary>
     /// Gets or sets the required external id of the application owning the app roles. Matching ignores case; at
-    /// most 10000 characters.
+    /// most 256 characters.
     /// </summary>
     [JsonPropertyName("appIdExternal")]
     public string? AppIdExternal { get; set; }
@@ -103,7 +103,7 @@ public sealed class ModellingListOptions<TFilter> where TFilter : class
 /// <summary>
 /// Represents nullable multi-value filters for interfaces. Values of the same field are OR-connected; filters for
 /// different fields are AND-connected. Empty or omitted lists do not restrict the result. Each list can contain at
-/// most 100 values, and each text value at most 10000 characters. Text filters ignore case and support <c>*</c> for
+/// most 100 values, and each text value at most 256 characters. Text filters ignore case and support <c>*</c> for
 /// any character sequence and <c>?</c> for one character.
 /// </summary>
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -150,7 +150,7 @@ public sealed class AvailableInterfacesFilter
 /// <summary>
 /// Represents nullable multi-value filters for app roles and network areas. Values of the same field are
 /// OR-connected; filters for different fields are AND-connected. Empty or omitted lists do not restrict the result.
-/// Each list can contain at most 100 values, and each text value at most 10000 characters. Text filters ignore case
+/// Each list can contain at most 100 values, and each text value at most 256 characters. Text filters ignore case
 /// and support <c>*</c> for any character sequence and <c>?</c> for one character.
 /// </summary>
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]

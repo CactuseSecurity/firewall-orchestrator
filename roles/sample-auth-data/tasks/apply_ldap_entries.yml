@@ -10,6 +10,7 @@
        | regex_findall('(?m)^dn: .*(?:\n[^\n]+)*') }}
   loop_control:
     loop_var: ldap_entry
+    index_var: ldap_entry_index
   register: ldap_entry_result
   failed_when: false
   changed_when: ldap_entry_result.rc == 0
@@ -20,7 +21,8 @@
   fail:
     msg: >-
       {% for entry_result in ldap_entry_results_failed -%}
-      {{ entry_result.ldap_entry.splitlines() | first }} failed with LDAP result {{ entry_result.rc }}:
+      {{ ldap_tree_name }} record {{ entry_result.ldap_entry_index + 1 }}
+      ({{ entry_result.ldap_entry.splitlines() | first }}) failed with LDAP result {{ entry_result.rc }}:
       {{ entry_result.stderr | default(entry_result.msg | default('')) }};
       {% endfor %}
   vars:

@@ -89,7 +89,8 @@ note: demo/sample data can be removed via settings menues.
 
 When the sample-auth-data role runs again on an existing LDAP tree, existing sample entries and
 role/group memberships are kept, and missing ones are added even if earlier ones already exist.
-Any other LDAP error stops the installation and names the failing entry.
+Any other LDAP error stops the installation and names the sample tree, record number and DN of each
+failing entry.
 
 To run the sample LDAP seeding regression tests without installing FWO or running an
 LDAP server, use the installer Ansible environment and run:

@@ -11,6 +11,7 @@ using FWO.Services;
 using FWO.Services.Modelling;
 using Novell.Directory.Ldap;
 using System.Data;
+using System.Net;
 using System.Text.Json;
 
 namespace FWO.Middleware.Server
@@ -40,12 +41,18 @@ namespace FWO.Middleware.Server
         private const string LevelFile = "Import File";
         private const string LevelApp = "App";
         private const string LevelAppServer = "App Server";
+        private readonly Func<IPAddress, Task<string>> reverseDnsLookup;
 
         /// <summary>
         /// Constructor for App Data Import
         /// </summary>
-        public AppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
-        { }
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <param name="globalConfig">Global configuration.</param>
+        /// <param name="reverseDnsLookup">Reverse lookup for the app server names, defaults to <see cref="IpOperations.DnsReverseLookUpPreferredAsync"/>.</param>
+        public AppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig, Func<IPAddress, Task<string>>? reverseDnsLookup = null) : base(apiConnection, globalConfig)
+        {
+            this.reverseDnsLookup = reverseDnsLookup ?? IpOperations.DnsReverseLookUpPreferredAsync;
+        }
 
         /// <summary>
         /// Dispose method to clean up resources.
@@ -555,6 +562,7 @@ namespace FWO.Middleware.Server
                 await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
                 foreach (var appServer in incomingApp.AppServers)
                 {
+                    await PrepareIncomingAppServer(appServer);
                     await NewAppServer(appServer, appId, incomingApp.ImportSource);
                 }
             }
@@ -1109,14 +1117,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                if (incomingAppServer.IpEnd == "")
-                {
-                    incomingAppServer.IpEnd = incomingAppServer.Ip;
-                }
-                if (globalConfig.DnsLookup)
-                {
-                    incomingAppServer.Name = await BuildAppServerName(incomingAppServer);
-                }
+                await PrepareIncomingAppServer(incomingAppServer);
                 ModellingAppServer? existingAppServer = ExistingAppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == incomingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == incomingAppServer.IpEnd.IpAsCidr());
                 if (existingAppServer == null)
                 {
@@ -1160,11 +1161,28 @@ namespace FWO.Middleware.Server
             }
         }
 
+        /// <summary>
+        /// Completes an incoming app server before it is saved, for new and existing apps alike: a missing ip end is set
+        /// to the ip, and with dns lookup switched on the name is built from the dns name.
+        /// </summary>
+        /// <param name="incomingAppServer">The imported app server, completed in place.</param>
+        private async Task PrepareIncomingAppServer(ModellingImportAppServer incomingAppServer)
+        {
+            if (incomingAppServer.IpEnd == "")
+            {
+                incomingAppServer.IpEnd = incomingAppServer.Ip;
+            }
+            if (globalConfig.DnsLookup)
+            {
+                incomingAppServer.Name = await BuildAppServerName(incomingAppServer);
+            }
+        }
+
         private async Task<string> BuildAppServerName(ModellingImportAppServer appServer)
         {
             try
             {
-                return await AppServerHelper.ConstructAppServerNameFromDns(appServer.ToModellingAppServer(), NamingConvention, globalConfig.OverwriteExistingNames, true);
+                return await AppServerHelper.ConstructAppServerNameFromDns(appServer.ToModellingAppServer(), NamingConvention, globalConfig.OverwriteExistingNames, true, reverseDnsLookup);
             }
             catch (Exception exc)
             {

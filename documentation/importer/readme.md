@@ -2,6 +2,30 @@
 
 These can be used for testing a specific import on the command line.
 
+Source port restrictions in network services are retained as `svc_source_port` and
+`svc_source_port_end`, alongside the destination range `svc_port` and `svc_port_end`.
+An absent source pair means that source ports are unrestricted. Source-only changes
+are recorded as service changes, and normalized exports preserve both pairs.
+
+Supported vendor formats:
+
+- Cisco ASA: source `eq`, `range`, `lt`, and `gt` operators in extended ACLs,
+  source port groups, and source clauses in named services and service groups.
+  Source and destination restrictions are combined without changing existing
+  destination services. Unsupported operators such as `neq` stop the import.
+- Check Point R8x: `source-port` on TCP and UDP services, including single ports,
+  ranges, and `<` / `>` bounds. Empty or absent values remain unrestricted.
+- FortiManager and FortiOS: `destination[:source]` port specifications for TCP,
+  UDP and SCTP. Each source/destination pair is retained as a separate service,
+  including pairs that share destination ports.
+
+Service tables show destination port ranges in their own column; the source port
+column and detail only appear when a source restriction exists. Rule and change
+exports use `source → destination` when a source restriction exists; `*` denotes an
+unspecified destination. Existing services without source constraints retain their
+previous rule display format. Existing ASA rules without source constraints retain
+their rule UIDs.
+
 ## python importer
 
 ```console

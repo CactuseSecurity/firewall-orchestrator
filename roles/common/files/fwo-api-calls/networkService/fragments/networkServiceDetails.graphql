@@ -57,6 +57,8 @@ fragment networkServiceDetails on firewall_nw_service {
       svc_name
       svc_port
       svc_port_end
+      svc_source_port
+      svc_source_port_end
 	  ip_proto_id
       protocol_name: stm_ip_proto {
         id: ip_proto_id

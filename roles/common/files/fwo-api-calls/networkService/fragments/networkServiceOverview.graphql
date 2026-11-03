@@ -4,6 +4,8 @@ fragment networkServiceOverview on firewall_nw_service {
   svc_uid
   svc_port
   svc_port_end
+  svc_source_port
+  svc_source_port_end
   service_type: stm_svc_typ {
     id: svc_typ_id
     name: svc_typ_name

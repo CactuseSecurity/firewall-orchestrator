@@ -71,5 +71,75 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Any", DisplayBase.DisplayService(serv4, false).ToString());
             ClassicAssert.AreEqual("ALL", DisplayBase.DisplayService(serv5, true).ToString());
         }
+
+        /// <summary>Checks inferred address types, endpoint defaults, and invalid inputs.</summary>
+        [TestCase("", "", "")]
+        [TestCase("  ", "\t", "")]
+        [TestCase("", "10.0.0.1", "10.0.0.1")]
+        [TestCase("10.0.0.1", "", "10.0.0.1")]
+        [TestCase("10.0.0.1/32", "10.0.0.1/32", "10.0.0.1")]
+        [TestCase("2001:db8::1/128", "2001:db8::1/128", "2001:db8::1")]
+        [TestCase("10.0.0.0/24", "10.0.0.0/24", "10.0.0.0/24")]
+        [TestCase("10.0.0.0", "10.0.0.255", "10.0.0.0/24")]
+        [TestCase("10.0.0.1", "10.0.0.3", "10.0.0.1-10.0.0.3")]
+        [TestCase("invalid", "invalid", "")]
+        [TestCase("invalid", "other", "")]
+        [TestCase("10.0.0.1", "2001:db8::1", "")]
+        public void DisplayIpInfersTypeAndPreservesFormatting(string start, string end, string expected)
+        {
+            string bracketed = expected.Length == 0 ? "" : $" ({expected})";
+            Assert.Multiple(() =>
+            {
+                Assert.That(DisplayBase.DisplayIp(start, end), Is.EqualTo(expected));
+                Assert.That(DisplayBase.DisplayIp(start, end, true), Is.EqualTo(bracketed));
+            });
+        }
+
+        /// <summary>Checks typed formatting, network conversion, and fallbacks independently of type inference.</summary>
+        [TestCase("", "", ObjectType.Group, "")]
+        [TestCase("", "10.0.0.1", ObjectType.Host, "")]
+        [TestCase("invalid", "invalid", ObjectType.Host, "")]
+        [TestCase("10.0.0.1", "2001:db8::1", ObjectType.IPRange, "")]
+        [TestCase("2001:db8::1", "10.0.0.1", ObjectType.IPRange, "")]
+        [TestCase("10.0.0.1/32", "", ObjectType.Host, "10.0.0.1")]
+        [TestCase("2001:db8::1/128", "", ObjectType.Host, "2001:db8::1")]
+        [TestCase("10.0.0.0/24", "10.0.0.255", ObjectType.Network, "10.0.0.0/24")]
+        [TestCase("10.0.0.0", "10.0.0.255", ObjectType.Network, "10.0.0.0/24")]
+        [TestCase("10.0.0.255", "10.0.0.0", ObjectType.Network, "10.0.0.0/24")]
+        [TestCase("10.0.0.1", "10.0.0.3", ObjectType.Network, "10.0.0.1-10.0.0.3")]
+        [TestCase("10.0.0.1", "invalid.ip", ObjectType.Network, "10.0.0.1-invalid.ip")]
+        [TestCase("2001:db8::", "2001:db8::3", ObjectType.Network, "2001:db8::/126")]
+        [TestCase("10.0.0.1", "10.0.0.3", ObjectType.IPRange, "10.0.0.1-10.0.0.3")]
+        [TestCase("2001:db8::1", "2001:db8::3", ObjectType.IPRange, "2001:db8::1-2001:db8::3")]
+        public void DisplayIpUsesExplicitType(string start, string end, string objectType, string expected)
+        {
+            string bracketed = expected.Length == 0 ? "" : $" ({expected})";
+            Assert.Multiple(() =>
+            {
+                Assert.That(DisplayBase.DisplayIp(start, end, objectType), Is.EqualTo(expected));
+                Assert.That(DisplayBase.DisplayIp(start, end, objectType, true), Is.EqualTo(bracketed));
+            });
+        }
+
+        /// <summary>Checks range output retains endpoints instead of converting them to CIDR.</summary>
+        [TestCase("", "", "")]
+        [TestCase("invalid", "invalid", "")]
+        [TestCase("10.0.0.1", "", "10.0.0.1")]
+        [TestCase("2001:db8::1", "", "")]
+        [TestCase("10.0.0.1/32", "10.0.0.1/32", "10.0.0.1")]
+        [TestCase("2001:db8::1/128", "2001:db8::1/128", "2001:db8::1")]
+        [TestCase("10.0.0.0/24", "10.0.0.0/24", "10.0.0.0/24")]
+        [TestCase("10.0.0.0", "10.0.0.255", "10.0.0.0-10.0.0.255")]
+        [TestCase("10.0.0.1", "10.0.0.3", "10.0.0.1-10.0.0.3")]
+        [TestCase("2001:db8::", "2001:db8::3", "2001:db8::-2001:db8::3")]
+        public void DisplayIpRangePreservesEndpoints(string start, string end, string expected)
+        {
+            string bracketed = expected.Length == 0 ? "" : $" ({expected})";
+            Assert.Multiple(() =>
+            {
+                Assert.That(DisplayBase.DisplayIpRange(start, end), Is.EqualTo(expected));
+                Assert.That(DisplayBase.DisplayIpRange(start, end, true), Is.EqualTo(bracketed));
+            });
+        }
     }
 }

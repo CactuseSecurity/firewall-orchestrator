@@ -15,6 +15,7 @@ from fw_modules.ciscoasa9.asa_service import (
     create_service_for_protocol_entry,
     restrict_service_to_protocol,
 )
+from fw_modules.ciscoasa9.asa_source_port import restrict_source_ports
 from fwo_log import FWOLogger
 from models.networkobject import NetworkObject
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
@@ -133,12 +134,13 @@ def create_rule_from_acl_entry(
     """
     # Generate unique rule UID by hashing entry dict; time_range is left out when unset, so that
     # the UIDs of entries without a time-range stay the same as before the field existed
-    rule_uid = fwo_base.generate_hash_from_dict(
-        entry.model_dump(exclude={"time_range"}) if entry.time_range is None else entry.model_dump()
-    )
+    excluded_fields = {field for field in ("time_range", "src_port") if getattr(entry, field) is None}
+    rule_uid = fwo_base.generate_hash_from_dict(entry.model_dump(exclude=excluded_fields))
 
     # Resolve service reference
     svc_ref = resolve_service_reference_for_rule(entry, protocol_groups, service_objects)
+    if entry.src_port is not None:
+        svc_ref = restrict_source_ports(svc_ref, entry.src_port, service_objects)
 
     # Resolve source and destination references
     src_ref = resolve_network_reference_for_rule(entry.src, network_objects)

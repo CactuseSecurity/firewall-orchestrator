@@ -921,7 +921,8 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("type")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("protocol")}</th>");
-                report.AppendLine($"<th>{userConfig.GetText("port")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("source_port")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("destination_port")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("uid")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
@@ -936,21 +937,18 @@ namespace FWO.Report
             }
         }
 
+        /// <summary>
+        /// Appends an encoded service row including source and destination port ranges.
+        /// </summary>
         private void AppendServiceForManagementHtml(ref StringBuilder report, int chapterNumber, int objNumber, NetworkService svcobj)
         {
             report.AppendLine("<tr>");
             report.AppendLine($"<td>{objNumber}</td>");
             report.AppendLine($"<td><a name=\"{ObjCatString.Svc}{chapterNumber}x{svcobj.Id}\">{HtmlOutputEncoder.EncodeText(svcobj.Name)}</a></td>");
             report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
-            report.AppendLine($"<td>{((svcobj.Type.Name != ServiceType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
-            if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
-            {
-                report.AppendLine($"<td>{svcobj.DestinationPort}-{svcobj.DestinationPortEnd}</td>");
-            }
-            else
-            {
-                report.AppendLine($"<td>{svcobj.DestinationPort}</td>");
-            }
+            report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText((svcobj.Type.Name != ServiceType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
+            report.AppendLine($"<td>{DisplayBase.DisplayPort(svcobj.SourcePort, svcobj.SourcePortEnd)}</td>");
+            report.AppendLine($"<td>{DisplayBase.DisplayPort(svcobj.DestinationPort, svcobj.DestinationPortEnd)}</td>");
             report.AppendLine(DisplayBase.MemberNamesAsHtml(svcobj.MemberNames));
             report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(svcobj.Uid)}</td>");
             report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(svcobj.Comment)}</td>");

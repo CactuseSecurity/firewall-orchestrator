@@ -10,6 +10,8 @@ class ServiceObject(BaseModel):
     svc_name: str
     svc_port: int | None = None
     svc_port_end: int | None = None
+    svc_source_port: int | None = None
+    svc_source_port_end: int | None = None
     svc_color: str
     svc_typ: str  # TODO: ENUM
     ip_proto: int | None = None
@@ -25,6 +27,8 @@ class ServiceObjectForImport:
     svc_name: str
     svc_port: int | None
     svc_port_end: int | None
+    svc_source_port: int | None
+    svc_source_port_end: int | None
     svc_color_id: int
     svc_typ: str  # TODO: ENUM
     ip_proto_id: int | None
@@ -37,11 +41,13 @@ class ServiceObjectForImport:
     svc_create: int
     svc_typ_id: int
 
-    def __init__(self, svc_object: ServiceObject, mgm_id: int, import_id: int, color_id: int, typ_id: int):
+    def __init__(self, svc_object: ServiceObject, mgm_id: int, import_id: int, color_id: int, typ_id: int) -> None:
         self.svc_uid = svc_object.svc_uid
         self.svc_name = svc_object.svc_name
         self.svc_port = svc_object.svc_port
         self.svc_port_end = svc_object.svc_port_end
+        self.svc_source_port = svc_object.svc_source_port
+        self.svc_source_port_end = svc_object.svc_source_port_end
         self.svc_color_id = color_id
         self.svc_typ_id = typ_id
         self.ip_proto_id = svc_object.ip_proto
@@ -59,6 +65,8 @@ class ServiceObjectForImport:
             "svc_name": self.svc_name,
             "svc_port": self.svc_port,
             "svc_port_end": self.svc_port_end,
+            "svc_source_port": self.svc_source_port,
+            "svc_source_port_end": self.svc_source_port_end,
             "ip_proto_id": self.ip_proto_id,
             "svc_color_id": self.svc_color_id,
             "svc_member_refs": self.svc_member_refs,

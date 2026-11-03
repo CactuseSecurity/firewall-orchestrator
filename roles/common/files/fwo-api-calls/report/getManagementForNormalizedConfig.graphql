@@ -101,6 +101,8 @@ fragment serviceObjectFragment on firewall_nw_service {
   svc_name
   svc_port
   svc_port_end
+  svc_source_port
+  svc_source_port_end
   svc_timeout
   service_type: stm_svc_typ {
     name: svc_typ_name

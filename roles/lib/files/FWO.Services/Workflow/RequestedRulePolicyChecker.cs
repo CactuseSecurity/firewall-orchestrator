@@ -10,7 +10,9 @@ namespace FWO.Services.Workflow
     public interface IFlowGroupResolver
     {
         /// <summary>Resolves the explicitly requested Flow groups and members.</summary>
-        Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(FlowGroupResolutionParameters parameters);
+        Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(
+            FlowGroupResolutionParameters parameters,
+            CancellationToken cancellationToken = default);
     }
 
     public interface IRequestedRulePolicyChecker

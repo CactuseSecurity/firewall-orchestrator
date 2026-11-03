@@ -20,6 +20,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string changeManagementState;
         public static readonly string deleteManagement;
         public static readonly string getDeviceDetails;
+        public static readonly string getRulePositioningTarget;
         public static readonly string getDevicesWithRulebaseLinks;
         public static readonly string newDevice;
         public static readonly string getGatewayId;
@@ -71,6 +72,7 @@ namespace FWO.Api.Client.Queries
                 getDeviceDetails = GetQueryText("device/getDeviceDetails.graphql")
                                     + GetQueryText("device/fragments/deviceDetails.graphql")
                                     + GetQueryText("device/fragments/deviceTypeDetails.graphql");
+                getRulePositioningTarget = GetQueryText("device/getRulePositioningTarget.graphql");
                 getDevicesWithRulebaseLinks = GetQueryText("device/getDevicesWithRulebaseLinks.graphql");
                 newDevice = GetQueryText("device/newDevice.graphql");
                 updateDevice = GetQueryText("device/updateDevice.graphql");

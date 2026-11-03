@@ -302,7 +302,8 @@ create table request.impltask
 	assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
-	mgm_id int -- management the task is implemented on; NULL means the management of the request task
+	mgm_id int, -- management the task is implemented on; NULL means the management of the request task
+	rule_position jsonb
 );
 
 -- Records which state the workflow actions of an object were last executed for, so that

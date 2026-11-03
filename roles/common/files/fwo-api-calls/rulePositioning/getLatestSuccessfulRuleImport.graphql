@@ -1,0 +1,18 @@
+query getLatestSuccessfulRuleImport($managementId: Int!, $importTypeId: Int!) {
+  import_control(
+    where: {
+      mgm_id: { _eq: $managementId }
+      import_type_id: { _eq: $importTypeId }
+      successful_import: { _eq: true }
+      stop_time: { _is_null: false }
+    }
+    order_by: [{ stop_time: desc }, { control_id: desc }]
+    limit: 1
+  ) {
+    control_id
+    mgm_id
+    import_type_id
+    successful_import
+    stop_time
+  }
+}

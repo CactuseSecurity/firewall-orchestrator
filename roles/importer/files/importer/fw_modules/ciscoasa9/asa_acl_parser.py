@@ -20,6 +20,7 @@ from fw_modules.ciscoasa9.asa_models import (
     EndpointKind,
 )
 from fwo_exceptions import FwoImporterError
+from fwo_log import FWOLogger
 
 PORT_OPERATORS = ("eq", "neq", "lt", "gt", "range")
 OPTION_KEYWORDS = ("log", "time-range", "inactive")
@@ -79,6 +80,8 @@ MAX_PORT = 65535
 ACL_HEADER_TOKENS = 2  # "access-list" NAME
 LINE_NUMBER_TOKENS = 2  # optional "line" N
 ENDPOINT_WITH_ARGUMENT_TOKENS = 2  # e.g. "host" A.B.C.D or A.B.C.D MASK
+PORT_OPERATOR_TOKENS = 2  # e.g. "eq" PORT
+RANGE_OPERATOR_TOKENS = 3  # "range" START END
 IPV4_PATTERN = re.compile(r"\d{1,3}(?:\.\d{1,3}){3}")
 IPV4_ALL_BITS = 0xFFFFFFFF
 
@@ -127,8 +130,10 @@ def parse_access_list_entry(
     Syntax: access-list NAME [line N] extended {permit|deny} PROTOCOL SOURCE [SOURCE_PORT] DESTINATION
             [PORT | ICMP_TYPE] [log [LEVEL] [interval SECS] | log disable | log default] [time-range NAME] [inactive]
 
+    SOURCE_PORT is skipped with a warning; the entry is imported for all source ports.
+
     Raises:
-        AsaConfigParseError: for unknown, truncated or unsupported syntax (e.g. source ports, interface addresses)
+        AsaConfigParseError: for unknown, truncated or unsupported syntax (e.g. interface addresses)
 
     """
     parts = line.split()
@@ -140,7 +145,7 @@ def parse_access_list_entry(
     protocol, pos = _parse_protocol(parts, pos + 1, protocol_groups, svc_objects, svc_obj_groups)
     service_group_names = {group.name for group in svc_obj_groups}
     src, pos = parse_endpoint(parts, pos)
-    _reject_source_port(parts, pos, service_group_names)
+    pos = _skip_source_port(parts, pos, service_group_names, line)
     dst, pos = parse_endpoint(parts, pos)
     dst_port, pos = _parse_destination_service(parts, pos, protocol)
     inactive, time_range = _parse_options(parts, pos)
@@ -223,16 +228,25 @@ def _parse_protocol(
     return EndpointKind(kind="protocol", value=keyword.lower()), pos + 1
 
 
-def _reject_source_port(parts: list[str], pos: int, service_group_names: set[str]) -> None:
-    """Source ports cannot be imported; ignoring them would widen the entry to all source ports."""
+def _skip_source_port(parts: list[str], pos: int, service_group_names: set[str], line: str) -> int:
+    """
+    Skip an optional source port and return the position after it.
+
+    Source ports are not imported: the entry is imported for all source ports, so it is wider than the real one.
+    """
     if pos >= len(parts):
-        return
+        return pos
     keyword = parts[pos].lower()
     if keyword in PORT_OPERATORS:
-        construct = " ".join(parts[pos : pos + 2])
-        raise AsaConfigParseError(f"unsupported source port '{construct}'", pos)
-    if keyword == "object-group" and pos + 1 < len(parts) and parts[pos + 1] in service_group_names:
-        raise AsaConfigParseError(f"unsupported source port object-group '{parts[pos + 1]}'", pos)
+        token_count = RANGE_OPERATOR_TOKENS if keyword == "range" else PORT_OPERATOR_TOKENS
+        _expect_token(parts, pos + token_count - 1, f"port after '{keyword}'")
+    elif keyword == "object-group" and pos + 1 < len(parts) and parts[pos + 1] in service_group_names:
+        token_count = ENDPOINT_WITH_ARGUMENT_TOKENS
+    else:
+        return pos
+    construct = " ".join(parts[pos : pos + token_count])
+    FWOLogger.warning(f"ignoring source port '{construct}' in '{line}' - the entry is imported for all source ports")
+    return pos + token_count
 
 
 def _parse_destination_service(parts: list[str], pos: int, protocol: EndpointKind) -> tuple[EndpointKind, int]:

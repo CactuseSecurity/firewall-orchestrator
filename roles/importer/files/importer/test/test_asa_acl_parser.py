@@ -104,6 +104,40 @@ def test_destination_ports_keep_their_meaning(service: str, expected: EndpointKi
     assert entry.dst_port == expected
 
 
+@pytest.mark.parametrize(
+    ("line", "expected_src", "expected_dst", "expected_dst_port"),
+    [
+        (
+            "access-list dmz1_access_in extended permit tcp object H-DMZ1-SDASI1 range 7937 10000 object H-DMZ2-Netz",
+            endpoint("object", "H-DMZ1-SDASI1"),
+            endpoint("object", "H-DMZ2-Netz"),
+            endpoint("any", "any"),
+        ),
+        (f"{ACL_PREFIX} tcp any eq 1024 any", endpoint("any", "any"), endpoint("any", "any"), endpoint("any", "any")),
+        (
+            f"{ACL_PREFIX} udp any neq ntp host 198.51.100.1 eq ntp",
+            endpoint("any", "any"),
+            endpoint("host", "198.51.100.1"),
+            endpoint("eq", "ntp"),
+        ),
+        (
+            f"{ACL_PREFIX} tcp any object-group SVC_PORTS object-group OG_NET eq 443",
+            endpoint("any", "any"),
+            endpoint("object-group", "OG_NET"),
+            endpoint("eq", "443"),
+        ),
+    ],
+)
+def test_source_ports_are_ignored(
+    line: str, expected_src: EndpointKind, expected_dst: EndpointKind, expected_dst_port: EndpointKind
+) -> None:
+    entry: AccessListEntry = parse(line)
+
+    assert entry.src == expected_src
+    assert entry.dst == expected_dst
+    assert entry.dst_port == expected_dst_port
+
+
 def test_icmp_type_is_kept_instead_of_widening_to_any_icmp() -> None:
     entry: AccessListEntry = parse(f"{ACL_PREFIX} icmp any object-group OG_DMZ echo-reply")
 
@@ -173,8 +207,8 @@ def test_line_number_and_deny_are_parsed() -> None:
         (f"{ACL_PREFIX} ip somethingunknown any", 5, "unsupported address 'somethingunknown'"),
         (f"{ACL_PREFIX} ip 10.0.0.0 0.0.0.255 any", 5, "unsupported address '10.0.0.0'"),
         (f"{ACL_PREFIX} ip 10.0.0.0 any", 5, "unsupported address '10.0.0.0'"),
-        (f"{ACL_PREFIX} tcp any eq 1024 any", 6, "unsupported source port 'eq 1024'"),
-        (f"{ACL_PREFIX} tcp any object-group SVC_PORTS any", 6, "unsupported source port object-group"),
+        (f"{ACL_PREFIX} tcp any range 1000", 8, "port after 'range' is expected"),
+        (f"{ACL_PREFIX} tcp any eq", 7, "port after 'eq' is expected"),
         (f"{ACL_PREFIX} tcp any any neq 80", 7, "unsupported port operator 'neq 80'"),
         (f"{ACL_PREFIX} tcp any any lt 0", 7, "is empty"),
         (f"{ACL_PREFIX} tcp any any gt 65535", 7, "is empty"),
@@ -234,7 +268,8 @@ def test_interface_inside_entry_stops_the_config_parse_with_its_line_number() ->
 
 def test_no_entry_is_silently_dropped() -> None:
     config: str = (
-        "access-list OUTSIDE_IN extended deny tcp any eq 1024 any\naccess-list OUTSIDE_IN extended permit ip any any\n"
+        "access-list OUTSIDE_IN extended deny ip host 10.0.0.1 10.0.0.0\n"
+        "access-list OUTSIDE_IN extended permit ip any any\n"
     )
 
     with pytest.raises(AsaConfigParseError):

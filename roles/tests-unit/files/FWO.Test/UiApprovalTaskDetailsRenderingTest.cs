@@ -100,7 +100,7 @@ internal class UiApprovalTaskDetailsRenderingTest : UiSharedEditorTestBase
             Assert.That(cut.Markup, Does.Contain("server-new"));
             Assert.That(cut.Markup, Does.Contain("server-old"));
             Assert.That(cut.Markup, Does.Contain("requested_state"));
-            Assert.That(cut.FindAll("button.btn-warning"), Has.Count.GreaterThanOrEqualTo(4));
+            Assert.That(cut.FindAll("button.btn-secondary"), Has.Count.GreaterThanOrEqualTo(4));
         });
     }
 
@@ -269,11 +269,11 @@ internal class UiApprovalTaskDetailsRenderingTest : UiSharedEditorTestBase
             Assert.That(togglePosition, Is.LessThan(accessPosition));
         });
 
-        cut.Find("button.btn-secondary").Click();
+        cut.Find("button.approval-task-display-toggle").Click();
         Assert.That(cut.Markup, Does.Contain("unresolved_groups_view"));
-        cut.Find("button.btn-secondary").Click();
+        cut.Find("button.approval-task-display-toggle").Click();
         Assert.That(cut.Markup, Does.Contain("resolved_view"));
-        cut.Find("button.btn-secondary").Click();
+        cut.Find("button.approval-task-display-toggle").Click();
         Assert.That(cut.Markup, Does.Contain("technical_view"));
     }
 

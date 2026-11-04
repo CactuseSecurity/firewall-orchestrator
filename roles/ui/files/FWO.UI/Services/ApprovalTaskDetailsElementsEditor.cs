@@ -284,8 +284,10 @@ internal sealed class ApprovalTaskDetailsElementsEditor
             .Where(element => element.RequestAction != RequestAction.delete.ToString())
             .ToList();
 
-        foreach (WfReqTask accessTask in context.WfHandler.ActTicket.Tasks.Where(task =>
-            task.TaskType == WfTaskType.access.ToString()))
+        List<WfReqTask> affectedTasks = context.WfHandler.ActTicket.Tasks
+            .Where(task => task.TaskType == WfTaskType.access.ToString())
+            .ToList();
+        foreach (WfReqTask accessTask in affectedTasks)
         {
             bool changed = false;
             foreach (WfReqElement accessElement in accessTask.Elements.Where(element =>

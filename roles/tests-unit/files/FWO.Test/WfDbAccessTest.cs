@@ -1508,10 +1508,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task UpdateReqTaskInDb_RefusesTaskThatAlreadyReferencesFlowDb()
+        public async Task UpdateReqTaskInDb_AllowsMetadataUpdateWhenTaskAlreadyReferencesFlowDb()
         {
             WfDbAccessTestApiConn apiConn = new()
             {
+                UpdatedReqTaskId = 100,
                 Ticket = new WfTicket
                 {
                     Id = 77,
@@ -1541,7 +1542,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConn.UpdateReqTaskCallCount, Is.EqualTo(0));
+                Assert.That(apiConn.UpdateReqTaskCallCount, Is.EqualTo(1));
                 Assert.That(apiConn.UpdateReqElementCallCount, Is.EqualTo(0));
             });
         }

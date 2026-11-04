@@ -165,8 +165,10 @@
         NwServiceElement element = BuildTicketServiceElement(source);
         return ElementChoice.ForTicketService(source, element, DisplayServiceChoice(element));
     });
-    private IEnumerable<NwObjectElement> CurrentNetworkElements => (IsSource ? sources : destinations).Concat(IsSource ? sourcesToAdd : destinationsToAdd);
-    private IEnumerable<NwServiceElement> CurrentServiceElements => services.Concat(servicesToAdd);
+    private IEnumerable<NwObjectElement> CurrentNetworkElements => (IsSource ? sources : destinations)
+        .Concat(IsSource ? sourcesToAdd : destinationsToAdd)
+        .DistinctBy(ElementKey);
+    private IEnumerable<NwServiceElement> CurrentServiceElements => services.Concat(servicesToAdd).DistinctBy(ElementKey);
     private IEnumerable<ElementChoice> AllChoices => NetworkField
         ? TicketNetworkChoices.Concat(FlowNetworkChoices)
         : TicketServiceChoices.Concat(FlowServiceChoices);
@@ -263,6 +265,16 @@
     private static bool IsActive(NwServiceElement element) => !string.Equals(element.RequestAction, RequestAction.delete.ToString(), StringComparison.OrdinalIgnoreCase);
     private static string ElementKey(NwObjectElement element) => $"{element.FlowNetworkObjectId}:{element.FlowNetworkGroupId}:{element.NetworkId}:{element.ObjectTaskId}:{element.Name}:{element.IpString}:{element.IpEndString}";
     private static string ElementKey(NwServiceElement element) => $"{element.FlowServiceObjectId}:{element.FlowServiceGroupId}:{element.ServiceId}:{element.ObjectTaskId}:{element.Name}:{element.ProtoId}:{element.Port}:{element.PortEnd}";
+    private static bool IsPotentialNetworkGroupReference(NwObjectElement element) =>
+        !string.IsNullOrWhiteSpace(element.GroupName)
+        || element.FlowNetworkGroupId.HasValue
+        || (!element.NetworkId.HasValue && !element.FlowNetworkObjectId.HasValue && !element.ObjectTaskId.HasValue
+            && string.IsNullOrWhiteSpace(element.IpString) && string.IsNullOrWhiteSpace(element.IpEndString));
+    private static bool IsPotentialServiceGroupReference(NwServiceElement element) =>
+        !string.IsNullOrWhiteSpace(element.GroupName)
+        || element.FlowServiceGroupId.HasValue
+        || (!element.ServiceId.HasValue && !element.FlowServiceObjectId.HasValue && !element.ObjectTaskId.HasValue
+            && !element.Port.HasValue && !element.PortEnd.HasValue && !element.HasProtocol);
     private static string DisplayNetworkElement(NwObjectElement element) => !string.IsNullOrWhiteSpace(element.Name) ? element.Name : NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
     private string DisplayServiceElement(NwServiceElement element) => !string.IsNullOrWhiteSpace(element.Name) ? element.Name : DisplayBase.DisplayService(element, IpProtos);
     private string DisplayNetworkChoice(NwObjectElement element)
@@ -271,7 +283,7 @@
         {
             return DisplayNetworkGroupChoice(element);
         }
-        if (GetTicketNetworkGroupMembers(element).Any())
+        if (IsPotentialNetworkGroupReference(element) && GetTicketNetworkGroupMembers(element).Any())
         {
             return DisplayNetworkGroupChoice(element);
         }
@@ -284,7 +296,7 @@
         {
             return DisplayServiceGroupChoice(element);
         }
-        if (GetTicketServiceGroupMembers(element).Any())
+        if (IsPotentialServiceGroupReference(element) && GetTicketServiceGroupMembers(element).Any())
         {
             return DisplayServiceGroupChoice(element);
         }
@@ -313,7 +325,7 @@
             : null;
         IEnumerable<string> members = group?.NwGroupMembers.Select(member => DisplayFlowNetworkObject(member.NwObject))
             ?? GetTicketNetworkGroupMembers(element).Select(DisplayNetworkMember);
-        return FormatGroupChoice(element.GroupName ?? element.Name ?? group?.Name ?? "", string.Join(", ", members.Where(member => !string.IsNullOrWhiteSpace(member))));
+        return FormatGroupChoice(FirstNonEmpty(element.GroupName, element.Name, group?.Name), string.Join(", ", members.Where(member => !string.IsNullOrWhiteSpace(member))));
     }
 
     private string DisplayServiceGroupChoice(NwServiceElement element)
@@ -323,7 +335,7 @@
             : null;
         IEnumerable<string> members = group?.SvcGroupMembers.Select(member => DisplayFlowServiceObject(member.SvcObject))
             ?? GetTicketServiceGroupMembers(element).Select(DisplayServiceMember);
-        return FormatGroupChoice(element.GroupName ?? element.Name ?? group?.Name ?? "", string.Join(", ", members.Where(member => !string.IsNullOrWhiteSpace(member))));
+        return FormatGroupChoice(FirstNonEmpty(element.GroupName, element.Name, group?.Name), string.Join(", ", members.Where(member => !string.IsNullOrWhiteSpace(member))));
     }
 
     private static string DisplayNetworkMember(NwObjectElement element)
@@ -344,7 +356,7 @@
 
     private IEnumerable<NwObjectElement> GetTicketNetworkGroupMembers(NwObjectElement element)
     {
-        string groupName = element.GroupName ?? element.Name ?? "";
+        string groupName = FirstNonEmpty(element.GroupName, element.Name);
         return TicketTasks
             .Where(task => task.TaskType is nameof(WfTaskType.group_create) or nameof(WfTaskType.group_modify))
             .Where(task => string.Equals(task.GetAddInfoValue(AdditionalInfoKeys.GrpName).Trim(), groupName.Trim(), StringComparison.OrdinalIgnoreCase)
@@ -358,7 +370,7 @@
 
     private IEnumerable<NwServiceElement> GetTicketServiceGroupMembers(NwServiceElement element)
     {
-        string groupName = element.GroupName ?? element.Name ?? "";
+        string groupName = FirstNonEmpty(element.GroupName, element.Name);
         return TicketTasks
             .Where(task => task.TaskType is nameof(WfTaskType.group_create) or nameof(WfTaskType.group_modify))
             .Where(task => string.Equals(task.GetAddInfoValue(AdditionalInfoKeys.GrpName).Trim(), groupName.Trim(), StringComparison.OrdinalIgnoreCase)
@@ -383,8 +395,12 @@
 
     private static string FormatGroupChoice(string groupName, string members)
     {
-        return string.IsNullOrWhiteSpace(members) ? groupName : $"{groupName} ({members})";
+        return string.IsNullOrWhiteSpace(groupName) ? members
+            : string.IsNullOrWhiteSpace(members) ? groupName
+            : $"{groupName} ({members})";
     }
+
+    private static string FirstNonEmpty(params string?[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "";
 
     private void Close() => _ = DisplayChanged.InvokeAsync(false);
 

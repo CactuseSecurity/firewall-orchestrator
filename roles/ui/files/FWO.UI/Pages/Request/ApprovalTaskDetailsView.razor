@@ -21,27 +21,12 @@
                 {
                     accessToggleShown = true;
                     <div class="d-flex justify-content-end mb-3">
-                        <button type="button" class="btn btn-sm btn-secondary" @onclick="ToggleAccessElementDisplay">
+                        <button type="button" class="btn btn-sm btn-primary approval-task-display-toggle" @onclick="ToggleAccessElementDisplay">
                             @(DisplayService.DisplayButton(userConfig, NextDisplayModeTextKey(), Icons.Swap))
                         </button>
                     </div>
                 }
-                <details class="card mb-3" open="@DetailsOpen(task)">
-                    <summary class="card-header d-flex justify-content-between align-items-center">
-                        <span class="d-flex align-items-start flex-wrap flex-grow-1 gap-2">
-                            <small class="text-muted mr-2 text-nowrap" style="min-width: 10rem;">@(userConfig.GetText("id")): @TaskIds(taskGroup)</small>
-                            <strong class="mr-2">@TaskDisplayTitle(task)</strong>
-                            @if (CanEdit(taskGroup, WorkflowEditableFieldKeys.Title))
-                            {
-                                <button type="button" class="btn btn-sm btn-warning" @onclick:stopPropagation @onclick="() => OpenTextEditor(task, WorkflowEditableFieldKeys.Title, task.Title)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                            }
-                            @if (taskGroup.Count > 1)
-                            {
-                                <span class="badge badge-secondary ml-2">@taskGroup.Count</span>
-                            }
-                        </span>
-                        <span>@States.GetName(task.StateId)</span>
-                    </summary>
+                <Collapse StartToggled="@(!IsAccessTask(task))" Style="secondary" UseHtmlTitle="true" TitleWithHtml="@TaskHeader(task, taskGroup)">
                     <div class="card-body">
                         <CascadingValue Value="@CreateTaskViewContext()">
                             @if (IsAccessTask(task))
@@ -58,7 +43,7 @@
                             }
                         </CascadingValue>
                     </div>
-                </details>
+                </Collapse>
             }
         }
     </Body>
@@ -77,7 +62,7 @@
                 </div>
             </div>
             <div class="col-sm-4 d-flex justify-content-end">
-                <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+                <button type="button" class="btn btn-sm btn-primary approval-task-details-close" @onclick="Close">@(userConfig.GetText("ok"))</button>
             </div>
         </div>
     </Footer>
@@ -138,6 +123,46 @@
             : userConfig.GetText(task.TaskType);
         return string.IsNullOrWhiteSpace(task.Title) ? taskType : $"{taskType}: {task.Title}";
     }
+
+    private RenderFragment TaskHeader(WfReqTask task, IEnumerable<WfReqTask> taskGroup) => builder =>
+    {
+        int sequence = 0;
+        builder.OpenElement(sequence++, "span");
+        builder.AddAttribute(sequence++, "class", "d-flex align-items-center flex-wrap gap-2");
+        builder.OpenElement(sequence++, "small");
+        builder.AddAttribute(sequence++, "class", "text-dark mr-2 text-nowrap");
+        builder.AddContent(sequence++, $"{userConfig.GetText("id")}: {TaskIds(taskGroup)}");
+        builder.CloseElement();
+        if (CanEdit(taskGroup, WorkflowEditableFieldKeys.Title))
+        {
+            builder.OpenElement(sequence++, "button");
+            builder.AddAttribute(sequence++, "type", "button");
+            builder.AddAttribute(sequence++, "class", "btn btn-sm btn-secondary");
+            builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this,
+                () => OpenTextEditor(task, WorkflowEditableFieldKeys.Title, task.Title)));
+            builder.AddEventStopPropagationAttribute(sequence++, "onclick", true);
+            builder.AddContent(sequence++, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
+            builder.CloseElement();
+        }
+        builder.OpenElement(sequence++, "strong");
+        builder.AddAttribute(sequence++, "class", "mr-2");
+        builder.AddContent(sequence++, TaskDisplayTitle(task));
+        builder.CloseElement();
+        if (taskGroup.Count() > 1)
+        {
+            builder.OpenElement(sequence++, "span");
+            builder.AddAttribute(sequence++, "class", "badge badge-secondary ml-2");
+            builder.AddContent(sequence++, taskGroup.Count());
+            builder.CloseElement();
+        }
+        builder.OpenElement(sequence++, "span");
+        builder.AddAttribute(sequence++, "class", "ml-auto");
+        builder.AddContent(sequence++, States.GetName(task.StateId));
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private static string? DetailsOpen(WfReqTask task) => ApprovalTaskDetailsEditorService.DetailsOpen(task);
 
     private ApproverAllowedChangesConfig AllowedChanges => editorService.AllowedChanges;
     private AccessTaskFieldVisibilityConfig AccessTaskVisibility => editorService.AccessTaskVisibility;
@@ -390,8 +415,6 @@
     private static bool IsAccessTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsAccessTask(task);
 
     private static bool IsGroupTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsGroupTask(task);
-
-    private static string? DetailsOpen(WfReqTask task) => ApprovalTaskDetailsEditorService.DetailsOpen(task);
 
     private ApprovalTaskViewContext CreateTaskViewContext()
     {

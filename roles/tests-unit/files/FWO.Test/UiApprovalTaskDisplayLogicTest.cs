@@ -260,6 +260,57 @@ internal class UiApprovalTaskDisplayLogicTest
     }
 
     [Test]
+    public void ElementRowsExposeColumnsForEachAccessDisplayMode()
+    {
+        WfReqTask task = new()
+        {
+            Id = 135,
+            TaskType = WfTaskType.access.ToString(),
+            Elements =
+            [
+                new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    Name = "server",
+                    IpString = "192.0.2.35"
+                },
+                new WfReqElement
+                {
+                    Field = ElemFieldType.service.ToString(),
+                    Name = "https",
+                    Port = 443,
+                    ProtoId = 6
+                }
+            ]
+        };
+        WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [task] } };
+        SimulatedUserConfig config = new();
+
+        ApprovalTaskDisplayLogic resolved = CreateDisplayLogic(handler, config, ApprovalTaskElementDisplayMode.Resolved);
+        ApprovalTaskDisplayLogic technical = CreateDisplayLogic(handler, config, ApprovalTaskElementDisplayMode.Technical);
+        ApprovalTaskDisplayLogic unresolved = CreateDisplayLogic(handler, config, ApprovalTaskElementDisplayMode.UnresolvedGroups);
+
+        ApprovalTaskNetworkElementRow resolvedNetwork = resolved.NetworkElementRows([task], ElemFieldType.source).Single();
+        ApprovalTaskNetworkElementRow technicalNetwork = technical.NetworkElementRows([task], ElemFieldType.source).Single();
+        ApprovalTaskNetworkElementRow unresolvedNetwork = unresolved.NetworkElementRows([task], ElemFieldType.source).Single();
+        ApprovalTaskServiceElementRow resolvedService = resolved.ServiceElementRows([task], ElemFieldType.service).Single();
+        ApprovalTaskServiceElementRow technicalService = technical.ServiceElementRows([task], ElemFieldType.service).Single();
+        ApprovalTaskServiceElementRow unresolvedService = unresolved.ServiceElementRows([task], ElemFieldType.service).Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resolvedNetwork, Is.EqualTo(new ApprovalTaskNetworkElementRow("server", "192.0.2.35", "")));
+            Assert.That(technicalNetwork, Is.EqualTo(new ApprovalTaskNetworkElementRow("", "192.0.2.35", "")));
+            Assert.That(unresolvedNetwork, Is.EqualTo(new ApprovalTaskNetworkElementRow("server", "", "")));
+            Assert.That(resolvedService.Name, Is.EqualTo("https"));
+            Assert.That(resolvedService.Content, Does.Contain("443"));
+            Assert.That(technicalService.Name, Is.Empty);
+            Assert.That(technicalService.Content, Does.Contain("443"));
+            Assert.That(unresolvedService, Is.EqualTo(new ApprovalTaskServiceElementRow("", "https")));
+        });
+    }
+
+    [Test]
     public void TimeObjectDisplay_UsesTaskDatesWhenElementIsMissingAndHonorsPrecision()
     {
         WfReqTask task = new()
@@ -300,4 +351,7 @@ internal class UiApprovalTaskDisplayLogicTest
             mode);
         return [.. logic.RuleElementValues([task], ElemFieldType.source)];
     }
+
+    private static ApprovalTaskDisplayLogic CreateDisplayLogic(WfHandler handler, SimulatedUserConfig config,
+        ApprovalTaskElementDisplayMode mode) => new(handler, config, [], [], [new IpProtocol { Id = 6, Name = "tcp" }], [], mode);
 }

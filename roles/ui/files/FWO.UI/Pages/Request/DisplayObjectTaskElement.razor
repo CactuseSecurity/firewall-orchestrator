@@ -111,6 +111,7 @@
         {
             <div class="col-xl-4 col-lg-6 mb-2 d-flex align-items-start flex-nowrap">
                 <label class="col-form-label col-form-label-sm mr-2 mb-0 text-nowrap" style="min-width: 10rem;">@(userConfig.GetText(ObjectTypeTextKey())):</label>
+                @ObjectNamePrefix
                 <span class="border bg-secondary px-2 py-1 d-inline-block flex-grow-1 text-break">@ObjectName()</span>
             </div>
         }
@@ -124,7 +125,7 @@
             @if (!IsModify && requested != null)
             {
                 <div class="list-group-item border bg-secondary">
-                    <label>@DisplayElement(requested)</label>
+                    <label>@DisplayElement(requested, includeName: false)</label>
                 </div>
             }
             else if (requested != null)
@@ -159,6 +160,9 @@
 
     [Parameter]
     public ObjectTaskKind? ObjectKind { get; set; }
+
+    [Parameter]
+    public RenderFragment? ObjectNamePrefix { get; set; }
 
     private WfReqTask? initializedTask;
     private ObjectTaskKind kind;

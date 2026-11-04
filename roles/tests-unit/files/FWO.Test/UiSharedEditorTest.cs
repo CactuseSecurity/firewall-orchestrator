@@ -346,7 +346,7 @@ internal class UiSharedEditorTest : UiSharedEditorTestBase
             .Add(p => p.CreateTimeObjectTaskRequested,
                 EventCallback.Factory.Create(this, () => requested = true)));
 
-        cut.Find("button.btn-warning").Click();
+        cut.Find("button.btn-success").Click();
 
         Assert.That(requested, Is.True);
     }

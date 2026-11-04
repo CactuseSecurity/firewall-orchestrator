@@ -970,7 +970,7 @@ namespace FWO.Test
                 Assert.That(component.FindAll("input[placeholder='port_range']"), Has.Count.EqualTo(1));
                 Assert.That(GetMember<int>(component.Instance, "protoId"), Is.EqualTo(kTcp));
                 Assert.That(component.FindAll("div.form-group.row"), Has.Count.EqualTo(3));
-                Assert.That(component.FindAll("label.col-sm-3"), Has.Count.EqualTo(2));
+                Assert.That(component.FindAll("label.col-sm-3"), Has.Count.EqualTo(3));
             });
         }
 

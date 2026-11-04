@@ -19,6 +19,12 @@ namespace FWO.Ui.Services
         UnresolvedGroups
     }
 
+    /// <summary>Structured network-object values for the approval-task tables.</summary>
+    public sealed record ApprovalTaskNetworkElementRow(string Name, string Ip, string Zone);
+
+    /// <summary>Structured service values for the approval-task tables.</summary>
+    public sealed record ApprovalTaskServiceElementRow(string Name, string Content);
+
     /// <summary>
     /// Presentation-only logic for the task bodies shown by the approval task view.
     /// Workflow state changes remain in ApprovalTaskDetailsView.
@@ -72,6 +78,9 @@ namespace FWO.Ui.Services
 
         private FlowIntegrationConfig FlowIntegration => FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration);
 
+        /// <summary>Gets the active access-element display mode.</summary>
+        public ApprovalTaskElementDisplayMode DisplayMode => displayMode;
+
         /// <summary>Returns distinct current handlers.</summary>
         public string Handlers(IEnumerable<WfReqTask> tasks) => string.Join(", ", tasks
             .Select(task => task.CurrentHandler?.Name)
@@ -93,7 +102,9 @@ namespace FWO.Ui.Services
         /// <summary>Returns distinct owner names.</summary>
         public string Owners(IEnumerable<WfReqTask> tasks) => string.Join(", ", tasks
             .SelectMany(task => task.Owners)
-            .Select(owner => owner.Owner?.Name)
+            .Select(owner => owner.Owner)
+            .Where(owner => owner != null)
+            .Select(owner => owner!.Display(userConfig.GetText("common_service")))
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Distinct());
 
@@ -142,6 +153,27 @@ namespace FWO.Ui.Services
                 _ => ResolvedElementValues(tasks, field)
             };
         }
+
+        /// <summary>Builds the network-object columns for an access-task field.</summary>
+        public IEnumerable<ApprovalTaskNetworkElementRow> NetworkElementRows(IEnumerable<WfReqTask> tasks, ElemFieldType field) =>
+            DisplayElements(tasks, field).Select(element => new ApprovalTaskNetworkElementRow(
+                displayMode == ApprovalTaskElementDisplayMode.Technical ? "" : ElementDisplayName(element),
+                displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups ? "" : NwObjDisplay.DisplayIp(element.IpString, element.IpEnd),
+                displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups ? "" : Zones(element)));
+
+        /// <summary>Builds the service columns for an access-task field.</summary>
+        public IEnumerable<ApprovalTaskServiceElementRow> ServiceElementRows(IEnumerable<WfReqTask> tasks, ElemFieldType field) =>
+            DisplayElements(tasks, field).Select(element => new ApprovalTaskServiceElementRow(
+                displayMode == ApprovalTaskElementDisplayMode.Technical || displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups
+                    ? ""
+                    : ElementDisplayName(element),
+                displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups
+                    ? FirstNonEmpty(element.GroupName, element.Name) ?? ""
+                    : DisplayBase.DisplayService(ToServiceElement(element), ipProtocols)));
+
+        private string ElementDisplayName(WfReqElement element) => displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups
+            ? FirstNonEmpty(element.GroupName, element.Name) ?? ""
+            : FirstNonEmpty(element.Name, element.GroupName) ?? "";
 
         private string Dates(IEnumerable<WfReqTask> tasks, bool isEndDate) => string.Join("; ", tasks
             .Select(task => EffectiveTimeObjectDate(task, isEndDate))

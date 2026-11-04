@@ -350,10 +350,10 @@ internal class UiApprovalTaskDetailsViewTest : UiSharedEditorTestBase
             Assert.That(apiConnection.Queries, Does.Contain(StmQueries.getIpProtocols));
         });
 
-        cut.Find("button.btn-secondary").Click();
+        cut.Find("button.approval-task-display-toggle").Click();
         Assert.That(cut.Markup, Does.Contain("unresolved_groups_view"));
 
-        cut.Find("button.btn-primary").Click();
+        cut.Find("button.approval-task-details-close").Click();
         Assert.That(displayChanged, Is.False);
     }
 

@@ -132,6 +132,7 @@ namespace FWO.Test
             WfHandler handler = new()
             {
                 ReadOnlyMode = readOnly,
+                EditTicketMode = !readOnly,
                 DisplayTicketMode = true,
                 ActTicket = new WfTicket { Id = 10, Title = "Ticket" }
             };
@@ -143,12 +144,18 @@ namespace FWO.Test
             IRenderedComponent<DisplayTicket> component = RenderDisplayTicket(context, handler, WorkflowPhases.planning, new WfStateDict());
             string addCommentText = userConfig.GetText("add_comment");
 
-            AngleSharp.Dom.IElement addCommentButton = component.FindAll("button").Single(button => button.InnerHtml.Contains(addCommentText));
+            AngleSharp.Dom.IElement[] addCommentButtons = component.FindAll("button")
+                .Where(button => button.InnerHtml.Contains(addCommentText))
+                .ToArray();
             await component.InvokeAsync(() => GetPrivateMethod(typeof(DisplayTicket), "InitAddComment").Invoke(component.Instance, null));
 
             Assert.Multiple(() =>
             {
-                Assert.That(addCommentButton.HasAttribute("disabled"), Is.EqualTo(readOnly));
+                Assert.That(addCommentButtons, Has.Length.EqualTo(readOnly ? 0 : 1));
+                if (!readOnly)
+                {
+                    Assert.That(addCommentButtons[0].HasAttribute("disabled"), Is.False);
+                }
                 Assert.That(handler.DisplayTicketCommentMode, Is.EqualTo(!readOnly));
             });
         }
@@ -257,6 +264,7 @@ namespace FWO.Test
             };
             WfHandler handler = new()
             {
+                EditTicketMode = true,
                 ActTicket = new WfTicket { Id = 10, Title = "Ticket" }
             };
             DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.approval, userConfig: userConfig);
@@ -399,6 +407,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
+                EditTicketMode = true,
                 ActTicket = new WfTicket { Id = 10, Title = "Ticket", StateId = 2 },
                 MasterStateMatrix = new StateMatrix
                 {
@@ -425,6 +434,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
+                EditTicketMode = true,
                 ActTicket = new WfTicket
                 {
                     Id = 10,

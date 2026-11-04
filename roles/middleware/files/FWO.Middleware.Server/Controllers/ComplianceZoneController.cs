@@ -18,7 +18,7 @@ namespace FWO.Middleware.Server.Controllers;
 [ApiController]
 [Tags("Compliance")]
 [Route("api/Compliance")]
-public class ComplianceZoneController(ComplianceZoneService complianceZoneService, GlobalConfig globalConfig) : ControllerBase
+public class ComplianceZoneController(DesignatedZoneMatrixService designatedZoneMatrixService, GlobalConfig globalConfig) : ControllerBase
 {
     /// <summary>
     /// Returns the network zones of the configured designated zone matrix.
@@ -52,7 +52,7 @@ public class ComplianceZoneController(ComplianceZoneService complianceZoneServic
 
         try
         {
-            ListPage<ComplianceDesignatedZoneResponse> zones = await complianceZoneService.GetDesignatedZoneMatrixZonesAsync(
+            ListPage<ComplianceDesignatedZoneResponse> zones = await designatedZoneMatrixService.GetDesignatedZoneMatrixZonesAsync(
                 ListPaging.GetPageSize(limit, maxLimit), offset);
             ListPaging.SetHasMoreHeader(HttpContext, zones.HasMore);
             return Ok(zones.Items);
@@ -87,7 +87,7 @@ public class ComplianceZoneController(ComplianceZoneService complianceZoneServic
 
         try
         {
-            return Ok(await complianceZoneService.ResolveZonesForObjectsAsync(request));
+            return Ok(await designatedZoneMatrixService.ResolveZonesForObjectsAsync(request));
         }
         catch (UnassignableIpRangesException exception)
         {

@@ -220,14 +220,14 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
     {
         Source =
         [
-            new GetFlowComplianceStateRequest.IpRangeRequest
+            new AddressInputRequest
             {
                 IpNetwork = "192.0.2.0/24"
             }
         ],
         Destination =
         [
-            new GetFlowComplianceStateRequest.IpRangeRequest
+            new AddressInputRequest
             {
                 IpRange = ["198.51.100.20", "198.51.100.29"]
             }

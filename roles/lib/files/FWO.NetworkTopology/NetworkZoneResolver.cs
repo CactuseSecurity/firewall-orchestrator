@@ -2,23 +2,23 @@ using FWO.Data;
 using NetTools;
 using System.Net.Sockets;
 
-namespace FWO.Compliance;
+namespace FWO.NetworkTopology;
 
 /// <summary>
-/// Resolves compliance network zones for a set of IP ranges.
+/// Resolves network zones for a set of IP ranges.
 /// </summary>
-public static class ComplianceZoneResolver
+public static class NetworkZoneResolver
 {
     /// <summary>
     /// Resolves the zones that overlap with the provided IP ranges.
     /// </summary>
     /// <param name="ranges">IP ranges to evaluate.</param>
-    /// <param name="activeNetworkZones">The active compliance zones.</param>
+    /// <param name="activeNetworkZones">The active network zones.</param>
     /// <param name="autoCalculatedInternetZoneActive">Whether the internet zone is auto-calculated and therefore should not be added as a fallback.</param>
     /// <param name="internetLocalZoneName">Localized display name for the fallback internet zone.</param>
-    public static List<ComplianceNetworkZone> ResolveZones(
+    public static List<NetworkZone> ResolveZones(
         List<IPAddressRange> ranges,
-        List<ComplianceNetworkZone> activeNetworkZones,
+        List<NetworkZone> activeNetworkZones,
         bool autoCalculatedInternetZoneActive,
         string internetLocalZoneName)
     {
@@ -29,13 +29,13 @@ public static class ComplianceZoneResolver
     /// Resolves the zones that overlap with the provided IP ranges and reports the ranges no zone can cover.
     /// </summary>
     /// <param name="ranges">IP ranges to evaluate.</param>
-    /// <param name="activeNetworkZones">The active compliance zones.</param>
+    /// <param name="activeNetworkZones">The active network zones.</param>
     /// <param name="autoCalculatedInternetZoneActive">Whether the internet zone is auto-calculated and therefore should not be added as a fallback.</param>
     /// <param name="internetLocalZoneName">Localized display name for the fallback internet zone.</param>
     /// <param name="unassignableRanges">Ranges that matched no zone and that the internet zone cannot cover either.</param>
-    public static List<ComplianceNetworkZone> ResolveZones(
+    public static List<NetworkZone> ResolveZones(
         List<IPAddressRange> ranges,
-        List<ComplianceNetworkZone> activeNetworkZones,
+        List<NetworkZone> activeNetworkZones,
         bool autoCalculatedInternetZoneActive,
         string internetLocalZoneName,
         out List<IPAddressRange> unassignableRanges)
@@ -52,15 +52,15 @@ public static class ComplianceZoneResolver
     /// <param name="internetLocalZoneName">Localized display name for the fallback internet zone.</param>
     /// <param name="cancellationToken">Caller cancellation token.</param>
     /// <param name="unassignableRanges">Ranges that no zone can cover.</param>
-    public static List<ComplianceNetworkZone> ResolveZones(
+    public static List<NetworkZone> ResolveZones(
         List<IPAddressRange> ranges,
-        List<ComplianceNetworkZone> activeNetworkZones,
+        List<NetworkZone> activeNetworkZones,
         bool autoCalculatedInternetZoneActive,
         string internetLocalZoneName,
         CancellationToken cancellationToken,
         out List<IPAddressRange> unassignableRanges)
     {
-        List<ComplianceNetworkZone> result = [];
+        List<NetworkZone> result = [];
         List<List<IPAddressRange>> unseenIpAddressRanges = [];
 
         for (int index = 0; index < ranges.Count; index++)
@@ -69,7 +69,7 @@ public static class ComplianceZoneResolver
             unseenIpAddressRanges.Add([new(ranges[index].Begin, ranges[index].End)]);
         }
 
-        foreach (ComplianceNetworkZone zone in activeNetworkZones)
+        foreach (NetworkZone zone in activeNetworkZones)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (zone.OverlapExists(ranges, unseenIpAddressRanges))
@@ -104,7 +104,7 @@ public static class ComplianceZoneResolver
 
         if (undefinedIpRanges.Count > unassignableRanges.Count)
         {
-            result.Add(new ComplianceNetworkZone
+            result.Add(new NetworkZone
             {
                 Name = internetLocalZoneName
             });

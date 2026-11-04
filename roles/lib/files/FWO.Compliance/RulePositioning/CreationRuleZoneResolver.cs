@@ -1,5 +1,6 @@
 using FWO.Basics;
 using FWO.Data;
+using FWO.NetworkTopology;
 using FWO.Data.RulePositioning;
 using NetTools;
 using System.Net.Sockets;
@@ -18,7 +19,7 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
     /// <inheritdoc />
     public Task<CreationRuleZoneResolutionResult> ResolveAsync(
         CreationRuleNetworkInput networkInput,
-        IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+        IReadOnlyCollection<NetworkZone> networkZones,
         RulePositioningConfiguration configuration,
         CancellationToken cancellationToken)
     {
@@ -30,7 +31,7 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
                 return Task.FromResult<CreationRuleZoneResolutionResult>(
                     Failure(CreationRuleZoneResolutionFailureCategory.InvalidInput));
             }
-            if (!TryValidateZones(networkZones, configuration, cancellationToken, out List<ComplianceNetworkZone> validatedZones))
+            if (!TryValidateZones(networkZones, configuration, cancellationToken, out List<NetworkZone> validatedZones))
             {
                 return Task.FromResult<CreationRuleZoneResolutionResult>(
                     Failure(CreationRuleZoneResolutionFailureCategory.InvalidZoneData));
@@ -65,10 +66,10 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
 
     /// <summary>Validates and copies caller-supplied zone rows.</summary>
     private static bool TryValidateZones(
-        IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+        IReadOnlyCollection<NetworkZone> networkZones,
         RulePositioningConfiguration configuration,
         CancellationToken cancellationToken,
-        out List<ComplianceNetworkZone> validatedZones)
+        out List<NetworkZone> validatedZones)
     {
         validatedZones = [];
         if (!HasValidZoneInput(networkZones, configuration))
@@ -77,12 +78,12 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
         }
 
         HashSet<int> zoneIds = [];
-        foreach (ComplianceNetworkZone? zone in networkZones!)
+        foreach (NetworkZone? zone in networkZones!)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!TryValidateZone(
                     zone, configuration.DesignatedZoneMatrixId, zoneIds, cancellationToken,
-                    out ComplianceNetworkZone? validatedZone))
+                    out NetworkZone? validatedZone))
             {
                 return false;
             }
@@ -95,17 +96,17 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
 
     /// <summary>Checks matrix identity and caller-supplied zone collection presence.</summary>
     private static bool HasValidZoneInput(
-        IReadOnlyCollection<ComplianceNetworkZone>? networkZones,
+        IReadOnlyCollection<NetworkZone>? networkZones,
         RulePositioningConfiguration? configuration) =>
         configuration?.DesignatedZoneMatrixId > 0 && networkZones is { Count: > 0 };
 
     /// <summary>Validates and defensively copies one zone row.</summary>
     private static bool TryValidateZone(
-        ComplianceNetworkZone? zone,
+        NetworkZone? zone,
         int matrixId,
         HashSet<int> zoneIds,
         CancellationToken cancellationToken,
-        out ComplianceNetworkZone? validatedZone)
+        out NetworkZone? validatedZone)
     {
         validatedZone = null;
         if (zone == null || zone.Id <= 0 || !zoneIds.Add(zone.Id) ||
@@ -113,7 +114,7 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
         {
             return false;
         }
-        if (!TryCloneZone(zone, cancellationToken, out ComplianceNetworkZone clonedZone))
+        if (!TryCloneZone(zone, cancellationToken, out NetworkZone clonedZone))
         {
             return false;
         }
@@ -123,7 +124,7 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
 
     /// <summary>Validates the configured automatic Internet-zone invariant.</summary>
     private static bool IsValidAutomaticInternetZone(
-        List<ComplianceNetworkZone> networkZones,
+        List<NetworkZone> networkZones,
         RulePositioningConfiguration configuration,
         CancellationToken cancellationToken)
     {
@@ -132,7 +133,7 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
             return true;
         }
 
-        List<ComplianceNetworkZone> internetZones = [.. networkZones.Where(zone => zone.IsAutoCalculatedInternetZone)];
+        List<NetworkZone> internetZones = [.. networkZones.Where(zone => zone.IsAutoCalculatedInternetZone)];
         bool containsIpv4Range = false;
         if (internetZones.Count == 1)
         {
@@ -149,11 +150,11 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
     /// <summary>Resolves and converts one side of the rule.</summary>
     private static SideResolution ResolveSide(
         List<IPAddressRange> ranges,
-        List<ComplianceNetworkZone> networkZones,
+        List<NetworkZone> networkZones,
         RulePositioningConfiguration configuration,
         CancellationToken cancellationToken)
     {
-        List<ComplianceNetworkZone> resolvedZones = ComplianceZoneResolver.ResolveZones(
+        List<NetworkZone> resolvedZones = NetworkZoneResolver.ResolveZones(
             ranges,
             networkZones,
             configuration.AutoCalculateInternetZone,
@@ -174,7 +175,7 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
     }
 
     /// <summary>Converts a compliance zone without retaining mutable caller data.</summary>
-    private static PositioningZoneReference ToPositioningReference(ComplianceNetworkZone zone)
+    private static PositioningZoneReference ToPositioningReference(NetworkZone zone)
     {
         bool persisted = zone.Id > 0;
         return new PositioningZoneReference(
@@ -196,9 +197,9 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
 
     /// <summary>Copies only zone state used by overlap resolution and positioning output.</summary>
     private static bool TryCloneZone(
-        ComplianceNetworkZone zone,
+        NetworkZone zone,
         CancellationToken cancellationToken,
-        out ComplianceNetworkZone clonedZone)
+        out NetworkZone clonedZone)
     {
         clonedZone = null!;
         List<IPAddressRange> ranges = [];
@@ -213,7 +214,7 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
             ranges.Add(new IPAddressRange(range!.Begin, range.End));
         }
 
-        clonedZone = new ComplianceNetworkZone
+        clonedZone = new NetworkZone
         {
             Id = zone.Id,
             IdString = zone.IdString,

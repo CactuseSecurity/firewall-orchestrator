@@ -11,6 +11,6 @@ namespace FWO.Data
     public class ZoneWrapper
     {
         [JsonProperty("zone"), JsonPropertyName("zone")]
-        public NetworkZone Content { get; set; } = new NetworkZone();
+        public FirewallZone Content { get; set; } = new FirewallZone();
     }
 }

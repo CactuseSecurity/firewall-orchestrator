@@ -53,7 +53,7 @@ namespace FWO.Services.PathAnalysis
         /// </summary>
         private async Task<MatrixData> LoadNetworkDataAsync(int matrixId)
         {
-            Task<List<ComplianceNetworkZone>> zonesTask = apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
+            Task<List<NetworkZone>> zonesTask = apiConnection.SendQueryAsync<List<NetworkZone>>(
                 NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
             Task<List<NetworkZoneIpRange>> ipRangesTask = apiConnection.SendQueryAsync<List<NetworkZoneIpRange>>(
                 NetworkZoneQueries.getIpRangesForMatrix, new { matrixId });

@@ -48,7 +48,7 @@ public static class CheckPointLayerGuardSectionNameResolver
     }
 
     private static bool TryAddZoneValue(
-        IDictionary<CheckPointSectionNameVariable, string> values,
+        Dictionary<CheckPointSectionNameVariable, string> values,
         CheckPointSectionNameVariable variable,
         IReadOnlyCollection<PositioningZoneReference> zones,
         ZoneCoverage coverage,

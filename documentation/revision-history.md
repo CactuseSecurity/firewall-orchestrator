@@ -6,6 +6,16 @@
 - modelling and workflow: shared IP range parsing accepts dotted IPv4 netmasks such as `10.0.2.0/255.255.255.0` in addition to prefix lengths
 - workflow monitoring: tickets are shown in a tree table (request tasks, implementation tasks and approvals below each ticket) that loads only the current page; search, column filters and sorting are executed in the database and apply to all tickets, a match on any level of a ticket finds the ticket and negated filters only find tickets where no level matches
 - dependencies: update NuGet package SoPro.FancyTable to 1.2.0 (server-side paging, search, filters and sorting)
+- middleware REST API: new modelling endpoints (#5268)
+  - `modelling/getAvailableInterfacesForApp`: published interfaces an application may use (public ones, restricted ones the
+    application is permitted for, and its own), with app servers, app roles, network areas, other network groups, services
+    and service groups resolved
+  - `modelling/getAppRolesPerApp`: app roles of an application (without AppZones) with their app servers
+  - `modelling/getNetworkAreas`: network areas with their subnets, filterable by id string with `*` and `?` wildcards
+  - admins and auditors see every application, modellers only their own (other applications: 404); modellers get network
+    areas only if one of their applications may use common services (otherwise 403). Addresses use compact notation (host
+    IP, CIDR network, `ip1-ip2` range), services `port/protocol` or `portStart-portEnd/protocol`
+  - API permissions: the middleware may read the permitted owners of restricted interfaces
 
 ## 9.8.6 - 02.11.2026
 - dependencies: update NuGet packages (AngleSharp to 1.9.1, Quartz to 4.7.0, Scalar.AspNetCore to 2.18.7, SoPro.FancyTable to 1.1.0)

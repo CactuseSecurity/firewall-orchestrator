@@ -1,6 +1,6 @@
 # Firewall Orchestrator – Version / Feature Overview
 
-This document lists each Firewall Orchestrator version from **8.0** onwards (newest
+This document lists each Firewall Orchestrator version from **9.0** onwards (newest
 first) and the features it introduced. It is compiled from the
 [revision history](revision-history.md).
 
@@ -21,7 +21,7 @@ For a feature-centric, thematically grouped view see
 - Rule-based reports (rules, resolved/technical, unused, NAT, recertification, app rules and change reports) show rule labels in html, pdf, csv, json and the UI, configurable under Settings - Reporting.
 - Label-based modelling: labels can be used as source and destination of connections, interfaces and common services, switched on by the new global setting "Label-based Modelling".
 
-### 9.9.0 — 02.11.2026
+### 9.9.0 — 04.11.2026
 - Azure Firewall import module fetches firewall policies (network rules) and IP groups directly via the Azure Resource Manager API (api version 2026-01-01 with fallback to 2024-05-01).
 - Azure parent policies (policy hierarchy) are imported; their rules precede the rules of the child policy.
 - Azure gateway autodiscovery: finds the Azure Firewalls of the subscription and maps each to its firewall policy.

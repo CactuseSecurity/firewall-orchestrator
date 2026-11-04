@@ -1,9 +1,9 @@
 # Firewall Orchestrator Revision History
 
 ## 9.8.8 - 04.11.2026
-- workflow monitoring: tickets are shown in a tree table (request tasks, implementation tasks and approvals below each ticket) that loads only the current page; search, column filters and sorting are executed in the database and apply to all tickets, a match on any level of a ticket finds the ticket and negated filters only find tickets where no level matches
+- workflow monitoring: tickets are shown in a tree table (request tasks, implementation tasks and approvals below each ticket) that loads only the current page; column filters (state, id, task number) and sorting are executed in the database and apply to all tickets, a match on any level of a ticket finds the ticket and negated filters only find tickets where no level matches; there is no free text search
 - workflow monitoring: the state column shows an icon behind the name of each default workflow state (e.g. a green check for "Done"); custom states are shown without icon
-- dependencies: update NuGet package SoPro.FancyTable to 1.3.0 (server-side paging, search, filters and sorting)
+- dependencies: update NuGet package SoPro.FancyTable to 1.3.0 (server-side paging, filters and sorting)
 
 ## 9.8.7 - 02.11.2026
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section

@@ -94,12 +94,22 @@ namespace FWO.Test
             Assert.That(requests[^1].Page, Is.EqualTo(1));
         }
 
-        [TestCase("name", true, true)]
+        [Test]
+        public void Render_OffersNoFreeTextSearch()
+        {
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { CreateTicket() });
+
+            string searchPlaceholder = new MonitorWorkflowUserConfig().GetText("search");
+            Assert.That(component.FindAll($"input[placeholder='{searchPlaceholder}']"), Is.Empty);
+        }
+
+        [TestCase("id", true, true)]
+        [TestCase("name", true, false)]
         [TestCase("state", true, true)]
-        [TestCase("requester", false, true)]
+        [TestCase("requester", false, false)]
         [TestCase("start_time", true, false)]
         [TestCase("task_number", false, true)]
-        [TestCase("flow_bundle_id", false, true)]
+        [TestCase("flow_bundle_id", false, false)]
         [TestCase("type", false, false)]
         [TestCase("tasks", false, false)]
         [TestCase("actions", false, false)]

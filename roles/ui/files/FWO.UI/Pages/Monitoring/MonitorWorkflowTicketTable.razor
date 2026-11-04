@@ -15,6 +15,7 @@
                 ChildItemsSelector="row => row.Children"
                 HasChildrenSelector="row => row.Children.Count > 0"
                 Texts="tableTexts"
+                ToolbarTemplate="kNoToolbar"
                 PaginationEnabled="true"
                 @bind-PageSize="pageSize"
                 ShowPageSizeSelector="true"
@@ -62,7 +63,7 @@
     #region Parameters
 
     /// <summary>
-    /// Loads one page of tickets for the search, column filters, sort and page of the table.
+    /// Loads one page of tickets for the column filters, sort and page of the table.
     /// </summary>
     [Parameter]
     public Func<FancyItemsRequest, CancellationToken, Task<FancyItemsResult<WfTicket>>> LoadTickets { get; set; } =
@@ -100,7 +101,11 @@
     private static readonly IReadOnlyList<WorkflowTreeRow> kNoChildren = [];
     private static readonly IReadOnlyList<WfTicket> kNoTickets = [];
 
+    // Replaces the default search bar: a free text search over all levels of all tickets is too slow on large installations.
+    private static readonly RenderFragment kNoToolbar = _ => { };
+
     // Sorting and filtering run on the server, so a column offers them only where WorkflowTicketQueryBuilder supports them.
+    // Text filters are not offered: a "contains" match over all levels cannot use an index and is too slow on many tickets.
     private static readonly ColumnBehavior kServerColumn = new(Hideable: true, Resizable: true, Sortable: true, Filterable: true);
     private static readonly ColumnBehavior kSortOnlyColumn = kServerColumn with { Filterable = false };
     private static readonly ColumnBehavior kFilterOnlyColumn = kServerColumn with { Sortable = false };
@@ -189,10 +194,10 @@
             CreateColumn("type", userConfig.GetText("type"), row => GetKindText(row.Kind), kDisplayColumn),
             CreateColumn("id", userConfig.GetText("id"), row => row.Id.ToString(), kServerColumn, row => row.Id),
             CreateColumn("task_number", userConfig.GetText("task_number"), row => row.TaskNumber?.ToString() ?? "", kFilterOnlyColumn, row => row.TaskNumber),
-            CreateColumn("name", userConfig.GetText("name"), row => row.Name, kServerColumn),
+            CreateColumn("name", userConfig.GetText("name"), row => row.Name, kSortOnlyColumn),
             CreateColumn("tasks", userConfig.GetText("tasks"), row => row.TaskCount?.ToString() ?? "", kDisplayColumn, row => row.TaskCount),
-            CreateColumn("requester", userConfig.GetText("requester"), row => row.Requester, kFilterOnlyColumn),
-            CreateColumn("flow_bundle_id", userConfig.GetText("flow_bundle_id"), row => row.FlowBundleId, kFilterOnlyColumn),
+            CreateColumn("requester", userConfig.GetText("requester"), row => row.Requester, kDisplayColumn),
+            CreateColumn("flow_bundle_id", userConfig.GetText("flow_bundle_id"), row => row.FlowBundleId, kDisplayColumn),
             CreateColumn("state", userConfig.GetText("state"), row => ResolveStateName(row.StateId), kServerColumn, cellTemplate: StateCellTemplate),
             CreateColumn("start_time", userConfig.GetText("start_time"), row => row.Start?.ToString() ?? "", kSortOnlyColumn, row => row.Start),
             CreateColumn("end_time", userConfig.GetText("end_time"), row => row.End?.ToString() ?? "", kSortOnlyColumn, row => row.End)
@@ -211,7 +216,7 @@
             Key = key,
             Title = title,
             Sortable = behavior.Sortable,
-            Searchable = true,
+            Searchable = false,
             Hideable = behavior.Hideable,
             ValueSelector = valueSelector,
             SortValueSelector = sortValueSelector ?? (row => valueSelector(row)),

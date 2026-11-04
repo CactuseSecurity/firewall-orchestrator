@@ -13,6 +13,7 @@ namespace FWO.Test
         private const int kPageSize = 20;
         private const string kStateCondition = """{"_or":[{"state_id":{"_in":[200,210,600]}},{"reqtasks":{"state_id":{"_in":[200,210,600]}}},{"reqtasks":{"impltasks":{"state_id":{"_in":[200,210,600]}}}},{"reqtasks":{"approvals":{"state_id":{"_in":[200,210,600]}}}}]}""";
         private const string kTaskTypeCondition = """{"reqtasks":{"task_type":{"_in":["access"]}}}""";
+        private const string kIdCondition7 = """{"_or":[{"id":{"_eq":7}},{"reqtasks":{"id":{"_eq":7}}},{"reqtasks":{"impltasks":{"id":{"_eq":7}}}},{"reqtasks":{"approvals":{"id":{"_eq":7}}}}]}""";
 
         private static readonly List<WfTaskType> kTaskTypes = [WfTaskType.access];
         private static readonly List<int> kStateIds = [200, 210, 600];
@@ -50,12 +51,13 @@ namespace FWO.Test
             return conditions[2]!.ToJsonString();
         }
 
-        private static string NameCondition(string comparison)
+        private static string StateCondition(string stateIds)
         {
-            return Normalize("{\"_or\":[{\"title\":" + comparison + "},"
-                + "{\"reqtasks\":{\"title\":" + comparison + "}},"
-                + "{\"reqtasks\":{\"impltasks\":{\"title\":" + comparison + "}}},"
-                + "{\"reqtasks\":{\"approvals\":{\"approver_group\":" + comparison + "}}}]}");
+            string stateIn = "{\"state_id\":{\"_in\":[" + stateIds + "]}}";
+            return Normalize("{\"_or\":[" + stateIn + ","
+                + "{\"reqtasks\":" + stateIn + "},"
+                + "{\"reqtasks\":{\"impltasks\":" + stateIn + "}},"
+                + "{\"reqtasks\":{\"approvals\":" + stateIn + "}}]}");
         }
 
         private static string Negated(string condition)
@@ -85,95 +87,63 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Build_Search_Text_MatchesNameRequesterBundleOnAnyLevel()
+        public void Build_SearchText_IsIgnored()
         {
-            string contains = """{"_ilike":"%fw%"}""";
+            WorkflowTicketQuery query = Build(Request(search: "fw"));
 
-            string condition = ExtraCondition(Build(Request(search: " fw ")));
-
-            Assert.That(condition, Is.EqualTo(Normalize($$$"""{"_or":[{{{NameCondition(contains)}}},{"uiuser":{"uiuser_username":{{{contains}}}}},{"reqtasks":{"additional_info":{{{contains}}}}}]}""")));
+            Assert.That(ToJson(query.Where), Is.EqualTo(Normalize($$$"""{"_and":[{{{kTaskTypeCondition}}},{{{kStateCondition}}}]}""")));
         }
 
-        [Test]
-        public void Build_Search_Numeric_AddsIdAndTaskNumberEquals()
+        [TestCase(FancyColumnFilterOperator.Contains, "impl", "200,210")]
+        [TestCase(FancyColumnFilterOperator.Equals, "done", "600")]
+        [TestCase(FancyColumnFilterOperator.StartsWith, "to", "200")]
+        [TestCase(FancyColumnFilterOperator.EndsWith, "implementation", "210")]
+        [TestCase(FancyColumnFilterOperator.IsNotEmpty, "", "200,210,600")]
+        public void StateFilter_PositiveOperator_ResolvesNamesToIdsOnAnyLevel(FancyColumnFilterOperator filterOperator, string value, string stateIds)
         {
-            JsonArray alternatives = JsonNode.Parse(ExtraCondition(Build(Request(search: "42"))))!["_or"]!.AsArray();
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("state", filterOperator, value))));
 
-            Assert.Multiple(() =>
-            {
-                Assert.That(alternatives, Has.Count.EqualTo(5));
-                Assert.That(alternatives[3]!.ToJsonString(), Is.EqualTo(Normalize("""{"id":{"_eq":42}}""")));
-                Assert.That(alternatives[4]!.ToJsonString(), Is.EqualTo(Normalize("""{"_or":[{"reqtasks":{"task_number":{"_eq":42}}},{"reqtasks":{"impltasks":{"task_number":{"_eq":42}}}}]}""")));
-            });
-        }
-
-        [Test]
-        public void Build_Search_StateName_MatchesStatesOnAnyLevel()
-        {
-            JsonArray alternatives = JsonNode.Parse(ExtraCondition(Build(Request(search: "impl"))))!["_or"]!.AsArray();
-
-            Assert.That(alternatives.Select(alternative => alternative!.ToJsonString()),
-                Does.Contain(Normalize("""{"_or":[{"state_id":{"_in":[200,210]}},{"reqtasks":{"state_id":{"_in":[200,210]}}},{"reqtasks":{"impltasks":{"state_id":{"_in":[200,210]}}}},{"reqtasks":{"approvals":{"state_id":{"_in":[200,210]}}}}]}""")));
-        }
-
-        [Test]
-        public void Escape_WildcardCharacters()
-        {
-            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("requester", FancyColumnFilterOperator.Contains, @"50%_a\b"))));
-
-            Assert.That(condition, Is.EqualTo(Normalize("""{"uiuser":{"uiuser_username":{"_ilike":"%50\\%\\_a\\\\b%"}}}""")));
-        }
-
-        [TestCase(FancyColumnFilterOperator.Contains, """{"_ilike":"%fw%"}""")]
-        [TestCase(FancyColumnFilterOperator.Equals, """{"_ilike":"fw"}""")]
-        [TestCase(FancyColumnFilterOperator.StartsWith, """{"_ilike":"fw%"}""")]
-        [TestCase(FancyColumnFilterOperator.EndsWith, """{"_ilike":"%fw"}""")]
-        [TestCase(FancyColumnFilterOperator.IsNotEmpty, """{"_is_null":false,"_neq":""}""")]
-        public void NameFilter_PositiveOperator_MatchesAnyLevel(FancyColumnFilterOperator filterOperator, string comparison)
-        {
-            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("name", filterOperator, "fw"))));
-
-            Assert.That(condition, Is.EqualTo(NameCondition(comparison)));
+            Assert.That(condition, Is.EqualTo(StateCondition(stateIds)));
         }
 
         [Test]
         public void NotContains_IsNegationOfAnyLevelMatch()
         {
-            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("name", FancyColumnFilterOperator.NotContains, "fw"))));
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("state", FancyColumnFilterOperator.NotContains, "impl"))));
 
-            Assert.That(condition, Is.EqualTo(Negated(NameCondition("""{"_ilike":"%fw%"}"""))));
+            Assert.That(condition, Is.EqualTo(Negated(StateCondition("200,210"))));
         }
 
         [Test]
         public void NotEquals_IsNegation()
         {
-            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("name", FancyColumnFilterOperator.NotEquals, "fw"))));
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("id", FancyColumnFilterOperator.NotEquals, "7"))));
 
-            Assert.That(condition, Is.EqualTo(Negated(NameCondition("""{"_ilike":"fw"}"""))));
+            Assert.That(condition, Is.EqualTo(Negated(kIdCondition7)));
         }
 
         [Test]
         public void IsEmpty_IsNegationOfIsNotEmpty()
         {
-            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("name", FancyColumnFilterOperator.IsEmpty))));
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("state", FancyColumnFilterOperator.IsEmpty))));
 
-            Assert.That(condition, Is.EqualTo(Negated(NameCondition("""{"_is_null":false,"_neq":""}"""))));
+            Assert.That(condition, Is.EqualTo(Negated(StateCondition("200,210,600"))));
         }
 
         [Test]
-        public void StateFilter_ResolvesNamesToIds()
+        public void IdFilter_IsNotEmpty_MatchesAll()
         {
-            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("state", FancyColumnFilterOperator.Contains, "impl"))));
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("id", FancyColumnFilterOperator.IsNotEmpty))));
 
-            Assert.That(condition, Is.EqualTo(Normalize("""{"_or":[{"state_id":{"_in":[200,210]}},{"reqtasks":{"state_id":{"_in":[200,210]}}},{"reqtasks":{"impltasks":{"state_id":{"_in":[200,210]}}}},{"reqtasks":{"approvals":{"state_id":{"_in":[200,210]}}}}]}""")));
+            Assert.That(condition, Is.EqualTo("{}"));
         }
 
         [Test]
-        public void IdFilter_Numeric_EqualsId()
+        public void IdFilter_Numeric_EqualsIdOnAnyLevel()
         {
             string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("id", FancyColumnFilterOperator.Equals, "7"))));
 
-            Assert.That(condition, Is.EqualTo(Normalize("""{"id":{"_eq":7}}""")));
+            Assert.That(condition, Is.EqualTo(Normalize(kIdCondition7)));
         }
 
         [Test]
@@ -192,20 +162,13 @@ namespace FWO.Test
             Assert.That(condition, Is.EqualTo(Normalize("""{"_or":[{"reqtasks":{"task_number":{"_eq":2}}},{"reqtasks":{"impltasks":{"task_number":{"_eq":2}}}}]}""")));
         }
 
-        [TestCase(FancyColumnFilterOperator.Equals, """{"_ilike":"%\"bundle-4\"%"}""")]
-        [TestCase(FancyColumnFilterOperator.Contains, """{"_ilike":"%bundle-4%"}""")]
-        [TestCase(FancyColumnFilterOperator.IsNotEmpty, """{"_ilike":"%\"FlowBundleId\"%"}""")]
-        public void BundleFilter_MatchesStoredAdditionalInfo(FancyColumnFilterOperator filterOperator, string comparison)
+        [TestCase("type")]
+        [TestCase("name")]
+        [TestCase("requester")]
+        [TestCase("flow_bundle_id")]
+        public void Filter_TextOrUnknownColumn_AddsNoCondition(string columnKey)
         {
-            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("flow_bundle_id", filterOperator, "bundle-4"))));
-
-            Assert.That(condition, Is.EqualTo(Normalize($$$"""{"reqtasks":{"additional_info":{{{comparison}}}}}""")));
-        }
-
-        [Test]
-        public void Filter_UnknownColumn_AddsNoCondition()
-        {
-            WorkflowTicketQuery query = Build(Request(filter: new FancyColumnFilter("type", FancyColumnFilterOperator.Contains, "x")));
+            WorkflowTicketQuery query = Build(Request(filter: new FancyColumnFilter(columnKey, FancyColumnFilterOperator.Contains, "x")));
 
             Assert.That(JsonNode.Parse(ToJson(query.Where))!["_and"]!.AsArray(), Has.Count.EqualTo(2));
         }

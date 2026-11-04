@@ -671,6 +671,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Die Ticket-Vorlagen f&uuml;r Tufin SecureChange sind nun ger&auml;tespezifische Einstellungen und k&ouml;nnen global, je Ger&auml;tetyp und je Management angepasst werden. Das Upgrade &uuml;bernimmt die bisher beim Ticketsystem gespeicherten Vorlagen.</li>
     <li>Die Compliance-Pr&uuml;fung schl&auml;gt sicher fehl: ein nicht auswertbares Kriterium macht die Regel nicht bewertbar statt konform. Weitere Sicherheitsh&auml;rtung u.a. der API-Berechtigungen, der Passwortrichtlinie in der Middleware, der CSV- und HTML-Exporte und des Installers. Der Cisco-ASA-Importer bietet den SHA-1-SSH-Schl&uuml;sselaustausch nur noch an, wenn die ger&auml;tespezifische Einstellung &quot;SHA-1-SSH-Schl&uuml;sselaustausch erlauben&quot; eingeschaltet ist.</li>
     <li>Die Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; beachtet die Umsetzungsmodi: der Umsetzungsmodus f&uuml;r Objekte gilt nur f&uuml;r Objekte, der f&uuml;r Regeln nur f&uuml;r Regeln, und nur Ziele mit Modus automatisch erhalten Implementierungs-Auftr&auml;ge. Antrags-Auftr&auml;ge eines Managements mit Modus externes Ticketsystem erhalten keine. Bei Objekt-Auftr&auml;gen entscheidet die Objektanlage-Einstellung des Managements, auf dem der Auftrag gestellt wird; Auftr&auml;ge ohne Management (&quot;Alle&quot; oder aus der REST-Schnittstelle) werden auf alle Managements verteilt. Im Auftrags-Scope bearbeitet die Aktion nur diesen Auftrag, geb&uuml;ndelte erst, wenn alle Auftr&auml;ge des B&uuml;ndels so weit sind. Die ger&auml;tespezifischen Einstellungen weisen auf unwirksame oder widerspr&uuml;chliche Einstellungen zu Umsetzungsmodus, externem Ticketsystem und Objektanlage hin.</li>
+    <li>Das Workflow-Monitoring zeigt die Tickets in einer Baumtabelle mit ihren Antrags-, Umsetzungsaufgaben und Genehmigungen, die durchsucht, sortiert und seitenweise angezeigt werden kann.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -714,6 +715,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>The Tufin SecureChange ticket templates are now device specific settings and can be adapted globally, per device type and per management. The upgrade takes over the templates stored with the ticket system so far.</li>
     <li>The compliance check fails closed: a criterion that cannot be evaluated makes the rule not assessable instead of compliant. Further security hardening, among others of the API permissions, the password policy in the middleware, CSV and HTML exports and the installer. The Cisco ASA importer only offers the SHA-1 SSH key exchange when the device specific setting &quot;Allow SHA-1 SSH key exchange&quot; is switched on.</li>
     <li>The action &quot;Create implementation tasks&quot; follows the implementation modes: the implementation mode for objects applies to objects only, the one for rules to rules only, and only targets with mode automatic get implementation tasks. Request tasks of a management with mode external ticket system get none. For object tasks the object creation setting of the management the task is ordered on decides; tasks without management (&quot;All&quot; or from the REST interface) are spread over all managements. In the request task scope the action handles only that task, bundled tasks once every task of the bundle has reached the state. The device specific settings point out ineffective or contradicting settings of implementation mode, external ticket system and object creation.</li>
+    <li>Workflow monitoring shows the tickets in a tree table with their request tasks, implementation tasks and approvals, which can be searched, sorted and paged.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -4246,8 +4248,6 @@ INSERT INTO txt VALUES ('TriggerActions',       'German',   'Aktionen ausl&ouml;
 INSERT INTO txt VALUES ('TriggerActions',       'English',  'Trigger actions');
 INSERT INTO txt VALUES ('state_changed',        'German',   'Status wurde ge&auml;ndert');
 INSERT INTO txt VALUES ('state_changed',        'English',  'State has been changed');
-INSERT INTO txt VALUES ('no_workflow_tickets',  'German',   'Keine Workflow-Tickets gefunden');
-INSERT INTO txt VALUES ('no_workflow_tickets',  'English',  'No workflow tickets found');
 INSERT INTO txt VALUES ('reinit_ext_request',   'German',   'Externe Auftr&auml;ge neu anstossen');
 INSERT INTO txt VALUES ('reinit_ext_request',   'English',  'Reinit External Requests');
 INSERT INTO txt VALUES ('reject_ticket',        'German',   'Auftrag als abgelehnt schliessen');
@@ -8884,9 +8884,17 @@ INSERT INTO txt VALUES ('H7110', 'English', 'The "Other Services on this Host" s
     Like for the UI process the CPU usage relates to all cores combined: 100 % means that all cores are busy.');
 INSERT INTO txt VALUES ('H7030', 'German', 'Die Workflow-Ticket-&Uuml;berwachung zeigt Tickets mit ihren Antrags- und Umsetzungsaufgaben.
     Die Filter f&uuml;r Aufgabentyp und Status greifen auf allen Ebenen: Ein Ticket wird angezeigt, wenn es mindestens eine Aufgabe eines gew&auml;hlten Typs enth&auml;lt und wenn das Ticket selbst, eine Antragsaufgabe, eine Umsetzungsaufgabe oder eine Genehmigung einen der gew&auml;hlten Status besitzt.
+    Die Tickets werden als Baum dargestellt: Unter jedem Ticket lassen sich seine Antragsaufgaben aufklappen, darunter deren Umsetzungsaufgaben und Genehmigungen.
+    Es wird jeweils nur eine Seite geladen. Suche, Spaltenfilter und Sortierung wirken auf alle Tickets und werden in der Datenbank ausgef&uuml;hrt:
+    Suche und Filter finden ein Ticket, wenn das Ticket selbst oder eine seiner Aufgaben bzw. Genehmigungen passt; verneinte Filter (z.B. &quot;enth&auml;lt nicht&quot;) finden nur Tickets, bei denen keine Ebene passt.
+    Sortiert wird nach den Werten der Tickets. Spalten lassen sich verschieben und in der Breite anpassen.
 ');
 INSERT INTO txt VALUES ('H7030', 'English', 'Workflow ticket monitoring shows tickets with their request and implementation tasks.
     The task type and state filters apply across all levels: a ticket is shown when it contains at least one task of a selected type and when the ticket itself, a request task, an implementation task, or an approval has one of the selected states.
+    Tickets are shown as a tree: each ticket expands to its request tasks, and each request task to its implementation tasks and approvals.
+    Only one page is loaded at a time. Search, column filters and sorting apply to all tickets and are executed in the database:
+    search and filters find a ticket if the ticket itself or one of its tasks or approvals matches; negated filters (e.g. &quot;does not contain&quot;) only find tickets where no level matches.
+    Sorting uses the values of the tickets. Columns can be reordered and resized.
 ');
 INSERT INTO txt VALUES ('H7031', 'German', '&Uuml;ber "Status &auml;ndern" kann der Zielstatus gew&auml;hlt werden. "Nur lokaler Status" &auml;ndert nur das ausgew&auml;hlte Objekt, "Eltern-Status mitziehen" berechnet die Elternobjekte nach den Workflow-Regeln neu, und "Aktionen ausl&ouml;sen" f&uuml;hrt zus&auml;tzlich die konfigurierten Statusaktionen aus.');
 INSERT INTO txt VALUES ('H7031', 'English', '"Change state" opens a dialog for selecting the target state. "Local state only" changes only the selected object, "Cascade parent states" recalculates parent objects according to the workflow rules, and "Trigger actions" also runs the configured state actions.');

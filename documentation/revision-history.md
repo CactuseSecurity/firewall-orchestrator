@@ -4,6 +4,8 @@
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
 - compliance: auto-calculated undefined-internal zones now cover complete IPv6 networks instead of only the first address of each remaining network
 - modelling and workflow: shared IP range parsing accepts dotted IPv4 netmasks such as `10.0.2.0/255.255.255.0` in addition to prefix lengths
+- workflow monitoring: tickets are shown in a tree table (request tasks, implementation tasks and approvals below each ticket) that loads only the current page; search, column filters and sorting are executed in the database and apply to all tickets, a match on any level of a ticket finds the ticket and negated filters only find tickets where no level matches
+- dependencies: update NuGet package SoPro.FancyTable to 1.2.0 (server-side paging, search, filters and sorting)
 
 ## 9.8.6 - 02.11.2026
 - dependencies: update NuGet packages (AngleSharp to 1.9.1, Quartz to 4.7.0, Scalar.AspNetCore to 2.18.7, SoPro.FancyTable to 1.1.0)

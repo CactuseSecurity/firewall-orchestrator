@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:b82346cf-1fdb-4bea-9205-5eaa0e7e8423",
+  "serialNumber": "urn:uuid:987f5582-afea-4e62-8ff0-230cee1f6ef2",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-02T15:03:36Z",
+    "timestamp": "2026-11-04T11:27:25Z",
     "tools": {
       "components": [
         {
@@ -4579,20 +4579,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/SoPro.FancyTable@1.1.0",
+      "bom-ref": "pkg:nuget/SoPro.FancyTable@1.2.0",
       "authors": [
         {
           "name": "SolidProgramming"
         }
       ],
       "name": "SoPro.FancyTable",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "description": "Reusable Blazor table components with sorting, search, column visibility, and tree table support.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "D78759DE82DC7BB0F5D57AA85FBDAD70A38D80BA68DEF17E21037CB534A5F95D9C5DF327D79A47FBA98B047D603DFD3A7992104ED210829342CE56B71F997791"
+          "content": "86FEC6ECC29756C9216B0E4F99897A05ACDAB457389414895E334540EB522B84BE22D4F8EF900DF70745CA772051D45C365A579D18E160751BDD86D3F65EA66D"
         }
       ],
       "licenses": [
@@ -4602,7 +4602,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/SoPro.FancyTable@1.1.0",
+      "purl": "pkg:nuget/SoPro.FancyTable@1.2.0",
       "externalReferences": [
         {
           "url": "https://github.com/SolidProgramming/SoPro.FancyTable",
@@ -4871,7 +4871,7 @@
         "pkg:nuget/Scalar.AspNetCore@2.18.7",
         "pkg:nuget/BlazorTable@1.17.0",
         "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.14",
-        "pkg:nuget/SoPro.FancyTable@1.1.0",
+        "pkg:nuget/SoPro.FancyTable@1.2.0",
         "pkg:nuget/AngleSharp@1.9.1",
         "pkg:nuget/bunit@2.13.3",
         "pkg:nuget/coverlet.collector@10.1.0",
@@ -5662,7 +5662,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/SoPro.FancyTable@1.1.0",
+      "ref": "pkg:nuget/SoPro.FancyTable@1.2.0",
       "dependsOn": []
     },
     {

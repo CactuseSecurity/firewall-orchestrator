@@ -26,6 +26,10 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     internal class UiMonitorWorkflowTest
     {
+        private const int kPageSize = 10;
+        private static readonly List<FancyColumnFilter> kNoFilters = [];
+        private static readonly object[] kAccessTaskTypeSelection = [new WfTaskType?[] { WfTaskType.access }];
+
         private static MethodInfo GetPrivateMethod(string name)
         {
             return typeof(MonitorWorkflow).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
@@ -194,46 +198,90 @@ namespace FWO.Test
             return (T)property.GetValue(variables)!;
         }
 
-        [Test]
-        public async Task FetchTicketPage_UsesPagedWorkflowQueryAndStoresOnlyRequestedPage()
+        private static FancyItemsRequest PageRequest(int page = 1, int pageSize = kPageSize)
         {
-            MonitorWorkflowApiConn apiConn = new()
-            {
-                Tickets =
-                [
-                    new WfTicket { Id = 30, Title = "Ticket 30" },
-                    new WfTicket { Id = 20, Title = "Ticket 20" },
-                    new WfTicket { Id = 10, Title = "Ticket 10" }
-                ]
-            };
-            MonitorWorkflow component = CreateComponent(apiConn);
-            SetPrivateProperty(component, "PageSize", 2);
+            return new FancyItemsRequest("", null, true, kNoFilters, page, pageSize);
+        }
 
-            await (Task)GetPrivateMethod("FetchTicketPage").Invoke(component, null)!;
+        private static Task<FancyItemsResult<WfTicket>> LoadTicketPage(MonitorWorkflow component, FancyItemsRequest request)
+        {
+            object[] arguments = [request, CancellationToken.None];
+            return (Task<FancyItemsResult<WfTicket>>)GetPrivateMethod("LoadTicketPage").Invoke(component, arguments)!;
+        }
+
+        private static string WhereJson(MonitorWorkflowApiConn apiConn)
+        {
+            object variables = apiConn.Variables.Last(query => query.Query == RequestQueries.getFullTicketsPaged).Variables;
+            return JsonSerializer.Serialize(GetVariable<Dictionary<string, object>>(variables, "where"));
+        }
+
+        private static List<WfTicket> CreateTickets(int count)
+        {
+            return [.. Enumerable.Range(1, count).Select(id => new WfTicket { Id = id, Title = $"Ticket {id}", StateId = 1 })];
+        }
+
+        [Test]
+        public async Task LoadTicketPage_SendsBuilderVariablesAndTrimsExtraRow()
+        {
+            MonitorWorkflowApiConn apiConn = new() { Tickets = CreateTickets(kPageSize + 1) };
+            MonitorWorkflow component = CreateComponent(apiConn);
+
+            FancyItemsResult<WfTicket> result = await LoadTicketPage(component, PageRequest());
 
             object variables = apiConn.Variables.Single(query => query.Query == RequestQueries.getFullTicketsPaged).Variables;
             Assert.Multiple(() =>
             {
-                Assert.That(GetVariable<int>(variables, "limit"), Is.EqualTo(3));
+                Assert.That(result.Items, Has.Count.EqualTo(kPageSize));
+                Assert.That(result.HasMore, Is.True);
+                Assert.That(GetVariable<int>(variables, "limit"), Is.EqualTo(kPageSize + 1));
                 Assert.That(GetVariable<int>(variables, "offset"), Is.EqualTo(0));
-                Assert.That(GetVariable<List<string>>(variables, "taskTypes"), Is.EqualTo(new List<string> { "access", "group_create" }));
-                Assert.That(GetVariable<List<int>>(variables, "stateIds"), Is.EqualTo(new List<int> { 1, 2, 3, 4 }));
-                Assert.That(GetPrivateProperty<bool>(component, "HasNextPage"), Is.True);
-                Assert.That(GetPrivateField<List<WfTicket>>(component, "tickets").Select(ticket => ticket.Id), Is.EqualTo(new long[] { 30, 20 }));
+                Assert.That(WhereJson(apiConn), Does.Contain("\"task_type\":{\"_in\":[\"access\",\"group_create\"]}"));
+                Assert.That(WhereJson(apiConn), Does.Contain("\"state_id\":{\"_in\":[1,2,3,4]}"));
+                Assert.That(GetPrivateField<List<WfTicket>>(component, "tickets"), Has.Count.EqualTo(kPageSize));
+                Assert.That(GetPrivateField<WfHandler>(component, "wfHandler").TicketList, Has.Count.EqualTo(kPageSize));
             });
         }
 
         [Test]
-        public async Task OnInitializedAsync_LoadsStatesTaskTypesAndInitialTicketPage()
+        public async Task LoadTicketPage_SupersededRequest_DoesNotOverwriteCurrentTickets()
         {
-            MonitorWorkflowApiConn apiConn = new()
+            MonitorWorkflowApiConn apiConn = new() { Tickets = CreateTickets(3) };
+            MonitorWorkflow component = CreateComponent(apiConn);
+            List<WfTicket> currentTickets = [new WfTicket { Id = 99 }];
+            SetPrivateField(component, "tickets", currentTickets);
+            GetPrivateField<WfHandler>(component, "wfHandler").TicketList = currentTickets;
+            using CancellationTokenSource supersededRequest = new();
+            await supersededRequest.CancelAsync();
+
+            object[] arguments = [PageRequest(), supersededRequest.Token];
+            await (Task<FancyItemsResult<WfTicket>>)GetPrivateMethod("LoadTicketPage").Invoke(component, arguments)!;
+
+            Assert.Multiple(() =>
             {
-                Tickets =
-                [
-                    new WfTicket { Id = 2, Title = "Ticket 2" },
-                    new WfTicket { Id = 1, Title = "Ticket 1" }
-                ]
-            };
+                Assert.That(GetPrivateField<List<WfTicket>>(component, "tickets"), Is.SameAs(currentTickets));
+                Assert.That(GetPrivateField<WfHandler>(component, "wfHandler").TicketList, Is.SameAs(currentTickets));
+            });
+        }
+
+        [Test]
+        public async Task LoadTicketPage_LastPage_HasNoMore()
+        {
+            MonitorWorkflowApiConn apiConn = new() { Tickets = CreateTickets(kPageSize + 1) };
+            MonitorWorkflow component = CreateComponent(apiConn);
+
+            FancyItemsResult<WfTicket> result = await LoadTicketPage(component, PageRequest(page: 2));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Items.Select(ticket => ticket.Id), Is.EqualTo(new long[] { kPageSize + 1 }));
+                Assert.That(result.HasMore, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task OnInitializedAsync_LoadsStatesAndTaskTypesButLeavesTicketsToTheTable()
+        {
+            MonitorWorkflowApiConn apiConn = new() { Tickets = CreateTickets(2) };
             MonitorWorkflowUserConfig userConfig = new()
             {
                 ReqAvailableTaskTypes = "[\"master\",\"access\",\"group_create\"]"
@@ -248,62 +296,24 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<List<WfTaskType>>(component, "availableRealTaskTypes"), Is.EqualTo(new List<WfTaskType> { WfTaskType.access, WfTaskType.group_create }));
                 Assert.That(GetPrivateProperty<List<WfTaskType>>(component, "SelectedTaskTypes"), Is.EqualTo(new List<WfTaskType> { WfTaskType.access, WfTaskType.group_create }));
                 Assert.That(GetPrivateProperty<Dictionary<int, string>>(component, "StateNames")[3], Is.EqualTo("Implementation"));
-                Assert.That(GetPrivateField<List<WfTicket>>(component, "tickets").Select(ticket => ticket.Id), Is.EqualTo(new long[] { 2, 1 }));
-                Assert.That(apiConn.Variables.Any(query => query.Query == RequestQueries.getFullTicketsPaged), Is.True);
+                Assert.That(apiConn.Variables.Any(query => query.Query == RequestQueries.getFullTicketsPaged), Is.False);
             });
         }
 
         [Test]
-        public async Task UpdatePageSize_ResetsToFirstPageAndFetchesPageSizePlusOne()
-        {
-            MonitorWorkflowApiConn apiConn = new();
-            MonitorWorkflow component = CreateComponent(apiConn);
-            SetPrivateProperty(component, "CurrentPage", 3);
-
-            await (Task)GetPrivateMethod("UpdatePageSize").Invoke(component, [50])!;
-
-            object variables = apiConn.Variables.Single(query => query.Query == RequestQueries.getFullTicketsPaged).Variables;
-            Assert.Multiple(() =>
-            {
-                Assert.That(GetPrivateProperty<int>(component, "PageSize"), Is.EqualTo(50));
-                Assert.That(GetPrivateProperty<int>(component, "CurrentPage"), Is.EqualTo(0));
-                Assert.That(GetVariable<int>(variables, "limit"), Is.EqualTo(51));
-                Assert.That(GetVariable<int>(variables, "offset"), Is.EqualTo(0));
-            });
-        }
-
-        [Test]
-        public async Task UpdatePageSize_NonPositiveValueFallsBackToDefaultPageSize()
-        {
-            MonitorWorkflowApiConn apiConn = new();
-            MonitorWorkflow component = CreateComponent(apiConn);
-
-            await (Task)GetPrivateMethod("UpdatePageSize").Invoke(component, [0])!;
-
-            object variables = apiConn.Variables.Single(query => query.Query == RequestQueries.getFullTicketsPaged).Variables;
-            Assert.Multiple(() =>
-            {
-                Assert.That(GetPrivateProperty<int>(component, "PageSize"), Is.EqualTo(20));
-                Assert.That(GetVariable<int>(variables, "limit"), Is.EqualTo(21));
-            });
-        }
-
-        [Test]
-        public async Task TaskTypesChanged_UsesSelectedTaskTypesAndResetsPage()
+        public async Task TaskTypesChanged_NextPageUsesSelectedTaskTypes()
         {
             MonitorWorkflowApiConn apiConn = new();
             MonitorWorkflow component = CreateComponent(apiConn);
             SetPrivateField(component, "availableRealTaskTypes", new List<WfTaskType> { WfTaskType.access, WfTaskType.group_create });
-            SetPrivateProperty(component, "CurrentPage", 2);
 
-            await (Task)GetPrivateMethod("TaskTypesChanged").Invoke(component, [new WfTaskType?[] { WfTaskType.access }])!;
+            await (Task)GetPrivateMethod("TaskTypesChanged").Invoke(component, kAccessTaskTypeSelection)!;
+            await LoadTicketPage(component, PageRequest());
 
-            object variables = apiConn.Variables.Single(query => query.Query == RequestQueries.getFullTicketsPaged).Variables;
             Assert.Multiple(() =>
             {
                 Assert.That(GetPrivateProperty<List<WfTaskType>>(component, "SelectedTaskTypes"), Is.EqualTo(new List<WfTaskType> { WfTaskType.access }));
-                Assert.That(GetPrivateProperty<int>(component, "CurrentPage"), Is.EqualTo(0));
-                Assert.That(GetVariable<List<string>>(variables, "taskTypes"), Is.EqualTo(new List<string> { "access" }));
+                Assert.That(WhereJson(apiConn), Does.Contain("\"task_type\":{\"_in\":[\"access\"]}"));
             });
         }
 
@@ -329,55 +339,25 @@ namespace FWO.Test
         {
             MonitorWorkflowApiConn apiConn = new();
             MonitorWorkflow component = CreateComponent(apiConn);
-            SetPrivateProperty(component, "CurrentPage", 2);
 
             await (Task)GetPrivateMethod("StateIdsChanged").Invoke(component, [new int?[] { 2, 4 }])!;
+            await LoadTicketPage(component, PageRequest());
 
-            object filteredVariables = apiConn.Variables.Single(query => query.Query == RequestQueries.getFullTicketsPaged).Variables;
             Assert.Multiple(() =>
             {
                 Assert.That(GetPrivateProperty<List<int>>(component, "SelectedStateIds"), Is.EqualTo(new List<int> { 2, 4 }));
                 Assert.That(GetPrivateProperty<IEnumerable<int?>>(component, "SelectedStateIdsForUi"), Is.EqualTo(new int?[] { 2, 4 }));
-                Assert.That(GetPrivateProperty<int>(component, "CurrentPage"), Is.EqualTo(0));
-                Assert.That(GetVariable<List<int>>(filteredVariables, "stateIds"), Is.EqualTo(new List<int> { 2, 4 }));
+                Assert.That(WhereJson(apiConn), Does.Contain("\"state_id\":{\"_in\":[2,4]}"));
             });
 
-            apiConn.Variables.Clear();
-
             await (Task)GetPrivateMethod("StateIdsChanged").Invoke(component, [new int?[] { null }])!;
+            await LoadTicketPage(component, PageRequest());
 
-            object allStateVariables = apiConn.Variables.Single(query => query.Query == RequestQueries.getFullTicketsPaged).Variables;
             Assert.Multiple(() =>
             {
                 Assert.That(GetPrivateProperty<List<int>>(component, "SelectedStateIds"), Is.Empty);
                 Assert.That(GetPrivateProperty<IEnumerable<int?>>(component, "SelectedStateIdsForUi"), Is.Empty);
-                Assert.That(GetVariable<List<int>>(allStateVariables, "stateIds"), Is.EqualTo(new List<int> { 1, 2, 3, 4 }));
-            });
-        }
-
-        [Test]
-        public async Task PageNavigation_UsesBoundsAndFetchesOnlyWhenPageChanges()
-        {
-            MonitorWorkflowApiConn apiConn = new();
-            MonitorWorkflow component = CreateComponent(apiConn);
-            SetPrivateProperty(component, "PageSize", 1);
-            SetPrivateProperty(component, "CurrentPage", 0);
-            SetPrivateProperty(component, "HasNextPage", false);
-
-            await (Task)GetPrivateMethod("PreviousPage").Invoke(component, null)!;
-            await (Task)GetPrivateMethod("NextPage").Invoke(component, null)!;
-
-            Assert.That(apiConn.Variables, Is.Empty);
-
-            SetPrivateProperty(component, "HasNextPage", true);
-            await (Task)GetPrivateMethod("NextPage").Invoke(component, null)!;
-            await (Task)GetPrivateMethod("PreviousPage").Invoke(component, null)!;
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(GetPrivateProperty<int>(component, "CurrentPage"), Is.EqualTo(0));
-                Assert.That(GetVariable<int>(apiConn.Variables[0].Variables, "offset"), Is.EqualTo(1));
-                Assert.That(GetVariable<int>(apiConn.Variables[1].Variables, "offset"), Is.EqualTo(0));
+                Assert.That(WhereJson(apiConn), Does.Contain("\"state_id\":{\"_in\":[1,2,3,4]}"));
             });
         }
 
@@ -403,37 +383,94 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task LoadTickets_NoAuthenticationState_DoesNothing()
+        public async Task InitWorkflowHandler_NoAuthenticationState_DoesNothing()
         {
             MonitorWorkflowApiConn apiConn = new();
             MonitorWorkflow component = CreateComponent(apiConn);
             SetProperty<MonitorWorkflow, Task<AuthenticationState>?>(component, "authenticationStateTask", null);
 
-            await (Task)GetPrivateMethod("LoadTickets").Invoke(component, null)!;
+            await (Task)GetPrivateMethod("InitWorkflowHandler").Invoke(component, null)!;
 
             Assert.That(apiConn.Variables, Is.Empty);
         }
 
         [Test]
-        public async Task FetchTicketPage_QueryFailureReportsErrorAndKeepsExistingTickets()
+        public async Task LoadTicketPage_QueryFailure_ShowsMessageAndReturnsEmpty()
         {
-            MonitorWorkflowApiConn apiConn = new()
-            {
-                ThrowOnPagedTicketQuery = true
-            };
+            MonitorWorkflowApiConn apiConn = new() { ThrowOnTicketQuery = true };
             MonitorWorkflow component = CreateComponent(apiConn);
-            WfTicket existingTicket = new() { Id = 99 };
-            SetPrivateField(component, "tickets", new List<WfTicket> { existingTicket });
             Exception? reportedException = null;
             SetProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, _, _, _) => reportedException = exception));
 
-            await (Task)GetPrivateMethod("FetchTicketPage").Invoke(component, null)!;
+            FancyItemsResult<WfTicket> result = await LoadTicketPage(component, PageRequest());
 
             Assert.Multiple(() =>
             {
                 Assert.That(reportedException, Is.Not.Null);
-                Assert.That(GetPrivateField<List<WfTicket>>(component, "tickets"), Is.EqualTo(new List<WfTicket> { existingTicket }));
+                Assert.That(result.Items, Is.Empty);
+                Assert.That(result.HasMore, Is.False);
             });
+        }
+
+        [Test]
+        public async Task DropdownChange_RefreshesFromFirstPage()
+        {
+            MonitorWorkflowApiConn apiConn = new() { Tickets = CreateTickets(kPageSize + 5) };
+            await using BunitContext context = CreatePageContext(apiConn);
+            IRenderedComponent<MonitorWorkflow> page = RenderPage(context);
+            GoToNextTablePage(page, apiConn);
+
+            await page.InvokeAsync(() => (Task)GetPrivateMethod("TaskTypesChanged").Invoke(page.Instance, kAccessTaskTypeSelection)!);
+
+            page.WaitForAssertion(() => Assert.That(LastTicketQueryOffset(apiConn), Is.EqualTo(0)));
+        }
+
+        [Test]
+        public async Task StateChange_RefreshKeepsPage()
+        {
+            WfReqTask reqTask = new() { Id = 2, TicketId = 1, Title = "Req", StateId = 4, TaskType = WfTaskType.group_create.ToString() };
+            WfTicket ticket = new() { Id = 1, Tasks = [reqTask] };
+            MonitorWorkflowApiConn apiConn = new() { Tickets = CreateTickets(kPageSize + 5) };
+            await using BunitContext context = CreatePageContext(apiConn);
+            IRenderedComponent<MonitorWorkflow> page = RenderPage(context);
+            GoToNextTablePage(page, apiConn);
+            int ticketQueries = apiConn.Variables.Count(query => query.Query == RequestQueries.getFullTicketsPaged);
+            SetPrivateField(page.Instance, "wfHandler", CreateWorkflowHandler());
+            SetPrivateField(page.Instance, "selectedAutoCreateTicket", ticket);
+            SetPrivateField(page.Instance, "selectedAutoCreateReqTask", reqTask);
+
+            await page.InvokeAsync(() => (Task)GetPrivateMethod("ConfirmAutoCreateImplementationTasks").Invoke(page.Instance, null)!);
+
+            page.WaitForAssertion(() => Assert.That(apiConn.Variables.Count(query => query.Query == RequestQueries.getFullTicketsPaged), Is.EqualTo(ticketQueries + 1)));
+            Assert.That(LastTicketQueryOffset(apiConn), Is.EqualTo(kPageSize));
+        }
+
+        private static BunitContext CreatePageContext(MonitorWorkflowApiConn apiConn)
+        {
+            BunitContext context = CreatePopupContext(Roles.Admin, out _);
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            return context;
+        }
+
+        private static IRenderedComponent<MonitorWorkflow> RenderPage(BunitContext context)
+        {
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<MonitorWorkflow>());
+            IRenderedComponent<MonitorWorkflow> page = wrapper.FindComponent<MonitorWorkflow>();
+            page.WaitForAssertion(() => Assert.That(page.FindAll(".fancy-pagination button"), Is.Not.Empty));
+            return page;
+        }
+
+        private static void GoToNextTablePage(IRenderedComponent<MonitorWorkflow> page, MonitorWorkflowApiConn apiConn)
+        {
+            page.FindAll(".fancy-pagination button")[^1].Click();
+            page.WaitForAssertion(() => Assert.That(LastTicketQueryOffset(apiConn), Is.EqualTo(kPageSize)));
+        }
+
+        private static int LastTicketQueryOffset(MonitorWorkflowApiConn apiConn)
+        {
+            return GetVariable<int>(apiConn.Variables.Last(query => query.Query == RequestQueries.getFullTicketsPaged).Variables, "offset");
         }
 
         [Test]
@@ -537,7 +574,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ConfirmAutoCreateImplementationTasks_CreatesTasksAndRefreshesCurrentPage()
+        public async Task ConfirmAutoCreateImplementationTasks_CreatesTasksAndRefreshesTickets()
         {
             WfReqTask reqTask = new()
             {
@@ -558,7 +595,6 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
-                Assert.That(apiConn.Variables.Count(query => query.Query == RequestQueries.getFullTicketsPaged), Is.EqualTo(1));
                 Assert.That(GetPrivateField<WfTicket?>(component, "selectedAutoCreateTicket"), Is.Null);
                 Assert.That(GetPrivateField<WfReqTask?>(component, "selectedAutoCreateReqTask"), Is.Null);
             });
@@ -792,7 +828,6 @@ namespace FWO.Test
                 "state" => "State",
                 "refresh" => "Refresh",
                 "all" => "All",
-                "no_workflow_tickets" => "No workflow tickets",
                 "actions" => "Actions",
                 "change_state" => "Change state",
                 "auto_create_impltasks" => "Autocreate implementation tasks",
@@ -853,7 +888,7 @@ namespace FWO.Test
         public List<WfTicket> Tickets { get; set; } = [];
         public List<Device> Devices { get; set; } = [];
         public List<FwoOwner> Owners { get; set; } = [];
-        public bool ThrowOnPagedTicketQuery { get; set; }
+        public bool ThrowOnTicketQuery { get; set; }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
@@ -872,12 +907,13 @@ namespace FWO.Test
             }
             if (typeof(QueryResponseType) == typeof(List<WfTicket>) && query == RequestQueries.getFullTicketsPaged)
             {
-                if (ThrowOnPagedTicketQuery)
+                if (ThrowOnTicketQuery)
                 {
                     throw new InvalidOperationException("ticket query failed");
                 }
+                int offset = variables == null ? 0 : GetVariable<int>(variables, "offset");
                 int limit = variables == null ? Tickets.Count : GetVariable<int>(variables, "limit");
-                return Task.FromResult((QueryResponseType)(object)Tickets.Take(limit).ToList());
+                return Task.FromResult((QueryResponseType)(object)Tickets.Skip(offset).Take(limit).ToList());
             }
             if (typeof(QueryResponseType) == typeof(List<Device>) && query == DeviceQueries.getDeviceDetails)
             {
@@ -906,12 +942,7 @@ namespace FWO.Test
 
         private static T GetVariable<T>(object variables, string name)
         {
-            PropertyInfo? property = variables.GetType().GetProperty(name);
-            if (property == null)
-            {
-                throw new MissingMemberException(variables.GetType().FullName, name);
-            }
-            return (T)property.GetValue(variables)!;
+            return (T)(variables.GetType().GetProperty(name)?.GetValue(variables) ?? throw new MissingMemberException(variables.GetType().FullName, name));
         }
     }
 }

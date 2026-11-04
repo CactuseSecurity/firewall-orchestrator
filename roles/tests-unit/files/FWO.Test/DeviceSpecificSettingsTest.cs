@@ -85,5 +85,21 @@ namespace FWO.Test
                 Assert.That(settings.RuleZoneFromOverride, Is.EqualTo("ANY"));
             });
         }
+
+        [Test]
+        public void PositioningAlgorithm_NumericPersistenceContractIsStable()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That((int)ProvisioningPositioningAlgorithm.Undefined, Is.Zero);
+                Assert.That((int)ProvisioningPositioningAlgorithm.CheckPointInlineLayerPerZonePair, Is.EqualTo(1));
+                Assert.That((int)ProvisioningPositioningAlgorithm.FortinetEndOfZone, Is.EqualTo(2));
+                Assert.That((int)ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection, Is.EqualTo(3));
+                Assert.That((int)ProvisioningPositioningAlgorithm.CheckPointEndOfAppSectionDistinguishCommonServices, Is.EqualTo(4));
+                Assert.That((int)ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, Is.EqualTo(5));
+                Assert.That((int)ProvisioningPositioningAlgorithm.AllowCategoryEndOfAppSectionDistinguishCommonServices, Is.EqualTo(6));
+                Assert.That((int)ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection, Is.EqualTo(7));
+            });
+        }
     }
 }

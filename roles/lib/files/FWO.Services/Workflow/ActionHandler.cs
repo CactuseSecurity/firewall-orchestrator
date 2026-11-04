@@ -5,6 +5,7 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using FWO.Services.RulePositioning;
 using RestSharp;
 using System.Text.Json;
 
@@ -47,7 +48,8 @@ namespace FWO.Services.Workflow
 
 
         public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false,
-            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null, IWorkflowRecipientResolver? workflowRecipientResolver = null)
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null, IWorkflowRecipientResolver? workflowRecipientResolver = null,
+            IRulePositioningWorkflowCaller? rulePositioningWorkflowCaller = null)
         {
             this.apiConnection = apiConnection;
             this.wfHandler = wfHandler;
@@ -55,6 +57,9 @@ namespace FWO.Services.Workflow
             UserGroups = userGroups;
             this.requestedRulePolicyChecker = requestedRulePolicyChecker ?? wfHandler.RequestedRulePolicyChecker;
             this.workflowRecipientResolver = workflowRecipientResolver ?? wfHandler.WorkflowRecipientResolver;
+            this.rulePositioningWorkflowCaller = useInMwServer
+                ? rulePositioningWorkflowCaller ?? ServiceProvider.Services?.GetService(typeof(IRulePositioningWorkflowCaller)) as IRulePositioningWorkflowCaller
+                : null;
         }
 
         public async Task Init()
@@ -86,7 +91,7 @@ namespace FWO.Services.Workflow
         }
 
         public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null,
-            NotificationPlaceholderData? placeholderData = null)
+            NotificationPlaceholderData? placeholderData = null, WfReqTask? creatingRequestTask = null)
         {
             if (!statefulObject.StateChanged())
             {
@@ -107,7 +112,9 @@ namespace FWO.Services.Workflow
                 return;
             }
 
+            using IDisposable graphCacheScope = RulePositioningGraphCacheScope.Begin();
             await RecordStateChangeExecution(statefulObject, scope);
+            await ActivateRulePositioningForCreation(statefulObject, scope, creatingRequestTask);
 
             if (scope == WfObjectScopes.Ticket)
             {

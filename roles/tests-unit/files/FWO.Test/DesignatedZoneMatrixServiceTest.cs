@@ -1,13 +1,19 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Basics.Exceptions;
+using FWO.Compliance.RulePositioning;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.RulePositioning;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
 using System.Net;
+using DesignatedZoneMatrixReadResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Compliance.RulePositioning.DesignatedZoneMatrixReadValue,
+    FWO.Compliance.RulePositioning.DesignatedZoneMatrixReadFailureCategory>;
 
 namespace FWO.Test;
 
@@ -36,7 +42,7 @@ internal class DesignatedZoneMatrixServiceTest
                     IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.1.1"), IPAddress.Parse("10.0.1.1"))]
                 }
             ]);
-        DesignatedZoneMatrixService service = new(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        DesignatedZoneMatrixService service = CreateService(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
 
         List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
         {
@@ -89,7 +95,7 @@ internal class DesignatedZoneMatrixServiceTest
     [Test]
     public async Task ResolveZonesForObjectsAsync_ReturnsEmptyWhenNoObjectsProvideRanges()
     {
-        DesignatedZoneMatrixService service = new(new DesignatedZoneMatrixServiceApiConn([], [], []), new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        DesignatedZoneMatrixService service = CreateService(new DesignatedZoneMatrixServiceApiConn([], [], []), new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
 
         List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
         {
@@ -106,7 +112,7 @@ internal class DesignatedZoneMatrixServiceTest
             [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
             [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
             []);
-        DesignatedZoneMatrixService service = new(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        DesignatedZoneMatrixService service = CreateService(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
 
         List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
         {
@@ -144,7 +150,7 @@ internal class DesignatedZoneMatrixServiceTest
                     IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))]
                 }
             ]);
-        DesignatedZoneMatrixService service = new(apiConnection, new SimulatedGlobalConfig
+        DesignatedZoneMatrixService service = CreateService(apiConnection, new SimulatedGlobalConfig
         {
             DesignatedZoneMatrixId = 12,
             AutoCalculateInternetZone = false
@@ -181,7 +187,7 @@ internal class DesignatedZoneMatrixServiceTest
             configItems,
             matrices,
             zones);
-        DesignatedZoneMatrixService service = new(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        DesignatedZoneMatrixService service = CreateService(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
         ResolveZonesForObjectsRequest request = new()
         {
             Objects = [new ResolveZonesForObjectsRequest.LeafObjectRequest
@@ -259,7 +265,7 @@ internal class DesignatedZoneMatrixServiceTest
                 Name = "IPv4 Zone",
                 IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("192.0.2.1"), IPAddress.Parse("192.0.2.1"))]
             }]);
-        return new DesignatedZoneMatrixService(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        return CreateService(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
     }
 
     [Test]
@@ -284,7 +290,7 @@ internal class DesignatedZoneMatrixServiceTest
                     IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.3.7"), IPAddress.Parse("10.0.3.7"))]
                 }
             ]);
-        DesignatedZoneMatrixService service = new(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        DesignatedZoneMatrixService service = CreateService(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
 
         List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
         {
@@ -323,7 +329,7 @@ internal class DesignatedZoneMatrixServiceTest
                     IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))]
                 }
             ]);
-        DesignatedZoneMatrixService service = new(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        DesignatedZoneMatrixService service = CreateService(apiConnection, new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
 
         List<ComplianceDesignatedZoneResponse> result = await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
         {
@@ -341,10 +347,39 @@ internal class DesignatedZoneMatrixServiceTest
         Assert.That(result.Select(zone => zone.Name), Is.EqualTo(["DMZ"]));
     }
 
+    [TestCase(DesignatedZoneMatrixReadFailureCategory.ConfigurationInvalid)]
+    [TestCase(DesignatedZoneMatrixReadFailureCategory.MatrixUnavailable)]
+    public async Task GetDesignatedZoneMatrixZonesAsync_ReturnsEmptyForUnavailableConfiguration(
+        DesignatedZoneMatrixReadFailureCategory category)
+    {
+        DesignatedZoneMatrixService service = new(
+            new StubZoneMatrixReader(DesignatedZoneMatrixReadResult.Failure(category)),
+            new SimulatedGlobalConfig());
+
+        ListPage<ComplianceDesignatedZoneResponse> result = await service.GetDesignatedZoneMatrixZonesAsync(
+            GlobalConst.kDefaultMaxRestResponseObjectLimit, null);
+
+        Assert.That(result.Items, Is.Empty);
+    }
+
+    [Test]
+    public void GetDesignatedZoneMatrixZonesAsync_UsesGenericSafeQueryFailurePath()
+    {
+        DesignatedZoneMatrixReadFailureCategory failure = DesignatedZoneMatrixReadFailureCategory.QueryFailed;
+        DesignatedZoneMatrixService service = new(
+            new StubZoneMatrixReader(DesignatedZoneMatrixReadResult.Failure(failure)),
+            new SimulatedGlobalConfig());
+
+        InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await service.GetDesignatedZoneMatrixZonesAsync(GlobalConst.kDefaultMaxRestResponseObjectLimit, null));
+
+        Assert.That(exception!.Message, Is.EqualTo(failure.GetDiagnostic()));
+    }
+
     [Test]
     public void ResolveZonesForObjectsAsync_ThrowsForUnsupportedObjectNodeType()
     {
-        DesignatedZoneMatrixService service = new(new DesignatedZoneMatrixServiceApiConn([], [], []), new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
+        DesignatedZoneMatrixService service = CreateService(new DesignatedZoneMatrixServiceApiConn([], [], []), new SimulatedGlobalConfig { DesignatedZoneMatrixId = 12 });
 
         Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await service.ResolveZonesForObjectsAsync(new ResolveZonesForObjectsRequest
@@ -357,6 +392,21 @@ internal class DesignatedZoneMatrixServiceTest
                     }
                 ]
             }));
+    }
+
+    private static DesignatedZoneMatrixService CreateService(DesignatedZoneMatrixServiceApiConn apiConnection, SimulatedGlobalConfig globalConfig)
+    {
+        return new DesignatedZoneMatrixService(new DesignatedZoneMatrixReader(apiConnection), globalConfig);
+    }
+
+    private sealed class StubZoneMatrixReader(DesignatedZoneMatrixReadResult result) : IDesignatedZoneMatrixReader
+    {
+        public Task<DesignatedZoneMatrixReadResult> ReadAsync(
+            int criterionId,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(result);
+        }
     }
 
     private sealed class DesignatedZoneMatrixServiceApiConn : SimulatedApiConnection

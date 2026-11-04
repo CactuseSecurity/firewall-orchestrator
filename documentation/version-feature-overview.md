@@ -259,3 +259,8 @@ For a feature-centric, thematically grouped view see
 - The compliance check fails closed: a criterion that cannot be evaluated makes the rule not assessable instead of compliant, also in the conditional auto-promote of the workflow.
 - The Cisco ASA importer offers the SHA-1 SSH key exchange only when the new device specific setting "Allow SHA-1 SSH key exchange" is switched on.
 - Security hardening of the API permissions, password policy enforcement in the middleware, CSV and HTML exports, installer secrets and local privileges (database, LDAP, browser location, sudoers handling).
+- Updated NuGet packages; the sort, hide, clear search and column filter labels of the FancyTable based tables are shown in the user's language.
+
+### 9.8.7 — 02.11.2026
+- Rule positioning calculates and persists semantic positions for Check Point access-rule implementation tasks, including placement at the end of a uniquely matched zone-pair section.
+- Auto-calculated undefined-internal zones cover complete IPv6 networks, and shared IP range parsing accepts dotted IPv4 netmasks.

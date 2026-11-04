@@ -515,6 +515,38 @@ INSERT INTO txt VALUES ('resize_column_format', 'German',   'Breite der Spalte {
 INSERT INTO txt VALUES ('resize_column_format', 'English',  'Resize column {0}');
 INSERT INTO txt VALUES ('reorder_column_format','German',   'Spalte {0} verschieben');
 INSERT INTO txt VALUES ('reorder_column_format','English',  'Reorder column {0}');
+INSERT INTO txt VALUES ('sort_column_format',   'German',   'Nach Spalte {0} sortieren');
+INSERT INTO txt VALUES ('sort_column_format',   'English',  'Sort column {0}');
+INSERT INTO txt VALUES ('hide_column_format',   'German',   'Spalte {0} ausblenden');
+INSERT INTO txt VALUES ('hide_column_format',   'English',  'Hide column {0}');
+INSERT INTO txt VALUES ('clear_search',         'German',   'Suche l&ouml;schen');
+INSERT INTO txt VALUES ('clear_search',         'English',  'Clear search');
+INSERT INTO txt VALUES ('filtered_column',      'German',   'gefiltert');
+INSERT INTO txt VALUES ('filtered_column',      'English',  'filtered');
+INSERT INTO txt VALUES ('filter_column_format', 'German',   'Spalte {0} filtern');
+INSERT INTO txt VALUES ('filter_column_format', 'English',  'Filter column {0}');
+INSERT INTO txt VALUES ('apply_filter',         'German',   'Anwenden');
+INSERT INTO txt VALUES ('apply_filter',         'English',  'Apply');
+INSERT INTO txt VALUES ('clear_filter',         'German',   'Zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('clear_filter',         'English',  'Clear');
+INSERT INTO txt VALUES ('filter_operator',      'German',   'Operator');
+INSERT INTO txt VALUES ('filter_operator',      'English',  'Operator');
+INSERT INTO txt VALUES ('filter_op_equals',     'German',   'Ist');
+INSERT INTO txt VALUES ('filter_op_equals',     'English',  'Is');
+INSERT INTO txt VALUES ('filter_op_not_equals', 'German',   'Ist nicht');
+INSERT INTO txt VALUES ('filter_op_not_equals', 'English',  'Is not');
+INSERT INTO txt VALUES ('filter_op_contains',   'German',   'Enth&auml;lt');
+INSERT INTO txt VALUES ('filter_op_contains',   'English',  'Contains');
+INSERT INTO txt VALUES ('filter_op_not_contains','German',  'Enth&auml;lt nicht');
+INSERT INTO txt VALUES ('filter_op_not_contains','English', 'Does not contain');
+INSERT INTO txt VALUES ('filter_op_starts_with','German',   'Beginnt mit');
+INSERT INTO txt VALUES ('filter_op_starts_with','English',  'Starts with');
+INSERT INTO txt VALUES ('filter_op_ends_with',  'German',   'Endet mit');
+INSERT INTO txt VALUES ('filter_op_ends_with',  'English',  'Ends with');
+INSERT INTO txt VALUES ('filter_op_is_empty',   'German',   'Ist leer');
+INSERT INTO txt VALUES ('filter_op_is_empty',   'English',  'Is empty');
+INSERT INTO txt VALUES ('filter_op_is_not_empty','German',  'Ist nicht leer');
+INSERT INTO txt VALUES ('filter_op_is_not_empty','English', 'Is not empty');
 
 -- (re)login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -629,6 +661,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Die Auftr&auml;ge &quot;Objekt anlegen&quot; und &quot;Objekt &auml;ndern&quot; unterst&uuml;tzen Zeitobjekte mit Name, Start- und Endzeit.</li>
     <li>Implementierungs-Auftr&auml;ge entstehen nur noch &uuml;ber die Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot;, die z.B. beim Status &quot;genehmigt&quot; eingeh&auml;ngt wird. Installation und Upgrade legen sie an, h&auml;ngen sie aber nicht ein: das muss ein Administrator tun, sonst entstehen keine Implementierungs-Auftr&auml;ge automatisch. Welche Auftr&auml;ge sie anlegt, legen die ger&auml;tespezifischen Einstellungen &quot;Umsetzung automatisch planen&quot; und &quot;Umsetzung f&uuml;r Regeln automatisch planen&quot; fest, unabh&auml;ngig von der Planungsphase; das Upgrade leitet sie nicht aus den Planungsphasen ab, bitte pr&uuml;fen (Standard f&uuml;r Regeln: Nein). Im Antrag angegebene Ger&auml;te haben Vorrang vor dem Pfadanalyse-Algorithmus, der nun auch &quot;F&uuml;r jedes Ger&auml;t&quot; und &quot;Erstes Ger&auml;t (falls vorhanden)&quot; bietet. Findet die Aktion kein Ziel, entsteht ein Implementierungs-Auftrag ohne Gateway. Die Workflow-Anpassungen fassen die B&uuml;ndelungsoptionen zusammen.</li>
     <li>Neuer REST-Aufruf <code>resolvePathDevices</code>: ermittelt die Firewalls auf den Pfaden zwischen Quell- und Zieladressen (Hosts, Bereiche oder Netze, je bis zu 500) mit dem Network-Zone-Tree-Algorithmus. Algorithmus und Zonenmatrix k&ouml;nnen angegeben werden, sonst gelten die Einstellungen. Die Antwort nennt jedes Ger&auml;t einmal sowie den verwendeten Algorithmus und die verwendete Matrix.</li>
+    <li>Die ger&auml;tespezifischen Einstellungen bieten einen ausw&auml;hlbaren Check-Point-Layer-Guard-Positionierungsalgorithmus. Beim Erzeugen eines gateway-spezifischen Implementierungs-Auftrags f&uuml;r eine neue Zugriffsregel speichert er die semantische Position am Ende der eindeutig ermittelten Zonenpaar-Sektion.</li>
     <li>Auftr&auml;ge vom Typ &quot;Gruppe &auml;ndern&quot; k&ouml;nnen bestehende Netzwerk- und Dienstgruppen suchen und bearbeiten. Mitglieder werden vorbef&uuml;llt, k&ouml;nnen zum Entfernen markiert und durch neue Netzwerkobjekte oder Dienste erg&auml;nzt werden.</li>
     <li>Workflow-Konfigurationen k&ouml;nnen mit frei w&auml;hlbarem Dateinamen und ausgew&auml;hlten Phasen exportiert werden. Beim Import kann eine neue Konfiguration angelegt oder eine bestehende erweitert werden. Verwendete Status werden mit Namen und Automatik-Eigenschaft &uuml;bertragen; vorhandene Status und Gruppen werden nicht unbemerkt &uuml;berschrieben.</li>
     <li>Neue Bibliothek zum direkten Schreiben von Implementierungs-Auftr&auml;gen auf Firewalls (Check Point, FortiManager, FortiOS, OPNsense, Azure; noch nicht aktiviert). Endpunkt und JSON-Vorlage jeder Operation (Objekte, Services, Gruppen, Regeln, Ver&ouml;ffentlichen, Policy-Installation) sind in den ger&auml;tespezifischen Einstellungen &auml;nderbar und lassen sich auf die mitgelieferte Vorgabe zur&uuml;cksetzen; die Zertifikatspr&uuml;fung ist je Manager abschaltbar. Objekte, Services und Gruppen werden nur gel&ouml;scht, wenn dies ausdr&uuml;cklich eingeschaltet ist.</li>
@@ -671,6 +704,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>The tasks &quot;create object&quot; and &quot;modify object&quot; support time objects with name, start and end time.</li>
     <li>Implementation tasks are only created by the action &quot;Create implementation tasks&quot;, attached e.g. to the state &quot;approved&quot;. Installation and upgrade provide it but do not attach it: an administrator has to, otherwise no implementation tasks are created automatically. Which tasks it creates is defined by the device specific settings &quot;Auto plan implementation&quot; and &quot;Auto plan implementation for rules&quot;, independently of the planning phase; the upgrade does not derive them from the planning phases, so please check them (default for rules: No). Devices entered in the request take precedence over the path analysis algorithm, which now also offers &quot;For each device&quot; and &quot;First device (if available)&quot;. If the action finds no target, one implementation task without gateway is created. Workflow Customizing groups the bundling options.</li>
     <li>New REST call <code>resolvePathDevices</code>: determines the firewalls on the paths between source and destination addresses (hosts, ranges or networks, up to 500 each) using the network zone tree algorithm. Algorithm and zone matrix can be specified, otherwise the settings apply. The response lists each device once together with the algorithm and matrix used.</li>
+    <li>The device specific settings offer a selectable Check Point layer-guard positioning algorithm. When a gateway-specific implementation task for a new access rule is created, it stores the semantic position at the end of the uniquely matched zone-pair section.</li>
     <li>&quot;Modify group&quot; tasks can search for and edit existing network and service groups. Members are prefilled, can be marked for removal, and can be supplemented with new network objects or services.</li>
     <li>Workflow configurations can be exported with a custom file name and selected phases. During import, a new configuration can be created or an existing one can be extended. Referenced states are transferred with their names and automatic-only property; existing states and groups are not silently overwritten.</li>
     <li>New library for writing implementation tasks directly to firewalls (Check Point, FortiManager, FortiOS, OPNsense, Azure; not activated yet). The endpoint and JSON template of every operation (objects, services, groups, rules, publish, policy installation) can be changed in the device specific settings and reset to the shipped default; certificate checks can be switched off per manager. Objects, services and groups are only deleted if this is switched on explicitly.</li>
@@ -3745,6 +3779,8 @@ INSERT INTO txt VALUES ('dss_opt_cp_end_of_app_section_common_svc', 'German', 	'
 INSERT INTO txt VALUES ('dss_opt_cp_end_of_app_section_common_svc', 'English', 	'Check Point: end of app section, distinguish common services');
 INSERT INTO txt VALUES ('dss_opt_default_end_of_rulebase',          'German', 	'Standard: Ende des Regelwerks');
 INSERT INTO txt VALUES ('dss_opt_default_end_of_rulebase',          'English', 	'Default: end of rulebase');
+INSERT INTO txt VALUES ('dss_opt_cp_layer_guard_end_of_zone_pair_section', 'German', 'Check Point: Ende der Layer-Guard-Zonenpaar-Sektion');
+INSERT INTO txt VALUES ('dss_opt_cp_layer_guard_end_of_zone_pair_section', 'English', 'Check Point: end of layer-guard zone-pair section');
 INSERT INTO txt VALUES ('dss_opt_supermanager',                     'German', 	'Supermanager');
 INSERT INTO txt VALUES ('dss_opt_supermanager',                     'English', 	'Supermanager');
 INSERT INTO txt VALUES ('dss_opt_submanager',                       'German', 	'Submanager');
@@ -6937,8 +6973,8 @@ INSERT INTO txt VALUES ('H5193', 'German', 'Regeltyp: Access (Standard), Access 
 INSERT INTO txt VALUES ('H5193', 'English', 'Rule type: access (default), access and NAT, access and IPS, access/NAT/IPS, or application security.');
 INSERT INTO txt VALUES ('H5194', 'German',  'Vorlagen: Freitext-Vorlage(n) mit Platzhaltern wie {{rule_name}}. Nur Ger&auml;tetyp. Standard: {}.');
 INSERT INTO txt VALUES ('H5194', 'English', 'Templates: free-text template(s) with placeholders such as {{rule_name}}. Device type only. Default: {}.');
-INSERT INTO txt VALUES ('H5195', 'German', 'Positionierungsalgorithmus: auf allen Ebenen verf&uuml;gbar, einschlie&szlig;lich Ende des App-Abschnitts in der Allow-Kategorie mit Unterscheidung gemeinsamer Services. Standard: Ende der Rulebase.');
-INSERT INTO txt VALUES ('H5195', 'English', 'Positioning algorithm: available at all levels; includes placement at the end of the allow category app section with common services distinguished. Default: end of rulebase.');
+INSERT INTO txt VALUES ('H5195', 'German', 'Positionierungsalgorithmus: auf allen Ebenen verf&uuml;gbar. Die Check-Point-Layer-Guard-Option positioniert neue Regeln automatisch am Ende der Zonenpaar-Sektion in dem eindeutig durch Quell- und Zieladressen bestimmten Inline-Layer. Standard: Ende der Rulebase.');
+INSERT INTO txt VALUES ('H5195', 'English', 'Positioning algorithm: available at all levels. The Check Point layer-guard option automatically places new rules at the end of the zone-pair section in the inline layer uniquely selected by the source and destination addresses. Default: end of rulebase.');
 INSERT INTO txt VALUES ('H5196', 'German', 'Common Services trennen: ob Common-Service-Regeln getrennt von Applikationsregeln behandelt werden. Standard: Nein. Global, Ger&auml;tetyp und Manager.');
 INSERT INTO txt VALUES ('H5196', 'English', 'Common service separation: whether common-service rules are handled separately from application rules. Default: No. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5197', 'German', 'Sicherheitsprofile: Namen der anzuwendenden Profile, ein Eintrag pro Zeile. Ger&auml;tetyp und Manager.');

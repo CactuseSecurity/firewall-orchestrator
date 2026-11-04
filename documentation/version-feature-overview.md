@@ -254,3 +254,8 @@ For a feature-centric, thematically grouped view see
 - The installer handles operating system upgrades: it stops with migration instructions when PostgreSQL moved to a new major version, and rebuilds the python venvs of the importer and the customizing scripts for a new python version.
 - The Docker role was removed; upgrades start from 9.0.16 or newer, older installations upgrade with v9.8.4 first.
 - The Tufin SecureChange ticket templates are device specific settings that can be adapted globally, per device type and per management; the upgrade moves the templates stored with the ticket systems.
+
+### 9.8.6 — 02.11.2026
+- The compliance check fails closed: a criterion that cannot be evaluated makes the rule not assessable instead of compliant, also in the conditional auto-promote of the workflow.
+- The Cisco ASA importer offers the SHA-1 SSH key exchange only when the new device specific setting "Allow SHA-1 SSH key exchange" is switched on.
+- Security hardening of the API permissions, password policy enforcement in the middleware, CSV and HTML exports, installer secrets and local privileges (database, LDAP, browser location, sudoers handling).

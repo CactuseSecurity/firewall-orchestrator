@@ -176,7 +176,7 @@ namespace FWO.Ui.Display
             }
             else
             {
-                stringBuilder.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
+                stringBuilder.AppendLine("\"section header\": " + JsonConvert.ToString(rule.SectionHeader));
             }
             stringBuilder.Append("},");
             return stringBuilder.ToString();

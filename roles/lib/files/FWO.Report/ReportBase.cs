@@ -274,7 +274,7 @@ namespace FWO.Report
 
         protected static string OutputCsv(string? input)
         {
-            return $"\"{input?.Replace("\"", "\"\"") ?? ""}\",";
+            return $"{CsvOutputEncoder.EncodeCell(input)},";
         }
 
         protected static string EncodeHtml(string? value)

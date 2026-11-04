@@ -116,6 +116,10 @@ fworch_subid_range_size: 65536
 postgres_group: "postgres"
 fworch_parent_dir: "/usr/local"
 fworch_home: "{{ fworch_parent_dir }}/{{ product_name }}"
+# Root owned home of the browser used for PDF generation. Outside fworch_home on purpose: that tree belongs
+# to fworch_user, and the installer must not run or unpack anything below it as root. Hard coded in
+# GlobalConst.ChromeBinPathLinux, keep both in step.
+fworch_browser_dir: "/usr/local/lib/{{ product_name }}"
 fworch_conf_dir: "{{ fworch_home }}/etc"
 # SSH host keys of firewalls imported over SSH (Cisco ASA), checked unless certificate checking of firewall
 # connections is switched off; the importer reads it at the fixed path fwo_const.SSH_KNOWN_HOSTS_FILE

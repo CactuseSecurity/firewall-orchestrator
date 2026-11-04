@@ -270,6 +270,4 @@ For a feature-centric, thematically grouped view see
 - Azure parent policies (policy hierarchy) are imported; their rules precede the rules of the child policy.
 - Azure gateway autodiscovery: finds the Azure Firewalls of the subscription and maps each to its firewall policy.
 - New importer setting "Skip unsupported rules": rules that cannot be represented (currently Azure geo-location filters) are skipped with a warning or fail the import.
-
-### 9.9.1 — 04.11.2026
 - Workflow monitoring shows tickets in a paged tree table with their request tasks, implementation tasks and approvals; column filters (state, id, task number) and sorting run in the database across all tickets, and the state column shows an icon for each default workflow state.

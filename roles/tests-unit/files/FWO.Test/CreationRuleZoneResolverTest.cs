@@ -21,7 +21,7 @@ internal class CreationRuleZoneResolverTest
         CreationRuleNetworkInput networkInput = Input(
             [Range("10.0.0.20"), Range("10.0.0.60")],
             [Range("192.0.2.10")]);
-        List<ComplianceNetworkZone> zones =
+        List<NetworkZone> zones =
         [
             Zone(30, "Source broad", "10.0.0.0", "10.0.0.255"),
             Zone(10, "Source narrow", "10.0.0.0", "10.0.0.31"),
@@ -83,7 +83,7 @@ internal class CreationRuleZoneResolverTest
     [Test]
     public async Task ResolveAsync_UsesPersistedAutomaticInternetZone()
     {
-        ComplianceNetworkZone internet = Zone(5, "Internet", "0.0.0.0", "255.255.255.255");
+        NetworkZone internet = Zone(5, "Internet", "0.0.0.0", "255.255.255.255");
         internet.IsAutoCalculatedInternetZone = true;
 
         CreationRuleZoneInput input = Success(await Resolver().ResolveAsync(
@@ -100,9 +100,9 @@ internal class CreationRuleZoneResolverTest
     public async Task ResolveAsync_RejectsInvalidZoneCollections()
     {
         CreationRuleNetworkInput input = Input([Range("10.0.0.1")], [Range("10.0.0.2")]);
-        ComplianceNetworkZone malformedZone = Zone(1, "Reversed", "10.0.0.1", "10.0.0.2");
+        NetworkZone malformedZone = Zone(1, "Reversed", "10.0.0.1", "10.0.0.2");
         malformedZone.IPRanges[0].Begin = IPAddress.Parse("10.0.0.3");
-        List<IReadOnlyCollection<ComplianceNetworkZone>> invalidCollections =
+        List<IReadOnlyCollection<NetworkZone>> invalidCollections =
         [
             [],
             [Zone(1, "Foreign", "10.0.0.0", "10.0.0.255", kCriterionId + 1)],
@@ -110,7 +110,7 @@ internal class CreationRuleZoneResolverTest
             [malformedZone]
         ];
 
-        foreach (IReadOnlyCollection<ComplianceNetworkZone> zones in invalidCollections)
+        foreach (IReadOnlyCollection<NetworkZone> zones in invalidCollections)
         {
             FailureValue failure = Failure(await Resolver().ResolveAsync(
                 input, zones, Config(autoCalculateInternetZone: false), CancellationToken.None));
@@ -123,11 +123,11 @@ internal class CreationRuleZoneResolverTest
     {
         CreationRuleNetworkInput input = Input([Range("10.0.0.1")], [Range("10.0.0.2")]);
         RulePositioningConfiguration configuration = Config(autoCalculateInternetZone: true);
-        ComplianceNetworkZone first = Zone(1, "Internet one", "0.0.0.0", "255.255.255.255");
+        NetworkZone first = Zone(1, "Internet one", "0.0.0.0", "255.255.255.255");
         first.IsAutoCalculatedInternetZone = true;
-        ComplianceNetworkZone second = Zone(2, "Internet two", "192.0.2.0", "192.0.2.255");
+        NetworkZone second = Zone(2, "Internet two", "192.0.2.0", "192.0.2.255");
         second.IsAutoCalculatedInternetZone = true;
-        ComplianceNetworkZone ipv6Only = Zone(3, "IPv6 Internet", "2001:db8::", "2001:db8::ffff");
+        NetworkZone ipv6Only = Zone(3, "IPv6 Internet", "2001:db8::", "2001:db8::ffff");
         ipv6Only.IsAutoCalculatedInternetZone = true;
 
         FailureValue missing = Failure(await Resolver().ResolveAsync(
@@ -144,7 +144,7 @@ internal class CreationRuleZoneResolverTest
     [Test]
     public async Task ResolveAsync_ReturnsInputUnaffectedByCallerMutation()
     {
-        List<ComplianceNetworkZone> zones =
+        List<NetworkZone> zones =
         [
             Zone(1, "Source", "10.0.0.0", "10.0.0.255"),
             Zone(2, "Destination", "192.0.2.0", "192.0.2.255")
@@ -247,14 +247,14 @@ internal class CreationRuleZoneResolverTest
     private static IPAddressRange Range(string start, string? end = null) =>
         new(IPAddress.Parse(start), IPAddress.Parse(end ?? start));
 
-    private static ComplianceNetworkZone Zone(
+    private static NetworkZone Zone(
         int id,
         string name,
         string start,
         string end,
         int criterionId = kCriterionId)
     {
-        return new ComplianceNetworkZone
+        return new NetworkZone
         {
             Id = id,
             IdString = $"zone-{id}",
@@ -282,12 +282,12 @@ internal class CreationRuleZoneResolverTest
     }
 
     private sealed class CancellingZoneCollection(
-        IReadOnlyList<ComplianceNetworkZone> zones,
-        CancellationTokenSource cancellation) : IReadOnlyCollection<ComplianceNetworkZone>
+        IReadOnlyList<NetworkZone> zones,
+        CancellationTokenSource cancellation) : IReadOnlyCollection<NetworkZone>
     {
         public int Count => zones.Count;
 
-        public IEnumerator<ComplianceNetworkZone> GetEnumerator()
+        public IEnumerator<NetworkZone> GetEnumerator()
         {
             for (int index = 0; index < zones.Count; index++)
             {

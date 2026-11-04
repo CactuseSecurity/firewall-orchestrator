@@ -37,7 +37,7 @@ namespace FWO.Test
             public Dictionary<int, ModellingConnection> ConnectionsById { get; set; } = [];
             public Dictionary<long, ModellingAppRole> AppRolesById { get; set; } = [];
             public Dictionary<int, ModellingServiceGroup> ServiceGroupsById { get; set; } = [];
-            public List<ComplianceNetworkZone> MatrixNetworkZones { get; set; } = [];
+            public List<NetworkZone> MatrixNetworkZones { get; set; } = [];
             public int UpdateNotificationsLastSentAffectedRows { get; set; }
             public List<int> UpdatedNotificationLastSentIds { get; private set; } = [];
             public bool ThrowOnAddAlert { get; set; }
@@ -481,7 +481,7 @@ namespace FWO.Test
             };
         }
 
-        private static List<ComplianceNetworkZone> CreateBundleNetworkZones()
+        private static List<NetworkZone> CreateBundleNetworkZones()
         {
             return
             [

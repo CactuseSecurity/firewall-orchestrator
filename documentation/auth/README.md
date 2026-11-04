@@ -186,7 +186,8 @@ Every request to the middleware REST API with a user token counts against a budg
 the `x-hasura-uuid` claim): by default 600 requests per minute, with bursts of up to one minute's budget. The budget
 is refilled at least every 10 seconds (below 60 per minute: one request every 60 / value seconds); a configured value
 that cannot be refilled exactly within such a period is rounded by at most 3 requests per minute. Endpoints
-whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwners`, the Flow catalog lists
+whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwners`, `getAvailableInterfacesForApp`,
+`getAppRolesPerApp`, `getNetworkAreas`, the Flow catalog lists
 `getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects`, and
 `getImplTaskTargets`, `getAuditProofCriticalChanges`, `Rule/GetRulesByFilter`, `owners/get`,
 `Compliance/designatedZoneMatrix/zones` and the user, tenant and LDAP lists `GET User`, `User/Get`, `GET Tenant`,
@@ -218,6 +219,7 @@ are ordered:
 |---|---|---|
 | `flow/getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects` | root `limit`, `offset` | name, id |
 | `modelling/getIpDataForOwners` | `options.limit`, `options.offset` | name, external app id, id |
+| `modelling/getAvailableInterfacesForApp`, `getAppRolesPerApp`, `getNetworkAreas` | `options.limit`, `options.offset` | name, id |
 | `workflow/getImplTaskTargets` | `options.limit`, `options.offset` | visible targets by name, then id |
 | `workflow/getAuditProofCriticalChanges` | `options.limit`, `options.offset` | newest first |
 | `Rule/GetRulesByFilter` | `options.limit`, `options.offset` | rule id |
@@ -226,6 +228,12 @@ are ordered:
 | `GET User`, `GET Tenant` | query parameters `limit`, `offset` | id |
 | `GET Group` | query parameters `limit`, `offset` | dn |
 | `GET Compliance/designatedZoneMatrix/zones` | query parameters `limit`, `offset` | zone id |
+
+The page size counts only the listed items. Objects nested in an item are not paged but returned complete: the
+members of the groups in `flow/getAddressGroups` and `getServiceGroups`, the network and service objects of the
+interfaces in `modelling/getAvailableInterfacesForApp`, the app servers in `getAppRolesPerApp` and the subnets in
+`getNetworkAreas`. A page of these endpoints can therefore be much larger than the same number of plain objects;
+clients send a smaller `limit` if needed, and the setting lowers the maximum for all endpoints.
 
 Callers that receive fewer items than the maximum see no difference. The UI reads every page of the user, tenant
 and LDAP group lists it uses, at most 1000 pages per list; a list with further pages after that is reported as an

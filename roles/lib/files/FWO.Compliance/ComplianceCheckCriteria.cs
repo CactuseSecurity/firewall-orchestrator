@@ -157,10 +157,10 @@ namespace FWO.Compliance
         /// <param name="destinationIpRange">Destination range provided by the UI.</param>
         /// <param name="networkZones">Network zones to test against the provided ranges.</param>
         /// <returns>List of forbidden communications found by the matrix check.</returns>
-        public List<(ComplianceNetworkZone, ComplianceNetworkZone)> CheckIpRangeInputCompliance(IPAddressRange? sourceIpRange, IPAddressRange? destinationIpRange, List<ComplianceNetworkZone> networkZones)
+        public List<(NetworkZone, NetworkZone)> CheckIpRangeInputCompliance(IPAddressRange? sourceIpRange, IPAddressRange? destinationIpRange, List<NetworkZone> networkZones)
         {
             NetworkZones = networkZones;
-            List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = [];
+            List<(NetworkZone, NetworkZone)> forbiddenCommunicationsOutput = [];
 
             if (sourceIpRange != null && destinationIpRange != null)
             {
@@ -184,13 +184,13 @@ namespace FWO.Compliance
         /// <param name="resolvedDestinations">Resolved destination objects.</param>
         private bool CheckMatrixCompliance(Rule rule, ComplianceCriterion criterion, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations)
         {
-            List<ComplianceNetworkZone> networkZones = GetNetworkZonesForCriterion(criterion);
+            List<NetworkZone> networkZones = GetNetworkZonesForCriterion(criterion);
 
             List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> froms = GetNetworkObjectsWithIpRanges(resolvedSources, out List<NetworkObject> unparseableSources);
             List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> tos = GetNetworkObjectsWithIpRanges(resolvedDestinations, out List<NetworkObject> unparseableDestinations);
 
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> sourceZones = MapZonesToNetworkObjects(froms, networkZones, out List<NetworkObject> notAssessableSources);
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> destinationZones = MapZonesToNetworkObjects(tos, networkZones, out List<NetworkObject> notAssessableDestinations);
+            List<(NetworkObject networkObject, List<NetworkZone> networkZones)> sourceZones = MapZonesToNetworkObjects(froms, networkZones, out List<NetworkObject> notAssessableSources);
+            List<(NetworkObject networkObject, List<NetworkZone> networkZones)> destinationZones = MapZonesToNetworkObjects(tos, networkZones, out List<NetworkObject> notAssessableDestinations);
 
             // Objects of an address family that no zone of this criterion covers, and objects whose IP cannot be
             // parsed, cannot be compared against the matrix at all. They are reported as not assessable, while
@@ -198,12 +198,12 @@ namespace FWO.Compliance
             bool ruleIsCompliant = CreateZoneAssessabilityViolations(rule, criterion, notAssessableSources, notAssessableDestinations);
             ruleIsCompliant &= CreateZoneAssessabilityViolations(rule, criterion, unparseableSources, unparseableDestinations, AssessabilityIssue.InvalidIp);
 
-            Dictionary<ComplianceNetworkZone, List<NetworkObject>> sourceObjectsByZone = MapObjectsByZone(sourceZones);
-            Dictionary<ComplianceNetworkZone, List<NetworkObject>> destinationObjectsByZone = MapObjectsByZone(destinationZones);
+            Dictionary<NetworkZone, List<NetworkObject>> sourceObjectsByZone = MapObjectsByZone(sourceZones);
+            Dictionary<NetworkZone, List<NetworkObject>> destinationObjectsByZone = MapObjectsByZone(destinationZones);
 
-            foreach ((ComplianceNetworkZone sourceZone, List<NetworkObject> sourceObjects) in sourceObjectsByZone)
+            foreach ((NetworkZone sourceZone, List<NetworkObject> sourceObjects) in sourceObjectsByZone)
             {
-                foreach ((ComplianceNetworkZone destinationZone, List<NetworkObject> destinationObjects) in destinationObjectsByZone)
+                foreach ((NetworkZone destinationZone, List<NetworkObject> destinationObjects) in destinationObjectsByZone)
                 {
                     if (!sourceZone.CommunicationAllowedTo(destinationZone))
                     {
@@ -306,19 +306,19 @@ namespace FWO.Compliance
         /// <param name="source">Source ranges.</param>
         /// <param name="destination">Destination ranges.</param>
         /// <param name="forbiddenCommunication">Output list of forbidden zone combinations.</param>
-        private bool CheckMatrixCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
+        private bool CheckMatrixCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(NetworkZone, NetworkZone)> forbiddenCommunication)
         {
             // Determine all matching source zones
-            List<ComplianceNetworkZone> sourceZones = DetermineZones(source);
+            List<NetworkZone> sourceZones = DetermineZones(source);
 
             // Determine all matching destination zones
-            List<ComplianceNetworkZone> destinationZones = DetermineZones(destination);
+            List<NetworkZone> destinationZones = DetermineZones(destination);
 
             forbiddenCommunication = [];
 
-            foreach (ComplianceNetworkZone sourceZone in sourceZones)
+            foreach (NetworkZone sourceZone in sourceZones)
             {
-                foreach (ComplianceNetworkZone destinationZone in destinationZones.Where(d => !sourceZone.CommunicationAllowedTo(d)))
+                foreach (NetworkZone destinationZone in destinationZones.Where(d => !sourceZone.CommunicationAllowedTo(d)))
                 {
                     forbiddenCommunication.Add((sourceZone, destinationZone));
                 }

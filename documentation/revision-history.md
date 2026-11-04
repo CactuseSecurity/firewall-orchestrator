@@ -15,6 +15,22 @@
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
 - compliance: auto-calculated undefined-internal zones now cover complete IPv6 networks instead of only the first address of each remaining network
 - modelling and workflow: shared IP range parsing accepts dotted IPv4 netmasks such as `10.0.2.0/255.255.255.0` in addition to prefix lengths
+- middleware REST API: resolvePathDevices takes sources and destinations in the shared address format `ipHost`, `ipNetwork` or the two-entry `ipRange`, up to 500 entries each (#5587)
+  - breaking: `ipStart` and `ipEnd` are no longer accepted
+- middleware REST API: getFlowComplianceState and getPolicyIds report all validation errors at once with the request path of each, in the format `{"errors": [{"path": ..., "message": ...}]}` (#5587)
+  - breaking: the 400 body was plain text naming only the first error; an explicit `null` for `source`, `destination`, `service` or `policies` is now rejected
+- path analysis: the routing based query passed source and destination to the swapped arguments of devices_in_path; the result is unchanged, as the function is symmetric (#5587)
+- help: new page on the path analysis REST API (#5587)
+- middleware REST API: new modelling endpoints (#5268)
+  - `modelling/getAvailableInterfacesForApp`: published interfaces an application may use (public ones, restricted ones the
+    application is permitted for, and its own), with app servers, app roles, network areas, other network groups, services
+    and service groups resolved
+  - `modelling/getAppRolesPerApp`: app roles of an application (without AppZones) with their app servers
+  - `modelling/getNetworkAreas`: network areas with their subnets, filterable by id string with `*` and `?` wildcards
+  - admins and auditors see every application, modellers only their own (other applications: 404); modellers get network
+    areas only if one of their applications may use common services (otherwise 403). Addresses use compact notation (host
+    IP, CIDR network, `ip1-ip2` range), services `port/protocol` or `portStart-portEnd/protocol`
+  - API permissions: the middleware may read the permitted owners of restricted interfaces
 
 ## 9.8.6 - 02.11.2026
 - dependencies: update NuGet packages (AngleSharp to 1.9.1, Quartz to 4.7.0, Scalar.AspNetCore to 2.18.7, SoPro.FancyTable to 1.1.0)

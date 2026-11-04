@@ -647,7 +647,7 @@ namespace FWO.Test
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null,
                 FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
-                if (query == FWO.Api.Client.Queries.NetworkAnalysisQueries.pathAnalysis)
+                if (query == FWO.Api.Client.Queries.PathAnalysisQueries.pathAnalysis)
                 {
                     return Task.FromResult((QueryResponseType)(object)foundDevices);
                 }

@@ -212,7 +212,7 @@ namespace FWO.Test
                 .Returns(policy);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>())
+                .SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>())
                 .Returns(ComplianceCheck.NetworkZones);
         }
 

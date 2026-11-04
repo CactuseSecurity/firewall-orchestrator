@@ -1,4 +1,4 @@
-using FWO.Compliance;
+using FWO.NetworkTopology;
 using FWO.Data;
 using NetTools;
 using NUnit.Framework;
@@ -8,15 +8,15 @@ using System.Net.Sockets;
 namespace FWO.Test;
 
 [TestFixture]
-internal class ComplianceZoneResolverTest
+internal class NetworkZoneResolverTest
 {
     [Test]
     public void ResolveZones_AddsSyntheticInternetFallbackWhenAutoCalculationIsDisabled()
     {
-        List<ComplianceNetworkZone> result = ComplianceZoneResolver.ResolveZones(
+        List<NetworkZone> result = NetworkZoneResolver.ResolveZones(
             [new IPAddressRange(IPAddress.Parse("203.0.113.10"), IPAddress.Parse("203.0.113.10"))],
             [
-                new ComplianceNetworkZone
+                new NetworkZone
                 {
                     Id = 10,
                     Name = "DMZ",
@@ -43,9 +43,9 @@ internal class ComplianceZoneResolverTest
     public void ResolveZones_Ipv6RangeWithoutMatchingZone_IsReportedAsUnassignable(bool autoCalculatedInternetZoneActive)
     {
         List<IPAddressRange> ranges = [new IPAddressRange(IPAddress.Parse("2001:db8::"), IPAddress.Parse("2001:db8::ffff"))];
-        List<ComplianceNetworkZone> zones = [Ipv4Zone];
+        List<NetworkZone> zones = [Ipv4Zone];
 
-        List<ComplianceNetworkZone> result = ComplianceZoneResolver.ResolveZones(
+        List<NetworkZone> result = NetworkZoneResolver.ResolveZones(
             ranges,
             zones,
             autoCalculatedInternetZoneActive,
@@ -71,9 +71,9 @@ internal class ComplianceZoneResolverTest
             new IPAddressRange(IPAddress.Parse("203.0.113.10"), IPAddress.Parse("203.0.113.10")),
             new IPAddressRange(IPAddress.Parse("2001:db8::"), IPAddress.Parse("2001:db8::ffff"))
         ];
-        List<ComplianceNetworkZone> zones = [Ipv4Zone];
+        List<NetworkZone> zones = [Ipv4Zone];
 
-        List<ComplianceNetworkZone> result = ComplianceZoneResolver.ResolveZones(
+        List<NetworkZone> result = NetworkZoneResolver.ResolveZones(
             ranges,
             zones,
             autoCalculatedInternetZoneActive: false,
@@ -95,7 +95,7 @@ internal class ComplianceZoneResolverTest
     [Test]
     public void ResolveZones_Ipv6RangeMatchingIpv6Zone_ReportsNoUnassignableRange()
     {
-        ComplianceNetworkZone ipv6Zone = new()
+        NetworkZone ipv6Zone = new()
         {
             Id = 11,
             Name = "IPv6 Zone",
@@ -103,9 +103,9 @@ internal class ComplianceZoneResolverTest
         };
 
         List<IPAddressRange> ranges = [new IPAddressRange(IPAddress.Parse("2001:db8::1"), IPAddress.Parse("2001:db8::2"))];
-        List<ComplianceNetworkZone> zones = [ipv6Zone];
+        List<NetworkZone> zones = [ipv6Zone];
 
-        List<ComplianceNetworkZone> result = ComplianceZoneResolver.ResolveZones(
+        List<NetworkZone> result = NetworkZoneResolver.ResolveZones(
             ranges,
             zones,
             autoCalculatedInternetZoneActive: true,
@@ -127,7 +127,7 @@ internal class ComplianceZoneResolverTest
         CancellationTokenSource cancellation = new();
         cancellation.Cancel();
 
-        Assert.Throws<OperationCanceledException>(() => ComplianceZoneResolver.ResolveZones(
+        Assert.Throws<OperationCanceledException>(() => NetworkZoneResolver.ResolveZones(
             [new IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))],
             [Ipv4Zone],
             autoCalculatedInternetZoneActive: true,
@@ -136,7 +136,7 @@ internal class ComplianceZoneResolverTest
             out _));
     }
 
-    private static ComplianceNetworkZone Ipv4Zone => new()
+    private static NetworkZone Ipv4Zone => new()
     {
         Id = 10,
         Name = "DMZ",

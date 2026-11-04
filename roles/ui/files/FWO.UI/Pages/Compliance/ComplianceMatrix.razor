@@ -119,8 +119,8 @@
     private bool deleteAllowed = true;
     private string deleteMessage = "";
 
-    private List<(ComplianceNetworkZone, ComplianceNetworkZone)> addCommunication = [];
-    private List<(ComplianceNetworkZone, ComplianceNetworkZone)> deleteCommunication = [];
+    private List<(NetworkZone, NetworkZone)> addCommunication = [];
+    private List<(NetworkZone, NetworkZone)> deleteCommunication = [];
 
     protected async override Task OnInitializedAsync()
     {
@@ -173,7 +173,7 @@
         {
             matrixLoaded = false;
             StateHasChanged();
-            networkZoneService.NetworkZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = selectedMatrix.Id });
+            networkZoneService.NetworkZones = await apiConnection.SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = selectedMatrix.Id });
         }
         matrixLoaded = true;
         StateHasChanged();

@@ -126,7 +126,7 @@ namespace FWO.Ui.Display
             {
                 case 'D': return DisplayRuleSourceZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray());
                 case 'I': return DisplayRuleSourceZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray());
-                case 'C': return DisplayJsonArray("source zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
+                case 'C': return DisplayJsonArray("source zones", DisplayArrayDiff(ListFirewallZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListFirewallZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
                 default: return "";
             }
         }
@@ -164,7 +164,7 @@ namespace FWO.Ui.Display
             {
                 case 'D': return DisplayRuleDestinationZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray());
                 case 'I': return DisplayRuleDestinationZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray());
-                case 'C': return DisplayJsonArray("destination zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
+                case 'C': return DisplayJsonArray("destination zones", DisplayArrayDiff(ListFirewallZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListFirewallZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
                 default: return "";
             }
         }

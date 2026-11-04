@@ -67,10 +67,6 @@ public sealed class ResolveZonesForObjectsRequest : IRequestWithRootAdditionalDa
         /// </summary>
         [JsonPropertyName("ipRange")]
         public List<string>? IpRange { get; set; }
-
-        internal string NormalizedIpStart { get; set; } = string.Empty;
-
-        internal string NormalizedIpEnd { get; set; } = string.Empty;
     }
 
     /// <summary>

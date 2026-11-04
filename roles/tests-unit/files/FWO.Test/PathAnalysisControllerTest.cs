@@ -27,13 +27,21 @@ internal class PathAnalysisControllerTest
     private const int kDesignatedMatrixId = 7;
 
     private const string kZoneAToZoneB =
-        "\"sources\":[{\"ipStart\":\"10.1.0.1\",\"ipEnd\":\"10.1.0.1\"}],\"destinations\":[{\"ipStart\":\"10.2.0.1\",\"ipEnd\":\"10.2.0.1\"}]";
+        "\"sources\":[{\"ipHost\":\"10.1.0.1\"}],\"destinations\":[{\"ipHost\":\"10.2.0.1\"}]";
 
     private static readonly List<string> kAllPathDeviceNames =
     [
         PathAnalysisTestData.kAccessAName,
         PathAnalysisTestData.kCoreName,
         PathAnalysisTestData.kAccessBName
+    ];
+
+    private static readonly List<string> kExpectedConvertedRanges =
+    [
+        "10.1.0.5-10.1.0.5",
+        "10.1.1.0-10.1.1.255",
+        "10.1.2.10-10.1.2.20",
+        "2001:db8::-2001:db8::3"
     ];
 
     /// <summary>Verifies the route, the verb and the roles that may run a path analysis.</summary>
@@ -137,14 +145,48 @@ internal class PathAnalysisControllerTest
         Assert.That(core.Name, Is.EqualTo(PathAnalysisTestData.kCoreName));
     }
 
-    /// <summary>Verifies a source given as a network is analysed like one given as a range.</summary>
-    [Test]
-    public async Task ResolvePathDevices_WithNetworkSource_ReturnsSameDevicesAsRange()
+    /// <summary>Verifies every address form reaches the analysis and finds the same devices as a single host.</summary>
+    [TestCase("""{"sources":[{"ipNetwork":"10.1.0.0/24"}],"destinations":[{"ipNetwork":"10.2.0.0/24"}]}""")]
+    [TestCase("""{"sources":[{"ipNetwork":"10.1.0.5/24"}],"destinations":[{"ipNetwork":"10.2.0.5/24"}]}""")]
+    [TestCase("""{"sources":[{"ipRange":["10.1.0.1","10.1.0.9"]}],"destinations":[{"ipRange":["10.2.0.1","10.2.0.9"]}]}""")]
+    [TestCase("""{"sources":[{"ipHost":"10.1.0.1"},{"ipNetwork":"10.1.1.0/24"}],"destinations":[{"ipRange":["10.2.0.1","10.2.0.9"]}]}""")]
+    public async Task ResolvePathDevices_WithEveryAddressForm_ReturnsSameDevicesAsHost(string json)
     {
-        ResolvePathDevicesResponse response = await RunAsync(
-            """{"sources":[{"ipNetwork":"10.1.0.0/24"}],"destinations":[{"ipNetwork":"10.2.0.0/24"}]}""");
+        ResolvePathDevicesResponse response = await RunAsync(json);
 
         Assert.That(response.Devices.Select(device => device.Name), Is.EquivalentTo(kAllPathDeviceNames));
+    }
+
+    /// <summary>
+    /// Verifies each address form is converted into the inclusive range the analysis works on, including the
+    /// cleared host bits of a network, and that the order of the list is kept.
+    /// </summary>
+    [Test]
+    public void ToRanges_ConvertsEveryAddressFormToItsInclusiveRange()
+    {
+        ResolvePathDevicesRequest request = Deserialize(
+            """{"sources":[{"ipHost":"10.1.0.5"},{"ipNetwork":"10.1.1.5/24"},{"ipRange":["10.1.2.10","10.1.2.20"]},{"ipNetwork":"2001:db8::/126"}],"destinations":[]}""");
+
+        List<string> ranges = [.. PathAnalysisService.ToRanges(request.Sources, "sources").Select(range => $"{range.Begin}-{range.End}")];
+
+        Assert.That(ranges, Is.EqualTo(kExpectedConvertedRanges));
+    }
+
+    /// <summary>Verifies an omitted list is converted into no range instead of failing.</summary>
+    [Test]
+    public void ToRanges_WithNullList_ReturnsEmpty()
+    {
+        Assert.That(PathAnalysisService.ToRanges(null, "sources"), Is.Empty);
+    }
+
+    /// <summary>Verifies a conversion failure names the request path of the entry.</summary>
+    [Test]
+    public void ToRanges_WithInvalidEntry_NamesEntryPath()
+    {
+        ResolvePathDevicesRequest request = Deserialize("""{"sources":[{"ipHost":"10.1.0.1"},{"ipHost":"10.1.0.1/24"}],"destinations":[]}""");
+
+        Assert.That(() => PathAnalysisService.ToRanges(request.Sources, "sources"),
+            Throws.InstanceOf<InvalidOperationException>().With.Message.Contains("'sources[1]'"));
     }
 
     /// <summary>Verifies the id filter keeps only the matching device.</summary>
@@ -230,14 +272,14 @@ internal class PathAnalysisControllerTest
             Throws.InstanceOf<InvalidOperationException>());
     }
 
-    /// <summary>Verifies the service refuses an unvalidated block that cannot be parsed.</summary>
+    /// <summary>Verifies the service refuses an unvalidated address that cannot be converted.</summary>
     [Test]
     public void Service_WithUnvalidatedInvalidEntry_Throws()
     {
-        ResolvePathDevicesRequest request = Deserialize("""{"sources":[{"ipStart":"10.1.0.1"}],"destinations":[{"ipNetwork":"10.2.0.0/24"}]}""");
+        ResolvePathDevicesRequest request = Deserialize("""{"sources":[{"ipRange":["10.1.0.1"]}],"destinations":[{"ipNetwork":"10.2.0.0/24"}]}""");
 
         Assert.That(async () => await CreateService(PathAnalysisTestData.CreateApiConnection()).ResolvePathDevicesAsync(request),
-            Throws.InstanceOf<InvalidOperationException>().With.Message.Contains("requires both"));
+            Throws.InstanceOf<InvalidOperationException>().With.Message.Contains("requires exactly two entries in 'ipRange'"));
     }
 
     private static async Task<ResolvePathDevicesResponse> RunAsync(string json)

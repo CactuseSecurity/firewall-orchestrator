@@ -2,14 +2,17 @@ using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
-    public class PathAnalysisAlgorithmQueries : Queries
+    public class PathAnalysisQueries : Queries
     {
+        public static readonly string pathAnalysis;
         public static readonly string getPathAnalysisAlgorithms;
 
-        static PathAnalysisAlgorithmQueries()
+        static PathAnalysisQueries()
         {
             try
             {
+                pathAnalysis =
+                    GetQueryText("path_analysis/analyzePath.graphql");
                 getPathAnalysisAlgorithms =
                     GetQueryText("path_analysis/getIdAndNameOfPathAnalysisAlgorithm.graphql");
 

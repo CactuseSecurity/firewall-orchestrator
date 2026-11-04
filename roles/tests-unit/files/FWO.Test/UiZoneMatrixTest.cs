@@ -15,8 +15,8 @@ namespace FWO.Test
     {
         private UserConfig _userConfig = new();
         private NetworkZoneService _networkZoneService = new();
-        private List<(ComplianceNetworkZone, ComplianceNetworkZone)> _addCommunication = [];
-        private List<(ComplianceNetworkZone, ComplianceNetworkZone)> _deleteCommunication = [];
+        private List<(NetworkZone, NetworkZone)> _addCommunication = [];
+        private List<(NetworkZone, NetworkZone)> _deleteCommunication = [];
 
         Task<IRenderedComponent<ZonesMatrix>> RenderZoneMatrix(bool editMode = true, bool sortById = true)
         {
@@ -32,32 +32,32 @@ namespace FWO.Test
 
             _networkZoneService.NetworkZones.AddRange(
                 [
-                    new ComplianceNetworkZone
+                    new NetworkZone
                     {
                         Id = 1,
                         IdString = "zone_one",
                         Name = "Zone 1"
                     },
-                    new ComplianceNetworkZone
+                    new NetworkZone
                     {
                         Id = 2,
                         IdString = "zone_two",
                         Name = "Zone 2"
                     },
-                    new ComplianceNetworkZone
+                    new NetworkZone
                     {
                         Id = 3,
                         IdString = "zone_three",
                         Name = "Zone 3"
                     },
-                    new ComplianceNetworkZone
+                    new NetworkZone
                     {
                         Id = 4,
                         IdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL",
                         Name = "Auto-calculated Undefined-internal Zone",
                         IsAutoCalculatedUndefinedInternalZone = true
                     },
-                    new ComplianceNetworkZone
+                    new NetworkZone
                     {
                         Id = 5,
                         IdString = "AUTO_CALCULATED_ZONE_INTERNET",

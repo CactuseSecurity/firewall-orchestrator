@@ -10,7 +10,7 @@ public interface ICreationRuleZoneResolver
     /// <summary>Resolves already-normalized source and destination ranges to positioning zones.</summary>
     Task<PositioningResult<CreationRuleZoneInput, CreationRuleZoneResolutionFailureCategory>> ResolveAsync(
         CreationRuleNetworkInput networkInput,
-        IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+        IReadOnlyCollection<NetworkZone> networkZones,
         RulePositioningConfiguration configuration,
         CancellationToken cancellationToken);
 }

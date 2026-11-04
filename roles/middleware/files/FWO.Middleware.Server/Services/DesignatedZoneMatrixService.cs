@@ -4,6 +4,7 @@ using FWO.Compliance;
 using FWO.Compliance.RulePositioning;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.NetworkTopology;
 using FWO.Data.RulePositioning;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -15,9 +16,9 @@ using DesignatedZoneMatrixReadResult = FWO.Data.RulePositioning.PositioningResul
 namespace FWO.Middleware.Server.Services;
 
 /// <summary>
-/// Resolves compliance zones for stored and provided network objects.
+/// Resolves network zones for stored and provided network objects.
 /// </summary>
-public sealed class ComplianceZoneService(IDesignatedZoneMatrixReader zoneMatrixReader, GlobalConfig globalConfig)
+public sealed class DesignatedZoneMatrixService(IDesignatedZoneMatrixReader zoneMatrixReader, GlobalConfig globalConfig)
 {
     /// <summary>
     /// Returns one page of the zones defined by the configured designated zone matrix, ordered by zone id.
@@ -26,8 +27,8 @@ public sealed class ComplianceZoneService(IDesignatedZoneMatrixReader zoneMatrix
     /// <param name="offset">Number of zones skipped before the page; null skips none.</param>
     public async Task<ListPage<ComplianceDesignatedZoneResponse>> GetDesignatedZoneMatrixZonesAsync(int pageSize, int? offset)
     {
-        List<ComplianceNetworkZone> zones = await LoadDesignatedZoneMatrixZonesAsync();
-        ListPage<ComplianceNetworkZone> page = ListPage<ComplianceNetworkZone>.FromOrderedItems(zones.OrderBy(zone => zone.Id), pageSize, offset);
+        List<NetworkZone> zones = await LoadDesignatedZoneMatrixZonesAsync();
+        ListPage<NetworkZone> page = ListPage<NetworkZone>.FromOrderedItems(zones.OrderBy(zone => zone.Id), pageSize, offset);
         List<ComplianceDesignatedZoneResponse> zoneResponses = page.Items.Select(MapDesignatedZoneResponse).ToList();
         return new ListPage<ComplianceDesignatedZoneResponse>(zoneResponses, page.HasMore);
     }
@@ -43,13 +44,13 @@ public sealed class ComplianceZoneService(IDesignatedZoneMatrixReader zoneMatrix
             return [];
         }
 
-        List<ComplianceNetworkZone> zones = await LoadDesignatedZoneMatrixZonesAsync();
+        List<NetworkZone> zones = await LoadDesignatedZoneMatrixZonesAsync();
         if (zones.Count == 0)
         {
             return [];
         }
 
-        List<ComplianceNetworkZone> resolvedZones = ComplianceZoneResolver.ResolveZones(
+        List<NetworkZone> resolvedZones = NetworkZoneResolver.ResolveZones(
             ranges,
             zones,
             globalConfig.AutoCalculateInternetZone,
@@ -70,7 +71,7 @@ public sealed class ComplianceZoneService(IDesignatedZoneMatrixReader zoneMatrix
             .ToList();
     }
 
-    private async Task<List<ComplianceNetworkZone>> LoadDesignatedZoneMatrixZonesAsync()
+    private async Task<List<NetworkZone>> LoadDesignatedZoneMatrixZonesAsync()
     {
         DesignatedZoneMatrixReadResult result = await zoneMatrixReader.ReadAsync(
             globalConfig.DesignatedZoneMatrixId,
@@ -116,22 +117,16 @@ public sealed class ComplianceZoneService(IDesignatedZoneMatrixReader zoneMatrix
             throw new InvalidOperationException($"Unsupported object node type '{node.GetType().Name}'.");
         }
 
-        if (string.IsNullOrEmpty(leaf.NormalizedIpStart))
+        if (!AddressInputNormalizer.TryValidateAndNormalize(leaf, $"'{leaf.Name}'", out NormalizedAddressBounds bounds, out string? error))
         {
-            if (!AddressInputNormalizer.TryValidateAndNormalize(leaf, $"'{leaf.Name}'", out NormalizedAddressBounds bounds, out string? errorMessage))
-            {
-                throw new ArgumentException(errorMessage);
-            }
-
-            leaf.NormalizedIpStart = bounds.IpStart;
-            leaf.NormalizedIpEnd = bounds.IpEnd;
+            throw new InvalidOperationException($"'{leaf.Name}' passed validation but could not be converted: {error}");
         }
 
         NetworkObject networkObject = new()
         {
             Name = leaf.Name,
-            IP = leaf.NormalizedIpStart,
-            IpEnd = leaf.NormalizedIpEnd,
+            IP = bounds.IpStart,
+            IpEnd = bounds.IpEnd,
             Type = new NetworkObjectType
             {
                 Name = NormalizeObjectType(leaf.Type)
@@ -152,12 +147,12 @@ public sealed class ComplianceZoneService(IDesignatedZoneMatrixReader zoneMatrix
         };
     }
 
-    private static bool IsPersistedMatrixZone(ComplianceNetworkZone zone)
+    private static bool IsPersistedMatrixZone(NetworkZone zone)
     {
         return zone.Id > 0;
     }
 
-    private static ComplianceDesignatedZoneResponse MapDesignatedZoneResponse(ComplianceNetworkZone zone)
+    private static ComplianceDesignatedZoneResponse MapDesignatedZoneResponse(NetworkZone zone)
     {
         return new ComplianceDesignatedZoneResponse
         {

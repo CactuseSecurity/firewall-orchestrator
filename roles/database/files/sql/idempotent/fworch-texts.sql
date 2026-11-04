@@ -2743,6 +2743,8 @@ INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'German', 	'Ze
 INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'English', 	'Suppress certificate warnings');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','German', 	'FW API - Pro Abruf geholte Elemente');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','English', 	'FW API - Elements per fetch');
+INSERT INTO txt VALUES ('importSkipUnsupportedRules','German', 	'Nicht unterst&uuml;tzte Regeln &uuml;berspringen');
+INSERT INTO txt VALUES ('importSkipUnsupportedRules','English', 	'Skip unsupported rules');
 INSERT INTO txt VALUES ('impChangeNotifyRecipients','German', 	'Empf&auml;nger-Email-Adressen f&uuml;r &Auml;nderungen');
 INSERT INTO txt VALUES ('impChangeNotifyRecipients','English', 	'Recipient email addresses for change notifications');
 INSERT INTO txt VALUES ('impChangeNotifySubject',   'German', 	'Titel der &Auml;nderungsbenachrichtigung');
@@ -4272,6 +4274,8 @@ INSERT INTO txt VALUES ('flow_request_api',     'German',   'Flow-Antr&auml;ge')
 INSERT INTO txt VALUES ('flow_request_api',     'English',  'Flow Requests');
 INSERT INTO txt VALUES ('workflow_api',         'German',   'Workflow API');
 INSERT INTO txt VALUES ('workflow_api',         'English',  'Workflow API');
+INSERT INTO txt VALUES ('path_analysis_api',    'German',   'Pfadanalyse API');
+INSERT INTO txt VALUES ('path_analysis_api',    'English',  'Path Analysis API');
 INSERT INTO txt VALUES ('api_user_mgmt_head',   'German', 	'REST Dokumentation');
 INSERT INTO txt VALUES ('api_user_mgmt_head',   'English', 	'REST Documentation');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'German', 	'Authentisierung');
@@ -5239,6 +5243,8 @@ INSERT INTO txt VALUES ('E8017', 'German',  'Die Aufgabe verweist auf ein Flow-O
 INSERT INTO txt VALUES ('E8017', 'English', 'The task references a flow object or protocol that may not be requested in the request module. Please select the affected elements again.');
 INSERT INTO txt VALUES ('E8018', 'German',  'Die Aktionen dieses Statuswechsels wurden nicht ausgef&uuml;hrt, weil sie f&uuml;r diesen Status bereits ausgef&uuml;hrt wurden. Der Statuswechsel selbst ist gespeichert. Wurde der Status zwischenzeitlich ohne Aktionen gesetzt, etwa &uuml;ber die Workflow-&Uuml;berwachung, m&uuml;ssen Email, externer Antrag und Flow-Erzeugung erneut angesto&szlig;en werden.');
 INSERT INTO txt VALUES ('E8018', 'English', 'The actions of this state change were not executed, because they had already been executed for this state. The state change itself is saved. If the state was set in between without its actions, for instance through workflow monitoring, then mail, external request and flow creation have to be triggered again.');
+INSERT INTO txt VALUES ('E8019', 'German',  'Es ist kein Pfadanalyse-Algorithmus eingestellt, daher wurden keine Ger&auml;te ermittelt. Der Algorithmus wird unter Einstellungen &gt; Workflow &gt; Einstellungen gew&auml;hlt.');
+INSERT INTO txt VALUES ('E8019', 'English', 'No path analysis algorithm is configured, so no devices were determined. The algorithm is selected under Settings &gt; Workflow &gt; Customizing.');
 
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
@@ -6634,10 +6640,12 @@ INSERT INTO txt VALUES ('H5115', 'English', 'Port*: Port number of the host.<br>
     If the target any other platform Firewall Orchestrator needs ssh-based access. The default port number here is 22.
 ');
 INSERT INTO txt VALUES ('H5116', 'German',  'Login-Daten*: Zugangsdaten f&uuml;r den Import-Nutzer des Managements.<br>
-    Hier kann ein Satz <a href="/help/settings/credentials">Zugangsdaten</a> ausgew&auml;hlt werden, der zum Login auf dem Management dient.
+    Hier kann ein Satz <a href="/help/settings/credentials">Zugangsdaten</a> ausgew&auml;hlt werden, der zum Login auf dem Management dient.<br>
+    F&uuml;r Azure: Client ID und Secret eines Service Principals mit Leserechten auf das Abonnement, entweder als zus&auml;tzliche Zugangsdaten oder direkt als Benutzer und Passwort.
 ');
 INSERT INTO txt VALUES ('H5116', 'English', 'Import Credentials*: User/Password combination for logging into the management.<br>
-    Choose a set of <a href="/help/settings/credentials">credentials</a> which will be used to get the management''s configuration.
+    Choose a set of <a href="/help/settings/credentials">credentials</a> which will be used to get the management''s configuration.<br>
+    For Azure: client id and secret of a service principal with reader role on the subscription, either as additional credentials or directly as user and password.
 ');
 INSERT INTO txt VALUES ('H5117', 'German',  'Login-Daten: Zugangsdaten f&uuml;r den Export-Nutzer des Managements.<br>
     Hier kann ein Satz <a href="/help/settings/credentials">Zugangsdaten</a> ausgew&auml;hlt werden, der zum Schreiben auf das Management dient.
@@ -6646,10 +6654,12 @@ INSERT INTO txt VALUES ('H5117', 'English', 'Export Credentials: User/Password c
     Choose a set of <a href="/help/settings/credentials">credentials</a> which will be used to write on the management.
 ');
 INSERT INTO txt VALUES ('H5119', 'German',  'Domain: Firewall Domain Name <br>
-    f&uuml;r Check Point R8x MDS / Fortimanager Installationen, andernfall leer lassen.
+    f&uuml;r Check Point R8x MDS / Fortimanager Installationen, andernfall leer lassen.<br>
+    F&uuml;r Azure: Name der Ressourcengruppe der Firewall-Richtlinien. &Uuml;bergeordnete Richtlinien d&uuml;rfen in anderen Ressourcengruppen oder Abonnements liegen; der Service Principal braucht dort ebenfalls Leserechte. IP-Gruppen anderer Abonnements werden einzeln gelesen, daf&uuml;r gen&uuml;gen Leserechte auf die verwendeten IP-Gruppen.
 ');
 INSERT INTO txt VALUES ('H5119', 'English', 'Domain: Firewall Domain Name<br>
-    Empty except for Check Point R8x MDS / Fortimanager installations.
+    Empty except for Check Point R8x MDS / Fortimanager installations.<br>
+    For Azure: name of the resource group of the firewall policies. Parent policies may lie in other resource groups or subscriptions; the service principal needs reader rights there as well. IP groups of other subscriptions are read one by one, reader rights on the IP groups in use are sufficient for that.
 ');
 INSERT INTO txt VALUES ('H5120', 'German',  'Importer Hostname: wird in den ger&auml;tespezifischen Einstellungen auf den Ebenen Global, Ger&auml;tetyp oder Manager festgelegt.');
 INSERT INTO txt VALUES ('H5120', 'English', 'Importer host name: is set in the device specific settings on the levels Global, device type or manager.');
@@ -6745,8 +6755,8 @@ INSERT INTO txt VALUES ('H5141', 'English', 'Admins can create and administrate 
     The clone button helps defining new gateways by copying the data from existing ones.
     Before saving at least one of the parameters Device Type, Management or Rulebase has to be different from the existing gateways if the Import Disabled flag is not set.
 ');
-INSERT INTO txt VALUES ('H5150', 'German',  'UID*: Eindeutige ID des Gateways.');
-INSERT INTO txt VALUES ('H5150', 'English', 'UID*: Unique ID of the Gateway.');
+INSERT INTO txt VALUES ('H5150', 'German',  'UID*: Eindeutige ID des Gateways. F&uuml;r Azure: die Ressourcen-ID der Azure Firewall, wie sie die Autodiscovery eintr&auml;gt; ohne UID bricht der Import ab.');
+INSERT INTO txt VALUES ('H5150', 'English', 'UID*: Unique ID of the Gateway. For Azure: the resource id of the Azure Firewall, as entered by the autodiscovery; the import fails without a UID.');
 INSERT INTO txt VALUES ('H5151', 'German',  'Name*: Name des Gateways. F&uuml;r Legacy Fortinet (ssh) muss dies der reale Name des Firewallgateways sein wie in der Config definiert.');
 INSERT INTO txt VALUES ('H5151', 'English', 'Name*: Name of the Gateway. For legacy Fortinet (ssh) this must be the real name of the firewall gateway as defined in the config.');
 INSERT INTO txt VALUES ('H5152', 'German',  'Kommentar: Optionaler Kommentar zu diesem Gateway.');
@@ -7479,6 +7489,8 @@ INSERT INTO txt VALUES ('H5498', 'German',  'Zertifikatswarnungen unterdr&uuml;c
 INSERT INTO txt VALUES ('H5498', 'English', 'Suppress certificate warnings: Shall the warnings about invalid certificates of firewalls to be imported be left out of the import log? Default value = "inactive".');
 INSERT INTO txt VALUES ('H5499', 'German',  'FW API - Pro Abruf geholte Elemente: Wie viele Objekte sollen beim Import per Firewall-API Call auf einmal geholt werden? Default-Wert = 150.');
 INSERT INTO txt VALUES ('H5499', 'English', 'FW API - Elements per fetch: How many objects/rules shall be fetched per API call from a firewall management? Default value = 150.');
+INSERT INTO txt VALUES ('H5499a', 'German',  'Nicht unterst&uuml;tzte Regeln &uuml;berspringen: Regeln mit Funktionen, die Firewall Orchestrator nicht abbilden kann (derzeit Azure-Netzwerkregeln mit Geo-Location-Filtern), werden mit einer Warnung im Import-Log &uuml;bersprungen. Ist die Option deaktiviert, bricht der Import des Managements bei einer solchen Regel ab. Default-Wert = "aktiv".');
+INSERT INTO txt VALUES ('H5499a', 'English', 'Skip unsupported rules: Rules using features Firewall Orchestrator cannot represent (currently Azure network rules with geo-location filters) are skipped with a warning in the import log. If deactivated, the import of the management fails on such a rule. Default value = "active".');
 INSERT INTO txt VALUES ('H5501', 'German',  'Aktionen m&uuml;ssen zuerst in den Einstellungen definiert werden und k&ouml;nnen dann den jeweiligen Status zugeordnet werden.
     Die Aktion wird dann bei Eintreffen der hier definierten Bedingungen angeboten bzw. ausgef&uuml;hrt.
 ');
@@ -8627,6 +8639,48 @@ INSERT INTO txt VALUES ('H6944', 'English', 'The Workflow REST API provides read
         <li>Invalid requests are answered with 400, an unknown <code>ticketId</code> with 404. Both report every detected error together in the format <code>{"errors": [{"path": "options.filter.taskType", "message": "..."}]}</code>.</li>
     </ul>
 ');
+INSERT INTO txt VALUES ('H6945', 'German',  'Die Pfadanalyse-REST-API ermittelt die Firewalls auf den Pfaden zwischen Quell- und Zieladressen unter <code>/api/pathAnalysis</code>.
+    Der Endpunkt verwendet <code>POST</code> und steht Administratoren und Auditoren zur Verf&uuml;gung. Das Ergebnis wird nicht nach Mandanten gefiltert, daher ist er f&uuml;r mandantenbeschr&auml;nkte Rollen nicht freigegeben.
+    <table class="table table-sm">
+        <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Request / Response</th></tr></thead>
+        <tbody>
+            <tr><td><code>resolvePathDevices</code></td><td>Liefert die Firewalls auf den Pfaden von jeder Quelle zu jedem Ziel. Jedes Ger&auml;t erscheint einmal, ohne feste Reihenfolge, zusammen mit dem tats&auml;chlich verwendeten Algorithmus und der verwendeten Zonenmatrix.</td>
+                <td>Request: <code>{"sources": [{"ipHost": "10.1.0.5"}], "destinations": [{"ipNetwork": "10.2.0.0/24"}], "options": {"algorithm": "networkZoneTree", "matrixId": 3, "filter": {"name": "fw-core"}}}</code><br>
+                    Response: <code>{"devices": [{"id": 4, "name": "fw-core"}], "algorithm": "networkZoneTree", "matrixId": 3}</code></td></tr>
+        </tbody>
+    </table>
+    Regeln:
+    <ul>
+        <li><code>sources</code> und <code>destinations</code> sind Pflicht und enthalten je 1 bis 500 Eintr&auml;ge. Jeder Eintrag hat genau einen der Schl&uuml;ssel <code>ipHost</code> (eine Adresse ohne Maske), <code>ipNetwork</code> (CIDR; Host-Bits werden auf die Netzadresse gesetzt) oder <code>ipRange</code> (genau zwei Adressen ohne Maske, untere zuerst, gleiche Adressfamilie).</li>
+        <li><code>options</code> ist optional und hat den Standardwert <code>{}</code>. <code>options.algorithm</code> w&auml;hlt den Algorithmus (derzeit <code>networkZoneTree</code>, Gro&szlig;-/Kleinschreibung egal); ohne Angabe gilt der Algorithmus aus den Workflow-Einstellungen.</li>
+        <li><code>options.matrixId</code> w&auml;hlt die Zonenmatrix und ist nur zusammen mit <code>networkZoneTree</code> erlaubt; ohne Angabe gilt die festgelegte Zonenmatrix.</li>
+        <li><code>options.filter.id</code> und <code>options.filter.name</code> schr&auml;nken die gelieferten Ger&auml;te ein (exakter Vergleich, der Name ohne Beachtung der Gro&szlig;-/Kleinschreibung); ein fehlender Schl&uuml;ssel oder <code>null</code> schr&auml;nkt nicht ein.</li>
+        <li>Ung&uuml;ltige Requests werden mit 400 beantwortet, auch wenn eine Option fehlt und ihr eingestellter Standardwert nicht nutzbar ist: kein Algorithmus, der einen Pfad analysiert (None oder eine Ger&auml;teauswahl des Workflows), oder keine festgelegte Zonenmatrix. Eine angegebene <code>matrixId</code>, die nicht existiert oder keine Zonen enth&auml;lt, ergibt 404. Beide liefern alle gefundenen Fehler gemeinsam im Format <code>{"errors": [{"path": "sources[0]", "message": "..."}]}</code>.</li>
+        <li>Ist die festgelegte Zonenmatrix bei der Analyse unbrauchbar, antwortet der Endpunkt mit 500; die explizite Angabe von <code>options.matrixId</code> vermeidet das.</li>
+        <li>Der Endpunkt gilt als aufw&auml;ndig: Pro Benutzer laufen standardm&auml;&szlig;ig h&ouml;chstens zwei Anfragen gleichzeitig, weitere werden kurz eingereiht oder mit 429 abgewiesen. Der Request-Body darf h&ouml;chstens 1 MiB gro&szlig; sein.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6945', 'English', 'The path analysis REST API determines the firewalls on the paths between source and destination addresses below <code>/api/pathAnalysis</code>.
+    The endpoint uses <code>POST</code> and is available to administrators and auditors. Its result is not filtered by tenant, so it is not available to tenant-restricted roles.
+    <table class="table table-sm">
+        <thead><tr><th>Endpoint</th><th>Purpose</th><th>Request / Response</th></tr></thead>
+        <tbody>
+            <tr><td><code>resolvePathDevices</code></td><td>Returns the firewalls on the paths from every source to every destination. Each device is listed once, in no particular order, together with the algorithm and zone matrix actually used.</td>
+                <td>Request: <code>{"sources": [{"ipHost": "10.1.0.5"}], "destinations": [{"ipNetwork": "10.2.0.0/24"}], "options": {"algorithm": "networkZoneTree", "matrixId": 3, "filter": {"name": "fw-core"}}}</code><br>
+                    Response: <code>{"devices": [{"id": 4, "name": "fw-core"}], "algorithm": "networkZoneTree", "matrixId": 3}</code></td></tr>
+        </tbody>
+    </table>
+    Rules:
+    <ul>
+        <li><code>sources</code> and <code>destinations</code> are required and hold 1 to 500 entries each. Every entry has exactly one of <code>ipHost</code> (one address without a mask), <code>ipNetwork</code> (CIDR; host bits are cleared to the network address) or <code>ipRange</code> (exactly two addresses without a mask, lower bound first, same address family).</li>
+        <li><code>options</code> is optional and defaults to <code>{}</code>. <code>options.algorithm</code> selects the algorithm (currently <code>networkZoneTree</code>, case-insensitive); without it the algorithm from the workflow customizing settings applies.</li>
+        <li><code>options.matrixId</code> selects the zone matrix and is only valid together with <code>networkZoneTree</code>; without it the designated zone matrix applies.</li>
+        <li><code>options.filter.id</code> and <code>options.filter.name</code> restrict the returned devices (exact match, the name case-insensitively); an omitted key or <code>null</code> does not restrict the result.</li>
+        <li>Invalid requests are answered with 400, including a missing option whose configured default is not usable: no algorithm that analyses a path (none or a device selection of the workflow) or no designated zone matrix. A given <code>matrixId</code> that does not exist or holds no zones is answered with 404. Both report every detected error together in the format <code>{"errors": [{"path": "sources[0]", "message": "..."}]}</code>.</li>
+        <li>If the designated zone matrix turns out to be unusable during the analysis, the endpoint answers 500; naming <code>options.matrixId</code> explicitly avoids this.</li>
+        <li>The endpoint counts as expensive: by default at most two requests per user run at the same time, further ones are queued briefly or rejected with 429. The request body may be at most 1 MiB.</li>
+    </ul>
+');
 INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/owners/appdataimport">App-Daten-Import-Einstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
 ');
@@ -8897,14 +8951,18 @@ INSERT INTO txt VALUES ('H7201', 'German', 'Hier werden die Ergebnisse der autom
     Angegebene Management-Ids und -Namen beziehen sich auf den jeweiligen Multi Domain Manager.
     Die gegebenenfalls erforderlichen Anpassungen der Konfiguration im Firewall Orchestrator werden &uuml;ber die <a href="/help/monitoring/open_alerts">Offenen Alarme</a> (bei der automatischen Autodiscovery)
     oder den Dialog in den <a href="/help/settings/managements">Management-Einstellungen</a> (bei der manuell angestossenen Autodiscovery) abgewickelt.
-    Startzeit und Zeitabstand der automatischen Autodiscovery-L&auml;ufe k&ouml;nnen (vom Administrator) in den <a href="/help/settings/defaults">Standardeinstellungen</a> festgelegt werden.
+    Startzeit und Zeitabstand der automatischen Autodiscovery-L&auml;ufe k&ouml;nnen (vom Administrator) in den <a href="/help/settings/defaults">Standardeinstellungen</a> festgelegt werden.<br>
+    Bei Azure-Managements werden die Azure Firewalls des Abonnements als Gateways gefunden, deren Firewall-Richtlinie in der Ressourcengruppe (Konfigurationspfad) liegt; der Name der Richtlinie wird als lokaler Regelwerksname &uuml;bernommen. Firewalls mit klassischen Regeln (ohne Firewall-Richtlinie) werden nicht ber&uuml;cksichtigt.
+    Vorhandene Gateways werden &uuml;ber die UID (Ressourcen-ID, ohne Beachtung der Gro&szlig;-/Kleinschreibung) zugeordnet, sonst &uuml;ber den Namen; eine Zuordnung nur &uuml;ber den Namen wird als Warnung protokolliert.
 ');
 INSERT INTO txt VALUES ('H7201', 'English', 'Results of the automatic and the manual Autodiscovery are recorded here.
     For each run, number of found changes resp. error messages are displayed.
     Management Ids and Names refer to the respective Multi Domain Manager.
     The required changes in the configuration of the Firewall Orchestrator are handled in <a href="/help/monitoring/open_alerts">Open Alerts</a> (for the automatic Autodiscovery)
     or in the Dialogue of the <a href="/help/settings/managements">Management settings</a> (in case of the manually initialized Autodiscovery).
-    Start time and time interval of the automatic Autodiscovery can be defined in the <a href="/help/settings/defaults">Default settings</a> (by the administrator).
+    Start time and time interval of the automatic Autodiscovery can be defined in the <a href="/help/settings/defaults">Default settings</a> (by the administrator).<br>
+    For Azure managements the Azure Firewalls of the subscription whose firewall policy lies in the resource group (config path) are discovered as gateways; the policy name is taken over as local rulebase name. Firewalls with classic rules (without firewall policy) are not considered.
+    Existing gateways are matched by their UID (resource id, ignoring case), otherwise by name; a match by name only is logged as a warning.
 ');
 INSERT INTO txt VALUES ('H7251', 'German', 'In den T&auml;glichen Checks werden allgemeine Parameter des Firewall Orchestrator-Systems gepr&uuml;ft.
     Der t&auml;gliche Startzeitpunkt kann (vom Administrator) in den <a href="/help/settings/defaults">Standardeinstellungen</a> festgelegt werden.

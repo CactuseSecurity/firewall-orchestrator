@@ -17,14 +17,14 @@ public interface IDesignatedZoneMatrixReader
 public sealed class DesignatedZoneMatrixReadValue
 {
     /// <summary>Creates an immutable copy of the selected designated-zone matrix rows.</summary>
-    public DesignatedZoneMatrixReadValue(IReadOnlyCollection<ComplianceNetworkZone> networkZones)
+    public DesignatedZoneMatrixReadValue(IReadOnlyCollection<NetworkZone> networkZones)
     {
         ArgumentNullException.ThrowIfNull(networkZones);
-        NetworkZones = new ReadOnlyCollection<ComplianceNetworkZone>(networkZones.ToList());
+        NetworkZones = new ReadOnlyCollection<NetworkZone>(networkZones.ToList());
     }
 
     /// <summary>Gets the network zones returned for the configured matrix.</summary>
-    public IReadOnlyList<ComplianceNetworkZone> NetworkZones { get; }
+    public IReadOnlyList<NetworkZone> NetworkZones { get; }
 }
 
 /// <summary>Maps designated-zone-matrix failures to fixed caller-safe diagnostics.</summary>

@@ -5,7 +5,7 @@
     dest: "{{ middleware_ldif_dir }}/{{ item | basename | regex_replace('\\.j2$', '') }}"
     force: true
   with_fileglob:
-    - ../templates/tree_integration_testuser_*.j2
+    - "{{ role_path }}/templates/tree_integration_testuser_*.j2"
   become: true
 
 - name: build ldap command url

@@ -31,11 +31,11 @@ namespace FWO.Compliance
         /// <summary>
         /// Network zones to use for matrix compliance check.
         /// </summary>
-        public List<ComplianceNetworkZone> NetworkZones { get; set; } = [];
+        public List<NetworkZone> NetworkZones { get; set; } = [];
         /// <summary>
         /// Network zones grouped by matrix criterion id for policies containing multiple matrices.
         /// </summary>
-        private readonly Dictionary<int, List<ComplianceNetworkZone>> _networkZonesByCriterion = [];
+        private readonly Dictionary<int, List<NetworkZone>> _networkZonesByCriterion = [];
 
         /// <summary>
         /// Wraps the static class FWO.Logging.Log to make it accessible for unit tests.
@@ -267,7 +267,7 @@ namespace FWO.Compliance
             CompliancePolicy policy,
             IEnumerable<Rule> rulesToCheck,
             IEnumerable<Management> managements,
-            IReadOnlyDictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion)
+            IReadOnlyDictionary<int, List<NetworkZone>> networkZonesByCriterion)
         {
             GlobalConfig? globalConfig = _userConfig.GlobalConfig;
             if (globalConfig == null)

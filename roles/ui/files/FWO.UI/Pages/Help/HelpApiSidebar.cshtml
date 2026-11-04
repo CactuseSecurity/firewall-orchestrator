@@ -76,6 +76,12 @@
                 </a>
                 <p></p>
 
+                <h5>@userConfig.GetText("path_analysis_api")</h5>
+                <a class="nav-link" href="/help/API/pathanalysis/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.Matrix"></span> @userConfig.GetText("path_analysis_api")
+                </a>
+                <p></p>
+
                 <h5>@userConfig.GetText("import_interfaces")</h5>
                 <a class="nav-link" href="/help/API/appdataimport/?lang=@($"{userConfig.User.Language}")">
                     <span class="@Icons.UserGroup"></span> @userConfig.GetText("import_app_data")

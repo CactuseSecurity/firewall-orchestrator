@@ -4,14 +4,14 @@
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
 - compliance: auto-calculated undefined-internal zones now cover complete IPv6 networks instead of only the first address of each remaining network
 - modelling and workflow: shared IP range parsing accepts dotted IPv4 netmasks such as `10.0.2.0/255.255.255.0` in addition to prefix lengths
-
-## 9.8.6 - 02.11.2026
 - middleware REST API: resolvePathDevices takes sources and destinations in the shared address format `ipHost`, `ipNetwork` or the two-entry `ipRange`, up to 500 entries each (#5587)
   - breaking: `ipStart` and `ipEnd` are no longer accepted
 - middleware REST API: getFlowComplianceState and getPolicyIds report all validation errors at once with the request path of each, in the format `{"errors": [{"path": ..., "message": ...}]}` (#5587)
   - breaking: the 400 body was plain text naming only the first error; an explicit `null` for `source`, `destination`, `service` or `policies` is now rejected
 - path analysis: the routing based query passed source and destination to the swapped arguments of devices_in_path; the result is unchanged, as the function is symmetric (#5587)
 - help: new page on the path analysis REST API (#5587)
+
+## 9.8.6 - 02.11.2026
 - dependencies: update NuGet packages (AngleSharp to 1.9.1, Quartz to 4.7.0, Scalar.AspNetCore to 2.18.7, SoPro.FancyTable to 1.1.0)
 - UI (FancyTable): the new sort, hide, clear search and column filter labels of SoPro.FancyTable 1.1.0 are localized (German and English) instead of always showing English
 - compliance: the check of a rule fails closed (GHSA-f36h-2vqp-p8fm). A criterion that throws, a criterion with invalid or empty content (MinimumCIDRLength, ForbidZonesAsSource/-Destination) and network objects whose IP address cannot be parsed now make the rule not compliant with a "not assessable" violation naming the criterion or object, instead of compliant; the remaining criteria are still checked. Stored violations of a criterion that could not be evaluated are kept instead of being marked removed. This also applies to the conditional auto-promote policy check of the workflow

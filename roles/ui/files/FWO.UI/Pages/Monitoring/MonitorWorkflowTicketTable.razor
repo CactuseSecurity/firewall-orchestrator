@@ -20,7 +20,6 @@
                 ShowPageSizeSelector="true"
                 TreeActionsContainerClass="sticky-collapse"
                 TreeActionsTemplate="TreeActionsTemplate"
-                EnableColumnReordering="true"
                 EnableColumnResizing="true" />
 
 
@@ -47,8 +46,17 @@
         <button type="button" class="btn btn-sm btn-danger" @onclick:stopPropagation @onclick="async () => await ChangeState(row)">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
         @if (row.Kind == WorkflowTreeRowKind.RequestTask && row.ReqTask != null && CanAutoCreateImplementationTasks(row.Ticket, row.ReqTask))
         {
-            <button type="button" class="btn btn-sm btn-warning" @onclick:stopPropagation @onclick="async () => await AutoCreateImplementationTasks(row.Ticket, row.ReqTask)">@(DisplayService.DisplayButton(userConfig, "auto_create_impltasks", Icons.Create))</button>
+            <button type="button" class="btn btn-sm btn-warning ms-1" @onclick:stopPropagation @onclick="async () => await AutoCreateImplementationTasks(row.Ticket, row.ReqTask)">@(DisplayService.DisplayButton(userConfig, "auto_create_impltasks", Icons.Create))</button>
         }
+    </text>;
+
+    private RenderFragment<WorkflowTreeRow> StateCellTemplate => row =>
+    @<text>
+        @if (WorkflowStateIcons.Get(row.StateId) is WorkflowStateIcon stateIcon)
+        {
+            <i class="@stateIcon.CssClass me-1"></i>
+        }
+        @(ResolveStateName(row.StateId))
     </text>;
 
     #region Parameters
@@ -93,7 +101,7 @@
     private static readonly IReadOnlyList<WfTicket> kNoTickets = [];
 
     // Sorting and filtering run on the server, so a column offers them only where WorkflowTicketQueryBuilder supports them.
-    private static readonly ColumnBehavior kServerColumn = new(Hideable: false, Resizable: true, Reorderable: true, Sortable: true, Filterable: true);
+    private static readonly ColumnBehavior kServerColumn = new(Hideable: true, Resizable: true, Sortable: true, Filterable: true);
     private static readonly ColumnBehavior kSortOnlyColumn = kServerColumn with { Filterable = false };
     private static readonly ColumnBehavior kFilterOnlyColumn = kServerColumn with { Sortable = false };
     private static readonly ColumnBehavior kDisplayColumn = kServerColumn with { Sortable = false, Filterable = false };
@@ -175,7 +183,6 @@
                 Searchable = false,
                 Hideable = kDisplayColumn.Hideable,
                 Resizable = kDisplayColumn.Resizable,
-                Reorderable = kDisplayColumn.Reorderable,
                 Filterable = kDisplayColumn.Filterable,
                 CellTemplate = ActionsCellTemplate
             },
@@ -186,7 +193,7 @@
             CreateColumn("tasks", userConfig.GetText("tasks"), row => row.TaskCount?.ToString() ?? "", kDisplayColumn, row => row.TaskCount),
             CreateColumn("requester", userConfig.GetText("requester"), row => row.Requester, kFilterOnlyColumn),
             CreateColumn("flow_bundle_id", userConfig.GetText("flow_bundle_id"), row => row.FlowBundleId, kFilterOnlyColumn),
-            CreateColumn("state", userConfig.GetText("state"), row => ResolveStateName(row.StateId), kServerColumn),
+            CreateColumn("state", userConfig.GetText("state"), row => ResolveStateName(row.StateId), kServerColumn, cellTemplate: StateCellTemplate),
             CreateColumn("start_time", userConfig.GetText("start_time"), row => row.Start?.ToString() ?? "", kSortOnlyColumn, row => row.Start),
             CreateColumn("end_time", userConfig.GetText("end_time"), row => row.End?.ToString() ?? "", kSortOnlyColumn, row => row.End)
         ];
@@ -194,10 +201,10 @@
 
     /// <summary>
     /// Creates a text column; whether it can be sorted and filtered comes from its behavior. It is sorted by the displayed
-    /// text, unless a separate sort value selector is given.
+    /// text, unless a separate sort value selector is given. An optional cell template replaces the displayed text.
     /// </summary>
     private static FancyColumn<WorkflowTreeRow> CreateColumn(string key, string title, Func<WorkflowTreeRow, string> valueSelector,
-        ColumnBehavior behavior, Func<WorkflowTreeRow, IComparable?>? sortValueSelector = null)
+        ColumnBehavior behavior, Func<WorkflowTreeRow, IComparable?>? sortValueSelector = null, RenderFragment<WorkflowTreeRow>? cellTemplate = null)
     {
         return new FancyColumn<WorkflowTreeRow>
         {
@@ -208,8 +215,8 @@
             Hideable = behavior.Hideable,
             ValueSelector = valueSelector,
             SortValueSelector = sortValueSelector ?? (row => valueSelector(row)),
+            CellTemplate = cellTemplate,
             Resizable = behavior.Resizable,
-            Reorderable = behavior.Reorderable,
             Filterable = behavior.Filterable,
             MinWidth = kColumnMinWidth
         };
@@ -313,7 +320,7 @@
     /// <summary>
     /// Defines which interactions a column supports.
     /// </summary>
-    private readonly record struct ColumnBehavior(bool Hideable, bool Resizable, bool Reorderable, bool Sortable, bool Filterable);
+    private readonly record struct ColumnBehavior(bool Hideable, bool Resizable, bool Sortable, bool Filterable);
 
     /// <summary>
     /// Kind of workflow object shown in a tree row.

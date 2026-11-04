@@ -264,3 +264,6 @@ For a feature-centric, thematically grouped view see
 ### 9.8.7 — 02.11.2026
 - Rule positioning calculates and persists semantic positions for Check Point access-rule implementation tasks, including placement at the end of a uniquely matched zone-pair section.
 - Auto-calculated undefined-internal zones cover complete IPv6 networks, and shared IP range parsing accepts dotted IPv4 netmasks.
+
+### 9.8.8 — 04.11.2026
+- Workflow monitoring shows tickets in a paged tree table with their request tasks, implementation tasks and approvals; search, column filters and sorting run in the database across all tickets, and the state column shows an icon for each default workflow state.

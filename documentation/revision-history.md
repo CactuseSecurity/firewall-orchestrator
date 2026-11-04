@@ -1,11 +1,14 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.8 - 04.11.2026
+- workflow monitoring: tickets are shown in a tree table (request tasks, implementation tasks and approvals below each ticket) that loads only the current page; search, column filters and sorting are executed in the database and apply to all tickets, a match on any level of a ticket finds the ticket and negated filters only find tickets where no level matches
+- workflow monitoring: the state column shows an icon behind the name of each default workflow state (e.g. a green check for "Done"); custom states are shown without icon
+- dependencies: update NuGet package SoPro.FancyTable to 1.3.0 (server-side paging, search, filters and sorting)
+
 ## 9.8.7 - 02.11.2026
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
 - compliance: auto-calculated undefined-internal zones now cover complete IPv6 networks instead of only the first address of each remaining network
 - modelling and workflow: shared IP range parsing accepts dotted IPv4 netmasks such as `10.0.2.0/255.255.255.0` in addition to prefix lengths
-- workflow monitoring: tickets are shown in a tree table (request tasks, implementation tasks and approvals below each ticket) that loads only the current page; search, column filters and sorting are executed in the database and apply to all tickets, a match on any level of a ticket finds the ticket and negated filters only find tickets where no level matches
-- dependencies: update NuGet package SoPro.FancyTable to 1.2.0 (server-side paging, search, filters and sorting)
 - middleware REST API: new modelling endpoints (#5268)
   - `modelling/getAvailableInterfacesForApp`: published interfaces an application may use (public ones, restricted ones the
     application is permitted for, and its own), with app servers, app roles, network areas, other network groups, services

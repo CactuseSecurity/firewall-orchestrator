@@ -33,7 +33,7 @@ internal sealed class ApprovalTaskDetailsElementsEditor
 
     internal Task OpenGroupMembersEditor(WfReqTask task)
     {
-        string fieldKey = task.GetNwObjectElements(ElemFieldType.source).Any()
+        string fieldKey = task.GetNwObjectElements(ElemFieldType.source).Count > 0
             ? WorkflowEditableFieldKeys.Source
             : WorkflowEditableFieldKeys.Services;
         return OpenElementsEditor(task, fieldKey);

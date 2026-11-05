@@ -158,6 +158,15 @@
         string tableClass = "table table-sm table-borderless mb-0 approval-task-network-table"
             + (DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Technical ? " approval-task-network-table-technical" : "");
         builder.AddAttribute(16, "class", tableClass);
+        RenderNetworkTableHeader(builder);
+        RenderNetworkTableBody(builder, rows);
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private void RenderNetworkTableHeader(RenderTreeBuilder builder)
+    {
         builder.OpenElement(17, "thead");
         builder.OpenElement(18, "tr");
         if (DisplayLogic.DisplayMode != ApprovalTaskElementDisplayMode.Technical)
@@ -171,6 +180,10 @@
         }
         builder.CloseElement();
         builder.CloseElement();
+    }
+
+    private void RenderNetworkTableBody(RenderTreeBuilder builder, List<ApprovalTaskNetworkElementRow> rows)
+    {
         builder.OpenElement(25, "tbody");
         if (rows.Count == 0)
         {
@@ -203,10 +216,7 @@
             }
         }
         builder.CloseElement();
-        builder.CloseElement();
-        builder.CloseElement();
-        builder.CloseElement();
-    };
+    }
 
     private RenderFragment EditableServiceListValue(string label, ElemFieldType field, bool canEdit, Func<Task> edit) => builder =>
     {
@@ -236,13 +246,29 @@
         builder.AddAttribute(14, "class", "border bg-secondary d-block text-break");
         builder.OpenElement(15, "table");
         builder.AddAttribute(16, "class", "table table-sm table-borderless mb-0");
+        RenderServiceTableHeader(builder);
+        RenderServiceTableBody(builder, rows, DisplayLogic.DisplayMode);
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private void RenderServiceTableHeader(RenderTreeBuilder builder)
+    {
         builder.OpenElement(17, "thead");
         builder.OpenElement(18, "tr");
         if (DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Resolved)
+        {
             AddTableHeader(builder, 19, "name");
+        }
         AddTableHeader(builder, 21, DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups ? "name" : "content");
         builder.CloseElement();
         builder.CloseElement();
+    }
+
+    private static void RenderServiceTableBody(RenderTreeBuilder builder, List<ApprovalTaskServiceElementRow> rows,
+        ApprovalTaskElementDisplayMode displayMode)
+    {
         builder.OpenElement(24, "tbody");
         if (rows.Count == 0)
         {
@@ -258,7 +284,7 @@
             foreach (ApprovalTaskServiceElementRow row in rows)
             {
                 builder.OpenElement(sequence++, "tr");
-                if (DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Resolved)
+                if (displayMode == ApprovalTaskElementDisplayMode.Resolved)
                 {
                     AddTableCell(builder, sequence, row.Name);
                     sequence += 2;
@@ -269,10 +295,7 @@
             }
         }
         builder.CloseElement();
-        builder.CloseElement();
-        builder.CloseElement();
-        builder.CloseElement();
-    };
+    }
 
     private void AddTableHeader(RenderTreeBuilder builder, int sequence, string key, string? cssClass = null)
     {

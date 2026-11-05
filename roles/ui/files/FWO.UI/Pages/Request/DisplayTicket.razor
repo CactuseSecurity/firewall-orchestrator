@@ -116,7 +116,7 @@
                         <DisplayReqTaskTable Phase="Phase" States="States" ReadOnlyDisplay="true"
                             WfHandler="WfHandler" ResetParent="CloseApprovalAccessTaskEditor"
                             StartPhase="StartRequestPhase" StartImplPhase="StartImplementationPhase"
-                            FocusField="approvalAccessTaskField" />
+                            FocusField="GetApprovalAccessTaskField()" />
                     }
                     else
                     {
@@ -277,6 +277,8 @@
     private bool displayApprovalTaskDetailsView = false;
     private bool lastOpenApprovalTaskDetails;
     private string? approvalAccessTaskField;
+
+    private string? GetApprovalAccessTaskField() => approvalAccessTaskField;
 
     private bool UseApprovalTaskDetailsView => Phase == WorkflowPhases.approval
         && userConfig.ReqApprovalEditMode == ApprovalEditMode.AccessTaskView;

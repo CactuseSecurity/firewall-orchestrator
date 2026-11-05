@@ -289,90 +289,123 @@ namespace FWO.Services.Workflow
 
         public async Task AutoPromote(WfStatefulObject statefulObject, WfObjectScopes scope, int? toStateId)
         {
-            if (scope == WfObjectScopes.Approval)
+            if (!PrepareApprovalForAutoPromotion(statefulObject, scope))
             {
-                if (statefulObject is not WfApproval approval
-                    || !SetReqTaskEnv(approval.TaskId))
-                {
-                    return;
-                }
-
-                WfApproval? storedApproval = ActReqTask.Approvals.FirstOrDefault(candidate => candidate.Id == approval.Id);
-                if (storedApproval == null || storedApproval.StateId >= ActStateMatrix.LowestEndState)
-                {
-                    // An automatic action may arrive after another action has already
-                    // completed this approval. Never select a different pending approval
-                    // or overwrite the completed one in that case.
-                    return;
-                }
+                return;
             }
 
-            bool promotePossible = false;
-            if (toStateId != null)
+            if (!TrySetAutoPromotionState(statefulObject, scope, toStateId))
             {
-                statefulObject.StateId = (int)toStateId;
+                return;
+            }
+
+            await ApplyAutoPromotion(statefulObject, scope);
+            Log.WriteDebug("AutoPromote", $"Done for {scope} id {GetStatefulObjectId(statefulObject)} with state {statefulObject.StateId}.");
+        }
+
+        private bool PrepareApprovalForAutoPromotion(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            if (scope != WfObjectScopes.Approval)
+            {
+                return true;
+            }
+
+            if (statefulObject is not WfApproval approval || !SetReqTaskEnv(approval.TaskId))
+            {
+                return false;
+            }
+
+            WfApproval? storedApproval = ActReqTask.Approvals.FirstOrDefault(candidate => candidate.Id == approval.Id);
+            // An automatic action may arrive after another action has already
+            // completed this approval. Never select a different pending approval
+            // or overwrite the completed one in that case.
+            return storedApproval != null && storedApproval.StateId < ActStateMatrix.LowestEndState;
+        }
+
+        private bool TrySetAutoPromotionState(WfStatefulObject statefulObject, WfObjectScopes scope, int? toStateId)
+        {
+            if (toStateId.HasValue)
+            {
+                statefulObject.StateId = toStateId.Value;
                 Log.WriteDebug("AutoPromote", $"Using configured target state {statefulObject.StateId} for {scope} id {GetStatefulObjectId(statefulObject)}.");
-                promotePossible = true;
-            }
-            else
-            {
-                List<int> possibleStates = ActStateMatrix.getAllowedTransitions(statefulObject.StateId, true);
-                if (possibleStates.Count >= 1)
-                {
-                    statefulObject.StateId = possibleStates[0];
-                    Log.WriteDebug("AutoPromote", $"Using fallback target state {statefulObject.StateId} for {scope} id {GetStatefulObjectId(statefulObject)} from allowed transitions [{string.Join(", ", possibleStates)}].");
-                    promotePossible = true;
-                }
+                return true;
             }
 
-            if (promotePossible)
+            List<int> possibleStates = ActStateMatrix.getAllowedTransitions(statefulObject.StateId, true);
+            if (possibleStates.Count == 0)
             {
-                switch (scope)
-                {
-                    case WfObjectScopes.Ticket:
-                        SetTicketEnv((WfTicket)statefulObject);
-                        if (Phase == WorkflowPhases.request)
-                        {
-                            await PromoteTicket(statefulObject);
-                        }
-                        else
-                        {
-                            await PromoteTasksAndTicket(statefulObject);
-                        }
-                        break;
-                    case WfObjectScopes.RequestTask:
-                        SetReqTaskEnv((WfReqTask)statefulObject);
-                        ActReqTask.StateId = statefulObject.StateId;
-                        ActReqTask.CurrentHandler = statefulObject.CurrentHandler;
-                        await UpdateActReqTaskState();
-                        // A request-task auto-promote can bypass the approval
-                        // phase. Synchronize pending approvals to their own
-                        // approval outcome before deriving the parent ticket.
-                        StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[ActReqTask.TaskType];
-                        await UpdateReqTaskAndApprovalStatesFromTicket(ActReqTask, reqTaskMatrix, ActReqTask.StateId);
-                        await PromoteLaggingBundledRequestTasks(ActReqTask.StateId, statefulObject.CurrentHandler);
-                        await UpdateActTicketStateFromReqTasks();
-                        break;
-                    case WfObjectScopes.ImplementationTask:
-                        SetImplTaskEnv((WfImplTask)statefulObject);
-                        ActImplTask.StateId = statefulObject.StateId;
-                        ActImplTask.CurrentHandler = statefulObject.CurrentHandler;
-                        await UpdateActImplTaskState();
-                        break;
-                    case WfObjectScopes.Approval:
-                        if (SetReqTaskEnv(((WfApproval)statefulObject).TaskId))
-                        {
-                            await SetApprovalEnv((WfApproval)statefulObject, false);
-                            StateMatrix approvalTaskMatrix = stateMatrixDict.Matrices[ActReqTask.TaskType];
-                            statefulObject.StateId = GetApprovalStateForRequestTask(statefulObject.StateId, approvalTaskMatrix);
-                            await ApproveTask(statefulObject);
-                        }
-                        break;
-                    default:
-                        break;
-                }
-                Log.WriteDebug("AutoPromote", $"Done for {scope} id {GetStatefulObjectId(statefulObject)} with state {statefulObject.StateId}.");
+                return false;
             }
+
+            statefulObject.StateId = possibleStates[0];
+            Log.WriteDebug("AutoPromote", $"Using fallback target state {statefulObject.StateId} for {scope} id {GetStatefulObjectId(statefulObject)} from allowed transitions [{string.Join(", ", possibleStates)}].");
+            return true;
+        }
+
+        private async Task ApplyAutoPromotion(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            switch (scope)
+            {
+                case WfObjectScopes.Ticket:
+                    SetTicketEnv((WfTicket)statefulObject);
+                    await PromoteTicketOrTasksAndTicket(statefulObject);
+                    break;
+                case WfObjectScopes.RequestTask:
+                    await PromoteRequestTask(statefulObject);
+                    break;
+                case WfObjectScopes.ImplementationTask:
+                    await PromoteImplementationTask(statefulObject);
+                    break;
+                case WfObjectScopes.Approval:
+                    await PromoteApproval((WfApproval)statefulObject);
+                    break;
+            }
+        }
+
+        private async Task PromoteTicketOrTasksAndTicket(WfStatefulObject statefulObject)
+        {
+            if (Phase == WorkflowPhases.request)
+            {
+                await PromoteTicket(statefulObject);
+                return;
+            }
+
+            await PromoteTasksAndTicket(statefulObject);
+        }
+
+        private async Task PromoteRequestTask(WfStatefulObject statefulObject)
+        {
+            SetReqTaskEnv((WfReqTask)statefulObject);
+            ActReqTask.StateId = statefulObject.StateId;
+            ActReqTask.CurrentHandler = statefulObject.CurrentHandler;
+            await UpdateActReqTaskState();
+            // A request-task auto-promote can bypass the approval phase. Synchronize pending approvals
+            // to their own approval outcome before deriving the parent ticket.
+            StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[ActReqTask.TaskType];
+            await UpdateReqTaskAndApprovalStatesFromTicket(ActReqTask, reqTaskMatrix, ActReqTask.StateId);
+            await PromoteLaggingBundledRequestTasks(ActReqTask.StateId, statefulObject.CurrentHandler);
+            await UpdateActTicketStateFromReqTasks();
+        }
+
+        private async Task PromoteImplementationTask(WfStatefulObject statefulObject)
+        {
+            SetImplTaskEnv((WfImplTask)statefulObject);
+            ActImplTask.StateId = statefulObject.StateId;
+            ActImplTask.CurrentHandler = statefulObject.CurrentHandler;
+            await UpdateActImplTaskState();
+        }
+
+        private async Task PromoteApproval(WfApproval approval)
+        {
+            if (!SetReqTaskEnv(approval.TaskId))
+            {
+                return;
+            }
+
+            await SetApprovalEnv(approval, false);
+            StateMatrix approvalTaskMatrix = stateMatrixDict.Matrices[ActReqTask.TaskType];
+            approval.StateId = GetApprovalStateForRequestTask(approval.StateId, approvalTaskMatrix);
+            await ApproveTask(approval);
         }
 
         /// <summary>

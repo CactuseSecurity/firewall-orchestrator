@@ -252,13 +252,6 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private static bool IsGroupTask(WfReqTask task)
-        {
-            return task.TaskType == WfTaskType.group_create.ToString()
-                || task.TaskType == WfTaskType.group_modify.ToString()
-                || task.TaskType == WfTaskType.group_delete.ToString();
-        }
-
         /// <summary>
         /// Adds a request element.
         /// </summary>

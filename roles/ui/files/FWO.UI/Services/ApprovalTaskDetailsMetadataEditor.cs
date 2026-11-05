@@ -22,7 +22,7 @@ internal sealed class ApprovalTaskDetailsMetadataEditor
         this.refreshAfterEditorOpen = refreshAfterEditorOpen;
     }
 
-    internal List<FwoOwner> OwnerOptions => context.WfHandler.AllOwners.Where(owner => owner.Id != 0).ToList();
+    internal IEnumerable<FwoOwner> OwnerOptions() => context.WfHandler.AllOwners.Where(owner => owner.Id != 0);
 
     internal List<Management> ManagementOptions => context.WfHandler.Managements;
 
@@ -30,7 +30,7 @@ internal sealed class ApprovalTaskDetailsMetadataEditor
     {
         state.EditingOwnerTask = task;
         FwoOwner? owner = task.Owners.FirstOrDefault()?.Owner;
-        state.SelectedOwner = OwnerOptions.FirstOrDefault(candidate => candidate.Id == owner?.Id) ?? new FwoOwner();
+        state.SelectedOwner = OwnerOptions().FirstOrDefault(candidate => candidate.Id == owner?.Id) ?? new FwoOwner();
         state.DisplayOwnerEditor = true;
         return refreshAfterEditorOpen();
     }

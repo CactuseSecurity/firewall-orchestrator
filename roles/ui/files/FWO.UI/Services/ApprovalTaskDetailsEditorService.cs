@@ -270,7 +270,7 @@ internal sealed class ApprovalTaskDetailsEditorService
         set => state.TextEditorMultiline = value;
     }
 
-    internal List<FwoOwner> OwnerOptions => metadataEditor.OwnerOptions;
+    internal List<FwoOwner> OwnerOptions() => metadataEditor.OwnerOptions().ToList();
     internal List<Management> ManagementOptions => metadataEditor.ManagementOptions;
 
     internal Task InitializeAsync(ApiConnection apiConnection) => lookup.InitializeAsync(apiConnection);
@@ -296,18 +296,21 @@ internal sealed class ApprovalTaskDetailsEditorService
             state.AccessElementDisplayMode),
         AccessTaskVisibility,
         state.IpProtocols,
-        CanEdit,
-        timeObjectEditor.CanEditTimeObject,
-        timeObjectEditor.EditableTimeObjectField,
-        metadataEditor.OpenOwnerEditor,
-        metadataEditor.OpenRuleActionEditor,
-        metadataEditor.OpenTrackingEditor,
-        metadataEditor.OpenManagementEditor,
-        elementsEditor.OpenElementsEditor,
-        elementsEditor.OpenGroupMembersEditor,
-        elementsEditor.OpenExistingObjectTaskEditor,
-        metadataEditor.OpenTextEditor,
-        timeObjectEditor.OpenTargetDatesEditor);
+        new ApprovalTaskViewActions
+        {
+            CanEdit = CanEdit,
+            CanEditTimeObject = timeObjectEditor.CanEditTimeObject,
+            EditableTimeObjectField = timeObjectEditor.EditableTimeObjectField,
+            EditOwner = metadataEditor.OpenOwnerEditor,
+            EditRuleAction = metadataEditor.OpenRuleActionEditor,
+            EditTracking = metadataEditor.OpenTrackingEditor,
+            EditManagement = metadataEditor.OpenManagementEditor,
+            EditField = elementsEditor.OpenElementsEditor,
+            EditGroupMembers = elementsEditor.OpenGroupMembersEditor,
+            EditObjectTask = elementsEditor.OpenExistingObjectTaskEditor,
+            EditText = metadataEditor.OpenTextEditor,
+            EditTargetDates = timeObjectEditor.OpenTargetDatesEditor
+        });
 
     internal bool CanEdit(IEnumerable<WfReqTask> tasks, string fieldKey)
     {
@@ -318,8 +321,8 @@ internal sealed class ApprovalTaskDetailsEditorService
             return false;
         }
 
-        WfReqTask? firstTask = taskList.FirstOrDefault();
-        WfTaskType taskType = Enum.TryParse(firstTask?.TaskType ?? "", true, out WfTaskType parsedTaskType)
+        WfReqTask firstTask = taskList.First();
+        WfTaskType taskType = Enum.TryParse(firstTask.TaskType ?? "", true, out WfTaskType parsedTaskType)
             ? parsedTaskType
             : WfTaskType.access;
         if (WfObjectTaskHelper.IsObjectTask(taskType)

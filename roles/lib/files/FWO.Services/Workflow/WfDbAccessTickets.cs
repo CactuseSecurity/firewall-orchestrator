@@ -95,6 +95,12 @@ namespace FWO.Services.Workflow
 
         private async Task LinkTicketTimeObjectTasks(WfTicket sourceTicket, WfTicket ticket)
         {
+            HashSet<long> linkedAccessTaskIds = await LinkTimeObjectTasksByEntityId(sourceTicket, ticket);
+            await LinkTimeObjectTasksByFallback(ticket, linkedAccessTaskIds);
+        }
+
+        private async Task<HashSet<long>> LinkTimeObjectTasksByEntityId(WfTicket sourceTicket, WfTicket ticket)
+        {
             HashSet<long> linkedAccessTaskIds = [];
             foreach (WfReqTask sourceAccessTask in sourceTicket.Tasks.Where(task => task.TaskType == WfTaskType.access.ToString()))
             {
@@ -126,6 +132,11 @@ namespace FWO.Services.Workflow
                 linkedAccessTaskIds.Add(accessTask.Id);
             }
 
+            return linkedAccessTaskIds;
+        }
+
+        private async Task LinkTimeObjectTasksByFallback(WfTicket ticket, HashSet<long> linkedAccessTaskIds)
+        {
             foreach (WfReqTask accessTask in ticket.Tasks.Where(task =>
                 task.TaskType == WfTaskType.access.ToString() && !linkedAccessTaskIds.Contains(task.Id)))
             {
@@ -202,7 +213,7 @@ namespace FWO.Services.Workflow
 
         private static List<(WfReqElement Element, long ObjectTaskId)> LinkObjectReferencesForTask(
             WfReqTask sourceAccessTask, WfReqTask accessTask,
-            IReadOnlyDictionary<long, long> persistedObjectTaskIds)
+            Dictionary<long, long> persistedObjectTaskIds)
         {
             List<(WfReqElement Element, long ObjectTaskId)> links = [];
             foreach (WfReqElement sourceElement in sourceAccessTask.Elements

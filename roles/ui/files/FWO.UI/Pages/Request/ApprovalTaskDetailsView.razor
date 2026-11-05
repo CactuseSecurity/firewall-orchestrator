@@ -94,7 +94,7 @@
 <RuleActionEditor @bind-Display="displayRuleActionEditor" SelectedRuleAction="selectedRuleAction"
     RuleActions="ruleActions" Saved="SaveRuleAction" />
 <OwnerEditor @bind-Display="displayOwnerEditor" SelectedOwner="selectedOwner"
-    Owners="OwnerOptions" Saved="SaveOwner" />
+    Owners="GetOwnerOptions()" Saved="SaveOwner" />
 <TrackingEditor @bind-Display="displayTrackingEditor" SelectedTracking="selectedTracking"
     Trackings="trackings" Saved="SaveTracking" />
 <ManagementEditor @bind-Display="displayManagementEditor" SelectedManagement="selectedManagement"
@@ -170,54 +170,51 @@
 
     private RenderFragment TaskHeader(WfReqTask task, IEnumerable<WfReqTask> taskGroup) => builder =>
     {
-        int sequence = 0;
-        builder.OpenElement(sequence++, "span");
-        builder.AddAttribute(sequence++, "class", "d-flex align-items-center flex-wrap gap-2");
-        builder.OpenElement(sequence++, "small");
-        builder.AddAttribute(sequence++, "class", "text-dark mr-2 text-nowrap");
-        builder.AddContent(sequence++, $"{userConfig.GetText("id")}: {TaskIds(taskGroup)}");
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "d-flex align-items-center flex-wrap gap-2");
+        builder.OpenElement(2, "small");
+        builder.AddAttribute(3, "class", "text-dark mr-2 text-nowrap");
+        builder.AddContent(4, $"{userConfig.GetText("id")}: {TaskIds(taskGroup)}");
         builder.CloseElement();
         if (CanShowTaskPromotion(task))
         {
-            builder.OpenElement(sequence++, "button");
-            builder.AddAttribute(sequence++, "type", "button");
-            builder.AddAttribute(sequence++, "class", "btn btn-sm btn-warning");
-            builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this,
+            builder.OpenElement(5, "button");
+            builder.AddAttribute(6, "type", "button");
+            builder.AddAttribute(7, "class", "btn btn-sm btn-warning");
+            builder.AddAttribute(8, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this,
                 () => RunWithProgress(() => OpenTaskPromotion(task))));
-            builder.AddEventStopPropagationAttribute(sequence++, "onclick", true);
-            builder.AddContent(sequence++, DisplayService.DisplayButton(userConfig, "promote", Icons.ChangeState));
+            builder.AddEventStopPropagationAttribute(9, "onclick", true);
+            builder.AddContent(10, DisplayService.DisplayButton(userConfig, "promote", Icons.ChangeState));
             builder.CloseElement();
         }
         if (CanEdit(taskGroup, WorkflowEditableFieldKeys.Title))
         {
-            builder.OpenElement(sequence++, "button");
-            builder.AddAttribute(sequence++, "type", "button");
-            builder.AddAttribute(sequence++, "class", "btn btn-sm btn-secondary");
-            builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this,
+            builder.OpenElement(11, "button");
+            builder.AddAttribute(12, "type", "button");
+            builder.AddAttribute(13, "class", "btn btn-sm btn-secondary");
+            builder.AddAttribute(14, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this,
                 () => OpenTextEditor(task, WorkflowEditableFieldKeys.Title, task.Title)));
-            builder.AddEventStopPropagationAttribute(sequence++, "onclick", true);
-            builder.AddContent(sequence++, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
+            builder.AddEventStopPropagationAttribute(15, "onclick", true);
+            builder.AddContent(16, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
             builder.CloseElement();
         }
-        builder.OpenElement(sequence++, "strong");
-        builder.AddAttribute(sequence++, "class", "mr-2");
-        builder.AddContent(sequence++, TaskDisplayTitle(task));
+        builder.OpenElement(17, "strong");
+        builder.AddAttribute(18, "class", "mr-2");
+        builder.AddContent(19, TaskDisplayTitle(task));
         builder.CloseElement();
         if (taskGroup.Count() > 1)
         {
-            builder.OpenElement(sequence++, "span");
-            builder.AddAttribute(sequence++, "class", "badge badge-secondary ml-2");
-            builder.AddContent(sequence++, taskGroup.Count());
+            builder.OpenElement(20, "span");
+            builder.AddAttribute(21, "class", "badge badge-secondary ml-2");
+            builder.AddContent(22, taskGroup.Count());
             builder.CloseElement();
         }
-        builder.OpenElement(sequence++, "span");
-        builder.AddAttribute(sequence++, "class", "ml-auto");
-        builder.AddContent(sequence++, States.GetName(task.StateId));
+        builder.OpenElement(23, "span");
+        builder.AddAttribute(24, "class", "ml-auto");
+        builder.AddContent(25, States.GetName(task.StateId));
         builder.CloseElement();
         builder.CloseElement();
     };
-
-    private static string? DetailsOpen(WfReqTask task) => ApprovalTaskDetailsEditorService.DetailsOpen(task);
 
     private bool CanShowTaskPromotion(WfReqTask task)
     {
@@ -252,19 +249,13 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private ApproverAllowedChangesConfig AllowedChanges => editorService.AllowedChanges;
     private AccessTaskFieldVisibilityConfig AccessTaskVisibility => editorService.AccessTaskVisibility;
-    private ApprovalTaskElementDisplayMode accessElementDisplayMode
+    internal ApprovalTaskElementDisplayMode accessElementDisplayMode
     {
         get => editorService.accessElementDisplayMode;
         set => editorService.accessElementDisplayMode = value;
     }
 
-    private List<NetworkZone> networkZones
-    {
-        get => editorService.networkZones;
-        set => editorService.networkZones = value;
-    }
     private List<IpProtocol> ipProtocols
     {
         get => editorService.ipProtocols;
@@ -291,7 +282,7 @@
         get => editorService.displayOwnerEditor;
         set => editorService.displayOwnerEditor = value;
     }
-    private WfReqTask? editingOwnerTask
+    internal WfReqTask? editingOwnerTask
     {
         get => editorService.editingOwnerTask;
         set => editorService.editingOwnerTask = value;
@@ -306,7 +297,7 @@
         get => editorService.displayRuleActionEditor;
         set => editorService.displayRuleActionEditor = value;
     }
-    private WfReqTask? editingRuleActionTask
+    internal WfReqTask? editingRuleActionTask
     {
         get => editorService.editingRuleActionTask;
         set => editorService.editingRuleActionTask = value;
@@ -321,7 +312,7 @@
         get => editorService.displayTrackingEditor;
         set => editorService.displayTrackingEditor = value;
     }
-    private WfReqTask? editingTrackingTask
+    internal WfReqTask? editingTrackingTask
     {
         get => editorService.editingTrackingTask;
         set => editorService.editingTrackingTask = value;
@@ -336,7 +327,7 @@
         get => editorService.displayManagementEditor;
         set => editorService.displayManagementEditor = value;
     }
-    private WfReqTask? editingManagementTask
+    internal WfReqTask? editingManagementTask
     {
         get => editorService.editingManagementTask;
         set => editorService.editingManagementTask = value;
@@ -351,25 +342,20 @@
         get => editorService.displayTargetDatesEditor;
         set => editorService.displayTargetDatesEditor = value;
     }
-    private WfReqTask? editingTargetDatesTask
+    internal WfReqTask? editingTargetDatesTask
     {
         get => editorService.editingTargetDatesTask;
         set => editorService.editingTargetDatesTask = value;
     }
-    private WfReqTask? formerTimeObjectTask
+    internal WfReqTask? formerTimeObjectTask
     {
         get => editorService.formerTimeObjectTask;
         set => editorService.formerTimeObjectTask = value;
     }
-    private long? formerTimeObjectSelectorId
+    internal long? formerTimeObjectSelectorId
     {
         get => editorService.formerTimeObjectSelectorId;
         set => editorService.formerTimeObjectSelectorId = value;
-    }
-    private long? formerTimeObjectElementId
-    {
-        get => editorService.formerTimeObjectElementId;
-        set => editorService.formerTimeObjectElementId = value;
     }
     private TargetDatesEditorModel targetDatesEditorModel
     {
@@ -390,11 +376,6 @@
     {
         get => editorService.displayDeleteFormerTimeObjectTask;
         set => editorService.displayDeleteFormerTimeObjectTask = value;
-    }
-    private WfReqTask? pendingFormerTimeObjectTask
-    {
-        get => editorService.pendingFormerTimeObjectTask;
-        set => editorService.pendingFormerTimeObjectTask = value;
     }
     private bool displayTextEditor
     {
@@ -421,11 +402,6 @@
         get => editorService.displayObjectTaskEditor;
         set => editorService.displayObjectTaskEditor = value;
     }
-    private bool objectTaskIsExisting
-    {
-        get => editorService.objectTaskIsExisting;
-        set => editorService.objectTaskIsExisting = value;
-    }
     private bool objectTaskIsModify
     {
         get => editorService.objectTaskIsModify;
@@ -446,7 +422,7 @@
         get => editorService.displayDeleteObjectTask;
         set => editorService.displayDeleteObjectTask = value;
     }
-    private WfReqTask? pendingObjectTask
+    internal WfReqTask? pendingObjectTask
     {
         get => editorService.pendingObjectTask;
         set => editorService.pendingObjectTask = value;
@@ -456,7 +432,7 @@
         get => editorService.workInProgress;
         set => editorService.workInProgress = value;
     }
-    private WfReqTask? editingTextTask
+    internal WfReqTask? editingTextTask
     {
         get => editorService.editingTextTask;
         set => editorService.editingTextTask = value;
@@ -477,7 +453,7 @@
         set => editorService.textEditorMultiline = value;
     }
 
-    private List<FwoOwner> OwnerOptions => editorService.OwnerOptions;
+    private List<FwoOwner> GetOwnerOptions() => editorService.OwnerOptions();
     private List<Management> ManagementOptions => editorService.ManagementOptions;
     private bool CanCreateTimeObjectTask => editorService.CanCreateTimeObjectTask;
 
@@ -530,18 +506,11 @@
 
     private Task SaveObjectTask(WfReqTask task) => InvokeEditor(() => editorService.SaveObjectTask(task));
     private Task HandleObjectTaskEditorDisplayChanged(bool display) => InvokeEditor(() => editorService.HandleObjectTaskEditorDisplayChanged(display));
-    private Task SaveObjectTaskCore(WfReqTask task) => InvokeEditor(() => editorService.SaveObjectTaskCore(task));
-    private Task RefreshAccessTasksUsingObject(WfReqTask task) => InvokeEditor(() => editorService.RefreshAccessTasksUsingObject(task));
-    private static void CopyObjectSnapshot(WfReqElement target, WfReqElement source) => ApprovalTaskDetailsEditorService.CopyObjectSnapshot(target, source);
-    private static bool SamePositiveId(long? left, long? right) => ApprovalTaskDetailsEditorService.SamePositiveId(left, right);
+    internal Task SaveObjectTaskCore(WfReqTask task) => InvokeEditor(() => editorService.SaveObjectTaskCore(task));
     private Task DeleteObjectTask() => InvokeEditor(editorService.DeleteObjectTask);
-    private Task DeleteObjectTaskCore() => InvokeEditor(editorService.DeleteObjectTaskCore);
     private Task SaveElements(string fieldKey, IReadOnlyList<NwObjectElement> sources, IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services) => InvokeEditor(() => editorService.SaveElements(fieldKey, sources, destinations, services));
-    private Task SaveElementsCore(string fieldKey, IReadOnlyList<NwObjectElement> sources, IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services) => InvokeEditor(() => editorService.SaveElementsCore(fieldKey, sources, destinations, services));
-    private Task RefreshAccessTasksUsingGroup(WfReqTask task) => InvokeEditor(() => editorService.RefreshAccessTasksUsingGroup(task));
-    private static WfReqElement? FindGroupMemberByReference(WfReqElement accessElement, IEnumerable<WfReqElement> currentElements) => ApprovalTaskDetailsEditorService.FindGroupMemberByReference(accessElement, currentElements);
-    private bool IsObjectTaskReferenced(WfReqTask task) => InvokeEditor(() => editorService.IsObjectTaskReferenced(task));
-    private Task RefreshAfterEditorOpen() => InvokeEditor(editorService.RefreshAfterEditorOpen);
+    internal Task SaveElementsCore(string fieldKey, IReadOnlyList<NwObjectElement> sources, IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services) => InvokeEditor(() => editorService.SaveElementsCore(fieldKey, sources, destinations, services));
+    internal bool IsObjectTaskReferenced(WfReqTask task) => InvokeEditor(() => editorService.IsObjectTaskReferenced(task));
     private Task RunWithProgress(Func<Task> action) => InvokeEditor(() => editorService.RunWithProgress(action));
     private Task RefreshAfterOperation() => RefreshAfterOperationCore();
 
@@ -558,30 +527,25 @@
     }
 
     private Task SaveRuleAction(RuleAction? ruleAction) => InvokeEditor(() => editorService.SaveRuleAction(ruleAction));
-    private Task SaveRuleActionCore(RuleAction? ruleAction) => InvokeEditor(() => editorService.SaveRuleActionCore(ruleAction));
+    internal Task SaveRuleActionCore(RuleAction? ruleAction) => InvokeEditor(() => editorService.SaveRuleActionCore(ruleAction));
     private Task SaveOwner(FwoOwner owner) => InvokeEditor(() => editorService.SaveOwner(owner));
-    private Task SaveOwnerCore(FwoOwner owner) => InvokeEditor(() => editorService.SaveOwnerCore(owner));
+    internal Task SaveOwnerCore(FwoOwner owner) => InvokeEditor(() => editorService.SaveOwnerCore(owner));
     private Task SaveTracking(Tracking? tracking) => InvokeEditor(() => editorService.SaveTracking(tracking));
-    private Task SaveTrackingCore(Tracking? tracking) => InvokeEditor(() => editorService.SaveTrackingCore(tracking));
+    internal Task SaveTrackingCore(Tracking? tracking) => InvokeEditor(() => editorService.SaveTrackingCore(tracking));
     private Task SaveManagement(Management? management) => InvokeEditor(() => editorService.SaveManagement(management));
-    private Task SaveManagementCore(Management? management) => InvokeEditor(() => editorService.SaveManagementCore(management));
+    internal Task SaveManagementCore(Management? management) => InvokeEditor(() => editorService.SaveManagementCore(management));
     private Task SaveTargetDates(TargetDatesEditorModel model) => InvokeEditor(() => editorService.SaveTargetDates(model));
-    private Task SaveTargetDatesCore(TargetDatesEditorModel model) => InvokeEditor(() => editorService.SaveTargetDatesCore(model));
     private Task CreateTimeObjectTask(TargetDatesEditorModel model) => InvokeEditor(() => editorService.CreateTimeObjectTask(model));
-    private void InitializeNewObjectTaskState(WfReqTask task) => InvokeEditor(() => editorService.InitializeNewObjectTaskState(task));
-    private bool ShouldOfferFormerTimeObjectDeletion(TargetDatesEditorModel model) => InvokeEditor(() => editorService.ShouldOfferFormerTimeObjectDeletion(model));
-    private bool UsesFormerTimeObject(WfReqTask task) => InvokeEditor(() => editorService.UsesFormerTimeObject(task));
     private Task DeleteFormerTimeObjectTask() => InvokeEditor(editorService.DeleteFormerTimeObjectTask);
-    private Task DeleteFormerTimeObjectTaskCore() => InvokeEditor(editorService.DeleteFormerTimeObjectTaskCore);
-    private IEnumerable<WfReqTask> GetTasksToUpdate(WfReqTask task) => InvokeEditor(() => editorService.GetTasksToUpdate(task));
-    private void ApplyTimeObjectModel(TargetDatesEditorModel model) => InvokeEditor(() => editorService.ApplyTimeObjectModel(model));
-    private List<FlowTimeObject> GetTicketTimeObjects() => InvokeEditor(editorService.GetTicketTimeObjects);
-    private Dictionary<long, long> GetTicketTimeObjectElementIds() => InvokeEditor(editorService.GetTicketTimeObjectElementIds);
+    internal void InitializeNewObjectTaskState(WfReqTask task) => InvokeEditor(() => editorService.InitializeNewObjectTaskState(task));
+    internal bool ShouldOfferFormerTimeObjectDeletion(TargetDatesEditorModel model) => InvokeEditor(() => editorService.ShouldOfferFormerTimeObjectDeletion(model));
+    internal IEnumerable<WfReqTask> GetTasksToUpdate(WfReqTask task) => InvokeEditor(() => editorService.GetTasksToUpdate(task));
+    internal void ApplyTimeObjectModel(TargetDatesEditorModel model) => InvokeEditor(() => editorService.ApplyTimeObjectModel(model));
     private Task SaveText(string value) => InvokeEditor(() => editorService.SaveText(value));
-    private Task SaveTextCore(string value) => InvokeEditor(() => editorService.SaveTextCore(value));
+    internal Task SaveTextCore(string value) => InvokeEditor(() => editorService.SaveTextCore(value));
     private static string TaskIds(IEnumerable<WfReqTask> tasks) => ApprovalTaskDetailsEditorService.TaskIds(tasks);
-    private bool CanEditTimeObject(IEnumerable<WfReqTask> tasks) => InvokeEditor(() => editorService.CanEditTimeObject(tasks));
-    private string EditableTimeObjectField(IEnumerable<WfReqTask> tasks) => InvokeEditor(() => editorService.EditableTimeObjectField(tasks));
+    internal bool CanEditTimeObject(IEnumerable<WfReqTask> tasks) => InvokeEditor(() => editorService.CanEditTimeObject(tasks));
+    internal string EditableTimeObjectField(IEnumerable<WfReqTask> tasks) => InvokeEditor(() => editorService.EditableTimeObjectField(tasks));
     private void ToggleAccessElementDisplay() => InvokeEditor(editorService.ToggleAccessElementDisplay);
     private string NextDisplayModeTextKey() => InvokeEditor(editorService.NextDisplayModeTextKey);
 

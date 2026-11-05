@@ -46,7 +46,7 @@ public partial class DisplayRequestTask
             || (TimeObjectElementHelper.GetSelectorId(timeElement) is long timeObjectId && timeObjectId != 0);
         if (!hasTimeObjectReference || elementEditor is null || elementEditor.SourceCount == 0
             || elementEditor.DestinationCount == 0 || elementEditor.ServiceCount == 0
-            || (metadataEditor?.NeedsManualDeviceSelection == true && selectedDevices.Count<Device>() == 0))
+            || (metadataEditor?.NeedsManualDeviceSelection == true && !selectedDevices.Any()))
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("E5102"), true);
             return false;

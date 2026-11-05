@@ -125,7 +125,17 @@
                 };
                 return userConfig.GetText(key);
             }
-            return userConfig.GetText(IsSource ? "source" : IsDestination ? "destination" : "services");
+            string fieldLabelKey = "services";
+            if (IsSource)
+            {
+                fieldLabelKey = "source";
+            }
+            else if (IsDestination)
+            {
+                fieldLabelKey = "destination";
+            }
+
+            return userConfig.GetText(fieldLabelKey);
         }
     }
     private string GroupName
@@ -395,9 +405,17 @@
 
     private static string FormatGroupChoice(string groupName, string members)
     {
-        return string.IsNullOrWhiteSpace(groupName) ? members
-            : string.IsNullOrWhiteSpace(members) ? groupName
-            : $"{groupName} ({members})";
+        if (string.IsNullOrWhiteSpace(groupName))
+        {
+            return members;
+        }
+
+        if (string.IsNullOrWhiteSpace(members))
+        {
+            return groupName;
+        }
+
+        return $"{groupName} ({members})";
     }
 
     private static string FirstNonEmpty(params string?[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "";

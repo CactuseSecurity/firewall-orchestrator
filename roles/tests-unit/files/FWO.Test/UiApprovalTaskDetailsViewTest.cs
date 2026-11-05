@@ -20,6 +20,8 @@ namespace FWO.Test;
 [TestFixture]
 internal class UiApprovalTaskDetailsViewTest : UiSharedEditorTestBase
 {
+    private static readonly long[] kExpectedBundledTaskIds = [81L, 82L];
+
     [Test]
     public void ApprovalTaskDetailsView_GroupsOnlyMatchingBundledTasks()
     {
@@ -426,14 +428,13 @@ internal class UiApprovalTaskDetailsViewTest : UiSharedEditorTestBase
 
         MethodInfo groupsMethod = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "GetTaskGroups");
         List<List<WfReqTask>> groups = [.. (IEnumerable<List<WfReqTask>>)groupsMethod.Invoke(component, [])!];
-        MethodInfo detailsOpenMethod = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "DetailsOpen");
         MethodInfo nextModeMethod = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "NextDisplayModeTextKey");
 
         Assert.Multiple(() =>
         {
             Assert.That(groups, Has.Count.EqualTo(2));
-            Assert.That(detailsOpenMethod.Invoke(null, [accessTask]), Is.EqualTo("open"));
-            Assert.That(detailsOpenMethod.Invoke(null, [objectTask]), Is.Null);
+            Assert.That(ApprovalTaskDetailsEditorService.DetailsOpen(accessTask), Is.EqualTo("open"));
+            Assert.That(ApprovalTaskDetailsEditorService.DetailsOpen(objectTask), Is.Null);
             Assert.That(nextModeMethod.Invoke(component, []), Is.EqualTo("technical_view"));
         });
 
@@ -462,7 +463,7 @@ internal class UiApprovalTaskDetailsViewTest : UiSharedEditorTestBase
         MethodInfo method = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskDetailsView), "GetTasksToUpdate");
         List<WfReqTask> result = [.. (IEnumerable<WfReqTask>)method.Invoke(component, [selected])!];
 
-        Assert.That(result.Select(task => task.Id), Is.EqualTo(new[] { 81L, 82L }));
+        Assert.That(result.Select(task => task.Id), Is.EqualTo(kExpectedBundledTaskIds));
     }
 
     [Test]

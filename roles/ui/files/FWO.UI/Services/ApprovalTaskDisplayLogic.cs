@@ -51,7 +51,7 @@ namespace FWO.Ui.Services
             List<RuleAction> ruleActions, List<Tracking> trackings, List<IpProtocol> ipProtocols,
             List<NetworkZone> networkZones, bool technicalRuleView)
             : this(wfHandler, userConfig, ruleActions, trackings, ipProtocols, networkZones,
-                technicalRuleView ? ApprovalTaskElementDisplayMode.Technical : ApprovalTaskElementDisplayMode.Resolved)
+                GetDisplayMode(technicalRuleView))
         {
         }
 
@@ -77,6 +77,11 @@ namespace FWO.Ui.Services
         }
 
         private FlowIntegrationConfig FlowIntegration => FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration);
+
+        private static ApprovalTaskElementDisplayMode GetDisplayMode(bool technicalRuleView)
+        {
+            return technicalRuleView ? ApprovalTaskElementDisplayMode.Technical : ApprovalTaskElementDisplayMode.Resolved;
+        }
 
         /// <summary>Gets the active access-element display mode.</summary>
         public ApprovalTaskElementDisplayMode DisplayMode => displayMode;
@@ -129,14 +134,29 @@ namespace FWO.Ui.Services
                 .Select(GetTimeObjectName)
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct());
-            string begin = visibility.ShowValidFrom ? Dates(tasks, false) : "";
-            string end = visibility.ShowValidTo ? Dates(tasks, true) : "";
-            string validity = string.IsNullOrWhiteSpace(begin) ? end
-                : string.IsNullOrWhiteSpace(end) ? begin
-                : $"{begin} - {end}";
-            return string.IsNullOrWhiteSpace(validity) ? name
-                : string.IsNullOrWhiteSpace(name) ? $"({validity})"
-                : $"{name} ({validity})";
+            string begin = "";
+            if (visibility.ShowValidFrom)
+            {
+                begin = Dates(tasks, false);
+            }
+
+            string end = "";
+            if (visibility.ShowValidTo)
+            {
+                end = Dates(tasks, true);
+            }
+            string validity = BuildValidity(begin, end);
+            if (string.IsNullOrWhiteSpace(validity))
+            {
+                return name;
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return $"({validity})";
+            }
+
+            return $"{name} ({validity})";
         }
 
         /// <summary>Resolves and formats the rule actions used by the tasks.</summary>
@@ -164,24 +184,43 @@ namespace FWO.Ui.Services
 
         /// <summary>Builds the network-object columns for an access-task field.</summary>
         public IEnumerable<ApprovalTaskNetworkElementRow> NetworkElementRows(IEnumerable<WfReqTask> tasks, ElemFieldType field) =>
-            DisplayElements(tasks, field).Select(element => new ApprovalTaskNetworkElementRow(
-                displayMode == ApprovalTaskElementDisplayMode.Technical ? "" : ElementDisplayName(element),
-                displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups ? "" : NwObjDisplay.DisplayIp(element.IpString, element.IpEnd),
-                displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups ? "" : Zones(element)));
+            DisplayElements(tasks, field).Select(BuildNetworkElementRow);
 
         /// <summary>Builds the service columns for an access-task field.</summary>
         public IEnumerable<ApprovalTaskServiceElementRow> ServiceElementRows(IEnumerable<WfReqTask> tasks, ElemFieldType field) =>
-            DisplayElements(tasks, field).Select(element => new ApprovalTaskServiceElementRow(
-                displayMode == ApprovalTaskElementDisplayMode.Technical || displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups
-                    ? ""
-                    : ElementDisplayName(element),
-                displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups
-                    ? FirstNonEmpty(element.GroupName, element.Name) ?? ""
-                    : DisplayBase.DisplayService(ToServiceElement(element), ipProtocols)));
+            DisplayElements(tasks, field).Select(BuildServiceElementRow);
 
-        private string ElementDisplayName(WfReqElement element) => displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups
-            ? FirstNonEmpty(element.GroupName, element.Name) ?? ""
-            : FirstNonEmpty(element.Name, element.GroupName) ?? "";
+        private ApprovalTaskNetworkElementRow BuildNetworkElementRow(WfReqElement element)
+        {
+            string name = displayMode == ApprovalTaskElementDisplayMode.Technical ? "" : ElementDisplayName(element);
+            string ip = displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups
+                ? ""
+                : NwObjDisplay.DisplayIp(element.IpString, element.IpEnd);
+            string zone = displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups ? "" : Zones(element);
+            return new ApprovalTaskNetworkElementRow(name, ip, zone);
+        }
+
+        private ApprovalTaskServiceElementRow BuildServiceElementRow(WfReqElement element)
+        {
+            string name = "";
+            if (displayMode == ApprovalTaskElementDisplayMode.Resolved)
+            {
+                name = ElementDisplayName(element);
+            }
+
+            string content = displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups
+                ? FirstNonEmpty(element.GroupName, element.Name) ?? ""
+                : DisplayBase.DisplayService(ToServiceElement(element), ipProtocols);
+            return new ApprovalTaskServiceElementRow(name, content);
+        }
+
+        private string ElementDisplayName(WfReqElement element)
+        {
+            string? displayName = displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups
+                ? FirstNonEmpty(element.GroupName, element.Name)
+                : FirstNonEmpty(element.Name, element.GroupName);
+            return displayName ?? "";
+        }
 
         private string Dates(IEnumerable<WfReqTask> tasks, bool isEndDate) => string.Join("; ", tasks
             .Select(task => EffectiveTimeObjectDate(task, isEndDate))
@@ -196,7 +235,11 @@ namespace FWO.Ui.Services
             timeElement ??= TimeObjectElementHelper.Find(task.Elements);
             if (timeElement != null)
             {
-                DateTime? elementDate = isEndDate ? timeElement.EndTime : timeElement.StartTime;
+                DateTime? elementDate = timeElement.StartTime;
+                if (isEndDate)
+                {
+                    elementDate = timeElement.EndTime;
+                }
                 if (elementDate.HasValue)
                 {
                     return elementDate;
@@ -222,6 +265,21 @@ namespace FWO.Ui.Services
             }
 
             return name;
+        }
+
+        private static string BuildValidity(string begin, string end)
+        {
+            if (string.IsNullOrWhiteSpace(begin))
+            {
+                return end;
+            }
+
+            if (string.IsNullOrWhiteSpace(end))
+            {
+                return begin;
+            }
+
+            return $"{begin} - {end}";
         }
 
         private IEnumerable<string> ResolvedElementValues(IEnumerable<WfReqTask> tasks, ElemFieldType field) =>
@@ -309,25 +367,26 @@ namespace FWO.Ui.Services
 
         private static string ElementIdentity(WfReqElement element)
         {
-            string reference = element.ObjectTaskId is > 0 ? $"task:{element.ObjectTaskId}" : "";
-            reference = !string.IsNullOrWhiteSpace(reference) ? reference
-                : element.FlowNetworkObjectId is > 0 ? $"flow-nw:{element.FlowNetworkObjectId}" : reference;
-            reference = !string.IsNullOrWhiteSpace(reference) ? reference
-                : element.FlowNetworkGroupId is > 0 ? $"flow-nw-group:{element.FlowNetworkGroupId}" : reference;
-            reference = !string.IsNullOrWhiteSpace(reference) ? reference
-                : element.FlowServiceObjectId is > 0 ? $"flow-svc:{element.FlowServiceObjectId}" : reference;
-            reference = !string.IsNullOrWhiteSpace(reference) ? reference
-                : element.FlowServiceGroupId is > 0 ? $"flow-svc-group:{element.FlowServiceGroupId}" : reference;
-            reference = !string.IsNullOrWhiteSpace(reference) ? reference
-                : element.NetworkId is > 0 ? $"nw:{element.NetworkId}" : reference;
-            reference = !string.IsNullOrWhiteSpace(reference) ? reference
-                : element.ServiceId is > 0 ? $"svc:{element.ServiceId}" : reference;
+            string? reference = GetElementReference(element);
+            return !string.IsNullOrWhiteSpace(reference)
+                ? string.Join('|', element.Field, reference, element.RequestAction)
+                : BuildElementIdentityFromValues(element);
+        }
 
-            if (!string.IsNullOrWhiteSpace(reference))
-            {
-                return string.Join('|', element.Field, reference, element.RequestAction);
-            }
+        private static string? GetElementReference(WfReqElement element)
+        {
+            if (element.ObjectTaskId is > 0) return $"task:{element.ObjectTaskId}";
+            if (element.FlowNetworkObjectId is > 0) return $"flow-nw:{element.FlowNetworkObjectId}";
+            if (element.FlowNetworkGroupId is > 0) return $"flow-nw-group:{element.FlowNetworkGroupId}";
+            if (element.FlowServiceObjectId is > 0) return $"flow-svc:{element.FlowServiceObjectId}";
+            if (element.FlowServiceGroupId is > 0) return $"flow-svc-group:{element.FlowServiceGroupId}";
+            if (element.NetworkId is > 0) return $"nw:{element.NetworkId}";
+            if (element.ServiceId is > 0) return $"svc:{element.ServiceId}";
+            return null;
+        }
 
+        private static string BuildElementIdentityFromValues(WfReqElement element)
+        {
             return string.Join('|',
                 element.Field,
                 element.Name,
@@ -372,7 +431,11 @@ namespace FWO.Ui.Services
                 return Enumerable.Repeat(element, 1);
             }
 
-            string groupName = !string.IsNullOrWhiteSpace(element.GroupName) ? element.GroupName : element.Name ?? "";
+            string groupName = element.Name ?? "";
+            if (!string.IsNullOrWhiteSpace(element.GroupName))
+            {
+                groupName = element.GroupName;
+            }
             string memberField = field == ElemFieldType.service
                 ? ElemFieldType.service.ToString()
                 : ElemFieldType.source.ToString();
@@ -441,16 +504,24 @@ namespace FWO.Ui.Services
             return WfObjectTaskHelper.ResolveReferencedElement(element, wfHandler.ActTicket.Tasks);
         }
 
-        private string ObjectValue(WfReqElement element) =>
+        private static string ObjectValue(WfReqElement element) =>
             DisplayBase.DisplayIpWithName(WfElementBase.ToNetworkObject(element));
 
         private string ServiceValue(WfReqElement element)
         {
             string name = element.Name ?? "";
             string details = DisplayBase.DisplayService(ToServiceElement(element), ipProtocols);
-            return string.IsNullOrWhiteSpace(name) || string.Equals(name, details, StringComparison.OrdinalIgnoreCase)
-                ? string.IsNullOrWhiteSpace(name) ? details : name
-                : string.IsNullOrWhiteSpace(details) ? name : $"{name} ({details})";
+            if (string.IsNullOrWhiteSpace(name) || string.Equals(name, details, StringComparison.OrdinalIgnoreCase))
+            {
+                return string.IsNullOrWhiteSpace(name) ? details : name;
+            }
+
+            if (string.IsNullOrWhiteSpace(details))
+            {
+                return name;
+            }
+
+            return $"{name} ({details})";
         }
 
         private static NwServiceElement ToServiceElement(WfReqElement element) => new()

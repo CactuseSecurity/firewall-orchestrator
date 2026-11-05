@@ -55,12 +55,7 @@ internal sealed class ApprovalTaskDetailsTimeObjectEditor
             ticketElementId = parallelTimeElement.Id;
         }
         long? referencedObjectTaskId = timeElement?.ObjectTaskId;
-        state.FormerTimeObjectTask = referencedObjectTaskId is > 0
-            ? context.WfHandler.ActTicket.Tasks.FirstOrDefault(candidate => candidate.Id == referencedObjectTaskId.Value)
-            : parallelTimeElement == null
-                ? null
-                : context.WfHandler.ActTicket.Tasks.FirstOrDefault(candidate => candidate.Elements.Any(element =>
-                    element.Id == parallelTimeElement.Id));
+        state.FormerTimeObjectTask = FindFormerTimeObjectTask(referencedObjectTaskId, parallelTimeElement);
         state.FormerTimeObjectSelectorId = timeObjectId;
         state.FormerTimeObjectElementId = parallelTimeElement?.Id;
         state.TargetDatesEditorModel = new TargetDatesEditorModel
@@ -77,6 +72,22 @@ internal sealed class ApprovalTaskDetailsTimeObjectEditor
         };
         state.DisplayTargetDatesEditor = true;
         return refreshAfterEditorOpen();
+    }
+
+    private WfReqTask? FindFormerTimeObjectTask(long? referencedObjectTaskId, WfReqElement? parallelTimeElement)
+    {
+        if (referencedObjectTaskId is > 0)
+        {
+            return context.WfHandler.ActTicket.Tasks.FirstOrDefault(candidate => candidate.Id == referencedObjectTaskId.Value);
+        }
+
+        if (parallelTimeElement == null)
+        {
+            return null;
+        }
+
+        return context.WfHandler.ActTicket.Tasks.FirstOrDefault(candidate => candidate.Elements.Any(element =>
+            element.Id == parallelTimeElement.Id));
     }
 
     internal bool CanCreateTimeObjectTask => state.EditingTargetDatesTask != null

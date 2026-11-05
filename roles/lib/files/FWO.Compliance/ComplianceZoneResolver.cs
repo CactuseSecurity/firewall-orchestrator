@@ -22,7 +22,7 @@ public static class ComplianceZoneResolver
         bool autoCalculatedInternetZoneActive,
         string internetLocalZoneName)
     {
-        return ResolveZones(ranges, activeNetworkZones, autoCalculatedInternetZoneActive, internetLocalZoneName, out _);
+        return ResolveZones(ranges, activeNetworkZones, autoCalculatedInternetZoneActive, internetLocalZoneName, CancellationToken.None, out _);
     }
 
     /// <summary>
@@ -40,24 +40,62 @@ public static class ComplianceZoneResolver
         string internetLocalZoneName,
         out List<IPAddressRange> unassignableRanges)
     {
+        return ResolveZones(ranges, activeNetworkZones, autoCalculatedInternetZoneActive, internetLocalZoneName, CancellationToken.None, out unassignableRanges);
+    }
+
+    /// <summary>
+    /// Resolves overlapping zones while observing caller cancellation.
+    /// </summary>
+    /// <param name="ranges">IP ranges to evaluate.</param>
+    /// <param name="activeNetworkZones">The active compliance zones.</param>
+    /// <param name="autoCalculatedInternetZoneActive">Whether the internet zone is auto-calculated.</param>
+    /// <param name="internetLocalZoneName">Localized display name for the fallback internet zone.</param>
+    /// <param name="cancellationToken">Caller cancellation token.</param>
+    /// <param name="unassignableRanges">Ranges that no zone can cover.</param>
+    public static List<ComplianceNetworkZone> ResolveZones(
+        List<IPAddressRange> ranges,
+        List<ComplianceNetworkZone> activeNetworkZones,
+        bool autoCalculatedInternetZoneActive,
+        string internetLocalZoneName,
+        CancellationToken cancellationToken,
+        out List<IPAddressRange> unassignableRanges)
+    {
         List<ComplianceNetworkZone> result = [];
         List<List<IPAddressRange>> unseenIpAddressRanges = [];
 
         for (int index = 0; index < ranges.Count; index++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             unseenIpAddressRanges.Add([new(ranges[index].Begin, ranges[index].End)]);
         }
 
-        foreach (ComplianceNetworkZone zone in activeNetworkZones.Where(zone => zone.OverlapExists(ranges, unseenIpAddressRanges)))
+        foreach (ComplianceNetworkZone zone in activeNetworkZones)
         {
-            result.Add(zone);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (zone.OverlapExists(ranges, unseenIpAddressRanges))
+            {
+                result.Add(zone);
+            }
         }
 
-        List<IPAddressRange> undefinedIpRanges = [.. unseenIpAddressRanges.SelectMany(rangeSet => rangeSet)];
+        List<IPAddressRange> undefinedIpRanges = [];
+        foreach (List<IPAddressRange> rangeSet in unseenIpAddressRanges)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            undefinedIpRanges.AddRange(rangeSet);
+        }
 
         // Both the auto-calculated and the fallback internet zone describe IPv4 only, so an unmatched range of
         // any other address family stays unassigned instead of being reported against a zone it never belonged to.
-        unassignableRanges = [.. undefinedIpRanges.Where(range => range.Begin.AddressFamily != AddressFamily.InterNetwork)];
+        unassignableRanges = [];
+        foreach (IPAddressRange range in undefinedIpRanges)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (range.Begin.AddressFamily != AddressFamily.InterNetwork)
+            {
+                unassignableRanges.Add(range);
+            }
+        }
 
         if (autoCalculatedInternetZoneActive)
         {

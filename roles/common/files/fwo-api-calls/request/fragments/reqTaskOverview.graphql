@@ -31,6 +31,7 @@ fragment reqTaskOverview on request_reqtask {
     state_id
     start
     stop
+    rule_position
   }
   request_approvals: approvals {
     id

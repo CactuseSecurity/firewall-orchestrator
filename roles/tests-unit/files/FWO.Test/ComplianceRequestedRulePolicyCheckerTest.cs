@@ -821,7 +821,9 @@ namespace FWO.Test
             public FlowGroupResolutionResult Result { get; set; } = new();
             public List<FlowGroupResolutionParameters> Requests { get; } = [];
 
-            public Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(FlowGroupResolutionParameters parameters)
+            public Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(
+                FlowGroupResolutionParameters parameters,
+                CancellationToken cancellationToken = default)
             {
                 Requests.Add(parameters);
                 return Task.FromResult(Result);

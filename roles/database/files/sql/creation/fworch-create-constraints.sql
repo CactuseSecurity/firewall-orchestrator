@@ -36,6 +36,8 @@ ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_end_is_host CHECK (is_
 ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_same_family CHECK (family(ip_start) = family(ip_end));
 ALTER TABLE request.reqelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 ALTER TABLE request.implelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_rule_position_object
+    CHECK (rule_position IS NULL OR jsonb_typeof(rule_position) = 'object');
 -- Alter Table "rule" add Constraint "rule_altkey" UNIQUE ("dev_id","rule_uid","rule_create",xlate_rule);
 Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule" UNIQUE ("mgm_id", "rule_uid","rule_create","xlate_rule");
 Alter table "rulebase" add CONSTRAINT rulebase_uid_mgm_id_removed_key UNIQUE ("mgm_id", "uid", "removed");

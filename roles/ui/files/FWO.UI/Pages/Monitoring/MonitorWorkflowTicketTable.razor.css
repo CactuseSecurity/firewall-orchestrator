@@ -1,0 +1,23 @@
+.cp-policy-table {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 1rem;
+    justify-content: space-between;
+}
+
+.cp-policy-table ::deep .fancy-tree-actions {
+    order: -1;
+    flex: 1 1 content;
+}
+
+.cp-policy-table ::deep .fancy-table-topbar {
+    flex: 1 1 auto;
+    margin-bottom: 0;
+}
+
+.cp-policy-table ::deep .fancy-table-loading-template,
+.cp-policy-table ::deep .tree-table-container,
+.cp-policy-table ::deep .fancy-pagination {
+    flex: 0 0 100%;
+}

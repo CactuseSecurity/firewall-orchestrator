@@ -7,21 +7,24 @@
 
 @* Tree table of the workflow monitoring: tickets as roots, their request tasks as children and the implementation tasks and approvals of each request task below. *@
 
-
-<FancyTreeTable TItem="WorkflowTreeRow"
-                @ref="treeTable"
-                ItemsProvider="LoadRowsAsync"
-                Columns="columns"
-                ChildItemsSelector="row => row.Children"
-                HasChildrenSelector="row => row.Children.Count > 0"
-                Texts="tableTexts"
-                ToolbarTemplate="kNoToolbar"
-                PaginationEnabled="true"
-                @bind-PageSize="pageSize"
-                ShowPageSizeSelector="true"
-                TreeActionsContainerClass="sticky-collapse"
-                TreeActionsTemplate="TreeActionsTemplate"
-                EnableColumnResizing="true" />
+<div class="cp-policy-table">
+    <FancyTreeTable TItem="WorkflowTreeRow"
+                    @ref="treeTable"
+                    ItemsProvider="LoadRowsAsync"
+                    Columns="columns"
+                    ChildItemsSelector="row => row.Children"
+                    HasChildrenSelector="row => row.Children.Count > 0"
+                    Texts="tableTexts"
+                    ToolbarTemplate="kNoToolbar"
+                    PaginationEnabled="true"
+                    @bind-PageSize="pageSize"
+                    ShowPageSizeSelector="true"
+                    TopBarClass="justify-content-end"
+                    ToolbarContainerClass="ms-0"
+                    TreeActionsContainerClass="sticky-collapse"
+                    TreeActionsTemplate="TreeActionsTemplate"
+                    EnableColumnResizing="true" />
+</div>
 
 
 @code

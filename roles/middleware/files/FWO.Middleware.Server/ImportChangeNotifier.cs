@@ -145,6 +145,8 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Sends the rule change notifications and the NAT rule change notifications for the imports found and marks the imports as notified.
         /// NAT rule change notifications are only sent if the NAT changes report contains changes (or could not be generated).
+        /// If the rule changes report is empty because the imports only contain NAT rule changes, the rule change notifications
+        /// carry the NAT changes report instead.
         /// </summary>
         /// <param name="cancellationToken">Stops before the first notification is sent; imports then remain unnotified.</param>
         private async Task NotifyImportChanges(CancellationToken cancellationToken)
@@ -163,14 +165,22 @@ namespace FWO.Middleware.Server
             {
                 changeReport = await GenerateChangeReport(ReportType.Changes, cancellationToken);
             }
-            if (natChangeNotificationService.Notifications.Count > 0)
+            bool onlyNatChangesPossible = changeReport != null && !HasAnyChanges(changeReport);
+            if (natChangeNotificationService.Notifications.Count > 0 || onlyNatChangesPossible)
             {
-                // the NAT changes report is always needed to decide whether there are any NAT rule changes to notify about
+                // the NAT changes report is needed to decide whether there are any NAT rule changes to notify about
                 natChangeReport = await GenerateChangeReport(ReportType.NatChanges, cancellationToken);
             }
             // last checkpoint: once the first notification is sent, all of them are sent and the imports marked as notified
             cancellationToken.ThrowIfCancellationRequested();
-            await SendNotifications(ruleChangeNotificationService, CreateBody(), changeReport);
+            if (natChangeReport != null && UseNatChangesReportForRuleChanges(changeReport, natChangeReport))
+            {
+                await SendNotifications(ruleChangeNotificationService, CreateNatChangesBody(natChangeReport), natChangeReport);
+            }
+            else
+            {
+                await SendNotifications(ruleChangeNotificationService, CreateBody(), changeReport);
+            }
             if (HasNatChangesToNotify(natChangeReport))
             {
                 string natBody = natChangeReport != null ? CreateNatChangesBody(natChangeReport) : CreateBody();
@@ -188,6 +198,31 @@ namespace FWO.Middleware.Server
         private static bool HasNatChangesToNotify(ReportBase? natReport)
         {
             return natReport == null || !natReport.NoChangesFound();
+        }
+
+        /// <summary>
+        /// An empty rule changes report is replaced by the NAT changes report if the imports only contain NAT rule changes.
+        /// </summary>
+        /// <param name="changeReport">Generated rule changes report or null if it was not needed or its generation failed.</param>
+        /// <param name="natReport">Generated NAT changes report or null if it was not needed or its generation failed.</param>
+        /// <returns>True if the rule change notifications have to carry the NAT changes report.</returns>
+        private static bool UseNatChangesReportForRuleChanges(ReportBase? changeReport, ReportBase? natReport)
+        {
+            return changeReport != null && !HasAnyChanges(changeReport) && natReport != null && HasAnyChanges(natReport);
+        }
+
+        /// <summary>
+        /// Checks whether a change report contains any rule, object, service or user changes.
+        /// </summary>
+        /// <param name="report">Generated change report.</param>
+        /// <returns>True if the report contains at least one change.</returns>
+        private static bool HasAnyChanges(ReportBase report)
+        {
+            return report.ReportData.ManagementData.Any(management =>
+                (management.RuleChanges?.Length ?? 0) > 0 ||
+                (management.ObjectChanges?.Length ?? 0) > 0 ||
+                (management.ServiceChanges?.Length ?? 0) > 0 ||
+                (management.UserChanges?.Length ?? 0) > 0);
         }
 
         private static async Task SendNotifications(NotificationService notificationService, string body, ReportBase? report)

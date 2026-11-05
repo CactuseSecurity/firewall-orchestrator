@@ -312,6 +312,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public void UseNatChangesReportForRuleChanges_OnlyWhenImportsContainNothingButNatRuleChanges()
+        {
+            ReportChanges emptyRuleChanges = CreateNatChangesReport(new ManagementReport { Id = 1, RuleChanges = [] });
+            ReportChanges ruleChanges = CreateNatChangesReport(new ManagementReport { Id = 1, RuleChanges = [new RuleChange()] });
+            ReportChanges objectChangesOnly = CreateNatChangesReport(new ManagementReport { Id = 1, RuleChanges = [], ObjectChanges = [new ObjectChange()] });
+            ReportChanges natChanges = CreateNatChangesReport(new ManagementReport { Id = 1, RuleChanges = [new RuleChange()] });
+            ReportChanges emptyNatChanges = CreateNatChangesReport(new ManagementReport { Id = 1, RuleChanges = [] });
+            object?[] noChangeReport = [null, natChanges];
+            object?[] noNatReport = [emptyRuleChanges, null];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivateStatic<bool>("UseNatChangesReportForRuleChanges", emptyRuleChanges, natChanges), Is.True);
+                Assert.That(InvokePrivateStatic<bool>("UseNatChangesReportForRuleChanges", ruleChanges, natChanges), Is.False);
+                Assert.That(InvokePrivateStatic<bool>("UseNatChangesReportForRuleChanges", objectChangesOnly, natChanges), Is.False, "object changes keep the rule changes report");
+                Assert.That(InvokePrivateStatic<bool>("UseNatChangesReportForRuleChanges", emptyRuleChanges, emptyNatChanges), Is.False);
+                Assert.That(InvokePrivateStatic<bool>("UseNatChangesReportForRuleChanges", noChangeReport), Is.False, "simple text notifications or failed generation");
+                Assert.That(InvokePrivateStatic<bool>("UseNatChangesReportForRuleChanges", noNatReport), Is.False);
+            });
+        }
+
+        [Test]
         public async Task Run_LoadsNatChangeNotificationsSeparately()
         {
             ImportChangeNotifierTestApiConn apiConnection = new()

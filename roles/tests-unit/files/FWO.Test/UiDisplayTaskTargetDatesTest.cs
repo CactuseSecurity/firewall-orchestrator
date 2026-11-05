@@ -286,6 +286,33 @@ namespace FWO.Test
             Assert.That(component.Markup, Does.Not.Contain("01.09.2026"));
         }
 
+        [Test]
+        public async Task DisplayTaskTargetDates_DatePrecisionKeepsMidnightStartAndAdjustsExclusiveMidnightEnd()
+        {
+            await using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new UiRequestWorkflowTest.RequestWorkflowUserConfig
+            {
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    SelectObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    SelectServices = FlowIntegrationObjectSelectionOptions.Both,
+                    SelectTimeObjects = FlowIntegrationObjectSelectionOptions.Both,
+                    TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Date
+                }.ToConfigValue()
+            });
+
+            IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
+                .Add(p => p.TargetBeginDate, new DateTime(2026, 9, 1, 0, 0, 0))
+                .Add(p => p.TargetEndDate, new DateTime(2026, 9, 1, 0, 0, 0)));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("01.09.2026"));
+                Assert.That(component.Markup, Does.Contain("31.08.2026"));
+            });
+        }
+
         [TestCase(FlowIntegrationTimePrecisionOptions.Hours, "2026-09-01")]
         [TestCase(FlowIntegrationTimePrecisionOptions.Minutes, "2026-09-01")]
         [TestCase(FlowIntegrationTimePrecisionOptions.Seconds, "2026-09-01")]

@@ -13,6 +13,7 @@ using FWO.Services;
 using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers
@@ -58,6 +59,8 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>true if the workflow action execution was handled</returns>
         [HttpPost("Actions")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}")]
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
         public async Task<WorkflowActionResult> ExecuteActions([FromBody] WorkflowActionParameters parameters)
         {
             WorkflowActionResult result = new();

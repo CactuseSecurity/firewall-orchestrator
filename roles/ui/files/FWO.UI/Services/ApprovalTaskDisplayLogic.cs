@@ -447,11 +447,25 @@ namespace FWO.Ui.Services
             List<WfReqElement> members = [.. groupTasks
                 .SelectMany(task => task.Elements)
                 .Where(member => member.Field == memberField)
+                .Where(member => displayMode != ApprovalTaskElementDisplayMode.Resolved || !IsRemovedMember(member))
                 .Where(member => !string.Equals(member.Name, groupName, StringComparison.OrdinalIgnoreCase)
                     || member.IpString != null || member.Port.HasValue || member.ProtoId.HasValue)];
 
-            return members.Count > 0 ? members : [element];
+            if (members.Count > 0)
+            {
+                return members;
+            }
+
+            if (displayMode == ApprovalTaskElementDisplayMode.Resolved && groupTasks.Count > 0)
+            {
+                return [];
+            }
+
+            return [element];
         }
+
+        private static bool IsRemovedMember(WfReqElement element) =>
+            string.Equals(element.RequestAction, RequestAction.delete.ToString(), StringComparison.OrdinalIgnoreCase);
 
         private static bool MatchesTicketGroup(WfReqTask task, WfReqElement element, string groupName, string memberField)
         {

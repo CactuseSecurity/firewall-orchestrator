@@ -229,6 +229,59 @@ internal class UiApprovalTaskDisplayLogicTest
     }
 
     [Test]
+    public void RuleElementValues_ResolvedGroupViewOmitsMembersMarkedForDeletion()
+    {
+        WfReqTask groupTask = new()
+        {
+            Id = 122,
+            TaskType = WfTaskType.group_modify.ToString(),
+            Elements =
+            [
+                new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    GroupName = "web-group",
+                    Name = "old-web-1",
+                    IpString = "192.0.2.52",
+                    RequestAction = RequestAction.delete.ToString()
+                },
+                new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    GroupName = "web-group",
+                    Name = "new-web-1",
+                    IpString = "192.0.2.53",
+                    RequestAction = RequestAction.create.ToString()
+                }
+            ]
+        };
+        groupTask.SetAddInfo(AdditionalInfoKeys.GrpName, "web-group");
+        WfReqTask accessTask = new()
+        {
+            Id = 123,
+            TaskType = WfTaskType.access.ToString(),
+            Elements = [new WfReqElement
+            {
+                Field = ElemFieldType.source.ToString(),
+                GroupName = "web-group",
+                Name = "web-group",
+                ObjectTaskId = groupTask.Id
+            }]
+        };
+        WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [groupTask, accessTask] } };
+
+        List<string> resolved = GetValues(handler, accessTask, ApprovalTaskElementDisplayMode.Resolved);
+        List<string> unresolved = GetValues(handler, accessTask, ApprovalTaskElementDisplayMode.UnresolvedGroups);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resolved, Is.EqualTo(new List<string> { "new-web-1 (192.0.2.53)" }));
+            Assert.That(resolved, Does.Not.Contain("old-web-1 (192.0.2.52)"));
+            Assert.That(unresolved, Does.Contain("web-group"));
+        });
+    }
+
+    [Test]
     public void RuleElementValues_ResolvesServicesAndTechnicalFallbacks()
     {
         WfReqTask task = new()

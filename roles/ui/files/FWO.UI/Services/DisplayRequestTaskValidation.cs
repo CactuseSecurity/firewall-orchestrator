@@ -41,10 +41,7 @@ public partial class DisplayRequestTask
 
     private bool RejectInvalidAccessTask()
     {
-        WfReqElement? timeElement = TimeObjectElementHelper.Find(WfHandler.ActReqTask.Elements);
-        bool hasTimeObjectReference = timeElement?.ObjectTaskId is > 0
-            || (TimeObjectElementHelper.GetSelectorId(timeElement) is long timeObjectId && timeObjectId != 0);
-        if (!hasTimeObjectReference || elementEditor is null || elementEditor.SourceCount == 0
+        if (elementEditor is null || elementEditor.SourceCount == 0
             || elementEditor.DestinationCount == 0 || elementEditor.ServiceCount == 0
             || (metadataEditor?.NeedsManualDeviceSelection == true && !selectedDevices.Any()))
         {

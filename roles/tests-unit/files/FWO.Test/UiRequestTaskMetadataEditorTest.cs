@@ -68,6 +68,31 @@ internal class UiRequestTaskMetadataEditorTest
     }
 
     [Test]
+    public void DateOnlyValidityIsEditableOnlyWithoutTimeObjectReference()
+    {
+        WfReqTask accessTask = new() { Id = 20, TaskType = WfTaskType.access.ToString() };
+        WfTicket ticket = new() { Tasks = [accessTask] };
+        RequestTaskMetadataEditor component = CreateComponent(
+            new WfHandler { ActReqTask = accessTask, ActTicket = ticket },
+            new SimulatedUserConfig());
+        SetMember(component, nameof(RequestTaskMetadataEditor.CanEditField), (Func<string, bool>)(_ => true));
+
+        bool dateOnlyEditable = (bool)InvokePrivate(component, "CanEditDateOnly", WorkflowEditableFieldKeys.ValidTo)!;
+        accessTask.Elements.Add(new WfReqElement
+        {
+            Field = ElemFieldType.time.ToString(),
+            FlowTimeObjectId = 42
+        });
+        bool referencedObjectEditable = (bool)InvokePrivate(component, "CanEditDateOnly", WorkflowEditableFieldKeys.ValidTo)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(dateOnlyEditable, Is.True);
+            Assert.That(referencedObjectEditable, Is.False);
+        });
+    }
+
+    [Test]
     public void SetDeviceAndSetDevices_HandleAllAndConcreteSelections()
     {
         Device gatewayOne = new() { Id = 1, Name = "gw-1" };

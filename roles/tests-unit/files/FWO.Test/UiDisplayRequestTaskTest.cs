@@ -1535,6 +1535,37 @@ namespace FWO.Test
             Assert.That(isValid, Is.True);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void DisplayRequestTask_DateOnlyAccessTaskIsAcceptedInCreateAndEditMode(bool editMode)
+        {
+            WfReqTask task = new()
+            {
+                TaskType = WfTaskType.access.ToString(),
+                TargetBeginDate = new DateTime(2026, 8, 1),
+                TargetEndDate = new DateTime(2026, 8, 31)
+            };
+            DisplayRequestTask component = new();
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                AddReqTaskMode = !editMode,
+                EditReqTaskMode = editMode,
+                ActReqTask = task
+            });
+            SetMember(component, "userConfig", new RequestWorkflowUserConfig
+            {
+                ReqDeviceInput = ReqDeviceInputOptions.never
+            });
+            SetMember(component, "actTaskType", WfTaskType.access);
+            SetRequestTaskElementMember(component, "actSources", new List<NwObjectElement> { new("10.0.0.1", 1) });
+            SetRequestTaskElementMember(component, "actDestinations", new List<NwObjectElement> { new("10.0.1.1", 1) });
+            SetRequestTaskElementMember(component, "actServices", new List<NwServiceElement> { new() { ProtoId = 50 } });
+
+            bool isValid = UiRequestCoverageTest.InvokePrivateBool(component, "RejectInvalidAccessTask");
+
+            Assert.That(isValid, Is.True);
+        }
+
         [Test]
         public void DisplayRequestTask_AcceptsPortlessProtocolWithoutPort()
         {

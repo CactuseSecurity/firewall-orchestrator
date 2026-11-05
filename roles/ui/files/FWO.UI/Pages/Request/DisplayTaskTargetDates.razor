@@ -22,7 +22,7 @@
                         }
                         else
                         {
-                            <label class="col-sm-12 h-100 border bg-secondary">@FormatDateTimeDisplay(TargetBeginDate)</label>
+                            <label class="col-sm-12 h-100 border bg-secondary">@FormatDateTimeDisplay(TargetBeginDate, isEndDate: false)</label>
                         }
                     </div>
                 </div>
@@ -44,7 +44,7 @@
                         }
                         else
                         {
-                            <label class="col-sm-12 h-100 border bg-secondary">@FormatDateTimeDisplay(TargetEndDate)</label>
+                            <label class="col-sm-12 h-100 border bg-secondary">@FormatDateTimeDisplay(TargetEndDate, isEndDate: true)</label>
                         }
                     </div>
                 </div>
@@ -192,7 +192,7 @@
         await TargetDatesValidChanged.InvokeAsync(targetBeginDateValid && EndDateInputValid);
     }
 
-    private string FormatDateTimeDisplay(DateTime? dateTime)
+    private string FormatDateTimeDisplay(DateTime? dateTime, bool isEndDate)
     {
         if (!dateTime.HasValue)
         {
@@ -200,7 +200,7 @@
         }
         try
         {
-            return TimeObjectDisplayHelper.FormatValue(dateTime, ActiveTimeObjectPrecision, isEndDate: true, dateFormat: "dd.MM.yyyy");
+            return TimeObjectDisplayHelper.FormatValue(dateTime, ActiveTimeObjectPrecision, isEndDate, dateFormat: "dd.MM.yyyy");
         }
         catch (Exception exception)
         {

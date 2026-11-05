@@ -128,8 +128,8 @@
                         TargetBeginDateChanged="OnTargetBeginDateChanged"
                         TargetEndDate="EffectiveTimeObjectEndDate"
                         TargetEndDateChanged="OnTargetEndDateChanged"
-                        CanEditTargetBeginDate="false"
-                        CanEditTargetEndDate="false"
+                        CanEditTargetBeginDate="CanEditDateOnly(WorkflowEditableFieldKeys.ValidFrom)"
+                        CanEditTargetEndDate="CanEditDateOnly(WorkflowEditableFieldKeys.ValidTo)"
                         TargetDatesValidChanged="TargetDatesValidChanged"
                         ShowTargetBeginDate="ShowField(WorkflowEditableFieldKeys.ValidFrom)"
                         ShowTargetEndDate="ShowField(WorkflowEditableFieldKeys.ValidTo)" />
@@ -310,6 +310,7 @@
     }
     private string SelectedFlowTimeObjectDisplayName => SelectedFlowTimeObjectName;
     private FlowIntegrationConfig FlowIntegration => FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration);
+    private bool CanEditDateOnly(string fieldKey) => EffectiveTimeObjectElement == null && CanEditField(fieldKey);
     private IReadOnlyList<FlowTimeObject> TicketTimeObjects => [.. TimeObjectReferenceResolver.GetTicketTimeElements(WfHandler.ActTicket.Tasks)
         .Select(element => new FlowTimeObject
         {

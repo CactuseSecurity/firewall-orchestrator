@@ -108,7 +108,8 @@
     private static readonly RenderFragment kNoToolbar = _ => { };
 
     // Sorting and filtering run on the server, so a column offers them only where WorkflowTicketQueryBuilder supports them.
-    // Text filters are not offered: a "contains" match over all levels cannot use an index and is too slow on many tickets.
+    // Text filters are only offered for the requester, which is a single lookup per ticket: a "contains" match over all
+    // levels cannot use an index and is too slow on many tickets.
     private static readonly ColumnBehavior kServerColumn = new(Hideable: true, Resizable: true, Sortable: true, Filterable: true);
     private static readonly ColumnBehavior kSortOnlyColumn = kServerColumn with { Filterable = false };
     private static readonly ColumnBehavior kFilterOnlyColumn = kServerColumn with { Sortable = false };
@@ -194,13 +195,13 @@
                 Filterable = kDisplayColumn.Filterable,
                 CellTemplate = ActionsCellTemplate
             },
-            CreateColumn("type", userConfig.GetText("type"), row => GetKindText(row.Kind), kDisplayColumn),
             CreateColumn("id", userConfig.GetText("id"), row => row.Id.ToString(), kServerColumn, row => row.Id),
-            CreateColumn("task_number", userConfig.GetText("task_number"), row => row.TaskNumber?.ToString() ?? "", kFilterOnlyColumn, row => row.TaskNumber),
+            CreateColumn("type", userConfig.GetText("type"), row => GetKindText(row.Kind), kDisplayColumn),            
+            // CreateColumn("task_number", userConfig.GetText("task_number"), row => row.TaskNumber?.ToString() ?? "", kFilterOnlyColumn, row => row.TaskNumber),
             CreateColumn("name", userConfig.GetText("name"), row => row.Name, kSortOnlyColumn),
             CreateColumn("tasks", userConfig.GetText("tasks"), row => row.TaskCount?.ToString() ?? "", kDisplayColumn, row => row.TaskCount),
-            CreateColumn("requester", userConfig.GetText("requester"), row => row.Requester, kDisplayColumn),
-            CreateColumn("flow_bundle_id", userConfig.GetText("flow_bundle_id"), row => row.FlowBundleId, kDisplayColumn),
+            CreateColumn("requester", userConfig.GetText("requester"), row => row.Requester, kFilterOnlyColumn),
+            // CreateColumn("flow_bundle_id", userConfig.GetText("flow_bundle_id"), row => row.FlowBundleId, kDisplayColumn),
             CreateColumn("state", userConfig.GetText("state"), row => ResolveStateName(row.StateId), kServerColumn, cellTemplate: StateCellTemplate),
             CreateColumn("start_time", userConfig.GetText("start_time"), row => row.Start?.ToString() ?? "", kSortOnlyColumn, row => row.Start),
             CreateColumn("end_time", userConfig.GetText("end_time"), row => row.End?.ToString() ?? "", kSortOnlyColumn, row => row.End)

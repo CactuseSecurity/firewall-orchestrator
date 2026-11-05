@@ -11,8 +11,9 @@ namespace FWO.Ui.Services
     /// <summary>
     /// Translates the state of the workflow monitoring tree table (column filters, sort, page) and the
     /// page's task type and state dropdowns into the variables of the paged ticket query.
-    /// Only the state, id and task number columns can be filtered: they compare ids, so the database can answer them
-    /// quickly. Free text search and text filters are not offered, as a "contains" match over all levels is too slow
+    /// The state, id and task number columns compare ids, so the database can answer them quickly. The requester column
+    /// compares the user name of the ticket's requester only, a lookup by primary key in the small user table.
+    /// Free text search and other text filters are not offered, as a "contains" match over all levels is too slow
     /// on many tickets. A filter matches if any level of a ticket (ticket, request task, implementation task, approval)
     /// matches; negated operators mean that no level matches.
     /// </summary>
@@ -23,6 +24,7 @@ namespace FWO.Ui.Services
         private const string kNot = "_not";
         private const string kIn = "_in";
         private const string kEq = "_eq";
+        private const string kIlike = "_ilike";
         private const string kReqTasks = "reqtasks";
         private const string kImplTasks = "impltasks";
         private const string kApprovals = "approvals";
@@ -32,6 +34,7 @@ namespace FWO.Ui.Services
         private const string kTaskNumber = "task_number";
         private const string kAscending = "asc";
         private const string kDescending = "desc";
+        private const string kWildcard = "%";
 
         private static readonly Dictionary<string, object> kNoMatchCondition = new() { ["id"] = new Dictionary<string, object> { ["_is_null"] = true } };
         private static readonly Dictionary<string, object> kMatchAllCondition = [];
@@ -102,6 +105,7 @@ namespace FWO.Ui.Services
                 "state" => StateCondition(MatchingStateIds(positiveOperator, value, stateNames)),
                 "id" => NumberCondition(positiveOperator, value, IdCondition),
                 "task_number" => NumberCondition(positiveOperator, value, TaskNumberCondition),
+                "requester" => RequesterCondition(TextComparison(positiveOperator, value)),
                 _ => null
             };
 
@@ -121,6 +125,30 @@ namespace FWO.Ui.Services
                 FancyColumnFilterOperator.NotContains => FancyColumnFilterOperator.Contains,
                 FancyColumnFilterOperator.IsEmpty => FancyColumnFilterOperator.IsNotEmpty,
                 _ => filterOperator
+            };
+        }
+
+        /// <summary>
+        /// Escapes the LIKE wildcards and the escape character itself, so user input matches literally.
+        /// </summary>
+        public static string EscapeLikePattern(string value)
+        {
+            return value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+        }
+
+        /// <summary>
+        /// Case-insensitive text comparison for the operators of a text column filter.
+        /// </summary>
+        private static Dictionary<string, object> TextComparison(FancyColumnFilterOperator positiveOperator, string value)
+        {
+            string escaped = EscapeLikePattern(value);
+            return positiveOperator switch
+            {
+                FancyColumnFilterOperator.Equals => Comparison(kIlike, escaped),
+                FancyColumnFilterOperator.StartsWith => Comparison(kIlike, escaped + kWildcard),
+                FancyColumnFilterOperator.EndsWith => Comparison(kIlike, kWildcard + escaped),
+                FancyColumnFilterOperator.IsNotEmpty => new Dictionary<string, object> { ["_is_null"] = false, ["_neq"] = "" },
+                _ => Comparison(kIlike, kWildcard + escaped + kWildcard)
             };
         }
 
@@ -186,6 +214,14 @@ namespace FWO.Ui.Services
                 Nested(kReqTasks, Nested(kApprovals, idEquals))
             ];
             return new Dictionary<string, object> { [kOr] = alternatives };
+        }
+
+        /// <summary>
+        /// The requester exists only on the ticket, so the filter compares the user name of the ticket's requester.
+        /// </summary>
+        private static Dictionary<string, object> RequesterCondition(Dictionary<string, object> comparison)
+        {
+            return Nested("uiuser", Field("uiuser_username", comparison));
         }
 
         private static Dictionary<string, object> TaskNumberCondition(long taskNumber)

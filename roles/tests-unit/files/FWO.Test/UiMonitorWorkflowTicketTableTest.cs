@@ -106,7 +106,7 @@ namespace FWO.Test
         [TestCase("id", true, true)]
         [TestCase("name", true, false)]
         [TestCase("state", true, true)]
-        [TestCase("requester", false, false)]
+        [TestCase("requester", false, true)]
         [TestCase("start_time", true, false)]
         [TestCase("task_number", false, true)]
         [TestCase("flow_bundle_id", false, false)]

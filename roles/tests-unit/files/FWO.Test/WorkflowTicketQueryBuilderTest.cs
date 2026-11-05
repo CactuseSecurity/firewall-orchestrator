@@ -162,9 +162,38 @@ namespace FWO.Test
             Assert.That(condition, Is.EqualTo(Normalize("""{"_or":[{"reqtasks":{"task_number":{"_eq":2}}},{"reqtasks":{"impltasks":{"task_number":{"_eq":2}}}}]}""")));
         }
 
+        [TestCase(FancyColumnFilterOperator.Contains, """{"_ilike":"%ali%"}""")]
+        [TestCase(FancyColumnFilterOperator.Equals, """{"_ilike":"ali"}""")]
+        [TestCase(FancyColumnFilterOperator.StartsWith, """{"_ilike":"ali%"}""")]
+        [TestCase(FancyColumnFilterOperator.EndsWith, """{"_ilike":"%ali"}""")]
+        [TestCase(FancyColumnFilterOperator.IsNotEmpty, """{"_is_null":false,"_neq":""}""")]
+        public void RequesterFilter_PositiveOperator_ComparesUserName(FancyColumnFilterOperator filterOperator, string comparison)
+        {
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("requester", filterOperator, " ali "))));
+
+            Assert.That(condition, Is.EqualTo(Normalize($$$"""{"uiuser":{"uiuser_username":{{{comparison}}}}}""")));
+        }
+
+        [TestCase(FancyColumnFilterOperator.NotContains, """{"_ilike":"%ali%"}""")]
+        [TestCase(FancyColumnFilterOperator.NotEquals, """{"_ilike":"ali"}""")]
+        [TestCase(FancyColumnFilterOperator.IsEmpty, """{"_is_null":false,"_neq":""}""")]
+        public void RequesterFilter_NegatedOperator_NegatesCondition(FancyColumnFilterOperator filterOperator, string comparison)
+        {
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("requester", filterOperator, "ali"))));
+
+            Assert.That(condition, Is.EqualTo(Negated($$$"""{"uiuser":{"uiuser_username":{{{comparison}}}}}""")));
+        }
+
+        [Test]
+        public void RequesterFilter_EscapesLikeWildcards()
+        {
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("requester", FancyColumnFilterOperator.Contains, @"50%_a\b"))));
+
+            Assert.That(condition, Is.EqualTo(Normalize("""{"uiuser":{"uiuser_username":{"_ilike":"%50\\%\\_a\\\\b%"}}}""")));
+        }
+
         [TestCase("type")]
         [TestCase("name")]
-        [TestCase("requester")]
         [TestCase("flow_bundle_id")]
         public void Filter_TextOrUnknownColumn_AddsNoCondition(string columnKey)
         {

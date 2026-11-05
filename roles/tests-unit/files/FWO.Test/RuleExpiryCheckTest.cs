@@ -12,8 +12,10 @@ namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal class RuleExpiryCheckTest
+    internal partial class RuleExpiryCheckTest
     {
+        private const int kRegexTimeoutMilliseconds = 1000;
+
         /// <summary>
         /// Ensures the expiry query loads the owner data needed for recipient resolution.
         /// </summary>
@@ -31,7 +33,7 @@ namespace FWO.Test
         public void GetTimeBasedRulesByOwner_ExcludesDisabledRules()
         {
             string query = RuleQueries.getTimeBasedRulesByOwner;
-            Match ruleFilterStart = Regex.Match(query, @"\brule\s*:\s*\{");
+            Match ruleFilterStart = RuleFilterStartRegex().Match(query);
             Assert.That(ruleFilterStart.Success, Is.True, "Could not find the rule filter in the query.");
 
             string ruleOwnerFilterPart = query[..ruleFilterStart.Index];
@@ -587,6 +589,9 @@ namespace FWO.Test
                 EmailPort = 1
             };
         }
+
+        [GeneratedRegex(@"\brule\s*:\s*\{", RegexOptions.None, kRegexTimeoutMilliseconds)]
+        private static partial Regex RuleFilterStartRegex();
 
         /// <summary>
         /// Returns the brace-balanced block starting at the given opening brace.

@@ -46,6 +46,9 @@ internal class CheckPointRulePositioningStrategyTest
     private const ProvisioningPositioningAlgorithm kAlgorithm =
         ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection;
     private const string kSentinel = "strategy-secret-sentinel";
+    private static readonly List<PositioningZoneReference> kNoZoneReferences = [];
+    private static readonly List<PositioningZoneReference> kSourceZoneReferences =
+        [new PositioningZoneReference(1, "source", "Source", false, false, PositioningZoneKind.Persisted)];
 
     [Test]
     public void CanHandle_UsesExactDeviceTypeAndCatalogCapability()
@@ -236,8 +239,8 @@ internal class CheckPointRulePositioningStrategyTest
         StrategyFixture fixture = new();
         fixture.ZoneInput = new CreationRuleZoneInput(
             kCriterionId,
-            [new PositioningZoneReference(1, "source", "Source", false, false, PositioningZoneKind.Persisted)],
-            [],
+            kSourceZoneReferences,
+            kNoZoneReferences,
             ZoneCoverage.Complete,
             ZoneCoverage.None);
         RulePositioningContext context = ValidContext();

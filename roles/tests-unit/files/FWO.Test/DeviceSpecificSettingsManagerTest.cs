@@ -21,6 +21,9 @@ internal class DeviceSpecificSettingsManagerTest
     private static readonly List<DeviceSpecificScopeType> kExpectedLevelOrder =
         [DeviceSpecificScopeType.Global, DeviceSpecificScopeType.DeviceType, DeviceSpecificScopeType.Management,
             DeviceSpecificScopeType.Gateway, DeviceSpecificScopeType.Gateway];
+    private static readonly List<DeviceSpecificScopeType> kLayerGuardAllowedScopes =
+        [DeviceSpecificScopeType.Global, DeviceSpecificScopeType.DeviceType, DeviceSpecificScopeType.Management,
+            DeviceSpecificScopeType.Gateway];
     private static readonly List<DeviceSpecificScopePath> kNoPaths = [];
     private static readonly DeviceType kFortiGateType = new() { Id = 10, Name = "FortiGate", Version = "5ff", Manufacturer = "Fortinet" };
     private static readonly DeviceType kFortiAdomType = new() { Id = 11, Name = "FortiADOM", Version = "5ff", Manufacturer = "Fortinet" };
@@ -91,13 +94,7 @@ internal class DeviceSpecificSettingsManagerTest
             Assert.That(gateway.Settings.CheckPointLayerGuardSectionNameTemplate, Is.EqualTo("gateway"));
             Assert.That(gateway.ValueSources[DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate].Scope?.NodeId, Is.EqualTo(4));
             Assert.That(DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.AllowedScopes,
-                Is.EquivalentTo(new[]
-                {
-                    DeviceSpecificScopeType.Global,
-                    DeviceSpecificScopeType.DeviceType,
-                    DeviceSpecificScopeType.Management,
-                    DeviceSpecificScopeType.Gateway
-                }));
+                Is.EquivalentTo(kLayerGuardAllowedScopes));
         }
     }
 

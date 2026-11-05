@@ -14,6 +14,7 @@ namespace FWO.Test;
 internal class DeviceSpecificSettingsDataTest
 {
     private static readonly List<string> kBoolOptionValues = [bool.TrueString, bool.FalseString];
+    private static readonly List<string> kLayerGuardTextKeys = ["dss_cp_layer_guard_section_name_template", "E5302", "H5199y"];
     private static readonly string[] ExpectedDeviceTypeNames = ["Check Point R8x", "FortiADOM 5ff"];
     private static readonly string[] ExpectedDeviceTypeKeys = ["9", "11"];
     private static readonly string[] ExpectedManagementNames = ["cp-mgr"];
@@ -315,7 +316,7 @@ internal class DeviceSpecificSettingsDataTest
         string help = File.ReadAllText(LocateRepositoryFile(
             "roles", "ui", "files", "FWO.UI", "Pages", "Help", "HelpSettingsDeviceSpecific.cshtml"));
 
-        foreach (string key in new[] { "dss_cp_layer_guard_section_name_template", "H5199y" })
+        foreach (string key in kLayerGuardTextKeys)
         {
             Assert.That(texts, Does.Match($@"\('{key}',\s*'German'"), key);
             Assert.That(texts, Does.Match($@"\('{key}',\s*'English'"), key);
@@ -378,7 +379,7 @@ internal class DeviceSpecificSettingsDataTest
         DirectoryInfo? directory = new(AppContext.BaseDirectory);
         while (directory != null)
         {
-            FileInfo candidate = new(Path.Combine([directory.FullName, .. parts]));
+            FileInfo candidate = new(Path.Combine(directory.FullName, Path.Combine(parts)));
             if (candidate.Exists)
             {
                 return candidate.FullName;

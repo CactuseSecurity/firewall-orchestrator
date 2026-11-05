@@ -11,10 +11,10 @@
   - rules are ordered by rule collection group and rule collection priority
 - Azure gateway autodiscovery: Azure managements can now be autodiscovered (scheduled and manually); the Azure Firewalls of the subscription whose firewall policy lies in the configured resource group are proposed as gateways with the policy name as local rulebase; firewalls with classic rules are skipped
 - new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
+- request workflow: the Check Point LayerGuard section name is configurable at every device-specific-settings level with optional, repeatable source- and destination-zone placeholders; fixed names avoid zone-matrix resolution (#5626)
 
 ## 9.8.7 - 04.11.2026
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
-- request workflow: the Check Point LayerGuard section name is configurable at every device-specific-settings level with optional, repeatable source- and destination-zone placeholders; fixed names avoid zone-matrix resolution (#5626)
 - compliance: auto-calculated undefined-internal zones now cover complete IPv6 networks instead of only the first address of each remaining network
 - modelling and workflow: shared IP range parsing accepts dotted IPv4 netmasks such as `10.0.2.0/255.255.255.0` in addition to prefix lengths
 - middleware REST API: resolvePathDevices takes sources and destinations in the shared address format `ipHost`, `ipNetwork` or the two-entry `ipRange`, up to 500 entries each (#5587)

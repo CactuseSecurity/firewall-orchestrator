@@ -2,6 +2,7 @@ using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.ExternalSystems.FirewallWrite;
 using FWO.ExternalSystems.Tufin.SecureChange;
+using FWO.Services.RulePositioning.CheckPoint;
 using System.Globalization;
 
 namespace FWO.Ui.Pages.Settings
@@ -266,7 +267,7 @@ namespace FWO.Ui.Pages.Settings
                     (ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection, "dss_opt_cp_layer_guard_end_of_zone_pair_section"),
                     (ProvisioningPositioningAlgorithm.AllowCategoryEndOfAppSectionDistinguishCommonServices, "dss_opt_allow_category"))),
             TextField(DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "dss_cp_layer_guard_section_name_template",
-                s => s.CheckPointLayerGuardSectionNameTemplate),
+                s => s.CheckPointLayerGuardSectionNameTemplate, validate: ValidateCheckPointLayerGuardSectionNameTemplate),
             EnumField(DeviceSpecificSettingKeys.RuleLoggingOverride, "dss_logging", s => s.RuleLoggingOverride,
                 EnumOptions(
                     (ProvisioningLoggingMode.Log, "dss_opt_log"),
@@ -594,7 +595,8 @@ namespace FWO.Ui.Pages.Settings
             DeviceSpecificFieldKind kind = DeviceSpecificFieldKind.Text,
             DeviceSpecificScopeType minLevel = DeviceSpecificScopeType.Global,
             bool fortinetOnly = false,
-            DeviceSpecificScopeType maxLevel = DeviceSpecificScopeType.Gateway) => new()
+            DeviceSpecificScopeType maxLevel = DeviceSpecificScopeType.Gateway,
+            Func<string, string>? validate = null) => new()
             {
                 Key = key,
                 LabelTextKey = textKey,
@@ -604,8 +606,18 @@ namespace FWO.Ui.Pages.Settings
                 MaxLevel = maxLevel,
                 FortinetOnly = fortinetOnly,
                 Read = get,
-                SetOverride = (changes, value) => changes.Set(key, value)
+                SetOverride = (changes, value) => changes.Set(key, validate?.Invoke(value) ?? value)
             };
+
+        private static string ValidateCheckPointLayerGuardSectionNameTemplate(string value)
+        {
+            if (!CheckPointSectionNameTemplate.Parse(value).IsSuccess)
+            {
+                throw new ArgumentException("The Check Point LayerGuard section name template is invalid.",
+                    DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey);
+            }
+            return value;
+        }
 
         private static DeviceSpecificFieldDefinition BoolField(
             DeviceSpecificSettingKey<bool> key,

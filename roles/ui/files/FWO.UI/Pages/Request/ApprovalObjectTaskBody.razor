@@ -40,7 +40,12 @@
 
     private ApprovalTaskDisplayLogic DisplayLogic => Context.DisplayLogic;
     private AccessTaskFieldVisibilityConfig Visibility => Context.Visibility;
-    private bool IsModify => Task.TaskType == WfTaskType.object_modify.ToString();
+    // Object-modify tasks carry an unchanged element for the previous state.  Use
+    // that persisted shape as a fallback as well, so the approval overview uses
+    // the same comparison renderer as the object-task editor even when the task
+    // type was mapped differently by an API response.
+    private bool IsModify => Task.TaskType == WfTaskType.object_modify.ToString()
+        || WfObjectTaskHelper.GetOriginalElement(Task) != null;
     private string Handler => DisplayLogic.Handlers(TaskGroup);
     private string Assigned => DisplayLogic.AssignedGroups(TaskGroup);
     private string Management => DisplayLogic.ManagementIds(TaskGroup);

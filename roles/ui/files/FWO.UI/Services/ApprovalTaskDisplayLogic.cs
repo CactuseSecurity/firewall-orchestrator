@@ -108,6 +108,14 @@ namespace FWO.Ui.Services
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Distinct());
 
+        /// <summary>Returns distinct requesting-owner names stored on interface request tasks.</summary>
+        public string RequestingOwners(IEnumerable<WfReqTask> tasks) => string.Join(", ", tasks
+            .Select(task => task.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner))
+            .Where(id => id.HasValue)
+            .Select(id => wfHandler.AllOwners.FirstOrDefault(owner => owner.Id == id!.Value)?.Display(userConfig.GetText("common_service")))
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct());
+
         /// <summary>Returns distinct non-empty values selected from the tasks.</summary>
         public string DistinctValues(IEnumerable<WfReqTask> tasks, Func<WfReqTask, string?> selector) => string.Join("; ", tasks
             .Select(selector)
@@ -482,21 +490,11 @@ namespace FWO.Ui.Services
 
         private string FormatDate(DateTime date, bool isEndDate)
         {
-            if (FlowIntegration.TimeObjectPrecision == FlowIntegrationTimePrecisionOptions.Date)
-            {
-                if (isEndDate && date.TimeOfDay == TimeSpan.Zero)
-                {
-                    date = date.AddDays(-1);
-                }
-                return date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-            }
-
-            return FlowIntegration.TimeObjectPrecision switch
-            {
-                FlowIntegrationTimePrecisionOptions.Hours => date.ToString("yyyy-MM-dd H 'h'", System.Globalization.CultureInfo.InvariantCulture),
-                FlowIntegrationTimePrecisionOptions.Minutes => date.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture),
-                _ => date.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)
-            };
+            return TimeObjectDisplayHelper.FormatValue(
+                date,
+                FlowIntegration.TimeObjectPrecision,
+                isEndDate,
+                "dd.MM.yyyy");
         }
 
     }

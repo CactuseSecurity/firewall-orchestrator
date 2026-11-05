@@ -218,10 +218,10 @@ namespace FWO.Test
             });
         }
 
-        [TestCase(FlowIntegrationTimePrecisionOptions.Date, "2026-07-01", "2026-07-31", "08:15", "17:45")]
-        [TestCase(FlowIntegrationTimePrecisionOptions.Hours, "2026-07-01 8 h", "2026-07-31 17 h", "08:15", "17:45")]
-        [TestCase(FlowIntegrationTimePrecisionOptions.Minutes, "2026-07-01 08:15", "2026-07-31 17:45", "08:15:30", "17:45:15")]
-        [TestCase(FlowIntegrationTimePrecisionOptions.Seconds, "2026-07-01 08:15:30", "2026-07-31 17:45:15", null, null)]
+        [TestCase(FlowIntegrationTimePrecisionOptions.Date, "01.07.2026", "31.07.2026", "08:15", "17:45")]
+        [TestCase(FlowIntegrationTimePrecisionOptions.Hours, "01.07.2026 8 h", "31.07.2026 17 h", "08:15", "17:45")]
+        [TestCase(FlowIntegrationTimePrecisionOptions.Minutes, "01.07.2026 08:15", "31.07.2026 17:45", "08:15:30", "17:45:15")]
+        [TestCase(FlowIntegrationTimePrecisionOptions.Seconds, "01.07.2026 08:15:30", "31.07.2026 17:45:15", null, null)]
         public async Task DisplayTaskTargetDates_ReadOnlyDatesDisplayLabelsUseConfiguredPrecision(string precision, string expectedBegin, string expectedEnd, string? hiddenBeginPart, string? hiddenEndPart)
         {
             DateTime targetBeginDate = new(2026, 7, 1, 8, 15, 30);
@@ -282,8 +282,8 @@ namespace FWO.Test
             IRenderedComponent<DisplayTaskTargetDates> component = context.Render<DisplayTaskTargetDates>(parameters => parameters
                 .Add(p => p.TargetEndDate, new DateTime(2026, 9, 1, 0, 0, 0)));
 
-            Assert.That(component.Markup, Does.Contain("2026-08-31"));
-            Assert.That(component.Markup, Does.Not.Contain("2026-09-01"));
+            Assert.That(component.Markup, Does.Contain("31.08.2026"));
+            Assert.That(component.Markup, Does.Not.Contain("01.09.2026"));
         }
 
         [TestCase(FlowIntegrationTimePrecisionOptions.Hours, "2026-09-01")]

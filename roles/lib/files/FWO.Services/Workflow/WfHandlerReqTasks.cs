@@ -238,12 +238,17 @@ namespace FWO.Services.Workflow
                 ActReqTask.StateId = actPossibleStates[0];
                 if (Phase == WorkflowPhases.approval)
                 {
-                    await SetApprovalEnv();
-                    List<int> nextApprovalState = ActStateMatrix.getAllowedTransitions(ActApproval.StateId);
-                    if (nextApprovalState.Count == 1 && nextApprovalState[0] >= ActStateMatrix.LowestStartedState && nextApprovalState[0] < ActStateMatrix.LowestEndState)
+                    WfApproval? pendingApproval = ActReqTask.Approvals
+                        .FirstOrDefault(approval => approval.StateId < ActStateMatrix.LowestEndState);
+                    if (pendingApproval != null)
                     {
-                        ActApproval.StateId = nextApprovalState[0];
-                        await UpdateActApproval();
+                        await SetApprovalEnv(pendingApproval, false);
+                        List<int> nextApprovalState = ActStateMatrix.getAllowedTransitions(ActApproval.StateId);
+                        if (nextApprovalState.Count == 1 && nextApprovalState[0] >= ActStateMatrix.LowestStartedState && nextApprovalState[0] < ActStateMatrix.LowestEndState)
+                        {
+                            ActApproval.StateId = nextApprovalState[0];
+                            await UpdateActApproval();
+                        }
                     }
                 }
             }

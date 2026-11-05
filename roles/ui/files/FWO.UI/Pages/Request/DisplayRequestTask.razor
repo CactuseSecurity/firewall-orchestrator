@@ -93,6 +93,7 @@
                     CanEditField="CanEditReqTaskField" DisplayIpProtos="displayIpProtos"
                     SelectableIpProtos="selectableIpProtos" RuleDevice="actRuleDevice"
                     ManagementId="@(actManagement?.Id ?? WfHandler.ActReqTask.ManagementId)"
+                    ReadOnlyDisplay="@(!WfHandler.EditReqTaskMode && !WfHandler.ApproveReqTaskMode && !WfHandler.PlanReqTaskMode)"
                     DisplayTask="@(IsClassicApprovalEditMode || WfHandler.EditReqTaskMode || WfHandler.ApproveReqTaskMode ? null : GetBundledDisplayTask())" />
 
                 <hr />
@@ -136,7 +137,7 @@
                             @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
                     }
                     <ConfiguredTaskActions WfHandler="WfHandler" OfferedActions="offeredActions"
-                        AllowStateChangingActions="@(!WfHandler.ReadOnlyMode && WfHandler.CanPromoteTaskInCurrentPhase() && (WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode))"
+                        AllowStateChangingActions="@(!WfHandler.ReadOnlyMode && Phase != WorkflowPhases.request && (WfHandler.EditReqTaskMode || WfHandler.PlanReqTaskMode || WfHandler.ApproveReqTaskMode))"
                         Target="WfHandler.ActReqTask"
                         Scope="WfObjectScopes.RequestTask" Owner="@(metadataEditor?.CurrentOwner ?? actOwner)"
                         TicketId="WfHandler.ActReqTask.TicketId" AfterAction="AfterConfiguredAction"

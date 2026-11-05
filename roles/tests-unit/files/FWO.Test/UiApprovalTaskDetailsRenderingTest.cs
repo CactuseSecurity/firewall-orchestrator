@@ -99,8 +99,71 @@ internal class UiApprovalTaskDetailsRenderingTest : UiSharedEditorTestBase
             Assert.That(cut.Markup, Does.Contain("Modify server object"));
             Assert.That(cut.Markup, Does.Contain("server-new"));
             Assert.That(cut.Markup, Does.Contain("server-old"));
-            Assert.That(cut.Markup, Does.Contain("requested_state"));
+            Assert.That(cut.Markup, Does.Contain("change_name"));
             Assert.That(cut.FindAll("button.btn-secondary"), Has.Count.GreaterThanOrEqualTo(4));
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_RendersGenericTasksWithReasonAndFreeText()
+    {
+        await using BunitContext context = CreateContext();
+        WfReqTask genericTask = new()
+        {
+            Id = 36,
+            StateId = 2,
+            Title = "Generic task",
+            TaskType = WfTaskType.generic.ToString(),
+            Reason = "generic reason",
+            FreeText = "generic details"
+        };
+        WfHandler handler = new()
+        {
+            ActTicket = new WfTicket { Id = 354, Tasks = [genericTask] }
+        };
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, handler)
+            .Add(p => p.States, new WfStateDict { Name = { [2] = "Approval" } }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Markup, Does.Contain("Generic task"));
+            Assert.That(cut.Markup, Does.Contain("generic reason"));
+            Assert.That(cut.Markup, Does.Contain("generic details"));
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_RendersInterfaceTasksWithRequestingOwner()
+    {
+        await using BunitContext context = CreateContext();
+        WfReqTask interfaceTask = new()
+        {
+            Id = 37,
+            StateId = 2,
+            Title = "Request interface",
+            TaskType = WfTaskType.new_interface.ToString(),
+            Reason = "connect application"
+        };
+        interfaceTask.SetAddInfo(AdditionalInfoKeys.ReqOwner, "19");
+        WfHandler handler = new()
+        {
+            ActTicket = new WfTicket { Id = 355, Tasks = [interfaceTask] },
+            AllOwners = [new FwoOwner { Id = 19, Name = "Requesting application" }]
+        };
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, handler)
+            .Add(p => p.States, new WfStateDict { Name = { [2] = "Approval" } }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Markup, Does.Contain("Request interface"));
+            Assert.That(cut.Markup, Does.Contain("Requesting application"));
+            Assert.That(cut.Markup, Does.Contain("connect application"));
         });
     }
 
@@ -122,6 +185,7 @@ internal class UiApprovalTaskDetailsRenderingTest : UiSharedEditorTestBase
                 Id = 353,
                 Title = "Remote administration",
                 StateId = 2,
+                Requester = new UiUser { Name = "alice" },
                 Tasks = [task]
             }
         };
@@ -131,7 +195,9 @@ internal class UiApprovalTaskDetailsRenderingTest : UiSharedEditorTestBase
             .Add(p => p.WfHandler, handler)
             .Add(p => p.States, new WfStateDict { Name = { [2] = "Approval" } }));
 
-        Assert.That(cut.Markup, Does.Contain("Ticket: Remote administration (Id: 353, State: Approval)"));
+        UserConfig userConfig = context.Services.GetRequiredService<UserConfig>();
+        Assert.That(cut.Markup, Does.Contain(
+            $"Ticket: Remote administration (Id: 353, State: Approval, {userConfig.GetText("requester")}: alice)"));
     }
 
     [Test]
@@ -398,10 +464,10 @@ internal class UiApprovalTaskDetailsRenderingTest : UiSharedEditorTestBase
         Assert.Multiple(() =>
         {
             Assert.That(cut.Markup, Does.Contain("maintenance"));
-            Assert.That(cut.Markup, Does.Contain("2026-08-02 08:00"));
-            Assert.That(cut.Markup, Does.Contain("2026-08-02 17:00"));
-            Assert.That(cut.Markup, Does.Contain("previous_state"));
-            Assert.That(cut.Markup, Does.Contain("requested_state"));
+            Assert.That(cut.Markup, Does.Contain("02.08.2026 08:00"));
+            Assert.That(cut.Markup, Does.Contain("02.08.2026 17:00"));
+            Assert.That(cut.Markup, Does.Contain("change_name"));
+            Assert.That(cut.Markup, Does.Contain("change_content"));
         });
     }
 }

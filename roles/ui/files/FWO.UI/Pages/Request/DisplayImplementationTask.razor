@@ -243,7 +243,7 @@
             </div>
             <div class="d-flex flex-fill justify-content-center px-4">
                 <ConfiguredTaskActions WfHandler="WfHandler" OfferedActions="offeredActions"
-                    AllowStateChangingActions="@(!WfHandler.ReadOnlyMode && WfHandler.CanPromoteTaskInCurrentPhase() && (WfHandler.EditImplTaskMode || WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode))"
+                    AllowStateChangingActions="@(!WfHandler.ReadOnlyMode && Phase != WorkflowPhases.request && (WfHandler.EditImplTaskMode || WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode))"
                     Target="WfHandler.ActImplTask"
                     Scope="WfObjectScopes.ImplementationTask" Owner="actOwner"
                     TicketId="WfHandler.ActReqTask.TicketId" AfterAction="AfterConfiguredAction"

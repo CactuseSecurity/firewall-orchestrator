@@ -37,6 +37,14 @@
                             {
                                 <ApprovalGroupTaskBody Task="task" TaskGroup="taskGroup" />
                             }
+                            else if (task.TaskType == WfTaskType.generic.ToString())
+                            {
+                                <ApprovalGenericTaskBody Task="task" TaskGroup="taskGroup" />
+                            }
+                            else if (task.TaskType == WfTaskType.new_interface.ToString())
+                            {
+                                <ApprovalInterfaceTaskBody Task="task" TaskGroup="taskGroup" />
+                            }
                             else
                             {
                                 <ApprovalObjectTaskBody Task="task" TaskGroup="taskGroup" />
@@ -62,7 +70,23 @@
                 </div>
             </div>
             <div class="col-sm-4 d-flex justify-content-end">
-                <button type="button" class="btn btn-sm btn-primary approval-task-details-close" @onclick="Close">@(userConfig.GetText("ok"))</button>
+                <div class="btn-group">
+                    @if (CanPromoteTicket)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => RunWithProgress(PromoteTicket)">
+                            @(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+                    }
+                    @if (ShowCancel)
+                    {
+                        <button type="button" class="btn btn-sm btn-secondary approval-task-details-close" @onclick="Close">
+                            @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-primary approval-task-details-close" @onclick="Close">
+                            @(userConfig.GetText("ok"))</button>
+                    }
+                </div>
             </div>
         </div>
     </Footer>
@@ -100,6 +124,10 @@
 <TimeObjectTaskDeleteConfirmation @bind-Display="displayDeleteObjectTask"
     Title="@(userConfig.GetText("delete_task"))" Message="@(userConfig.GetText("delete_unreferenced_object_task_message"))"
     Confirmed="DeleteObjectTask" />
+<PromoteObject @bind-Promote="displayTaskPromotion" CloseParent="CloseTaskPromotion"
+    CancelParent="CancelTaskPromotion" ObjectName="@WfHandler.ActReqTask.Title"
+    Save="PromoteSelectedTask" StatefulObject="WfHandler.ActReqTask"
+    StateMatrix="WfHandler.ActStateMatrix" States="States" />
 <InProgress Display="workInProgress" />
 
 @code {
@@ -110,11 +138,27 @@
     [Parameter] public Func<WfReqTask, string, Task> EditField { get; set; } = (_, _) => Task.CompletedTask;
     [Parameter] public IReadOnlyList<WfStateAction> OfferedActions { get; set; } = [];
     [Parameter] public Func<WfStateAction, Task> PerformTicketAction { get; set; } = _ => Task.CompletedTask;
+    [Parameter] public bool CanPromoteTicket { get; set; }
+    [Parameter] public bool CanPromoteTasks { get; set; }
+    [Parameter] public bool ShowCancel { get; set; }
+    [Parameter] public Func<Task> PromoteTicket { get; set; } = DefaultInit.DoNothing;
     [Parameter] public Func<Task> Closed { get; set; } = DefaultInit.DoNothing;
 
     private readonly ApprovalTaskDetailsEditorService editorService = new();
 
-    private string ApprovalTaskViewTitle => $"{userConfig.GetText("ticket")}: {WfHandler.ActTicket.Title} ({userConfig.GetText("id")}: {WfHandler.ActTicket.Id}, {userConfig.GetText("state")}: {States.GetName(WfHandler.ActTicket.StateId)})";
+    private string ApprovalTaskViewTitle
+    {
+        get
+        {
+            string requester = WfHandler.ActTicket.Requester?.Name ?? "";
+            string metadata = $"{userConfig.GetText("id")}: {WfHandler.ActTicket.Id}, {userConfig.GetText("state")}: {States.GetName(WfHandler.ActTicket.StateId)}";
+            if (!string.IsNullOrWhiteSpace(requester))
+            {
+                metadata += $", {userConfig.GetText("requester")}: {requester}";
+            }
+            return $"{userConfig.GetText("ticket")}: {WfHandler.ActTicket.Title} ({metadata})";
+        }
+    }
 
     private string TaskDisplayTitle(WfReqTask task)
     {
@@ -133,6 +177,17 @@
         builder.AddAttribute(sequence++, "class", "text-dark mr-2 text-nowrap");
         builder.AddContent(sequence++, $"{userConfig.GetText("id")}: {TaskIds(taskGroup)}");
         builder.CloseElement();
+        if (CanShowTaskPromotion(task))
+        {
+            builder.OpenElement(sequence++, "button");
+            builder.AddAttribute(sequence++, "type", "button");
+            builder.AddAttribute(sequence++, "class", "btn btn-sm btn-warning");
+            builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this,
+                () => RunWithProgress(() => OpenTaskPromotion(task))));
+            builder.AddEventStopPropagationAttribute(sequence++, "onclick", true);
+            builder.AddContent(sequence++, DisplayService.DisplayButton(userConfig, "promote", Icons.ChangeState));
+            builder.CloseElement();
+        }
         if (CanEdit(taskGroup, WorkflowEditableFieldKeys.Title))
         {
             builder.OpenElement(sequence++, "button");
@@ -163,6 +218,39 @@
     };
 
     private static string? DetailsOpen(WfReqTask task) => ApprovalTaskDetailsEditorService.DetailsOpen(task);
+
+    private bool CanShowTaskPromotion(WfReqTask task)
+    {
+        return CanPromoteTasks && !WfHandler.ReadOnlyMode && WfHandler.CanActOnReqTaskInCurrentPhase(task);
+    }
+
+    private bool displayTaskPromotion;
+
+    private async Task OpenTaskPromotion(WfReqTask task)
+    {
+        WfHandler.SelectReqTaskPopUp(task, ObjAction.displayPromote);
+        displayTaskPromotion = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task CloseTaskPromotion()
+    {
+        displayTaskPromotion = false;
+        return Task.CompletedTask;
+    }
+
+    private bool CancelTaskPromotion()
+    {
+        displayTaskPromotion = false;
+        return true;
+    }
+
+    private async Task PromoteSelectedTask(WfStatefulObject task)
+    {
+        await WfHandler.PromoteReqTask(task);
+        displayTaskPromotion = false;
+        await InvokeAsync(StateHasChanged);
+    }
 
     private ApproverAllowedChangesConfig AllowedChanges => editorService.AllowedChanges;
     private AccessTaskFieldVisibilityConfig AccessTaskVisibility => editorService.AccessTaskVisibility;

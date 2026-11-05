@@ -271,7 +271,8 @@ namespace FWO.Services.Workflow
         /// </summary>
         public bool CanPromoteTicketInCurrentPhase()
         {
-            return Phase == WorkflowPhases.request || MasterStateMatrix.PromotionMode != PromotionMode.Task;
+            return Phase == WorkflowPhases.request
+                || MasterStateMatrix.PromotionMode is PromotionMode.Ticket or PromotionMode.Both;
         }
 
         /// <summary>
@@ -280,7 +281,8 @@ namespace FWO.Services.Workflow
         /// </summary>
         public bool CanPromoteTaskInCurrentPhase()
         {
-            return Phase != WorkflowPhases.request && MasterStateMatrix.PromotionMode != PromotionMode.Ticket;
+            return Phase != WorkflowPhases.request
+                && MasterStateMatrix.PromotionMode is PromotionMode.Task or PromotionMode.Both;
         }
 
         /// <summary>

@@ -221,7 +221,11 @@ internal sealed class UiApprovalTaskEditorsTest
             .Add(parameter => parameter.ObjectKind, ObjectTaskKind.Network)
             .Add(parameter => parameter.Task, objectTask));
 
-        Assert.That(cut.Markup, Does.Contain("server"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Markup, Does.Contain("server"));
+            Assert.That(cut.FindComponents<ObjectSelector>(), Is.Empty);
+        });
     }
 
     [Test]

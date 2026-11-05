@@ -74,6 +74,32 @@ internal class UiRequestTaskElementEditorTest
     }
 
     [Test]
+    public void IsEditable_RejectsReadOnlyModeEvenWhenEditFlagsRemainSet()
+    {
+        RequestTaskElementEditor component = CreateComponent(new WfReqTask());
+        WfHandler handler = new()
+        {
+            EditReqTaskMode = true,
+            ApproveReqTaskMode = true,
+            ReadOnlyMode = true
+        };
+        SetMember(component, nameof(RequestTaskElementEditor.WfHandler), handler);
+
+        Assert.That(InvokePrivate<bool>(component, "IsEditable"), Is.False);
+    }
+
+    [Test]
+    public void IsEditable_RejectsReadOnlyTaskDisplayInsideEditableTicket()
+    {
+        RequestTaskElementEditor component = CreateComponent(new WfReqTask());
+        WfHandler handler = new() { EditTicketMode = true, EditReqTaskMode = true };
+        SetMember(component, nameof(RequestTaskElementEditor.WfHandler), handler);
+        SetMember(component, nameof(RequestTaskElementEditor.ReadOnlyDisplay), true);
+
+        Assert.That(InvokePrivate<bool>(component, "IsEditable"), Is.False);
+    }
+
+    [Test]
     public void ApplyChanges_ReconcilesAddedRemovedAndRuleEntries()
     {
         WfReqTask reqTask = new()

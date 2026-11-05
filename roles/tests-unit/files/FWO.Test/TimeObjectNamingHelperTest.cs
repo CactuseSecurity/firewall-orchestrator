@@ -93,5 +93,17 @@ namespace FWO.Test
             });
         }
 
+        [TestCase(FlowIntegrationTimePrecisionOptions.Date, "01.08.2026")]
+        [TestCase(FlowIntegrationTimePrecisionOptions.Hours, "01.08.2026 8 h")]
+        [TestCase(FlowIntegrationTimePrecisionOptions.Minutes, "01.08.2026 08:15")]
+        [TestCase(FlowIntegrationTimePrecisionOptions.Seconds, "01.08.2026 08:15:30")]
+        public void DisplayValue_UsesPrecisionAndCallerDateFormat(string precision, string expected)
+        {
+            string result = TimeObjectDisplayHelper.FormatValue(
+                new DateTime(2026, 8, 1, 8, 15, 30), precision, isEndDate: false, dateFormat: "dd.MM.yyyy");
+
+            Assert.That(result, Is.EqualTo(expected));
+        }
+
     }
 }

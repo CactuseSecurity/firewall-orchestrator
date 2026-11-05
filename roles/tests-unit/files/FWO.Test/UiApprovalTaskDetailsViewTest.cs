@@ -49,6 +49,63 @@ internal class UiApprovalTaskDetailsViewTest : UiSharedEditorTestBase
     }
 
     [Test]
+    public async Task ApprovalTaskDetailsView_TaskPromotionCallbacksOpenCloseAndCancelPromotion()
+    {
+        await using BunitContext context = CreateContext();
+        WfReqTask task = new() { Id = 7, TaskType = WfTaskType.access.ToString(), Title = "Access" };
+        WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [task] } };
+        UiRequestWorkflowTest.SetMatrix(handler, task.TaskType, new StateMatrix());
+        IRenderedComponent<ApprovalTaskDetailsView> rendered = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(parameter => parameter.Display, true)
+            .Add(parameter => parameter.WfHandler, handler));
+        ApprovalTaskDetailsView component = rendered.Instance;
+
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "OpenTaskPromotion", task);
+        Assert.Multiple(() =>
+        {
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayTaskPromotion"), Is.True);
+            Assert.That(handler.ActReqTask.Id, Is.EqualTo(task.Id));
+        });
+
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "CloseTaskPromotion");
+        Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayTaskPromotion"), Is.False);
+
+        UiRequestWorkflowTest.SetMember(component, "displayTaskPromotion", true);
+        bool cancelled = UiRequestWorkflowTest.InvokePrivateBool(component, "CancelTaskPromotion");
+        Assert.Multiple(() =>
+        {
+            Assert.That(cancelled, Is.True);
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayTaskPromotion"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_PromoteSelectedTaskPromotesAndClosesPopup()
+    {
+        await using BunitContext context = CreateContext();
+        WfReqTask task = new() { Id = 8, TaskType = WfTaskType.access.ToString(), StateId = 0 };
+        WfHandler handler = new()
+        {
+            ActReqTask = task,
+            ActTicket = new WfTicket { Id = 1, Tasks = [task] },
+            ActStateMatrix = new StateMatrix { LowestStartedState = 1, LowestEndState = 10 }
+        };
+        IRenderedComponent<ApprovalTaskDetailsView> rendered = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(parameter => parameter.Display, true)
+            .Add(parameter => parameter.WfHandler, handler));
+        ApprovalTaskDetailsView component = rendered.Instance;
+        UiRequestWorkflowTest.SetMember(component, "displayTaskPromotion", true);
+
+        await UiRequestWorkflowTest.InvokePrivateTask(component, "PromoteSelectedTask", new WfStatefulObject { StateId = 2 });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(task.StateId, Is.EqualTo(2));
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayTaskPromotion"), Is.False);
+        });
+    }
+
+    [Test]
     public void ApprovalGroupTaskBody_DisplaysMemberNameWithNetworkDetails()
     {
         ApprovalGroupTaskBody component = new();

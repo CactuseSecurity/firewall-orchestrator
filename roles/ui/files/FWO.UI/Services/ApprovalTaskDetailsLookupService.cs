@@ -56,6 +56,8 @@ internal sealed class ApprovalTaskDetailsLookupService
     {
         IEnumerable<WfReqTask> tasks = context.WfHandler.ActTicket.Tasks
             .Where(task => task.TaskType == WfTaskType.access.ToString()
+                || task.TaskType == WfTaskType.generic.ToString()
+                || task.TaskType == WfTaskType.new_interface.ToString()
                 || WfObjectTaskHelper.IsManagementObjectTask(task.TaskType));
 
         if (!context.UserConfig.ReqDisplayBundledTasksAsOne || !context.UserConfig.ReqConsiderBundling)

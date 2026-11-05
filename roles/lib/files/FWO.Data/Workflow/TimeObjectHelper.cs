@@ -121,4 +121,44 @@ namespace FWO.Data.Workflow
             return end.HasValue ? $"<= {Format(end.Value)}" : "";
         }
     }
+
+    /// <summary>
+    /// Formats time-object values according to the configured precision.
+    /// </summary>
+    public static class TimeObjectDisplayHelper
+    {
+        /// <summary>
+        /// Formats one validity boundary and converts a date-precision end boundary to its inclusive date.
+        /// </summary>
+        /// <param name="value">The stored validity boundary.</param>
+        /// <param name="precision">The configured time-object precision.</param>
+        /// <param name="isEndDate">Whether the boundary is the end of the validity interval.</param>
+        /// <param name="dateFormat">The date portion format used by the caller.</param>
+        /// <returns>The formatted value, or an empty string when no value is present.</returns>
+        public static string FormatValue(DateTime? value, string precision, bool isEndDate, string dateFormat)
+        {
+            if (!value.HasValue)
+            {
+                return "";
+            }
+
+            DateTime date = value.Value;
+            string normalizedPrecision = precision.Trim().ToLowerInvariant();
+            if (normalizedPrecision == FlowIntegrationTimePrecisionOptions.Date)
+            {
+                if (isEndDate && date.TimeOfDay == TimeSpan.Zero)
+                {
+                    date = date.AddDays(-1);
+                }
+                return date.ToString(dateFormat, CultureInfo.InvariantCulture);
+            }
+
+            return normalizedPrecision switch
+            {
+                FlowIntegrationTimePrecisionOptions.Hours => date.ToString($"{dateFormat} H 'h'", CultureInfo.InvariantCulture),
+                FlowIntegrationTimePrecisionOptions.Minutes => date.ToString($"{dateFormat} HH:mm", CultureInfo.InvariantCulture),
+                _ => date.ToString($"{dateFormat} HH:mm:ss", CultureInfo.InvariantCulture)
+            };
+        }
+    }
 }

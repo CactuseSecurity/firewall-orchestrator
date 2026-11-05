@@ -11,7 +11,7 @@
     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
         Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-        IpProtos="DisplayIpProtos" SelectableIpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" TicketTasks="WfHandler.ActTicket.Tasks" EditMode="IsEditable()"
+        IpProtos="DisplayIpProtos" SelectableIpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" TicketTasks="WfHandler.ActTicket.Tasks" EditMode="@(IsEditable() && !ReadOnlyDisplay)"
         EditSources="CanEditBundledField(WorkflowEditableFieldKeys.Source)"
         EditDestinations="CanEditBundledField(WorkflowEditableFieldKeys.Destination)"
         EditServices="CanEditBundledField(WorkflowEditableFieldKeys.Services)" />
@@ -108,20 +108,20 @@ else if (TaskType == WfTaskType.group_modify)
             <div class="list-group col-sm-6">
                 @foreach (var source in actSources)
                 {
-                    <div class="list-group-item border bg-secondary">
-                        <span class="badge @GroupMemberBadgeClass(source.RequestAction)">
+                    <div class="list-group-item border bg-secondary d-flex align-items-start">
+                        <label class="flex-grow-1 text-break">@DisplayObjectElement(source)</label>
+                        <span class="badge @GroupMemberBadgeClass(source.RequestAction) ml-2 text-nowrap">
                             @GroupMemberAction(source.RequestAction)
                         </span>
-                        <label>@DisplayObjectElement(source)</label>
                     </div>
                 }
                 @foreach (var service in actServices)
                 {
-                    <div class="list-group-item border bg-secondary">
-                        <span class="badge @GroupMemberBadgeClass(service.RequestAction)">
+                    <div class="list-group-item border bg-secondary d-flex align-items-start">
+                        <label class="flex-grow-1 text-break">@DisplayServiceElement(service)</label>
+                        <span class="badge @GroupMemberBadgeClass(service.RequestAction) ml-2 text-nowrap">
                             @GroupMemberAction(service.RequestAction)
                         </span>
-                        <label>@DisplayServiceElement(service)</label>
                     </div>
                 }
             </div>
@@ -179,7 +179,7 @@ else if (TaskType == WfTaskType.group_modify)
 else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 {
     <DisplayObjectTaskElement @ref="objectTaskElement" ReqTask="WfHandler.ActReqTask" IsModify="@(TaskType == WfTaskType.object_modify)"
-        ManagementId="ManagementId" EditMode="IsEditable()" SelectableIpProtos="SelectableIpProtos" DisplayIpProtos="DisplayIpProtos" />
+        ManagementId="ManagementId" EditMode="@(IsEditable() && !ReadOnlyDisplay)" SelectableIpProtos="SelectableIpProtos" DisplayIpProtos="DisplayIpProtos" />
 }
 
 @code
@@ -199,6 +199,12 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 
     [Parameter]
     public Func<string, bool> CanEditField { get; set; } = _ => false;
+
+    /// <summary>
+    /// Keeps task elements read-only when the surrounding ticket is being viewed rather than edited.
+    /// </summary>
+    [Parameter]
+    public bool ReadOnlyDisplay { get; set; }
 
     [Parameter]
     public List<IpProtocol> DisplayIpProtos { get; set; } = [];
@@ -256,7 +262,9 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 
     private bool IsEditable()
     {
-        return DisplayTask == null
+        return !WfHandler.ReadOnlyMode
+            && !ReadOnlyDisplay
+            && DisplayTask == null
             && (WfHandler.EditReqTaskMode || WfHandler.ApproveReqTaskMode || IsClassicApprovalEditMode);
     }
 
@@ -267,7 +275,7 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 
     private bool CanEditBundledField(string fieldKey)
     {
-        return DisplayTask == null && CanEditField(fieldKey);
+        return !ReadOnlyDisplay && DisplayTask == null && CanEditField(fieldKey);
     }
 
     /// <summary>

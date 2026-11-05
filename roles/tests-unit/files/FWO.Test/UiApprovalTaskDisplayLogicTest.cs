@@ -183,7 +183,7 @@ internal class UiApprovalTaskDisplayLogicTest
             {
                 ShowValidFrom = true,
                 ShowValidTo = false
-            }), Is.EqualTo("maintenance (2026-08-01 08:00:00)"));
+            }), Is.EqualTo("maintenance (01.08.2026 08:00:00)"));
         });
     }
 
@@ -324,10 +324,10 @@ internal class UiApprovalTaskDisplayLogicTest
 
         foreach ((string precision, string expected) in new List<(string precision, string expected)>
         {
-            (FlowIntegrationTimePrecisionOptions.Date, "2026-08-01 - 2026-08-02 (2026-08-01 - 2026-08-02)"),
-            (FlowIntegrationTimePrecisionOptions.Hours, "2026-08-01 08 h - 2026-08-02 17 h (2026-08-01 8 h - 2026-08-02 17 h)"),
-            (FlowIntegrationTimePrecisionOptions.Minutes, "2026-08-01 08:15 - 2026-08-02 17:45 (2026-08-01 08:15 - 2026-08-02 17:45)"),
-            (FlowIntegrationTimePrecisionOptions.Seconds, "2026-08-01 08:15:30 - 2026-08-02 17:45:30 (2026-08-01 08:15:30 - 2026-08-02 17:45:30)")
+            (FlowIntegrationTimePrecisionOptions.Date, "2026-08-01 - 2026-08-02 (01.08.2026 - 02.08.2026)"),
+            (FlowIntegrationTimePrecisionOptions.Hours, "2026-08-01 08 h - 2026-08-02 17 h (01.08.2026 8 h - 02.08.2026 17 h)"),
+            (FlowIntegrationTimePrecisionOptions.Minutes, "2026-08-01 08:15 - 2026-08-02 17:45 (01.08.2026 08:15 - 02.08.2026 17:45)"),
+            (FlowIntegrationTimePrecisionOptions.Seconds, "2026-08-01 08:15:30 - 2026-08-02 17:45:30 (01.08.2026 08:15:30 - 02.08.2026 17:45:30)")
         })
         {
             SimulatedUserConfig config = new()

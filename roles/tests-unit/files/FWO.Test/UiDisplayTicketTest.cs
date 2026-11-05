@@ -482,6 +482,88 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayTicket_ApprovalEditorCallbacksSwitchBetweenDetailsAndClassicEditor()
+        {
+            WfReqTask task = new() { Id = 15, TaskType = WfTaskType.access.ToString() };
+            WfHandler handler = new() { ActTicket = new WfTicket { Id = 10, Tasks = [task] } };
+        UiRequestWorkflowTest.SetMatrix(handler, task.TaskType, new StateMatrix());
+            int resetCalls = 0;
+        await using BunitContext context = new();
+        IRenderedComponent<DisplayTicket> rendered = RenderDisplayTicket(context, handler, WorkflowPhases.approval,
+            new WfStateDict());
+        DisplayTicket component = rendered.Instance;
+        SetMember(component, nameof(DisplayTicket.ResetParent), () =>
+            {
+                resetCalls++;
+                return Task.CompletedTask;
+            });
+            SetMember(component, "displayApprovalTaskDetailsView", true);
+
+            await InvokePrivateTask(component, "OpenApprovalAccessTaskEditor", task, WorkflowEditableFieldKeys.Reason);
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<string?>(component, "approvalAccessTaskField"), Is.EqualTo(WorkflowEditableFieldKeys.Reason));
+                Assert.That(GetMember<bool>(component, "displayApprovalTaskDetailsView"), Is.False);
+                Assert.That(handler.ActReqTask.Id, Is.EqualTo(task.Id));
+            });
+
+            await InvokePrivateTask(component, "CloseApprovalAccessTaskEditor");
+            await InvokePrivateTask(component, "CloseApprovalTaskDetailsView");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<string?>(component, "approvalAccessTaskField"), Is.Null);
+            Assert.That(resetCalls, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task DisplayTicket_OpenApprovalTicketPromotionInitializesPromotionPopup()
+        {
+            WfHandler handler = new() { ActTicket = new WfTicket { Id = 10 } };
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayTicket> rendered = RenderDisplayTicket(
+                context, handler, WorkflowPhases.approval, new WfStateDict());
+
+            await InvokePrivateTask(rendered.Instance, "OpenApprovalTicketPromotion");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayPromoteTicketMode, Is.True);
+                Assert.That(handler.DisplaySaveTicketMode, Is.False);
+            });
+        }
+
+        [Test]
+        public void DisplayTicket_CanSaveTicketChangesForApprovalViewRequiresAccessViewAndEditMode()
+        {
+            ApproverAllowedChangesConfig allowedChanges = new();
+            allowedChanges.SetTicketField(WorkflowEditableFieldKeys.Title, true);
+            RequestWorkflowUserConfig userConfig = new()
+            {
+                ReqApprovalEditMode = ApprovalEditMode.AccessTaskView,
+                ReqAllowedChangesByApprover = allowedChanges.ToConfigValue()
+            };
+            WfHandler handler = new()
+            {
+                EditTicketMode = true,
+                ActTicket = new WfTicket { Id = 10, StateId = 0 },
+                MasterStateMatrix = new StateMatrix { Matrix = { [0] = [1] }, LowestEndState = 5 }
+            };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.approval, userConfig: userConfig);
+
+            bool allowed = InvokePrivateBool(component, "CanSaveTicketChangesForApprovalView");
+            handler.ReadOnlyMode = true;
+            bool readOnly = InvokePrivateBool(component, "CanSaveTicketChangesForApprovalView");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(allowed, Is.True);
+                Assert.That(readOnly, Is.False);
+            });
+        }
+
+        [Test]
         public async Task DisplayTicket_PromoteTicketForPhase_RequestPhasePromotesTicketAndTasks()
         {
             WfHandler handler = new()

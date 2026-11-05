@@ -14,7 +14,8 @@
             }
             <DisplayObjectTaskElement @ref="objectTaskElement" ReqTask="Task" IsModify="IsModify"
                 ManagementId="@Task.ManagementId" EditMode="true" SelectableIpProtos="SelectableIpProtos"
-                DisplayIpProtos="DisplayIpProtos" ObjectKind="ObjectKind" />
+                DisplayIpProtos="DisplayIpProtos" ObjectKind="ObjectKind"
+                AllowModifySelection="false" IncludePreviousElementName="false" />
         }
     </Body>
     <Footer>
@@ -35,7 +36,9 @@
 
     private DisplayObjectTaskElement? objectTaskElement;
     private string? validationError;
-    private string ObjectName => WfObjectTaskHelper.GetRequestedElement(Task)?.Name ?? "";
+    private string ObjectName => WfObjectTaskHelper.GetOriginalElement(Task)?.Name
+        ?? WfObjectTaskHelper.GetRequestedElement(Task)?.Name
+        ?? "";
     private string PopupTitle
     {
         get

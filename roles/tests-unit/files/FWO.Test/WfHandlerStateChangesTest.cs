@@ -256,6 +256,44 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task PromoteReqTask_UpdatesThePendingApprovalObject()
+        {
+            StateMatrix matrix = new()
+            {
+                LowestStartedState = 2,
+                LowestEndState = 10,
+                ApprovalLowestEndState = 5,
+                PhaseActive = new() { { WorkflowPhases.approval, true } }
+            };
+            WfApproval approval = new() { Id = 12, TaskId = 7, StateId = 0 };
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 10,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 0,
+                Approvals = { approval }
+            };
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.approval,
+                ActReqTask = reqTask,
+                ActTicket = new WfTicket { Id = 10, Tasks = { reqTask } },
+                MasterStateMatrix = new StateMatrix { LowestEndState = 10 },
+                ActStateMatrix = matrix
+            };
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+
+            await handler.PromoteReqTask(new WfStatefulObject { StateId = 2 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(reqTask.StateId, Is.EqualTo(2));
+                Assert.That(approval.StateId, Is.EqualTo(2));
+            });
+        }
+
+        [Test]
         public async Task PromoteReqTask_PromotesAllBundledTasksToTheSameState()
         {
             WfReqTask firstTask = new()
@@ -694,6 +732,7 @@ namespace FWO.Test
         [TestCase(PromotionMode.Ticket, true, false)]
         [TestCase(PromotionMode.Task, false, true)]
         [TestCase(PromotionMode.Both, true, true)]
+        [TestCase(PromotionMode.ActionButtonsOnly, false, false)]
         public void PromotionMode_ControlsAvailablePromotionScopes(PromotionMode mode, bool ticketVisible, bool taskVisible)
         {
             WfHandler handler = new()
@@ -879,6 +918,43 @@ namespace FWO.Test
             Assert.That(handler.ActApproval.StateId, Is.EqualTo(5));
             Assert.That(handler.ActApproval.ApprovalDate, Is.Not.Null);
             Assert.That(handler.ActReqTask.StateId, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task AutoPromote_ApprovalScope_DoesNotOverwriteCompletedApproval()
+        {
+            StateMatrix matrix = new()
+            {
+                LowestStartedState = 2,
+                LowestEndState = 5,
+                ApprovalLowestEndState = 5
+            };
+            WfApproval storedApproval = new() { Id = 1, TaskId = 7, StateId = 5 };
+            WfApproval laterApproval = new() { Id = 2, TaskId = 7, StateId = 1 };
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 1,
+                TaskType = WfTaskType.access.ToString(),
+                Approvals = { storedApproval, laterApproval }
+            };
+            WfHandler handler = new()
+            {
+                ActStateMatrix = matrix,
+                ActTicket = new WfTicket { Id = 1, Tasks = { reqTask } }
+            };
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+            handler.TicketList.Add(handler.ActTicket);
+            WfApproval lateAutoApproval = new() { Id = 1, TaskId = 7, StateId = 1 };
+
+            await handler.AutoPromote(lateAutoApproval, WfObjectScopes.Approval, 5);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(storedApproval.StateId, Is.EqualTo(5));
+                Assert.That(laterApproval.StateId, Is.EqualTo(1));
+                Assert.That(lateAutoApproval.StateId, Is.EqualTo(1));
+            });
         }
 
         [Test]

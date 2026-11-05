@@ -191,6 +191,10 @@ namespace FWO.Services.Workflow
                     // and its request-task actions are executed independently.
                     WfReqTask taskToPromote = requestTask.Id == ActReqTask.Id ? ActReqTask : requestTask;
                     await PromoteSingleReqTask(taskToPromote, reqTask.StateId, setStartedHandler);
+                    StateMatrix reqTaskMatrix = stateMatrixDict.Matrices.TryGetValue(taskToPromote.TaskType, out StateMatrix? configuredMatrix)
+                        ? configuredMatrix
+                        : ActStateMatrix;
+                    await UpdateReqTaskAndApprovalStatesFromTicket(taskToPromote, reqTaskMatrix, taskToPromote.StateId);
                 }
                 await UpdateActTicketStateFromReqTasks();
                 DisplayPromoteReqTaskMode = false;
@@ -285,6 +289,24 @@ namespace FWO.Services.Workflow
 
         public async Task AutoPromote(WfStatefulObject statefulObject, WfObjectScopes scope, int? toStateId)
         {
+            if (scope == WfObjectScopes.Approval)
+            {
+                if (statefulObject is not WfApproval approval
+                    || !SetReqTaskEnv(approval.TaskId))
+                {
+                    return;
+                }
+
+                WfApproval? storedApproval = ActReqTask.Approvals.FirstOrDefault(candidate => candidate.Id == approval.Id);
+                if (storedApproval == null || storedApproval.StateId >= ActStateMatrix.LowestEndState)
+                {
+                    // An automatic action may arrive after another action has already
+                    // completed this approval. Never select a different pending approval
+                    // or overwrite the completed one in that case.
+                    return;
+                }
+            }
+
             bool promotePossible = false;
             if (toStateId != null)
             {
@@ -340,7 +362,7 @@ namespace FWO.Services.Workflow
                     case WfObjectScopes.Approval:
                         if (SetReqTaskEnv(((WfApproval)statefulObject).TaskId))
                         {
-                            await SetApprovalEnv();
+                            await SetApprovalEnv((WfApproval)statefulObject, false);
                             StateMatrix approvalTaskMatrix = stateMatrixDict.Matrices[ActReqTask.TaskType];
                             statefulObject.StateId = GetApprovalStateForRequestTask(statefulObject.StateId, approvalTaskMatrix);
                             await ApproveTask(statefulObject);

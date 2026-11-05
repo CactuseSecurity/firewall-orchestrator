@@ -26,7 +26,7 @@
         </div>
     </div>
     }
-    @if (IsModify)
+    @if (IsModify && AllowModifySelection)
     {
         <div class="form-group row mt-2">
             <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("object"))*:</label>
@@ -45,19 +45,31 @@
             </div>
         </div>
     }
+    @if (IsModify && original != null)
+    {
+        <div class="form-group row mt-2">
+            <label class="col-sm-3 col-form-label col-form-label-sm text-nowrap">@(userConfig.GetText("previous_state")):</label>
+            <div class="col-sm-8">
+                <span class="form-control form-control-sm bg-secondary text-break">@DisplayElement(original, includeName: IncludePreviousElementName)</span>
+            </div>
+        </div>
+    }
     <div class="form-group row mt-2">
-        <label class="@(kind == ObjectTaskKind.Service ? "col-sm-3" : kind == ObjectTaskKind.Time ? "col-sm-4" : "col-sm-1") col-form-label col-form-label-sm text-nowrap">@(userConfig.GetText("name")):</label>
-        <div class="@(kind is ObjectTaskKind.Service or ObjectTaskKind.Time ? "col-sm-8" : "col-sm-3")">
+        <label class="col-sm-3 col-form-label col-form-label-sm text-nowrap">@(userConfig.GetText("name")):</label>
+        <div class="col-sm-8">
             <input type="text" class="form-control form-control-sm" @bind="objectName" />
         </div>
-        @if (kind == ObjectTaskKind.Network)
-        {
-            <div class="col-sm-4">
+    </div>
+    @if (kind == ObjectTaskKind.Network)
+    {
+        <div class="form-group row mt-2">
+            <label class="col-sm-3 col-form-label col-form-label-sm text-nowrap">@(userConfig.GetText("ip_address")):</label>
+            <div class="col-sm-8">
                 <input type="text" class="form-control form-control-sm @(ValidationClass(networkInputValid))" placeholder="@(userConfig.GetText("ip_addresses"))"
                     @bind="NetworkInput" @bind:event="oninput" />
             </div>
-        }
-    </div>
+        </div>
+    }
     @if (kind == ObjectTaskKind.Time)
     {
         <DisplayTaskTargetDates TargetBeginDate="@startTime" TargetBeginDateChanged="SetStartTimeValue"
@@ -65,6 +77,7 @@
             CanEditTargetBeginDate="true" CanEditTargetEndDate="true"
             ShowTargetBeginDate="@TimeObjectVisibility.ShowValidFrom" ShowTargetEndDate="@TimeObjectVisibility.ShowValidTo"
             TargetDatesValidChanged="SetTargetDatesValid" FullWidthLayout="true"
+            DateLabelClass="col-sm-3" DateValueClass="col-sm-9"
             ForceManualTimeObjectSelection="true" ValidateDateOrder="true"
             BeginDateInputId="objStartDate" BeginTimeInputId="objStartTime" BeginHourInputId="objStartHour"
             EndDateInputId="objEndDate" EndTimeInputId="objEndTime" EndHourInputId="objEndHour"
@@ -95,14 +108,6 @@
             </div>
         }
     }
-    @if (IsModify && original != null)
-    {
-        <div class="form-group row">
-            <div class="offset-sm-1 col-sm-10">
-                <small class="text-muted">@(userConfig.GetText("previous_state")): @DisplayElement(original)</small>
-            </div>
-        </div>
-    }
 }
 @if (!EditMode)
 {
@@ -116,7 +121,28 @@
             </div>
         }
         <div class="list-group @(HasObjectName ? "col-xl-8 col-lg-6" : "col-12")">
-            @if (original != null)
+            @if (IsModify && original != null && requested != null)
+            {
+                <div class="list-group-item border bg-secondary">
+                    <div class="row align-items-start mb-1">
+                        <div class="col-md-2">
+                            <span class="badge @ChangeBadgeClass(DisplayElementName(original), DisplayElementName(requested))">
+                                @ChangeLabel("change_name", DisplayElementName(original), DisplayElementName(requested))
+                            </span>
+                        </div>
+                        <div class="col-md-10 text-break">@DisplayChangeValue(DisplayElementName(original), DisplayElementName(requested))</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-2">
+                            <span class="badge @ChangeBadgeClass(DisplayElement(original, includeName: false), DisplayElement(requested, includeName: false))">
+                                @ChangeLabel("change_content", DisplayElement(original, includeName: false), DisplayElement(requested, includeName: false))
+                            </span>
+                        </div>
+                        <div class="col-md-10 text-break">@DisplayChangeValue(DisplayElement(original, includeName: false), DisplayElement(requested, includeName: false))</div>
+                    </div>
+                </div>
+            }
+            else if (original != null)
             {
                 <div class="list-group-item border bg-secondary">
                     <label>@(userConfig.GetText("previous_state")): @DisplayElement(original)</label>
@@ -128,10 +154,10 @@
                     <label>@DisplayElement(requested, includeName: false)</label>
                 </div>
             }
-            else if (requested != null)
+            else if (!IsModify && requested != null)
             {
                 <div class="list-group-item border bg-secondary">
-                    <label>@(userConfig.GetText("requested_state")): @DisplayElement(requested)</label>
+                    <label>@DisplayElement(requested, includeName: false)</label>
                 </div>
             }
         </div>
@@ -151,6 +177,18 @@
 
     [Parameter]
     public bool EditMode { get; set; }
+
+    /// <summary>
+    /// Whether an object-modify task may select a different existing object.
+    /// </summary>
+    [Parameter]
+    public bool AllowModifySelection { get; set; } = true;
+
+    /// <summary>
+    /// Whether the previous object's name is included in the previous-state text.
+    /// </summary>
+    [Parameter]
+    public bool IncludePreviousElementName { get; set; } = true;
 
     [Parameter]
     public List<IpProtocol> SelectableIpProtos { get; set; } = [];
@@ -226,6 +264,13 @@
         if (!ReferenceEquals(initializedTask, ReqTask))
         {
             initializedTask = ReqTask;
+            InitFromTask();
+        }
+        else if (!EditMode)
+        {
+            // Read-only displays must reflect changes made to the task instance
+            // while the surrounding ticket view remains open.  Edit mode keeps
+            // its local input state until the user saves or cancels.
             InitFromTask();
         }
         else if (IsModify && original != null && selectionManagementId != ManagementId)
@@ -501,11 +546,58 @@
             case ObjectTaskKind.Service:
                 return name + DisplayBase.DisplayService(ToNwServiceElement(element), DisplayIpProtos);
             case ObjectTaskKind.Time:
-                return name + WfObjectTaskHelper.FormatTimeRange(element.StartTime, element.EndTime);
+                return name + DisplayTimeObjectContent(element);
             default:
                 NwObjectElement nwObject = ToNwObjectElement(element);
                 return name + NwObjDisplay.DisplayIp(nwObject.IpString, nwObject.IpEndString);
         }
+    }
+
+    private static string DisplayElementName(WfReqElement element)
+    {
+        return string.IsNullOrWhiteSpace(element.Name) ? "-" : element.Name;
+    }
+
+    private string DisplayTimeObjectContent(WfReqElement element)
+    {
+        string begin = TimeObjectVisibility.ShowValidFrom ? FormatTimeObjectValue(element.StartTime, isEndDate: false) : "";
+        string end = TimeObjectVisibility.ShowValidTo ? FormatTimeObjectValue(element.EndTime, isEndDate: true) : "";
+        return begin switch
+        {
+            { Length: > 0 } when end.Length > 0 => $"{begin} - {end}",
+            { Length: > 0 } => begin,
+            _ => end
+        };
+    }
+
+    private string FormatTimeObjectValue(DateTime? value, bool isEndDate)
+    {
+        return TimeObjectDisplayHelper.FormatValue(
+            value,
+            FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration).TimeObjectPrecision,
+            isEndDate,
+            "dd.MM.yyyy");
+    }
+
+    private string ChangeLabel(string changeKey, string previous, string requested)
+    {
+        return string.Equals(previous, requested, StringComparison.Ordinal)
+            ? userConfig.GetText("unchanged")
+            : userConfig.GetText(changeKey);
+    }
+
+    private static string ChangeBadgeClass(string previous, string requested)
+    {
+        return string.Equals(previous, requested, StringComparison.Ordinal)
+            ? "text-bg-secondary"
+            : "text-bg-warning";
+    }
+
+    private static string DisplayChangeValue(string previous, string requested)
+    {
+        return string.Equals(previous, requested, StringComparison.Ordinal)
+            ? previous
+            : $"{previous} -> {requested}";
     }
 
     private string ObjectTypeTextKey()
@@ -520,6 +612,11 @@
 
     private string ObjectName()
     {
+        if (!EditMode && IsModify && original != null && !string.IsNullOrWhiteSpace(original.Name))
+        {
+            return original.Name;
+        }
+
         string requestedName = requested?.Name ?? "";
         if (!string.IsNullOrWhiteSpace(requestedName))
         {

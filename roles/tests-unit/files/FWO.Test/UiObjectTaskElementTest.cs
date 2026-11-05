@@ -330,7 +330,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ExistingTask_IsShownWithPreviousAndRequestedStateInReadOnlyMode()
+        public async Task ExistingTask_IsShownAsExplicitChangesInReadOnlyMode()
         {
             await using BunitContext context = CreateContext();
             WfReqTask task = new() { TaskType = WfTaskType.object_modify.ToString() };
@@ -343,8 +343,8 @@ namespace FWO.Test
             {
                 Assert.That(component.Markup, Does.Contain("10.1.1.5"));
                 Assert.That(component.Markup, Does.Contain("10.1.1.6"));
-                Assert.That(component.Markup, Does.Contain("previous_state"));
-                Assert.That(component.Markup, Does.Contain("requested_state"));
+                Assert.That(component.Markup, Does.Contain("unchanged"));
+                Assert.That(component.Markup, Does.Contain("change_content"));
                 Assert.That(component.FindComponents<ObjectSelector>(), Is.Empty);
             });
         }
@@ -920,8 +920,8 @@ namespace FWO.Test
         {
             await using BunitContext context = CreateContext();
             WfReqTask task = new() { Id = 5, TaskType = WfTaskType.object_modify.ToString(), ManagementId = kManagementId };
-            task.Elements.Add(new() { Id = 1, Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.unchanged.ToString(), Name = "maintenance", TimeObjId = 77, StartTime = kTimeStart, EndTime = kTimeEnd });
-            task.Elements.Add(new() { Id = 2, Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.modify.ToString(), Name = "maintenance", TimeObjId = 77, StartTime = kTimeStart, EndTime = kTimeEnd.AddDays(1) });
+            task.Elements.Add(new() { Id = 1, Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.unchanged.ToString(), Name = "maintenance_old", TimeObjId = 77, StartTime = kTimeStart, EndTime = kTimeEnd });
+            task.Elements.Add(new() { Id = 2, Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.modify.ToString(), Name = "maintenance_new", TimeObjId = 77, StartTime = kTimeStart, EndTime = kTimeEnd.AddDays(1) });
 
             IRenderedComponent<DisplayObjectTaskElement> editComponent = RenderElement(context, task, true, kManagementId);
             IRenderedComponent<DisplayObjectTaskElement> readOnlyComponent = RenderElement(context, task, true, kManagementId, false);
@@ -931,8 +931,12 @@ namespace FWO.Test
                 Assert.That(GetMember<ObjectTaskKind>(editComponent.Instance, "kind"), Is.EqualTo(ObjectTaskKind.Time));
                 Assert.That(GetMember<DateTime?>(editComponent.Instance, "endTime"), Is.EqualTo(kTimeEnd.AddDays(1)));
                 Assert.That(GetMember<TimeObject>(editComponent.Instance, "selectedTimeObject")?.Id, Is.EqualTo(77));
-                Assert.That(readOnlyComponent.Markup, Does.Contain("maintenance 2026-11-01 08:00 - 2026-11-30 18:00"));
-                Assert.That(readOnlyComponent.Markup, Does.Contain("maintenance 2026-11-01 08:00 - 2026-12-01 18:00"));
+                Assert.That(readOnlyComponent.Markup, Does.Contain("change_name"));
+                Assert.That(readOnlyComponent.Markup, Does.Contain("change_content"));
+                Assert.That(readOnlyComponent.Markup, Does.Contain("maintenance_old"));
+                Assert.That(readOnlyComponent.Markup, Does.Contain("maintenance_new"));
+                Assert.That(readOnlyComponent.Markup, Does.Contain("01.11.2026 08:00:00 - 30.11.2026 18:00:00"));
+                Assert.That(readOnlyComponent.Markup, Does.Contain("01.11.2026 08:00:00 - 01.12.2026 18:00:00"));
             });
         }
 

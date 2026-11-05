@@ -152,6 +152,55 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayReqTaskTable_EditReqTaskForApprovalSelectsApprovalTask()
+        {
+            WfReqTask reqTask = new() { Id = 11, TaskType = WfTaskType.access.ToString() };
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.approval,
+                ActTicket = new WfTicket { Id = 10, Tasks = [reqTask] }
+            };
+            SetMatrix(handler, reqTask.TaskType, CreateMatrix());
+            DisplayReqTaskTable component = CreateReqTaskTable(handler, WorkflowPhases.approval);
+
+            await InvokePrivateTask(component, "EditReqTaskForApproval", reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.Id, Is.EqualTo(reqTask.Id));
+                Assert.That(handler.ApproveReqTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public void DisplayReqTaskTable_CanEditReqTaskInApprovalRequiresAllowedChangesAndOpenTask()
+        {
+            SimulatedUserConfig userConfig = CreateUserConfig(Roles.WorkflowRolesList);
+            ApproverAllowedChangesConfig allowedChanges = new();
+            allowedChanges.SetTaskField(WfTaskType.access, WorkflowEditableFieldKeys.Title, true);
+            userConfig.ReqAllowedChangesByApprover = allowedChanges.ToConfigValue();
+            WfReqTask reqTask = new() { Id = 12, TaskType = WfTaskType.access.ToString(), StateId = 1 };
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.approval,
+                ReadOnlyMode = false,
+                ActTicket = new WfTicket { Id = 10, Tasks = [reqTask] }
+            };
+            DisplayReqTaskTable component = CreateReqTaskTable(handler, WorkflowPhases.approval);
+            SetMember(component, "userConfig", userConfig);
+
+            bool editable = InvokePrivateBool(component, "CanEditReqTaskInApproval", reqTask);
+            handler.ReadOnlyMode = true;
+            bool readOnly = InvokePrivateBool(component, "CanEditReqTaskInApproval", reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(editable, Is.True);
+                Assert.That(readOnly, Is.False);
+            });
+        }
+
+        [Test]
         public void DisplayReqTaskTable_RequestPhase_BlocksLockedRequestTaskEdit()
         {
             WfHandler handler = new()

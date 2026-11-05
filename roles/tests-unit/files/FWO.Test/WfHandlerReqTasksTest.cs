@@ -699,6 +699,41 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task StartWorkOnReqTask_InApprovalPhase_AutoMovesPendingApprovalWithTask()
+        {
+            WfHandler handler = new() { Phase = WorkflowPhases.approval };
+            handler.userConfig.User.Dn = "cn=approver";
+            string taskType = WfTaskType.access.ToString();
+            StateMatrix matrix = new()
+            {
+                Matrix = new Dictionary<int, List<int>> { [0] = [2] },
+                LowestStartedState = 2,
+                LowestEndState = 10
+            };
+            SetMatrix(handler, taskType, matrix);
+            WfApproval approval = new() { Id = 31, StateId = 0 };
+            WfReqTask reqTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = taskType,
+                StateId = 0,
+                Approvals = [approval]
+            };
+            handler.ActTicket = new WfTicket { Id = 7, Tasks = { reqTask } };
+            handler.TicketList.Add(handler.ActTicket);
+
+            await handler.StartWorkOnReqTask(reqTask, ObjAction.approve);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(2));
+                Assert.That(handler.ActReqTask.Approvals.Single().StateId, Is.EqualTo(2));
+                Assert.That(handler.ActTicket.Tasks.Single().StateId, Is.EqualTo(2));
+            });
+        }
+
+        [Test]
         public async Task StartWorkOnReqTask_InReadOnlyMode_OpensPhaseViewWithoutWriting()
         {
             WfHandler handler = new() { ReadOnlyMode = true };

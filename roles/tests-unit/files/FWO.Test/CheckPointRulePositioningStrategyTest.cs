@@ -146,7 +146,7 @@ internal class CheckPointRulePositioningStrategyTest
         RulePositioningContext context = ValidContext();
         RulebaseGraphSnapshot snapshot = Snapshot(kManagementId, kGatewayId, "layer-uid");
         CreationRuleZoneInput zoneInput = ZoneInput();
-        List<ComplianceNetworkZone> zones = [new() { Id = 1, CriterionId = kCriterionId, Name = "Zone" }];
+        List<NetworkZone> zones = [new() { Id = 1, CriterionId = kCriterionId, Name = "Zone" }];
         using CancellationTokenSource cancellation = new();
         StrategyFixture fixture = new(order)
         {
@@ -891,7 +891,7 @@ internal class CheckPointRulePositioningStrategyTest
             set => Graph.Result = RulebaseGraphReadResult.Success(new RulebaseGraphReadValue(value, 1));
         }
 
-        public List<ComplianceNetworkZone> Zones
+        public List<NetworkZone> Zones
         {
             set => Matrix.Result = DesignatedZoneMatrixReadResult.Success(new DesignatedZoneMatrixReadValue(value));
         }
@@ -1072,12 +1072,12 @@ internal class CheckPointRulePositioningStrategyTest
         public TaskCompletionSource? Pending { get; set; }
         public int CallCount { get; private set; }
         public CreationRuleNetworkInput? NetworkInput { get; private set; }
-        public IReadOnlyCollection<ComplianceNetworkZone>? Zones { get; private set; }
+        public IReadOnlyCollection<NetworkZone>? Zones { get; private set; }
         public CancellationToken Token { get; private set; }
 
         public async Task<CreationRuleZoneResolutionResult> ResolveAsync(
             CreationRuleNetworkInput networkInput,
-            IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+            IReadOnlyCollection<NetworkZone> networkZones,
             RulePositioningConfiguration configuration,
             CancellationToken cancellationToken)
         {
@@ -1211,7 +1211,7 @@ internal class CheckPointRulePositioningStrategyTest
     {
         public Task<CreationRuleZoneResolutionResult> ResolveAsync(
             CreationRuleNetworkInput networkInput,
-            IReadOnlyCollection<ComplianceNetworkZone> networkZones,
+            IReadOnlyCollection<NetworkZone> networkZones,
             RulePositioningConfiguration configuration,
             CancellationToken cancellationToken) => Task.FromResult(
                 CreationRuleZoneResolutionResult.Success(ZoneInput()));

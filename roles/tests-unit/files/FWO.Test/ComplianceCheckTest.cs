@@ -185,9 +185,9 @@ namespace FWO.Test
                 ]
             };
 
-            List<ComplianceNetworkZone> permissiveZones =
+            List<NetworkZone> permissiveZones =
             [
-                new ComplianceNetworkZone
+                new NetworkZone
                 {
                     Id = 1,
                     CriterionId = 101,
@@ -200,7 +200,7 @@ namespace FWO.Test
             ];
             permissiveZones[0].AllowedCommunicationDestinations = [permissiveZones[0]];
 
-            List<ComplianceNetworkZone> restrictiveZones = CreateNetworkZones(true, true, 101);
+            List<NetworkZone> restrictiveZones = CreateNetworkZones(true, true, 101);
 
             ApiConnection.AsSub()
                 .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
@@ -213,7 +213,7 @@ namespace FWO.Test
                     [new Management { Id = 2, Name = "Mgmt2" }]);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>())
+                .SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>())
                 .Returns(permissiveZones, restrictiveZones);
 
             Rule rule = CreateSimpleRule(99, destinationHigh: true);
@@ -227,7 +227,7 @@ namespace FWO.Test
                 Assert.That(secondRunCompliant, Is.False);
                 Assert.That(ComplianceCheck.Managements!.Single().Id, Is.EqualTo(2));
                 ApiConnection.AsSub().Received(2).SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-                ApiConnection.AsSub().Received(2).SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>());
+                ApiConnection.AsSub().Received(2).SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>());
             });
         }
 
@@ -262,11 +262,11 @@ namespace FWO.Test
                 ]
             };
 
-            List<ComplianceNetworkZone> matrixAZones = CreateNetworkZones(true, true, 101);
+            List<NetworkZone> matrixAZones = CreateNetworkZones(true, true, 101);
             matrixAZones[0].Name = "Matrix A Destination";
             matrixAZones[1].Name = "Matrix A Source";
 
-            List<ComplianceNetworkZone> matrixBZones = CreateNetworkZones(true, true, 102);
+            List<NetworkZone> matrixBZones = CreateNetworkZones(true, true, 102);
             matrixBZones[0].Name = "Matrix B Destination";
             matrixBZones[1].Name = "Matrix B Source";
 
@@ -275,12 +275,12 @@ namespace FWO.Test
                 .Returns(policy);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix,
+                .SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix,
                     Arg.Is<object>(vars => HasCriterionId(vars, 101)))
                 .Returns(matrixAZones);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix,
+                .SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix,
                     Arg.Is<object>(vars => HasCriterionId(vars, 102)))
                 .Returns(matrixBZones);
 
@@ -739,7 +739,7 @@ namespace FWO.Test
             rulesToCheck.Add(rule);
             List<Management> managements = new();
             managements.Add(new Management { Id = 1, Name = "Management" });
-            Dictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion = new();
+            Dictionary<int, List<NetworkZone>> networkZonesByCriterion = new();
             networkZonesByCriterion.Add(matrixCriterion.Id, ComplianceCheck.NetworkZones);
 
             bool isCompliant = await ComplianceCheck.AreRulesCompliant(policy, rulesToCheck, managements, networkZonesByCriterion);

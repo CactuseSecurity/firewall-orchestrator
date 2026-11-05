@@ -104,8 +104,6 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.True);
             Assert.That(errorResult, Is.Null);
-            Assert.That(leaf.NormalizedIpStart, Is.EqualTo("10.0.0.0"));
-            Assert.That(leaf.NormalizedIpEnd, Is.EqualTo("10.0.0.255"));
         });
     }
 
@@ -126,39 +124,38 @@ internal class ComplianceZoneValidationTest
         };
 
         bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
-        ResolveZonesForObjectsRequest.LeafObjectRequest leaf = (ResolveZonesForObjectsRequest.LeafObjectRequest)request.Objects[0];
 
         Assert.Multiple(() =>
         {
             Assert.That(valid, Is.True);
             Assert.That(errorResult, Is.Null);
-            Assert.That(leaf.NormalizedIpStart, Is.EqualTo("2001:db8::"));
-            Assert.That(leaf.NormalizedIpEnd, Is.EqualTo("2001:db8::3"));
         });
     }
 
-    [TestCase("10.0.0.10", "10.0.0.10", "10.0.0.10")]
-    [TestCase("2001:db8::10", "2001:db8::10", "2001:db8::10")]
-    [TestCase("10.0.0.0/24", "10.0.0.0", "10.0.0.255")]
-    [TestCase("2001:db8::/126", "2001:db8::", "2001:db8::3")]
-    [TestCase("0.0.0.0/0", "0.0.0.0", "255.255.255.255")]
-    public void ResolveZonesForObjects_NormalizesIpNetworkInNestedLeaf(
-        string ipNetwork,
-        string expectedStart,
-        string expectedEnd)
+    /// <summary>
+    /// Verifies addresses in a nested leaf pass and the validator leaves the request unchanged; the service
+    /// normalizes the addresses itself.
+    /// </summary>
+    [TestCase("10.0.0.10")]
+    [TestCase("2001:db8::10")]
+    [TestCase("10.0.0.0/24")]
+    [TestCase("10.0.0.5/24")]
+    [TestCase("2001:db8::/126")]
+    [TestCase("0.0.0.0/0")]
+    public void ResolveZonesForObjects_AcceptsAddressInNestedLeaf(string address)
     {
         ResolveZonesForObjectsRequest.LeafObjectRequest leaf = new()
         {
             Name = "Leaf",
             Type = "network"
         };
-        if (ipNetwork.Contains('/'))
+        if (address.Contains('/'))
         {
-            leaf.IpNetwork = ipNetwork;
+            leaf.IpNetwork = address;
         }
         else
         {
-            leaf.IpHost = ipNetwork;
+            leaf.IpHost = address;
         }
         ResolveZonesForObjectsRequest request = new()
         {
@@ -178,12 +175,8 @@ internal class ComplianceZoneValidationTest
         {
             Assert.That(valid, Is.True);
             Assert.That(errorResult, Is.Null);
-            Assert.That(leaf.NormalizedIpStart, Is.EqualTo(expectedStart));
-            Assert.That(leaf.NormalizedIpEnd, Is.EqualTo(expectedEnd));
+            Assert.That(address.Contains('/') ? leaf.IpNetwork : leaf.IpHost, Is.EqualTo(address));
         });
-        Assert.That(ResolveZonesForObjectsRequestValidator.TryValidate(request, out errorResult), Is.True);
-        Assert.That(errorResult, Is.Null);
-        Assert.That(ipNetwork.Contains('/') ? leaf.IpNetwork : leaf.IpHost, Is.EqualTo(ipNetwork));
     }
 
     [Test]
@@ -706,6 +699,11 @@ internal class ComplianceZoneValidationTest
             Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("only accepts"));
             Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("ipNetwork"));
         });
+        foreach (RequestKeyDefinition addressKey in AddressInputRequestValidator.Keys)
+        {
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(),
+                Does.Contain($"'{addressKey.JsonName}': {addressKey.Description}"));
+        }
     }
 
     [TestCase("ipStart")]

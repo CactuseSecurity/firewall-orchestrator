@@ -387,7 +387,7 @@
         get => editorService.displayElementsEditor;
         set => editorService.displayElementsEditor = value;
     }
-    private WfReqTask? editingElementsTask
+    internal WfReqTask? editingElementsTask
     {
         get => editorService.editingElementsTask;
         set => editorService.editingElementsTask = value;
@@ -492,16 +492,16 @@
         return editorService.CanEdit(tasks, fieldKey);
     }
 
-    private Task OpenOwnerEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenOwnerEditor(task));
-    private Task OpenRuleActionEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenRuleActionEditor(task));
-    private Task OpenTrackingEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenTrackingEditor(task));
-    private Task OpenManagementEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenManagementEditor(task));
-    private Task OpenTargetDatesEditor(WfReqTask task, string fieldKey) => RunEditorOperation(() => editorService.OpenTargetDatesEditor(task, fieldKey));
+    internal Task OpenOwnerEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenOwnerEditor(task));
+    internal Task OpenRuleActionEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenRuleActionEditor(task));
+    internal Task OpenTrackingEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenTrackingEditor(task));
+    internal Task OpenManagementEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenManagementEditor(task));
+    internal Task OpenTargetDatesEditor(WfReqTask task, string fieldKey) => RunEditorOperation(() => editorService.OpenTargetDatesEditor(task, fieldKey));
     private Task OpenCreateTimeObjectTaskEditor() => RunEditorOperation(editorService.OpenCreateTimeObjectTaskEditor);
     private Task OpenTextEditor(WfReqTask task, string fieldKey, string value) => RunEditorOperation(() => editorService.OpenTextEditor(task, fieldKey, value));
-    private Task OpenElementsEditor(WfReqTask task, string fieldKey) => RunEditorOperation(() => editorService.OpenElementsEditor(task, fieldKey));
-    private Task OpenGroupMembersEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenGroupMembersEditor(task));
-    private Task OpenExistingObjectTaskEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenExistingObjectTaskEditor(task));
+    internal Task OpenElementsEditor(WfReqTask task, string fieldKey) => RunEditorOperation(() => editorService.OpenElementsEditor(task, fieldKey));
+    internal Task OpenGroupMembersEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenGroupMembersEditor(task));
+    internal Task OpenExistingObjectTaskEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenExistingObjectTaskEditor(task));
     private Task OpenObjectTaskEditor() => RunEditorOperation(editorService.OpenObjectTaskEditor);
 
     private Task SaveObjectTask(WfReqTask task) => InvokeEditor(() => editorService.SaveObjectTask(task));

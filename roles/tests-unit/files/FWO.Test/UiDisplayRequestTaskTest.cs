@@ -851,6 +851,86 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayRequestTask_RuleDeleteWithUnknownRule_IsRejected()
+        {
+            List<string> messages = [];
+            SimulatedUserConfig userConfig = new();
+            WfReqTask task = new() { Title = "Delete rule", TaskType = WfTaskType.rule_delete.ToString() };
+            task.Elements.Add(new WfReqElement
+            {
+                Field = ElemFieldType.rule.ToString(),
+                RuleUid = "rule-404"
+            });
+            DisplayRequestTask component = new();
+            RequestTaskElementEditor elementEditor = new();
+            SetMember(elementEditor, "actRules", new List<NwRuleElement> { new() });
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler { ActReqTask = task });
+            SetMember(component, "actTaskType", WfTaskType.rule_delete);
+            SetMember(component, "actRuleDevice", new Device { Id = 12 });
+            SetMember(component, "elementEditor", elementEditor);
+            SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((_, _, message, _) => messages.Add(message)));
+
+            bool valid = await InvokePrivateTaskResult<bool>(component, "CheckTaskValues");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0], Is.EqualTo(userConfig.GetText("E8013") + "rule-404"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_ObjectTaskWithInvalidStructure_IsRejected()
+        {
+            List<string> messages = [];
+            SimulatedUserConfig userConfig = new();
+            DisplayRequestTask component = new();
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = new WfReqTask { Title = "Create object", TaskType = WfTaskType.object_create.ToString() }
+            });
+            SetMember(component, "actTaskType", WfTaskType.object_create);
+            SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((_, _, message, _) => messages.Add(message)));
+
+            bool valid = await InvokePrivateTaskResult<bool>(component, "CheckTaskValues");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0], Is.EqualTo(userConfig.GetText("E5124")));
+            });
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_ObjectTaskInEditModeWithoutEditor_IsRejected()
+        {
+            List<string> messages = [];
+            SimulatedUserConfig userConfig = new();
+            DisplayRequestTask component = new();
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                EditReqTaskMode = true,
+                ActReqTask = new WfReqTask { Title = "Create object", TaskType = WfTaskType.object_create.ToString() }
+            });
+            SetMember(component, "actTaskType", WfTaskType.object_create);
+            SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((_, _, message, _) => messages.Add(message)));
+
+            bool valid = await InvokePrivateTaskResult<bool>(component, "RejectInvalidObjectTask");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0], Is.EqualTo(userConfig.GetText("E5124")));
+            });
+        }
+
+        [Test]
         public async Task DisplayRequestTask_PrepareReqTaskForSave_SetsSpecialTaskValues()
         {
             WfReqTask ruleDeleteTask = new() { Title = "Delete", TaskType = WfTaskType.rule_delete.ToString() };

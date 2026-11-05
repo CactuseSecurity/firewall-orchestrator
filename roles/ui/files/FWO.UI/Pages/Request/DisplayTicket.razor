@@ -276,7 +276,7 @@
     private bool firstParamSet = true;
     private bool displayApprovalTaskDetailsView = false;
     private bool lastOpenApprovalTaskDetails;
-    private string? approvalAccessTaskField;
+    private string? approvalAccessTaskField { get; set; }
 
     private bool UseApprovalTaskDetailsView => Phase == WorkflowPhases.approval
         && userConfig.ReqApprovalEditMode == ApprovalEditMode.AccessTaskView;

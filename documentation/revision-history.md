@@ -2,9 +2,9 @@
 
 ## 9.9.1 - 05.11.2026
 - request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent
-- workflow state matrix: configure whether phases after request are promoted from the ticket, from individual tasks, or both; the request phase remains ticket-driven
+- workflow UI: the promotion-mode setting now also supports action-buttons-only in addition to ticket, task and combined promotion
 - workflow UI: approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks
-- workflow UI: classic approval editing now respects the configured approver-allowed ticket and task fields, while ticket, task and action-button promotion modes control the available promotion controls
+- workflow UI: classic approval editing now respects the configured approver-allowed ticket and task fields
 - workflow: object and service task references are preserved when approval-task elements are edited, and affected access-task snapshots are refreshed after changes to their defining tasks
 
 ## 9.9.0 - 04.11.2026

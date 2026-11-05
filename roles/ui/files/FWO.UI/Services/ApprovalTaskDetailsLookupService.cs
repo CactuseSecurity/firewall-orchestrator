@@ -37,7 +37,7 @@ internal sealed class ApprovalTaskDetailsLookupService
                 context.UserConfig.ReducedProtocolSet);
             if (context.UserConfig.DesignatedZoneMatrixId > 0)
             {
-                state.NetworkZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
+                state.NetworkZones = await apiConnection.SendQueryAsync<List<NetworkZone>>(
                     NetworkZoneQueries.getNetworkZonesForMatrix,
                     new { criterionId = context.UserConfig.DesignatedZoneMatrixId }) ?? [];
             }

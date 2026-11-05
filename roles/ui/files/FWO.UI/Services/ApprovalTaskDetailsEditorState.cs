@@ -11,7 +11,7 @@ namespace FWO.Ui.Services;
 internal sealed class ApprovalTaskDetailsEditorState
 {
     internal ApprovalTaskElementDisplayMode AccessElementDisplayMode = ApprovalTaskElementDisplayMode.Resolved;
-    internal List<ComplianceNetworkZone> NetworkZones = [];
+    internal List<NetworkZone> NetworkZones = [];
     internal List<IpProtocol> IpProtocols = [];
     internal List<IpProtocol> SelectableIpProtocols = [];
     internal List<RuleAction> RuleActions = [];

@@ -36,7 +36,7 @@ namespace FWO.Ui.Services
         private readonly List<RuleAction> ruleActions;
         private readonly List<Tracking> trackings;
         private readonly List<IpProtocol> ipProtocols;
-        private readonly List<ComplianceNetworkZone> networkZones;
+        private readonly List<NetworkZone> networkZones;
         private readonly ApprovalTaskElementDisplayMode displayMode;
 
         /// <summary>Initializes display logic using the legacy technical/resolved switch.</summary>
@@ -49,7 +49,7 @@ namespace FWO.Ui.Services
         /// <param name="technicalRuleView">Whether technical values should be shown.</param>
         public ApprovalTaskDisplayLogic(WfHandler wfHandler, UserConfig userConfig,
             List<RuleAction> ruleActions, List<Tracking> trackings, List<IpProtocol> ipProtocols,
-            List<ComplianceNetworkZone> networkZones, bool technicalRuleView)
+            List<NetworkZone> networkZones, bool technicalRuleView)
             : this(wfHandler, userConfig, ruleActions, trackings, ipProtocols, networkZones,
                 technicalRuleView ? ApprovalTaskElementDisplayMode.Technical : ApprovalTaskElementDisplayMode.Resolved)
         {
@@ -65,7 +65,7 @@ namespace FWO.Ui.Services
         /// <param name="displayMode">The element display mode.</param>
         public ApprovalTaskDisplayLogic(WfHandler wfHandler, UserConfig userConfig,
             List<RuleAction> ruleActions, List<Tracking> trackings, List<IpProtocol> ipProtocols,
-            List<ComplianceNetworkZone> networkZones, ApprovalTaskElementDisplayMode displayMode)
+            List<NetworkZone> networkZones, ApprovalTaskElementDisplayMode displayMode)
         {
             this.wfHandler = wfHandler;
             this.userConfig = userConfig;

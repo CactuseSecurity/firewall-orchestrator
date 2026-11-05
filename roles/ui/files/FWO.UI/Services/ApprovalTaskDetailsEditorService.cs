@@ -53,7 +53,7 @@ internal sealed class ApprovalTaskDetailsEditorService
         get => state.AccessElementDisplayMode;
         set => state.AccessElementDisplayMode = value;
     }
-    internal List<ComplianceNetworkZone> networkZones
+    internal List<NetworkZone> networkZones
     {
         get => state.NetworkZones;
         set => state.NetworkZones = value;

@@ -127,6 +127,11 @@ namespace FWO.Middleware.Server.Controllers
                     return FormatInterval(simple.RepeatInterval);
                 }
 
+                if (trigger is ICalendarIntervalTrigger calendar && calendar.RepeatInterval > 0)
+                {
+                    return FormatCalendarInterval(calendar);
+                }
+
                 if (trigger is ICronTrigger cron)
                 {
                     return cron.CronExpressionString ?? "";
@@ -134,6 +139,18 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             return "";
+        }
+
+        private static string FormatCalendarInterval(ICalendarIntervalTrigger trigger)
+        {
+            return trigger.RepeatIntervalUnit switch
+            {
+                IntervalUnit.Second => FormatInterval(TimeSpan.FromSeconds(trigger.RepeatInterval)),
+                IntervalUnit.Minute => FormatInterval(TimeSpan.FromMinutes(trigger.RepeatInterval)),
+                IntervalUnit.Hour => FormatInterval(TimeSpan.FromHours(trigger.RepeatInterval)),
+                IntervalUnit.Day => FormatInterval(TimeSpan.FromDays(trigger.RepeatInterval)),
+                _ => $"{trigger.RepeatInterval} {trigger.RepeatIntervalUnit}"
+            };
         }
 
         private static string FormatInterval(TimeSpan interval)

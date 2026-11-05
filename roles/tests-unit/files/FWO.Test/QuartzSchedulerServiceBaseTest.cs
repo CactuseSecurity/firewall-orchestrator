@@ -10,7 +10,6 @@ using GraphQL.Client.Serializer.SystemTextJson;
 using Microsoft.Extensions.Hosting;
 using NSubstitute;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 using Quartz;
 using System.Globalization;
 using FwoSchedulerOptions = FWO.Middleware.Server.Services.QuartzSchedulerOptions;
@@ -30,33 +29,11 @@ namespace FWO.Test
         /// anyway, so a loaded runner delays the suite rather than failing it.
         /// </summary>
         private static readonly TimeSpan kConditionTimeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeZoneInfo kBerlin = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
 
         private sealed class TestJob : IJob
         {
             public ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default) => default;
-        }
-
-        private sealed class TestSchedulerService : QuartzSchedulerServiceBase<TestJob>
-        {
-            private TestSchedulerService()
-                : base(
-                    null!,
-                    null!,
-                    null!,
-                    null!,
-                    new FwoSchedulerOptions("Test", "Test", "Test", "Test"))
-            { }
-
-            protected override int SleepTime => 1;
-
-            protected override DateTime StartAt => DateTime.MinValue;
-
-            protected override TimeSpan Interval => TimeSpan.FromSeconds(1);
-
-            public static DateTimeOffset CalculateStartTimeForTest(DateTime configuredStartTime, TimeSpan interval, DateTime now)
-            {
-                return CalculateStartTime(configuredStartTime, interval, now);
-            }
         }
 
         private sealed class SubscriptionDrivenTestSchedulerService : QuartzSchedulerServiceBase<TestJob>
@@ -87,39 +64,32 @@ namespace FWO.Test
             protected override TimeSpan Interval => TimeSpan.FromSeconds(globalConfig.ExternalRequestSleepTime);
         }
 
-        [Test]
-        public void CalculateStartTime_ReturnsFutureStartTime()
+        private sealed class HourlyConfigTestSchedulerService : QuartzSchedulerServiceBase<TestJob>
         {
-            DateTime now = new(2024, 1, 1, 12, 0, 0, DateTimeKind.Unspecified);
-            DateTime configuredStartTime = now.AddMinutes(-12);
-            TimeSpan interval = TimeSpan.FromMinutes(5);
+            public HourlyConfigTestSchedulerService(
+                ISchedulerFactory schedulerFactory,
+                ApiConnection apiConnection,
+                GlobalConfig globalConfig,
+                IHostApplicationLifetime appLifetime,
+                TimeProvider timeProvider)
+                : base(
+                    schedulerFactory,
+                    apiConnection,
+                    globalConfig,
+                    appLifetime,
+                    new FwoSchedulerOptions(
+                        "HourlyTestScheduler",
+                        "HourlyTestJob",
+                        "HourlyTestTrigger",
+                        ConfigQueries.subscribeImportAppDataConfigChanges),
+                    timeProvider)
+            { }
 
-            DateTimeOffset result = TestSchedulerService.CalculateStartTimeForTest(configuredStartTime, interval, now);
+            protected override int SleepTime => globalConfig.ImportAppDataSleepTime;
 
-            DateTimeOffset expected = new(now.AddMinutes(3));
-            ClassicAssert.AreEqual(expected, result);
-        }
+            protected override DateTime StartAt => globalConfig.ImportAppDataStartAt;
 
-        [Test]
-        public void CalculateStartTime_PreservesFutureStartTime()
-        {
-            DateTime now = new(2024, 1, 1, 12, 0, 0, DateTimeKind.Unspecified);
-            DateTime configuredStartTime = now.AddMinutes(10);
-            TimeSpan interval = TimeSpan.FromMinutes(5);
-
-            DateTimeOffset result = TestSchedulerService.CalculateStartTimeForTest(configuredStartTime, interval, now);
-
-            ClassicAssert.AreEqual(new DateTimeOffset(configuredStartTime), result);
-        }
-
-        [Test]
-        public void CalculateStartTime_ThrowsOnNonPositiveInterval()
-        {
-            DateTime now = new(2024, 1, 1, 12, 0, 0, DateTimeKind.Unspecified);
-            DateTime configuredStartTime = now;
-
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-                TestSchedulerService.CalculateStartTimeForTest(configuredStartTime, TimeSpan.Zero, now));
+            protected override TimeSpan Interval => TimeSpan.FromHours(globalConfig.ImportAppDataSleepTime);
         }
 
         [Test]
@@ -173,6 +143,36 @@ namespace FWO.Test
                 .OfType<ITrigger>()
                 .Single();
             Assert.That(scheduledTrigger.StartTimeUtc, Is.EqualTo(new DateTimeOffset(new DateTime(2026, 1, 1, 12, 3, 0))));
+        }
+
+        [Test]
+        public async Task HourBasedDailySchedule_CreatedInSummer_KeepsWallClockTimeAfterAutumnSwitch()
+        {
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            ConfigureQuartzScheduler(scheduler);
+            ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
+            schedulerFactory.GetScheduler().Returns(_ => new ValueTask<IScheduler>(scheduler));
+            CapturingApiConnection apiConnection = new();
+            using TestApplicationLifetime appLifetime = new();
+            DateTimeOffset summerNow = WallClockSchedule.ToInstant(new DateTime(2026, 10, 20, 12, 0, 0), kBerlin);
+            FixedTimeProvider timeProvider = new(summerNow, kBerlin);
+
+            _ = new HourlyConfigTestSchedulerService(schedulerFactory, apiConnection, new SimulatedGlobalConfig(), appLifetime, timeProvider);
+            appLifetime.Start();
+            await WaitUntil(() => apiConnection.ConfigUpdateHandler != null);
+
+            apiConnection.Emit(CreateImportAppDataConfig(24, new DateTime(2026, 1, 1, 6, 0, 0)));
+            await WaitUntil(async () => await ScheduleTriggerCallCount(scheduler) == 1);
+
+            ITrigger scheduledTrigger = scheduler.ReceivedCalls()
+                .Where(call => call.GetMethodInfo().Name == nameof(IScheduler.ScheduleJob))
+                .Select(call => call.GetArguments()[0])
+                .OfType<ITrigger>()
+                .Single();
+            DateTimeOffset afterSwitch = WallClockSchedule.ToInstant(new DateTime(2026, 10, 26, 0, 0, 0), kBerlin);
+            DateTimeOffset? firstRunAfterSwitch = scheduledTrigger.GetFireTimeAfter(afterSwitch);
+            Assert.That(scheduledTrigger.StartTimeUtc, Is.EqualTo(WallClockSchedule.ToInstant(new DateTime(2026, 10, 21, 6, 0, 0), kBerlin)));
+            Assert.That(firstRunAfterSwitch, Is.EqualTo(new DateTimeOffset(2026, 10, 26, 6, 0, 0, TimeSpan.FromHours(1))));
         }
 
         [Test]
@@ -296,6 +296,15 @@ namespace FWO.Test
             [
                 new() { Key = "externalRequestSleepTime", Value = sleepTime.ToString(CultureInfo.InvariantCulture) },
                 new() { Key = "externalRequestStartAt", Value = startAt.ToString("O", CultureInfo.InvariantCulture) }
+            ];
+        }
+
+        private static List<ConfigItem> CreateImportAppDataConfig(int sleepTimeHours, DateTime startAt)
+        {
+            return
+            [
+                new() { Key = "importAppDataSleepTime", Value = sleepTimeHours.ToString(CultureInfo.InvariantCulture) },
+                new() { Key = "importAppDataStartAt", Value = startAt.ToString("O", CultureInfo.InvariantCulture) }
             ];
         }
 

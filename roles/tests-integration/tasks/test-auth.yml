@@ -191,7 +191,7 @@
   when: "jwt_unique_user_name != 'user1' ~ test_postfix"
 
 # --- negative test: wrong credentials ---
-- name: middleware test get jwt wrong creds
+- name: "expected to fail: middleware rejects a jwt request with wrong credentials"
   ansible.builtin.uri:
       url: "{{ test_middleware_uri }}api/AuthenticationToken/Get/"
       method: POST
@@ -208,7 +208,8 @@
   changed_when: false
   ignore_errors: true
 
-- ansible.builtin.debug:
+- name: "expected to fail: rejection of the wrong credentials caught"
+  ansible.builtin.debug:
       var: sample_jwt
 
 - name: middleware validate jwt test wrong creds response

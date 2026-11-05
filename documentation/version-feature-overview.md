@@ -250,6 +250,27 @@ For a feature-centric, thematically grouped view see
 - The Cisco ASA importer checks the SSH host key of the device against a known hosts file on the importer host; admins see the managements whose key is unknown or changed together with instructions.
 - Hardening of report filters, the Report/Get REST call, external ticket and notification email templates, HTML report exports and firewall API error logging; the network syslog receiver is no longer opened.
 
-### 9.8.5 - 29.10.2026
+### 9.8.5 — 30.10.2026
+- The installer handles operating system upgrades: it stops with migration instructions when PostgreSQL moved to a new major version, and rebuilds the python venvs of the importer and the customizing scripts for a new python version.
+- The Docker role was removed; upgrades start from 9.0.16 or newer, older installations upgrade with v9.8.4 first.
+- The Tufin SecureChange ticket templates are device specific settings that can be adapted globally, per device type and per management; the upgrade moves the templates stored with the ticket systems.
+
+### 9.8.6 — 02.11.2026
+- The compliance check fails closed: a criterion that cannot be evaluated makes the rule not assessable instead of compliant, also in the conditional auto-promote of the workflow.
+- The Cisco ASA importer offers the SHA-1 SSH key exchange only when the new device specific setting "Allow SHA-1 SSH key exchange" is switched on.
+- Security hardening of the API permissions, password policy enforcement in the middleware, CSV and HTML exports, installer secrets and local privileges (database, LDAP, browser location, sudoers handling).
+- Updated NuGet packages; the sort, hide, clear search and column filter labels of the FancyTable based tables are shown in the user's language.
+
+### 9.8.7 — 02.11.2026
+- Rule positioning calculates and persists semantic positions for Check Point access-rule implementation tasks, including placement at the end of a uniquely matched zone-pair section.
+- Auto-calculated undefined-internal zones cover complete IPv6 networks, and shared IP range parsing accepts dotted IPv4 netmasks.
+
+### 9.9.0 — 02.11.2026
+- Azure Firewall import module fetches firewall policies (network rules) and IP groups directly via the Azure Resource Manager API (api version 2026-01-01 with fallback to 2024-05-01).
+- Azure parent policies (policy hierarchy) are imported; their rules precede the rules of the child policy.
+- Azure gateway autodiscovery: finds the Azure Firewalls of the subscription and maps each to its firewall policy.
+- New importer setting "Skip unsupported rules": rules that cannot be represented (currently Azure geo-location filters) are skipped with a warning or fail the import.
+
+### 9.9.1 - 05.11.2026
 - Access-task elements reference their ticket-local object-create task, keeping object changes consistent.
 - Workflow state matrices can configure whether phases after request are promoted from the ticket, from individual tasks, or both. The request phase remains ticket-driven.

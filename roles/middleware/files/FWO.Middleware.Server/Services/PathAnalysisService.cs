@@ -4,6 +4,7 @@ using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Services.PathAnalysis;
 using NetTools;
+using System.Net;
 using FWO.Basics.Exceptions;
 
 namespace FWO.Middleware.Server.Services;
@@ -39,8 +40,8 @@ public sealed class PathAnalysisService
     {
         PathAnalysisRequest pathAnalysisRequest = new()
         {
-            Sources = ToRanges(request.Sources),
-            Destinations = ToRanges(request.Destinations),
+            Sources = ToRanges(request.Sources, ResolvePathDevicesRequestValidationSchema.kSourcesPath),
+            Destinations = ToRanges(request.Destinations, ResolvePathDevicesRequestValidationSchema.kDestinationsPath),
             MatrixId = request.Options.MatrixId
         };
 
@@ -68,21 +69,23 @@ public sealed class PathAnalysisService
     /// The request validator has already rejected missing lists, null elements and every invalid block, so a
     /// failure here is a programming error and not the caller's fault; it surfaces as a server error.
     /// </remarks>
-    private static List<IPAddressRange> ToRanges(List<IpRangeOrNetworkRequest?>? ipBlocks)
+    internal static List<IPAddressRange> ToRanges(List<AddressInputRequest?>? addresses, string path)
     {
         List<IPAddressRange> ranges = [];
-        ipBlocks ??= [];
+        addresses ??= [];
 
-        for (int index = 0; index < ipBlocks.Count; index++)
+        for (int index = 0; index < addresses.Count; index++)
         {
-            IpRangeOrNetworkRequest? ipBlock = ipBlocks[index]
-                ?? throw new InvalidOperationException($"IP block at index {index} passed validation but is null.");
-            if (!IpRangeOrNetworkParser.TryParse(ipBlock, out IPAddressRange? range, out string? error))
+            string entryPath = $"{path}[{index}]";
+            AddressInputRequest? address = addresses[index]
+                ?? throw new InvalidOperationException($"'{entryPath}' passed validation but is null.");
+            if (!AddressInputNormalizer.TryValidateAndNormalize(
+                address, $"'{entryPath}'", out NormalizedAddressBounds bounds, out string? error))
             {
-                throw new InvalidOperationException($"IP block at index {index} passed validation but could not be converted: {error}");
+                throw new InvalidOperationException($"'{entryPath}' passed validation but could not be converted: {error}");
             }
 
-            ranges.Add(range!);
+            ranges.Add(new IPAddressRange(IPAddress.Parse(bounds.IpStart), IPAddress.Parse(bounds.IpEnd)));
         }
         return ranges;
     }

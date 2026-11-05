@@ -48,7 +48,7 @@ namespace FWO.DeviceAutoDiscovery
                     {
                         domainList = await restClientCP.GetDomains(@sessionId);
                     }
-                    else if (SuperManagement.DeviceType.Id == 9)    // 9=stand-alone manager
+                    else if (SuperManagement.DeviceType.Id == DeviceTypeIds.kCheckPointR8x)
                     {
                         domainList.Add(new Domain() { DomainType = "standalone", Name = "", Uid = "" });
                     }
@@ -80,7 +80,7 @@ namespace FWO.DeviceAutoDiscovery
                 DomainUid = domainUid,
                 DebugLevel = superManagement.DebugLevel,
                 SuperManagerId = superManagement.Id,
-                DeviceType = new DeviceType { Id = 9 },
+                DeviceType = new DeviceType { Id = DeviceTypeIds.kCheckPointR8x },
                 Devices = []
             };
             // if super manager is just a simple management, overwrite the default (supermanager) values
@@ -204,7 +204,7 @@ namespace FWO.DeviceAutoDiscovery
                     {
                         Name = cpDev.Name,
                         Uid = cpDev.Uid,
-                        DeviceType = new DeviceType { Id = 9 } // CheckPoint GW
+                        DeviceType = new DeviceType { Id = DeviceTypeIds.kCheckPointR8x } // CheckPoint GW
                     };
                     devices.Add(dev);
                 }

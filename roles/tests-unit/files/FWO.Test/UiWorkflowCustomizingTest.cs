@@ -1162,7 +1162,7 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)WorkflowConfigurations);
                 }
 
-                if (query == PathAnalysisAlgorithmQueries.getPathAnalysisAlgorithms && typeof(QueryResponseType) == typeof(List<PathAnalysisAlgorithm>))
+                if (query == PathAnalysisQueries.getPathAnalysisAlgorithms && typeof(QueryResponseType) == typeof(List<PathAnalysisAlgorithm>))
                 {
                     return Task.FromResult((QueryResponseType)(object)PathAnalysisAlgorithms);
                 }

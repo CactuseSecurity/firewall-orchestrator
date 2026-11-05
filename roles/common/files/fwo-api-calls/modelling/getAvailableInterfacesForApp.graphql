@@ -1,0 +1,128 @@
+query getAvailableInterfacesForApp($appId: Int!, $where: modelling_connection_bool_exp = {}, $limit: Int, $offset: Int) {
+  modelling_connection(
+    where: {
+      _and: [
+        { is_interface: { _eq: true }, is_published: { _eq: true }, is_requested: { _eq: false }, removed: { _eq: false } }
+        {
+          _or: [
+            { app_id: { _eq: $appId } }
+            { interface_permission: { _is_null: true } }
+            { interface_permission: { _ilike: "public" } }
+            { interface_permission: { _ilike: "restricted" }, permitted_owners: { app_id: { _eq: $appId } } }
+          ]
+        }
+        $where
+      ]
+    }
+    limit: $limit
+    offset: $offset
+    order_by: [{ name: asc }, { id: asc }]
+  ) {
+    id
+    name
+    reason
+    interface_permission
+    owner {
+      id
+      name
+      app_id_external
+    }
+    source_nwobjects: nwobject_connections(where: { connection_field: { _eq: 1 }, owner_network: { is_deleted: { _eq: false } } }) {
+      owner_network {
+        ...restAddress
+      }
+    }
+    source_approles: nwgroup_connections(where: { connection_field: { _eq: 1 }, nwgroup: { group_type: { _eq: 20 }, is_deleted: { _eq: false } } }) {
+      nwgroup {
+        ...restNwGroupMembers
+      }
+    }
+    source_areas: nwgroup_connections(where: { connection_field: { _eq: 1 }, nwgroup: { group_type: { _eq: 23 }, is_deleted: { _eq: false } } }) {
+      nwgroup {
+        ...restAreaMembers
+      }
+    }
+    source_other_groups: nwgroup_connections(where: { connection_field: { _eq: 1 }, nwgroup: { group_type: { _nin: [20, 23] }, is_deleted: { _eq: false } } }) {
+      nwgroup {
+        ...restNwGroupMembers
+      }
+    }
+    destination_nwobjects: nwobject_connections(where: { connection_field: { _eq: 2 }, owner_network: { is_deleted: { _eq: false } } }) {
+      owner_network {
+        ...restAddress
+      }
+    }
+    destination_approles: nwgroup_connections(where: { connection_field: { _eq: 2 }, nwgroup: { group_type: { _eq: 20 }, is_deleted: { _eq: false } } }) {
+      nwgroup {
+        ...restNwGroupMembers
+      }
+    }
+    destination_areas: nwgroup_connections(where: { connection_field: { _eq: 2 }, nwgroup: { group_type: { _eq: 23 }, is_deleted: { _eq: false } } }) {
+      nwgroup {
+        ...restAreaMembers
+      }
+    }
+    destination_other_groups: nwgroup_connections(where: { connection_field: { _eq: 2 }, nwgroup: { group_type: { _nin: [20, 23] }, is_deleted: { _eq: false } } }) {
+      nwgroup {
+        ...restNwGroupMembers
+      }
+    }
+    services: service_connections {
+      service {
+        ...restService
+      }
+    }
+    service_groups: service_group_connections {
+      service_group {
+        id
+        name
+        services: service_service_groups {
+          service {
+            ...restService
+          }
+        }
+      }
+    }
+  }
+}
+
+fragment restAddress on owner_network {
+  id
+  name
+  ip
+  ip_end
+}
+
+fragment restNwGroupMembers on modelling_nwgroup {
+  id
+  id_string
+  name
+  nwobjects: nwobject_nwgroups(where: { owner_network: { is_deleted: { _eq: false } } }) {
+    owner_network {
+      ...restAddress
+    }
+  }
+}
+
+fragment restAreaMembers on modelling_nwgroup {
+  id
+  id_string
+  name
+  ip_data: nwobject_nwgroups(where: { owner_network: { is_deleted: { _eq: false } } }) {
+    owner_network {
+      ...restAddress
+    }
+  }
+}
+
+fragment restService on modelling_service {
+  id
+  name
+  port
+  port_end
+  proto_id
+  protocol: stm_ip_proto {
+    id: ip_proto_id
+    name: ip_proto_name
+  }
+}

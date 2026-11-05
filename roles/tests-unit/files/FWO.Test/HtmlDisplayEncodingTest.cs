@@ -22,7 +22,7 @@ namespace FWO.Test
         private const string kRawElement = "<img";
         private static readonly string EncodedPayload = WebUtility.HtmlEncode(kPayload);
 
-        private static readonly ZoneWrapper[] PayloadZones = [new() { Content = new NetworkZone { Name = kPayload } }];
+        private static readonly ZoneWrapper[] PayloadZones = [new() { Content = new FirewallZone { Name = kPayload } }];
         private static readonly DeviceWrapper[] PayloadGateways = [new() { Content = new Device { Id = 1, Name = kPayload } }];
         private static readonly ComplianceViolation[] PayloadViolations = [new() { Details = kPayload }];
         private static readonly List<ModellingAppServer> NoSurplusAppServers = [];

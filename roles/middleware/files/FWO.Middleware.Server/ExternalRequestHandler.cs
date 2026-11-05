@@ -34,6 +34,17 @@ namespace FWO.Middleware.Server
         private List<IpProtocol> ipProtos = [];
         private List<UserGroup>? ownerGroups = [];
         private bool actInternalWork = false;
+        private SCTemplateLookup scTemplates = new(kNoSCTemplates);
+
+        /// <summary>
+        /// Source of the SecureChange ticket templates, which are device specific settings (settable for unit testing)
+        /// </summary>
+        public ISCTemplateSource SCTemplateSource { get; init; }
+
+        /// <summary>
+        /// SecureChange templates before they are resolved for a ticket
+        /// </summary>
+        private static readonly List<ExternalTicketTemplate> kNoSCTemplates = [];
 
         /// <summary>
         /// States closing an external request without further processing; reaching them sets the finish date,
@@ -70,6 +81,7 @@ namespace FWO.Middleware.Server
             ApiConnection = apiConnection;
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
+            SCTemplateSource = new ApiSCTemplateSource(apiConnection);
             Task.Run(GetInternalGroups).Wait();
             wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, ownerGroups,
                 new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection))
@@ -84,6 +96,7 @@ namespace FWO.Middleware.Server
             ApiConnection = apiConnection;
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
+            SCTemplateSource = new ApiSCTemplateSource(apiConnection);
             wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, userGroups,
                 new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection))
             { SystemContext = true };
@@ -352,6 +365,7 @@ namespace FWO.Middleware.Server
                 return CreateNextRequestResult.Continue;
             }
 
+            await ApplySecureChangeTemplates(state.Ticket, nextTask);
             int waitCycles = GetWaitCycles(nextTask.TaskType, state.OldRequest, actSystem);
             if (nextTask.TaskType == WfTaskType.access.ToString() || IsRuleChangeOrDelete(nextTask.TaskType))
             {
@@ -397,7 +411,26 @@ namespace FWO.Middleware.Server
         }
 
 
-        private static bool CanBundleWithStartTask(WfReqTask furtherTask, WfReqTask startTask, int startSystemId, List<ManagementFwConfigChangeState> managementSettings, List<ExternalTicketSystem> extTicketSystems)
+        /// <summary>
+        /// Gives a SecureChange system the ticket templates in effect for the management of the task. The templates of all
+        /// managements of the ticket are resolved at once, so bundling can compare them.
+        /// </summary>
+        private async Task ApplySecureChangeTemplates(WfTicket ticket, WfReqTask task)
+        {
+            if (!actSystem.IsTufinSecureChange())
+            {
+                return;
+            }
+            List<int> managementIds = [.. ticket.Tasks.Select(t => t.ManagementId).OfType<int>().Distinct()];
+            scTemplates = await SCTemplateSource.Load(managementIds);
+            actSystem.Templates = scTemplates.For(task.ManagementId);
+        }
+
+        /// <summary>
+        /// A further task joins the request of the start task if both are handled by the same external system and, for
+        /// SecureChange, their managements use the same ticket templates.
+        /// </summary>
+        private bool CanBundleWithStartTask(WfReqTask furtherTask, WfReqTask startTask, int startSystemId, List<ManagementFwConfigChangeState> managementSettings, List<ExternalTicketSystem> extTicketSystems)
         {
             if (GetChangeCategory(furtherTask) != GetChangeCategory(startTask))
             {
@@ -406,7 +439,8 @@ namespace FWO.Middleware.Server
 
             return TryResolveExtSystemForTask(furtherTask, managementSettings, extTicketSystems, out ExternalTicketSystem? furtherSystem)
                    && furtherSystem != null
-                   && furtherSystem.Id == startSystemId;
+                   && furtherSystem.Id == startSystemId
+                   && (!furtherSystem.IsTufinSecureChange() || scTemplates.HaveSameTemplates(furtherTask.ManagementId, startTask.ManagementId));
         }
 
         private static bool TryResolveExtSystemForTask(WfReqTask task, List<ManagementFwConfigChangeState> managementSettings, List<ExternalTicketSystem> extTicketSystems, out ExternalTicketSystem? system)

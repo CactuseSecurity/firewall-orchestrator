@@ -17,10 +17,7 @@ public sealed class PositioningService
     /// <summary>Creates and validates normalized service coverage.</summary>
     public PositioningService(int protocolId, int? destinationPortStart, int? destinationPortEnd)
     {
-        if (protocolId < GlobalConst.kAnyIpProtocolId)
-        {
-            throw new ArgumentOutOfRangeException(nameof(protocolId));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(protocolId, GlobalConst.kAnyIpProtocolId);
         if (protocolId == GlobalConst.kAnyIpProtocolId)
         {
             EnsureNoPorts(destinationPortStart, destinationPortEnd, nameof(protocolId));

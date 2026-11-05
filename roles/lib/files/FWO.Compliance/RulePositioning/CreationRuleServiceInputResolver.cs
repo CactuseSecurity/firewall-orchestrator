@@ -477,9 +477,19 @@ public sealed class CreationRuleServiceInputResolver(IFlowGroupResolver flowGrou
         internal bool IsUsable => FlowId is > 0 || NormalizedId is > 0 || Name.Length > 0;
 
         /// <summary>Gets a stable recursion key based on the strongest identity.</summary>
-        internal string Key => FlowId is > 0
-            ? $"f:{FlowId}"
-            : NormalizedId is > 0 ? $"n:{NormalizedId}" : $"s:{Name.ToUpperInvariant()}";
+        internal string Key
+        {
+            get
+            {
+                if (FlowId is > 0)
+                {
+                    return $"f:{FlowId}";
+                }
+                return NormalizedId is > 0
+                    ? $"n:{NormalizedId}"
+                    : $"s:{Name.ToUpperInvariant()}";
+            }
+        }
     }
 
     /// <summary>Lookup index for catalog service groups loaded by identifier or name.</summary>
@@ -505,9 +515,9 @@ public sealed class CreationRuleServiceInputResolver(IFlowGroupResolver flowGrou
     }
 }
 
-/// <summary>Internal typed control-flow failure for service resolution.</summary>
-internal sealed class ServiceResolutionException(CreationRuleServiceResolutionFailureCategory category) : Exception
+/// <summary>Signals one safely categorized service-input resolution failure.</summary>
+public sealed class ServiceResolutionException(CreationRuleServiceResolutionFailureCategory category) : Exception
 {
     /// <summary>Gets the safe stable failure category.</summary>
-    internal CreationRuleServiceResolutionFailureCategory Category { get; } = category;
+    public CreationRuleServiceResolutionFailureCategory Category { get; } = category;
 }

@@ -147,7 +147,7 @@ def parse_access_list_entry(
     protocol, pos = _parse_protocol(parts, pos + 1, protocol_groups, svc_objects, svc_obj_groups)
     service_group_names = {group.name for group in svc_obj_groups}
     src, pos = parse_endpoint(parts, pos)
-    pos = _skip_source_port(parts, pos, service_group_names, action, line)
+    src_port, pos = _parse_source_port(parts, pos, service_group_names, action, line)
     dst, pos = parse_endpoint(parts, pos)
     dst_port, pos = _parse_destination_service(parts, pos, protocol)
     inactive, time_range = _parse_options(parts, pos)
@@ -157,6 +157,7 @@ def parse_access_list_entry(
         action="permit" if action == "permit" else "deny",
         protocol=protocol,
         src=src,
+        src_port=src_port,
         dst=dst,
         dst_port=dst_port,
         inactive=inactive,
@@ -230,16 +231,19 @@ def _parse_protocol(
     return EndpointKind(kind="protocol", value=keyword.lower()), pos + 1
 
 
-def _skip_source_port(parts: list[str], pos: int, service_group_names: set[str], action: str, line: str) -> int:
+def _parse_source_port(
+    parts: list[str], pos: int, service_group_names: set[str], action: str, line: str
+) -> tuple[str | None, int]:
     """
-    Skip an optional source port and return the position after it.
+    Parse an optional source port; returns (source port construct as written or None, next position).
 
-    Source ports are not imported: the entry is imported for all source ports, so it is wider than the real one.
+    Source ports are not imported into the rule: the rule matches all source ports, so it is wider than the real one.
     This is only acceptable for permit entries, where the widening over-reports what the firewall permits.
     A widened deny entry would under-report it (and shadow later permits), so source ports in deny entries are rejected.
+    The construct is kept in the entry so that entries differing only in their source port get different rule uids.
     """
     if pos >= len(parts):
-        return pos
+        return None, pos
     keyword = parts[pos].lower()
     if keyword in PORT_OPERATORS:
         token_count = RANGE_OPERATOR_TOKENS if keyword == "range" else PORT_OPERATOR_TOKENS
@@ -247,12 +251,12 @@ def _skip_source_port(parts: list[str], pos: int, service_group_names: set[str],
     elif keyword == "object-group" and pos + 1 < len(parts) and parts[pos + 1] in service_group_names:
         token_count = ENDPOINT_WITH_ARGUMENT_TOKENS
     else:
-        return pos
+        return None, pos
     construct = " ".join(parts[pos : pos + token_count])
     if action == "deny":
         raise AsaConfigParseError(f"unsupported source port '{construct}' in deny entry", pos)
     FWOLogger.warning(f"ignoring source port '{construct}' in '{line}' - the entry is imported for all source ports")
-    return pos + token_count
+    return construct, pos + token_count
 
 
 def _parse_destination_service(parts: list[str], pos: int, protocol: EndpointKind) -> tuple[EndpointKind, int]:

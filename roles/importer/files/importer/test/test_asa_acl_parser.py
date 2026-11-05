@@ -138,6 +138,12 @@ def test_source_ports_are_ignored(
     assert entry.dst_port == expected_dst_port
 
 
+def test_source_port_is_kept_as_written() -> None:
+    assert parse(f"{ACL_PREFIX} tcp any range 7937 10000 any").src_port == "range 7937 10000"
+    assert parse(f"{ACL_PREFIX} tcp any object-group SVC_PORTS any").src_port == "object-group SVC_PORTS"
+    assert parse(f"{ACL_PREFIX} tcp any any eq 22").src_port is None
+
+
 @pytest.mark.parametrize(
     "source_port",
     ["eq 1024", "neq ntp", "range 7937 10000", "object-group SVC_PORTS"],
@@ -338,15 +344,28 @@ def test_unknown_name_aliases_fail(unknown: EndpointKind) -> None:
 # ───────────────────────── rule uids and time-range ─────────────────────────
 
 
-def test_rule_uid_of_entries_without_time_range_is_unchanged() -> None:
+def test_rule_uid_of_entries_without_time_range_and_source_port_is_unchanged() -> None:
     entry: AccessListEntry = parse(f"{ACL_PREFIX} tcp any host 198.51.100.1 eq 22")
-    dump_before_time_range_existed: dict[str, object] = entry.model_dump()
-    del dump_before_time_range_existed["time_range"]
+    dump_before_the_fields_existed: dict[str, object] = entry.model_dump()
+    del dump_before_the_fields_existed["time_range"]
+    del dump_before_the_fields_existed["src_port"]
 
     rule = create_rule_from_acl_entry("ACL", entry, PROTOCOL_GROUPS, {}, {})
 
-    assert rule.rule_uid == fwo_base.generate_hash_from_dict(dump_before_time_range_existed)
+    assert rule.rule_uid == fwo_base.generate_hash_from_dict(dump_before_the_fields_existed)
     assert rule.rule_time is None
+
+
+def test_entries_differing_only_in_source_port_are_all_imported() -> None:
+    normalized: FwConfigNormalized = normalize_fixture_with(
+        "access-list SRCPORT extended permit tcp any eq 1024 host 10.0.0.1 eq 80\n"
+        "access-list SRCPORT extended permit tcp any eq 2048 host 10.0.0.1 eq 80\n"
+        "access-group SRCPORT in interface inside\n"
+    )
+
+    rulebase = next(rulebase for rulebase in normalized.rulebases if rulebase.uid == "SRCPORT")
+    rule_uids: list[str | None] = [rule.rule_uid for rule in rulebase.rules.values()]
+    assert len(rule_uids) == len(set(rule_uids)) == len(["eq 1024", "eq 2048"])
 
 
 def test_time_range_is_imported_as_rule_time() -> None:

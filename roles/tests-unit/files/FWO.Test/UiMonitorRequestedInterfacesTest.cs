@@ -623,9 +623,11 @@ namespace FWO.Test
             await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
             ModellingConnection listEntry = new ModellingRequestedInterface { Id = 1, Name = "if-a", App = app, ProposedApp = proposedApp };
+            object[] arguments = new object[1];
+            arguments[0] = listEntry;
 
             ModellingConnection fullConnection = await (Task<ModellingConnection>)GetPrivateMethod("LoadFullConnection", typeof(ModellingConnection))
-                .Invoke(component, [listEntry])!;
+                .Invoke(component, arguments)!;
 
             Assert.That(fullConnection, Is.Not.SameAs(listEntry));
             Assert.That(fullConnection.Reason, Is.EqualTo("full details"));
@@ -640,9 +642,11 @@ namespace FWO.Test
             await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
             ModellingConnection listEntry = new ModellingRequestedInterface { Id = 9, Name = "if-missing" };
+            object[] arguments = new object[1];
+            arguments[0] = listEntry;
 
             ModellingConnection fullConnection = await (Task<ModellingConnection>)GetPrivateMethod("LoadFullConnection", typeof(ModellingConnection))
-                .Invoke(component, [listEntry])!;
+                .Invoke(component, arguments)!;
 
             Assert.That(fullConnection, Is.SameAs(listEntry));
         }

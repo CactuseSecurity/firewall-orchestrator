@@ -28,9 +28,10 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         {
             cancellationToken.ThrowIfCancellationRequested();
             ValidateAccessTask(accessTask);
-            IReadOnlyList<WfReqTask> orderedTasks = TicketNetworkStateProjector.Project(
-                accessTask,
-                ticketTasks);
+            if (!TicketRequestStateProjector.TryProject(accessTask, ticketTasks, out IReadOnlyList<WfReqTask> orderedTasks))
+            {
+                throw Failure(CreationRuleNetworkResolutionFailureCategory.InvalidInput);
+            }
             List<WfReqElement> sources = ActiveSide(accessTask, ElemFieldType.source);
             List<WfReqElement> destinations = ActiveSide(accessTask, ElemFieldType.destination);
             if (sources.Count == 0 || destinations.Count == 0)
@@ -195,7 +196,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         List<WfReqTask> matching = context.Tasks.Where(IsNetworkObjectTask)
             .Where(task => task.Elements.Any(element => Matches(identity, ObjectIdentityForElement(element))))
             .ToList();
-        if (matching.Any(task => !TicketNetworkStateProjector.IsBefore(task, context.AccessTask)))
+        if (matching.Any(task => !TicketRequestStateProjector.IsBefore(task, context.AccessTask)))
         {
             throw Failure(CreationRuleNetworkResolutionFailureCategory.ProtocolOrderInvalid);
         }
@@ -222,13 +223,13 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
             throw Failure(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved);
         }
         string visitKey = identity.Key;
-        if (visited.Count >= TicketNetworkStateProjector.kMaximumGroupDepth || visited.Contains(visitKey))
+        if (visited.Count >= TicketRequestStateProjector.kMaximumGroupDepth || visited.Contains(visitKey))
         {
             throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
         }
         List<WfReqTask> ticketTasks = context.Tasks.Where(IsNetworkGroupTask)
             .Where(task => Matches(identity, GroupIdentityForTask(task))).ToList();
-        if (ticketTasks.Any(task => !TicketNetworkStateProjector.IsBefore(task, context.AccessTask)))
+        if (ticketTasks.Any(task => !TicketRequestStateProjector.IsBefore(task, context.AccessTask)))
         {
             throw Failure(CreationRuleNetworkResolutionFailureCategory.ProtocolOrderInvalid);
         }

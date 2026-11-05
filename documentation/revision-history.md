@@ -1,6 +1,7 @@
 # Firewall Orchestrator Revision History
 
 ## 9.9.0 - 04.11.2026
+- request workflow: Check Point LayerGuard positioning now requires the guard to cover every requested service in addition to source and destination; `Any` guards remain universal, and address mismatches are reported separately from service mismatches (#5629)
 - Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs
   - login with a service principal (client credentials flow); client id and secret are taken from the additional credential, otherwise from the import credential; tenant and subscription from the management's cloud settings, the resource group from the config path
   - the firewall policy of a device is its local rulebase name, otherwise the device name; each policy becomes a rulebase, each device a gateway

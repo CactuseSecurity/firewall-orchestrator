@@ -14,6 +14,9 @@ using RulebaseGraphReadResult = FWO.Data.RulePositioning.PositioningResult<
 using CreationRuleNetworkResolutionResult = FWO.Data.RulePositioning.PositioningResult<
     FWO.Data.RulePositioning.CreationRuleNetworkInput,
     FWO.Compliance.RulePositioning.CreationRuleNetworkResolutionFailureCategory>;
+using CreationRuleServiceResolutionResult = FWO.Data.RulePositioning.PositioningResult<
+    FWO.Data.RulePositioning.CreationRuleServiceInput,
+    FWO.Compliance.RulePositioning.CreationRuleServiceResolutionFailureCategory>;
 using CreationRuleZoneResolutionResult = FWO.Data.RulePositioning.PositioningResult<
     FWO.Compliance.RulePositioning.CreationRuleZoneInput,
     FWO.Compliance.RulePositioning.CreationRuleZoneResolutionFailureCategory>;
@@ -32,6 +35,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
 {
     private readonly IRulebaseGraphSnapshotReader graphReader;
     private readonly ICreationRuleNetworkInputResolver networkResolver;
+    private readonly ICreationRuleServiceInputResolver serviceResolver;
     private readonly ICheckPointLayerGuardSnapshotReader guardReader;
     private readonly IDesignatedZoneMatrixReader zoneMatrixReader;
     private readonly ICreationRuleZoneResolver zoneResolver;
@@ -43,6 +47,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     public CheckPointRulePositioningStrategy(
         IRulebaseGraphSnapshotReader graphReader,
         ICreationRuleNetworkInputResolver networkResolver,
+        ICreationRuleServiceInputResolver serviceResolver,
         ICheckPointLayerGuardSnapshotReader guardReader,
         IDesignatedZoneMatrixReader zoneMatrixReader,
         ICreationRuleZoneResolver zoneResolver,
@@ -50,6 +55,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     {
         this.graphReader = graphReader ?? throw new ArgumentNullException(nameof(graphReader));
         this.networkResolver = networkResolver ?? throw new ArgumentNullException(nameof(networkResolver));
+        this.serviceResolver = serviceResolver ?? throw new ArgumentNullException(nameof(serviceResolver));
         this.guardReader = guardReader ?? throw new ArgumentNullException(nameof(guardReader));
         this.zoneMatrixReader = zoneMatrixReader ?? throw new ArgumentNullException(nameof(zoneMatrixReader));
         this.zoneResolver = zoneResolver ?? throw new ArgumentNullException(nameof(zoneResolver));
@@ -114,6 +120,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
 
         CheckPointLayerGuardZonePairPositioningInput positioningInput = new(
             inputs.NetworkInput,
+            inputs.ServiceInput,
             inputs.GuardSnapshot);
         CheckPointRecipeSelectionResult selectionResult = recipeCatalog.SelectRecipe(
             algorithm,
@@ -171,6 +178,16 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        CreationRuleServiceResolutionResult serviceResult = await serviceResolver.ResolveAsync(
+            context.ParentRequestTask,
+            context.TicketRequestTasks!,
+            cancellationToken);
+        if (!serviceResult.TryGetValue(out CreationRuleServiceInput? serviceInput))
+        {
+            return InputPreparationResult.Failed(MapServiceFailure(serviceResult));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
         CheckPointLayerGuardReadResult guardResult = await guardReader.ReadAsync(
             graphValue.Snapshot,
             graphValue.ImportId,
@@ -204,6 +221,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         return InputPreparationResult.Succeeded(new PreparedInputs(
             graphValue.Snapshot,
             networkInput,
+            serviceInput,
             guardSnapshot,
             zoneInput));
     }
@@ -212,6 +230,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     private sealed record PreparedInputs(
         RulebaseGraphSnapshot Snapshot,
         CreationRuleNetworkInput NetworkInput,
+        CreationRuleServiceInput ServiceInput,
         CheckPointLayerGuardSnapshot GuardSnapshot,
         CreationRuleZoneInput ZoneInput);
 
@@ -236,6 +255,24 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
                     RulePositioningFailureCategory.UnsupportedTask,
                 CreationRuleNetworkResolutionFailureCategory.GroupQueryFailed or
                     CreationRuleNetworkResolutionFailureCategory.UnexpectedFailure =>
+                    RulePositioningFailureCategory.CalculationFailed,
+                _ => RulePositioningFailureCategory.InvalidInput
+            }
+            : RulePositioningFailureCategory.CalculationFailed;
+        return Failure(category);
+    }
+
+    /// <summary>Maps effective-service failures to the public positioning contract.</summary>
+    private static RulePositioningFailure MapServiceFailure(CreationRuleServiceResolutionResult result)
+    {
+        RulePositioningFailureCategory category = result.TryGetFailure(
+            out CreationRuleServiceResolutionFailureCategory failureCategory)
+            ? failureCategory switch
+            {
+                CreationRuleServiceResolutionFailureCategory.UnsupportedTask =>
+                    RulePositioningFailureCategory.UnsupportedTask,
+                CreationRuleServiceResolutionFailureCategory.GroupQueryFailed or
+                    CreationRuleServiceResolutionFailureCategory.UnexpectedFailure =>
                     RulePositioningFailureCategory.CalculationFailed,
                 _ => RulePositioningFailureCategory.InvalidInput
             }
@@ -317,9 +354,17 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     private static RulePositioningFailure MapExecutionFailure(PositioningBlockResult<CheckPointBlockValue> result)
     {
         RulePositioningFailureCategory category = result is PositioningBlockFailure<CheckPointBlockValue> failure
-            && failure.Category == PositioningBlockFailureCategory.InvalidRecipe
-                ? RulePositioningFailureCategory.ConfigurationInvalid
-                : RulePositioningFailureCategory.CalculationFailed;
+            ? failure.Category switch
+            {
+                PositioningBlockFailureCategory.InvalidRecipe =>
+                    RulePositioningFailureCategory.ConfigurationInvalid,
+                PositioningBlockFailureCategory.AddressScopeNotFound =>
+                    RulePositioningFailureCategory.LayerGuardAddressMismatch,
+                PositioningBlockFailureCategory.ServiceScopeNotFound =>
+                    RulePositioningFailureCategory.LayerGuardServiceMismatch,
+                _ => RulePositioningFailureCategory.CalculationFailed
+            }
+            : RulePositioningFailureCategory.CalculationFailed;
         return Failure(category);
     }
 

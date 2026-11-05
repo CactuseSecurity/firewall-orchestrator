@@ -56,6 +56,8 @@ public sealed class CheckPointLayerGuard
     public CheckPointGuardSide Source { get; }
     /// <summary>Gets normalized destination-side guard semantics.</summary>
     public CheckPointGuardSide Destination { get; }
+    /// <summary>Gets normalized service guard semantics.</summary>
+    public CheckPointGuardServiceScope Service { get; }
 
     /// <summary>Creates one guard from positive identities and immutable sides.</summary>
     public CheckPointLayerGuard(
@@ -63,7 +65,8 @@ public sealed class CheckPointLayerGuard
         long sourceRulebaseId,
         long targetLayerId,
         CheckPointGuardSide source,
-        CheckPointGuardSide destination)
+        CheckPointGuardSide destination,
+        CheckPointGuardServiceScope service)
     {
         if (sourceRuleId <= 0 || sourceRulebaseId <= 0 || targetLayerId <= 0)
         {
@@ -74,6 +77,7 @@ public sealed class CheckPointLayerGuard
         TargetLayerId = targetLayerId;
         Source = source ?? throw new ArgumentNullException(nameof(source));
         Destination = destination ?? throw new ArgumentNullException(nameof(destination));
+        Service = service ?? throw new ArgumentNullException(nameof(service));
     }
 }
 

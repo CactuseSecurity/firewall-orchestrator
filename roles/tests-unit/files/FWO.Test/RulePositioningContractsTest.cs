@@ -144,6 +144,8 @@ public class RulePositioningContractsTest
     [TestCase(RulePositioningFailureCategory.ConfigurationInvalid)]
     [TestCase(RulePositioningFailureCategory.PositioningMethodNotImplemented)]
     [TestCase(RulePositioningFailureCategory.StrategyRegistrationAmbiguous)]
+    [TestCase(RulePositioningFailureCategory.LayerGuardAddressMismatch)]
+    [TestCase(RulePositioningFailureCategory.LayerGuardServiceMismatch)]
     [TestCase(RulePositioningFailureCategory.CalculationFailed)]
     public void Failure_ExposesStableCategoryAndSafeDiagnostic(
         RulePositioningFailureCategory category)
@@ -158,6 +160,18 @@ public class RulePositioningContractsTest
             Assert.That(failure.Diagnostic, Is.Not.Empty);
             Assert.That(failure.Diagnostic, Does.Not.Contain(kSensitiveCredential));
             Assert.That(failure.Diagnostic, Does.Not.Contain(kCompleteRuleContent));
+        });
+    }
+
+    [Test]
+    public void LayerGuardMismatchFailures_UsePreciseFixedDiagnostics()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(new RulePositioningFailure(RulePositioningFailureCategory.LayerGuardAddressMismatch).Diagnostic,
+                Is.EqualTo("The requested source and destination do not match a LayerGuard."));
+            Assert.That(new RulePositioningFailure(RulePositioningFailureCategory.LayerGuardServiceMismatch).Diagnostic,
+                Is.EqualTo("The requested services do not match an address-compatible LayerGuard."));
         });
     }
 

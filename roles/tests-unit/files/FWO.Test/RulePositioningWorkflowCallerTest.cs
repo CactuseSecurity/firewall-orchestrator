@@ -216,6 +216,8 @@ internal class RulePositioningWorkflowCallerTest
     [TestCase(RulePositioningFailureCategory.ConfigurationInvalid)]
     [TestCase(RulePositioningFailureCategory.PositioningMethodNotImplemented)]
     [TestCase(RulePositioningFailureCategory.StrategyRegistrationAmbiguous)]
+    [TestCase(RulePositioningFailureCategory.LayerGuardAddressMismatch)]
+    [TestCase(RulePositioningFailureCategory.LayerGuardServiceMismatch)]
     [TestCase(RulePositioningFailureCategory.CalculationFailed)]
     public async Task CalculateAndPersistAsync_ClearsEveryTypedCalculationFailure(
         RulePositioningFailureCategory category)

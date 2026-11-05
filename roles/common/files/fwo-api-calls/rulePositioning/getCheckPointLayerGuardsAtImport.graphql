@@ -19,6 +19,7 @@ query getCheckPointLayerGuardsAtImport(
     removed
     rule_src_neg
     rule_dst_neg
+    rule_svc_neg
     rule_froms(
       where: {
         rf_create: { _lte: $importId }
@@ -49,6 +50,66 @@ query getCheckPointLayerGuardsAtImport(
       removed
       object {
         ...CheckPointGuardObject
+      }
+    }
+    rule_services(
+      where: {
+        rs_create: { _lte: $importId }
+        _or: [{ removed: { _is_null: true } }, { removed: { _gt: $importId } }]
+        service: {
+          svc_create: { _lte: $importId }
+          _or: [{ removed: { _is_null: true } }, { removed: { _gt: $importId } }]
+        }
+      }
+      order_by: [{ svc_id: asc }, { rs_create: asc }]
+    ) {
+      rule_id
+      svc_id
+      negated
+      rs_create
+      removed
+      service {
+        ...CheckPointGuardService
+      }
+    }
+  }
+}
+
+fragment CheckPointGuardService on firewall_nw_service {
+  svc_id
+  svc_uid
+  svc_name
+  svc_port
+  svc_port_end
+  ip_proto_id
+  svc_create
+  removed
+  type: stm_svc_typ {
+    name: svc_typ_name
+  }
+  svcgrp_flats(
+    where: {
+      import_created: { _lte: $importId }
+      _or: [{ removed: { _is_null: true } }, { removed: { _gt: $importId } }]
+    }
+    order_by: [{ svcgrp_flat_member_id: asc }, { import_created: asc }]
+  ) {
+    svcgrp_flat_id
+    svcgrp_flat_member_id
+    negated
+    import_created
+    removed
+    service: serviceBySvcgrpFlatMemberId {
+      svc_id
+      svc_uid
+      svc_name
+      svc_port
+      svc_port_end
+      ip_proto_id
+      svc_create
+      removed
+      type: stm_svc_typ {
+        name: svc_typ_name
       }
     }
   }

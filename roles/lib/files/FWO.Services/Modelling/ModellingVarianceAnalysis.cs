@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -18,6 +19,14 @@ namespace FWO.Services.Modelling
     public partial class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler,
             UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi)
     {
+        private const int kTicketIdChunkSize = 500;
+        private static readonly QueryChunkingOptions TicketIdChunkingOptions = new()
+        {
+            Enabled = true,
+            ChunkVariableName = "ids",
+            ChunkSize = kTicketIdChunkSize,
+            MergeMode = ChunkMergeMode.TopLevelArrayConcat
+        };
         private readonly ModellingNamingConvention namingConvention = ModellingNamingConvention.FromJson(userConfig.ModNamingConvention);
         private readonly RuleRecognitionOption ruleRecognitionOption = string.IsNullOrEmpty(userConfig.RuleRecognitionOption) ? new() :
             JsonSerializer.Deserialize<RuleRecognitionOption>(userConfig.RuleRecognitionOption) ?? new();
@@ -253,6 +262,10 @@ namespace FWO.Services.Modelling
             return TaskList;
         }
 
+        /// <summary>
+        /// Describes the newest done request ticket of the owner. All tickets of the owner are read with one (chunked)
+        /// query that only loads the needed ticket fields, instead of one full ticket per id.
+        /// </summary>
         public async Task<string> GetSuccessfulRequestState()
         {
             try
@@ -262,18 +275,24 @@ namespace FWO.Services.Modelling
                 {
                     return userConfig.GetText("never_requested");
                 }
-                else
+                List<long> distinctTicketIds = [.. ticketIds.Select(ticketId => ticketId.Id).Distinct()];
+                List<WfTicket> tickets = await apiConnection.SendQueryAsync<List<WfTicket>>(
+                    RequestQueries.getTicketOverviewsByIds, new { ids = distinctTicketIds }, chunkingOptions: TicketIdChunkingOptions);
+                Dictionary<long, WfTicket> ticketsById = [];
+                foreach (WfTicket ticket in tickets)
                 {
-                    foreach (var ticketId in ticketIds)
-                    {
-                        WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketId.Id });
-                        if (extStateHandler.IsDone(intTicket.StateId))
-                        {
-                            return $"{userConfig.GetText("last_successful")}: {intTicket.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}, {userConfig.GetText("implemented")}: {intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss")}, {intTicket.Requester?.Name}";
-                        }
-                    }
-                    return userConfig.GetText("never_succ_req");
+                    ticketsById.TryAdd(ticket.Id, ticket);
                 }
+
+                // getLatestTicketIds returns the newest ticket first
+                foreach (long ticketId in distinctTicketIds)
+                {
+                    if (ticketsById.TryGetValue(ticketId, out WfTicket? intTicket) && extStateHandler.IsDone(intTicket.StateId))
+                    {
+                        return $"{userConfig.GetText("last_successful")}: {intTicket.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}, {userConfig.GetText("implemented")}: {intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss")}, {intTicket.Requester?.Name}";
+                    }
+                }
+                return userConfig.GetText("never_succ_req");
             }
             catch (Exception exception)
             {

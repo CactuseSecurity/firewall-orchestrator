@@ -353,7 +353,7 @@ else
         catch (ArgumentException exception) when (exception.ParamName ==
             DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("dss_settings"), userConfig.GetText("E5302"), false);
+            DisplayMessageInUi(null, userConfig.GetText("dss_settings"), userConfig.GetText("E5302"), true);
         }
         catch (Exception exception)
         {

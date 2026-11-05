@@ -108,9 +108,9 @@ internal sealed class UiSettingsDeviceSpecificTest
         {
             Assert.That(api.ReadValue(kGlobalNodeId,
                 DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate), Is.Null);
-            Assert.That(exception, Is.TypeOf<ArgumentException>());
+            Assert.That(exception, Is.Null);
             Assert.That(message, Is.EqualTo("E5302"));
-            Assert.That(isError, Is.False);
+            Assert.That(isError, Is.True);
         }
     }
 

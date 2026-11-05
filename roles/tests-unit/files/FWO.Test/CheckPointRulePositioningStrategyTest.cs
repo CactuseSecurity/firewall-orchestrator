@@ -263,8 +263,8 @@ internal class CheckPointRulePositioningStrategyTest
         StrategyFixture fixture = new();
         fixture.ZoneInput = new CreationRuleZoneInput(
             kCriterionId,
-            [],
-            [],
+            kNoZoneReferences,
+            kNoZoneReferences,
             ZoneCoverage.Complete,
             ZoneCoverage.Complete);
         RulePositioningContext context = ValidContext();

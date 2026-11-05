@@ -266,8 +266,7 @@ namespace FWO.Ui.Pages.Settings
                     (ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "dss_opt_default_end_of_rulebase"),
                     (ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection, "dss_opt_cp_layer_guard_end_of_zone_pair_section"),
                     (ProvisioningPositioningAlgorithm.AllowCategoryEndOfAppSectionDistinguishCommonServices, "dss_opt_allow_category"))),
-            TextField(DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "dss_cp_layer_guard_section_name_template",
-                s => s.CheckPointLayerGuardSectionNameTemplate, validate: ValidateCheckPointLayerGuardSectionNameTemplate),
+            CheckPointLayerGuardSectionNameTemplateField(),
             EnumField(DeviceSpecificSettingKeys.RuleLoggingOverride, "dss_logging", s => s.RuleLoggingOverride,
                 EnumOptions(
                     (ProvisioningLoggingMode.Log, "dss_opt_log"),
@@ -595,8 +594,7 @@ namespace FWO.Ui.Pages.Settings
             DeviceSpecificFieldKind kind = DeviceSpecificFieldKind.Text,
             DeviceSpecificScopeType minLevel = DeviceSpecificScopeType.Global,
             bool fortinetOnly = false,
-            DeviceSpecificScopeType maxLevel = DeviceSpecificScopeType.Gateway,
-            Func<string, string>? validate = null) => new()
+            DeviceSpecificScopeType maxLevel = DeviceSpecificScopeType.Gateway) => new()
             {
                 Key = key,
                 LabelTextKey = textKey,
@@ -606,8 +604,21 @@ namespace FWO.Ui.Pages.Settings
                 MaxLevel = maxLevel,
                 FortinetOnly = fortinetOnly,
                 Read = get,
-                SetOverride = (changes, value) => changes.Set(key, validate?.Invoke(value) ?? value)
+                SetOverride = (changes, value) => changes.Set(key, value)
             };
+
+        /// <summary>Creates the LayerGuard section name field with its template validation.</summary>
+        private static DeviceSpecificFieldDefinition CheckPointLayerGuardSectionNameTemplateField() => new()
+        {
+            Key = DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate,
+            LabelTextKey = "dss_cp_layer_guard_section_name_template",
+            HelpTextKey = HelpKey("dss_cp_layer_guard_section_name_template"),
+            Kind = DeviceSpecificFieldKind.Text,
+            Read = settings => settings.CheckPointLayerGuardSectionNameTemplate,
+            SetOverride = (changes, value) => changes.Set(
+                DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate,
+                ValidateCheckPointLayerGuardSectionNameTemplate(value))
+        };
 
         private static string ValidateCheckPointLayerGuardSectionNameTemplate(string value)
         {

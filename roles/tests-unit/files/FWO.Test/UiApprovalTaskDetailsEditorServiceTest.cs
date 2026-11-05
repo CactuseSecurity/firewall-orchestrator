@@ -810,7 +810,7 @@ internal sealed class UiApprovalTaskDetailsEditorServiceTest
         ApprovalTaskDetailsEditorService service = new();
         service.Configure(handler, config, () => Task.CompletedTask);
 
-        service.networkZones = [new ComplianceNetworkZone { Id = 1, Name = "zone" }];
+        service.networkZones = [new NetworkZone { Id = 1, Name = "zone" }];
         service.ipProtocols = [new IpProtocol { Id = 6, Name = "tcp" }];
         service.selectableIpProtocols = service.ipProtocols;
         service.ruleActions = [new RuleAction { Id = 2, Name = "allow" }];

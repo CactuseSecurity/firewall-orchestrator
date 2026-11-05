@@ -32,6 +32,7 @@
     areas only if one of their applications may use common services (otherwise 403). Addresses use compact notation (host
     IP, CIDR network, `ip1-ip2` range), services `port/protocol` or `portStart-portEnd/protocol`
   - API permissions: the middleware may read the permitted owners of restricted interfaces
+- fix: owner active rule notification (daily check and app import) and rule expiry notification ignore disabled rules
 
 ## 9.8.6 - 02.11.2026
 - dependencies: update NuGet packages (AngleSharp to 1.9.1, Quartz to 4.7.0, Scalar.AspNetCore to 2.18.7, SoPro.FancyTable to 1.1.0)

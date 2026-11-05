@@ -10,7 +10,9 @@ public enum RulePositioningFailureCategory
     ConfigurationInvalid,
     PositioningMethodNotImplemented,
     StrategyRegistrationAmbiguous,
-    CalculationFailed
+    CalculationFailed,
+    LayerGuardAddressMismatch,
+    LayerGuardServiceMismatch
 }
 
 /// <summary>
@@ -73,6 +75,10 @@ public sealed class RulePositioningFailure : RulePositioningResult
                 "No rule-positioning method is implemented for this target and algorithm.",
             RulePositioningFailureCategory.StrategyRegistrationAmbiguous =>
                 "More than one rule-positioning method matches this target and algorithm.",
+            RulePositioningFailureCategory.LayerGuardAddressMismatch =>
+                "The requested source and destination do not match a LayerGuard.",
+            RulePositioningFailureCategory.LayerGuardServiceMismatch =>
+                "The requested services do not match an address-compatible LayerGuard.",
             RulePositioningFailureCategory.CalculationFailed => "The rule position could not be calculated.",
             _ => "The rule position could not be calculated."
         };

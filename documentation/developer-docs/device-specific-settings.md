@@ -63,6 +63,13 @@ Positioning offers `DefaultEndOfRulebase`, `cpInlineLayerPerZonePair`, `endOfZon
 `endOfAppSection`, `endOfAppSectionDistinguishCommonServices`, and
 `allowCategoryEndOfAppSectionDistinguishCommonServices`.
 
+For Check Point `cpInlineLayerPerZonePair`, a LayerGuard must contain the requested
+source and destination and every requested service. Service containment compares the
+IP protocol and destination-port interval; canonical `Any` covers every service.
+Ambiguous or unresolved guard services fail closed. A request that matches no guard
+by address is reported separately from one whose addresses match a guard but whose
+complete service set does not.
+
 `modellingConnectionIdField` offers `Name`, `Comment`, and `CustomField`: the field of
 a provisioned object that carries the ID of the modelling connection, formatted by
 `modellingConnectionIdTemplate`.

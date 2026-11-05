@@ -178,7 +178,7 @@ public sealed class CheckPointSectionSelector
     }
 }
 
-/// <summary>Selects exactly one guarded inline layer by three-state address containment.</summary>
+/// <summary>Selects exactly one guarded inline layer by address and service containment.</summary>
 public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPointPositioningContext, CheckPointBlockValue>
 {
     /// <summary>Stable serialized kind for guarded-layer selection.</summary>
@@ -225,7 +225,7 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
         return ResolveMatches(matches);
     }
 
-    /// <summary>Evaluates every guard candidate and counts definite and indeterminate results.</summary>
+    /// <summary>Evaluates every guard candidate in address-first order.</summary>
     private static GuardMatchSummary EvaluateCandidates(
         CheckPointLayerGuardZonePairPositioningInput positioningInput,
         List<GuardCandidate> candidates,
@@ -233,6 +233,7 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
     {
         int definiteMatches = 0;
         int indeterminateCandidates = 0;
+        int definiteAddressMatches = 0;
         CheckPointLayerStructure? selectedLayer = null;
         foreach (GuardCandidate candidate in candidates)
         {
@@ -241,18 +242,48 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
                 candidate.Guard.Source, positioningInput.NetworkInput.SourceRanges, cancellationToken);
             CheckPointGuardContainmentResult destination = CheckPointGuardContainmentEvaluator.Evaluate(
                 candidate.Guard.Destination, positioningInput.NetworkInput.DestinationRanges, cancellationToken);
-            if (source == CheckPointGuardContainmentResult.Contained && destination == CheckPointGuardContainmentResult.Contained)
+            CheckPointGuardContainmentResult address = CombineAddressResults(source, destination);
+            if (address == CheckPointGuardContainmentResult.Indeterminate)
+            {
+                indeterminateCandidates++;
+                continue;
+            }
+            if (address == CheckPointGuardContainmentResult.NotContained)
+            {
+                continue;
+            }
+
+            definiteAddressMatches++;
+            CheckPointGuardContainmentResult service = CheckPointGuardServiceContainmentEvaluator.Evaluate(
+                candidate.Guard.Service, positioningInput.ServiceInput.Services, cancellationToken);
+            if (service == CheckPointGuardContainmentResult.Contained)
             {
                 definiteMatches++;
                 selectedLayer = candidate.Layer;
             }
-            else if (source != CheckPointGuardContainmentResult.NotContained &&
-                destination != CheckPointGuardContainmentResult.NotContained)
+            else if (service == CheckPointGuardContainmentResult.Indeterminate)
             {
                 indeterminateCandidates++;
             }
         }
-        return new GuardMatchSummary(definiteMatches, indeterminateCandidates, selectedLayer);
+        return new GuardMatchSummary(
+            definiteMatches, indeterminateCandidates, definiteAddressMatches, selectedLayer);
+    }
+
+    /// <summary>Combines independent source and destination results without allowing uncertainty to hide rejection.</summary>
+    private static CheckPointGuardContainmentResult CombineAddressResults(
+        CheckPointGuardContainmentResult source,
+        CheckPointGuardContainmentResult destination)
+    {
+        if (source == CheckPointGuardContainmentResult.NotContained ||
+            destination == CheckPointGuardContainmentResult.NotContained)
+        {
+            return CheckPointGuardContainmentResult.NotContained;
+        }
+        return source == CheckPointGuardContainmentResult.Indeterminate ||
+            destination == CheckPointGuardContainmentResult.Indeterminate
+            ? CheckPointGuardContainmentResult.Indeterminate
+            : CheckPointGuardContainmentResult.Contained;
     }
 
     /// <summary>Maps aggregate guard containment to one selected scope or failure.</summary>
@@ -268,7 +299,9 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
         }
         if (matches.DefiniteMatches == 0 || matches.SelectedLayer == null)
         {
-            return Result(PositioningBlockFailureCategory.ScopeNotFound);
+            return Result(matches.DefiniteAddressMatches > 0
+                ? PositioningBlockFailureCategory.ServiceScopeNotFound
+                : PositioningBlockFailureCategory.AddressScopeNotFound);
         }
         return Task.FromResult<PositioningBlockResult<CheckPointBlockValue>>(
             new PositioningBlockSuccess<CheckPointBlockValue>(new CheckPointScopeValue(matches.SelectedLayer)));
@@ -355,6 +388,7 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
     private sealed record GuardMatchSummary(
         int DefiniteMatches,
         int IndeterminateCandidates,
+        int DefiniteAddressMatches,
         CheckPointLayerStructure? SelectedLayer);
 }
 

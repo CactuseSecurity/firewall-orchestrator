@@ -25,7 +25,7 @@ public class CheckPointLayerGuardSnapshotReaderTest
         [{
           "rule_id": 10, "mgm_id": 10, "rulebase_id": 1,
           "rule_create": 90, "removed": null,
-          "rule_src_neg": false, "rule_dst_neg": false,
+          "rule_src_neg": false, "rule_dst_neg": false, "rule_svc_neg": false,
           "rule_froms": [{
             "rule_id": 10, "obj_id": 101, "negated": false,
             "rf_create": 90, "removed": null,
@@ -44,6 +44,16 @@ public class CheckPointLayerGuardSnapshotReaderTest
               "obj_ip": "20.0.0.0/24", "obj_ip_end": null,
               "obj_create": 90, "removed": null, "type": { "name": "network" },
               "objgrp_flats": []
+            }
+          }],
+          "rule_services": [{
+            "rule_id": 10, "svc_id": 301, "negated": false,
+            "rs_create": 90, "removed": null,
+            "service": {
+              "svc_id": 301, "svc_uid": "any", "svc_name": "Any",
+              "svc_port": null, "svc_port_end": null, "ip_proto_id": -1,
+              "svc_create": 90, "removed": null, "type": { "name": "simple" },
+              "svcgrp_flats": []
             }
           }]
         }]
@@ -70,7 +80,131 @@ public class CheckPointLayerGuardSnapshotReaderTest
             Assert.That(guard.SourceRuleId, Is.EqualTo(10));
             Assert.That(guard.Source.Terms.Single().IncludedRanges.Single().Begin.ToString(), Is.EqualTo("10.0.0.0"));
             Assert.That(guard.Destination.Terms.Single().IncludedRanges.Single().End.ToString(), Is.EqualTo("20.0.0.255"));
+            Assert.That(guard.Service.Terms.Single().ProtocolId, Is.EqualTo(-1));
+            Assert.That(guard.Service.HasUnresolvedTerms, Is.False);
         });
+    }
+
+    [Test]
+    public async Task DirectServiceRangeAndRuleNegation_AreMapped()
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        JObject rule = (JObject)json[0]!;
+        rule["rule_svc_neg"] = true;
+        JObject association = (JObject)rule["rule_services"]![0]!;
+        JObject service = (JObject)association["service"]!;
+        service["ip_proto_id"] = 6;
+        service["svc_port"] = 80;
+        service["svc_port_end"] = 443;
+
+        CheckPointLayerGuardSnapshot snapshot = AssertSuccess(
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
+
+        CheckPointGuardServiceScope scope = snapshot.GuardsByTargetLayerId[2].Service;
+        Assert.Multiple(() =>
+        {
+            Assert.That(scope.IsNegated, Is.True);
+            Assert.That(scope.Terms.Single().ProtocolId, Is.EqualTo(6));
+            Assert.That(scope.Terms.Single().DestinationPortStart, Is.EqualTo(80));
+            Assert.That(scope.Terms.Single().DestinationPortEnd, Is.EqualTo(443));
+        });
+    }
+
+    [Test]
+    public async Task UnexpectedAssociationLevelServiceNegation_FailsClosed()
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        json[0]!["rule_services"]![0]!["negated"] = true;
+
+        CheckPointLayerGuardReadFailureCategory failure = AssertFailure(
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
+
+        Assert.That(failure, Is.EqualTo(CheckPointLayerGuardReadFailureCategory.InvalidGuardData));
+    }
+
+    [Test]
+    public async Task FlattenedServiceGroup_MapsLeavesAndSkipsStructuralRows()
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        JObject service = (JObject)json[0]!["rule_services"]![0]!["service"]!;
+        service["type"] = JObject.Parse("""{ "name": "group" }""");
+        service["ip_proto_id"] = null;
+        service["svcgrp_flats"] = JArray.Parse("""
+            [
+              { "svcgrp_flat_id": 301, "svcgrp_flat_member_id": 301, "negated": false,
+                "import_created": 90, "removed": null,
+                "service": { "svc_id": 301, "svc_create": 90, "removed": null,
+                             "type": { "name": "group" } } },
+              { "svcgrp_flat_id": 301, "svcgrp_flat_member_id": 302, "negated": false,
+                "import_created": 90, "removed": null,
+                "service": { "svc_id": 302, "svc_port": 443, "svc_port_end": 443,
+                             "ip_proto_id": 6, "svc_create": 90, "removed": null,
+                             "type": { "name": "simple" } } }
+            ]
+            """);
+
+        CheckPointLayerGuardSnapshot snapshot = AssertSuccess(
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
+
+        CheckPointGuardServiceScope scope = snapshot.GuardsByTargetLayerId[2].Service;
+        Assert.Multiple(() =>
+        {
+            Assert.That(scope.Terms, Has.Count.EqualTo(1));
+            Assert.That(scope.Terms.Single().DestinationPortStart, Is.EqualTo(443));
+            Assert.That(scope.HasUnresolvedTerms, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task ServiceGroupWithoutUsableLeaves_RemainsUnresolvedRatherThanAny()
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        JObject service = (JObject)json[0]!["rule_services"]![0]!["service"]!;
+        service["type"] = JObject.Parse("""{ "name": "group" }""");
+        service["ip_proto_id"] = null;
+        service["svcgrp_flats"] = JArray.Parse("""
+            [{ "svcgrp_flat_id": 301, "svcgrp_flat_member_id": 301, "negated": false,
+               "import_created": 90, "removed": null,
+               "service": { "svc_id": 301, "svc_create": 90, "removed": null,
+                            "type": { "name": "group" } } }]
+            """);
+
+        CheckPointLayerGuardSnapshot snapshot = AssertSuccess(
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
+
+        CheckPointGuardServiceScope scope = snapshot.GuardsByTargetLayerId[2].Service;
+        Assert.Multiple(() =>
+        {
+            Assert.That(scope.Terms, Is.Empty);
+            Assert.That(scope.HasUnresolvedTerms, Is.True);
+        });
+    }
+
+    [TestCase("association", "rs_create")]
+    [TestCase("service", "svc_create")]
+    [TestCase("service", "ip_proto_id")]
+    [TestCase("service", "svc_port_end")]
+    public async Task InvalidOrOutOfImportServiceData_FailsClosed(string target, string property)
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        JObject association = (JObject)json[0]!["rule_services"]![0]!;
+        JObject selected = target == "association" ? association : (JObject)association["service"]!;
+        selected[property] = property switch
+        {
+            "ip_proto_id" => -2,
+            "svc_port_end" => 70000,
+            _ => 101
+        };
+
+        CheckPointLayerGuardReadFailureCategory failure = AssertFailure(
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
+
+        Assert.That(failure, Is.EqualTo(CheckPointLayerGuardReadFailureCategory.InvalidGuardData));
     }
 
     [Test]

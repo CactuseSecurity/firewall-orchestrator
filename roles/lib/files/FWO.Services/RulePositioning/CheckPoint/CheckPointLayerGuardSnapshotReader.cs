@@ -163,7 +163,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         RuleWire? rule = rules.SingleOrDefault(item => item.Id == candidate.SourceRuleId);
         if (rule == null || rule.ManagementId != managementId ||
             rule.RulebaseId != candidate.SourceRulebaseId ||
-            !rule.SourceNegated.HasValue || !rule.DestinationNegated.HasValue ||
+            !rule.SourceNegated.HasValue || !rule.DestinationNegated.HasValue || !rule.ServiceNegated.HasValue ||
             !IsHistorical(rule.Created, rule.Removed, importId))
         {
             return false;
@@ -173,7 +173,10 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
                 out CheckPointGuardSide? source) ||
             !TryMapSide(
                 rule.Tos, candidate.SourceRuleId, rule.DestinationNegated.Value, false, importId,
-                out CheckPointGuardSide? destination))
+                out CheckPointGuardSide? destination) ||
+            !TryMapServiceScope(
+                rule.Services, candidate.SourceRuleId, rule.ServiceNegated.Value, importId,
+                out CheckPointGuardServiceScope? service))
         {
             return false;
         }
@@ -182,9 +185,129 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
             candidate.SourceRulebaseId,
             candidate.TargetLayerId,
             source!,
-            destination!);
+            destination!,
+            service!);
         return true;
     }
+
+    /// <summary>Maps fixed-import rule-service associations into one fail-closed service scope.</summary>
+    private static bool TryMapServiceScope(
+        List<ServiceAssociationWire>? associations,
+        long expectedRuleId,
+        bool scopeNegated,
+        long importId,
+        out CheckPointGuardServiceScope? scope)
+    {
+        scope = null;
+        if (associations == null || associations.Any(association => association == null) ||
+            associations.GroupBy(association => association.ServiceId).Any(group => group.Count() != 1))
+        {
+            return false;
+        }
+        List<PositioningService> terms = [];
+        bool unresolved = associations.Count == 0;
+        foreach (ServiceAssociationWire association in associations)
+        {
+            if (association.RuleId != expectedRuleId || association.ServiceId is not > 0 ||
+                association.Negated != false ||
+                !IsHistorical(association.Created, association.Removed, importId) ||
+                association.Service?.Id != association.ServiceId ||
+                !TryMapService(association.Service, importId, terms, ref unresolved))
+            {
+                return false;
+            }
+        }
+        if (unresolved)
+        {
+            terms.Clear();
+        }
+        scope = new CheckPointGuardServiceScope(scopeNegated,
+            terms.DistinctBy(term => (term.ProtocolId, term.DestinationPortStart, term.DestinationPortEnd)).ToList(),
+            unresolved);
+        return true;
+    }
+
+    /// <summary>Maps a direct service or flattened service-group leaves.</summary>
+    private static bool TryMapService(
+        ServiceWire? service,
+        long importId,
+        List<PositioningService> terms,
+        ref bool unresolved)
+    {
+        if (!IsValidService(service, importId) || string.IsNullOrWhiteSpace(service!.Type?.Name))
+        {
+            return false;
+        }
+        if (service.Type.Name == kGroupObjectType)
+        {
+            return TryMapServiceGroup(service, importId, terms, ref unresolved);
+        }
+        return TryAddServiceLeaf(service, terms);
+    }
+
+    /// <summary>Maps valid flattened service leaves while treating unsupported exclusions as unresolved.</summary>
+    private static bool TryMapServiceGroup(
+        ServiceWire group,
+        long importId,
+        List<PositioningService> terms,
+        ref bool unresolved)
+    {
+        if (group.Flats == null || group.Flats.GroupBy(flat => flat.MemberId).Any(rows => rows.Count() != 1))
+        {
+            return false;
+        }
+        int initialCount = terms.Count;
+        foreach (ServiceFlatWire flat in group.Flats)
+        {
+            if (!IsValidServiceFlat(flat, group.Id!.Value, importId))
+            {
+                return false;
+            }
+            if (flat.MemberId == group.Id || flat.Service!.Type?.Name == kGroupObjectType)
+            {
+                continue;
+            }
+            if (flat.Negated == true)
+            {
+                unresolved = true;
+                continue;
+            }
+            if (!TryAddServiceLeaf(flat.Service, terms))
+            {
+                return false;
+            }
+        }
+        unresolved |= terms.Count == initialCount;
+        return true;
+    }
+
+    /// <summary>Adds one normalized service leaf and rejects missing or malformed protocol/port data.</summary>
+    private static bool TryAddServiceLeaf(ServiceWire service, List<PositioningService> terms)
+    {
+        if (!service.ProtocolId.HasValue)
+        {
+            return false;
+        }
+        try
+        {
+            terms.Add(new PositioningService(service.ProtocolId.Value, service.PortStart, service.PortEnd));
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Validates one flattened service-group row against its group and fixed import.</summary>
+    private static bool IsValidServiceFlat(ServiceFlatWire flat, long groupId, long importId) =>
+        IsHistorical(flat.Created, flat.Removed, importId) && flat.GroupId == groupId &&
+        flat.Negated.HasValue && flat.MemberId is > 0 && flat.Service?.Id == flat.MemberId &&
+        IsValidService(flat.Service, importId);
+
+    /// <summary>Checks imported service identity and fixed-import visibility.</summary>
+    private static bool IsValidService(ServiceWire? service, long importId) =>
+        service?.Id is > 0 && IsHistorical(service.Created, service.Removed, importId);
 
     /// <summary>Maps one side while checking duplicated negation and association history.</summary>
     private static bool TryMapSide(
@@ -393,8 +516,10 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         [JsonProperty("removed")] public long? Removed { get; set; }
         [JsonProperty("rule_src_neg")] public bool? SourceNegated { get; set; }
         [JsonProperty("rule_dst_neg")] public bool? DestinationNegated { get; set; }
+        [JsonProperty("rule_svc_neg")] public bool? ServiceNegated { get; set; }
         [JsonProperty("rule_froms")] public List<AssociationWire>? Froms { get; set; }
         [JsonProperty("rule_tos")] public List<AssociationWire>? Tos { get; set; }
+        [JsonProperty("rule_services")] public List<ServiceAssociationWire>? Services { get; set; }
     }
 
     /// <summary>GraphQL shape for one rule-to-object association.</summary>
@@ -438,5 +563,42 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
     private sealed class ObjectTypeWire
     {
         [JsonProperty("name")] public string? Name { get; set; }
+    }
+
+    /// <summary>GraphQL shape for one rule-to-service association.</summary>
+    private sealed class ServiceAssociationWire
+    {
+        [JsonProperty("rule_id")] public long? RuleId { get; set; }
+        [JsonProperty("svc_id")] public long? ServiceId { get; set; }
+        [JsonProperty("negated")] public bool? Negated { get; set; }
+        [JsonProperty("rs_create")] public long? Created { get; set; }
+        [JsonProperty("removed")] public long? Removed { get; set; }
+        [JsonProperty("service")] public ServiceWire? Service { get; set; }
+    }
+
+    /// <summary>GraphQL shape for one imported network service.</summary>
+    private sealed class ServiceWire
+    {
+        [JsonProperty("svc_id")] public long? Id { get; set; }
+        [JsonProperty("svc_uid")] public string? Uid { get; set; }
+        [JsonProperty("svc_name")] public string? Name { get; set; }
+        [JsonProperty("svc_port")] public int? PortStart { get; set; }
+        [JsonProperty("svc_port_end")] public int? PortEnd { get; set; }
+        [JsonProperty("ip_proto_id")] public int? ProtocolId { get; set; }
+        [JsonProperty("svc_create")] public long? Created { get; set; }
+        [JsonProperty("removed")] public long? Removed { get; set; }
+        [JsonProperty("type")] public ObjectTypeWire? Type { get; set; }
+        [JsonProperty("svcgrp_flats")] public List<ServiceFlatWire>? Flats { get; set; }
+    }
+
+    /// <summary>GraphQL shape for one flattened service-group member.</summary>
+    private sealed class ServiceFlatWire
+    {
+        [JsonProperty("svcgrp_flat_id")] public long? GroupId { get; set; }
+        [JsonProperty("svcgrp_flat_member_id")] public long? MemberId { get; set; }
+        [JsonProperty("negated")] public bool? Negated { get; set; }
+        [JsonProperty("import_created")] public long? Created { get; set; }
+        [JsonProperty("removed")] public long? Removed { get; set; }
+        [JsonProperty("service")] public ServiceWire? Service { get; set; }
     }
 }

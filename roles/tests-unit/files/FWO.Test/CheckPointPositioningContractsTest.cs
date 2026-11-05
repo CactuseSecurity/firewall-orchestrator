@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
@@ -19,6 +20,44 @@ public class CheckPointPositioningContractsTest
     private static readonly string[] kExpectedRuleUids = ["earlier", "later"];
     private static readonly int[] kExpectedNativeOrder = [1, 2];
     private static readonly long[] kExpectedTargetRulebaseIds = [1, 2, 3];
+
+    [Test]
+    public void PositioningService_NormalizesSinglePortAndRejectsInvalidDefinitions()
+    {
+        PositioningService singlePort = new(6, 443, null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(singlePort.DestinationPortStart, Is.EqualTo(443));
+            Assert.That(singlePort.DestinationPortEnd, Is.EqualTo(443));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PositioningService(-2, null, null));
+            Assert.Throws<ArgumentException>(() => new PositioningService(GlobalConst.kAnyIpProtocolId, 443, 443));
+            Assert.Throws<ArgumentException>(() => new PositioningService(1, 1, 1));
+            Assert.Throws<ArgumentException>(() => new PositioningService(6, null, 443));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PositioningService(6, -1, 443));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PositioningService(6, 1, 65536));
+            Assert.Throws<ArgumentException>(() => new PositioningService(6, 444, 443));
+        });
+    }
+
+    [Test]
+    public void ServiceInputs_DefensivelyCopyCallerCollections()
+    {
+        List<PositioningService> services = [new PositioningService(6, 443, 443)];
+        CreationRuleServiceInput input = new(services);
+        CheckPointGuardServiceScope scope = new(false, services, false);
+
+        services.Clear();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(input.Services, Has.Count.EqualTo(1));
+            Assert.That(scope.Terms, Has.Count.EqualTo(1));
+            Assert.That(input.Services, Is.Not.InstanceOf<List<PositioningService>>());
+            Assert.That(scope.Terms, Is.Not.InstanceOf<List<PositioningService>>());
+            Assert.Throws<ArgumentException>(() => new CreationRuleServiceInput([]));
+        });
+    }
 
     [Test]
     public void Snapshot_DefensivelyCopiesEntitiesCollectionsAndNativeOrder()

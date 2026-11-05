@@ -22,6 +22,7 @@ namespace FWO.Report.Filter.Ast
                 "resolvedchanges" or "resolvedchange" => ReportType.ResolvedChanges,
                 "resolvedchangestech" or "resolvedchangetech" => ReportType.ResolvedChangesTech,
                 "natrules" or "nat_rules" => ReportType.NatRules,
+                "natchanges" or "nat_changes" => ReportType.NatChanges,
                 "recertifications" or "recertification" => ReportType.Recertification,
                 "connections" or "connection" => ReportType.Connections,
                 "apprules" or "apprule" => ReportType.AppRules,

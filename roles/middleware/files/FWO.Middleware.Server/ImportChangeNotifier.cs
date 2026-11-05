@@ -30,6 +30,8 @@ namespace FWO.Middleware.Server
 
         private ReportBase? changeReport;
 
+        private ReportBase? natChangeReport;
+
         private struct ImportToNotify
         {
             /// <summary>
@@ -131,31 +133,74 @@ namespace FWO.Middleware.Server
                 if (await NewImportFound())
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.ImportChange, globalConfig, apiConnection);
-                    if (notificationService.Notifications.Count == 0)
-                    {
-                        Log.WriteInfo(LogMessageTitle, "No notification configured for import changes. Imports remain unnotified.");
-                        return;
-                    }
-
-                    if (notificationService.Notifications.Any(notification => notification.Layout != NotificationLayout.SimpleText))
-                    {
-                        await GenerateChangeReport(cancellationToken);
-                    }
-                    // last checkpoint: once the first notification is sent, all of them are sent and the imports marked as notified
-                    cancellationToken.ThrowIfCancellationRequested();
-                    foreach (FwoNotification notification in notificationService.Notifications)
-                    {
-                        await notificationService.SendNotification(notification, null, CreateBody(), changeReport);
-                    }
-                    await notificationService.UpdateNotificationsLastSent();
-                    await SetImportsNotified();
+                    await NotifyImportChanges(cancellationToken);
                 }
             }
             finally
             {
                 WorkInProgress = false;
             }
+        }
+
+        /// <summary>
+        /// Sends the rule change notifications and the NAT rule change notifications for the imports found and marks the imports as notified.
+        /// NAT rule change notifications are only sent if the NAT changes report contains changes (or could not be generated).
+        /// </summary>
+        /// <param name="cancellationToken">Stops before the first notification is sent; imports then remain unnotified.</param>
+        private async Task NotifyImportChanges(CancellationToken cancellationToken)
+        {
+            NotificationService ruleChangeNotificationService = await NotificationService.CreateAsync(NotificationClient.ImportChange, globalConfig, apiConnection);
+            NotificationService natChangeNotificationService = await NotificationService.CreateAsync(NotificationClient.ImportNatChange, globalConfig, apiConnection);
+            if (ruleChangeNotificationService.Notifications.Count == 0 && natChangeNotificationService.Notifications.Count == 0)
+            {
+                Log.WriteInfo(LogMessageTitle, "No notification configured for import changes. Imports remain unnotified.");
+                return;
+            }
+
+            changeReport = null;
+            natChangeReport = null;
+            if (ruleChangeNotificationService.Notifications.Any(notification => notification.Layout != NotificationLayout.SimpleText))
+            {
+                changeReport = await GenerateChangeReport(ReportType.Changes, cancellationToken);
+            }
+            if (natChangeNotificationService.Notifications.Count > 0)
+            {
+                // the NAT changes report is always needed to decide whether there are any NAT rule changes to notify about
+                natChangeReport = await GenerateChangeReport(ReportType.NatChanges, cancellationToken);
+            }
+            // last checkpoint: once the first notification is sent, all of them are sent and the imports marked as notified
+            cancellationToken.ThrowIfCancellationRequested();
+            await SendNotifications(ruleChangeNotificationService, CreateBody(), changeReport);
+            if (HasNatChangesToNotify(natChangeReport))
+            {
+                string natBody = natChangeReport != null ? CreateNatChangesBody(natChangeReport) : CreateBody();
+                await SendNotifications(natChangeNotificationService, natBody, natChangeReport);
+            }
+            await SetImportsNotified();
+        }
+
+        /// <summary>
+        /// NAT rule change notifications are sent if the NAT changes report contains changes. If the report could not be
+        /// generated, they are sent anyway (without report), as NAT rule changes cannot be ruled out.
+        /// </summary>
+        /// <param name="natReport">Generated NAT changes report or null if its generation failed.</param>
+        /// <returns>True if the NAT rule change notifications have to be sent.</returns>
+        private static bool HasNatChangesToNotify(ReportBase? natReport)
+        {
+            return natReport == null || !natReport.NoChangesFound();
+        }
+
+        private static async Task SendNotifications(NotificationService notificationService, string body, ReportBase? report)
+        {
+            if (notificationService.Notifications.Count == 0)
+            {
+                return;
+            }
+            foreach (FwoNotification notification in notificationService.Notifications)
+            {
+                await notificationService.SendNotification(notification, null, body, report);
+            }
+            await notificationService.UpdateNotificationsLastSent();
         }
 
         private async Task<bool> NewImportFound()
@@ -178,11 +223,11 @@ namespace FWO.Middleware.Server
             return importsToNotify.Count > 0;
         }
 
-        private async Task GenerateChangeReport(CancellationToken cancellationToken)
+        private async Task<ReportBase?> GenerateChangeReport(ReportType reportType, CancellationToken cancellationToken)
         {
             try
             {
-                changeReport = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", await SetFilters()), apiConnection, userConfig, DefaultInit.DoNothing, cancellationToken);
+                return await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", await SetFilters(reportType)), apiConnection, userConfig, DefaultInit.DoNothing, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -190,11 +235,12 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exception)
             {
-                Log.WriteError(LogMessageTitle, $"Report generation leads to exception.", exception);
+                Log.WriteError(LogMessageTitle, $"Generation of {reportType} report leads to exception.", exception);
+                return null;
             }
         }
 
-        private async Task<ReportParams> SetFilters()
+        private async Task<ReportParams> SetFilters(ReportType reportType)
         {
             deviceFilter.Managements = [];
             var result = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagementOrSuperMgm);
@@ -216,9 +262,10 @@ namespace FWO.Middleware.Server
 
             deviceFilter.ApplyFullDeviceSelection(true);
 
-            return new((int)ReportType.Changes, deviceFilter)
+            return new((int)reportType, deviceFilter)
             {
-                IncludeObjects = userConfig.GlobalConfig!.ImpChangeIncludeObjectChanges,
+                // object changes are part of the rule changes report only, the NAT changes report would just repeat them
+                IncludeObjects = reportType != ReportType.NatChanges && userConfig.GlobalConfig!.ImpChangeIncludeObjectChanges,
                 TimeFilter = new()
                 {
                     TimeRangeType = TimeRangeType.Fixeddates,
@@ -244,6 +291,26 @@ namespace FWO.Middleware.Server
                     body.AppendLine();
                 }
                 body.Append($"{importsToNotify.FirstOrDefault(x => x.MgmtId == mgmtId).Mgmt.MgmtName} (id={mgmtId}): {mgmtCounter} {userConfig.GetText("changes")}");
+            }
+            return body.ToString();
+        }
+
+        /// <summary>
+        /// Creates the notification body for NAT rule changes, listing the number of NAT rule changes per management.
+        /// </summary>
+        /// <param name="report">Generated NAT changes report.</param>
+        /// <returns>Notification body.</returns>
+        private string CreateNatChangesBody(ReportBase report)
+        {
+            StringBuilder body = new();
+            foreach (ManagementReport management in report.ReportData.ManagementData.Where(m => m.RuleChanges != null && m.RuleChanges.Length > 0))
+            {
+                if (body.Length > 0)
+                {
+                    body.AppendLine();
+                    body.AppendLine();
+                }
+                body.Append($"{management.Name} (id={management.Id}): {management.RuleChanges!.Length} {userConfig.GetText("nat_rule_changes")}");
             }
             return body.ToString();
         }

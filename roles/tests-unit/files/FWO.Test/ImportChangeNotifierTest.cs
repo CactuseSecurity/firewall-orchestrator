@@ -8,6 +8,8 @@ using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Middleware.Server;
+using FWO.Report;
+using FWO.Report.Filter;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -18,6 +20,8 @@ namespace FWO.Test
     {
         private static readonly int[] kExpectedImportedManagements = [3, 5];
         private static readonly int[] kExpectedExpandedManagementIds = [10, 11, 2];
+        private static readonly object?[] kMissingReportArgument = [null];
+        private static readonly string[] kExpectedNotificationClients = [nameof(NotificationClient.ImportChange), nameof(NotificationClient.ImportNatChange)];
 
         [Test]
         public async Task Run_ReturnsWithoutSendingWhenNoNewImportsFound()
@@ -62,7 +66,7 @@ namespace FWO.Test
             await notifier.Run();
 
             Assert.That(GetPrivateField<bool>(notifier, "WorkInProgress"), Is.False);
-            Assert.That(apiConnection.NotificationQueryCalls, Is.EqualTo(1));
+            Assert.That(apiConnection.NotificationQueryCalls, Is.EqualTo(2), "rule change and NAT rule change notifications are loaded");
             Assert.That(apiConnection.LdapQueryCalls, Is.EqualTo(0));
             Assert.That(apiConnection.SetImportsNotifiedCalls, Is.EqualTo(0));
         }
@@ -246,12 +250,97 @@ namespace FWO.Test
                 CreateImport(41L, 1, "Super", new DateTime(2026, 7, 14, 11, 0, 0), 2),
                 CreateImport(42L, 2, "Direct", new DateTime(2026, 7, 14, 11, 10, 0), 3)));
 
-            ReportParams reportParams = await InvokePrivateAsync<ReportParams>(notifier, "SetFilters");
+            ReportParams reportParams = await InvokePrivateAsync<ReportParams>(notifier, "SetFilters", ReportType.Changes);
 
             DeviceFilter deviceFilter = GetPrivateField<DeviceFilter>(notifier, "deviceFilter");
+            Assert.That(reportParams.ReportType, Is.EqualTo((int)ReportType.Changes));
             Assert.That(reportParams.IncludeObjects, Is.True);
             Assert.That(reportParams.TimeFilter.TimeRangeType, Is.EqualTo(TimeRangeType.Fixeddates));
             Assert.That(deviceFilter.Managements.Select(m => m.Id), Is.EqualTo(kExpectedExpandedManagementIds));
+        }
+
+        [Test]
+        public async Task SetFilters_NatChanges_ExcludesObjectChanges()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ImpChangeIncludeObjectChanges = true
+            };
+            ImportChangeNotifierTestApiConn apiConnection = new()
+            {
+                Managements = [new ManagementSelect { Id = 2, Name = "C" }]
+            };
+            ImportChangeNotifier notifier = new(apiConnection, globalConfig);
+            SetPrivateField(notifier, "importedManagements", new List<int> { 2 });
+            SetPrivateField(notifier, "importsToNotify", CreateImportList(
+                CreateImport(42L, 2, "Direct", new DateTime(2026, 7, 14, 11, 10, 0), 3)));
+
+            ReportParams reportParams = await InvokePrivateAsync<ReportParams>(notifier, "SetFilters", ReportType.NatChanges);
+
+            Assert.That(reportParams.ReportType, Is.EqualTo((int)ReportType.NatChanges));
+            Assert.That(reportParams.IncludeObjects, Is.False, "object changes are only part of the rule changes report");
+        }
+
+        [Test]
+        public void CreateNatChangesBody_ListsManagementsWithNatRuleChanges()
+        {
+            ImportChangeNotifier notifier = new(new ImportChangeNotifierTestApiConn(), new SimulatedGlobalConfig());
+            ReportChanges natReport = CreateNatChangesReport(
+                new ManagementReport { Id = 2, Name = "Alpha", RuleChanges = [new RuleChange(), new RuleChange()] },
+                new ManagementReport { Id = 4, Name = "Unchanged", RuleChanges = [] },
+                new ManagementReport { Id = 5, Name = "Beta", RuleChanges = [new RuleChange()] });
+
+            string body = InvokePrivate<string>(notifier, "CreateNatChangesBody", natReport);
+
+            Assert.That(body, Is.EqualTo(
+                $"Alpha (id=2): 2 {GlobalConst.kUndefinedText}" + Environment.NewLine + Environment.NewLine +
+                $"Beta (id=5): 1 {GlobalConst.kUndefinedText}"));
+        }
+
+        [Test]
+        public void HasNatChangesToNotify_DependsOnNatChangesInReport()
+        {
+            ReportChanges reportWithChanges = CreateNatChangesReport(new ManagementReport { Id = 1, RuleChanges = [new RuleChange()] });
+            ReportChanges reportWithoutChanges = CreateNatChangesReport(new ManagementReport { Id = 1, RuleChanges = [] });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivateStatic<bool>("HasNatChangesToNotify", reportWithChanges), Is.True);
+                Assert.That(InvokePrivateStatic<bool>("HasNatChangesToNotify", reportWithoutChanges), Is.False);
+                Assert.That(InvokePrivateStatic<bool>("HasNatChangesToNotify", kMissingReportArgument), Is.True, "failed report generation must not suppress the notification");
+            });
+        }
+
+        [Test]
+        public async Task Run_LoadsNatChangeNotificationsSeparately()
+        {
+            ImportChangeNotifierTestApiConn apiConnection = new()
+            {
+                ImportsToNotify = [CreateImport(11L, 1, "mgmt-a", new DateTime(2026, 7, 14, 8, 0, 0), 3)]
+            };
+            ImportChangeNotifier notifier = new(apiConnection, new SimulatedGlobalConfig());
+
+            await notifier.Run();
+
+            Assert.That(apiConnection.RequestedNotificationClients, Is.EqualTo(kExpectedNotificationClients));
+            Assert.That(apiConnection.SetImportsNotifiedCalls, Is.EqualTo(0));
+        }
+
+        private static ReportChanges CreateNatChangesReport(params ManagementReport[] managements)
+        {
+            ReportData reportData = new();
+            reportData.ManagementData.AddRange(managements);
+            return new ReportChanges(new DynGraphqlQuery(""), new SimulatedUserConfig(), ReportType.NatChanges, new TimeFilter(), false)
+            {
+                ReportData = reportData
+            };
+        }
+
+        private static T InvokePrivateStatic<T>(string methodName, params object?[] parameters)
+        {
+            MethodInfo method = typeof(ImportChangeNotifier).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException($"{methodName} not found.");
+            return (T)method.Invoke(null, parameters)!;
         }
 
         [Test]
@@ -357,6 +446,7 @@ namespace FWO.Test
             public object? LastVariables { get; private set; }
             public int LdapQueryCalls { get; private set; }
             public int NotificationQueryCalls { get; private set; }
+            public List<string> RequestedNotificationClients { get; } = [];
             public int SetImportsNotifiedCalls { get; private set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
@@ -377,6 +467,7 @@ namespace FWO.Test
                 if (query == NotificationQueries.getNotifications)
                 {
                     ++NotificationQueryCalls;
+                    RequestedNotificationClients.Add(variables?.GetType().GetProperty("client")?.GetValue(variables)?.ToString() ?? "");
                     OnNotificationQuery?.Invoke();
                     return Task.FromResult((QueryResponseType)(object)Notifications.ToList());
                 }

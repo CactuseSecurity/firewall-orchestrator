@@ -154,14 +154,6 @@ namespace FWO.Test
             Assert.That(condition, Is.EqualTo(Normalize("""{"id":{"_is_null":true}}""")));
         }
 
-        [Test]
-        public void TaskNumberFilter_MatchesRequestAndImplementationTasks()
-        {
-            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("task_number", FancyColumnFilterOperator.Equals, "2"))));
-
-            Assert.That(condition, Is.EqualTo(Normalize("""{"_or":[{"reqtasks":{"task_number":{"_eq":2}}},{"reqtasks":{"impltasks":{"task_number":{"_eq":2}}}}]}""")));
-        }
-
         [TestCase(FancyColumnFilterOperator.Contains, """{"_ilike":"%ali%"}""")]
         [TestCase(FancyColumnFilterOperator.Equals, """{"_ilike":"ali"}""")]
         [TestCase(FancyColumnFilterOperator.StartsWith, """{"_ilike":"ali%"}""")]
@@ -194,6 +186,7 @@ namespace FWO.Test
 
         [TestCase("type")]
         [TestCase("name")]
+        [TestCase("task_number")]
         [TestCase("flow_bundle_id")]
         public void Filter_TextOrUnknownColumn_AddsNoCondition(string columnKey)
         {

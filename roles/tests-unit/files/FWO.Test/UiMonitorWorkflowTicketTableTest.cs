@@ -108,8 +108,6 @@ namespace FWO.Test
         [TestCase("state", true, true)]
         [TestCase("requester", false, true)]
         [TestCase("start_time", true, false)]
-        [TestCase("task_number", false, true)]
-        [TestCase("flow_bundle_id", false, false)]
         [TestCase("type", false, false)]
         [TestCase("tasks", false, false)]
         [TestCase("actions", false, false)]
@@ -154,7 +152,6 @@ namespace FWO.Test
             {
                 Assert.That(component.FindAll("tbody tr"), Has.Count.EqualTo(4));
                 Assert.That(component.Markup, Does.Contain("Request task"));
-                Assert.That(component.Markup, Does.Contain("bundle-1-2"));
                 Assert.That(component.Markup, Does.Contain("Implementation task"));
                 Assert.That(component.Markup, Does.Contain("Approver group"));
                 Assert.That(component.Markup, Does.Contain("99"));

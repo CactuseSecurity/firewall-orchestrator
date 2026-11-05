@@ -196,12 +196,10 @@
                 CellTemplate = ActionsCellTemplate
             },
             CreateColumn("id", userConfig.GetText("id"), row => row.Id.ToString(), kServerColumn, row => row.Id),
-            CreateColumn("type", userConfig.GetText("type"), row => GetKindText(row.Kind), kDisplayColumn),            
-            // CreateColumn("task_number", userConfig.GetText("task_number"), row => row.TaskNumber?.ToString() ?? "", kFilterOnlyColumn, row => row.TaskNumber),
+            CreateColumn("type", userConfig.GetText("type"), row => GetKindText(row.Kind), kDisplayColumn),
             CreateColumn("name", userConfig.GetText("name"), row => row.Name, kSortOnlyColumn),
             CreateColumn("tasks", userConfig.GetText("tasks"), row => row.TaskCount?.ToString() ?? "", kDisplayColumn, row => row.TaskCount),
             CreateColumn("requester", userConfig.GetText("requester"), row => row.Requester, kFilterOnlyColumn),
-            // CreateColumn("flow_bundle_id", userConfig.GetText("flow_bundle_id"), row => row.FlowBundleId, kDisplayColumn),
             CreateColumn("state", userConfig.GetText("state"), row => ResolveStateName(row.StateId), kServerColumn, cellTemplate: StateCellTemplate),
             CreateColumn("start_time", userConfig.GetText("start_time"), row => row.Start?.ToString() ?? "", kSortOnlyColumn, row => row.Start),
             CreateColumn("end_time", userConfig.GetText("end_time"), row => row.End?.ToString() ?? "", kSortOnlyColumn, row => row.End)
@@ -280,9 +278,7 @@
         {
             ReqTask = reqTask,
             Id = reqTask.Id,
-            TaskNumber = reqTask.TaskNumber,
             Name = reqTask.Title,
-            FlowBundleId = reqTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId),
             StateId = reqTask.StateId,
             Start = reqTask.Start,
             End = reqTask.Stop
@@ -301,7 +297,6 @@
                 ReqTask = reqTask,
                 ImplTask = implTask,
                 Id = implTask.Id,
-                TaskNumber = implTask.TaskNumber,
                 Name = implTask.Title,
                 StateId = implTask.StateId,
                 Start = implTask.Start,
@@ -354,11 +349,9 @@
         public WfImplTask? ImplTask { get; init; }
         public WfApproval? Approval { get; init; }
         public long Id { get; init; }
-        public int? TaskNumber { get; init; }
         public string Name { get; init; } = "";
         public int? TaskCount { get; init; }
         public string Requester { get; init; } = "";
-        public string FlowBundleId { get; init; } = "";
         public int StateId { get; init; }
         public DateTime? Start { get; init; }
         public DateTime? End { get; init; }

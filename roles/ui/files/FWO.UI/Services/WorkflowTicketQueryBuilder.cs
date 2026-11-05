@@ -11,7 +11,7 @@ namespace FWO.Ui.Services
     /// <summary>
     /// Translates the state of the workflow monitoring tree table (column filters, sort, page) and the
     /// page's task type and state dropdowns into the variables of the paged ticket query.
-    /// The state, id and task number columns compare ids, so the database can answer them quickly. The requester column
+    /// The state and id columns compare ids, so the database can answer them quickly. The requester column
     /// compares the user name of the ticket's requester only, a lookup by primary key in the small user table.
     /// Free text search and other text filters are not offered, as a "contains" match over all levels is too slow
     /// on many tickets. A filter matches if any level of a ticket (ticket, request task, implementation task, approval)
@@ -31,7 +31,6 @@ namespace FWO.Ui.Services
         private const string kId = "id";
         private const string kStateId = "state_id";
         private const string kTitle = "title";
-        private const string kTaskNumber = "task_number";
         private const string kAscending = "asc";
         private const string kDescending = "desc";
         private const string kWildcard = "%";
@@ -104,7 +103,6 @@ namespace FWO.Ui.Services
             {
                 "state" => StateCondition(MatchingStateIds(positiveOperator, value, stateNames)),
                 "id" => NumberCondition(positiveOperator, value, IdCondition),
-                "task_number" => NumberCondition(positiveOperator, value, TaskNumberCondition),
                 "requester" => RequesterCondition(TextComparison(positiveOperator, value)),
                 _ => null
             };
@@ -222,13 +220,6 @@ namespace FWO.Ui.Services
         private static Dictionary<string, object> RequesterCondition(Dictionary<string, object> comparison)
         {
             return Nested("uiuser", Field("uiuser_username", comparison));
-        }
-
-        private static Dictionary<string, object> TaskNumberCondition(long taskNumber)
-        {
-            Dictionary<string, object> taskNumberEquals = Field(kTaskNumber, Comparison(kEq, taskNumber));
-            List<object> alternatives = [Nested(kReqTasks, taskNumberEquals), Nested(kReqTasks, Nested(kImplTasks, taskNumberEquals))];
-            return new Dictionary<string, object> { [kOr] = alternatives };
         }
 
         private static Dictionary<string, object> Comparison(string comparisonOperator, object value)

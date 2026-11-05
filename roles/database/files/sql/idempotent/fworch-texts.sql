@@ -8892,14 +8892,14 @@ INSERT INTO txt VALUES ('H7030', 'German', 'Die Workflow-Ticket-&Uuml;berwachung
     Die Filter f&uuml;r Aufgabentyp und Status greifen auf allen Ebenen: Ein Ticket wird angezeigt, wenn es mindestens eine Aufgabe eines gew&auml;hlten Typs enth&auml;lt und wenn das Ticket selbst, eine Antragsaufgabe, eine Umsetzungsaufgabe oder eine Genehmigung einen der gew&auml;hlten Status besitzt.
     Die Tickets werden als Baum dargestellt: Unter jedem Ticket lassen sich seine Antragsaufgaben aufklappen, darunter deren Umsetzungsaufgaben und Genehmigungen.
     Es wird jeweils nur eine Seite geladen. Spaltenfilter und Sortierung wirken auf alle Tickets und werden in der Datenbank ausgef&uuml;hrt.
-    Gefiltert werden kann nach Status, ID und Aufgabennummer: Ein Filter findet ein Ticket, wenn das Ticket selbst oder eine seiner Aufgaben bzw. Genehmigungen passt; verneinte Filter (z.B. &quot;enth&auml;lt nicht&quot;) finden nur Tickets, bei denen keine Ebene passt.
+    Gefiltert werden kann nach Status, ID und Antragsteller: Ein Status- oder ID-Filter findet ein Ticket, wenn das Ticket selbst oder eine seiner Aufgaben bzw. Genehmigungen passt; verneinte Filter (z.B. &quot;enth&auml;lt nicht&quot;) finden nur Tickets, bei denen keine Ebene passt. Der Antragsteller-Filter vergleicht den Benutzernamen des Antragstellers des Tickets.
     Sortiert wird nach den Werten der Tickets, der Status nach seiner Reihenfolge im Workflow. Spalten lassen sich in der Breite anpassen und ausblenden.
 ');
 INSERT INTO txt VALUES ('H7030', 'English', 'Workflow ticket monitoring shows tickets with their request and implementation tasks.
     The task type and state filters apply across all levels: a ticket is shown when it contains at least one task of a selected type and when the ticket itself, a request task, an implementation task, or an approval has one of the selected states.
     Tickets are shown as a tree: each ticket expands to its request tasks, and each request task to its implementation tasks and approvals.
     Only one page is loaded at a time. Column filters and sorting apply to all tickets and are executed in the database.
-    Tickets can be filtered by state, id and task number: a filter finds a ticket if the ticket itself or one of its tasks or approvals matches; negated filters (e.g. &quot;does not contain&quot;) only find tickets where no level matches.
+    Tickets can be filtered by state, id and requester: a state or id filter finds a ticket if the ticket itself or one of its tasks or approvals matches; negated filters (e.g. &quot;does not contain&quot;) only find tickets where no level matches. The requester filter compares the user name of the ticket's requester.
     Sorting uses the values of the tickets, the state its order in the workflow. Columns can be resized and hidden.
 ');
 INSERT INTO txt VALUES ('H7031', 'German', '&Uuml;ber "Status &auml;ndern" kann der Zielstatus gew&auml;hlt werden. "Nur lokaler Status" &auml;ndert nur das ausgew&auml;hlte Objekt, "Eltern-Status mitziehen" berechnet die Elternobjekte nach den Workflow-Regeln neu, und "Aktionen ausl&ouml;sen" f&uuml;hrt zus&auml;tzlich die konfigurierten Statusaktionen aus.');

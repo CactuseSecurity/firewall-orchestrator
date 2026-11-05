@@ -138,6 +138,19 @@ def test_source_ports_are_ignored(
     assert entry.dst_port == expected_dst_port
 
 
+@pytest.mark.parametrize(
+    "source_port",
+    ["eq 1024", "neq ntp", "range 7937 10000", "object-group SVC_PORTS"],
+)
+def test_source_ports_in_deny_entries_fail_closed(source_port: str) -> None:
+    # a deny widened to all source ports would hide traffic the firewall permits
+    with pytest.raises(AsaConfigParseError) as raised:
+        parse(f"access-list ACL extended deny tcp any {source_port} any")
+
+    assert raised.value.token_position == 6
+    assert f"unsupported source port '{source_port}' in deny entry" in raised.value.reason
+
+
 def test_icmp_type_is_kept_instead_of_widening_to_any_icmp() -> None:
     entry: AccessListEntry = parse(f"{ACL_PREFIX} icmp any object-group OG_DMZ echo-reply")
 
@@ -268,8 +281,7 @@ def test_interface_inside_entry_stops_the_config_parse_with_its_line_number() ->
 
 def test_no_entry_is_silently_dropped() -> None:
     config: str = (
-        "access-list OUTSIDE_IN extended deny ip host 10.0.0.1 10.0.0.0\n"
-        "access-list OUTSIDE_IN extended permit ip any any\n"
+        "access-list OUTSIDE_IN extended deny tcp any eq 1024 any\naccess-list OUTSIDE_IN extended permit ip any any\n"
     )
 
     with pytest.raises(AsaConfigParseError):

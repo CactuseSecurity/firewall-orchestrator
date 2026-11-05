@@ -130,10 +130,12 @@ def parse_access_list_entry(
     Syntax: access-list NAME [line N] extended {permit|deny} PROTOCOL SOURCE [SOURCE_PORT] DESTINATION
             [PORT | ICMP_TYPE] [log [LEVEL] [interval SECS] | log disable | log default] [time-range NAME] [inactive]
 
-    SOURCE_PORT is skipped with a warning; the entry is imported for all source ports.
+    SOURCE_PORT is skipped with a warning in permit entries; the entry is imported for all source ports.
+    In deny entries it is rejected, because a deny widened to all source ports would hide traffic the firewall permits.
 
     Raises:
-        AsaConfigParseError: for unknown, truncated or unsupported syntax (e.g. interface addresses)
+        AsaConfigParseError: for unknown, truncated or unsupported syntax (e.g. interface addresses, source ports
+            in deny entries)
 
     """
     parts = line.split()
@@ -145,7 +147,7 @@ def parse_access_list_entry(
     protocol, pos = _parse_protocol(parts, pos + 1, protocol_groups, svc_objects, svc_obj_groups)
     service_group_names = {group.name for group in svc_obj_groups}
     src, pos = parse_endpoint(parts, pos)
-    pos = _skip_source_port(parts, pos, service_group_names, line)
+    pos = _skip_source_port(parts, pos, service_group_names, action, line)
     dst, pos = parse_endpoint(parts, pos)
     dst_port, pos = _parse_destination_service(parts, pos, protocol)
     inactive, time_range = _parse_options(parts, pos)
@@ -228,11 +230,13 @@ def _parse_protocol(
     return EndpointKind(kind="protocol", value=keyword.lower()), pos + 1
 
 
-def _skip_source_port(parts: list[str], pos: int, service_group_names: set[str], line: str) -> int:
+def _skip_source_port(parts: list[str], pos: int, service_group_names: set[str], action: str, line: str) -> int:
     """
     Skip an optional source port and return the position after it.
 
     Source ports are not imported: the entry is imported for all source ports, so it is wider than the real one.
+    This is only acceptable for permit entries, where the widening over-reports what the firewall permits.
+    A widened deny entry would under-report it (and shadow later permits), so source ports in deny entries are rejected.
     """
     if pos >= len(parts):
         return pos
@@ -245,6 +249,8 @@ def _skip_source_port(parts: list[str], pos: int, service_group_names: set[str],
     else:
         return pos
     construct = " ".join(parts[pos : pos + token_count])
+    if action == "deny":
+        raise AsaConfigParseError(f"unsupported source port '{construct}' in deny entry", pos)
     FWOLogger.warning(f"ignoring source port '{construct}' in '{line}' - the entry is imported for all source ports")
     return pos + token_count
 

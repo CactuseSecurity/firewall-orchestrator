@@ -74,7 +74,7 @@ public partial class DisplayRequestTask
         return id.HasValue && id.Value != 0;
     }
 
-    private bool IsInvalidServicePort(WfReqElement element)
+    private static bool IsInvalidServicePort(WfReqElement element)
     {
         if (element.Field != ElemFieldType.service.ToString() || !IpProtocol.HasPorts(element.ProtoId))
         {
@@ -134,9 +134,26 @@ public partial class DisplayRequestTask
 
     private async Task<bool> RejectInvalidObjectTask()
     {
-        string? error = !WfHandler.EditReqTaskMode && !WfHandler.ApproveReqTaskMode && !IsClassicApprovalEditMode
-            ? WfObjectTaskHelper.HasValidElementStructure(WfHandler.ActReqTask) ? null : "E5124"
-            : elementEditor == null ? "E5124" : elementEditor.ApplyObjectTask();
+        string? error;
+        if (!WfHandler.EditReqTaskMode && !WfHandler.ApproveReqTaskMode && !IsClassicApprovalEditMode)
+        {
+            if (WfObjectTaskHelper.HasValidElementStructure(WfHandler.ActReqTask))
+            {
+                error = null;
+            }
+            else
+            {
+                error = "E5124";
+            }
+        }
+        else if (elementEditor == null)
+        {
+            error = "E5124";
+        }
+        else
+        {
+            error = elementEditor.ApplyObjectTask();
+        }
         if (error != null)
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText(error), true);

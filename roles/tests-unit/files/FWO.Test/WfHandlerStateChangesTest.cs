@@ -660,6 +660,69 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AutoPromote_RequestTaskScope_UsesFirstAllowedStateAsFallback()
+        {
+            StateMatrix matrix = new()
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 5,
+                Matrix = new() { [0] = [2] }
+            };
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 1,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 0
+            };
+            WfTicket ticket = new() { Id = 1, Tasks = [reqTask] };
+            WfHandler handler = new()
+            {
+                ActTicket = ticket,
+                MasterStateMatrix = matrix,
+                ActStateMatrix = matrix
+            };
+            handler.TicketList.Add(ticket);
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+
+            await handler.AutoPromote(reqTask, WfObjectScopes.RequestTask, null);
+
+            Assert.That(handler.ActReqTask.StateId, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task AutoPromote_RequestTaskScope_SkipsFallbackWhenNoTransitionIsAllowed()
+        {
+            StateMatrix matrix = new()
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 5
+            };
+            WfReqTask reqTask = new()
+            {
+                Id = 8,
+                TicketId = 1,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 0
+            };
+            WfTicket ticket = new() { Id = 1, Tasks = [reqTask] };
+            WfHandler handler = new()
+            {
+                ActTicket = ticket,
+                MasterStateMatrix = matrix,
+                ActStateMatrix = matrix
+            };
+            handler.TicketList.Add(ticket);
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+
+            await handler.AutoPromote(reqTask, WfObjectScopes.RequestTask, null);
+
+            Assert.That(handler.ActReqTask.StateId, Is.EqualTo(0));
+        }
+
+        [Test]
         public async Task AutoPromote_RequestTaskScope_UpdatesStateAndHandler()
         {
             WfHandler handler = new();
@@ -727,6 +790,52 @@ namespace FWO.Test
             await handler.AutoPromote(firstTask, WfObjectScopes.RequestTask, 2);
 
             Assert.That(ticket.Tasks.Select(task => task.StateId), Is.EqualTo(kPromotedTaskStates));
+        }
+
+        [Test]
+        public async Task AutoPromote_RequestTaskScope_PersistsLaggingBundledTask()
+        {
+            StateMatrix matrix = new()
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 5
+            };
+            WfReqTask firstTask = new()
+            {
+                Id = 17,
+                TicketId = 11,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 0
+            };
+            WfReqTask secondTask = new()
+            {
+                Id = 18,
+                TicketId = 11,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 0
+            };
+            firstTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-17-18");
+            secondTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-17-18");
+            WfTicket ticket = new() { Id = 11, Tasks = [firstTask, secondTask] };
+            MonitoringStateChangeApiConn apiConnection = new();
+            WfHandler handler = new()
+            {
+                ActTicket = ticket,
+                userConfig = new SimulatedUserConfig { ReqConsiderBundling = true },
+                MasterStateMatrix = matrix
+            };
+            handler.TicketList.Add(ticket);
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+            SetDbAccess(handler, apiConnection);
+
+            await handler.AutoPromote(firstTask, WfObjectScopes.RequestTask, 2);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticket.Tasks.Select(task => task.StateId), Is.EqualTo(kPromotedTaskStates));
+                Assert.That(apiConnection.UpdateReqTaskStateCallCount, Is.EqualTo(2));
+            });
         }
 
         [TestCase(PromotionMode.Ticket, true, false)]
@@ -1796,10 +1905,16 @@ namespace FWO.Test
 
         private sealed class MonitoringStateChangeApiConn : SimulatedApiConnection
         {
+            public int UpdateReqTaskStateCallCount { get; private set; }
+
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == RequestQueries.updateTicketState || query == RequestQueries.updateRequestTaskState)
                 {
+                    if (query == RequestQueries.updateRequestTaskState)
+                    {
+                        UpdateReqTaskStateCallCount++;
+                    }
                     long id = Convert.ToInt64(variables?.GetType().GetProperty("id")?.GetValue(variables));
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = id });
                 }

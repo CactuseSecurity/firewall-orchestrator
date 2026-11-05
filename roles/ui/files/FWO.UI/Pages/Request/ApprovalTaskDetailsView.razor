@@ -256,28 +256,28 @@
         set => editorService.accessElementDisplayMode = value;
     }
 
-    private List<IpProtocol> ipProtocols
+    internal List<IpProtocol> ipProtocols
     {
         get => editorService.ipProtocols;
         set => editorService.ipProtocols = value;
     }
-    private List<IpProtocol> selectableIpProtocols
+    internal List<IpProtocol> selectableIpProtocols
     {
         get => editorService.selectableIpProtocols;
         set => editorService.selectableIpProtocols = value;
     }
-    private List<RuleAction> ruleActions
+    internal List<RuleAction> ruleActions
     {
         get => editorService.ruleActions;
         set => editorService.ruleActions = value;
     }
-    private List<Tracking> trackings
+    internal List<Tracking> trackings
     {
         get => editorService.trackings;
         set => editorService.trackings = value;
     }
 
-    private bool displayOwnerEditor
+    internal bool displayOwnerEditor
     {
         get => editorService.displayOwnerEditor;
         set => editorService.displayOwnerEditor = value;
@@ -287,12 +287,12 @@
         get => editorService.editingOwnerTask;
         set => editorService.editingOwnerTask = value;
     }
-    private FwoOwner selectedOwner
+    internal FwoOwner selectedOwner
     {
         get => editorService.selectedOwner;
         set => editorService.selectedOwner = value;
     }
-    private bool displayRuleActionEditor
+    internal bool displayRuleActionEditor
     {
         get => editorService.displayRuleActionEditor;
         set => editorService.displayRuleActionEditor = value;
@@ -302,12 +302,12 @@
         get => editorService.editingRuleActionTask;
         set => editorService.editingRuleActionTask = value;
     }
-    private RuleAction? selectedRuleAction
+    internal RuleAction? selectedRuleAction
     {
         get => editorService.selectedRuleAction;
         set => editorService.selectedRuleAction = value;
     }
-    private bool displayTrackingEditor
+    internal bool displayTrackingEditor
     {
         get => editorService.displayTrackingEditor;
         set => editorService.displayTrackingEditor = value;
@@ -317,12 +317,12 @@
         get => editorService.editingTrackingTask;
         set => editorService.editingTrackingTask = value;
     }
-    private Tracking? selectedTracking
+    internal Tracking? selectedTracking
     {
         get => editorService.selectedTracking;
         set => editorService.selectedTracking = value;
     }
-    private bool displayManagementEditor
+    internal bool displayManagementEditor
     {
         get => editorService.displayManagementEditor;
         set => editorService.displayManagementEditor = value;
@@ -332,12 +332,12 @@
         get => editorService.editingManagementTask;
         set => editorService.editingManagementTask = value;
     }
-    private Management? selectedManagement
+    internal Management? selectedManagement
     {
         get => editorService.selectedManagement;
         set => editorService.selectedManagement = value;
     }
-    private bool displayTargetDatesEditor
+    internal bool displayTargetDatesEditor
     {
         get => editorService.displayTargetDatesEditor;
         set => editorService.displayTargetDatesEditor = value;
@@ -357,32 +357,32 @@
         get => editorService.formerTimeObjectSelectorId;
         set => editorService.formerTimeObjectSelectorId = value;
     }
-    private TargetDatesEditorModel targetDatesEditorModel
+    internal TargetDatesEditorModel targetDatesEditorModel
     {
         get => editorService.targetDatesEditorModel;
         set => editorService.targetDatesEditorModel = value;
     }
-    private bool displayTimeObjectTaskEditor
+    internal bool displayTimeObjectTaskEditor
     {
         get => editorService.displayTimeObjectTaskEditor;
         set => editorService.displayTimeObjectTaskEditor = value;
     }
-    private TargetDatesEditorModel newTimeObjectTaskModel
+    internal TargetDatesEditorModel newTimeObjectTaskModel
     {
         get => editorService.newTimeObjectTaskModel;
         set => editorService.newTimeObjectTaskModel = value;
     }
-    private bool displayDeleteFormerTimeObjectTask
+    internal bool displayDeleteFormerTimeObjectTask
     {
         get => editorService.displayDeleteFormerTimeObjectTask;
         set => editorService.displayDeleteFormerTimeObjectTask = value;
     }
-    private bool displayTextEditor
+    internal bool displayTextEditor
     {
         get => editorService.displayTextEditor;
         set => editorService.displayTextEditor = value;
     }
-    private bool displayElementsEditor
+    internal bool displayElementsEditor
     {
         get => editorService.displayElementsEditor;
         set => editorService.displayElementsEditor = value;
@@ -392,32 +392,32 @@
         get => editorService.editingElementsTask;
         set => editorService.editingElementsTask = value;
     }
-    private string editingElementsField
+    internal string editingElementsField
     {
         get => editorService.editingElementsField;
         set => editorService.editingElementsField = value;
     }
-    private bool displayObjectTaskEditor
+    internal bool displayObjectTaskEditor
     {
         get => editorService.displayObjectTaskEditor;
         set => editorService.displayObjectTaskEditor = value;
     }
-    private bool objectTaskIsModify
+    internal bool objectTaskIsModify
     {
         get => editorService.objectTaskIsModify;
         set => editorService.objectTaskIsModify = value;
     }
-    private WfReqTask newObjectTask
+    internal WfReqTask newObjectTask
     {
         get => editorService.newObjectTask;
         set => editorService.newObjectTask = value;
     }
-    private ObjectTaskKind newObjectTaskKind
+    internal ObjectTaskKind newObjectTaskKind
     {
         get => editorService.newObjectTaskKind;
         set => editorService.newObjectTaskKind = value;
     }
-    private bool displayDeleteObjectTask
+    internal bool displayDeleteObjectTask
     {
         get => editorService.displayDeleteObjectTask;
         set => editorService.displayDeleteObjectTask = value;
@@ -427,7 +427,7 @@
         get => editorService.pendingObjectTask;
         set => editorService.pendingObjectTask = value;
     }
-    private bool workInProgress
+    internal bool workInProgress
     {
         get => editorService.workInProgress;
         set => editorService.workInProgress = value;
@@ -437,17 +437,17 @@
         get => editorService.editingTextTask;
         set => editorService.editingTextTask = value;
     }
-    private string textEditorKey
+    internal string textEditorKey
     {
         get => editorService.textEditorKey;
         set => editorService.textEditorKey = value;
     }
-    private string textEditorValue
+    internal string textEditorValue
     {
         get => editorService.textEditorValue;
         set => editorService.textEditorValue = value;
     }
-    private bool textEditorMultiline
+    internal bool textEditorMultiline
     {
         get => editorService.textEditorMultiline;
         set => editorService.textEditorMultiline = value;

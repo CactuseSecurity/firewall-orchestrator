@@ -50,40 +50,35 @@ class TestFwConfigImportObjectAddChangelogObjs:
         self, fwconfig_import_object: FwConfigImportObject, api_call: FwoApiCall, mocker: MockerFixture
     ):
         # Arrange
-        mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
         api_call.call = mocker.Mock(return_value={"errors": [{"message": "Some error occurred"}]})
 
-        # Act
-        fwconfig_import_object.add_changelog_objs(
-            nwobj_ids_added=[{"obj_id": 1}],
-            nw_obj_ids_removed=[{"obj_id": 2}],
-            svc_obj_ids_added=[{"svc_id": 3}],
-            svc_obj_ids_removed=[{"svc_id": 4}],
-        )
-
-        # Assert
-        mock_logger.assert_called_once_with(
-            "error while adding changelog entries for objects: [{'message': 'Some error occurred'}]"
+        # Act / Assert: an incomplete changelog fails the import
+        with pytest.raises(FwoImporterError) as raised:
+            fwconfig_import_object.add_changelog_objs(
+                nwobj_ids_added=[{"obj_id": 1}],
+                nw_obj_ids_removed=[{"obj_id": 2}],
+                svc_obj_ids_added=[{"svc_id": 3}],
+                svc_obj_ids_removed=[{"svc_id": 4}],
+            )
+        assert "error while adding changelog entries for objects: [{'message': 'Some error occurred'}]" in str(
+            raised.value
         )
 
     def test_add_changelog_objects_with_exception(
         self, fwconfig_import_object: FwConfigImportObject, api_call: FwoApiCall, mocker: MockerFixture
     ):
         # Arrange
-        mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
         api_call.call = mocker.Mock(side_effect=Exception("API call failed"))
 
-        # Act
-        fwconfig_import_object.add_changelog_objs(
-            nwobj_ids_added=[{"obj_id": 1}],
-            nw_obj_ids_removed=[{"obj_id": 2}],
-            svc_obj_ids_added=[{"svc_id": 3}],
-            svc_obj_ids_removed=[{"svc_id": 4}],
-        )
-
-        # Assert
-        assert mock_logger.call_count == 1
-        assert str(mock_logger.call_args[0][0]).startswith(
+        # Act / Assert: an incomplete changelog fails the import
+        with pytest.raises(FwoImporterError) as raised:
+            fwconfig_import_object.add_changelog_objs(
+                nwobj_ids_added=[{"obj_id": 1}],
+                nw_obj_ids_removed=[{"obj_id": 2}],
+                svc_obj_ids_added=[{"svc_id": 3}],
+                svc_obj_ids_removed=[{"svc_id": 4}],
+            )
+        assert str(raised.value).startswith(
             "fatal error while adding changelog entries for objects: Traceback (most recent call last):"
         )
 
@@ -1194,19 +1189,16 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             }
         )
         fwconfig_import_object.import_state.state.import_id = 5
-        mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
 
-        # Act
-        fwconfig_import_object.remove_outdated_memberships(
-            prev_config=prev_config,
-            typ=Type.NETWORK_OBJECT,
-        )
-
-        # Assert
+        # Act / Assert: stale memberships fail the import
+        with pytest.raises(FwoImporterError) as raised:
+            fwconfig_import_object.remove_outdated_memberships(
+                prev_config=prev_config,
+                typ=Type.NETWORK_OBJECT,
+            )
         fwconfig_import_object.import_state.api_call.call.assert_called_once()
-        mock_logger.assert_called_once()
         assert (
-            mock_logger.call_args[0][0]
+            str(raised.value)
             == "fwo_api:importNwObject - error in removeOutdatedObjgrpMemberships: [{'message': 'Some error occurred'}]"
         )
 
@@ -1233,18 +1225,15 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             }
         )
         fwconfig_import_object.import_state.state.import_id = 5
-        mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
 
-        # Act
-        fwconfig_import_object.remove_outdated_memberships(
-            prev_config=prev_config,
-            typ=Type.NETWORK_OBJECT,
-        )
-
-        # Assert
+        # Act / Assert: a malformed answer fails the import as well
+        with pytest.raises(FwoImporterError) as raised:
+            fwconfig_import_object.remove_outdated_memberships(
+                prev_config=prev_config,
+                typ=Type.NETWORK_OBJECT,
+            )
         fwconfig_import_object.import_state.api_call.call.assert_called_once()
-        mock_logger.assert_called_once()
-        assert str(mock_logger.call_args[0][0]).startswith(
+        assert str(raised.value).startswith(
             "failed to remove outdated group memberships for Type.NETWORK_OBJECT: Traceback"
         )
 

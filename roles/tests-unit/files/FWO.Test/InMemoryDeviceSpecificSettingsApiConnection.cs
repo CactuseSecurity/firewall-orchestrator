@@ -137,6 +137,8 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
             _ when query == DeviceSpecificSettingsQueries.upsertNode => UpsertNode(variables),
             _ when query == DeviceSpecificSettingsQueries.applyPatch => ApplyPatch(variables),
             _ when query == DeviceSpecificSettingsQueries.deleteOverrides => DeleteOverrides(variables),
+            _ when query == MonitorQueries.getOpenAlerts => new List<Alert>(),
+            _ when query == MonitorQueries.addAlert => new ReturnIdWrapper(),
             _ => throw new InvalidOperationException("Unexpected device specific settings query.")
         };
 

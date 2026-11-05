@@ -6,6 +6,7 @@ import pytest
 from scripts.customizing.log_data_import.import_log_data_from_git import (
     LogDataEntry,
     RejectedFile,
+    SingleLineLogFilter,
     convert_csv_file,
     convert_row,
 )
@@ -92,3 +93,16 @@ class LogMessageCollector(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         self.messages.append(self.format(record))
+
+
+def test_single_line_log_filter_escapes_line_breaks_from_repository_names(caplog: pytest.LogCaptureFixture) -> None:
+    logger: logging.Logger = logging.getLogger("fwo-log-data-import-test")
+    logger.addFilter(SingleLineLogFilter())
+    forged_name: str = "a.csv\n2026-01-01 ERROR forged line\r"
+
+    with caplog.at_level(logging.WARNING, logger=logger.name):
+        logger.warning("ignoring %s: %s", forged_name, "bad row")
+
+    assert len(caplog.records) == 1
+    assert "\n" not in caplog.text.strip()
+    assert "a.csv\\n2026-01-01 ERROR forged line\\r: bad row" in caplog.text

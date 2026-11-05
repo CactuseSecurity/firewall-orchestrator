@@ -1,6 +1,66 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.0 - 04.11.2026
+- Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs
+  - login with a service principal (client credentials flow); client id and secret are taken from the additional credential, otherwise from the import credential; tenant and subscription from the management's cloud settings, the resource group from the config path
+  - the firewall policy of a device is its local rulebase name, otherwise the device name; each policy becomes a rulebase, each device a gateway
+  - uses api version 2026-01-01 and falls back to 2024-05-01 for clouds that do not support it yet; the version used is stored in the native config
+  - imports network rules of filter rule collections incl. inline addresses, ranges, service tags, FQDNs, IP groups and Kubernetes selector groups; NAT and application rules are not imported yet
+  - imports parent policies (policy hierarchy, also from other resource groups or subscriptions) as own rulebases; the gateway starts with the topmost parent's rulebase, followed by the child policies as sections, as Azure processes inherited rules first
+  - IP groups are listed for the management's subscription; referenced IP groups of other subscriptions (e.g. of parent policies) are fetched individually by their resource id, so read access on these groups suffices
+  - rules are ordered by rule collection group and rule collection priority
+- Azure gateway autodiscovery: Azure managements can now be autodiscovered (scheduled and manually); the Azure Firewalls of the subscription whose firewall policy lies in the configured resource group are proposed as gateways with the policy name as local rulebase; firewalls with classic rules are skipped
+- new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
+
+## 9.8.7 - 04.11.2026
+- request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
+- compliance: auto-calculated undefined-internal zones now cover complete IPv6 networks instead of only the first address of each remaining network
+- modelling and workflow: shared IP range parsing accepts dotted IPv4 netmasks such as `10.0.2.0/255.255.255.0` in addition to prefix lengths
+- middleware REST API: resolvePathDevices takes sources and destinations in the shared address format `ipHost`, `ipNetwork` or the two-entry `ipRange`, up to 500 entries each (#5587)
+  - breaking: `ipStart` and `ipEnd` are no longer accepted
+- middleware REST API: getFlowComplianceState and getPolicyIds report all validation errors at once with the request path of each, in the format `{"errors": [{"path": ..., "message": ...}]}` (#5587)
+  - breaking: the 400 body was plain text naming only the first error; an explicit `null` for `source`, `destination`, `service` or `policies` is now rejected
+- path analysis: the routing based query passed source and destination to the swapped arguments of devices_in_path; the result is unchanged, as the function is symmetric (#5587)
+- help: new page on the path analysis REST API (#5587)
+- middleware REST API: new modelling endpoints (#5268)
+  - `modelling/getAvailableInterfacesForApp`: published interfaces an application may use (public ones, restricted ones the
+    application is permitted for, and its own), with app servers, app roles, network areas, other network groups, services
+    and service groups resolved
+  - `modelling/getAppRolesPerApp`: app roles of an application (without AppZones) with their app servers
+  - `modelling/getNetworkAreas`: network areas with their subnets, filterable by id string with `*` and `?` wildcards
+  - admins and auditors see every application, modellers only their own (other applications: 404); modellers get network
+    areas only if one of their applications may use common services (otherwise 403). Addresses use compact notation (host
+    IP, CIDR network, `ip1-ip2` range), services `port/protocol` or `portStart-portEnd/protocol`
+  - API permissions: the middleware may read the permitted owners of restricted interfaces
+- fix: owner active rule notification (daily check and app import) and rule expiry notification ignore disabled rules
+
+## 9.8.6 - 02.11.2026
+- dependencies: update NuGet packages (AngleSharp to 1.9.1, Quartz to 4.7.0, Scalar.AspNetCore to 2.18.7, SoPro.FancyTable to 1.1.0)
+- UI (FancyTable): the new sort, hide, clear search and column filter labels of SoPro.FancyTable 1.1.0 are localized (German and English) instead of always showing English
+- compliance: the check of a rule fails closed (GHSA-f36h-2vqp-p8fm). A criterion that throws, a criterion with invalid or empty content (MinimumCIDRLength, ForbidZonesAsSource/-Destination) and network objects whose IP address cannot be parsed now make the rule not compliant with a "not assessable" violation naming the criterion or object, instead of compliant; the remaining criteria are still checked. Stored violations of a criterion that could not be evaluated are kept instead of being marked removed. This also applies to the conditional auto-promote policy check of the workflow
+- API: Hasura no longer infers function permissions (`api_HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS` default `false`); every tracked SQL function lists the roles that may call it. Reporter and recertifier lose the select permission on `device_type`, so they can no longer list the devices and managements of other tenants via `get_visible_devices_per_tenant`/`get_visible_managements_per_tenant` (GHSA-8gr4-j8hq-4m35)
+- importer (Cisco ASA): breaking: the SHA-1 SSH key exchange `diffie-hellman-group14-sha1` is only offered when the new device specific setting "Allow SHA-1 SSH key exchange" (`sshLegacyKeyExchange`, Global, device type, management, default off) is switched on. A device that offers nothing else fails to import with an error naming the setting; the upgrade lists the ASA managements
+- installer: the loopback logins of the database roles `fwo_ro`, `fworch`, `dbbackupusers` and `confexporter` need a password (`md5` instead of `trust` in pg_hba.conf). These roles have no password by default, so local tools that connected over 127.0.0.1 without one (e.g. a `pg_dump -h localhost` backup as `dbbackup`) have to set a password or use the Unix socket
+- installer: the read-only LDAP account can no longer read password hashes (`userPassword`); the upgrade changes the access rule offline with `slapmodify`
+- installer: Chrome for the PDF generation moves from `/usr/local/fworch/bin` (writable for the fworch user) to the root owned `/usr/local/lib/fworch`; an existing installation is moved there by the upgrade. The installer no longer runs it as root, and `/etc/profile.d/custom_path.sh`, which put `/usr/local/fworch/bin` first in the path of every login shell, is removed
+- installer: `scripts/run-playbook-with-sudo.sh` validates the temporary sudoers entry with visudo before installing it and always removes it again; secrets (importer password, main key, LDAP service passwords) no longer appear in installer output
+- middleware: the password policy is enforced when users are added and passwords are changed or reset through the REST API, not only in the UI
+- API permissions: reports, report schedules, report templates and report notifications created by non-admin roles always belong to the creating user, and updates can no longer hand them to another user
+- modelling: imported distinguished names (app data import) are only assigned roles if they exist in the directory that owns them; the workflow action "Update modelling" only marks connections, app roles and service groups of the owners of the request tasks
+- exports: all CSV exports double quotes and neutralise cells that start like a spreadsheet formula (=, +, -, @, tab, CR); the JSON rule export escapes section headers; customised start page texts are sanitised; tooltips encode their text
+- importer: FortiOS API tokens are sent in the Authorization header instead of the URL; credential fields of FortiOS users, the ASA enable password hash and FortiManager session ids no longer reach the native config, error texts or logs; a failed FortiManager logout no longer discards a fetched configuration; Check Point MDS imports with global assignments keep the global policy structure; failed writes of group memberships and changelog entries fail the import
+- robustness: an unparseable mail recipient no longer stops the mail to the others; invalid custom fields of a rule no longer abort the variance analysis; a failed full rule-owner reinitialisation restores the previous mappings; the FortiManager autodiscovery uses one API session
+- login page: infrastructure errors are no longer shown before authentication; JWT key import errors no longer log the key; the CI version gate and the log data import escape line breaks of file names
+
 ## 9.8.5 - 29.10.2026
+- installer: after an operating system upgrade to a new PostgreSQL major version (e.g. Debian 12 -> 13: 15 -> 17) the upgrade stops before changing PostgreSQL and names the steps to migrate the database (`pg_upgradecluster` on Debian/Ubuntu, `postgresql-setup --upgrade` on Red Hat/Rocky) instead of failing on a missing postgresql.conf; documentation/installer/server-upgrade.md describes the migration (#5598)
+- installer: the importer and customizing script python venvs are rebuilt when they were created for another python version (e.g. 3.11 -> 3.13 after an operating system upgrade), instead of failing with `No module named 'pip'` or leaving the importer without its packages (#5599)
+- installer: remove the unused Docker role, the move of the API from Docker to Podman and the Docker handling of upgrade and uninstall; the ignored parameter `docker_network` is gone (#5519)
+  - breaking: upgrades have to start from 9.0.16 or newer (was 8.0). An installation from 8.0 to 9.0.15 upgrades with v9.8.4 first, which still moves the API to Podman; the installer stops such an upgrade before changing anything and names the way
+  - an upgrade also stops while the API still runs in Docker (a running or enabled Docker API service, or a Docker container `fworch-api` next to an installed Docker engine - the `docker` command of `podman-docker` does not count, and an installed Docker engine that cannot be asked for the container stops it as well), which v9.8.4 leaves behind when it deferred the move to Podman; a stopped Docker API unit left by a completed move is removed
+- installer tests: the check that the upgrade floor is not below the oldest database migration never failed, because the regex backreference it used arrived as a control character in the assertion
+- installer tests: every task around an intended failure of a negative integration test starts with "expected to fail: ", directly before and after the red output, so the run log tells intended failures from real ones (#5545)
+- importer (Check Point): transport errors of API calls name the reason (e.g. TLS handshake failure, certificate error, refused connection, unparsable proxy url) and whether certificate checking is on; user info in urls (`user:password@`, e.g. proxy credentials) is redacted from the error text, which ends up in alerts and logs
 - request workflow: the Tufin SecureChange ticket templates move from the ticket system (Settings - External ticket templates) to the device specific settings
   - new settings `scTemplate<TaskType><Part>` per SecureChange task type (AccessRequest, NetworkObjectModify) and template part (ticket, tasks, object, object short, IP, network group, service, ICMP, IP protocol), on the levels Global, device type and management, in the new section "SecureChange ticket templates"
   - an empty template part uses the shipped template (only the AccessRequest ticket and task text are shipped, as before in the default ticket system), so a later correction of it applies
@@ -10,7 +70,6 @@
   - breaking: an AccessRequest template that was missing on a SecureChange system (ticket creation failed before) is now replaced by the shipped one
   - a task type whose ticket or task template is empty (no setting and no shipped template, e.g. NetworkObjectModify) is refused with a configuration error before a request is created, as when its template was missing before
   - service group tasks routed to SecureChange are refused with a configuration error; SecureChange only modifies groups of network objects. Before, they created a ticket without tasks. Their templates (NetworkServiceCreate, NetworkServiceUpdate) were never used and are not migrated; they remain in the backup
-
 ## 9.8.4 - 29.10.2026
 - installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server
 - importer: sub-managements set to "do not import" are skipped by the import of their super manager instead of having all their rules and objects marked removed (FortiManager ADOMs, Check Point domains; GHSA-hj46-639g-mxq2). A forced import still imports them
@@ -488,7 +547,6 @@
   does not report the managements it has not reached as deleted
 - middleware: jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now allows
   180 seconds (TimeoutStopSec) before killing the process
-
 ## 9.5.10 - 29.09.2026
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration

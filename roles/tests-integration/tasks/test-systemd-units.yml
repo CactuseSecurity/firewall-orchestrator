@@ -37,7 +37,7 @@
 - name: check for leftover unit files in the vendor systemd unit directory
   stat:
     path: "{{ fworch_systemd_vendor_unit_dir }}/{{ item }}.service"
-  loop: "{{ expected_unit_names + (api_legacy_service_names | default([]) if 'apiserver' in group_names else []) }}"
+  loop: "{{ expected_unit_names }}"
   register: vendor_unit_files
   become: true
 

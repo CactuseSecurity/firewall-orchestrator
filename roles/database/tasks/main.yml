@@ -50,6 +50,10 @@
           regexp: client_encoding
       register: postgres_config_updates
 
+    # No local account gets in without a password: the roles below have none by default, so their
+    # loopback logins are refused until an administrator sets one (e.g. for a pg_dump backup over
+    # TCP). md5 also accepts passwords stored as scram-sha-256. The block is rewritten on every
+    # run, which replaces the former trust lines on upgrades.
     - name: edit pg_hba.conf
       blockinfile:
         path: "{{ postgresql_hba_file }}"
@@ -60,14 +64,14 @@
           host  all         dbadmin              ::1/128                md5
           host  all         {{ api_user }}       127.0.0.0/8            md5
           host  all         {{ api_user }}       ::1/128                md5
-          host  all         {{ fwo_db_ro_user }} 127.0.0.0/8            trust
-          host  all         {{ fwo_db_ro_user }} ::1/128                trust
-          host  all         {{ fworch_user }}    127.0.0.0/8            trust
-          host  all         {{ fworch_user }}    ::1/128                trust
-          host  all         +dbbackupusers       127.0.0.0/8            trust
-          host  all         +dbbackupusers       ::1/128                trust
-          host  all         confexporter         127.0.0.0/8            trust
-          host  all         confexporter         ::1/128                trust
+          host  all         {{ fwo_db_ro_user }} 127.0.0.0/8            md5
+          host  all         {{ fwo_db_ro_user }} ::1/128                md5
+          host  all         {{ fworch_user }}    127.0.0.0/8            md5
+          host  all         {{ fworch_user }}    ::1/128                md5
+          host  all         +dbbackupusers       127.0.0.0/8            md5
+          host  all         +dbbackupusers       ::1/128                md5
+          host  all         confexporter         127.0.0.0/8            md5
+          host  all         confexporter         ::1/128                md5
       register: postgres_hba_update
   
     - name: reload postgres service

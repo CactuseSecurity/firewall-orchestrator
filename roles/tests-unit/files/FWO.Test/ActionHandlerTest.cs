@@ -6,9 +6,11 @@ using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Data.Middleware;
 using FWO.Data.Modelling;
+using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services;
+using FWO.Services.RulePositioning;
 using FWO.Services.Workflow;
 using FWO.Test.Mocks;
 using NetTools;
@@ -35,7 +37,7 @@ namespace FWO.Test
             public Dictionary<int, ModellingConnection> ConnectionsById { get; set; } = [];
             public Dictionary<long, ModellingAppRole> AppRolesById { get; set; } = [];
             public Dictionary<int, ModellingServiceGroup> ServiceGroupsById { get; set; } = [];
-            public List<ComplianceNetworkZone> MatrixNetworkZones { get; set; } = [];
+            public List<NetworkZone> MatrixNetworkZones { get; set; } = [];
             public int UpdateNotificationsLastSentAffectedRows { get; set; }
             public List<int> UpdatedNotificationLastSentIds { get; private set; } = [];
             public bool ThrowOnAddAlert { get; set; }
@@ -479,7 +481,7 @@ namespace FWO.Test
             };
         }
 
-        private static List<ComplianceNetworkZone> CreateBundleNetworkZones()
+        private static List<NetworkZone> CreateBundleNetworkZones()
         {
             return
             [
@@ -1461,6 +1463,300 @@ namespace FWO.Test
                 Assert.That(apiConn.Queries.Count(query => query == MonitorQueries.addAlert), Is.EqualTo(1));
                 Assert.That(task.StateChanged(), Is.False);
             });
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_MiddlewareCreationCallsRulePositioningOnceWithExactContext()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            RecordingRulePositioningWorkflowCaller caller = new();
+            WfReqTask requestTask = CreatePositioningRequestTask();
+            WfImplTask implementationTask = CreatePositioningImplementationTask();
+            ActionHandler handler = new(apiConn, new WfHandler(), null, true, null, null, caller);
+
+            await handler.DoStateChangeActions(
+                implementationTask,
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: requestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.CalculationCount, Is.EqualTo(1));
+                Assert.That(caller.LastRequestTask, Is.SameAs(requestTask));
+                Assert.That(caller.LastImplementationTask, Is.SameAs(implementationTask));
+                Assert.That(caller.LastImplementationTask!.Id, Is.EqualTo(41));
+                Assert.That(caller.LastCancellationToken.CanBeCanceled, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_TimesOutRulePositioningWithoutFailingWorkflowActions()
+        {
+            RecordingRulePositioningWorkflowCaller caller = new()
+            {
+                Calculation = async cancellationToken =>
+                {
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                    return new RulePositioningWorkflowOutcome(RulePositioningWorkflowStatus.Stored);
+                }
+            };
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, null, null, caller)
+            {
+                RulePositioningTimeout = TimeSpan.FromMilliseconds(20)
+            };
+
+            Assert.DoesNotThrowAsync(async () => await handler.DoStateChangeActions(
+                CreatePositioningImplementationTask(),
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: CreatePositioningRequestTask()));
+            Assert.That(caller.LastCancellationToken.IsCancellationRequested, Is.True);
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_UiDelegationNeverCallsInjectedRulePositioningCaller()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            using TestMiddlewareClient middlewareClient = new();
+            middlewareClient.UseHandler(new RecordingMiddlewareActionsHandler());
+            WfHandler wfHandler = new((_, _, _, _) => { }, new SimulatedUserConfig(),
+                new System.Security.Claims.ClaimsPrincipal(), apiConn, middlewareClient, WorkflowPhases.request);
+            RecordingRulePositioningWorkflowCaller caller = new();
+            ActionHandler handler = new(apiConn, wfHandler, null, false, null, null, caller);
+
+            await handler.DoStateChangeActions(
+                CreatePositioningImplementationTask(),
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: CreatePositioningRequestTask());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.ApplicabilityCount, Is.Zero);
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_NonCreationNeverCallsRulePositioning()
+        {
+            RecordingRulePositioningWorkflowCaller caller = new();
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, null, null, caller);
+            WfImplTask implementationTask = CreatePositioningImplementationTask();
+            implementationTask.ResetStateChanged();
+            implementationTask.StateId = 2;
+
+            await handler.DoStateChangeActions(
+                implementationTask,
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: CreatePositioningRequestTask());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.ApplicabilityCount, Is.Zero);
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task DoStateChangeActions_MissingOrMismatchedParentDoesNotCallRulePositioning(bool supplyMismatch)
+        {
+            RecordingRulePositioningWorkflowCaller caller = new();
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, null, null, caller);
+            WfReqTask? requestTask = supplyMismatch ? CreatePositioningRequestTask() : null;
+            if (requestTask != null)
+            {
+                requestTask.Id = 999;
+            }
+
+            Assert.DoesNotThrowAsync(async () => await handler.DoStateChangeActions(
+                CreatePositioningImplementationTask(),
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: requestTask));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.ApplicabilityCount, Is.Zero);
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
+        }
+
+        [TestCase("non-persisted")]
+        [TestCase("combined")]
+        [TestCase("generic")]
+        [TestCase("object")]
+        [TestCase("update")]
+        [TestCase("delete")]
+        public async Task DoStateChangeActions_InapplicableCreationShapeNeverCalculates(string shape)
+        {
+            WfReqTask requestTask = CreatePositioningRequestTask();
+            WfImplTask implementationTask = CreatePositioningImplementationTask();
+            ApplyInapplicableShape(shape, requestTask, implementationTask);
+            RulePositioningWorkflowCaller productionCaller = CreateApplicabilityCaller();
+            RecordingRulePositioningWorkflowCaller caller = new()
+            {
+                Applicability = productionCaller.IsApplicable
+            };
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, null, null, caller);
+
+            await handler.DoStateChangeActions(
+                implementationTask,
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: requestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.ApplicabilityCount, Is.EqualTo(1));
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
+        }
+
+        [TestCase(RulePositioningWorkflowStatus.Stored)]
+        [TestCase(RulePositioningWorkflowStatus.ClearedAfterFailure)]
+        [TestCase(RulePositioningWorkflowStatus.PersistenceFailed)]
+        public async Task DoStateChangeActions_RulePositioningOutcomeAllowsFollowingStateAction(
+            RulePositioningWorkflowStatus status)
+        {
+            ActionHandlerTestApiConn apiConn = PositioningActionApiConnection();
+            RecordingRulePositioningWorkflowCaller caller = new() { Outcome = new(status) };
+            ActionHandler handler = new(apiConn, new WfHandler(), null, true, null, null, caller);
+            await handler.Init();
+
+            Assert.DoesNotThrowAsync(async () => await handler.DoStateChangeActions(
+                CreatePositioningImplementationTask(),
+                WfObjectScopes.ImplementationTask,
+                creatingRequestTask: CreatePositioningRequestTask()));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.CalculationCount, Is.EqualTo(1));
+                Assert.That(apiConn.Queries.Count(query => query == MonitorQueries.addAlert), Is.EqualTo(1));
+            });
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task DoStateChangeActions_RulePositioningExceptionIsContainedAndStateActionContinues(
+            bool cancellation)
+        {
+            ActionHandlerTestApiConn apiConn = PositioningActionApiConnection();
+            RecordingRulePositioningWorkflowCaller caller = new()
+            {
+                ExceptionToThrow = cancellation
+                    ? new OperationCanceledException("sensitive cancellation text")
+                    : new InvalidOperationException("sensitive exception text")
+            };
+            ActionHandler handler = new(apiConn, new WfHandler(), null, true, null, null, caller);
+            await handler.Init();
+            StringWriter logOutput = new();
+            TextWriter originalOutput = Console.Out;
+
+            try
+            {
+                Console.SetOut(logOutput);
+                Assert.DoesNotThrowAsync(async () => await handler.DoStateChangeActions(
+                    CreatePositioningImplementationTask(),
+                    WfObjectScopes.ImplementationTask,
+                    creatingRequestTask: CreatePositioningRequestTask()));
+            }
+            finally
+            {
+                Console.SetOut(originalOutput);
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries.Count(query => query == MonitorQueries.addAlert), Is.EqualTo(1));
+                Assert.That(logOutput.ToString(), Does.Contain("Activation failed for implementation task 41"));
+                Assert.That(logOutput.ToString(), Does.Not.Contain("sensitive"));
+            });
+        }
+
+        private static WfReqTask CreatePositioningRequestTask()
+        {
+            WfReqTask requestTask = new()
+            {
+                Id = 31,
+                ManagementId = 11,
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString()
+            };
+            requestTask.SetDeviceList([21]);
+            return requestTask;
+        }
+
+        private static WfImplTask CreatePositioningImplementationTask()
+        {
+            WfImplTask implementationTask = new()
+            {
+                Id = 41,
+                ReqTaskId = 31,
+                DeviceId = 21,
+                TaskType = WfTaskType.access.ToString(),
+                ImplAction = RequestAction.create.ToString()
+            };
+            implementationTask.MarkCreatedStateChanged(1);
+            return implementationTask;
+        }
+
+        private static void ApplyInapplicableShape(
+            string shape,
+            WfReqTask requestTask,
+            WfImplTask implementationTask)
+        {
+            switch (shape)
+            {
+                case "non-persisted":
+                    implementationTask.Id = 0;
+                    break;
+                case "combined":
+                    implementationTask.DeviceId = null;
+                    break;
+                case "generic":
+                    requestTask.TaskType = WfTaskType.generic.ToString();
+                    implementationTask.TaskType = WfTaskType.generic.ToString();
+                    break;
+                case "object":
+                    requestTask.TaskType = WfTaskType.object_create.ToString();
+                    implementationTask.TaskType = WfTaskType.object_create.ToString();
+                    break;
+                case "update":
+                    implementationTask.ImplAction = RequestAction.modify.ToString();
+                    break;
+                case "delete":
+                    requestTask.RequestAction = RequestAction.delete.ToString();
+                    break;
+            }
+        }
+
+        private static RulePositioningWorkflowCaller CreateApplicabilityCaller()
+        {
+            SimulatedApiConnection apiConnection = new();
+            return new RulePositioningWorkflowCaller(
+                apiConnection,
+                new RulePositioningManager([]),
+                new DeviceSpecificSettingsManager(apiConnection),
+                new SimulatedGlobalConfig());
+        }
+
+        private static ActionHandlerTestApiConn PositioningActionApiConnection()
+        {
+            return new ActionHandlerTestApiConn
+            {
+                States =
+                [
+                    new WfState
+                    {
+                        Id = 1,
+                        Actions =
+                        [
+                            CreateAction(
+                                StateActionEvents.OnSet.ToString(),
+                                StateActionTypes.SetAlert.ToString(),
+                                WfObjectScopes.ImplementationTask.ToString())
+                        ]
+                    }
+                ]
+            };
         }
 
         /// <summary>
@@ -3335,11 +3631,11 @@ namespace FWO.Test
                 ],
                 AppRolesById = new()
                 {
-                    [501] = new ModellingAppRole { Id = 501, Comment = "Manual app role note\r\nImplementationState: Old | 2024-01-01T00:00:00.0000000Z\r\nKeep app role note" }
+                    [501] = new ModellingAppRole { Id = 501, AppId = kTaskOwnerId, Comment = "Manual app role note\r\nImplementationState: Old | 2024-01-01T00:00:00.0000000Z\r\nKeep app role note" }
                 },
                 ServiceGroupsById = new()
                 {
-                    [601] = new ModellingServiceGroup { Id = 601, Comment = "Manual service group note" }
+                    [601] = new ModellingServiceGroup { Id = 601, AppId = kTaskOwnerId, Comment = "Manual service group note" }
                 }
             };
             List<(string Title, string Message, bool Error)> uiMessages = [];
@@ -3351,9 +3647,9 @@ namespace FWO.Test
             accessTask.SetAddInfo(AdditionalInfoKeys.ConnId, "41");
             WfReqTask ignoredConnectionTask = new() { Id = 2, TaskType = WfTaskType.new_interface.ToString() };
             ignoredConnectionTask.SetAddInfo(AdditionalInfoKeys.ConnId, "42");
-            WfReqTask appRoleTask = new() { Id = 3, TaskType = WfTaskType.group_create.ToString() };
+            WfReqTask appRoleTask = new() { Id = 3, TaskType = WfTaskType.group_create.ToString(), Owners = TaskOwners() };
             appRoleTask.SetAddInfo(AdditionalInfoKeys.AppRoleId, "501");
-            WfReqTask serviceGroupTask = new() { Id = 4, TaskType = WfTaskType.group_modify.ToString() };
+            WfReqTask serviceGroupTask = new() { Id = 4, TaskType = WfTaskType.group_modify.ToString(), Owners = TaskOwners() };
             serviceGroupTask.SetAddInfo(AdditionalInfoKeys.SvcGrpId, "601");
             WfReqTask ignoredGroupTask = new() { Id = 5, TaskType = WfTaskType.access.ToString() };
             ignoredGroupTask.SetAddInfo(AdditionalInfoKeys.AppRoleId, "502");
@@ -3423,14 +3719,14 @@ namespace FWO.Test
             {
                 ConnectionsById = new()
                 {
-                    [41] = new ModellingConnection { Id = 41 },
-                    [42] = new ModellingConnection { Id = 42 }
+                    [41] = new ModellingConnection { Id = 41, AppId = kTaskOwnerId },
+                    [42] = new ModellingConnection { Id = 42, AppId = kTaskOwnerId }
                 }
             };
             WfHandler wfHandler = new() { AuthUser = new System.Security.Claims.ClaimsPrincipal() };
             SetMatrix(wfHandler, WfTaskType.access.ToString());
             ActionHandler handler = new(apiConn, wfHandler);
-            WfReqTask selectedTask = new() { Id = 1, TaskType = WfTaskType.access.ToString() };
+            WfReqTask selectedTask = new() { Id = 1, TaskType = WfTaskType.access.ToString(), Owners = TaskOwners() };
             selectedTask.SetAddInfo(AdditionalInfoKeys.ConnId, "41");
             WfReqTask otherTask = new() { Id = 2, TaskType = WfTaskType.access.ToString() };
             otherTask.SetAddInfo(AdditionalInfoKeys.ConnId, "42");
@@ -3447,6 +3743,61 @@ namespace FWO.Test
             Assert.That(apiConn.Queries.Count(q => q == ModellingQueries.updateConnectionProperties), Is.EqualTo(1));
             object? connectionVars = apiConn.Variables[apiConn.Queries.IndexOf(ModellingQueries.updateConnectionProperties)];
             Assert.That(GetVariable<int>(connectionVars, "id"), Is.EqualTo(41));
+        }
+
+        private const int kTaskOwnerId = 7;
+        private const int kForeignOwnerId = 8;
+
+        private static List<FwoOwnerDataHelper> TaskOwners()
+        {
+            return [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = kTaskOwnerId } }];
+        }
+
+        /// <summary>
+        /// Ids written into the add-info of a request task must not let UpdateModelling mark modelling objects of other
+        /// owners (GHSA-6g84, fwo-services-actionhandler-001).
+        /// </summary>
+        [Test]
+        public async Task PerformAction_UpdateModelling_SkipsObjectsOfOtherOwners()
+        {
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                ConnectionsById = new()
+                {
+                    [43] = new ModellingConnection { Id = 43, AppId = kForeignOwnerId }
+                },
+                AppRolesById = new()
+                {
+                    [503] = new ModellingAppRole { Id = 503, AppId = kForeignOwnerId }
+                },
+                ServiceGroupsById = new()
+                {
+                    [603] = new ModellingServiceGroup { Id = 603, AppId = kForeignOwnerId }
+                }
+            };
+            WfHandler wfHandler = new() { AuthUser = new System.Security.Claims.ClaimsPrincipal() };
+            SetMatrix(wfHandler, WfTaskType.access.ToString());
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
+            WfReqTask accessTask = new() { Id = 1, TaskType = WfTaskType.access.ToString(), Owners = TaskOwners() };
+            accessTask.SetAddInfo(AdditionalInfoKeys.ConnId, "43");
+            WfReqTask groupTask = new() { Id = 2, TaskType = WfTaskType.group_modify.ToString(), Owners = TaskOwners() };
+            groupTask.SetAddInfo(AdditionalInfoKeys.AppRoleId, "503");
+            groupTask.SetAddInfo(AdditionalInfoKeys.SvcGrpId, "603");
+            WfTicket ticket = CreateTicket(accessTask, groupTask);
+            WfStateAction action = new()
+            {
+                ActionType = StateActionTypes.UpdateModelling.ToString(),
+                ExternalParams = JsonSerializer.Serialize(new UpdateModellingActionParams { ModellingState = "Implemented" })
+            };
+
+            await handler.PerformAction(action, ticket, WfObjectScopes.Ticket, ticketId: 77);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Has.No.Member(ModellingQueries.updateConnectionProperties));
+                Assert.That(apiConn.Queries, Has.No.Member(ModellingQueries.updateNwGroupComment));
+                Assert.That(apiConn.Queries, Has.No.Member(ModellingQueries.updateServiceGroupComment));
+            });
         }
 
         [Test]

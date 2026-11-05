@@ -5,20 +5,21 @@ using System.Text.Json.Serialization;
 namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
-/// Represents the request body of the path device resolution. It names the firewall devices that lie on
-/// the paths between every source and every destination address block.
+/// Represents the request body of the path device resolution. It asks for the firewall devices that lie on
+/// the paths between every source and every destination address block. Each device is reported once,
+/// in no particular order.
 /// </summary>
 /// <remarks>
-/// The authoritative description of every key is kept in <c>ResolvePathDevicesValidationSchema</c> so
-/// API documentation and validation help text cannot diverge. The XML documentation below repeats it for
-/// the generated OpenAPI document.
+/// The key descriptions used in validation errors are kept in <see cref="ResolvePathDevicesRequestValidationSchema"/>.
+/// The XML documentation below feeds the generated OpenAPI document and must be kept in line with it by hand.
 /// </remarks>
 public sealed class ResolvePathDevicesRequest : IRequestWithRootAdditionalData
 {
     private ResolvePathDevicesOptions options = new();
 
     /// <summary>
-    /// Gets or sets the address blocks the paths start at. Required, must contain at least one entry.
+    /// Gets or sets the address blocks the paths start at. Required, 1 to 500 entries. Each entry gives
+    /// exactly one of <c>ipHost</c>, <c>ipNetwork</c> or <c>ipRange</c>; null entries are rejected.
     /// Every source is combined with every destination.
     /// </summary>
     /// <remarks>
@@ -26,19 +27,21 @@ public sealed class ResolvePathDevicesRequest : IRequestWithRootAdditionalData
     /// the deserializer throw on a missing key before validation runs, so the caller would get that one
     /// error instead of every error of the request together. Null tells an omitted key apart from an
     /// empty list. <see cref="OpenApiRequiredAttribute"/> restores the required marker in the generated schema.
+    /// The entry limit is <see cref="ResolvePathDevicesRequestValidationSchema.kMaximumIpBlocksPerList"/>.
     /// </remarks>
     [OpenApiRequired]
     [JsonPropertyName("sources")]
-    public List<IpRangeOrNetworkRequest?>? Sources { get; set; }
+    public List<AddressInputRequest?>? Sources { get; set; }
 
     /// <summary>
-    /// Gets or sets the address blocks the paths end at. Required, must contain at least one entry.
+    /// Gets or sets the address blocks the paths end at. Required, 1 to 500 entries. Each entry gives
+    /// exactly one of <c>ipHost</c>, <c>ipNetwork</c> or <c>ipRange</c>; null entries are rejected.
     /// Every destination is combined with every source.
     /// </summary>
-    /// <remarks>Nullable for the same reason as <see cref="Sources"/>.</remarks>
+    /// <remarks>Nullable and limited for the same reasons as <see cref="Sources"/>.</remarks>
     [OpenApiRequired]
     [JsonPropertyName("destinations")]
-    public List<IpRangeOrNetworkRequest?>? Destinations { get; set; }
+    public List<AddressInputRequest?>? Destinations { get; set; }
 
     /// <summary>
     /// Gets or sets the optional analysis and output options. Defaults to an empty object, which uses the

@@ -15,8 +15,12 @@ k_mgm_id: int = 100
 k_device_type_id: int = 9
 
 
-def _node(node_type: str, host_name: Any | None) -> dict[str, Any]:
-    values: list[dict[str, Any]] = [] if host_name is None else [{"config_value": host_name}]
+def _node(node_type: str, host_name: Any | None, legacy_kex: bool | None = None) -> dict[str, Any]:
+    values: list[dict[str, Any]] = (
+        [] if host_name is None else [{"config_key": "importerHostName", "config_value": host_name}]
+    )
+    if legacy_kex is not None:
+        values.append({"config_key": "sshLegacyKeyExchange", "config_value": legacy_kex})
     return {"node_type": node_type, "values": values}
 
 
@@ -88,3 +92,43 @@ def test_is_responsible_importer_for_own_host(mocker: MockerFixture) -> None:
     mocker.patch("common.gethostname", return_value="importer-a")
 
     assert is_responsible_importer("importer-a") is True
+
+
+@pytest.mark.parametrize(
+    ("nodes", "expected"),
+    [
+        ([], None),
+        ([_node("global", None, legacy_kex=True)], True),
+        ([_node("global", None, legacy_kex=True), _node("management", None, legacy_kex=False)], False),
+        ([_node("global", None, legacy_kex=False), _node("device_type", None, legacy_kex=True)], True),
+    ],
+)
+def test_most_specific_legacy_key_exchange_setting_wins(nodes: list[dict[str, Any]], expected: bool | None) -> None:
+    settings = ManagementController.get_importer_settings(_api_returning(nodes), k_mgm_id, k_device_type_id)
+
+    assert settings.get("sshLegacyKeyExchange") == expected
+
+
+def test_legacy_key_exchange_is_off_unless_set_to_true() -> None:
+    assert ManagementController.from_json(_management_json()).ssh_legacy_key_exchange is False
+    assert ManagementController.from_json(_management_json(legacy_kex="true")).ssh_legacy_key_exchange is False
+    assert ManagementController.from_json(_management_json(legacy_kex=True)).ssh_legacy_key_exchange is True
+
+
+def _management_json(legacy_kex: Any | None = None) -> dict[str, Any]:
+    management: dict[str, Any] = {
+        "id": k_mgm_id,
+        "uid": "uid",
+        "name": "asa",
+        "hostname": "asa.invalid",
+        "port": 22,
+        "importDisabled": False,
+        "isSuperManager": False,
+        "devices": [],
+        "subManagers": [],
+        "deviceType": {"id": k_device_type_id, "name": "Cisco Asa", "version": "9"},
+        "import_credential": {"user": "u", "secret": "s"},
+    }
+    if legacy_kex is not None:
+        management["sshLegacyKeyExchange"] = legacy_kex
+    return management

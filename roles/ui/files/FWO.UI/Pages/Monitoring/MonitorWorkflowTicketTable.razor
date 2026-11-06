@@ -1,0 +1,367 @@
+@using FWO.Basics
+@using FWO.Data.Report
+@using FWO.Data.Workflow
+@using FWO.Report
+
+@inject UserConfig userConfig
+
+@* Tree table of the workflow monitoring: tickets as roots, their request tasks as children and the implementation tasks and approvals of each request task below. *@
+
+<div class="workflow-ticket-table">
+    <FancyTreeTable TItem="WorkflowTreeRow"
+                    @ref="treeTable"
+                    ItemsProvider="LoadRowsAsync"
+                    Columns="columns"
+                    ChildItemsSelector="row => row.Children"
+                    HasChildrenSelector="row => row.Children.Count > 0"
+                    Texts="tableTexts"
+                    ToolbarTemplate="kNoToolbar"
+                    PaginationEnabled="true"
+                    @bind-PageSize="pageSize"
+                    ShowPageSizeSelector="true"
+                    TopBarClass="justify-content-end"
+                    ToolbarContainerClass="ms-0"
+                    TreeActionsContainerClass="sticky-collapse"
+                    TreeActionsTemplate="TreeActionsTemplate"
+                    EnableColumnResizing="true" />
+</div>
+
+
+@code
+{
+    private RenderFragment<FancyTreeTableContext<WorkflowTreeRow>> TreeActionsTemplate => context =>
+    @<div>
+        <button name="btnCollapseAll"
+                @onclick="context.CollapseAll"
+                disabled="@(!context.CanCollapseAny)"
+                class="d-inline-flex btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle">
+            <i class="bi bi-arrows-collapse"></i>
+        </button>
+        <button name="btnExpandAll"
+                @onclick="context.ExpandAll"
+                disabled="@(!context.CanExpandAny)"
+                class="btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle">
+            <i class="bi bi-arrows-expand"></i>
+        </button>
+    </div>;
+
+    private RenderFragment<WorkflowTreeRow> ActionsCellTemplate => row =>
+    @<text>
+        <button type="button" class="btn btn-sm btn-danger" @onclick:stopPropagation @onclick="async () => await ChangeState(row)">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+        @if (row.Kind == WorkflowTreeRowKind.RequestTask && row.ReqTask != null && CanAutoCreateImplementationTasks(row.Ticket, row.ReqTask))
+        {
+            <button type="button" class="btn btn-sm btn-warning ms-1" @onclick:stopPropagation @onclick="async () => await AutoCreateImplementationTasks(row.Ticket, row.ReqTask)">@(DisplayService.DisplayButton(userConfig, "auto_create_impltasks", Icons.Create))</button>
+        }
+    </text>;
+
+    private RenderFragment<WorkflowTreeRow> StateCellTemplate => row =>
+    @<text>
+        @if (WorkflowStateIcons.Get(row.StateId) is WorkflowStateIcon stateIcon)
+        {
+            <i class="@stateIcon.CssClass me-1"></i>
+        }
+        @(ResolveStateName(row.StateId))
+    </text>;
+
+    #region Parameters
+
+    /// <summary>
+    /// Loads one page of tickets for the column filters, sort and page of the table.
+    /// </summary>
+    [Parameter]
+    public Func<FancyItemsRequest, CancellationToken, Task<FancyItemsResult<WfTicket>>> LoadTickets { get; set; } =
+        (_, _) => Task.FromResult(new FancyItemsResult<WfTicket>(kNoTickets, false));
+
+    [Parameter]
+    public Dictionary<int, string> StateNames { get; set; } = [];
+
+    [Parameter]
+    public Func<WfTicket, Task> ChangeTicketState { get; set; } = _ => Task.CompletedTask;
+
+    [Parameter]
+    public Func<WfTicket, WfReqTask, Task> ChangeReqTaskState { get; set; } = (_, _) => Task.CompletedTask;
+
+    [Parameter]
+    public Func<WfTicket, WfReqTask, WfImplTask, Task> ChangeImplTaskState { get; set; } = (_, _, _) => Task.CompletedTask;
+
+    [Parameter]
+    public Func<WfTicket, WfReqTask, WfApproval, Task> ChangeApprovalState { get; set; } = (_, _, _) => Task.CompletedTask;
+
+    [Parameter]
+    public Func<WfTicket, WfReqTask, bool> CanAutoCreateImplementationTasks { get; set; } = (_, _) => false;
+
+    [Parameter]
+    public Func<WfTicket, WfReqTask, Task> AutoCreateImplementationTasks { get; set; } = (_, _) => Task.CompletedTask;
+
+    #endregion
+
+    #region Consts - Private
+
+    private const int kDefaultPageSize = 10;
+    private const int kColumnMinWidth = 80;
+
+    private static readonly IReadOnlyCollection<WfTaskType> kNoTaskTypes = [];
+    private static readonly IReadOnlyList<WorkflowTreeRow> kNoChildren = [];
+    private static readonly IReadOnlyList<WfTicket> kNoTickets = [];
+
+    // Replaces the default search bar: a free text search over all levels of all tickets is too slow on large installations.
+    private static readonly RenderFragment kNoToolbar = _ => { };
+
+    // Sorting and filtering run on the server, so a column offers them only where WorkflowTicketQueryBuilder supports them.
+    // Text filters are only offered for the requester, which is a single lookup per ticket: a "contains" match over all
+    // levels cannot use an index and is too slow on many tickets.
+    private static readonly ColumnBehavior kServerColumn = new(Hideable: true, Resizable: true, Sortable: true, Filterable: true);
+    private static readonly ColumnBehavior kSortOnlyColumn = kServerColumn with { Filterable = false };
+    private static readonly ColumnBehavior kFilterOnlyColumn = kServerColumn with { Sortable = false };
+    private static readonly ColumnBehavior kDisplayColumn = kServerColumn with { Sortable = false, Filterable = false };
+
+    // The id filter compares ids exactly (see WorkflowTicketQueryBuilder), so text operators like "contains" are not offered.
+    private static readonly IReadOnlyList<FancyColumnFilterOperator> kExactFilterOperators = [FancyColumnFilterOperator.Equals, FancyColumnFilterOperator.NotEquals];
+    private static readonly ColumnBehavior kIdColumn = kServerColumn with { FilterOperators = kExactFilterOperators };
+
+    #endregion
+
+    #region Fields
+
+    private FancyTableTexts tableTexts = FancyTableTexts.Default;
+    private IReadOnlyList<FancyColumn<WorkflowTreeRow>> columns = [];
+    private FancyTreeTable<WorkflowTreeRow>? treeTable;
+    private int pageSize = kDefaultPageSize;
+
+    #endregion
+
+    #region Methods - Overrides
+
+    /// <summary>
+    /// Initializes the localized table texts and the columns.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        tableTexts = FancyTableTextFactory.Create(userConfig);
+        columns = BuildColumns();
+    }
+
+    #endregion
+
+    #region Methods - Public
+
+    /// <summary>
+    /// Reloads the tickets, keeping the current page or starting again at the first page.
+    /// </summary>
+    /// <param name="resetToFirstPage">True after the selection of tickets changed, e.g. by the page's task type or state filter.</param>
+    public Task RefreshAsync(bool resetToFirstPage)
+    {
+        return treeTable?.RefreshDataAsync(resetToFirstPage) ?? Task.CompletedTask;
+    }
+
+    #endregion
+
+    #region Methods - Private
+
+    /// <summary>
+    /// Loads one page of tickets and maps them to tree rows.
+    /// </summary>
+    private async ValueTask<FancyItemsResult<WorkflowTreeRow>> LoadRowsAsync(FancyItemsRequest request, CancellationToken cancellationToken)
+    {
+        FancyItemsResult<WfTicket> result = await LoadTickets(request, cancellationToken);
+        return new FancyItemsResult<WorkflowTreeRow>(BuildTicketRows(result.Items), result.HasMore);
+    }
+
+    /// <summary>
+    /// Opens the state change of the workflow object shown in the row.
+    /// </summary>
+    private Task ChangeState(WorkflowTreeRow row)
+    {
+        return row.Kind switch
+        {
+            WorkflowTreeRowKind.RequestTask when row.ReqTask != null => ChangeReqTaskState(row.Ticket, row.ReqTask),
+            WorkflowTreeRowKind.ImplementationTask when row.ReqTask != null && row.ImplTask != null => ChangeImplTaskState(row.Ticket, row.ReqTask, row.ImplTask),
+            WorkflowTreeRowKind.Approval when row.ReqTask != null && row.Approval != null => ChangeApprovalState(row.Ticket, row.ReqTask, row.Approval),
+            _ => ChangeTicketState(row.Ticket)
+        };
+    }
+
+    /// <summary>
+    /// Builds the columns shared by all row kinds. Values not applicable to a row kind stay empty.
+    /// </summary>
+    private IReadOnlyList<FancyColumn<WorkflowTreeRow>> BuildColumns()
+    {
+        return
+        [
+            new FancyColumn<WorkflowTreeRow>
+            {
+                Key = "actions",
+                Title = userConfig.GetText("actions"),
+                Sortable = false,
+                Searchable = false,
+                Hideable = kDisplayColumn.Hideable,
+                Resizable = kDisplayColumn.Resizable,
+                Filterable = kDisplayColumn.Filterable,
+                CellTemplate = ActionsCellTemplate
+            },
+            CreateColumn("id", userConfig.GetText("id"), row => row.Id.ToString(), kIdColumn, row => row.Id),
+            CreateColumn("type", userConfig.GetText("type"), row => GetKindText(row.Kind), kDisplayColumn),
+            CreateColumn("name", userConfig.GetText("name"), row => row.Name, kSortOnlyColumn),
+            CreateColumn("tasks", userConfig.GetText("tasks"), row => row.TaskCount?.ToString() ?? "", kDisplayColumn, row => row.TaskCount),
+            CreateColumn("requester", userConfig.GetText("requester"), row => row.Requester, kFilterOnlyColumn),
+            CreateColumn("state", userConfig.GetText("state"), row => ResolveStateName(row.StateId), kServerColumn, cellTemplate: StateCellTemplate),
+            CreateColumn("start_time", userConfig.GetText("start_time"), row => row.Start?.ToString() ?? "", kSortOnlyColumn, row => row.Start),
+            CreateColumn("end_time", userConfig.GetText("end_time"), row => row.End?.ToString() ?? "", kSortOnlyColumn, row => row.End)
+        ];
+    }
+
+    /// <summary>
+    /// Creates a text column; whether it can be sorted and filtered comes from its behavior. It is sorted by the displayed
+    /// text, unless a separate sort value selector is given. An optional cell template replaces the displayed text.
+    /// </summary>
+    private static FancyColumn<WorkflowTreeRow> CreateColumn(string key, string title, Func<WorkflowTreeRow, string> valueSelector,
+        ColumnBehavior behavior, Func<WorkflowTreeRow, IComparable?>? sortValueSelector = null, RenderFragment<WorkflowTreeRow>? cellTemplate = null)
+    {
+        return new FancyColumn<WorkflowTreeRow>
+        {
+            Key = key,
+            Title = title,
+            Sortable = behavior.Sortable,
+            Searchable = false,
+            Hideable = behavior.Hideable,
+            ValueSelector = valueSelector,
+            SortValueSelector = sortValueSelector ?? (row => valueSelector(row)),
+            CellTemplate = cellTemplate,
+            Resizable = behavior.Resizable,
+            Filterable = behavior.Filterable,
+            FilterOperators = behavior.FilterOperators,
+            MinWidth = kColumnMinWidth
+        };
+    }
+
+    /// <summary>
+    /// Returns the localized name of a row kind.
+    /// </summary>
+    private string GetKindText(WorkflowTreeRowKind kind)
+    {
+        return kind switch
+        {
+            WorkflowTreeRowKind.RequestTask => userConfig.GetText("task"),
+            WorkflowTreeRowKind.ImplementationTask => userConfig.GetText("implementation"),
+            WorkflowTreeRowKind.Approval => userConfig.GetText("approval"),
+            _ => userConfig.GetText("ticket")
+        };
+    }
+
+    /// <summary>
+    /// Returns the name of a state, or its id if the state is unknown.
+    /// </summary>
+    private string ResolveStateName(int stateId)
+    {
+        return StateNames.TryGetValue(stateId, out string? stateName) ? stateName : stateId.ToString();
+    }
+
+    /// <summary>
+    /// Builds the ticket rows in the given order, each with its request task rows below.
+    /// </summary>
+    private static IReadOnlyList<WorkflowTreeRow> BuildTicketRows(IReadOnlyList<WfTicket> tickets)
+    {
+        return [.. tickets.Select(ticket => new WorkflowTreeRow(WorkflowTreeRowKind.Ticket, ticket, BuildReqTaskRows(ticket))
+        {
+            Id = ticket.Id,
+            Name = ticket.Title,
+            TaskCount = ticket.Tasks.Count,
+            Requester = ticket.Requester?.Name ?? "",
+            StateId = ticket.StateId,
+            Start = ticket.CreationDate,
+            End = ticket.CompletionDate
+        })];
+    }
+
+    /// <summary>
+    /// Builds the request task rows of a ticket, each with its implementation task and approval rows below.
+    /// </summary>
+    private static IReadOnlyList<WorkflowTreeRow> BuildReqTaskRows(WfTicket ticket)
+    {
+        List<WfReqTask> reqTasks = WorkflowTicketSelectionHelper.GetReferenceTasks(ticket, true, WorkflowReferenceDate.TicketCreation, "", "", kNoTaskTypes);
+        return [.. reqTasks.Select(reqTask => new WorkflowTreeRow(WorkflowTreeRowKind.RequestTask, ticket, BuildReqTaskChildRows(ticket, reqTask))
+        {
+            ReqTask = reqTask,
+            Id = reqTask.Id,
+            Name = reqTask.Title,
+            StateId = reqTask.StateId,
+            Start = reqTask.Start,
+            End = reqTask.Stop
+        })];
+    }
+
+    /// <summary>
+    /// Builds the implementation task rows followed by the approval rows of a request task.
+    /// </summary>
+    private static IReadOnlyList<WorkflowTreeRow> BuildReqTaskChildRows(WfTicket ticket, WfReqTask reqTask)
+    {
+        IEnumerable<WorkflowTreeRow> implTaskRows = WorkflowTicketSelectionHelper
+            .GetReferenceImplementationTasks(reqTask, true, WorkflowReferenceDate.TicketCreation, "", "")
+            .Select(implTask => new WorkflowTreeRow(WorkflowTreeRowKind.ImplementationTask, ticket, kNoChildren)
+            {
+                ReqTask = reqTask,
+                ImplTask = implTask,
+                Id = implTask.Id,
+                Name = implTask.Title,
+                StateId = implTask.StateId,
+                Start = implTask.Start,
+                End = implTask.Stop
+            });
+        IEnumerable<WorkflowTreeRow> approvalRows = WorkflowTicketSelectionHelper
+            .GetReferenceApprovals(reqTask, true, WorkflowReferenceDate.TicketCreation, "", "")
+            .Select(approval => new WorkflowTreeRow(WorkflowTreeRowKind.Approval, ticket, kNoChildren)
+            {
+                ReqTask = reqTask,
+                Approval = approval,
+                Id = approval.Id,
+                Name = approval.ApproverGroup ?? "",
+                StateId = approval.StateId,
+                Start = approval.DateOpened,
+                End = approval.ApprovalDate
+            });
+        return [.. implTaskRows, .. approvalRows];
+    }
+
+    #endregion
+
+    #region Nested Types
+
+    /// <summary>
+    /// Defines which interactions a column supports. Filter operators are all operators if null.
+    /// </summary>
+    private readonly record struct ColumnBehavior(bool Hideable, bool Resizable, bool Sortable, bool Filterable,
+        IReadOnlyList<FancyColumnFilterOperator>? FilterOperators = null);
+
+    /// <summary>
+    /// Kind of workflow object shown in a tree row.
+    /// </summary>
+    private enum WorkflowTreeRowKind
+    {
+        Ticket,
+        RequestTask,
+        ImplementationTask,
+        Approval
+    }
+
+    /// <summary>
+    /// Row of the FancyTreeTable showing one workflow object together with the ticket it belongs to.
+    /// </summary>
+    private sealed class WorkflowTreeRow(WorkflowTreeRowKind kind, WfTicket ticket, IReadOnlyList<WorkflowTreeRow> children)
+    {
+        public WorkflowTreeRowKind Kind { get; } = kind;
+        public WfTicket Ticket { get; } = ticket;
+        public IReadOnlyList<WorkflowTreeRow> Children { get; } = children;
+        public WfReqTask? ReqTask { get; init; }
+        public WfImplTask? ImplTask { get; init; }
+        public WfApproval? Approval { get; init; }
+        public long Id { get; init; }
+        public string Name { get; init; } = "";
+        public int? TaskCount { get; init; }
+        public string Requester { get; init; } = "";
+        public int StateId { get; init; }
+        public DateTime? Start { get; init; }
+        public DateTime? End { get; init; }
+    }
+
+    #endregion
+}

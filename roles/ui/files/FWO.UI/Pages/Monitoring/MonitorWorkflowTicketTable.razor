@@ -7,7 +7,7 @@
 
 @* Tree table of the workflow monitoring: tickets as roots, their request tasks as children and the implementation tasks and approvals of each request task below. *@
 
-<div class="cp-policy-table">
+<div class="workflow-ticket-table">
     <FancyTreeTable TItem="WorkflowTreeRow"
                     @ref="treeTable"
                     ItemsProvider="LoadRowsAsync"

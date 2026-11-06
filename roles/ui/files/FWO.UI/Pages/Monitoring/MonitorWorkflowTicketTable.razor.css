@@ -1,4 +1,4 @@
-.cp-policy-table {
+.workflow-ticket-table {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -6,18 +6,18 @@
     justify-content: space-between;
 }
 
-.cp-policy-table ::deep .fancy-tree-actions {
+.workflow-ticket-table ::deep .fancy-tree-actions {
     order: -1;
     flex: 1 1 content;
 }
 
-.cp-policy-table ::deep .fancy-table-topbar {
+.workflow-ticket-table ::deep .fancy-table-topbar {
     flex: 1 1 auto;
     margin-bottom: 0;
 }
 
-.cp-policy-table ::deep .fancy-table-loading-template,
-.cp-policy-table ::deep .tree-table-container,
-.cp-policy-table ::deep .fancy-pagination {
+.workflow-ticket-table ::deep .fancy-table-loading-template,
+.workflow-ticket-table ::deep .tree-table-container,
+.workflow-ticket-table ::deep .fancy-pagination {
     flex: 0 0 100%;
 }

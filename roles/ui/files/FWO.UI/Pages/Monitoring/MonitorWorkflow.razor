@@ -207,7 +207,7 @@ else
     }
 
     /// <summary>
-    /// Loads one page of tickets for the ticket table: the table's search, column filters, sort and page combined with the
+    /// Loads one page of tickets for the ticket table: the table's column filters, sort and page combined with the
     /// task type and state dropdowns. One ticket more than the page size is requested to know whether a next page exists.
     /// </summary>
     private async Task<FancyItemsResult<WfTicket>> LoadTicketPage(FancyItemsRequest request, CancellationToken cancellationToken)

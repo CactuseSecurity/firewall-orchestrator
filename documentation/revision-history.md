@@ -11,6 +11,7 @@
   - rules are ordered by rule collection group and rule collection priority
 - Azure gateway autodiscovery: Azure managements can now be autodiscovered (scheduled and manually); the Azure Firewalls of the subscription whose firewall policy lies in the configured resource group are proposed as gateways with the policy name as local rulebase; firewalls with classic rules are skipped
 - new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
+- middleware REST API: `createTicket` rules accept an optional `logging` key naming the rule tracking (e.g. `log`, `none`, matched case-insensitively against the tracking types); omitted or `null` means `log`, unknown values are rejected at `rules[i].logging` (#5664)
 - request workflow: the Check Point LayerGuard section name is configurable at every device-specific-settings level with optional, repeatable source- and destination-zone placeholders; fixed names avoid zone-matrix resolution (#5626)
 
 ## 9.8.7 - 04.11.2026

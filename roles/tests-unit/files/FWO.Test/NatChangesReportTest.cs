@@ -22,9 +22,13 @@ namespace FWO.Test
         private const string kNatRuleFilter = "nat_rule:{_eq:true}, xlate_rule:{_is_null:false}";
         private const string kAccessRuleFilter = "access_rule:{_eq:true}";
         private const string kNatRuleRef = "rule: { nat_rule: { _eq: true } }";
-        private const string kCurrentRef = "removed: { _is_null: true }";
-        private const string kRefUntilChangeImport = "_or: [ { removed: { _is_null: true } }, { removed: { _eq: $import_id_new } } ]";
-        private const string kNatObjectUsageFilter = $"object: {{ _or: [ {{ _or: [ {{ rule_froms: {{ {kNatRuleRef}, {kCurrentRef} }} }}, {{ rule_tos: {{ {kNatRuleRef}, {kCurrentRef} }} }} ] }}";
+        private const string kOpenAfterChangeImport = "_or: [ { removed: { _is_null: true } }, { removed: { _gt: $import_id_new } } ]";
+        private const string kFromAtChangeImport = $"rf_create: {{ _lte: $import_id_new }}, {kOpenAfterChangeImport}";
+        private const string kToAtChangeImport = $"rt_create: {{ _lte: $import_id_new }}, {kOpenAfterChangeImport}";
+        private const string kServiceAtChangeImport = $"rs_create: {{ _lte: $import_id_new }}, {kOpenAfterChangeImport}";
+        private const string kMembershipAtChangeImport = $"import_created: {{ _lte: $import_id_new }}, {kOpenAfterChangeImport}";
+        private const string kRefUntilChangeImport = "_or: [ { removed: { _is_null: true } }, { removed: { _gte: $import_id_new } } ]";
+        private const string kNatObjectUsageFilter = $"object: {{ _or: [ {{ _or: [ {{ rule_froms: {{ {kNatRuleRef}, {kFromAtChangeImport} }} }}, {{ rule_tos: {{ {kNatRuleRef}, {kToAtChangeImport} }} }} ] }}";
         private static readonly string EncodedPayload = WebUtility.HtmlEncode(kPayload);
         private static readonly string[] TranslatedHeaders = ["<th>Translated Source</th>", "<th>Translated Destination</th>", "<th>Translated Services</th>"];
         private static readonly RuleChange[] NoRuleChanges = [];
@@ -255,14 +259,17 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(query.FullQuery, Does.Contain(kNatObjectUsageFilter));
-                Assert.That(query.FullQuery, Does.Contain($"objectByOldObjId: {{ _or: [ {{ _or: [ {{ rule_froms: {{ {kNatRuleRef}, {kRefUntilChangeImport} }} }}"));
-                Assert.That(query.FullQuery, Does.Contain($"objgrpFlatsByObjgrpFlatMemberId: {{ {kCurrentRef}, object: {{ _or: [ {{ rule_froms: {{ {kNatRuleRef}, {kCurrentRef} }} }}"));
+                Assert.That(query.FullQuery, Does.Contain($"objectByOldObjId: {{ _or: [ {{ _or: [ {{ rule_froms: {{ {kNatRuleRef}, {kRefUntilChangeImport} }} }}, {{ rule_tos: {{ {kNatRuleRef}, {kRefUntilChangeImport} }} }} ] }}"));
+                Assert.That(query.FullQuery, Does.Contain($"objgrpFlatsByObjgrpFlatMemberId: {{ {kMembershipAtChangeImport}, object: {{ _or: [ {{ rule_froms: {{ {kNatRuleRef}, {kFromAtChangeImport} }} }}"));
                 Assert.That(query.FullQuery, Does.Contain($"objgrpFlatsByObjgrpFlatMemberId: {{ {kRefUntilChangeImport}, object: {{ _or: [ {{ rule_froms: {{ {kNatRuleRef}, {kRefUntilChangeImport} }} }}"));
-                Assert.That(query.FullQuery, Does.Contain($"service: {{ _or: [ {{ rule_services: {{ {kNatRuleRef}, {kCurrentRef} }} }}, {{ svcgrpFlatsBySvcgrpFlatMemberId: {{ {kCurrentRef}, service: {{ rule_services: {{ {kNatRuleRef}, {kCurrentRef} }} }} }} }} ] }}"));
+                Assert.That(query.FullQuery, Does.Contain($"service: {{ _or: [ {{ rule_services: {{ {kNatRuleRef}, {kServiceAtChangeImport} }} }}, {{ svcgrpFlatsBySvcgrpFlatMemberId: {{ {kMembershipAtChangeImport}, service: {{ rule_services: {{ {kNatRuleRef}, {kServiceAtChangeImport} }} }} }} }} ] }}"));
                 Assert.That(query.FullQuery, Does.Contain($"serviceByOldSvcId: {{ _or: [ {{ rule_services: {{ {kNatRuleRef}, {kRefUntilChangeImport} }} }}, {{ svcgrpFlatsBySvcgrpFlatMemberId: {{ {kRefUntilChangeImport}, service: {{ rule_services: {{ {kNatRuleRef}, {kRefUntilChangeImport} }} }} }} }} ] }}"));
-                Assert.That(query.FullQuery, Does.Contain($"usr: {{ _or: [ {{ _or: [ {{ rule_froms: {{ {kNatRuleRef}, {kCurrentRef} }} }}"));
-                Assert.That(query.FullQuery, Does.Contain($"usergrpFlatsByUsergrpFlatMemberId: {{ {kCurrentRef}, usr: {{ _or: [ {{ rule_froms:"));
+                Assert.That(query.FullQuery, Does.Contain($"usr: {{ _or: [ {{ _or: [ {{ rule_froms: {{ {kNatRuleRef}, {kFromAtChangeImport} }} }}, {{ rule_tos: {{ {kNatRuleRef}, {kToAtChangeImport} }} }} ] }}"));
+                Assert.That(query.FullQuery, Does.Contain($"usergrpFlatsByUsergrpFlatMemberId: {{ {kMembershipAtChangeImport}, usr: {{ _or: [ {{ rule_froms:"));
                 Assert.That(query.FullQuery, Does.Contain($"usrByOldUserId: {{ _or: [ {{ _or: [ {{ rule_froms: {{ {kNatRuleRef}, {kRefUntilChangeImport} }} }}"));
+                Assert.That(query.FullQuery, Does.Not.Contain(", removed: { _is_null: true }"), "the new version must not depend on the current usage");
+                Assert.That(query.FullQuery, Does.Not.Contain("{ removed: { _is_null: true }, "), "group memberships must not depend on the current usage");
+                Assert.That(query.FullQuery, Does.Not.Contain("removed: { _eq: $import_id_new }"));
                 Assert.That(query.FullQuery, Does.Not.Contain($"rule_froms: {{ {kNatRuleRef} }}"));
                 Assert.That(query.FullQuery, Does.Not.Contain($"rule_services: {{ {kNatRuleRef} }}"));
             });

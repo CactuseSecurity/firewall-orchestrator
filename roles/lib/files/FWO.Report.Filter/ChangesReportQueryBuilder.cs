@@ -35,27 +35,41 @@ namespace FWO.Report.Filter
 
         private const string kNatRule = "rule: { nat_rule: { _eq: true } }";
 
-        /// <summary>
-        /// Rule references and group memberships are never deleted by the import, only closed (removed set).
-        /// The new version of a changed element must be referenced currently.
-        /// </summary>
-        private const string kCurrentReference = "removed: { _is_null: true }";
+        private const string kRuleFromCreate = "rf_create";
+        private const string kRuleToCreate = "rt_create";
+        private const string kRuleServiceCreate = "rs_create";
+        private const string kGroupMembershipCreate = "import_created";
 
         /// <summary>
         /// The old version of a changed or deleted element has its references closed in the import of the change.
-        /// So it must be referenced currently or up to this import, not only in the past.
+        /// So it must have been referenced up to this import (or beyond), not only before it. Its references were
+        /// necessarily created before the change, so the create column is not checked.
         /// </summary>
-        private const string kReferenceUntilChangeImport = "_or: [ { removed: { _is_null: true } }, { removed: { _eq: $import_id_new } } ]";
+        private const string kReferenceUntilChangeImport = "_or: [ { removed: { _is_null: true } }, { removed: { _gte: $import_id_new } } ]";
+
+        /// <summary>
+        /// Rule references and group memberships are never deleted by the import, only closed (removed set).
+        /// The new version of a changed element must be referenced at the import of the change: the reference was created
+        /// in or before this import and was not closed up to it. Reports over past periods must not depend on the current usage.
+        /// </summary>
+        /// <param name="createColumn">Column holding the import that created the reference or group membership.</param>
+        /// <returns>The GraphQL condition.</returns>
+        private static string ReferenceAtChangeImport(string createColumn)
+        {
+            return $"{createColumn}: {{ _lte: $import_id_new }}, _or: [ {{ removed: {{ _is_null: true }} }}, {{ removed: {{ _gt: $import_id_new }} }} ]";
+        }
 
         /// <summary>
         /// Builds the condition for network objects (or users) referenced directly in the source or destination
         /// of a NAT rule (original or translated part).
         /// </summary>
-        /// <param name="referenceValidity">Condition restricting the references to the relevant ones.</param>
+        /// <param name="referenceValidity">Builds the condition restricting the references to the relevant ones from the create column.</param>
         /// <returns>The GraphQL condition.</returns>
-        private static string ReferencedInNatRule(string referenceValidity)
+        private static string ReferencedInNatRule(Func<string, string> referenceValidity)
         {
-            return $"_or: [ {{ rule_froms: {{ {kNatRule}, {referenceValidity} }} }}, {{ rule_tos: {{ {kNatRule}, {referenceValidity} }} }} ]";
+            string fromValidity = referenceValidity(kRuleFromCreate);
+            string toValidity = referenceValidity(kRuleToCreate);
+            return $"_or: [ {{ rule_froms: {{ {kNatRule}, {fromValidity} }} }}, {{ rule_tos: {{ {kNatRule}, {toValidity} }} }} ]";
         }
 
         /// <summary>
@@ -64,37 +78,39 @@ namespace FWO.Report.Filter
         /// </summary>
         /// <param name="groupMembershipRelation">Relation from the element to the flat group memberships it is part of.</param>
         /// <param name="groupRelation">Relation from a flat group membership to its group.</param>
-        /// <param name="referenceValidity">Condition restricting references and group memberships to the relevant ones.</param>
+        /// <param name="referenceValidity">Builds the condition restricting references and group memberships to the relevant ones from the create column.</param>
         /// <returns>The GraphQL condition.</returns>
-        private static string UsedInNatRule(string groupMembershipRelation, string groupRelation, string referenceValidity)
+        private static string UsedInNatRule(string groupMembershipRelation, string groupRelation, Func<string, string> referenceValidity)
         {
             string referencedInNatRule = ReferencedInNatRule(referenceValidity);
-            return $"_or: [ {{ {referencedInNatRule} }}, {{ {groupMembershipRelation}: {{ {referenceValidity}, {groupRelation}: {{ {referencedInNatRule} }} }} }} ]";
+            string membershipValidity = referenceValidity(kGroupMembershipCreate);
+            return $"_or: [ {{ {referencedInNatRule} }}, {{ {groupMembershipRelation}: {{ {membershipValidity}, {groupRelation}: {{ {referencedInNatRule} }} }} }} ]";
         }
 
         /// <summary>
         /// Builds the condition for services used in a NAT rule (original or translated part), directly or as member of a group.
         /// </summary>
-        /// <param name="referenceValidity">Condition restricting references and group memberships to the relevant ones.</param>
+        /// <param name="referenceValidity">Builds the condition restricting references and group memberships to the relevant ones from the create column.</param>
         /// <returns>The GraphQL condition.</returns>
-        private static string ServiceUsedInNatRule(string referenceValidity)
+        private static string ServiceUsedInNatRule(Func<string, string> referenceValidity)
         {
-            string referencedInNatRule = $"rule_services: {{ {kNatRule}, {referenceValidity} }}";
-            return $"_or: [ {{ {referencedInNatRule} }}, {{ svcgrpFlatsBySvcgrpFlatMemberId: {{ {referenceValidity}, service: {{ {referencedInNatRule} }} }} }} ]";
+            string referencedInNatRule = $"rule_services: {{ {kNatRule}, {referenceValidity(kRuleServiceCreate)} }}";
+            string membershipValidity = referenceValidity(kGroupMembershipCreate);
+            return $"_or: [ {{ {referencedInNatRule} }}, {{ svcgrpFlatsBySvcgrpFlatMemberId: {{ {membershipValidity}, service: {{ {referencedInNatRule} }} }} }} ]";
         }
 
         /// <summary>
-        /// Builds the condition for changes of elements used in a NAT rule: the new version must be used currently,
-        /// the old version must have been used up to the import of the change.
+        /// Builds the condition for changes of elements used in a NAT rule: the new version must be used at the import
+        /// of the change, the old version must have been used up to the import of the change.
         /// </summary>
         /// <param name="newRelation">Relation from the changelog entry to the new element version.</param>
         /// <param name="oldRelation">Relation from the changelog entry to the old element version.</param>
         /// <param name="usedInNatRule">Builds the usage condition for a given reference validity.</param>
         /// <returns>The GraphQL condition.</returns>
-        private static string ChangeUsedInNatRule(string newRelation, string oldRelation, Func<string, string> usedInNatRule)
+        private static string ChangeUsedInNatRule(string newRelation, string oldRelation, Func<Func<string, string>, string> usedInNatRule)
         {
-            string newVersionUsage = usedInNatRule(kCurrentReference);
-            string oldVersionUsage = usedInNatRule(kReferenceUntilChangeImport);
+            string newVersionUsage = usedInNatRule(ReferenceAtChangeImport);
+            string oldVersionUsage = usedInNatRule(_ => kReferenceUntilChangeImport);
             return $"_or: [ {{ {newRelation}: {{ {newVersionUsage} }} }}, {{ {oldRelation}: {{ {oldVersionUsage} }} }} ]";
         }
 

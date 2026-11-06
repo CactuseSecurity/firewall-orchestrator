@@ -5,6 +5,7 @@ using FWO.Data.Report;
 using FWO.Report;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -20,6 +21,7 @@ namespace FWO.Test
         private const string kRawElement = "<img";
         private const string kNatRuleFilter = "nat_rule:{_eq:true}, xlate_rule:{_is_null:false}";
         private const string kAccessRuleFilter = "access_rule:{_eq:true}";
+        private const string kNatObjectUsageFilter = "object: { _or: [ { _or: [ { rule_froms: { rule: { nat_rule: { _eq: true } } } }, { rule_tos: { rule: { nat_rule: { _eq: true } } } } ] }";
         private static readonly string EncodedPayload = WebUtility.HtmlEncode(kPayload);
         private static readonly string[] TranslatedHeaders = ["<th>Translated Source</th>", "<th>Translated Destination</th>", "<th>Translated Services</th>"];
         private static readonly RuleChange[] NoRuleChanges = [];
@@ -240,6 +242,143 @@ namespace FWO.Test
                 }
                 Assert.That(html, Does.Contain("<td colspan=\"14\">"));
             });
+        }
+
+        [Test]
+        public void Compile_NatChanges_SelectsOnlyObjectChangesUsedInNatRules()
+        {
+            DynGraphqlQuery query = Compiler.Compile(CreateTemplate(ReportType.NatChanges, false));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(query.FullQuery, Does.Contain(kNatObjectUsageFilter));
+                Assert.That(query.FullQuery, Does.Contain("objectByOldObjId: { _or: [ { _or: [ { rule_froms: { rule: { nat_rule: { _eq: true } } } }"));
+                Assert.That(query.FullQuery, Does.Contain("objgrpFlatsByObjgrpFlatMemberId: { object: { _or: [ { rule_froms: { rule: { nat_rule: { _eq: true } } } }"));
+                Assert.That(query.FullQuery, Does.Contain("svcgrpFlatsBySvcgrpFlatMemberId: { service: { rule_services: { rule: { nat_rule: { _eq: true } } } } }"));
+                Assert.That(query.FullQuery, Does.Contain("serviceByOldSvcId: { _or: [ { rule_services:"));
+                Assert.That(query.FullQuery, Does.Contain("usergrpFlatsByUsergrpFlatMemberId: { usr: { _or: [ { rule_froms:"));
+                Assert.That(query.FullQuery, Does.Contain("usrByOldUserId: { _or: [ { _or: [ { rule_froms:"));
+            });
+        }
+
+        [Test]
+        public void Compile_Changes_SelectsAllObjectChanges()
+        {
+            DynGraphqlQuery query = Compiler.Compile(CreateTemplate(ReportType.Changes, false));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(query.FullQuery, Does.Contain("changelog_services: changelog_services("));
+                Assert.That(query.FullQuery, Does.Not.Contain("nat_rule: { _eq: true }"));
+                Assert.That(query.FullQuery, Does.Not.Contain("objgrpFlatsByObjgrpFlatMemberId"));
+            });
+        }
+
+        [Test]
+        public void ExportToJson_NatChangesAddedRule_ContainsOriginalAndTranslatedElements()
+        {
+            Rule rule = CreateNatRule("transSrc", "transDst", "transSvc");
+            rule.Froms = [new NetworkLocation(new NetworkUser(), CreateHost(3, "origSrc", "10.0.1.1/32"))];
+            RuleChange[] ruleChanges = [new RuleChange { ChangeAction = 'I', ChangeImport = new ChangeImport(), NewRule = rule }];
+
+            JObject change = ExportSingleRuleChangeToJson(CreateReport(ReportType.NatChanges, ruleChanges));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(JoinValues(change["source"]), Does.Contain("origSrc"));
+                Assert.That(JoinValues(change["translated source"]), Does.Contain("transSrc").And.Contain("10.0.0.1"));
+                Assert.That(JoinValues(change["translated destination"]), Does.Contain("transDst"));
+                Assert.That(JoinValues(change["translated service"]), Does.Contain("transSvc"));
+            });
+        }
+
+        [Test]
+        public void ExportToJson_NatChangesDeletedRule_ContainsOldTranslation()
+        {
+            RuleChange[] ruleChanges = [new RuleChange { ChangeAction = 'D', ChangeImport = new ChangeImport(), OldRule = CreateNatRule("oldSrc", "oldDst", "oldSvc") }];
+
+            JObject change = ExportSingleRuleChangeToJson(CreateReport(ReportType.NatChanges, ruleChanges));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(JoinValues(change["translated source"]), Does.Contain("oldSrc"));
+                Assert.That(JoinValues(change["translated destination"]), Does.Contain("oldDst"));
+                Assert.That(JoinValues(change["translated service"]), Does.Contain("oldSvc"));
+            });
+        }
+
+        /// <summary>
+        /// A change of the translation only must be visible in the json export, not just as identical old and new values.
+        /// </summary>
+        [Test]
+        public void ExportToJson_NatChangesModifiedTranslation_ShowsDifference()
+        {
+            RuleChange[] ruleChanges =
+            [
+                new RuleChange
+                {
+                    ChangeAction = 'C',
+                    ChangeImport = new ChangeImport(),
+                    OldRule = CreateNatRule("oldSrc", "sameDst", "sameSvc"),
+                    NewRule = CreateNatRule("newSrc", "sameDst", "sameSvc")
+                }
+            ];
+
+            JObject change = ExportSingleRuleChangeToJson(CreateReport(ReportType.NatChanges, ruleChanges));
+            List<string> translatedSource = ToStrings(change["translated source"]);
+            string translatedDestination = JoinValues(change["translated destination"]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(translatedSource.Count(value => value.StartsWith("deleted: ") && value.Contains("oldSrc")), Is.EqualTo(1));
+                Assert.That(translatedSource.Count(value => value.StartsWith("added: ") && value.Contains("newSrc")), Is.EqualTo(1));
+                Assert.That(translatedDestination, Does.Contain("sameDst").And.Not.Contain("deleted: ").And.Not.Contain("added: "));
+                Assert.That(JoinValues(change["translated service"]), Does.Contain("sameSvc").And.Not.Contain("deleted: ").And.Not.Contain("added: "));
+            });
+        }
+
+        [Test]
+        public void ExportToJson_NatChangesWithoutTranslation_ReturnsEmptyTranslatedElements()
+        {
+            Rule rule = CreateNatRule("src", "dst", "svc");
+            rule.NatData = null!;
+            RuleChange[] ruleChanges = [new RuleChange { ChangeAction = 'I', ChangeImport = new ChangeImport(), NewRule = rule }];
+
+            JObject change = ExportSingleRuleChangeToJson(CreateReport(ReportType.NatChanges, ruleChanges));
+
+            Assert.That(ToStrings(change["translated source"]), Is.Empty);
+        }
+
+        [Test]
+        public void ExportToJson_Changes_HasNoTranslatedElements()
+        {
+            RuleChange[] ruleChanges = [new RuleChange { ChangeAction = 'I', ChangeImport = new ChangeImport(), NewRule = CreateNatRule("transSrc", "transDst", "transSvc") }];
+
+            JObject change = ExportSingleRuleChangeToJson(CreateReport(ReportType.Changes, ruleChanges));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(change.ContainsKey("translated source"), Is.False);
+                Assert.That(change.ContainsKey("translated destination"), Is.False);
+                Assert.That(change.ContainsKey("translated service"), Is.False);
+            });
+        }
+
+        private static JObject ExportSingleRuleChangeToJson(ReportChanges report)
+        {
+            JObject json = JObject.Parse(report.ExportToJson());
+            JArray ruleChanges = (JArray)json["managements"]![0]!["TestMgt"]!["rule changes"]!;
+            return (JObject)ruleChanges.Single();
+        }
+
+        private static string JoinValues(JToken? token)
+        {
+            return string.Join("|", ToStrings(token));
+        }
+
+        private static List<string> ToStrings(JToken? token)
+        {
+            return token == null ? [] : [.. token.Values<string>().Select(value => value ?? "")];
         }
 
         [Test]

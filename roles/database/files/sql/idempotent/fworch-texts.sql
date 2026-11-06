@@ -651,7 +651,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Die Compliance-Pr&uuml;fung schl&auml;gt sicher fehl: ein nicht auswertbares Kriterium macht die Regel nicht bewertbar statt konform. Weitere Sicherheitsh&auml;rtung u.a. der API-Berechtigungen, der Passwortrichtlinie in der Middleware, der CSV- und HTML-Exporte und des Installers. Der Cisco-ASA-Importer bietet den SHA-1-SSH-Schl&uuml;sselaustausch nur noch an, wenn die ger&auml;tespezifische Einstellung &quot;SHA-1-SSH-Schl&uuml;sselaustausch erlauben&quot; eingeschaltet ist.</li>
     <li>Die Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; beachtet die Umsetzungsmodi: der Umsetzungsmodus f&uuml;r Objekte gilt nur f&uuml;r Objekte, der f&uuml;r Regeln nur f&uuml;r Regeln, und nur Ziele mit Modus automatisch erhalten Implementierungs-Auftr&auml;ge. Antrags-Auftr&auml;ge eines Managements mit Modus externes Ticketsystem erhalten keine. Bei Objekt-Auftr&auml;gen entscheidet die Objektanlage-Einstellung des Managements, auf dem der Auftrag gestellt wird; Auftr&auml;ge ohne Management (&quot;Alle&quot; oder aus der REST-Schnittstelle) werden auf alle Managements verteilt. Im Auftrags-Scope bearbeitet die Aktion nur diesen Auftrag, geb&uuml;ndelte erst, wenn alle Auftr&auml;ge des B&uuml;ndels so weit sind. Die ger&auml;tespezifischen Einstellungen weisen auf unwirksame oder widerspr&uuml;chliche Einstellungen zu Umsetzungsmodus, externem Ticketsystem und Objektanlage hin.</li>
     <li>Neue REST-Aufrufe der Modellierung: <code>getAvailableInterfacesForApp</code> liefert die ver&ouml;ffentlichten Schnittstellen, die eine Anwendung nutzen darf, mit aufgel&ouml;sten Netzwerk- und Dienstobjekten; <code>getAppRolesPerApp</code> liefert die App-Rollen einer Anwendung und <code>getNetworkAreas</code> die Netzwerkareas mit ihren Subnetzen. Modellierer erhalten nur Daten ihrer eigenen Anwendungen, Netzwerkareas nur, wenn eine ihrer Anwendungen Common Services nutzen darf.</li>
-    <li>Neuer Report-Typ &quot;Changes: NAT&quot; zeigt &Auml;nderungen an NAT-Regeln mit urspr&uuml;nglicher und umgesetzter Quelle, Ziel und Dienst. In den FW-&Auml;nderungstrigger-Einstellungen k&ouml;nnen eigene Email-Benachrichtigungen &uuml;ber NAT-Regel&auml;nderungen mit diesem Report angelegt werden.</li>
+    <li>Neuer Report-Typ &quot;Changes: NAT&quot; zeigt &Auml;nderungen an NAT-Regeln mit urspr&uuml;nglicher und umgesetzter Quelle, Ziel und Dienst. In den FW-&Auml;nderungstrigger-Einstellungen k&ouml;nnen eigene Email-Benachrichtigungen &uuml;ber NAT-Regel&auml;nderungen (inklusive &Auml;nderungen an in NAT-Regeln verwendeten Objekten) mit diesem Report angelegt werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -671,7 +671,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>The compliance check fails closed: a criterion that cannot be evaluated makes the rule not assessable instead of compliant. Further security hardening, among others of the API permissions, the password policy in the middleware, CSV and HTML exports and the installer. The Cisco ASA importer only offers the SHA-1 SSH key exchange when the device specific setting &quot;Allow SHA-1 SSH key exchange&quot; is switched on.</li>
     <li>The action &quot;Create implementation tasks&quot; follows the implementation modes: the implementation mode for objects applies to objects only, the one for rules to rules only, and only targets with mode automatic get implementation tasks. Request tasks of a management with mode external ticket system get none. For object tasks the object creation setting of the management the task is ordered on decides; tasks without management (&quot;All&quot; or from the REST interface) are spread over all managements. In the request task scope the action handles only that task, bundled tasks once every task of the bundle has reached the state. The device specific settings point out ineffective or contradicting settings of implementation mode, external ticket system and object creation.</li>
     <li>New modelling REST calls: <code>getAvailableInterfacesForApp</code> returns the published interfaces an application may use, with resolved network and service objects; <code>getAppRolesPerApp</code> returns the app roles of an application and <code>getNetworkAreas</code> the network areas with their subnets. Modellers only get data of their own applications, and network areas only if one of their applications may use common services.</li>
-    <li>New report type &quot;Changes: NAT&quot; shows NAT rule changes with original and translated source, destination and service. Separate email notifications about NAT rule changes with this report can be defined in the FW change trigger settings.</li>
+    <li>New report type &quot;Changes: NAT&quot; shows NAT rule changes with original and translated source, destination and service. Separate email notifications about NAT rule changes (including changes of objects used in NAT rules) with this report can be defined in the FW change trigger settings.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -955,6 +955,8 @@ INSERT INTO txt VALUES ('changes',		        'German', 	'&Auml;nderungen');
 INSERT INTO txt VALUES ('changes',		        'English', 	'Changes');
 INSERT INTO txt VALUES ('nat_rule_changes',		'German', 	'NAT-Regel&auml;nderungen');
 INSERT INTO txt VALUES ('nat_rule_changes',		'English', 	'NAT rule changes');
+INSERT INTO txt VALUES ('nat_object_changes',		'German', 	'&Auml;nderungen an Objekten in NAT-Regeln');
+INSERT INTO txt VALUES ('nat_object_changes',		'English', 	'changes of objects used in NAT rules');
 INSERT INTO txt VALUES ('used_objects',		    'German', 	'Benutzte Objekte');
 INSERT INTO txt VALUES ('used_objects',		    'English', 	'Used Objects');
 INSERT INTO txt VALUES ('unused_objects',		'German', 	'Unbenutzte Objekte');
@@ -5771,8 +5773,8 @@ INSERT INTO txt VALUES ('H1157', 'German',  'Changes: Aufgel&ouml;st - Anzeige v
 INSERT INTO txt VALUES ('H1157', 'English', 'Changes: Resolved - display all changes in a defined time interval with groups in source, destination and service resolved. Default report interval: this year');
 INSERT INTO txt VALUES ('H1158', 'German',  'Changes: Technisch - wie der aufgel&ouml;ste Changes-Report, nur dass Objektnamen nicht angezeigt werden. Default-Report-Zeitraum: dieses Jahr');
 INSERT INTO txt VALUES ('H1158', 'English', 'Changes: Technical - like the resolved changes report, but object names are not shown. Default report interval: this year');
-INSERT INTO txt VALUES ('H1158a','German',  'Changes: NAT - Anzeige von &Auml;nderungen an NAT-Regeln in einem bestimmten Zeitraum mit urspr&uuml;nglicher und umgesetzter Quelle, Ziel und Dienst. Default-Report-Zeitraum: dieses Jahr');
-INSERT INTO txt VALUES ('H1158a','English', 'Changes: NAT - display all NAT rule changes in a defined time interval with original and translated source, destination and service. Default report interval: this year');
+INSERT INTO txt VALUES ('H1158a','German',  'Changes: NAT - Anzeige von &Auml;nderungen an NAT-Regeln in einem bestimmten Zeitraum mit urspr&uuml;nglicher und umgesetzter Quelle, Ziel und Dienst. Bei eingeschlossenen Objekt&auml;nderungen werden nur &Auml;nderungen an Objekten, Diensten und Benutzern angezeigt, die (direkt oder als Gruppenmitglied) in NAT-Regeln verwendet werden. Default-Report-Zeitraum: dieses Jahr');
+INSERT INTO txt VALUES ('H1158a','English', 'Changes: NAT - display all NAT rule changes in a defined time interval with original and translated source, destination and service. If object changes are included, only changes of objects, services and users used in NAT rules (directly or as group member) are shown. Default report interval: this year');
 INSERT INTO txt VALUES ('H1159', 'German',  'Statistik - Anzeige von Statistikdaten &uuml;ber Anzahl von Objekten und Regeln. Default-Report-Zeitpunkt: jetzt');
 INSERT INTO txt VALUES ('H1159', 'English', 'Statistics - display statistical data about the number of objects and rules. Default report time: now');
 INSERT INTO txt VALUES ('H1160', 'German',  'Compliance - Anzeige von Compliance-bezogenen Regeln. Die Tabelle enth&auml;lt zus&auml;tzlich eine Spalte "ExpirationTime", die die erste verf&uuml;gbare Rule-Time-Ablaufzeit anzeigt.');
@@ -7482,11 +7484,15 @@ INSERT INTO txt VALUES ('H5484', 'English', 'Change notification type: Defines h
     </ul>
 ');
 INSERT INTO txt VALUES ('H5484a', 'German',  'Benachrichtigungen &uuml;ber NAT-Regel&auml;nderungen: Werden hier Benachrichtigungen angelegt, wird nach jedem Import mit &Auml;nderungen ein Changes: NAT Report erstellt.
-    Nur wenn dieser NAT-Regel&auml;nderungen enth&auml;lt, werden die Benachrichtigungen versendet, je nach Typ mit dem Report als Html in der Email oder als Anhang.
+    Nur wenn dieser NAT-Regel&auml;nderungen oder &Auml;nderungen an Objekten, Diensten oder Benutzern enth&auml;lt, die (direkt oder als Gruppenmitglied) in NAT-Regeln verwendet werden,
+    werden die Benachrichtigungen versendet, je nach Typ mit dem Report als Html in der Email oder als Anhang (ein CSV-Anhang ist f&uuml;r diesen Report nicht m&ouml;glich).
+    Solche Objekt&auml;nderungen werden unabh&auml;ngig von der Einstellung zum Einschlie&szlig;en von Objekt&auml;nderungen gemeldet, da sie die NAT-Regeln ver&auml;ndern.
     Es gelten dieselben Trigger-Einstellungen wie f&uuml;r die &Auml;nderungsbenachrichtigungen.
 ');
 INSERT INTO txt VALUES ('H5484a', 'English', 'NAT rule change notifications: If notifications are defined here, a Changes: NAT report is created after every import with changes.
-    The notifications are only sent if this report contains NAT rule changes, depending on their type with the report as Html in the email body or as attachment.
+    The notifications are only sent if this report contains NAT rule changes or changes of objects, services or users used in NAT rules (directly or as group member),
+    depending on their type with the report as Html in the email body or as attachment (a CSV attachment is not available for this report).
+    Such object changes are notified regardless of the setting for including object changes, as they change the NAT rules.
     The same trigger settings as for the change notifications apply.
 ');
 INSERT INTO txt VALUES ('H5485', 'German',  '&Auml;nderungsbenachrichtigungs-Intervall (in Sekunden): Zeit zwischen den Checks auf importierte &Auml;nderungen.');

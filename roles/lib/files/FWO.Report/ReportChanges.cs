@@ -590,6 +590,7 @@ namespace FWO.Report
                         sb.Append(ruleChangeDisplayJson.DisplayDestination(ruleChange, ReportType));
                         sb.Append(ruleChangeDisplayJson.DisplayServiceNegated(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayServices(ruleChange, ReportType));
+                        AppendTranslatedRuleChangeJson(sb, ruleChange, ruleChangeDisplayJson);
                         sb.Append(ruleChangeDisplayJson.DisplayAction(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayTrack(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayEnabled(ruleChange));
@@ -600,6 +601,23 @@ namespace FWO.Report
                 }
             }
             return changes;
+        }
+
+        /// <summary>
+        /// Appends the translated source, destination and services of a NAT rule change; other change reports have no such properties.
+        /// </summary>
+        /// <param name="properties">JSON properties of the rule change the translated part is appended to.</param>
+        /// <param name="ruleChange">Displayed rule change.</param>
+        /// <param name="ruleChangeDisplayJson">Json display helper.</param>
+        private void AppendTranslatedRuleChangeJson(StringBuilder properties, RuleChange ruleChange, RuleChangeDisplayJson ruleChangeDisplayJson)
+        {
+            if (ReportType != ReportType.NatChanges)
+            {
+                return;
+            }
+            properties.Append(ruleChangeDisplayJson.DisplayTranslatedSource(ruleChange, ReportType));
+            properties.Append(ruleChangeDisplayJson.DisplayTranslatedDestination(ruleChange, ReportType));
+            properties.Append(ruleChangeDisplayJson.DisplayTranslatedServices(ruleChange, ReportType));
         }
 
         private JArray BuildObjectChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)

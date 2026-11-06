@@ -29,7 +29,8 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new();
             ImportChangeNotifierTestApiConn apiConnection = new()
             {
-                ImportsToNotify = []
+                ImportsToNotify = [],
+                Notifications = [new FwoNotification { Id = 1, Layout = NotificationLayout.SimpleText }]
             };
             ImportChangeNotifier notifier = new(apiConnection, globalConfig);
 
@@ -38,6 +39,45 @@ namespace FWO.Test
             Assert.That(GetPrivateField<bool>(notifier, "WorkInProgress"), Is.False);
             Assert.That(apiConnection.LastQuery, Is.EqualTo(ReportQueries.getImportsToNotifyForRuleChanges));
             Assert.That(apiConnection.SetImportsNotifiedCalls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task Run_WithoutNotificationsConfigured_DoesNotQueryImports()
+        {
+            ImportChangeNotifierTestApiConn apiConnection = new()
+            {
+                ImportsToNotify = [CreateImport(11L, 1, "mgmt-a", new DateTime(2026, 7, 14, 8, 0, 0), 3)]
+            };
+            ImportChangeNotifier notifier = new(apiConnection, new SimulatedGlobalConfig());
+
+            await notifier.Run();
+
+            Assert.That(apiConnection.ImportQueryCalls, Is.EqualTo(0));
+            Assert.That(apiConnection.SetImportsNotifiedCalls, Is.EqualTo(0));
+        }
+
+        /// <summary>
+        /// Imports with object changes only are found when NAT rule change notifications are configured. Without object change
+        /// notification they must not trigger the rule change notifications, but are marked as notified.
+        /// </summary>
+        [Test]
+        public async Task Run_ObjectChangesOnly_SendsNoRuleChangeNotification()
+        {
+            ImportChangeNotifierTestApiConn apiConnection = new()
+            {
+                ImportsToNotify = [CreateImport(11L, 1, "mgmt-a", new DateTime(2026, 7, 14, 8, 0, 0), 0)],
+                Notifications = [new FwoNotification { Id = 1, Layout = NotificationLayout.HtmlInBody }]
+            };
+            ImportChangeNotifier notifier = new(apiConnection, new SimulatedGlobalConfig { ImpChangeIncludeObjectChanges = false });
+
+            await notifier.Run();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.DevicesQueryCalls, Is.EqualTo(0), "no change report is generated");
+                Assert.That(apiConnection.UpdateNotificationsLastSentCalls, Is.EqualTo(0), "no notification is sent");
+                Assert.That(apiConnection.SetImportsNotifiedCalls, Is.EqualTo(1));
+            });
         }
 
         /// <summary>
@@ -77,7 +117,8 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new();
             ImportChangeNotifierTestApiConn apiConnection = new()
             {
-                ThrowOnImportQuery = true
+                ThrowOnImportQuery = true,
+                Notifications = [new FwoNotification { Id = 1, Layout = NotificationLayout.SimpleText }]
             };
             ImportChangeNotifier notifier = new(apiConnection, globalConfig);
 
@@ -169,7 +210,7 @@ namespace FWO.Test
             };
             ImportChangeNotifier notifier = new(apiConnection, globalConfig);
 
-            bool found = await InvokePrivateAsync<bool>(notifier, "NewImportFound");
+            bool found = await InvokePrivateAsync<bool>(notifier, "NewImportFound", false);
 
             Assert.That(found, Is.True);
             Assert.That(apiConnection.LastQuery, Is.EqualTo(ReportQueries.getImportsToNotifyForAnyChanges));
@@ -189,10 +230,40 @@ namespace FWO.Test
             };
             ImportChangeNotifier notifier = new(apiConnection, globalConfig);
 
-            bool found = await InvokePrivateAsync<bool>(notifier, "NewImportFound");
+            bool found = await InvokePrivateAsync<bool>(notifier, "NewImportFound", false);
 
             Assert.That(found, Is.True);
             Assert.That(apiConnection.LastQuery, Is.EqualTo(ReportQueries.getImportsToNotifyForRuleChanges));
+        }
+
+        /// <summary>
+        /// Object changes may change NAT rules without a new rule version, so imports with object changes only are needed.
+        /// </summary>
+        [Test]
+        public async Task NewImportFound_UsesObjectChangeQuery_WhenNatChangeNotificationsConfigured()
+        {
+            ImportChangeNotifierTestApiConn apiConnection = new()
+            {
+                ImportsToNotify = [CreateImport(21L, 7, "mgmt-g", new DateTime(2026, 7, 14, 9, 0, 0), 0)]
+            };
+            ImportChangeNotifier notifier = new(apiConnection, new SimulatedGlobalConfig { ImpChangeIncludeObjectChanges = false });
+
+            bool found = await InvokePrivateAsync<bool>(notifier, "NewImportFound", true);
+
+            Assert.That(found, Is.True);
+            Assert.That(apiConnection.LastQuery, Is.EqualTo(ReportQueries.getImportsToNotifyForAnyChanges));
+        }
+
+        [TestCase(false, 0, false)]
+        [TestCase(false, 2, true)]
+        [TestCase(true, 0, true)]
+        public void HasRuleChangesToNotify_DependsOnRuleChangesAndObjectChangeSetting(bool includeObjectChanges, int relevantChanges, bool expected)
+        {
+            ImportChangeNotifier notifier = new(new ImportChangeNotifierTestApiConn(), new SimulatedGlobalConfig { ImpChangeIncludeObjectChanges = includeObjectChanges });
+            SetPrivateField(notifier, "importsToNotify", CreateImportList(
+                CreateImport(22L, 7, "mgmt-g", new DateTime(2026, 7, 14, 9, 0, 0), relevantChanges)));
+
+            Assert.That(InvokePrivate<bool>(notifier, "HasRuleChangesToNotify"), Is.EqualTo(expected));
         }
 
         [Test]
@@ -212,6 +283,25 @@ namespace FWO.Test
             Assert.That(body, Is.EqualTo(
                 $"Alpha (id=2): 5 {GlobalConst.kUndefinedText}" + Environment.NewLine + Environment.NewLine +
                 $"Beta (id=5): 3 {GlobalConst.kUndefinedText}"));
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, true)]
+        public void CreateBody_ListsManagementsWithoutRuleChangesOnlyWithObjectChanges(bool includeObjectChanges, bool expectListed)
+        {
+            ImportChangeNotifier notifier = new(new ImportChangeNotifierTestApiConn(), new SimulatedGlobalConfig { ImpChangeIncludeObjectChanges = includeObjectChanges });
+            SetPrivateField(notifier, "importsToNotify", CreateImportList(
+                CreateImport(34L, 2, "Alpha", new DateTime(2026, 7, 14, 10, 0, 0), 4),
+                CreateImport(35L, 5, "ObjectsOnly", new DateTime(2026, 7, 14, 10, 5, 0), 0)));
+            SetPrivateField(notifier, "importedManagements", new List<int> { 2, 5 });
+
+            string body = InvokePrivate<string>(notifier, "CreateBody");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(body, Does.StartWith($"Alpha (id=2): 4 {GlobalConst.kUndefinedText}"));
+                Assert.That(body.Contains("ObjectsOnly (id=5): 0"), Is.EqualTo(expectListed));
+            });
         }
 
         [Test]
@@ -260,11 +350,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SetFilters_NatChanges_ExcludesObjectChanges()
+        public async Task SetFilters_NatChanges_IncludesObjectChangesUsedInNatRules()
         {
             SimulatedGlobalConfig globalConfig = new()
             {
-                ImpChangeIncludeObjectChanges = true
+                ImpChangeIncludeObjectChanges = false
             };
             ImportChangeNotifierTestApiConn apiConnection = new()
             {
@@ -278,7 +368,7 @@ namespace FWO.Test
             ReportParams reportParams = await InvokePrivateAsync<ReportParams>(notifier, "SetFilters", ReportType.NatChanges);
 
             Assert.That(reportParams.ReportType, Is.EqualTo((int)ReportType.NatChanges));
-            Assert.That(reportParams.IncludeObjects, Is.False, "object changes are only part of the rule changes report");
+            Assert.That(reportParams.IncludeObjects, Is.True, "changes of objects used in NAT rules are always notified");
         }
 
         [Test]
@@ -298,14 +388,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CreateNatChangesBody_ListsChangesOfObjectsUsedInNatRules()
+        {
+            ImportChangeNotifier notifier = new(new ImportChangeNotifierTestApiConn(), new SimulatedGlobalConfig());
+            ReportChanges natReport = CreateNatChangesReport(
+                new ManagementReport { Id = 2, Name = "Alpha", RuleChanges = [], ObjectChanges = [new ObjectChange()], ServiceChanges = [new ServiceChange()], UserChanges = [new UserChange()] });
+
+            string body = InvokePrivate<string>(notifier, "CreateNatChangesBody", natReport);
+
+            Assert.That(body, Is.EqualTo($"Alpha (id=2): 0 {GlobalConst.kUndefinedText}, 3 {GlobalConst.kUndefinedText}"));
+        }
+
+        [Test]
         public void HasNatChangesToNotify_DependsOnNatChangesInReport()
         {
             ReportChanges reportWithChanges = CreateNatChangesReport(new ManagementReport { Id = 1, RuleChanges = [new RuleChange()] });
             ReportChanges reportWithoutChanges = CreateNatChangesReport(new ManagementReport { Id = 1, RuleChanges = [] });
+            ReportChanges reportWithObjectChanges = CreateNatChangesReport(new ManagementReport { Id = 1, RuleChanges = [], ServiceChanges = [new ServiceChange()] });
 
             Assert.Multiple(() =>
             {
                 Assert.That(InvokePrivateStatic<bool>("HasNatChangesToNotify", reportWithChanges), Is.True);
+                Assert.That(InvokePrivateStatic<bool>("HasNatChangesToNotify", reportWithObjectChanges), Is.True, "changes of objects used in NAT rules are notified");
                 Assert.That(InvokePrivateStatic<bool>("HasNatChangesToNotify", reportWithoutChanges), Is.False);
                 Assert.That(InvokePrivateStatic<bool>("HasNatChangesToNotify", kMissingReportArgument), Is.True, "failed report generation must not suppress the notification");
             });
@@ -470,6 +574,10 @@ namespace FWO.Test
             public int NotificationQueryCalls { get; private set; }
             public List<string> RequestedNotificationClients { get; } = [];
             public int SetImportsNotifiedCalls { get; private set; }
+            public List<FwoNotification> NatNotifications { get; init; } = [];
+            public int ImportQueryCalls { get; private set; }
+            public int DevicesQueryCalls { get; private set; }
+            public int UpdateNotificationsLastSentCalls { get; private set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -478,6 +586,7 @@ namespace FWO.Test
 
                 if (query == ReportQueries.getImportsToNotifyForAnyChanges || query == ReportQueries.getImportsToNotifyForRuleChanges)
                 {
+                    ++ImportQueryCalls;
                     if (ThrowOnImportQuery)
                     {
                         throw new InvalidOperationException("Import query failed.");
@@ -489,9 +598,11 @@ namespace FWO.Test
                 if (query == NotificationQueries.getNotifications)
                 {
                     ++NotificationQueryCalls;
-                    RequestedNotificationClients.Add(variables?.GetType().GetProperty("client")?.GetValue(variables)?.ToString() ?? "");
+                    string client = variables?.GetType().GetProperty("client")?.GetValue(variables)?.ToString() ?? "";
+                    RequestedNotificationClients.Add(client);
                     OnNotificationQuery?.Invoke();
-                    return Task.FromResult((QueryResponseType)(object)Notifications.ToList());
+                    List<FwoNotification> notifications = client == nameof(NotificationClient.ImportNatChange) ? NatNotifications : Notifications;
+                    return Task.FromResult((QueryResponseType)(object)notifications.ToList());
                 }
 
                 if (query == AuthQueries.getLdapConnections)
@@ -502,6 +613,7 @@ namespace FWO.Test
 
                 if (query == NotificationQueries.updateNotificationsLastSent)
                 {
+                    ++UpdateNotificationsLastSentCalls;
                     return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 0 });
                 }
 
@@ -512,6 +624,7 @@ namespace FWO.Test
 
                 if (query == DeviceQueries.getDevicesByManagementOrSuperMgm)
                 {
+                    ++DevicesQueryCalls;
                     OnDevicesQuery?.Invoke();
                     return Task.FromResult((QueryResponseType)(object)Managements.Select(CloneManagement).ToList());
                 }

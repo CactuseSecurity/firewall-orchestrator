@@ -3711,6 +3711,8 @@ INSERT INTO txt VALUES ('dss_sc_task_network_object_modify', 'German', 	'Network
 INSERT INTO txt VALUES ('dss_sc_task_network_object_modify', 'English', 	'NetworkObjectModify');
 INSERT INTO txt VALUES ('dss_positioning_algorithm', 'German', 	'Positionierungs-Algorithmus');
 INSERT INTO txt VALUES ('dss_positioning_algorithm', 'English', 	'Positioning algorithm');
+INSERT INTO txt VALUES ('dss_cp_layer_guard_section_name_template', 'German', 	'Check-Point-LayerGuard-Sektionsnamensvorlage');
+INSERT INTO txt VALUES ('dss_cp_layer_guard_section_name_template', 'English', 	'Check Point LayerGuard section name template');
 INSERT INTO txt VALUES ('dss_common_service_separation', 'German', 	'Common Services trennen');
 INSERT INTO txt VALUES ('dss_common_service_separation', 'English', 	'Common service separation');
 INSERT INTO txt VALUES ('dss_security_profiles', 'German', 	'Sicherheitsprofile');
@@ -5232,6 +5234,8 @@ INSERT INTO txt VALUES ('E5298', 'English', 'Duplicate zone patterns cannot be s
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration konnte nicht gelesen oder verarbeitet werden.');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading or processing Config.');
+INSERT INTO txt VALUES ('E5302', 'German',  'Die Check-Point-LayerGuard-Sektionsnamensvorlage ist ung&uuml;ltig. Erlaubt sind fester Text und die Platzhalter @@SOURCE_ZONE@@ und @@DESTINATION_ZONE@@.');
+INSERT INTO txt VALUES ('E5302', 'English', 'The Check Point LayerGuard section name template is invalid. Use fixed text and the placeholders @@SOURCE_ZONE@@ and @@DESTINATION_ZONE@@.');
 
 INSERT INTO txt VALUES ('E5401', 'German',  'Bitte das alte Passwort eintragen');
 INSERT INTO txt VALUES ('E5401', 'English', 'Please insert the old password');
@@ -7013,6 +7017,8 @@ INSERT INTO txt VALUES ('H5199w', 'German',  'Hinweise oben auf der Seite: Sie w
 INSERT INTO txt VALUES ('H5199w', 'English', 'Hints on top of the page: they are computed from the effective settings of all levels; a level is only named where the setting arises, not on the levels below that inherit it. Yellow hints show settings with which tasks are implemented by nobody or which have no effect: implementation mode external ticket system without a selected system, a selected system without this mode, a gateway differing from its management in the external ticket system, and sub-managements whose object creation setting differs from the one of their super-management (sub-managements set to ignore excepted).');
 INSERT INTO txt VALUES ('H5199x', 'German',  'SHA-1-SSH-Schl&uuml;sselaustausch erlauben: ob der Importer beim SSH-Verbindungsaufbau zus&auml;tzlich den Schl&uuml;sselaustausch diffie-hellman-group14-sha1 anbietet, den aktuelle OpenSSH-Versionen abschalten (Cisco ASA). Nur f&uuml;r Ger&auml;te einschalten, die nichts Besseres anbieten, und diese besser aktualisieren. Standard: Nein. Global, Ger&auml;tetyp und Manager.');
 INSERT INTO txt VALUES ('H5199x', 'English', 'Allow SHA-1 SSH key exchange: whether the importer also offers the key exchange diffie-hellman-group14-sha1, which current OpenSSH versions disable, when connecting via SSH (Cisco ASA). Only switch it on for devices that offer nothing better, and better update them. Default: No. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5199y', 'German', 'Check-Point-LayerGuard-Sektionsnamensvorlage: bestimmt den Namen der Sektion f&uuml;r den LayerGuard-Positionierungsalgorithmus. Die Platzhalter <code>@@SOURCE_ZONE@@</code> und <code>@@DESTINATION_ZONE@@</code> sind optional und d&uuml;rfen beliebig oft vorkommen. Nur referenzierte Seiten m&uuml;ssen vollst&auml;ndig und eindeutig zu genau einer gespeicherten Zone aufgel&ouml;st werden. Unbekannte oder unvollst&auml;ndige Platzhalter machen die Konfiguration ung&uuml;ltig. Standard: <code>[@@SOURCE_ZONE@@] -&gt; [@@DESTINATION_ZONE@@]</code>. Global, Ger&auml;tetyp, Manager und Gateway.');
+INSERT INTO txt VALUES ('H5199y', 'English', 'Check Point LayerGuard section name template: determines the section name for the LayerGuard positioning algorithm. The placeholders <code>@@SOURCE_ZONE@@</code> and <code>@@DESTINATION_ZONE@@</code> are optional and may occur any number of times. Only referenced sides must resolve completely and uniquely to exactly one persisted zone. Unknown or incomplete placeholders make the configuration invalid. Default: <code>[@@SOURCE_ZONE@@] -&gt; [@@DESTINATION_ZONE@@]</code>. Global, device type, manager and gateway.');
 INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Ldap-Verbindungen einrichten und verwalten. Sie k&ouml;nnen alle zur Nutzerauthentifizierung genutzt werden.<br>
     Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
     Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.

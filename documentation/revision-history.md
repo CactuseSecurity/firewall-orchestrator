@@ -17,6 +17,7 @@
   - existing daily schedules in the hour skipped in spring run at the first valid time after the gap (03:00), even when rescheduled shortly after the previous run; a future first run of a day schedule inside the gap is skipped to retain the configured time on later days; a start time in the hour repeated in autumn runs once
   - scheduled reports: a report due in the skipped hour is generated after the gap instead of being skipped, a report due in the repeated hour is generated only once
   - the "Trigger scheduled" log message shows the next run with its UTC offset
+- request workflow: the Check Point LayerGuard section name is configurable at every device-specific-settings level with optional, repeatable source- and destination-zone placeholders; fixed names avoid zone-matrix resolution (#5626)
 
 ## 9.8.7 - 04.11.2026
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section

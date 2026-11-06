@@ -28,6 +28,8 @@ internal class WorkflowTicketServiceTest
 {
     private const int kTrustedCallerId = 77;
     private static readonly List<string> kUnknownLoggingErrorPaths = ["rules[0].logging"];
+    private static readonly List<string> kAllRuleErrorPaths =
+        ["rules[0].sourceObjects[0]", "rules[0].action", "rules[0].logging", "rules[0].ownerId", "rules[0].timeObjectId"];
 
     [Test]
     public async Task GetTicketStatusAsync_ReturnsStateNameAndLatestComment()
@@ -2541,8 +2543,7 @@ internal class WorkflowTicketServiceTest
         });
 
         RequestValidationErrorResponse errors = GetValidationResponse(result);
-        Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(
-            ["rules[0].sourceObjects[0]", "rules[0].action", "rules[0].logging", "rules[0].ownerId", "rules[0].timeObjectId"]));
+        Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(kAllRuleErrorPaths));
     }
 
     [Test]

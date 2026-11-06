@@ -2,6 +2,7 @@ using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.ExternalSystems.FirewallWrite;
 using FWO.ExternalSystems.Tufin.SecureChange;
+using FWO.Services.RulePositioning.CheckPoint;
 using System.Globalization;
 
 namespace FWO.Ui.Pages.Settings
@@ -196,6 +197,7 @@ namespace FWO.Ui.Pages.Settings
             { "dss_rule_type", "H5193" },
             { "dss_templates", "H5194" },
             { "dss_positioning_algorithm", "H5195" },
+            { "dss_cp_layer_guard_section_name_template", "H5199y" },
             { "dss_common_service_separation", "H5196" },
             { "dss_zone_from", "H5198" },
             { "dss_zone_to", "H5199" },
@@ -264,6 +266,7 @@ namespace FWO.Ui.Pages.Settings
                     (ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "dss_opt_default_end_of_rulebase"),
                     (ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection, "dss_opt_cp_layer_guard_end_of_zone_pair_section"),
                     (ProvisioningPositioningAlgorithm.AllowCategoryEndOfAppSectionDistinguishCommonServices, "dss_opt_allow_category"))),
+            CheckPointLayerGuardSectionNameTemplateField(),
             EnumField(DeviceSpecificSettingKeys.RuleLoggingOverride, "dss_logging", s => s.RuleLoggingOverride,
                 EnumOptions(
                     (ProvisioningLoggingMode.Log, "dss_opt_log"),
@@ -603,6 +606,29 @@ namespace FWO.Ui.Pages.Settings
                 Read = get,
                 SetOverride = (changes, value) => changes.Set(key, value)
             };
+
+        /// <summary>Creates the LayerGuard section name field with its template validation.</summary>
+        private static DeviceSpecificFieldDefinition CheckPointLayerGuardSectionNameTemplateField() => new()
+        {
+            Key = DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate,
+            LabelTextKey = "dss_cp_layer_guard_section_name_template",
+            HelpTextKey = HelpKey("dss_cp_layer_guard_section_name_template"),
+            Kind = DeviceSpecificFieldKind.Text,
+            Read = settings => settings.CheckPointLayerGuardSectionNameTemplate,
+            SetOverride = (changes, value) => changes.Set(
+                DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate,
+                ValidateCheckPointLayerGuardSectionNameTemplate(value))
+        };
+
+        private static string ValidateCheckPointLayerGuardSectionNameTemplate(string value)
+        {
+            if (!CheckPointSectionNameTemplate.Parse(value).IsSuccess)
+            {
+                throw new ArgumentException("The Check Point LayerGuard section name template is invalid.",
+                    DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey);
+            }
+            return value;
+        }
 
         private static DeviceSpecificFieldDefinition BoolField(
             DeviceSpecificSettingKey<bool> key,

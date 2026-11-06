@@ -25,6 +25,12 @@ TRUSTED_SOURCE_GATE_STEP_NAME = "Gate trusted PR sources"
 PULL_REQUEST_CHECKOUT_STEP_NAME = "Checkout PR head"
 CHECKOUT_ACTION = "actions/checkout"
 ALLOWED_PULL_REQUEST_CODE_SECRETS = frozenset({"SONAR_TOKEN"})
+# Workflow paths that the repository Actions policy "Allow PR_target" exempts from the default block of
+# pull_request_target by GitHub. Keep in sync with the policy, see section "Required Actions policy" in
+# documentation/developer-docs/github/sonarcloud-workflow.md.
+ACTIONS_POLICY_PULL_REQUEST_TARGET_WORKFLOWS = frozenset(
+    {".github/workflows/sonarcloud-pr.yml", ".github/workflows/version-gate.yml"}
+)
 READ_ONLY_PERMISSIONS = {"contents": "read"}
 WRITE_PERMISSION_VALUES = frozenset({"write", "write-all"})
 PULL_REQUEST_HEAD_EXPRESSIONS = (
@@ -218,6 +224,16 @@ def privileged_pull_request_workflows() -> list[Path]:
     return [path for path in active_workflow_paths() if runs_pull_request_code_privileged(read_workflow(path))]
 
 
+def pull_request_target_workflows() -> set[str]:
+    """Return the repository relative paths of the workflows triggered by pull_request_target."""
+    repository_root = WORKFLOW_DIRECTORY.parents[1]
+    return {
+        path.relative_to(repository_root).as_posix()
+        for path in active_workflow_paths()
+        if "pull_request_target" in workflow_trigger_names(read_workflow(path))
+    }
+
+
 def test_workflow_trigger_names_ignores_nested_keys() -> None:
     text = "on:\n  push:\n    branches:\n      - develop\n  pull_request:\n\njobs:\n  build:\n"
     assert workflow_trigger_names(text) == {"push", "pull_request"}
@@ -345,6 +361,15 @@ def test_merge_ref_checkout_counts_as_pull_request_code() -> None:
 
 def test_sonar_pull_request_workflow_is_the_only_privileged_pull_request_build() -> None:
     assert privileged_pull_request_workflows() == [SONAR_PR_WORKFLOW_PATH]
+
+
+def test_pull_request_target_workflows_match_the_actions_policy() -> None:
+    assert pull_request_target_workflows() == ACTIONS_POLICY_PULL_REQUEST_TARGET_WORKFLOWS, (
+        "GitHub blocks pull_request_target unless the repository Actions policy 'Allow PR_target' lists the workflow. "
+        "Update the policy's workflow paths (Settings > Actions > Policies) and "
+        "ACTIONS_POLICY_PULL_REQUEST_TARGET_WORKFLOWS together, see "
+        "documentation/developer-docs/github/sonarcloud-workflow.md, 'Required Actions policy'."
+    )
 
 
 @pytest.mark.parametrize("workflow_path", privileged_pull_request_workflows(), ids=lambda path: path.name)

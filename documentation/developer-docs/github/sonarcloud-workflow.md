@@ -36,6 +36,26 @@ Like every `pull_request_target` workflow, it runs the workflow file of the defa
 in the pull request or in `develop`. Changes to `sonarcloud-pr.yml` therefore take effect for pull requests only
 once they have reached `main`.
 
+### Required Actions policy
+
+From 2 December 2026, GitHub blocks workflows triggered by `pull_request_target` in public repositories by default.
+The repository Actions policy **Allow PR_target** (*Settings → Actions → Policies*) exempts the two workflows that
+need the event:
+
+- Enforcement: active
+- Rule: restrict events, allowed event `pull_request_target`
+- Workflow paths: `.github/workflows/sonarcloud-pr.yml` and `.github/workflows/version-gate.yml`
+
+The policy is a repository setting, not part of the code. Keep it in sync with the workflows:
+
+- When you rename one of these workflows or add another `pull_request_target` workflow, add its path to the policy.
+  Otherwise GitHub does not run it and its required check never reports. The blocked runs are listed under
+  *Settings → Actions → Policy insights*.
+- Keep the workflow path condition. The rule is an allow-list of events: without the condition, all other workflows
+  could only be triggered by `pull_request_target`.
+- To check the policy, push to a pull request and open *Policy insights*. Runs that the policy allows do not appear
+  there. Only blocked runs, or runs that would be blocked in evaluate mode, are listed.
+
 ## Accepted residual risk (GHSA-3cwm-h5cm-r3f8)
 
 The SonarScanner for .NET has to build and test the code between its `begin` and `end` steps, and

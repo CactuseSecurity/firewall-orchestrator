@@ -15,7 +15,8 @@ namespace FWO.Data
         Report = 7,
         WfAction = 8,
         InterfaceDecomm = 9,
-        RuleRecertification = 10
+        RuleRecertification = 10,
+        ImportNatChange = 11
     }
 
     public static class NotificationClientGroups
@@ -255,6 +256,7 @@ namespace FWO.Data
                 NotificationClient.Recertification => [NotificationDeadline.RecertDate],
                 NotificationClient.RuleRecertification => [NotificationDeadline.None],
                 NotificationClient.ImportChange => [NotificationDeadline.None],
+                NotificationClient.ImportNatChange => [NotificationDeadline.None],
                 NotificationClient.RuleTimer => [NotificationDeadline.RuleExpiry],
                 NotificationClient.InterfaceRequest => [NotificationDeadline.None, NotificationDeadline.RequestDate],
                 NotificationClient.AppDecomm => [NotificationDeadline.None, NotificationDeadline.DecommissionDate],

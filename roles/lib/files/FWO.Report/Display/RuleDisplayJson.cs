@@ -194,7 +194,7 @@ namespace FWO.Ui.Display
         /// <param name="networkLocations">Network locations of a rule (or of its translated part).</param>
         /// <param name="reportType">Report type defining the level of resolution.</param>
         /// <returns>Comma separated JSON strings, empty if the report type lists no network locations.</returns>
-        protected string ListNetworkLocations(NetworkLocation[] networkLocations, ReportType reportType)
+        protected static string ListNetworkLocations(NetworkLocation[] networkLocations, ReportType reportType)
         {
             List<NetworkLocation> listedLocations;
             if (reportType.IsResolvedReport())
@@ -229,7 +229,7 @@ namespace FWO.Ui.Display
         /// <param name="services">Services of a rule (or of its translated part).</param>
         /// <param name="reportType">Report type defining the level of resolution.</param>
         /// <returns>Comma separated JSON strings, empty if the report type lists no services.</returns>
-        protected string ListServices(ServiceWrapper[] services, ReportType reportType)
+        protected static string ListServices(ServiceWrapper[] services, ReportType reportType)
         {
             List<NetworkService> listedServices;
             if (reportType.IsResolvedReport())

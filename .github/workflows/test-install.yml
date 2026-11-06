@@ -127,6 +127,10 @@ jobs:
           cd ${{ github.workspace }}
           ansible-galaxy collection install -r collections/requirements.yml -p collections --force
 
+      - name: Run sample LDAP seeding regression tests
+        if: ${{ matrix.integration }}
+        run: bash scripts/tests/test-sample-auth-data.sh
+
       # Demo data is off by default since GHSA-3v53-q5h9-pvfh, but the tests rely on it: sample-auth-data
       # creates the LDAP user of the JWT integration tests (integration_user_jwt_refresh_test), and the
       # integration tests use the sample devices, tenants and users. So every run requests it explicitly.

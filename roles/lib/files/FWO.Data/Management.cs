@@ -85,7 +85,7 @@ namespace FWO.Data
         public NetworkUser[] Users { get; set; } = [];
 
         [JsonProperty("zoneObjects"), JsonPropertyName("zoneObjects")]
-        public NetworkZone[] Zones { get; set; } = [];
+        public FirewallZone[] Zones { get; set; } = [];
 
         [JsonProperty("timeObjects"), JsonPropertyName("timeObjects")]
         public TimeObject[] TimeObjects { get; set; } = [];

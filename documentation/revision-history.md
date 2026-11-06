@@ -1,9 +1,38 @@
 # Firewall Orchestrator Revision History
 
-## 9.8.7 - 02.11.2026
+## 9.9.0 - 04.11.2026
+- Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs
+  - login with a service principal (client credentials flow); client id and secret are taken from the additional credential, otherwise from the import credential; tenant and subscription from the management's cloud settings, the resource group from the config path
+  - the firewall policy of a device is its local rulebase name, otherwise the device name; each policy becomes a rulebase, each device a gateway
+  - uses api version 2026-01-01 and falls back to 2024-05-01 for clouds that do not support it yet; the version used is stored in the native config
+  - imports network rules of filter rule collections incl. inline addresses, ranges, service tags, FQDNs, IP groups and Kubernetes selector groups; NAT and application rules are not imported yet
+  - imports parent policies (policy hierarchy, also from other resource groups or subscriptions) as own rulebases; the gateway starts with the topmost parent's rulebase, followed by the child policies as sections, as Azure processes inherited rules first
+  - IP groups are listed for the management's subscription; referenced IP groups of other subscriptions (e.g. of parent policies) are fetched individually by their resource id, so read access on these groups suffices
+  - rules are ordered by rule collection group and rule collection priority
+- Azure gateway autodiscovery: Azure managements can now be autodiscovered (scheduled and manually); the Azure Firewalls of the subscription whose firewall policy lies in the configured resource group are proposed as gateways with the policy name as local rulebase; firewalls with classic rules are skipped
+- new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
+
+## 9.8.7 - 04.11.2026
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
 - compliance: auto-calculated undefined-internal zones now cover complete IPv6 networks instead of only the first address of each remaining network
 - modelling and workflow: shared IP range parsing accepts dotted IPv4 netmasks such as `10.0.2.0/255.255.255.0` in addition to prefix lengths
+- middleware REST API: resolvePathDevices takes sources and destinations in the shared address format `ipHost`, `ipNetwork` or the two-entry `ipRange`, up to 500 entries each (#5587)
+  - breaking: `ipStart` and `ipEnd` are no longer accepted
+- middleware REST API: getFlowComplianceState and getPolicyIds report all validation errors at once with the request path of each, in the format `{"errors": [{"path": ..., "message": ...}]}` (#5587)
+  - breaking: the 400 body was plain text naming only the first error; an explicit `null` for `source`, `destination`, `service` or `policies` is now rejected
+- path analysis: the routing based query passed source and destination to the swapped arguments of devices_in_path; the result is unchanged, as the function is symmetric (#5587)
+- help: new page on the path analysis REST API (#5587)
+- middleware REST API: new modelling endpoints (#5268)
+  - `modelling/getAvailableInterfacesForApp`: published interfaces an application may use (public ones, restricted ones the
+    application is permitted for, and its own), with app servers, app roles, network areas, other network groups, services
+    and service groups resolved
+  - `modelling/getAppRolesPerApp`: app roles of an application (without AppZones) with their app servers
+  - `modelling/getNetworkAreas`: network areas with their subnets, filterable by id string with `*` and `?` wildcards
+  - admins and auditors see every application, modellers only their own (other applications: 404); modellers get network
+    areas only if one of their applications may use common services (otherwise 403). Addresses use compact notation (host
+    IP, CIDR network, `ip1-ip2` range), services `port/protocol` or `portStart-portEnd/protocol`
+  - API permissions: the middleware may read the permitted owners of restricted interfaces
+- fix: owner active rule notification (daily check and app import) and rule expiry notification ignore disabled rules
 
 ## 9.8.6 - 02.11.2026
 - dependencies: update NuGet packages (AngleSharp to 1.9.1, Quartz to 4.7.0, Scalar.AspNetCore to 2.18.7, SoPro.FancyTable to 1.1.0)

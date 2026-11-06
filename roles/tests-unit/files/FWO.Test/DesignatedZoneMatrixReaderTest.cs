@@ -22,7 +22,7 @@ internal class DesignatedZoneMatrixReaderTest
     {
         RecordingApiConnection api = new(
             [new ComplianceCriterion { Id = kCriterionId, Name = "Matrix" }],
-            [new ComplianceNetworkZone { Id = 21, CriterionId = kCriterionId, Name = "Zone" }]);
+            [new NetworkZone { Id = 21, CriterionId = kCriterionId, Name = "Zone" }]);
 
         DesignatedZoneMatrixReadValue success = Success(await new DesignatedZoneMatrixReader(api)
             .ReadAsync(kCriterionId, CancellationToken.None));
@@ -102,7 +102,7 @@ internal class DesignatedZoneMatrixReaderTest
     {
         RecordingApiConnection api = new(
             [new ComplianceCriterion { Id = kCriterionId, Name = "secret-matrix" }],
-            [new ComplianceNetworkZone { Id = 1, Name = "secret-zone" }])
+            [new NetworkZone { Id = 1, Name = "secret-zone" }])
         {
             ThrowOperation = operation
         };
@@ -154,20 +154,20 @@ internal class DesignatedZoneMatrixReaderTest
     [Test]
     public async Task ReadAsync_CopiesZoneCollectionAndExposesReadOnlyInterface()
     {
-        List<ComplianceNetworkZone> zones = [new() { Id = 1, CriterionId = kCriterionId }];
+        List<NetworkZone> zones = [new() { Id = 1, CriterionId = kCriterionId }];
         DesignatedZoneMatrixReadValue success = Success(await Reader(new(
             [new ComplianceCriterion { Id = kCriterionId }], zones))
             .ReadAsync(kCriterionId, CancellationToken.None));
 
-        zones.Add(new ComplianceNetworkZone { Id = 2, CriterionId = kCriterionId });
+        zones.Add(new NetworkZone { Id = 2, CriterionId = kCriterionId });
         zones.Clear();
 
         Assert.Multiple(() =>
         {
             Assert.That(success.NetworkZones, Has.Count.EqualTo(1));
-            Assert.That(success.NetworkZones, Is.Not.InstanceOf<List<ComplianceNetworkZone>>());
-            Assert.Throws<NotSupportedException>(() => ((IList<ComplianceNetworkZone>)success.NetworkZones)
-                .Add(new ComplianceNetworkZone()));
+            Assert.That(success.NetworkZones, Is.Not.InstanceOf<List<NetworkZone>>());
+            Assert.Throws<NotSupportedException>(() => ((IList<NetworkZone>)success.NetworkZones)
+                .Add(new NetworkZone()));
         });
     }
 
@@ -197,7 +197,7 @@ internal class DesignatedZoneMatrixReaderTest
 
     private sealed class RecordingApiConnection(
         List<ComplianceCriterion>? matrices,
-        List<ComplianceNetworkZone>? zones) : SimulatedApiConnection
+        List<NetworkZone>? zones) : SimulatedApiConnection
     {
         public List<string> Operations { get; } = [];
         public List<int> Criteria { get; } = [];

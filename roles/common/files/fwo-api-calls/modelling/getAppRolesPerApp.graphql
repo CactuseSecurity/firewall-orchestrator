@@ -1,0 +1,20 @@
+query getAppRolesPerApp($where: modelling_nwgroup_bool_exp = {}, $limit: Int, $offset: Int) {
+  modelling_nwgroup(
+    where: { _and: [{ group_type: { _eq: 20 }, is_deleted: { _eq: false } }, $where] }
+    limit: $limit
+    offset: $offset
+    order_by: [{ name: asc }, { id: asc }]
+  ) {
+    id
+    id_string
+    name
+    nwobjects: nwobject_nwgroups(where: { owner_network: { is_deleted: { _eq: false } } }) {
+      owner_network {
+        id
+        name
+        ip
+        ip_end
+      }
+    }
+  }
+}

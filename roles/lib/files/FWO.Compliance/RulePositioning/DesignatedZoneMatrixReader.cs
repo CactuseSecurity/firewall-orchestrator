@@ -40,8 +40,8 @@ public sealed class DesignatedZoneMatrixReader(ApiConnection apiConnection)
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            List<ComplianceNetworkZone>? zones = await apiConnection
-                .SendQueryAsync<List<ComplianceNetworkZone>>(
+            List<NetworkZone>? zones = await apiConnection
+                .SendQueryAsync<List<NetworkZone>>(
                     NetworkZoneQueries.getNetworkZonesForMatrix,
                     new { criterionId })
                 .WaitAsync(cancellationToken);

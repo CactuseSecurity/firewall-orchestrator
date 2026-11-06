@@ -77,6 +77,10 @@
                        @bind="configData!.OwnerDataImportSyncUsers">
             </div>
         </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5676a"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("appLabelKey")):</label>
+            <input type="text" maxlength="100" class="col-sm-2" @bind="configData!.AppLabelKey" />
+        </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5673"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("set_roles_with_import")):</label>
             <div class="form-group row col-sm-8">

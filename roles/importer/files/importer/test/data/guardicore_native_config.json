@@ -1,0 +1,139 @@
+{
+    "labels": [
+        {
+            "id": "label-approle-web",
+            "key": "AppRole",
+            "value": "AR1001",
+            "comment": "",
+            "dynamic_criteria": [],
+            "static_criteria": [{"field": "id", "op": "EQUALS", "argument": "asset-web-1", "source": "User"}],
+            "implicit_criteria": [],
+            "static_assets": [{"id": "asset-web-1", "name": "web-1"}],
+            "dynamic_assets": []
+        },
+        {
+            "id": "label-approle-db",
+            "key": "AppRole",
+            "value": "AR1002",
+            "dynamic_criteria": [
+                {"field": "numeric_ip_addresses", "op": "SUBNET", "argument": "10.0.2.10/32", "source": "User"},
+                {"field": "numeric_ip_addresses", "op": "SUBNET", "argument": "10.0.2.11/32", "source": "User"}
+            ],
+            "static_criteria": [],
+            "implicit_criteria": []
+        },
+        {
+            "id": "label-stage-prod",
+            "key": "Stage",
+            "value": "Prod",
+            "dynamic_criteria": [
+                {"field": "numeric_ip_addresses", "op": "SUBNET", "argument": "10.0.2.0/24", "source": "User"}
+            ],
+            "static_criteria": [],
+            "implicit_criteria": []
+        },
+        {
+            "id": "label-approle-empty",
+            "key": "AppRole",
+            "value": "AR1003",
+            "dynamic_criteria": [],
+            "static_criteria": [],
+            "implicit_criteria": []
+        },
+        {
+            "id": "label-os-windows",
+            "key": "os_type",
+            "value": "Windows",
+            "dynamic_criteria": [],
+            "static_criteria": [],
+            "implicit_criteria": [
+                {"field": "guest_agent_details.os_details.os_type", "op": "EQUALS", "argument": 1, "source": "AutoLabel"}
+            ],
+            "read_only": true
+        }
+    ],
+    "label_groups": [
+        {
+            "id": "labelgroup-apps",
+            "key": "Apps",
+            "value": "all",
+            "name": "Apps: all",
+            "type": "LABEL",
+            "include_labels": {
+                "or_labels": [
+                    {"and_labels": [{"id": "label-approle-web", "key": "AppRole", "value": "AR1001"}]},
+                    {"and_labels": [{"id": "label-approle-db", "key": "AppRole", "value": "AR1002"}]}
+                ]
+            },
+            "exclude_labels": {"or_labels": []}
+        }
+    ],
+    "assets": [
+        {
+            "id": "asset-web-1",
+            "name": "web-1",
+            "status": "on",
+            "nics": [{"ip_addresses": ["10.0.1.5"], "vif_id": "eth0"}, {"ip_addresses": ["10.0.1.6", "10.0.1.5"]}],
+            "labels": [
+                {"id": "label-approle-web", "key": "AppRole", "value": "AR1001"},
+                {"id": "label-os-windows", "key": "os_type", "value": "Windows"}
+            ],
+            "os_info": {"type": "Windows"}
+        }
+    ],
+    "rules": [
+        {
+            "id": "rule-allow-web-db",
+            "action": "ALLOW",
+            "section_position": "ALLOW",
+            "enabled": true,
+            "comments": "FWOC1",
+            "ruleset_name": "APP-1001",
+            "ip_protocols": ["TCP"],
+            "ports": [5432],
+            "port_ranges": [],
+            "exclude_ports": [],
+            "exclude_port_ranges": [],
+            "icmp_matches": [],
+            "source": {"labels": {"or_labels": [{"and_labels": [{"id": "label-approle-web", "key": "AppRole", "value": "AR1001"}]}]}},
+            "destination": {
+                "labels": {
+                    "or_labels": [
+                        {
+                            "and_labels": [
+                                {"id": "label-stage-prod", "key": "Stage", "value": "Prod"},
+                                {"id": "label-approle-db", "key": "AppRole", "value": "AR1002"}
+                            ]
+                        }
+                    ]
+                }
+            },
+            "last_hit": 1772087969150,
+            "author": {"username": "api-user"},
+            "state": "UNCHANGED"
+        },
+        {
+            "id": "rule-override-block",
+            "action": "BLOCK_AND_ALERT",
+            "section_position": "OVERRIDE_BLOCK",
+            "enabled": false,
+            "comments": "",
+            "ruleset_name": "",
+            "ip_protocols": [],
+            "source": {},
+            "destination": {"subnets": ["192.0.2.0/24"], "processes": ["ssh.exe"]},
+            "last_hit": null
+        },
+        {
+            "id": "rule-allow-ping",
+            "action": "ALLOW",
+            "section_position": "ALLOW",
+            "enabled": true,
+            "ruleset_name": "APP-1001",
+            "ip_protocols": ["ICMP"],
+            "icmp_matches": [{"icmp_type": 8, "icmp_codes": [0]}],
+            "source": {"label_groups": [{"id": "labelgroup-apps", "name": "Apps: all"}]},
+            "destination": {"address_classification": "Private"}
+        }
+    ]
+}

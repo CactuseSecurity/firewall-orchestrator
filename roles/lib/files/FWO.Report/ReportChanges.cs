@@ -158,10 +158,11 @@ namespace FWO.Report
             {
                 StringBuilder report = new();
                 RuleChangeDisplayCsv ruleChangeDisplayCsv = new(userConfig);
+                ruleChangeDisplayCsv.SetLabelPresence(RuleDisplayBase.RuleChangesOf(ReportData.ManagementData));
 
                 report.Append(DisplayReportHeaderCsv());
                 report.AppendLine("\"Rules\"");
-                report.AppendLine($"\"management-name\",\"change-time\",\"change-type\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"enforcing_device\",\"rule-uid\",\"rule-comment\"");
+                report.AppendLine($"\"management-name\",\"change-time\",\"change-type\",\"rule-name\",{ruleChangeDisplayCsv.DisplayRuleLabelsCsvHeader()}\"source-zone\",\"source\",{ruleChangeDisplayCsv.DisplaySourceLabelsCsvHeader()}\"destination-zone\",\"destination\",{ruleChangeDisplayCsv.DisplayDestinationLabelsCsvHeader()}\"service\",\"action\",\"track\",\"rule-enabled\",\"enforcing_device\",\"rule-uid\",\"rule-comment\"");
 
                 foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
                 {
@@ -201,11 +202,11 @@ namespace FWO.Report
                     report.Append(ruleChangeDisplayCsv.OutputCsv(management.Name));
                     report.Append(ruleChangeDisplayCsv.DisplayChangeTime(ruleChange));
                     report.Append(ruleChangeDisplayCsv.DisplayChangeAction(ruleChange));
-                    report.Append(ruleChangeDisplayCsv.DisplayName(ruleChange));
+                    report.Append(ruleChangeDisplayCsv.DisplayName(ruleChange) + ruleChangeDisplayCsv.DisplayRuleLabelsCsv(ruleChange));
                     report.Append(ruleChangeDisplayCsv.DisplaySourceZone(ruleChange));
-                    report.Append(ruleChangeDisplayCsv.DisplaySource(ruleChange, ReportType));
+                    report.Append(ruleChangeDisplayCsv.DisplaySource(ruleChange, ReportType) + ruleChangeDisplayCsv.DisplaySourceLabelsCsv(ruleChange));
                     report.Append(ruleChangeDisplayCsv.DisplayDestinationZone(ruleChange));
-                    report.Append(ruleChangeDisplayCsv.DisplayDestination(ruleChange, ReportType));
+                    report.Append(ruleChangeDisplayCsv.DisplayDestination(ruleChange, ReportType) + ruleChangeDisplayCsv.DisplayDestinationLabelsCsv(ruleChange));
                     report.Append(ruleChangeDisplayCsv.DisplayServices(ruleChange, ReportType));
                     report.Append(ruleChangeDisplayCsv.DisplayAction(ruleChange));
                     report.Append(ruleChangeDisplayCsv.DisplayTrack(ruleChange));
@@ -287,6 +288,7 @@ namespace FWO.Report
         {
             StringBuilder report = new();
             RuleChangeDisplayHtml ruleChangeDisplayHtml = new(userConfig);
+            ruleChangeDisplayHtml.SetLabelPresence(RuleDisplayBase.RuleChangesOf(ReportData.ManagementData));
 
             foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
@@ -298,11 +300,11 @@ namespace FWO.Report
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("change_time")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("change_type")}</th>");
-                report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("name")}</th>{ruleChangeDisplayHtml.DisplayRuleLabelsHeader()}");
                 report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
-                report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("source")}</th>{ruleChangeDisplayHtml.DisplaySourceLabelsHeader()}");
                 report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
-                report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+                report.AppendLine($"<th>{userConfig.GetText("destination")}</th>{ruleChangeDisplayHtml.DisplayDestinationLabelsHeader()}");
                 report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
@@ -373,11 +375,11 @@ namespace FWO.Report
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeTime(ruleChange)}</td>");
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayChangeAction(ruleChange)}</td>");
-                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(ruleChange)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayName(ruleChange)}</td>{ruleChangeDisplayHtml.DisplayRuleLabelsCell(ruleChange)}");
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySourceZone(ruleChange)}</td>");
-                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange, OutputLocation.export, ReportType)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplaySource(ruleChange, OutputLocation.export, ReportType)}</td>{ruleChangeDisplayHtml.DisplaySourceLabelsCell(ruleChange)}");
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestinationZone(ruleChange)}</td>");
-                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange, OutputLocation.export, ReportType)}</td>");
+                    report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange, OutputLocation.export, ReportType)}</td>{ruleChangeDisplayHtml.DisplayDestinationLabelsCell(ruleChange)}");
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServices(ruleChange, OutputLocation.export, ReportType)}</td>");
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayAction(ruleChange)}</td>");
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTrack(ruleChange)}</td>");
@@ -391,7 +393,7 @@ namespace FWO.Report
             else
             {
                 report.AppendLine("<tr>");
-                report.AppendLine($"<td colspan=\"{ColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
+                report.AppendLine($"<td colspan=\"{ColumnCount + ruleChangeDisplayHtml.LabelColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
                 report.AppendLine("</tr>");
             }
         }
@@ -497,6 +499,7 @@ namespace FWO.Report
         private string ExportResolvedChangesToJson()
         {
             RuleChangeDisplayJson ruleChangeDisplayJson = new(userConfig);
+            ruleChangeDisplayJson.SetLabelPresence(RuleDisplayBase.RuleChangesOf(ReportData.ManagementData));
             JObject report = ParseJsonObjectFragment(DisplayReportHeaderJson());
             JArray managements = new();
             foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
@@ -555,12 +558,15 @@ namespace FWO.Report
                         sb.Append(ruleChangeDisplayJson.DisplayChangeTime(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayChangeAction(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayName(ruleChange));
+                        sb.Append(ruleChangeDisplayJson.DisplayRuleLabels(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplaySourceZones(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplaySourceNegated(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplaySource(ruleChange, ReportType));
+                        sb.Append(ruleChangeDisplayJson.DisplaySourceLabels(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayDestinationZones(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayDestinationNegated(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayDestination(ruleChange, ReportType));
+                        sb.Append(ruleChangeDisplayJson.DisplayDestinationLabels(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayServiceNegated(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayServices(ruleChange, ReportType));
                         sb.Append(ruleChangeDisplayJson.DisplayAction(ruleChange));

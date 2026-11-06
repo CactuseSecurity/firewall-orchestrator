@@ -1,0 +1,124 @@
+@using FWO.Basics
+@using FWO.Data.Labelling
+@using FWO.Services.Modelling
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+@if (Groups.Count > 0 || !ReadOnly)
+{
+    <div class="mt-2">
+        <div class="form-control-sm px-0" data-toggle="tooltip" title="@(userConfig.PureLine("H9025"))">
+            <span class="@Icons.Label"></span> @(userConfig.GetText("labels")):
+        </div>
+        @for (int groupIndex = 0; groupIndex < Groups.Count; groupIndex++)
+        {
+            int index = groupIndex;
+            @if (index > 0)
+            {
+                <div class="text-center small">@kOr</div>
+            }
+            <div class="border rounded p-1 d-flex flex-wrap align-items-center gap-1">
+                @for (int labelIndex = 0; labelIndex < Groups[index].Count; labelIndex++)
+                {
+                    ConnectionLabel label = Groups[index][labelIndex];
+                    @if (labelIndex > 0)
+                    {
+                        <span class="small">@kAnd</span>
+                    }
+                    <span class="badge bg-secondary">
+                        @label.Display()
+                        @if (!ReadOnly)
+                        {
+                            <button type="button" class="btn btn-sm btn-link text-white p-0 ms-1" title="@(userConfig.GetText("remove_label"))"
+                                    @onclick="() => RemoveLabel(index, label)">
+                                <span class="@Icons.Delete"></span>
+                            </button>
+                        }
+                    </span>
+                }
+            </div>
+        }
+        @if (!ReadOnly)
+        {
+            <div class="row mt-1 mx-0 align-items-center">
+                <div class="col-sm-6 px-0">
+                    <Dropdown ElementType="LabelValue" @bind-SelectedElement="selectedLabel" Elements="ConnHandler.SelectableLabels"
+                              ElementToString="@(labelValue => labelValue.Key.Name + ": " + labelValue.Value)" Nullable="true"
+                              NoneSelectedText="@(userConfig.GetText("select_label"))">
+                        <ElementTemplate Context="labelValue">
+                            @(labelValue.Key.Name): @(labelValue.Value)
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+                <div class="col-sm-4 px-1">
+                    <select class="form-select form-select-sm" @bind="selectedGroup">
+                        <option value="-1">@(userConfig.GetText("new_label_group"))</option>
+                        @for (int groupIndex = 0; groupIndex < Groups.Count; groupIndex++)
+                        {
+                            <option value="@groupIndex">@(userConfig.GetText("label_group")) @(groupIndex + 1)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-sm-2 px-0">
+                    <button type="button" class="btn btn-sm btn-success" disabled="@(selectedLabel == null)" @onclick="AddLabel">
+                        @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code
+{
+    private const string kAnd = "∩";
+    private const string kOr = "∪";
+
+    /// <summary>
+    /// Handler of the edited connection.
+    /// </summary>
+    [Parameter]
+    public ModellingConnectionHandler ConnHandler { get; set; } = default!;
+
+    /// <summary>
+    /// True for the source, false for the destination.
+    /// </summary>
+    [Parameter]
+    public bool IsSource { get; set; }
+
+    /// <summary>
+    /// True to show the labels only.
+    /// </summary>
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    /// <summary>
+    /// Called after the labels were changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback Changed { get; set; }
+
+    private LabelValue? selectedLabel;
+    private int selectedGroup = -1;
+
+    private List<List<ConnectionLabel>> Groups => ConnHandler.LabelGroups(IsSource);
+
+    private async Task AddLabel()
+    {
+        if (selectedLabel != null)
+        {
+            ConnHandler.AddLabel(IsSource, selectedGroup, selectedLabel);
+            selectedLabel = null;
+            selectedGroup = -1;
+            await Changed.InvokeAsync();
+        }
+    }
+
+    private async Task RemoveLabel(int groupIndex, ConnectionLabel label)
+    {
+        ConnHandler.RemoveLabel(IsSource, groupIndex, label);
+        selectedGroup = -1;
+        await Changed.InvokeAsync();
+    }
+}

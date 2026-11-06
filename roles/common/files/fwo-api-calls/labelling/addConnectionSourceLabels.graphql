@@ -1,0 +1,5 @@
+mutation addConnectionSourceLabels($labels: [labelling_connection_source_label_insert_input!]!) {
+    insert_labelling_connection_source_label(objects: $labels) {
+        affected_rows
+    }
+}

@@ -124,6 +124,44 @@ namespace FWO.Ui.Display
             }
         }
 
+        /// <summary>
+        /// Cell of the source labels column of a rule change, empty if the column is not shown.
+        /// </summary>
+        public string DisplaySourceLabelsCell(RuleChange ruleChange)
+        {
+            return ShowSourceLabelColumn ? $"<td>{DisplayLabelChange(ruleChange, DisplaySourceLabels)}</td>" : "";
+        }
+
+        /// <summary>
+        /// Cell of the destination labels column of a rule change, empty if the column is not shown.
+        /// </summary>
+        public string DisplayDestinationLabelsCell(RuleChange ruleChange)
+        {
+            return ShowDestinationLabelColumn ? $"<td>{DisplayLabelChange(ruleChange, DisplayDestinationLabels)}</td>" : "";
+        }
+
+        /// <summary>
+        /// Cell of the rule labels column of a rule change, empty if the column is not shown.
+        /// </summary>
+        public string DisplayRuleLabelsCell(RuleChange ruleChange)
+        {
+            return ShowRuleLevelLabels ? $"<td>{DisplayLabelChange(ruleChange, DisplayRuleLabels)}</td>" : "";
+        }
+
+        /// <summary>
+        /// Encoded labels of the changed rule: the old ones if it was deleted, the new ones if it was inserted, else the difference.
+        /// </summary>
+        public string DisplayLabelChange(RuleChange ruleChange, Func<FWO.Data.Rule, string> displayLabels)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(displayLabels(ruleChange.OldRule));
+                case 'I': return OutputHtmlAdded(displayLabels(ruleChange.NewRule));
+                case 'C': return DisplayDiff(displayLabels(ruleChange.OldRule), displayLabels(ruleChange.NewRule));
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+            }
+        }
+
         public string DisplaySourceZone(RuleChange ruleChange)
         {
             switch (ruleChange.ChangeAction)

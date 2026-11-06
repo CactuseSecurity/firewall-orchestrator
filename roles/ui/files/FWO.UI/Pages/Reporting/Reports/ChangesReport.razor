@@ -28,6 +28,16 @@
                                     </div>
                                 </Template>
                             </Column>
+                            @if (ruleChangeDisplayHtml.ShowRuleLevelLabels)
+                            {
+                                <Column TableItem="RuleChange" Title="@(userConfig.GetText("rule_labels"))" Hideable="true">
+                                    <Template>
+                                        <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                            @((MarkupString)ruleChangeDisplayHtml.DisplayLabelChange(context, RuleDisplayHtml.DisplayRuleLabels))
+                                        </div>
+                                    </Template>
+                                </Column>
+                            }
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("source_zone"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
@@ -42,6 +52,16 @@
                                     </div>
                                 </Template>
                             </Column>
+                            @if (ruleChangeDisplayHtml.ShowSourceLabelColumn)
+                            {
+                                <Column TableItem="RuleChange" Title="@(userConfig.GetText("source_labels"))" Hideable="true">
+                                    <Template>
+                                        <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                            @((MarkupString)ruleChangeDisplayHtml.DisplayLabelChange(context, RuleDisplayHtml.DisplaySourceLabels))
+                                        </div>
+                                    </Template>
+                                </Column>
+                            }
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("destination_zone"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
@@ -56,6 +76,16 @@
                                     </div>
                                 </Template>
                             </Column>
+                            @if (ruleChangeDisplayHtml.ShowDestinationLabelColumn)
+                            {
+                                <Column TableItem="RuleChange" Title="@(userConfig.GetText("destination_labels"))" Hideable="true">
+                                    <Template>
+                                        <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                            @((MarkupString)ruleChangeDisplayHtml.DisplayLabelChange(context, RuleDisplayHtml.DisplayDestinationLabels))
+                                        </div>
+                                    </Template>
+                                </Column>
+                            }
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("services"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
@@ -300,5 +330,11 @@
     {
         
         ruleChangeDisplayHtml = new RuleChangeDisplayHtml(userConfig);
+    }
+
+    protected override void OnParametersSet()
+    {
+        // label columns are only shown if the reported rules carry labels
+        ruleChangeDisplayHtml?.SetLabelPresence(RuleDisplayBase.RuleChangesOf(Managements));
     }
 }

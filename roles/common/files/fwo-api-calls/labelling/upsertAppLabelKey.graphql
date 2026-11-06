@@ -1,0 +1,12 @@
+# the App key is imported (from the CMDB), global and allows several values - also if it existed before
+mutation upsertAppLabelKey($keyName: String!) {
+    insert_labelling_label_key_one(
+        object: { key_name: $keyName, key_source_internal: false, key_is_owner_scoped: false, allow_multiple_values: true }
+        on_conflict: {
+            constraint: labelling_label_key_key_name_unique
+            update_columns: [key_source_internal, key_is_owner_scoped, allow_multiple_values]
+        }
+    ) {
+        key_id
+    }
+}

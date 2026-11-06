@@ -587,10 +587,11 @@ namespace FWO.Report
             }
             StringBuilder report = new();
             RuleDisplayCsv ruleDisplayCsv = new(userConfig);
+            ruleDisplayCsv.SetLabelPresence(_rulesCache.Values.SelectMany(rules => rules));
 
             report.Append(DisplayReportHeaderCsv());
             report.AppendLine(
-                $"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",\"source-zone\",\"source\",\"destination-zone\",\"destination\",\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\",\"last-modified\"");
+                $"\"management-name\",\"device-name\",\"rule-number\",\"rule-name\",{ruleDisplayCsv.DisplayRuleLabelsCsvHeader()}\"source-zone\",\"source\",{ruleDisplayCsv.DisplaySourceLabelsCsvHeader()}\"destination-zone\",\"destination\",{ruleDisplayCsv.DisplayDestinationLabelsCsvHeader()}\"service\",\"action\",\"track\",\"rule-enabled\",\"rule-uid\",\"rule-comment\",\"last-modified\"");
 
             var managementReports = ReportData.ManagementData.Where(mgt => !mgt.Ignore && Array.Exists(mgt.Devices, device => device.ContainsRules()));
             foreach (var managementReport in managementReports)
@@ -609,11 +610,11 @@ namespace FWO.Report
                             report.Append(ruleDisplayCsv.OutputCsv(managementReport.Name));
                             report.Append(ruleDisplayCsv.OutputCsv(gateway.Name));
                             report.Append(ruleDisplayCsv.DisplayNumberCsv(rule));
-                            report.Append(ruleDisplayCsv.DisplayNameCsv(rule));
+                            report.Append(ruleDisplayCsv.DisplayNameCsv(rule) + ruleDisplayCsv.DisplayRuleLabelsCsv(rule));
                             report.Append(ruleDisplayCsv.DisplaySourceZoneCsv(rule));
-                            report.Append(ruleDisplayCsv.DisplaySourceCsv(rule, ReportType));
+                            report.Append(ruleDisplayCsv.DisplaySourceCsv(rule, ReportType) + ruleDisplayCsv.DisplaySourceLabelsCsv(rule));
                             report.Append(ruleDisplayCsv.DisplayDestinationZoneCsv(rule));
-                            report.Append(ruleDisplayCsv.DisplayDestinationCsv(rule, ReportType));
+                            report.Append(ruleDisplayCsv.DisplayDestinationCsv(rule, ReportType) + ruleDisplayCsv.DisplayDestinationLabelsCsv(rule));
                             report.Append(ruleDisplayCsv.DisplayServicesCsv(rule, ReportType));
                             report.Append(ruleDisplayCsv.DisplayActionCsv(rule));
                             report.Append(ruleDisplayCsv.DisplayTrackCsv(rule));
@@ -653,6 +654,7 @@ namespace FWO.Report
         private string ExportResolvedRulesToJson()
         {
             RuleDisplayJson ruleDisplayJson = new(userConfig);
+            ruleDisplayJson.SetLabelPresence(_rulesCache.Values.SelectMany(rules => rules));
             TryBuildRuleTree();
 
             return ExportToJson(
@@ -674,6 +676,7 @@ namespace FWO.Report
         public void ConstructHtmlReport(ref StringBuilder report, List<ManagementReport> managementData, int chapterNumber, int levelshift = 0)
         {
             RuleDisplayHtml ruleDisplayHtml = new(userConfig);
+            ruleDisplayHtml.SetLabelPresence(RuleDisplayBase.RulesOf(managementData));
             Levelshift = levelshift;
 
             foreach (ManagementReport managementReport in managementData.Where(IsManagementWithReportedRules))
@@ -718,7 +721,7 @@ namespace FWO.Report
             }
         }
 
-        private void AppendRuleHeadlineHtml(ref StringBuilder report)
+        private void AppendRuleHeadlineHtml(ref StringBuilder report, RuleDisplayHtml labelDisplay)
         {
             report.AppendLine("<tr>");
             if (!ReportType.IsRulebaseReport())
@@ -738,11 +741,11 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("last_hit")}</th>");
                 report.AppendLine("<th>LastModified</th>");
             }
-            report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("name")}</th>{labelDisplay.DisplayRuleLabelsHeader()}");
             report.AppendLine($"<th>{userConfig.GetText("source_zone")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("source")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("source")}</th>{labelDisplay.DisplaySourceLabelsHeader()}");
             report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("destination")}</th>{labelDisplay.DisplayDestinationLabelsHeader()}");
             report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
@@ -764,7 +767,7 @@ namespace FWO.Report
                     ? Headline(device.Name, 4, DeviceReportExtensions.GetRuleTreeAnchorId(managementReport.Id, device.Id))
                     : Headline(device.Name, 4));
                 report.AppendLine("<table>");
-                AppendRuleHeadlineHtml(ref report);
+                AppendRuleHeadlineHtml(ref report, ruleDisplayHtml);
 
                 RulebaseLink? nextRbLink = device.RulebaseLinks.FirstOrDefault(_ => _.IsInitial);
                 if (nextRbLink != null)
@@ -792,7 +795,7 @@ namespace FWO.Report
             {
                 report.AppendLine(Headline(rulebase.Name, 4));
                 report.AppendLine("<table>");
-                AppendRuleHeadlineHtml(ref report);
+                AppendRuleHeadlineHtml(ref report, ruleDisplayHtml);
                 foreach (var rule in rulebase.Rules)
                 {
                     AppendRuleHtml(ref report, rule, chapterNumber, ruleDisplayHtml);
@@ -848,11 +851,11 @@ namespace FWO.Report
                 report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayLastModified(rule)}</td>");
             }
-            report.AppendLine($"<td>{RuleDisplayHtml.DisplayName(rule)}</td>");
+            report.AppendLine($"<td>{RuleDisplayHtml.DisplayName(rule)}</td>{ruleDisplayHtml.DisplayRuleLabelsCell(rule)}");
             report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZones(rule)}</td>");
-            report.AppendLine($"<td>{ruleDisplayHtml.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+            report.AppendLine($"<td>{ruleDisplayHtml.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>{ruleDisplayHtml.DisplaySourceLabelsCell(rule)}");
             report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZones(rule)}</td>");
-            report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
+            report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>{ruleDisplayHtml.DisplayDestinationLabelsCell(rule)}");
             report.AppendLine($"<td>{ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
             report.AppendLine($"<td>{RuleDisplayHtml.DisplayAction(rule)}</td>");
             report.AppendLine($"<td>{RuleDisplayHtml.DisplayTrack(rule)}</td>");
@@ -866,7 +869,7 @@ namespace FWO.Report
             report.AppendLine("</tr>");
             if (ReportType == ReportType.UnusedRules)
             {
-                report.AppendLine(RuleDisplayHtml.DisplaySectionHeader(rule, ColumnCount));
+                report.AppendLine(RuleDisplayHtml.DisplaySectionHeader(rule, ColumnCount + ruleDisplayHtml.LabelColumnCount));
             }
         }
 

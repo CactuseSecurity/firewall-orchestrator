@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from models.gateway import Gateway
+    from models.label import LabelNormalized
     from models.networkobject import NetworkObject
     from models.rulebase import Rulebase
     from models.serviceobject import ServiceObject
@@ -61,6 +62,8 @@ class FwConfigNormalized(FwConfig):
     users: dict[str, Any] = {}
     zone_objects: dict[str, Any] = {}
     time_objects: dict[str, TimeObject] = {}
+    # imported key/value labels, written to the global labelling tables and not part of the diffed config
+    labels: list[LabelNormalized] = []
     rulebases: list[Rulebase] = []
     gateways: list[Gateway] = []
     ConfigFormat: ConfFormat = ConfFormat.NORMALIZED
@@ -107,6 +110,7 @@ class FwConfigNormalized(FwConfig):
 FwConfigNormalized.model_rebuild(
     _types_namespace={
         "Gateway": import_module("models.gateway").Gateway,
+        "LabelNormalized": import_module("models.label").LabelNormalized,
         "NetworkObject": import_module("models.networkobject").NetworkObject,
         "Rulebase": import_module("models.rulebase").Rulebase,
         "ServiceObject": import_module("models.serviceobject").ServiceObject,

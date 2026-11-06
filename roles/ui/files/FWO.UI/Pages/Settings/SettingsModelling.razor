@@ -48,6 +48,12 @@
                     <input id="cbx_allow_service_in_conn" type="checkbox" class="w-100" @bind="configData!.AllowServiceInConn">
                 </div>
             </div>
+            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5604a"))">
+                <label for="cbx_label_based_modelling" class="col-form-label col-sm-8">@(userConfig.GetText("labelBasedModelling")):</label>
+                <div class="col-sm-2">
+                    <input id="cbx_label_based_modelling" type="checkbox" class="w-100" @bind="configData!.LabelBasedModelling">
+                </div>
+            </div>
         </div>
         <hr />
         <div class="form-group row mt-2">

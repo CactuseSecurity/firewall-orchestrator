@@ -1,0 +1,8 @@
+query getAllActiveRuleAppLabels($keyName: String!) {
+    labelling_rule_label(
+        where: { removed_event_id: { _is_null: true }, label_value: { label_key: { key_name: { _eq: $keyName } } } }
+    ) {
+        rule_id
+        label_id
+    }
+}

@@ -68,7 +68,7 @@ namespace FWO.Services.Modelling
                 DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9004"), true);
                 return false;
             }
-            if (!AddMode && (SrcFilledInWork(srcDummyARCount) != ActConnOrig.SourceFilled() || DstFilledInWork(dstDummyARCount) != ActConnOrig.DestinationFilled()))
+            if (!AddMode && (SrcFilledInWork(srcDummyARCount) != ActConnOrig.SourceFilledOrLabelled() || DstFilledInWork(dstDummyARCount) != ActConnOrig.DestinationFilledOrLabelled()))
             {
                 DisplayMessageInUi(null, userConfig.GetText(EditConnection), userConfig.GetText("E9005"), true);
                 return false;
@@ -316,8 +316,8 @@ namespace FWO.Services.Modelling
         public void InterfaceToConn(ModellingConnection interf)
         {
             InterfaceName = interf.Name ?? "";
-            SrcReadOnly = interf.SourceFilled();
-            DstReadOnly = interf.DestinationFilled();
+            SrcReadOnly = interf.SourceFilledOrLabelled();
+            DstReadOnly = interf.DestinationFilledOrLabelled();
             SvcReadOnly = true;
             ActConn.IsInterface = false;
             ActConn.UsedInterfaceId = interf.Id;
@@ -336,6 +336,7 @@ namespace FWO.Services.Modelling
                 ActConn.SourceAreas = [.. interf.SourceAreas];
                 SrcNwGroupsToDelete.AddRange([.. ModellingNwGroupWrapper.Resolve(ActConn.SourceOtherGroups)]);
                 ActConn.SourceOtherGroups = [.. interf.SourceOtherGroups];
+                ActConn.SourceLabels = [.. interf.SourceLabels];
                 ActConn.SrcFromInterface = true;
             }
             else
@@ -348,6 +349,7 @@ namespace FWO.Services.Modelling
                 ActConn.DestinationAreas = [.. interf.DestinationAreas];
                 DstNwGroupsToDelete.AddRange([.. ModellingNwGroupWrapper.Resolve(ActConn.DestinationOtherGroups)]);
                 ActConn.DestinationOtherGroups = [.. interf.DestinationOtherGroups];
+                ActConn.DestinationLabels = [.. interf.DestinationLabels];
                 ActConn.DstFromInterface = true;
             }
             SvcToDelete.AddRange([.. ModellingServiceWrapper.Resolve(ActConn.Services)]);
@@ -355,6 +357,7 @@ namespace FWO.Services.Modelling
             SvcGrpToDelete.AddRange([.. ModellingServiceGroupWrapper.Resolve(ActConn.ServiceGroups)]);
             ActConn.ServiceGroups = [.. interf.ServiceGroups];
             ActConn.ExtraConfigsFromInterface = interf.ExtraConfigs;
+            RefreshLabelGroups();
         }
 
         public void RemoveInterf()
@@ -366,6 +369,7 @@ namespace FWO.Services.Modelling
                 ActConn.SourceAppRoles = [];
                 ActConn.SourceAreas = [];
                 ActConn.SourceOtherGroups = [];
+                ActConn.SourceLabels = [];
                 ActConn.SrcFromInterface = false;
             }
             if (DstReadOnly)
@@ -374,6 +378,7 @@ namespace FWO.Services.Modelling
                 ActConn.DestinationAppRoles = [];
                 ActConn.DestinationAreas = [];
                 ActConn.DestinationOtherGroups = [];
+                ActConn.DestinationLabels = [];
                 ActConn.DstFromInterface = false;
             }
             ActConn.Services = [];
@@ -388,6 +393,7 @@ namespace FWO.Services.Modelling
             DstReadOnly = false;
             SvcReadOnly = false;
             ActConn.ExtraConfigsFromInterface = [];
+            RefreshLabelGroups();
         }
 
         public bool PreparePublishInterface()

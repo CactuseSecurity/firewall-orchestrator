@@ -1,0 +1,11 @@
+mutation addRuleLabels(
+    $sourceLabels: [labelling_rule_source_label_insert_input!]!
+    $destinationLabels: [labelling_rule_destination_label_insert_input!]!
+) {
+    insert_labelling_rule_source_label(objects: $sourceLabels) {
+        affected_rows
+    }
+    insert_labelling_rule_destination_label(objects: $destinationLabels) {
+        affected_rows
+    }
+}

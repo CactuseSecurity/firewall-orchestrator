@@ -23,6 +23,19 @@ if TYPE_CHECKING:
     from _pytest.logging import LogCaptureFixture
 
 
+def test_appip_json_includes_labels_only_when_given() -> None:
+    labels: list[dict[str, str]] = [{"label_key": "Stage", "label_value": "Prod"}]
+    labelled = Appip("APP-001", IPAddress("10.0.0.1"), IPAddress("10.0.0.1"), "host", "srv", labels=labels)
+    unlabelled = Appip("APP-001", IPAddress("10.0.0.1"), IPAddress("10.0.0.1"), "host", "srv")
+
+    assert labelled.to_json()["labels"] == labels
+    assert (
+        Appip("APP-001", IPAddress("10.0.0.1"), IPAddress("10.0.0.1"), "host", "srv", labels=[]).to_json()["labels"]
+        == []
+    )
+    assert "labels" not in unlabelled.to_json()
+
+
 def test_owner_and_appip_json_include_optional_fields() -> None:
     owner = Owner(
         name="Payments",

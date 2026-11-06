@@ -1,0 +1,5 @@
+mutation addOwnerNetworkLabels($labels: [labelling_owner_network_label_insert_input!]!) {
+    insert_labelling_owner_network_label(objects: $labels) {
+        affected_rows
+    }
+}

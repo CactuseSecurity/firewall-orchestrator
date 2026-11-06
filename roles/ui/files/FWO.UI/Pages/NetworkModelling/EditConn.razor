@@ -222,6 +222,8 @@
                                 </EditList>
                             </div>
                         }
+                        <ConnLabelEditor ConnHandler="ConnHandler" IsSource="true" ReadOnly="@(ConnHandler.ReadOnly || ConnHandler.SrcReadOnly || !ConnHandler.LabelEditingEnabled)"
+                                         Changed="() => { ConnHandler.CalcVisibility(); StateHasChanged(); }" />
                     </div>
                     <div class="col-sm-4">
                         <h6>@(userConfig.GetText("service"))</h6>
@@ -376,6 +378,8 @@
                                 </EditList>
                             </div>
                         }
+                        <ConnLabelEditor ConnHandler="ConnHandler" IsSource="false" ReadOnly="@(ConnHandler.ReadOnly || ConnHandler.DstReadOnly || !ConnHandler.LabelEditingEnabled)"
+                                         Changed="() => { ConnHandler.CalcVisibility(); StateHasChanged(); }" />
                     </div>
                 </div>
                 @if(ConnHandler.ActConn.IsInterface && ConnHandler.ActConn.InterfacePermission == InterfacePermissions.Restricted.ToString())

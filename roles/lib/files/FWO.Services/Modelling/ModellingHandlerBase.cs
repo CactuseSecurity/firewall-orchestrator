@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Labelling;
 using FWO.Data.Modelling;
 using FWO.Logging;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -266,15 +267,17 @@ namespace FWO.Services.Modelling
 
         private static string ExtractFullInterface(ModellingConnection conn, ModellingConnection interf)
         {
-            if (interf.SourceFilled())
+            if (interf.SourceFilledOrLabelled())
             {
+                conn.SourceLabels = interf.SourceLabels;
                 conn.SourceAppServers = interf.SourceAppServers;
                 conn.SourceAppRoles = interf.SourceAppRoles;
                 conn.SourceAreas = interf.SourceAreas;
                 conn.SourceOtherGroups = interf.SourceOtherGroups;
             }
-            if (interf.DestinationFilled())
+            if (interf.DestinationFilledOrLabelled())
             {
+                conn.DestinationLabels = interf.DestinationLabels;
                 conn.DestinationAppServers = interf.DestinationAppServers;
                 conn.DestinationAppRoles = interf.DestinationAppRoles;
                 conn.DestinationAreas = interf.DestinationAreas;
@@ -412,6 +415,7 @@ namespace FWO.Services.Modelling
                 appServer.TooltipText = userConfig.GetText(DeactMsg);
             }
             names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface, conn.InterfaceIsDecommissioned)));
+            AddLabelNames(names, conn.SourceLabels);
             return names;
         }
 
@@ -455,7 +459,19 @@ namespace FWO.Services.Modelling
                 appServer.TooltipText = userConfig.GetText(DeactMsg);
             }
             names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface, conn.InterfaceIsDecommissioned)));
+            AddLabelNames(names, conn.DestinationLabels);
             return names;
+        }
+
+        /// <summary>
+        /// Adds the labels of a connection side as one encoded entry with icon, e.g. "(Stage: Prod ∩ OS: Linux) ∪ (Stage: Test)".
+        /// </summary>
+        private static void AddLabelNames(List<string> names, List<ConnectionLabel> labels)
+        {
+            if (labels.Count > 0)
+            {
+                names.Add($"<span class=\"{Icons.Label}\"></span> {HtmlOutputEncoder.EncodeText(ConnectionLabelFormatter.Format(labels))}");
+            }
         }
 
         public static List<string> GetSvcNames(ModellingConnection conn, UserConfig userConfig)

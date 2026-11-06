@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Services.EventMediator.Events;
 using FWO.Test.Mocks;
@@ -26,6 +27,12 @@ namespace FWO.Test
             "broken|line"
         ];
         private static readonly string kValidImportCsv = string.Join(Environment.NewLine, kValidImportCsvLines);
+        private static readonly List<string> kLabelledImportCsvLines =
+        [
+            "App-Server-Name;External-App-ID;App-Server-Typ;App-IP-Address-Range;label:Stage;Remark",
+            "Server2;App2;MissingType;10.0.0.2/32;Prod;x"
+        ];
+        private static readonly string kLabelledImportCsv = string.Join(Environment.NewLine, kLabelledImportCsvLines);
 
         [Test]
         public async Task ReadFileToBytes_WithSupportedFile_PublishesSuccessAndAllowsLogoImport()
@@ -110,6 +117,27 @@ namespace FWO.Test
                 Assert.That(eventArgs.Appserver, Is.Empty);
                 Assert.That(eventArgs.Errors.Any(error => error.Message == "E5422"), Is.True);
                 Assert.That(eventArgs.Errors.Any(error => error.Message == "E5423"), Is.True);
+                Assert.That(eventArgs.Errors.Any(error => error.Message?.Contains("owner_appservertype_notfound") == true), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ImportAppServersFromCsv_AcceptsLabelColumnsAndWarnsAboutUnknownColumns()
+        {
+            RecordingEventMediator mediator = new();
+            using TestMiddlewareClient middlewareClient = new();
+            FileUploadService service = CreateService(mediator, middlewareClient);
+            await service.ReadFileToBytes(CreateInputFileChangeEventArgs("apps.csv", "text/csv", Encoding.UTF8.GetBytes(kLabelledImportCsv), kLabelledImportCsv.Length));
+
+            await service.ImportAppServersFromCSV("apps.csv");
+
+            AppServerImportEvent importEvent = (AppServerImportEvent)mediator.PublishedEvents.Last(eventItem => eventItem.Name == nameof(FileUploadService.ImportAppServersFromCSV)).Event;
+            AppServerImportEventArgs eventArgs = importEvent.EventArgs ?? throw new AssertionException("Missing app server import event args.");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(eventArgs.Errors.Single(error => error.MessageType == MessageType.Warning).Message, Is.EqualTo("E5424: Remark"));
+                Assert.That(eventArgs.Errors.Any(error => error.Message == "E5423"), Is.False);
                 Assert.That(eventArgs.Errors.Any(error => error.Message?.Contains("owner_appservertype_notfound") == true), Is.True);
             });
         }

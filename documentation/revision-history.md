@@ -11,6 +11,9 @@
   - rules are ordered by rule collection group and rule collection priority
 - Azure gateway autodiscovery: Azure managements can now be autodiscovered (scheduled and manually); the Azure Firewalls of the subscription whose firewall policy lies in the configured resource group are proposed as gateways with the policy name as local rulebase; firewalls with classic rules are skipped
 - new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
+- performance: database indices for the foreign key columns of the request and modelling schemas that the workflow and modelling relationships filter on (e.g. ticket tasks, request and implementation elements, comments, connection objects and services, interface usage), speeding up ticket and requested interfaces pages (#5644)
+  - requested interfaces page: loads a slim interface list incl. the using connections and all ticket states with one chunked query instead of one query per interface and per ticket; interface details are loaded when an interface is opened
+  - owner report implementation state: reads ticket states in batches without task metadata and stops after finding the newest completed ticket
 - request workflow: the Check Point LayerGuard section name is configurable at every device-specific-settings level with optional, repeatable source- and destination-zone placeholders; fixed names avoid zone-matrix resolution (#5626)
 
 ## 9.8.7 - 04.11.2026

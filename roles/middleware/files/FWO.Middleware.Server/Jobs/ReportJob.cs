@@ -51,7 +51,7 @@ namespace FWO.Middleware.Server.Jobs
             try
             {
                 Log.WriteDebug(LogMessageTitle, "Process started");
-                DateTime dateTimeNowRounded = RoundDown(timeProvider.GetUtcNow().LocalDateTime, CheckScheduleInterval);
+                DateTimeOffset nowRounded = RoundDownInstant(timeProvider.GetUtcNow(), CheckScheduleInterval);
                 List<ReportSchedule> scheduledReports = await apiConnectionScheduler.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules);
 
                 if (scheduledReports is null || scheduledReports.Count == 0)
@@ -60,7 +60,7 @@ namespace FWO.Middleware.Server.Jobs
                 }
 
                 await Parallel.ForEachAsync(scheduledReports, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = cancellationToken },
-                    async (reportSchedule, ct) => await ProcessScheduledReport(reportSchedule, dateTimeNowRounded, ct));
+                    async (reportSchedule, ct) => await ProcessScheduledReport(reportSchedule, nowRounded, ct));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -68,14 +68,26 @@ namespace FWO.Middleware.Server.Jobs
             }
         }
 
-        private async Task ProcessScheduledReport(ReportSchedule reportSchedule, DateTime dateTimeNowRounded, CancellationToken ct)
+        /// <summary>
+        /// Generates the report of a schedule if one of its runs is due at the current check.
+        /// </summary>
+        /// <remarks>
+        /// The schedule start is a wall clock of the installation, so runs are advanced in wall-clock time
+        /// (AddDays/AddMonths) but compared as instants. A run inside the spring gap is due at the first valid
+        /// time after the gap, and a run in the hour that occurs twice in autumn is due only at its first occurrence.
+        /// </remarks>
+        /// <param name="reportSchedule">Schedule to check.</param>
+        /// <param name="nowRounded">Current check time, rounded down to the check interval.</param>
+        /// <param name="ct">Cancellation token.</param>
+        private async Task ProcessScheduledReport(ReportSchedule reportSchedule, DateTimeOffset nowRounded, CancellationToken ct)
         {
             try
             {
                 if (reportSchedule.Active)
                 {
+                    TimeZoneInfo zone = timeProvider.LocalTimeZone;
                     // Add schedule interval as long as schedule time is smaller than current time
-                    while (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) < dateTimeNowRounded)
+                    while (GetDueInstant(reportSchedule.StartTime, zone) < nowRounded)
                     {
                         reportSchedule.StartTime = reportSchedule.RepeatInterval switch
                         {
@@ -88,10 +100,11 @@ namespace FWO.Middleware.Server.Jobs
                         };
                     }
 
-                    if (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
+                    if (GetDueInstant(reportSchedule.StartTime, zone) == nowRounded)
                     {
                         ct.ThrowIfCancellationRequested();
-                        await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
+                        DateTime localNowRounded = TimeZoneInfo.ConvertTime(nowRounded, zone).DateTime;
+                        await GenerateReport(reportSchedule, localNowRounded, ct);
                     }
                 }
             }
@@ -334,6 +347,22 @@ namespace FWO.Middleware.Server.Jobs
         {
             long delta = dateTime.Ticks % roundInterval.Ticks;
             return new DateTime(dateTime.Ticks - delta, dateTime.Kind);
+        }
+
+        /// <summary>
+        /// Rounds an instant down to the check interval in UTC, independently of DST changes.
+        /// </summary>
+        private static DateTimeOffset RoundDownInstant(DateTimeOffset instant, TimeSpan roundInterval)
+        {
+            return new DateTimeOffset(RoundDown(instant.UtcDateTime, roundInterval), TimeSpan.Zero);
+        }
+
+        /// <summary>
+        /// Gets the instant at which a schedule run given as wall clock of the installation is due.
+        /// </summary>
+        private static DateTimeOffset GetDueInstant(DateTime scheduledWallClock, TimeZoneInfo zone)
+        {
+            return WallClockSchedule.ToInstant(RoundDown(scheduledWallClock, CheckScheduleInterval), zone);
         }
     }
 }

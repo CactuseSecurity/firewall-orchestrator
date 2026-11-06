@@ -1,5 +1,12 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.1 - 05.11.2026
+- request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent
+- workflow UI: the promotion-mode setting now also supports action-buttons-only in addition to ticket, task and combined promotion
+- workflow UI: approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks
+- workflow UI: classic approval editing now respects the configured approver-allowed ticket and task fields
+- workflow: object and service task references are preserved when approval-task elements are edited, and affected access-task snapshots are refreshed after changes to their defining tasks
+
 ## 9.9.0 - 04.11.2026
 - Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs
   - login with a service principal (client credentials flow); client id and secret are taken from the additional credential, otherwise from the import credential; tenant and subscription from the management's cloud settings, the resource group from the config path

@@ -633,6 +633,7 @@ namespace FWO.Test
                 Assert.That(config.ShowDeadline, Is.True);
                 Assert.That(config.ShowReason, Is.True);
                 Assert.That(config.ShowComments, Is.False);
+                Assert.That(config.HandlerDisplayMode, Is.EqualTo(TicketHandlerDisplayMode.None));
                 Assert.That(config.AccessTask.ShowManagement, Is.True);
                 Assert.That(config.AccessTask.ShowOwner, Is.True);
                 Assert.That(config.AccessTask.ShowValidFrom, Is.True);
@@ -658,6 +659,17 @@ namespace FWO.Test
                 Assert.That(config.ShowComments, Is.True);
                 Assert.That(TicketFieldVisibilityConfig.Parse(config.ToConfigValue()).ShowComments, Is.True);
             });
+        }
+
+        [Test]
+        public void TicketFieldVisibilityConfig_ParsesHandlerDisplayMode()
+        {
+            TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse(
+                "{\"handlerDisplayMode\":2}");
+
+            Assert.That(config.HandlerDisplayMode, Is.EqualTo(TicketHandlerDisplayMode.AllActiveTasks));
+            Assert.That(TicketFieldVisibilityConfig.Parse(config.ToConfigValue()).HandlerDisplayMode,
+                Is.EqualTo(TicketHandlerDisplayMode.AllActiveTasks));
         }
 
         [Test]

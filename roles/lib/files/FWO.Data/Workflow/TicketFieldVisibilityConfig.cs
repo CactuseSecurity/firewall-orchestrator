@@ -24,6 +24,9 @@ namespace FWO.Data.Workflow
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public bool ShowComments { get; set; } = false;
 
+        [JsonProperty("handlerDisplayMode"), JsonPropertyName("handlerDisplayMode")]
+        public TicketHandlerDisplayMode HandlerDisplayMode { get; set; } = TicketHandlerDisplayMode.None;
+
         [JsonProperty("accessTask"), JsonPropertyName("accessTask")]
         public AccessTaskFieldVisibilityConfig AccessTask { get; set; } = new();
 

@@ -479,6 +479,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task HandleTimeObjectOriginSuffixesChanged_PersistsConfigImmediately()
+        {
+            SettingsCustomizing component = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]" };
+            SimulatedUserConfig userConfig = new();
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            string newValue = "{\"requester\":\"_user\",\"approver\":\"_approver\"}";
+
+            SetMember(component, "apiConnection", apiConnection);
+            SetMember(component, "globalConfig", globalConfig);
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, "configData", editableConfig);
+
+            Task handlerTask = (Task)GetPrivateMethod(typeof(SettingsCustomizing), "HandleTimeObjectOriginSuffixesChanged")
+                .Invoke(component, [newValue])!;
+            await handlerTask;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.LastConfigItems.Single().Key, Is.EqualTo("reqTimeObjectOriginSuffixes"));
+                Assert.That(apiConnection.LastConfigItems.Single().Value, Is.EqualTo(newValue));
+                Assert.That(editableConfig.ReqTimeObjectOriginSuffixes, Is.EqualTo(newValue));
+            });
+        }
+
+        [Test]
         public async Task HandleCreateRequestTaskSortConfigChanged_UpdatesLocalStateOnly()
         {
             SettingsCustomizing component = new();

@@ -36,17 +36,27 @@ namespace FWO.Report.Filter
         private const string kNatRule = "rule: { nat_rule: { _eq: true } }";
 
         /// <summary>
-        /// Network objects (or users) referenced directly in the source or destination of a NAT rule (original or translated part).
+        /// Rule references and group memberships are never deleted by the import, only closed (removed set).
+        /// The new version of a changed element must be referenced currently.
         /// </summary>
-        private const string kReferencedInNatRule = $@"_or: [ {{ rule_froms: {{ {kNatRule} }} }}, {{ rule_tos: {{ {kNatRule} }} }} ]";
+        private const string kCurrentReference = "removed: { _is_null: true }";
 
         /// <summary>
-        /// Services used in a NAT rule (original or translated part), directly or as member of a group.
+        /// The old version of a changed or deleted element has its references closed in the import of the change.
+        /// So it must be referenced currently or up to this import, not only in the past.
         /// </summary>
-        private const string kServiceUsedInNatRule = $@"_or: [
-                    {{ rule_services: {{ {kNatRule} }} }}
-                    {{ svcgrpFlatsBySvcgrpFlatMemberId: {{ service: {{ rule_services: {{ {kNatRule} }} }} }} }}
-                ]";
+        private const string kReferenceUntilChangeImport = "_or: [ { removed: { _is_null: true } }, { removed: { _eq: $import_id_new } } ]";
+
+        /// <summary>
+        /// Builds the condition for network objects (or users) referenced directly in the source or destination
+        /// of a NAT rule (original or translated part).
+        /// </summary>
+        /// <param name="referenceValidity">Condition restricting the references to the relevant ones.</param>
+        /// <returns>The GraphQL condition.</returns>
+        private static string ReferencedInNatRule(string referenceValidity)
+        {
+            return $"_or: [ {{ rule_froms: {{ {kNatRule}, {referenceValidity} }} }}, {{ rule_tos: {{ {kNatRule}, {referenceValidity} }} }} ]";
+        }
 
         /// <summary>
         /// Builds the condition for network objects (or users) used in a NAT rule (original or translated part),
@@ -54,10 +64,38 @@ namespace FWO.Report.Filter
         /// </summary>
         /// <param name="groupMembershipRelation">Relation from the element to the flat group memberships it is part of.</param>
         /// <param name="groupRelation">Relation from a flat group membership to its group.</param>
+        /// <param name="referenceValidity">Condition restricting references and group memberships to the relevant ones.</param>
         /// <returns>The GraphQL condition.</returns>
-        private static string UsedInNatRule(string groupMembershipRelation, string groupRelation)
+        private static string UsedInNatRule(string groupMembershipRelation, string groupRelation, string referenceValidity)
         {
-            return $"_or: [ {{ {kReferencedInNatRule} }}, {{ {groupMembershipRelation}: {{ {groupRelation}: {{ {kReferencedInNatRule} }} }} }} ]";
+            string referencedInNatRule = ReferencedInNatRule(referenceValidity);
+            return $"_or: [ {{ {referencedInNatRule} }}, {{ {groupMembershipRelation}: {{ {referenceValidity}, {groupRelation}: {{ {referencedInNatRule} }} }} }} ]";
+        }
+
+        /// <summary>
+        /// Builds the condition for services used in a NAT rule (original or translated part), directly or as member of a group.
+        /// </summary>
+        /// <param name="referenceValidity">Condition restricting references and group memberships to the relevant ones.</param>
+        /// <returns>The GraphQL condition.</returns>
+        private static string ServiceUsedInNatRule(string referenceValidity)
+        {
+            string referencedInNatRule = $"rule_services: {{ {kNatRule}, {referenceValidity} }}";
+            return $"_or: [ {{ {referencedInNatRule} }}, {{ svcgrpFlatsBySvcgrpFlatMemberId: {{ {referenceValidity}, service: {{ {referencedInNatRule} }} }} }} ]";
+        }
+
+        /// <summary>
+        /// Builds the condition for changes of elements used in a NAT rule: the new version must be used currently,
+        /// the old version must have been used up to the import of the change.
+        /// </summary>
+        /// <param name="newRelation">Relation from the changelog entry to the new element version.</param>
+        /// <param name="oldRelation">Relation from the changelog entry to the old element version.</param>
+        /// <param name="usedInNatRule">Builds the usage condition for a given reference validity.</param>
+        /// <returns>The GraphQL condition.</returns>
+        private static string ChangeUsedInNatRule(string newRelation, string oldRelation, Func<string, string> usedInNatRule)
+        {
+            string newVersionUsage = usedInNatRule(kCurrentReference);
+            string oldVersionUsage = usedInNatRule(kReferenceUntilChangeImport);
+            return $"_or: [ {{ {newRelation}: {{ {newVersionUsage} }} }}, {{ {oldRelation}: {{ {oldVersionUsage} }} }} ]";
         }
 
         /// <summary>
@@ -68,11 +106,11 @@ namespace FWO.Report.Filter
         /// <returns>The changelog query part, only included if the query variable include_objects_in_changes_report is set.</returns>
         private static string GetChangelogObjectsBlock(bool natChanges)
         {
-            string objectUsage = UsedInNatRule("objgrpFlatsByObjgrpFlatMemberId", "object");
-            string userUsage = UsedInNatRule("usergrpFlatsByUsergrpFlatMemberId", "usr");
-            string objectWhere = natChanges ? $"_or: [ {{ object: {{ {objectUsage} }} }}, {{ objectByOldObjId: {{ {objectUsage} }} }} ]" : "";
-            string serviceWhere = natChanges ? $"_or: [ {{ service: {{ {kServiceUsedInNatRule} }} }}, {{ serviceByOldSvcId: {{ {kServiceUsedInNatRule} }} }} ]" : "";
-            string userWhere = natChanges ? $"_or: [ {{ usr: {{ {userUsage} }} }}, {{ usrByOldUserId: {{ {userUsage} }} }} ]" : "";
+            string objectWhere = natChanges ? ChangeUsedInNatRule("object", "objectByOldObjId",
+                validity => UsedInNatRule("objgrpFlatsByObjgrpFlatMemberId", "object", validity)) : "";
+            string serviceWhere = natChanges ? ChangeUsedInNatRule("service", "serviceByOldSvcId", ServiceUsedInNatRule) : "";
+            string userWhere = natChanges ? ChangeUsedInNatRule("usr", "usrByOldUserId",
+                validity => UsedInNatRule("usergrpFlatsByUsergrpFlatMemberId", "usr", validity)) : "";
             return $@"
             changelog_objects: changelog_objects(
                 where: {{

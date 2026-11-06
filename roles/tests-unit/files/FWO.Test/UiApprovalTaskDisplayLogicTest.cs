@@ -271,12 +271,15 @@ internal class UiApprovalTaskDisplayLogicTest
         WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [groupTask, accessTask] } };
 
         List<string> resolved = GetValues(handler, accessTask, ApprovalTaskElementDisplayMode.Resolved);
+        List<string> technical = GetValues(handler, accessTask, ApprovalTaskElementDisplayMode.Technical);
         List<string> unresolved = GetValues(handler, accessTask, ApprovalTaskElementDisplayMode.UnresolvedGroups);
 
         Assert.Multiple(() =>
         {
             Assert.That(resolved, Is.EqualTo(new List<string> { "new-web-1 (192.0.2.53)" }));
             Assert.That(resolved, Does.Not.Contain("old-web-1 (192.0.2.52)"));
+            Assert.That(technical, Is.EqualTo(new List<string> { "192.0.2.53" }));
+            Assert.That(technical, Does.Not.Contain("192.0.2.52"));
             Assert.That(unresolved, Does.Contain("web-group"));
         });
     }

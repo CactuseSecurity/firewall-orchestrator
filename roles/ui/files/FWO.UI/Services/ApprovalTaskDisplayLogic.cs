@@ -447,7 +447,7 @@ namespace FWO.Ui.Services
             List<WfReqElement> members = [.. groupTasks
                 .SelectMany(task => task.Elements)
                 .Where(member => member.Field == memberField)
-                .Where(member => displayMode != ApprovalTaskElementDisplayMode.Resolved || !IsRemovedMember(member))
+                .Where(member => displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups || !IsRemovedMember(member))
                 .Where(member => !string.Equals(member.Name, groupName, StringComparison.OrdinalIgnoreCase)
                     || member.IpString != null || member.Port.HasValue || member.ProtoId.HasValue)];
 

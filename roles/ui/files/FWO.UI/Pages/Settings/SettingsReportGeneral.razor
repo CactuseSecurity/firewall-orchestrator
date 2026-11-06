@@ -119,13 +119,8 @@
                     <div class="form-group row mb-2">
                         <label class="col-form-label col-sm-2">@(userConfig.GetText("role")):</label>
                         <div class="col-sm-4">
-                            <select class="form-select form-select-sm" @bind="selectedRole">
-                                <option value=""></option>
-                                @foreach (string role in availableRoles)
-                                {
-                                    <option value="@role">@role</option>
-                                }
-                            </select>
+                            <Dropdown ElementType="string" @bind-SelectedElement="selectedRole" Elements="availableRoles"
+                                      ElementToString="@(role => role)" Nullable="true" />
                         </div>
                     </div>
                     @if (!string.IsNullOrEmpty(selectedRole) && reportTypeVisibilityByRole.TryGetValue(selectedRole, out Dictionary<ReportType, ReportTypeVisibilityOption>? visibilityForRole))

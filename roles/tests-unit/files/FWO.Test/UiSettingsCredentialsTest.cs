@@ -11,6 +11,7 @@ using FWO.Middleware.Server;
 using FWO.Test.Mocks;
 using FWO.Ui.Pages.Settings;
 using FWO.Ui.Services;
+using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -32,7 +33,6 @@ namespace FWO.Test
     internal class UiSettingsCredentialsTest
     {
         private static readonly List<int> kRemainingCredentialIds = [1, 3];
-        private static readonly List<string> kAdditionalCredentialChoices = ["", "3"];
         private static readonly FieldInfo JwtPublicKeyField = typeof(ConfigFile).GetField("jwtPublicKey", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
 
@@ -284,8 +284,13 @@ namespace FWO.Test
 
             setup.Rendered.FindAll("button").First(button => button.TextContent.Trim() == "Edit").Click();
 
-            Assert.That(setup.Rendered.FindAll("#additionalCredential option").Select(option => option.GetAttribute("value")),
-                Is.EquivalentTo(kAdditionalCredentialChoices));
+            Dropdown<int?> additionalCredentialDropdown = setup.Rendered.FindComponent<Dropdown<int?>>().Instance;
+            List<int?> expectedCredentialIds = [3];
+            Assert.Multiple(() =>
+            {
+                Assert.That(additionalCredentialDropdown.NoneSelectedText, Is.EqualTo("None"));
+                Assert.That(additionalCredentialDropdown.Elements, Is.EquivalentTo(expectedCredentialIds));
+            });
         }
 
         /// <summary>

@@ -128,6 +128,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ApplyLogTimeRangeUnit_UpdatesUnitAndRecalculatesSeconds()
+        {
+            SettingsLogging component = CreateComponentWithMaxEntries(1000);
+            SetPrivateField(component, "logTimeRangeValue", 2);
+            SetPrivateField(component, "logTimeRangeUnit", LogTimeRangeUnit.Days);
+
+            InvokePrivateMethodWithUnit("ApplyLogTimeRangeUnit", component, LogTimeRangeUnit.Hours);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<LogTimeRangeUnit>(component, "logTimeRangeUnit"), Is.EqualTo(LogTimeRangeUnit.Hours));
+                Assert.That(GetPrivateField<ConfigData>(component, "configData").DefaultLogTimeRangeInSeconds, Is.EqualTo(7200));
+            });
+        }
+
+        [Test]
         public void PrepareConfigData_RaisesANonPositiveLogTimeRangeToOneSecond()
         {
             SettingsLogging component = CreateComponentWithMaxEntries(1000);
@@ -265,6 +281,14 @@ namespace FWO.Test
             MethodInfo method = typeof(SettingsLogging).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingMethodException(typeof(SettingsLogging).FullName, methodName);
             method.Invoke(component, null);
+        }
+
+        private static void InvokePrivateMethodWithUnit(string methodName, SettingsLogging component, LogTimeRangeUnit unit)
+        {
+            MethodInfo method = typeof(SettingsLogging).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(SettingsLogging).FullName, methodName);
+            object?[] parameters = [unit];
+            method.Invoke(component, parameters);
         }
 
         private static async Task InvokePrivateMethodAsync(string methodName, object component)

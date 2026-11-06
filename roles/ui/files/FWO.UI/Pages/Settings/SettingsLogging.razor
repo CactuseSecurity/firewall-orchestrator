@@ -48,12 +48,9 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("importLogDataSleepTime")):</label>
             <div class="col-sm-8 d-inline-flex">
                 <input class="form-control me-3 w-auto" type="number" min="0" @bind="configData.ImportLogDataSleepTime" />
-                <select class="form-select w-auto" @bind="configData.ImportLogDataSleepTimeUnit">
-                    @foreach (LogDataImportIntervalUnit unit in Enum.GetValues(typeof(LogDataImportIntervalUnit)))
-                    {
-                        <option value="@unit">@unit.ToString(userConfig)</option>
-                    }
-                </select>
+                <Dropdown ElementType="LogDataImportIntervalUnit" @bind-SelectedElement="configData.ImportLogDataSleepTimeUnit"
+                          Elements="Enum.GetValues<LogDataImportIntervalUnit>()" ElementToString="@(unit => unit.ToString(userConfig))"
+                          InputClass="form-control w-auto" />
             </div>
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5697"))">
@@ -104,12 +101,9 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("defaultLogTimeRange")):</label>
             <div class="col-sm-8 d-inline-flex">
                 <input class="form-control me-3 w-auto" type="number" min="1" @bind="logTimeRangeValue" @bind:after="ApplyLogTimeRange" />
-                <select class="form-select w-auto" @bind="logTimeRangeUnit" @bind:after="ApplyLogTimeRange">
-                    @foreach (LogTimeRangeUnit unit in Enum.GetValues<LogTimeRangeUnit>())
-                    {
-                        <option value="@unit">@unit.ToString(userConfig)</option>
-                    }
-                </select>
+                <Dropdown ElementType="LogTimeRangeUnit" SelectedElement="logTimeRangeUnit"
+                          SelectedElementChanged="ApplyLogTimeRangeUnit" Elements="Enum.GetValues<LogTimeRangeUnit>()"
+                          ElementToString="@(unit => unit.ToString(userConfig))" InputClass="form-control w-auto" />
             </div>
         </div>
     </form>
@@ -173,6 +167,12 @@ else
         {
             configData.DefaultLogTimeRangeInSeconds = LogTimeRange.ToSeconds(logTimeRangeValue, logTimeRangeUnit);
         }
+    }
+
+    private void ApplyLogTimeRangeUnit(LogTimeRangeUnit unit)
+    {
+        logTimeRangeUnit = unit;
+        ApplyLogTimeRange();
     }
 
     private void AddPath()

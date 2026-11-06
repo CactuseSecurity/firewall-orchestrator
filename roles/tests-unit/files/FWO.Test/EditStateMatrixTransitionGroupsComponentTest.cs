@@ -102,6 +102,17 @@ namespace FWO.Test
         }
 
         [Test]
+        public void AddTransition_DoesNothingWhenNoStatesAreAvailable()
+        {
+            EditStateMatrixTransitionGroups component = new();
+            SetProperty(component, nameof(EditStateMatrixTransitionGroups.States), new List<WfState>());
+
+            Invoke(component, "AddTransition");
+
+            Assert.That(GetField<StateMatrixTransitionGroup>(component, "editGroup").Transitions, Is.Empty);
+        }
+
+        [Test]
         public void AddAndEditGroup_InitializeIndependentEditorState()
         {
             EditStateMatrixTransitionGroups component = new();

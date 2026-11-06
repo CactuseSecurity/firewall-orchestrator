@@ -244,24 +244,18 @@
         <label class="col-form-label col-sm-4">@(userConfig.GetText("accesstoken_lifetime")):</label>
         <div class="col-sm-8 d-inline-flex">
             <input class="me-3 form-control" style="max-width: 90px;" type="number" min="@DynamicAccessTokenLifetimeMinValue" @bind="accessTokenLifetimeValue" />
-            <select style="max-width: 130px;" class="form-select" value="@accessTokenLifetimeUnit" @onchange="@((e) => SetDynamicTokenLifetimeMinValue(e, ref DynamicAccessTokenLifetimeMinValue, ref accessTokenLifetimeValue, ref accessTokenLifetimeUnit))">
-                @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
-                {
-                    <option value="@unit">@unit.ToString(userConfig)</option>
-                }
-            </select>
+            <Dropdown ElementType="TokenLifetimeUnit" SelectedElement="accessTokenLifetimeUnit"
+                      SelectedElementChanged="SetAccessTokenLifetimeUnit" Elements="Enum.GetValues<TokenLifetimeUnit>()"
+                      ElementToString="@(unit => unit.ToString(userConfig))" InputClass="form-control" />
         </div>
     </div>
     <div class="pt-2 form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("refreshtoken_lifetime"))">
         <label class="col-form-label col-sm-4">@(userConfig.GetText("refreshtoken_lifetime")):</label>
         <div class="col-sm-8 d-inline-flex">
             <input class="me-3 form-control" style="max-width: 90px;" type="number" min="@DynamicRefreshTokenLifetimeMinValue" @bind="refreshTokenLifetimeValue" />
-            <select style="max-width: 130px;" class="form-select" value="@refreshTokenLifetimeUnit" @onchange="@((e) => SetDynamicTokenLifetimeMinValue(e, ref DynamicRefreshTokenLifetimeMinValue, ref refreshTokenLifetimeValue, ref refreshTokenLifetimeUnit))">
-                @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
-                {
-                    <option value="@unit">@unit.ToString(userConfig)</option>
-                }
-            </select>
+            <Dropdown ElementType="TokenLifetimeUnit" SelectedElement="refreshTokenLifetimeUnit"
+                      SelectedElementChanged="SetRefreshTokenLifetimeUnit" Elements="Enum.GetValues<TokenLifetimeUnit>()"
+                      ElementToString="@(unit => unit.ToString(userConfig))" InputClass="form-control" />
         </div>
     </div>
     @if (!IsTokenLifetimeValid())
@@ -407,16 +401,32 @@ else
     {
         if (Enum.TryParse<TokenLifetimeUnit>(e.Value?.ToString(), out TokenLifetimeUnit unit))
         {
-            variableMinVal = GetTokenLifetimeMinValue(unit);
-
-            if (variableMinVal > tokenLifetimeVal)
-            {
-                tokenLifetimeVal = variableMinVal;
-            }
-
-            tokenLifetimeUnit = unit;
+            SetDynamicTokenLifetimeMinValue(unit, ref variableMinVal, ref tokenLifetimeVal, ref tokenLifetimeUnit);
         }
     }
+
+    private static void SetDynamicTokenLifetimeMinValue(TokenLifetimeUnit unit,
+        ref int variableMinVal,
+        ref int tokenLifetimeVal,
+        ref TokenLifetimeUnit tokenLifetimeUnit)
+    {
+        variableMinVal = GetTokenLifetimeMinValue(unit);
+
+        if (variableMinVal > tokenLifetimeVal)
+        {
+            tokenLifetimeVal = variableMinVal;
+        }
+
+        tokenLifetimeUnit = unit;
+    }
+
+    private void SetAccessTokenLifetimeUnit(TokenLifetimeUnit unit) =>
+        SetDynamicTokenLifetimeMinValue(unit, ref DynamicAccessTokenLifetimeMinValue,
+            ref accessTokenLifetimeValue, ref accessTokenLifetimeUnit);
+
+    private void SetRefreshTokenLifetimeUnit(TokenLifetimeUnit unit) =>
+        SetDynamicTokenLifetimeMinValue(unit, ref DynamicRefreshTokenLifetimeMinValue,
+            ref refreshTokenLifetimeValue, ref refreshTokenLifetimeUnit);
 
     private bool IsTokenLifetimeValid()
     {

@@ -39,6 +39,7 @@ namespace FWO.Test
             wrapper.WaitForAssertion(() =>
             {
                 Assert.That(wrapper.Find("#cbx_default_iconify"), Is.Not.Null);
+                Assert.That(wrapper.FindComponents<Dropdown<TokenLifetimeUnit>>(), Has.Count.EqualTo(2));
             });
         }
 
@@ -163,6 +164,43 @@ namespace FWO.Test
             });
         }
 
+        [TestCase(TokenLifetimeUnit.Minutes, 5)]
+        [TestCase(TokenLifetimeUnit.Hours, 1)]
+        public void SettingsDefaults_AccessTokenLifetimeUnitUpdatesMinimum(TokenLifetimeUnit unit, int expectedMinimum)
+        {
+            SettingsDefaults component = new();
+            SetPrivateField(component, "accessTokenLifetimeValue", 1);
+            SetPrivateField(component, "accessTokenLifetimeUnit", TokenLifetimeUnit.Hours);
+            SetPrivateField(component, "DynamicAccessTokenLifetimeMinValue", 1);
+
+            InvokePrivate(component, "SetAccessTokenLifetimeUnit", unit);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<TokenLifetimeUnit>(component, "accessTokenLifetimeUnit"), Is.EqualTo(unit));
+                Assert.That(GetPrivateField<int>(component, "DynamicAccessTokenLifetimeMinValue"), Is.EqualTo(expectedMinimum));
+                Assert.That(GetPrivateField<int>(component, "accessTokenLifetimeValue"), Is.EqualTo(expectedMinimum));
+            });
+        }
+
+        [Test]
+        public void SettingsDefaults_RefreshTokenLifetimeUnitUpdatesUnitAndPreservesValidValue()
+        {
+            SettingsDefaults component = new();
+            SetPrivateField(component, "refreshTokenLifetimeValue", 2);
+            SetPrivateField(component, "refreshTokenLifetimeUnit", TokenLifetimeUnit.Hours);
+            SetPrivateField(component, "DynamicRefreshTokenLifetimeMinValue", 1);
+
+            InvokePrivate(component, "SetRefreshTokenLifetimeUnit", TokenLifetimeUnit.Minutes);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<TokenLifetimeUnit>(component, "refreshTokenLifetimeUnit"), Is.EqualTo(TokenLifetimeUnit.Minutes));
+                Assert.That(GetPrivateField<int>(component, "DynamicRefreshTokenLifetimeMinValue"), Is.EqualTo(5));
+                Assert.That(GetPrivateField<int>(component, "refreshTokenLifetimeValue"), Is.EqualTo(5));
+            });
+        }
+
         private static BunitContext CreateContext()
         {
             SimulatedGlobalConfig globalConfig = new()
@@ -257,6 +295,13 @@ namespace FWO.Test
             FieldInfo field = component.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingFieldException(component.GetType().FullName, fieldName);
             return (T)field.GetValue(component)!;
+        }
+
+        private static void InvokePrivate(object component, string methodName, params object?[] parameters)
+        {
+            MethodInfo method = component.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(component.GetType().FullName, methodName);
+            method.Invoke(component, parameters);
         }
 
         private sealed class RecordingMessageSink

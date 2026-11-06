@@ -1,13 +1,15 @@
 using Bunit;
 using FWO.Config.Api;
+using FWO.Ui.Services;
 using FWO.Ui.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Reflection;
 
 namespace FWO.Test
 {
     /// <summary>
-    /// Tests the rules view select, which must not bind its bool value with @bind (empty select, failing change event).
+    /// Tests the rules view selector and its bool binding.
     /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
@@ -16,30 +18,41 @@ namespace FWO.Test
         [SetUp]
         public void SetUpServices()
         {
+            JSInterop.Mode = JSRuntimeMode.Loose;
+            Services.AddSingleton<DomEventService>();
             Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
         }
 
-        [TestCase(false, "false")]
-        [TestCase(true, "true")]
-        public void Render_ShowsCurrentView(bool managementView, string expectedValue)
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Render_ShowsCurrentView(bool managementView)
         {
+            UserConfig userConfig = Services.GetRequiredService<UserConfig>();
             IRenderedComponent<RulesViewSelect> rendered = Render<RulesViewSelect>(parameters => parameters
                 .Add(p => p.Id, "rulesView")
                 .Add(p => p.ManagementRulebaseView, managementView));
 
-            Assert.That(rendered.Find("select#rulesView").GetAttribute("value"), Is.EqualTo(expectedValue));
+            string expectedText = userConfig.GetText(managementView ? "management_rulebases_view" : "gateway_rules_view");
+            Assert.Multiple(() =>
+            {
+                Assert.That(rendered.FindComponent<Dropdown<bool>>(), Is.Not.Null);
+                Assert.That(rendered.Find("input#dropdown-input-rulesView").GetAttribute("value"), Is.EqualTo(expectedText));
+            });
         }
 
-        [TestCase(false, "true", true)]
-        [TestCase(true, "false", false)]
-        public void Change_ReportsSelectedView(bool initialView, string selectedValue, bool expectedView)
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        public async Task Change_ReportsSelectedView(bool initialView, bool expectedView)
         {
             bool? reportedView = null;
             IRenderedComponent<RulesViewSelect> rendered = Render<RulesViewSelect>(parameters => parameters
                 .Add(p => p.ManagementRulebaseView, initialView)
                 .Add(p => p.ManagementRulebaseViewChanged, (bool view) => reportedView = view));
 
-            rendered.Find("select").Change(selectedValue);
+            MethodInfo onChange = typeof(RulesViewSelect).GetMethod("OnChange", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(RulesViewSelect).FullName, "OnChange");
+            object?[] arguments = [expectedView];
+            await rendered.InvokeAsync(() => (Task)onChange.Invoke(rendered.Instance, arguments)!);
 
             Assert.That(reportedView, Is.EqualTo(expectedView));
             Assert.That(rendered.Instance.ManagementRulebaseView, Is.EqualTo(expectedView));

@@ -95,6 +95,105 @@ internal class FlowControllerValidationTest
         });
     }
 
+    [TestCaseSource(nameof(GroupRequestCases))]
+    public void FlowCatalogGroupFilterValidation_AllowsExistingRequestShapes(GroupRequestCase requestCase)
+    {
+        object emptyRoot = requestCase.Deserialize("{}");
+        object emptyFilter = requestCase.Deserialize("""{"filter":{}}""");
+        object visible = requestCase.Deserialize("""{"filter":{"visibleInRequest":true}}""");
+        object hidden = requestCase.Deserialize("""{"filter":{"visibleInRequest":false}}""");
+
+        Assert.Multiple(() =>
+        {
+            AssertGroupRequestValid(emptyRoot, requestCase);
+            AssertGroupRequestValid(emptyFilter, requestCase);
+            AssertGroupRequestValid(visible, requestCase);
+            AssertGroupRequestValid(hidden, requestCase);
+        });
+    }
+
+    [Test]
+    public void FlowCatalogGroupFilterValidation_AllowsSupportedValues()
+    {
+        GetAddressGroupsRequest enabled = JsonSerializer.Deserialize<GetAddressGroupsRequest>(
+            """{"filter":{"visibleInRequest":true,"includeTechnicalDetails":true}}""")!;
+        GetServiceGroupsRequest disabled = JsonSerializer.Deserialize<GetServiceGroupsRequest>(
+            """{"filter":{"includeTechnicalDetails":false}}""")!;
+        GetServiceGroupsRequest unspecified = JsonSerializer.Deserialize<GetServiceGroupsRequest>(
+            """{"filter":{"includeTechnicalDetails":null}}""")!;
+        RequestFilterValidationSchema schema = RequestFilterValidationSchema.ForFlowCatalogGroups("GetAddressGroups");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(enabled.Filter!.IncludeTechnicalDetails, Is.True);
+            Assert.That(disabled.Filter!.IncludeTechnicalDetails, Is.False);
+            Assert.That(unspecified.Filter!.IncludeTechnicalDetails, Is.Null);
+            Assert.That(FlowCatalogGroupFilterValidator.TryValidate(enabled, schema, out ActionResult? enabledError), Is.True);
+            Assert.That(enabledError, Is.Null);
+            Assert.That(FlowCatalogGroupFilterValidator.TryValidate(disabled, schema, out ActionResult? disabledError), Is.True);
+            Assert.That(disabledError, Is.Null);
+            Assert.That(FlowCatalogGroupFilterValidator.TryValidate(unspecified, schema, out ActionResult? unspecifiedError), Is.True);
+            Assert.That(unspecifiedError, Is.Null);
+        });
+    }
+
+    [TestCaseSource(nameof(GroupRequestCases))]
+    public void FlowCatalogGroupFilterValidation_RejectsUnknownKeys(GroupRequestCase requestCase)
+    {
+        object request = requestCase.Deserialize("""{"filter":{"visibleInRequest":true,"typo":1}}""");
+
+        bool valid = FlowCatalogGroupFilterValidator.TryValidate(
+            (IFlowCatalogGroupFilterRequest)request, requestCase.FilterSchema, out ActionResult? error);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain(requestCase.EndpointName));
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'visibleInRequest'"));
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'includeTechnicalDetails'"));
+        });
+    }
+
+    [TestCaseSource(nameof(GroupRequestCases))]
+    public void FlowCatalogGroupFilterValidation_RejectsUnknownRootKeys(GroupRequestCase requestCase)
+    {
+        object request = requestCase.Deserialize("""{"filter":{"visibleInRequest":true},"typo":1}""");
+
+        bool valid = RequestRootValidator.TryValidate(
+            (IRequestWithRootAdditionalData)request, requestCase.RootSchema, out ActionResult? error);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain(requestCase.EndpointName));
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'filter'"));
+        });
+    }
+
+    [TestCase(typeof(GetAddressObjectsRequest), "{\"filter\":{\"includeTechnicalDetails\":true}}")]
+    [TestCase(typeof(GetTimeObjectsRequest), "{\"filter\":{\"includeTechnicalDetails\":true}}")]
+    [TestCase(
+        typeof(GetServiceObjectIdRequest),
+        "{\"filter\":{\"includeTechnicalDetails\":true},\"portStart\":null,\"portEnd\":null,\"protocol\":\"ICMP\"}")]
+    public void VisibleInRequestFilterValidation_RejectsGroupOnlyKey(Type requestType, string json)
+    {
+        object request = JsonSerializer.Deserialize(json, requestType)!;
+
+        bool valid = VisibleInRequestFilterValidator.TryValidate(
+            (IVisibleInRequestFilterRequest)request,
+            RequestFilterValidationSchema.ForVisibleInRequest(requestType.Name),
+            out ActionResult? error);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'visibleInRequest'"));
+        });
+    }
+
     [TestCaseSource(nameof(LookupRequestCases))]
     public void FlowControllerValidation_AllowsLookupRequestShapes(LookupRequestCase requestCase)
     {
@@ -577,28 +676,41 @@ internal class FlowControllerValidationTest
             RequestFilterValidationSchema.ForVisibleInRequest("GetAddressObjects")));
 
         yield return new TestCaseData(new RequestCase(
-            "GetAddressGroups",
-            json => JsonSerializer.Deserialize<GetAddressGroupsRequest>(json)!,
-            RequestRootValidationSchema.ForVisibleInRequest("GetAddressGroups"),
-            RequestFilterValidationSchema.ForVisibleInRequest("GetAddressGroups")));
-
-        yield return new TestCaseData(new RequestCase(
             "GetServiceObjects",
             json => JsonSerializer.Deserialize<GetServiceObjectsRequest>(json)!,
             RequestRootValidationSchema.ForVisibleInRequest("GetServiceObjects"),
             RequestFilterValidationSchema.ForVisibleInRequest("GetServiceObjects")));
 
         yield return new TestCaseData(new RequestCase(
-            "GetServiceGroups",
-            json => JsonSerializer.Deserialize<GetServiceGroupsRequest>(json)!,
-            RequestRootValidationSchema.ForVisibleInRequest("GetServiceGroups"),
-            RequestFilterValidationSchema.ForVisibleInRequest("GetServiceGroups")));
-
-        yield return new TestCaseData(new RequestCase(
             "GetTimeObjects",
             json => JsonSerializer.Deserialize<GetTimeObjectsRequest>(json)!,
             RequestRootValidationSchema.ForVisibleInRequest("GetTimeObjects"),
             RequestFilterValidationSchema.ForVisibleInRequest("GetTimeObjects")));
+    }
+
+    private static IEnumerable<TestCaseData> GroupRequestCases()
+    {
+        yield return new TestCaseData(new GroupRequestCase(
+            "GetAddressGroups",
+            json => JsonSerializer.Deserialize<GetAddressGroupsRequest>(json)!,
+            RequestRootValidationSchema.ForVisibleInRequest("GetAddressGroups"),
+            RequestFilterValidationSchema.ForFlowCatalogGroups("GetAddressGroups")));
+
+        yield return new TestCaseData(new GroupRequestCase(
+            "GetServiceGroups",
+            json => JsonSerializer.Deserialize<GetServiceGroupsRequest>(json)!,
+            RequestRootValidationSchema.ForVisibleInRequest("GetServiceGroups"),
+            RequestFilterValidationSchema.ForFlowCatalogGroups("GetServiceGroups")));
+    }
+
+    private static void AssertGroupRequestValid(object request, GroupRequestCase requestCase)
+    {
+        Assert.That(RequestRootValidator.TryValidate(
+            (IRequestWithRootAdditionalData)request, requestCase.RootSchema, out ActionResult? rootError), Is.True);
+        Assert.That(rootError, Is.Null);
+        Assert.That(FlowCatalogGroupFilterValidator.TryValidate(
+            (IFlowCatalogGroupFilterRequest)request, requestCase.FilterSchema, out ActionResult? filterError), Is.True);
+        Assert.That(filterError, Is.Null);
     }
 
     private static IEnumerable<TestCaseData> LookupRequestCases()
@@ -652,6 +764,12 @@ internal class FlowControllerValidationTest
     }
 
     internal sealed record RequestCase(
+        string EndpointName,
+        Func<string, object> Deserialize,
+        RequestRootValidationSchema RootSchema,
+        RequestFilterValidationSchema FilterSchema);
+
+    internal sealed record GroupRequestCase(
         string EndpointName,
         Func<string, object> Deserialize,
         RequestRootValidationSchema RootSchema,

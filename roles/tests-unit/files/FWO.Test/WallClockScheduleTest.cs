@@ -175,6 +175,28 @@ namespace FWO.Test
             Assert.That(FireTimes(trigger, now, 2), Is.EqualTo(kGapAnchoredOnPastRun));
         }
 
+        /// <summary>
+        /// Rescheduling shortly after a run must retain the run in the spring gap without an immediate misfire.
+        /// </summary>
+        [TestCase(1, false)]
+        [TestCase(60, false)]
+        [TestCase(119, false)]
+        [TestCase(120, false)]
+        [TestCase(60, true)]
+        public void DayTrigger_RescheduledAfterRun_KeepsSpringGapRun(int secondsAfterRun, bool justStarted)
+        {
+            DateTimeOffset now = LocalInstant(2027, 3, 27, 2, 30).AddSeconds(secondsAfterRun);
+            DateTime start = justStarted ? new DateTime(2027, 3, 27, 2, 30, 0) : new DateTime(2027, 1, 1, 2, 30, 0);
+
+            ITrigger trigger = CreateTrigger(start, TimeSpan.FromDays(1), now);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(trigger.StartTimeUtc, Is.LessThanOrEqualTo(now.AddMinutes(-2)));
+                Assert.That(FireTimes(trigger, now, 2), Is.EqualTo(kGapAnchoredOnPastRun));
+            });
+        }
+
         [Test]
         public void DayTrigger_FirstRunInSpringGap_SkipsNonExistentRun()
         {

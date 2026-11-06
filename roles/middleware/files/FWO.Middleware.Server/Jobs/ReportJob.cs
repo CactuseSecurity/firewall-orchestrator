@@ -349,6 +349,9 @@ namespace FWO.Middleware.Server.Jobs
             return new DateTime(dateTime.Ticks - delta, dateTime.Kind);
         }
 
+        /// <summary>
+        /// Rounds an instant down to the check interval in UTC, independently of DST changes.
+        /// </summary>
         private static DateTimeOffset RoundDownInstant(DateTimeOffset instant, TimeSpan roundInterval)
         {
             return new DateTimeOffset(RoundDown(instant.UtcDateTime, roundInterval), TimeSpan.Zero);

@@ -94,6 +94,39 @@ namespace FWO.Test
             Assert.That(jobs[0].IntervalDescription, Is.EqualTo("2d"));
         }
 
+        /// <summary>
+        /// Generated hours-of-day cron schedules retain their configured interval in the monitor.
+        /// </summary>
+        [TestCase(2)]
+        [TestCase(3)]
+        [TestCase(4)]
+        [TestCase(6)]
+        [TestCase(8)]
+        [TestCase(12)]
+        public async Task GetJobs_DescribesHoursOfDayTriggerInHours(int intervalHours)
+        {
+            JobKey job = new("hours-job");
+            DateTimeOffset now = new(2027, 3, 27, 12, 0, 0, TimeSpan.Zero);
+            ITrigger trigger = WallClockSchedule.CreateTrigger(new TriggerKey("hours-trigger"), job,
+                new DateTime(2027, 1, 1, 6, 15, 0), TimeSpan.FromHours(intervalHours), now, TimeZoneInfo.Utc);
+            List<JobHeader> jobHeaders = [CreateJobHeader(job)];
+            List<TriggerHeader> triggerHeaders = [CreateTriggerHeader(trigger, job)];
+            List<ITrigger> triggers = [trigger];
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            scheduler.QueryJobs(Arg.Is<JobQuery>(query => query.Take == PagedQuery.All), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult(jobHeaders)));
+            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == job && query.Take == PagedQuery.All), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult(triggerHeaders)));
+            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.Count == 1 && keys.Contains(trigger.Key)), CancellationToken.None)
+                .Returns(ValueTask.FromResult(triggers));
+            SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
+
+            List<SchedulerJobInfo> jobs = (await controller.GetJobs()).ToList();
+
+            Assert.That(jobs, Has.Count.EqualTo(1));
+            Assert.That(jobs[0].IntervalDescription, Is.EqualTo($"{intervalHours}h"));
+        }
+
         [Test]
         public async Task Run_ReturnsBadRequestWhenJobNameIsMissing()
         {

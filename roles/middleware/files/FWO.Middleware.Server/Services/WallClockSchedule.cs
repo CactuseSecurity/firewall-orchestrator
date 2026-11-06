@@ -32,10 +32,16 @@ namespace FWO.Middleware.Server.Services
     /// once and repeating it in absolute time would shift the job by the DST difference after every switch.
     /// Day and hour-of-day schedules are therefore evaluated in the given time zone. A start time that does not
     /// exist on a spring switch day runs at the first valid time after the gap; a start time that occurs twice
-    /// on an autumn switch day runs only once, at its first occurrence.
+    /// on an autumn switch day runs only once, at its first occurrence. A future first run of a day schedule
+    /// inside the spring gap is skipped so later runs retain the configured time of day.
     /// </remarks>
     public static class WallClockSchedule
     {
+        /// <summary>
+        /// Trigger data key retaining the configured interval for the scheduler monitor.
+        /// </summary>
+        internal const string kIntervalTicks = "WallClockIntervalTicks";
+
         private const int kHoursPerDay = 24;
         private const int kMaxGapMinutes = kHoursPerDay * 60;
         private const string kLogTimeFormat = "yyyy-MM-dd HH:mm:ss zzz";
@@ -147,6 +153,9 @@ namespace FWO.Middleware.Server.Services
             return localFireTime.ToString(kLogTimeFormat, CultureInfo.InvariantCulture);
         }
 
+        /// <summary>
+        /// Builds a calendar trigger preserving the configured time of day across DST changes.
+        /// </summary>
         private static ITrigger BuildDayTrigger(TriggerBuilder<IJob> builder, DateTime start, TimeSpan interval, DateTimeOffset now, TimeZoneInfo zone)
         {
             DateTime nextOccurrence = GetNextWallClockOccurrence(start, interval, now, zone);
@@ -174,19 +183,23 @@ namespace FWO.Middleware.Server.Services
                 return nextOccurrence;
             }
 
-            // The next run falls into the spring gap. Anchor on the previous (past) run instead: Quartz
-            // treats it as misfired and, with DoNothing, continues at the next valid time after the gap.
-            DateTime previousOccurrence = nextOccurrence - interval;
-            bool previousIsSafelyPast = ToInstant(previousOccurrence, zone) <= now - kMisfireSafetyMargin;
-            if (previousOccurrence >= start && previousIsSafelyPast)
+            if (ToInstant(start, zone) > now)
             {
-                return previousOccurrence;
+                // A future first run cannot be anchored in the past without starting before the configured date.
+                return nextOccurrence + interval;
             }
 
-            // No usable past run: the non-existent first run is skipped.
-            return nextOccurrence + interval;
+            // Anchor on a past run so DoNothing advances to the end of the gap. If the last run is too
+            // recent, one additional day interval puts the anchor safely beyond the misfire threshold.
+            DateTime previousOccurrence = nextOccurrence - interval;
+            return ToInstant(previousOccurrence, zone) <= now - kMisfireSafetyMargin
+                ? previousOccurrence
+                : previousOccurrence - interval;
         }
 
+        /// <summary>
+        /// Builds a cron trigger firing at fixed wall-clock slots throughout each day.
+        /// </summary>
         private static ITrigger BuildHoursOfDayTrigger(TriggerBuilder<IJob> builder, DateTime start, TimeSpan interval, DateTimeOffset now, TimeZoneInfo zone)
         {
             string cronExpression = BuildHoursOfDayCronExpression(start, interval);
@@ -195,6 +208,7 @@ namespace FWO.Middleware.Server.Services
 
             return builder
                 .StartAt(startAt)
+                .UsingJobData(kIntervalTicks, interval.Ticks)
                 .WithCronSchedule(cronExpression, schedule => schedule
                     .InTimeZone(zone)
                     .WithMisfireInstruction(CronTriggerMisfireInstruction.DoNothing))
@@ -219,6 +233,9 @@ namespace FWO.Middleware.Server.Services
             return $"{start.Second} {start.Minute} {hourList} * * ?";
         }
 
+        /// <summary>
+        /// Builds a trigger repeating at fixed intervals in absolute time.
+        /// </summary>
         private static ITrigger BuildFixedIntervalTrigger(TriggerBuilder<IJob> builder, DateTime start, TimeSpan interval, DateTimeOffset now, TimeZoneInfo zone)
         {
             DateTime nowWallClock = TimeZoneInfo.ConvertTime(now, zone).DateTime;
@@ -277,6 +294,9 @@ namespace FWO.Middleware.Server.Services
             return instant.AddTicks(steps * interval.Ticks);
         }
 
+        /// <summary>
+        /// Finds the first valid minute after a spring gap, probing at most one day.
+        /// </summary>
         private static DateTime GetEndOfGap(DateTime local, TimeZoneInfo zone)
         {
             DateTime probe = new(local.Year, local.Month, local.Day, local.Hour, local.Minute, 0, DateTimeKind.Unspecified);

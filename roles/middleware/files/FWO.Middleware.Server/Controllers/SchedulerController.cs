@@ -118,6 +118,9 @@ namespace FWO.Middleware.Server.Controllers
             return true;
         }
 
+        /// <summary>
+        /// Describes the repeat interval of the first recurring trigger, falling back to its cron expression.
+        /// </summary>
         private static string DescribeTriggers(IEnumerable<ITrigger> triggers)
         {
             foreach (ITrigger trigger in triggers)
@@ -134,6 +137,11 @@ namespace FWO.Middleware.Server.Controllers
 
                 if (trigger is ICronTrigger cron)
                 {
+                    if (cron.JobDataMap.TryGetValue(WallClockSchedule.kIntervalTicks, out object? value)
+                        && value is long intervalTicks && intervalTicks > 0)
+                    {
+                        return FormatInterval(TimeSpan.FromTicks(intervalTicks));
+                    }
                     return cron.CronExpressionString ?? "";
                 }
             }
@@ -141,6 +149,9 @@ namespace FWO.Middleware.Server.Controllers
             return "";
         }
 
+        /// <summary>
+        /// Formats a calendar interval using the same duration units as a simple trigger.
+        /// </summary>
         private static string FormatCalendarInterval(ICalendarIntervalTrigger trigger)
         {
             return trigger.RepeatIntervalUnit switch

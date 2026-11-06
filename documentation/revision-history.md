@@ -3,7 +3,7 @@
 ## 9.9.0 - 04.11.2026
 - workflow monitoring: tickets are shown in a tree table (request tasks, implementation tasks and approvals below each ticket) that loads only the current page; column filters (state, id, requester) and sorting are executed in the database and apply to all tickets, a match on any level of a ticket finds the ticket and negated filters only find tickets where no level matches; there is no free text search
 - workflow monitoring: the state column shows an icon behind the name of each default workflow state (e.g. a green check for "Done"); custom states are shown without icon
-- dependencies: update NuGet package SoPro.FancyTable to 1.4.0 (server-side paging, filters and sorting)
+- dependencies: update NuGet package SoPro.FancyTable to 1.5.0 (server-side paging, filters and sorting, filter operators per column)
 - Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs
   - login with a service principal (client credentials flow); client id and secret are taken from the additional credential, otherwise from the import credential; tenant and subscription from the management's cloud settings, the resource group from the config path
   - the firewall policy of a device is its local rulebase name, otherwise the device name; each policy becomes a rulebase, each device a gateway

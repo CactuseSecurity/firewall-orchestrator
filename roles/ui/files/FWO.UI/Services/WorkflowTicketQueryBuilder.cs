@@ -11,7 +11,8 @@ namespace FWO.Ui.Services
     /// <summary>
     /// Translates the state of the workflow monitoring tree table (column filters, sort, page) and the
     /// page's task type and state dropdowns into the variables of the paged ticket query.
-    /// The state and id columns compare ids, so the database can answer them quickly. The requester column
+    /// The state and id columns compare ids, so the database can answer them quickly; the id column only supports
+    /// "equals" and "does not equal", other operators on it are ignored. The requester column
     /// compares the user name of the ticket's requester only, a lookup by primary key in the small user table.
     /// Free text search and other text filters are not offered, as a "contains" match over all levels is too slow
     /// on many tickets. A filter matches if any level of a ticket (ticket, request task, implementation task, approval)
@@ -36,7 +37,6 @@ namespace FWO.Ui.Services
         private const string kWildcard = "%";
 
         private static readonly Dictionary<string, object> kNoMatchCondition = new() { ["id"] = new Dictionary<string, object> { ["_is_null"] = true } };
-        private static readonly Dictionary<string, object> kMatchAllCondition = [];
         private static readonly Dictionary<string, object> kDefaultOrder = new() { ["id"] = kDescending };
 
         /// <summary>
@@ -102,7 +102,7 @@ namespace FWO.Ui.Services
             Dictionary<string, object>? positiveCondition = filter.Key switch
             {
                 "state" => StateCondition(MatchingStateIds(positiveOperator, value, stateNames)),
-                "id" => NumberCondition(positiveOperator, value, IdCondition),
+                "id" => IdFilterCondition(positiveOperator, value),
                 "requester" => RequesterCondition(TextComparison(positiveOperator, value)),
                 _ => null
             };
@@ -171,17 +171,17 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Numeric columns only compare for equality; non-numeric input matches no ticket, "is not empty" matches every ticket.
+        /// The id filter only compares for equality, so the id column offers "equals" and "does not equal" only.
+        /// Other operators are ignored like by the table itself instead of being reinterpreted; non-numeric input matches no ticket.
         /// </summary>
-        private static Dictionary<string, object> NumberCondition(FancyColumnFilterOperator positiveOperator, string value,
-            Func<long, Dictionary<string, object>> equalsCondition)
+        private static Dictionary<string, object>? IdFilterCondition(FancyColumnFilterOperator positiveOperator, string value)
         {
-            if (positiveOperator == FancyColumnFilterOperator.IsNotEmpty)
+            if (positiveOperator != FancyColumnFilterOperator.Equals)
             {
-                return kMatchAllCondition;
+                return null;
             }
 
-            return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long number) ? equalsCondition(number) : kNoMatchCondition;
+            return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long id) ? IdCondition(id) : kNoMatchCondition;
         }
 
         private static Dictionary<string, object> StateCondition(IReadOnlyCollection<int> stateIds)

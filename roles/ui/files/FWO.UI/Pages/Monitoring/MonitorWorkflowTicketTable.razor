@@ -115,6 +115,10 @@
     private static readonly ColumnBehavior kFilterOnlyColumn = kServerColumn with { Sortable = false };
     private static readonly ColumnBehavior kDisplayColumn = kServerColumn with { Sortable = false, Filterable = false };
 
+    // The id filter compares ids exactly (see WorkflowTicketQueryBuilder), so text operators like "contains" are not offered.
+    private static readonly IReadOnlyList<FancyColumnFilterOperator> kExactFilterOperators = [FancyColumnFilterOperator.Equals, FancyColumnFilterOperator.NotEquals];
+    private static readonly ColumnBehavior kIdColumn = kServerColumn with { FilterOperators = kExactFilterOperators };
+
     #endregion
 
     #region Fields
@@ -195,7 +199,7 @@
                 Filterable = kDisplayColumn.Filterable,
                 CellTemplate = ActionsCellTemplate
             },
-            CreateColumn("id", userConfig.GetText("id"), row => row.Id.ToString(), kServerColumn, row => row.Id),
+            CreateColumn("id", userConfig.GetText("id"), row => row.Id.ToString(), kIdColumn, row => row.Id),
             CreateColumn("type", userConfig.GetText("type"), row => GetKindText(row.Kind), kDisplayColumn),
             CreateColumn("name", userConfig.GetText("name"), row => row.Name, kSortOnlyColumn),
             CreateColumn("tasks", userConfig.GetText("tasks"), row => row.TaskCount?.ToString() ?? "", kDisplayColumn, row => row.TaskCount),
@@ -225,6 +229,7 @@
             CellTemplate = cellTemplate,
             Resizable = behavior.Resizable,
             Filterable = behavior.Filterable,
+            FilterOperators = behavior.FilterOperators,
             MinWidth = kColumnMinWidth
         };
     }
@@ -322,9 +327,10 @@
     #region Nested Types
 
     /// <summary>
-    /// Defines which interactions a column supports.
+    /// Defines which interactions a column supports. Filter operators are all operators if null.
     /// </summary>
-    private readonly record struct ColumnBehavior(bool Hideable, bool Resizable, bool Sortable, bool Filterable);
+    private readonly record struct ColumnBehavior(bool Hideable, bool Resizable, bool Sortable, bool Filterable,
+        IReadOnlyList<FancyColumnFilterOperator>? FilterOperators = null);
 
     /// <summary>
     /// Kind of workflow object shown in a tree row.

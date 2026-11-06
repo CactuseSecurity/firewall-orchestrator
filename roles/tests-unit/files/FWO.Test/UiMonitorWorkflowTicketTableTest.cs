@@ -123,6 +123,20 @@ namespace FWO.Test
             });
         }
 
+        [TestCase("id", "Equals,NotEquals")]
+        [TestCase("state", "Equals,NotEquals,Contains,NotContains,StartsWith,EndsWith,IsEmpty,IsNotEmpty")]
+        [TestCase("requester", "Equals,NotEquals,Contains,NotContains,StartsWith,EndsWith,IsEmpty,IsNotEmpty")]
+        public void FilterPopup_OffersOnlyOperatorsTheServerSupports(string columnKey, string expectedOperators)
+        {
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { CreateTicket() });
+
+            string header = $"th[data-column-key='{columnKey}']";
+            component.Find($"{header} button.fancy-filter-button").Click();
+
+            List<string?> offeredOperators = [.. component.FindAll($"{header} select option").Select(option => option.GetAttribute("value"))];
+            Assert.That(string.Join(",", offeredOperators), Is.EqualTo(expectedOperators));
+        }
+
         [Test]
         public void Render_ShowsTicketRowsWithResolvedStateAndCollapsedChildren()
         {

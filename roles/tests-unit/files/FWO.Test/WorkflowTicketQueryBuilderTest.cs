@@ -130,12 +130,17 @@ namespace FWO.Test
             Assert.That(condition, Is.EqualTo(Negated(StateCondition("200,210,600"))));
         }
 
-        [Test]
-        public void IdFilter_IsNotEmpty_MatchesAll()
+        [TestCase(FancyColumnFilterOperator.Contains, "7")]
+        [TestCase(FancyColumnFilterOperator.NotContains, "7")]
+        [TestCase(FancyColumnFilterOperator.StartsWith, "7")]
+        [TestCase(FancyColumnFilterOperator.EndsWith, "7")]
+        [TestCase(FancyColumnFilterOperator.IsEmpty, null)]
+        [TestCase(FancyColumnFilterOperator.IsNotEmpty, null)]
+        public void IdFilter_UnsupportedOperator_AddsNoCondition(FancyColumnFilterOperator filterOperator, string? value)
         {
-            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("id", FancyColumnFilterOperator.IsNotEmpty))));
+            WorkflowTicketQuery query = Build(Request(filter: new FancyColumnFilter("id", filterOperator, value)));
 
-            Assert.That(condition, Is.EqualTo("{}"));
+            Assert.That(ToJson(query.Where), Is.EqualTo(Normalize($$$"""{"_and":[{{{kTaskTypeCondition}}},{{{kStateCondition}}}]}""")));
         }
 
         [Test]

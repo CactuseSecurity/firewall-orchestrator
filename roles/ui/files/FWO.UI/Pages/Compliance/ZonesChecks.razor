@@ -171,11 +171,11 @@
 	{
 		List<IPAddressRange> ranges = [];
 
-		if (networkObject.Type == new NetworkObjectType() { Name = ObjectType.IPRange })
+		if (networkObject.Type.Name == ObjectType.IPRange)
 		{
 			ranges.Add(IPAddressRange.Parse($"{networkObject.IP}-{networkObject.IpEnd}"));
 		}
-		else if (networkObject.Type != new NetworkObjectType() { Name = ObjectType.Group })
+		else if (networkObject.Type.Name != ObjectType.Group)
 		{
 			for (int j = 0; j < networkObject.ObjectGroupFlats.Length; j++)
 			{

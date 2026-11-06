@@ -33,7 +33,7 @@ namespace FWO.Middleware.Client
         public MiddlewareClient(string middlewareServerUri) : base(middlewareServerUri + "api/", checkCertificates: true)
         { }
 
-        public async Task<RestResponse<TokenPair>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
+        public virtual async Task<RestResponse<TokenPair>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
         {
             RestRequest request = new("AuthenticationToken/GetTokenPair", Method.Post);
             request.AddJsonBody(parameters);

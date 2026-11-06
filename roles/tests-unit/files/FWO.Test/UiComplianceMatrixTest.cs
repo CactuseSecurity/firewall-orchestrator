@@ -7,6 +7,8 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Services;
 using FWO.Ui.Pages.Compliance;
+using FWO.Ui.Services;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -170,6 +172,187 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task ComplianceMatrix_WithoutAllowedRole_SkipsLoading()
+        {
+            MatrixApiConnection apiConnection = new();
+            UserConfig userConfig = UserConfig.ForTextOnly(new SimulatedGlobalConfig());
+
+            await using BunitContext context = CreateContext(apiConnection, userConfig);
+            IRenderedComponent<CascadingAuthenticationState> root = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<ComplianceMatrix>());
+
+            root.WaitForAssertion(() => Assert.That(root.FindAll("#add-auto-calculated-internet-zone"), Is.Empty));
+            Assert.That(apiConnection.NetworkZoneLoads, Is.Zero);
+        }
+
+        [Test]
+        public async Task ComplianceMatrix_EmptyMatrices_ShowsNoNetworkZones()
+        {
+            MatrixApiConnection apiConnection = new() { Matrices = new List<ComplianceCriterion>() };
+            UserConfig userConfig = CreateAdminUserConfig(new SimulatedGlobalConfig());
+
+            await using BunitContext context = CreateContext(apiConnection, userConfig);
+            IRenderedComponent<CascadingAuthenticationState> root = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<ComplianceMatrix>());
+            NetworkZoneService networkZoneService = context.Services.GetRequiredService<NetworkZoneService>();
+
+            root.WaitForAssertion(() =>
+            {
+                Assert.That(networkZoneService.NetworkZones, Is.Empty);
+                Assert.That(root.FindAll("table tbody tr"), Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task ComplianceMatrix_ReadonlyMatrix_DisallowsDelete()
+        {
+            MatrixApiConnection apiConnection = new MatrixApiConnection
+            {
+                Matrices = new List<ComplianceCriterion>
+                {
+                    new ComplianceCriterion { Id = 1, Name = "Imported", ImportSource = "import" }
+                }
+            };
+            SimulatedGlobalConfig globalConfig = new() { ImportedMatrixReadOnly = true };
+            UserConfig userConfig = CreateAdminUserConfig(globalConfig);
+
+            await using BunitContext context = CreateContext(apiConnection, userConfig);
+            IRenderedComponent<CascadingAuthenticationState> root = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<ComplianceMatrix>());
+            ComplianceMatrix component = root.FindComponent<ComplianceMatrix>().Instance;
+
+            await root.InvokeAsync(() => InvokePrivateTask(component, "RequestDeleteMatrix"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<bool>(component, "deleteMatrixMode"), Is.True);
+                Assert.That(GetPrivateField<bool>(component, "deleteAllowed"), Is.False);
+                Assert.That(GetPrivateField<string>(component, "deleteMessage"), Is.Not.Empty);
+            });
+        }
+
+        [Test]
+        public async Task ComplianceMatrix_LinkedMatrix_DisallowsDelete()
+        {
+            MatrixApiConnection apiConnection = new MatrixApiConnection
+            {
+                LinkedPolicies = new List<LinkedPolicy> { new LinkedPolicy { PolicyId = 7 } }
+            };
+            UserConfig userConfig = CreateAdminUserConfig(new SimulatedGlobalConfig());
+
+            await using BunitContext context = CreateContext(apiConnection, userConfig);
+            IRenderedComponent<CascadingAuthenticationState> root = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<ComplianceMatrix>());
+            ComplianceMatrix component = root.FindComponent<ComplianceMatrix>().Instance;
+
+            await root.InvokeAsync(() => InvokePrivateTask(component, "RequestDeleteMatrix"));
+
+            Assert.That(GetPrivateField<bool>(component, "deleteAllowed"), Is.False);
+        }
+
+        [Test]
+        public async Task ComplianceMatrix_DeleteUnusedMatrix_RemovesMatrix()
+        {
+            MatrixApiConnection apiConnection = new();
+            UserConfig userConfig = CreateAdminUserConfig(new SimulatedGlobalConfig());
+
+            await using BunitContext context = CreateContext(apiConnection, userConfig);
+            IRenderedComponent<CascadingAuthenticationState> root = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<ComplianceMatrix>());
+            ComplianceMatrix component = root.FindComponent<ComplianceMatrix>().Instance;
+
+            await root.InvokeAsync(() => InvokePrivateTask(component, "DeleteMatrix"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.RemovedCriterionCalls, Is.EqualTo(1));
+                Assert.That(GetPrivateField<List<ComplianceCriterion>>(component, "matrices"), Is.Empty);
+                Assert.That(GetPrivateField<bool>(component, "deleteMatrixMode"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task ComplianceMatrix_CommitChanges_SendsUpdateAndShowsSuccess()
+        {
+            MatrixApiConnection apiConnection = new();
+            UserConfig userConfig = CreateAdminUserConfig(new SimulatedGlobalConfig());
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages =
+                new List<(Exception? Exception, string Title, string Message, bool IsError)>();
+
+            await using BunitContext context = CreateContext(apiConnection, userConfig, messages);
+            IRenderedComponent<CascadingAuthenticationState> root = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<CascadingValue<Action<Exception?, string, string, bool>>>(child => child
+                    .Add(value => value.Value, (Action<Exception?, string, string, bool>)((exception, title, message, isError) =>
+                        messages.Add((exception, title, message, isError))))
+                    .AddChildContent<ComplianceMatrix>()));
+            ComplianceMatrix component = root.FindComponent<ComplianceMatrix>().Instance;
+            List<NetworkZone> zones = context.Services.GetRequiredService<NetworkZoneService>().NetworkZones;
+            root.WaitForAssertion(() => Assert.That(zones, Is.Not.Empty));
+            SetPrivateField(component, "addCommunication", new List<(NetworkZone, NetworkZone)> { (zones[0], zones[0]) });
+            SetPrivateField(component, "deleteCommunication", new List<(NetworkZone, NetworkZone)> { (zones[0], zones[0]) });
+
+            await root.InvokeAsync(() => InvokePrivateTask(component, "CommitChanges"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpdateNetworkZoneCommunicationCalls, Is.EqualTo(1));
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].IsError, Is.False, messages[0].Exception?.ToString() ?? messages[0].Message);
+                Assert.That(GetPrivateField<bool>(component, "editMode"), Is.False);
+            });
+        }
+
+        private static UserConfig CreateAdminUserConfig(SimulatedGlobalConfig globalConfig)
+        {
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            userConfig.User.Roles = new List<string> { Roles.Admin };
+            userConfig.SetExecutionMode(Roles.Admin);
+            return userConfig;
+        }
+
+        private static BunitContext CreateContext(MatrixApiConnection apiConnection, UserConfig userConfig,
+            List<(Exception? Exception, string Title, string Message, bool IsError)>? messages = null)
+        {
+            BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton(userConfig);
+            context.Services.AddSingleton(new NetworkZoneService());
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(userConfig.User.Roles.FirstOrDefault() ?? ""));
+            context.Services.AddLocalization();
+            if (messages != null)
+            {
+                context.Services.AddSingleton<Action<Exception?, string, string, bool>>((exception, title, message, isError) =>
+                    messages.Add((exception, title, message, isError)));
+            }
+            return context;
+        }
+
+        private static async Task InvokePrivateTask(object instance, string methodName)
+        {
+            MethodInfo method = instance.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(instance.GetType().FullName, methodName);
+            await (Task)(method.Invoke(instance, null) ?? throw new InvalidOperationException($"Method {methodName} returned null."));
+        }
+
+        private static T GetPrivateField<T>(object instance, string fieldName)
+        {
+            FieldInfo field = instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(instance.GetType().FullName, fieldName);
+            return (T)(field.GetValue(instance) ?? throw new InvalidOperationException($"Field {fieldName} is null."));
+        }
+
+        private static void SetPrivateField<T>(object instance, string fieldName, T value)
+        {
+            FieldInfo field = instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(instance.GetType().FullName, fieldName);
+            field.SetValue(instance, value);
+        }
+
         private sealed class MatrixApiConnection : SimulatedApiConnection
         {
             private readonly List<NetworkZone> networkZones = new()
@@ -177,11 +360,18 @@ namespace FWO.Test
                 new NetworkZone { Id = 1, IdString = "manual-zone", Name = "Manual zone" }
             };
 
+            public List<ComplianceCriterion> Matrices { get; init; } = new List<ComplianceCriterion>
+            {
+                new ComplianceCriterion { Id = 1, Name = "Manual matrix" }
+            };
+            public List<LinkedPolicy> LinkedPolicies { get; init; } = new List<LinkedPolicy>();
             public int AutoCalculatedInternetZoneAdditions { get; private set; }
             public int AutoCalculatedUndefinedInternalZoneRemovals { get; private set; }
             public int NetworkZoneLoads { get; private set; }
             public bool DelayAutoCalculatedInternetZoneAddition { get; init; }
             public bool ThrowWhenAddingAutoCalculatedInternetZone { get; init; }
+            public int RemovedCriterionCalls { get; private set; }
+            public int UpdateNetworkZoneCommunicationCalls { get; private set; }
             public TaskCompletionSource<object?> AutoCalculatedInternetZoneAdditionStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
             public TaskCompletionSource<object?> ReleaseAutoCalculatedInternetZoneAddition { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -189,11 +379,24 @@ namespace FWO.Test
             {
                 if (query == ComplianceQueries.getMatrices && typeof(QueryResponseType) == typeof(List<ComplianceCriterion>))
                 {
-                    List<ComplianceCriterion> matrices = new()
-                    {
-                        new ComplianceCriterion { Id = 1, Name = "Manual matrix" }
-                    };
-                    return Task.FromResult((QueryResponseType)(object)matrices);
+                    return Task.FromResult((QueryResponseType)(object)Matrices);
+                }
+
+                if (query == ComplianceQueries.getPolicyIdsForCrit && typeof(QueryResponseType) == typeof(List<LinkedPolicy>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)LinkedPolicies);
+                }
+
+                if (query == ComplianceQueries.removeCriterion)
+                {
+                    RemovedCriterionCalls++;
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
+
+                if (query == ComplianceQueries.updateNetworkZoneCommunication)
+                {
+                    UpdateNetworkZoneCommunicationCalls++;
+                    return Task.FromResult(default(QueryResponseType)!);
                 }
 
                 if (query == NetworkZoneQueries.getNetworkZonesForMatrix && typeof(QueryResponseType) == typeof(List<NetworkZone>))

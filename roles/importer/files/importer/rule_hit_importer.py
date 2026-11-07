@@ -1,3 +1,13 @@
+"""
+import_rule_hits: rule hit import run of a single management (requested by the middleware scheduler).
+
+The regular import does not write last hits; this run reads the last hit of all rules per gateway from the
+firewall management and stores the changed ones, holding the import lock of the management meanwhile
+(import_control row of type rule hit, which never counts as configuration change).
+
+Expects service_provider to be initialized and the import state to be registered.
+"""
+
 from __future__ import annotations
 
 import traceback
@@ -14,14 +24,7 @@ if TYPE_CHECKING:
     from fwo_api_call import FwoApiCall
     from model_controllers.import_state_controller import ImportStateController
 
-"""
-    import_rule_hits: rule hit import run of a single management (requested by the middleware scheduler)
-    the regular import does not write last hits; this run reads the last hit of all rules per gateway from the
-    firewall management and stores the changed ones, holding the import lock of the management meanwhile
-    (import_control row of type rule hit, which never counts as configuration change)
-
-    expects service_provider to be initialized and the import state to be registered
-"""
+RULE_HIT_IMPORT_ALERT_SEVERITY = 2
 
 
 def import_rule_hits(api_call: FwoApiCall) -> bool:
@@ -90,10 +93,10 @@ def _run_locked_rule_hit_import(import_state: ImportStateController, api_call: F
             import_id=import_state.state.import_id,
             title="rule hit import error",
             mgm_id=mgm_details.mgm_id,
-            severity=2,
+            severity=RULE_HIT_IMPORT_ALERT_SEVERITY,
             description=f"rule hit import failed: {type(exception).__name__}: {exception!s}",
             source="import",
-            alert_code=14,
+            alert_code=fwo_const.ALERT_CODE_IMPORT_ERROR_UNSPECIFIC,
             mgm_details=mgm_details,
         )
         return False

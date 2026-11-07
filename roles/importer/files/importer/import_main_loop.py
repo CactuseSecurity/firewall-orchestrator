@@ -36,6 +36,8 @@ from model_controllers.management_controller import (
 from rule_hit_importer import import_rule_hits
 from services.service_provider import ServiceProvider
 
+SHUTDOWN_REQUESTED_MESSAGE = "import_main_loop - shutdown requested"
+
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
     try:
@@ -52,7 +54,7 @@ def wait_with_shutdown_check(sleep_time: int):
     def exit_if_shutdown_requested():
         if fwo_globals.shutdown_requested:
             FWOLogger.info("import_main_loop - shutdown requested. Exiting...")
-            raise SystemExit("import_main_loop - shutdown requested")
+            raise SystemExit(SHUTDOWN_REQUESTED_MESSAGE)
 
     exit_if_shutdown_requested()
     counter = 0
@@ -125,7 +127,7 @@ def import_single_management(
             suppress_consistency_check=suppress_consistency_check,
         )
     except (KeyboardInterrupt, ShutdownRequestedError) as e:
-        raise SystemExit("import_main_loop - shutdown requested") from e
+        raise SystemExit(SHUTDOWN_REQUESTED_MESSAGE) from e
     except (FwoApiFailedLockImportError, FwLoginFailedError):
         FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
         return  # minor errors for a single mgm, go to next one
@@ -157,7 +159,7 @@ def import_rule_hits_single_management(
         register_global_state(import_state)
         import_rule_hits(fwo_api_call)
     except (KeyboardInterrupt, ShutdownRequestedError) as e:
-        raise SystemExit("import_main_loop - shutdown requested") from e
+        raise SystemExit(SHUTDOWN_REQUESTED_MESSAGE) from e
     except Exception:
         FWOLogger.error(
             f"import_main_loop - error during rule hit import of mgm_id={mgm_id}, {traceback.format_exc()!s}"

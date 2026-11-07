@@ -157,7 +157,7 @@ class FwoImporterError(Exception):
 class RuleHitsNotSupportedError(FwoImporterError):
     """Custom exception to signal that an importer module cannot read rule hits."""
 
-    def __init__(self, message: str = "the importer module of this management cannot read rule hits"):
+    def __init__(self, message: str = "the importer module of this management cannot read rule hits") -> None:
         super().__init__(message)
 
 

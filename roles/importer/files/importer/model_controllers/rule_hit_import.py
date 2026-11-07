@@ -42,7 +42,7 @@ class RuleHitImport:
     Neither value is ever cleared.
     """
 
-    def __init__(self, import_state: ImportStateController):
+    def __init__(self, import_state: ImportStateController) -> None:
         self.import_state = import_state
 
     def write_rule_hits(self, rule_hits: list[RuleHit]) -> RuleHitWriteResult:

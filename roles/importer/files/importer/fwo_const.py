@@ -58,6 +58,10 @@ IMPORT_SKIP_UNSUPPORTED_RULES_KEY = "importSkipUnsupportedRules"
 # import_control.import_type_id (table stm_import): configuration import and rule hit import
 IMPORT_TYPE_RULE = 1
 IMPORT_TYPE_RULE_HIT = 5
+# unique index allowing a single running import (stop_time null) per management: violating it means "locked"
+IMPORT_LOCK_INDEX_NAME = "uidx_import_control_only_one_null_stop_time_per_mgm_when_null"
+# alert code of an import error (AlertCode.ImportErrorUnspecific)
+ALERT_CODE_IMPORT_ERROR_UNSPECIFIC = 14
 
 EMPTY_NORMALIZED_FW_CONFIG_JSON_DICT: dict[str, list[Any]] = {  # TYPING: DO NOT USE THIS!!!!
     "network_objects": [],

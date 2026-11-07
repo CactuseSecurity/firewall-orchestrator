@@ -270,3 +270,6 @@ For a feature-centric, thematically grouped view see
 - Azure parent policies (policy hierarchy) are imported; their rules precede the rules of the child policy.
 - Azure gateway autodiscovery: finds the Azure Firewalls of the subscription and maps each to its firewall policy.
 - New importer setting "Skip unsupported rules": rules that cannot be represented (currently Azure geo-location filters) are skipped with a warning or fail the import.
+
+### 9.9.1 — 07.11.2026
+- Rule hit import: a separate, scheduled import run refreshes the last hit of all rules, also for unchanged configurations; the regular import no longer reads hits. Last hits are stored per gateway (Check Point per gateway, FortiManager per policy package).

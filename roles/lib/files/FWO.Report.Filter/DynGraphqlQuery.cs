@@ -285,7 +285,7 @@ namespace FWO.Report.Filter
                     {{
                         id: mgm_id
                         name: mgm_name
-        		        import_controls {{
+        		        import_controls(where: {{import_type_id: {{_eq: 1}}}}) {{
                             control_id
                             start_time
                             stop_time

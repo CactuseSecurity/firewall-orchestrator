@@ -1,0 +1,12 @@
+query getRuleHitsOfManagements($mgmIds: [Int!]!) {
+  firewall_rule_metadata(where: { mgm_id: { _in: $mgmIds } }) {
+    rule_metadata_id
+    mgm_id
+    rule_uid
+    rule_last_hit
+    rule_hits {
+      dev_id
+      rule_last_hit
+    }
+  }
+}

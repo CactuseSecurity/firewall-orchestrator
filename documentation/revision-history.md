@@ -1,5 +1,15 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.1 - 07.11.2026
+- importer: last hits are read by a separate rule hit import instead of the regular import (#3297)
+  - the regular import no longer reads or writes last hits (Check Point no longer requests hits), so unchanged Check Point configurations no longer leave last hits outdated
+  - the new middleware scheduler "ImportRuleHitsJob" requests a rule hit import for every imported top-level management (table `rule_hit_import_request`); the responsible importer runs it right after the configuration import of the management and removes the request
+  - schedule: new importer settings `importRuleHitsSleepTime`, `importRuleHitsSleepTimeUnit` (minutes, hours, days) and `importRuleHitsStartAt`; default once a day at 00:00, 0 switches it off
+  - the run holds the import lock of the management as `import_control` row of the new import type 5 "rule hit", which never counts as configuration change; a management locked by a running import is skipped until the next request; failures raise an import error alert
+  - last hits are stored per gateway in the new table `firewall.rule_hit`; `rule_metadata.rule_last_hit` keeps the latest hit across all gateways and never moves backwards, so reports and filters are unchanged
+  - Check Point: hits are fetched per gateway (`hits-settings.target`); global layers of a multi-domain server are not covered. FortiManager: the last hit of the policy package is stored for every gateway using the package
+  - manual run: `import_mgm.py -m <mgm_id> --rule_hits`
+  - "last import" queries (rollback, import status, daily check, last complete/successful import) only consider configuration imports
 ## 9.9.0 - 04.11.2026
 - Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs
   - login with a service principal (client credentials flow); client id and secret are taken from the additional credential, otherwise from the import credential; tenant and subscription from the management's cloud settings, the resource group from the config path

@@ -154,6 +154,13 @@ class FwoImporterError(Exception):
         super().__init__(message)
 
 
+class RuleHitsNotSupportedError(FwoImporterError):
+    """Custom exception to signal that an importer module cannot read rule hits."""
+
+    def __init__(self, message: str = "the importer module of this management cannot read rule hits"):
+        super().__init__(message)
+
+
 class SshHostKeyRejectedError(FwoImporterError):
     """Custom exception to signal that the SSH host key of a firewall is unknown or has changed."""
 

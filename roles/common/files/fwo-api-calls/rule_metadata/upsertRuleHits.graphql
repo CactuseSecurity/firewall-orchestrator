@@ -1,0 +1,8 @@
+mutation upsertRuleHits($ruleHits: [firewall_rule_hit_insert_input!]!) {
+  insert_firewall_rule_hit(
+    objects: $ruleHits
+    on_conflict: { constraint: rule_hit_pkey, update_columns: [rule_last_hit] }
+  ) {
+    affected_rows
+  }
+}

@@ -55,6 +55,10 @@ RULE_NUM_NUMERIC_STEPS = 1024.0
 # importer setting: skip rules with features the normalized model cannot represent (default) instead of failing
 IMPORT_SKIP_UNSUPPORTED_RULES_KEY = "importSkipUnsupportedRules"
 
+# import_control.import_type_id (table stm_import): configuration import and rule hit import
+IMPORT_TYPE_RULE = 1
+IMPORT_TYPE_RULE_HIT = 5
+
 EMPTY_NORMALIZED_FW_CONFIG_JSON_DICT: dict[str, list[Any]] = {  # TYPING: DO NOT USE THIS!!!!
     "network_objects": [],
     "service_objects": [],

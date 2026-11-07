@@ -1,5 +1,7 @@
 @page "/settings/importer"
 @using System.Text.Json
+@using FWO.Data.Enums
+@using FWO.Ui.Data.Extensions
 @using FWO.Services
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
@@ -52,6 +54,31 @@
                 <input id="cbx_skip_unsupported_rules" type="checkbox" class="w-100" @bind="configData!.ImportSkipUnsupportedRules" />
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5499b"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importRuleHitsSleepTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" class="w-100" @bind="configData!.ImportRuleHitsSleepTime" />
+            </div>
+            <div class="col-sm-2">
+                <Dropdown ElementType="RuleHitImportIntervalUnit"
+                          @bind-SelectedElement="configData!.ImportRuleHitsSleepTimeUnit"
+                          ElementToString="@(unit => unit.ToString(userConfig))"
+                          Elements="ruleHitIntervalUnits">
+                    <ElementTemplate Context="unit">
+                        @(unit.ToString(userConfig))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5499c"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importRuleHitsStartAt")):</label>
+            <div class="col-sm-2">
+                <input type="time" step="60" class="w-100" @bind="ruleHitsTime" />
+            </div>
+            <div class="col-sm-2">
+                <input type="date" class="w-100" @bind="ruleHitsDate" />
+            </div>
+        </div>
     </form>
     <hr />
     <h3>@(userConfig.GetText("custom_field_import_Settings"))</h3>
@@ -102,6 +129,10 @@ else
     private UpdateRuleOwnerMapping? updateOwnerRuleMappings;
     private readonly OwnerMappingSourceHandler ownerMappingSourceHandler = new();
 
+    private static readonly List<RuleHitImportIntervalUnit> ruleHitIntervalUnits = [.. Enum.GetValues<RuleHitImportIntervalUnit>()];
+    private DateTime ruleHitsDate = DateTime.Today;
+    private DateTime ruleHitsTime = DateTime.Today;
+
     private string ActiveChangeIdKey = "";
     private List<string> ChangeIdKeys = [];
     private List<string> ChangeIdKeysToAdd = [];
@@ -116,6 +147,7 @@ else
             configData = await globalConfig.GetEditableConfig();
             ownerMappingSourceHandler.Init(configData);
             ChangeIdKeys = DeserializeChangeIdKeys(configData.CustomFieldChangeIdKey);
+            ruleHitsDate = ruleHitsTime = configData.ImportRuleHitsStartAt;
         }
         catch (Exception exception)
         {
@@ -156,6 +188,7 @@ else
                 }
 
                 configData.CustomFieldChangeIdKey = serializedChangeIdKeys;
+                configData.ImportRuleHitsStartAt = ruleHitsDate.Date.Add(ruleHitsTime.TimeOfDay);
                 bool ruleOwnerReinitializeNeeded = ownerMappingSourceHandler.ApplyTo(configData);
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);

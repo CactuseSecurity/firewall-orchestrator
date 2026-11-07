@@ -1,0 +1,8 @@
+query getManagementsForRuleHitImport {
+  management(
+    where: { multi_device_manager_id: { _is_null: true }, do_not_import: { _eq: false } }
+    order_by: { mgm_id: asc }
+  ) {
+    id: mgm_id
+  }
+}

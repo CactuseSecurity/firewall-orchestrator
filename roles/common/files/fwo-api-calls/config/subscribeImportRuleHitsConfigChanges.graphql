@@ -1,0 +1,11 @@
+subscription subscribeImportRuleHitsConfigChanges {
+  config(where: {_or: [
+    {config_key: {_eq: "importRuleHitsSleepTime"}},
+    {config_key: {_eq: "importRuleHitsSleepTimeUnit"}},
+    {config_key: {_eq: "importRuleHitsStartAt"}}
+  ]}) {
+    config_key
+    config_value
+    config_user
+  }
+}

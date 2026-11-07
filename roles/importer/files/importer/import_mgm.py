@@ -16,6 +16,7 @@ from fwo_const import BASE_DIR, IMPORTER_BASE_DIR
 from fwo_exceptions import FwoApiLoginFailedError
 from fwo_log import FWOLogger
 from model_controllers.import_state_controller import ImportStateController
+from rule_hit_importer import import_rule_hits
 
 if IMPORTER_BASE_DIR not in sys.path:
     sys.path.append(IMPORTER_BASE_DIR)
@@ -42,6 +43,7 @@ def main(
     clear_management_data: bool = False,
     suppress_certificate_warnings: bool = False,
     suppress_consistency_check: bool = False,
+    rule_hits_only: bool = False,
 ):
     FWOLogger(debug_level)
     FWOLogger.debug("debug level set to " + str(debug_level))
@@ -113,6 +115,10 @@ def main(
         clear_management_data,
     )
     register_global_state(import_state)
+
+    if rule_hits_only:
+        import_rule_hits(fwo_api_call)
+        return
 
     import_management(
         mgm_id,
@@ -196,6 +202,12 @@ if __name__ == "__main__":
         default=False,
         help="If set, skip FwConfigImportCheckConsistency before importing",
     )
+    parser.add_argument(
+        "--rule_hits",
+        action="store_true",
+        default=False,
+        help="If set, only the last hits of the rules are imported (rule hit import) instead of the configuration",
+    )
 
     args = parser.parse_args()
 
@@ -210,6 +222,7 @@ if __name__ == "__main__":
             args.clear,
             args.suppress_certificate_warnings,
             args.suppress_consistency_check,
+            args.rule_hits,
         )
     except Exception:
         FWOLogger.error(

@@ -206,3 +206,4 @@ INSERT INTO stm_import (import_type_id, import_type_name) VALUES (1, 'rule');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (2, 'owner');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (3, 'admin via reinitialize button');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (4, 'log');
+INSERT INTO stm_import (import_type_id, import_type_name) VALUES (5, 'rule hit');

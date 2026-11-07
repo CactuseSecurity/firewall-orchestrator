@@ -55,6 +55,7 @@ namespace FWO.Basics
         public const string kCertification = "Certification";
         public const string kImportAppData = "importAppData";
         public const string kImportLogData = "importLogData";
+        public const string kImportRuleHits = "importRuleHits";
         public const string kAdjustAppServerNames = "adjustAppServerNames";
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kImportZoneMatrixData = "importZoneMatrixData";

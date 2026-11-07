@@ -12,14 +12,14 @@ query getImportStatus {
       manufacturer: dev_typ_manufacturer
       isPureRoutingDevice: is_pure_routing_device
     }
-    last_import: import_controls(order_by: {control_id: desc}, limit: 1) {
+    last_import: import_controls(where: {import_type_id: {_eq: 1}}, order_by: {control_id: desc}, limit: 1) {
       control_id
       start_time
       stop_time
       successful_import
       import_errors
     }
-    last_successful_import: import_controls(where: {successful_import: {_eq: true}}, order_by: {control_id: desc}, limit: 1) {
+    last_successful_import: import_controls(where: {import_type_id: {_eq: 1}, successful_import: {_eq: true}}, order_by: {control_id: desc}, limit: 1) {
       control_id
       start_time
       stop_time
@@ -33,14 +33,14 @@ query getImportStatus {
       successful_import
       import_errors
     }
-    first_import: import_controls(order_by: {control_id: asc}, limit: 1) {
+    first_import: import_controls(where: {import_type_id: {_eq: 1}}, order_by: {control_id: asc}, limit: 1) {
       control_id
       start_time
       stop_time
       successful_import
       import_errors
     }
-    erroneous_imports: import_controls(where: {successful_import: {_eq: false}}, order_by: {control_id: desc}) {
+    erroneous_imports: import_controls(where: {import_type_id: {_eq: 1}, successful_import: {_eq: false}}, order_by: {control_id: desc}) {
       control_id
       import_errors
     }

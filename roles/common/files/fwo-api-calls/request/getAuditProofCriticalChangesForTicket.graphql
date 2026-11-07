@@ -10,14 +10,14 @@
 # would be reported here as a workflow change of someone else's ticket.
 #
 # changer_id is selected next to changer because only changer_id is trustworthy: the API presets it
-# from the authenticated session, while changer is free text supplied by the writer. Since the
-# change_history_bind_changer trigger, a new row's changer always names the user of its changer_id;
-# changer_user resolves that name for older rows as well. A reader that has to attribute a change
-# uses changer_id and changer_user; changer stays in the result because it is the only attribution
-# available for rows written outside a user session, where changer_id is null.
+# from the authenticated session, while changer is free text supplied by the writer. A reader that has
+# to attribute a change uses changer_id and the name changer_user resolves for it; changer stays in the
+# result because it is the only attribution available for rows written outside a user session, where
+# changer_id is null.
 #
-# audit_proof_critical is only kept by that trigger for a workflow change of an existing ticket by a
-# known user other than its requester, so a user cannot flag a row as someone else's manual change.
+# audit_proof_critical is insertable by the writer as well, so the flag alone does not prove the case
+# above. WorkflowChangeHistoryService confirms it against the ticket: a row only counts when its
+# changer_id is known and differs from the ticket's requester.
 #
 # change_time sorts nulls last so that a row without a timestamp cannot take the place of the newest
 # change: the column is nullable and Postgres orders nulls first on a descending sort.

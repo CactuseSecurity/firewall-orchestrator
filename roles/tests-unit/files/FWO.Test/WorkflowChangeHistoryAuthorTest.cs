@@ -14,13 +14,15 @@ namespace FWO.Test;
 
 /// <summary>
 /// Covers the author attribution of the audit-proof change trail (GHSA-6g84, usergroupresolver-001):
-/// the endpoint names the user behind changer_id, never the free-text changer a writer supplied.
+/// the endpoint names the user behind changer_id, never the free-text changer a writer supplied, and
+/// only reports flagged changes of a known user other than the ticket's requester.
 /// </summary>
 [TestFixture]
 internal class WorkflowChangeHistoryAuthorTest
 {
     private const long kTicketId = 1234;
     private const int kPlannerId = 8;
+    private const int kRequesterId = 3;
     private const string kPlannerName = "planner";
     private const string kForgedName = "requester-of-someone-else";
     private static readonly DateTime kChangeTime = new(2026, 11, 7, 10, 0, 0, DateTimeKind.Unspecified);
@@ -87,7 +89,7 @@ internal class WorkflowChangeHistoryAuthorTest
     }
 
     [Test]
-    public async Task AutomatedChangeKeepsTheStoredChanger()
+    public async Task AutomatedChangeIsNotReported()
     {
         ModellingHistoryEntry automated = new()
         {
@@ -101,10 +103,52 @@ internal class WorkflowChangeHistoryAuthorTest
 
         GetAuditProofCriticalChangesResponse response = await GetChanges(apiConnection);
 
-        Assert.That(response.Changes[0].ChangeUserName, Is.EqualTo("middleware-server"));
+        Assert.That(response.Changes, Is.Empty);
     }
 
-    private static ModellingHistoryEntry ForgedEntry(ChangeHistoryObjectType objectType)
+    [Test]
+    public async Task FlaggedChangesOfTheRequesterAreNotReported()
+    {
+        // the requester flags changes of the own ticket, passing them off as someone else's manual change
+        AuthorApiConnection apiConnection = new()
+        {
+            Entries = new() { ForgedEntry(ChangeHistoryObjectType.RequestTask, kRequesterId), ForgedEntry(ChangeHistoryObjectType.RequestTask) },
+            TaskHistory = new() { ForgedEntry(ChangeHistoryObjectType.ImplementationTask, kRequesterId) }
+        };
+
+        GetAuditProofCriticalChangesResponse response = await GetChanges(apiConnection);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Changes, Has.Count.EqualTo(1), "the planner's change is still reported");
+            Assert.That(response.Changes[0].ChangeUserId, Is.EqualTo(kPlannerId));
+            Assert.That(response.TaskDiff!.ManualImplementationTaskChanges, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task FlaggedChangesOfATicketWithoutRequesterAreNotReported()
+    {
+        AuthorApiConnection apiConnection = new() { Entries = new() { ForgedEntry(ChangeHistoryObjectType.RequestTask) }, RequesterId = null };
+
+        GetAuditProofCriticalChangesResponse response = await GetChanges(apiConnection);
+
+        Assert.That(response.Changes, Is.Empty);
+    }
+
+    [Test]
+    public async Task AnUnresolvableUserIsNamedByIdNotByTheStoredChanger()
+    {
+        ModellingHistoryEntry entry = ForgedEntry(ChangeHistoryObjectType.RequestTask);
+        entry.ChangerUser = null;
+        AuthorApiConnection apiConnection = new() { Entries = new() { entry } };
+
+        GetAuditProofCriticalChangesResponse response = await GetChanges(apiConnection);
+
+        Assert.That(response.Changes[0].ChangeUserName, Is.EqualTo(kPlannerId.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+    }
+
+    private static ModellingHistoryEntry ForgedEntry(ChangeHistoryObjectType objectType, int changerId = kPlannerId)
     {
         return new ModellingHistoryEntry
         {
@@ -113,8 +157,8 @@ internal class WorkflowChangeHistoryAuthorTest
             ObjectId = 20,
             ChangeTime = kChangeTime,
             Changer = kForgedName,
-            ChangerId = kPlannerId,
-            ChangerUser = new UiUser { DbId = kPlannerId, Name = kPlannerName },
+            ChangerId = changerId,
+            ChangerUser = new UiUser { DbId = changerId, Name = changerId == kPlannerId ? kPlannerName : "requester" },
             ChangeText = "Updated workflow task",
             AuditProofCritical = true
         };
@@ -139,6 +183,8 @@ internal class WorkflowChangeHistoryAuthorTest
 
         public List<ModellingHistoryEntry> TaskHistory { get; set; } = new();
 
+        public int? RequesterId { get; set; } = kRequesterId;
+
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
             string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
@@ -146,7 +192,11 @@ internal class WorkflowChangeHistoryAuthorTest
             {
                 _ when query == RequestQueries.getAuditProofCriticalChangesForTicket => Entries,
                 _ when query == RequestQueries.getWorkflowTaskHistoryForTicket => TaskHistory,
-                _ when query == RequestQueries.getTicketById => new WfTicket { Id = kTicketId },
+                _ when query == RequestQueries.getTicketById => new WfTicket
+                {
+                    Id = kTicketId,
+                    Requester = RequesterId == null ? null : new UiUser { DbId = RequesterId.Value }
+                },
                 _ when query == RequestQueries.getTicketIdIfExists => new List<WfTicketBase> { new() { Id = kTicketId } },
                 _ => throw new AssertionException($"Unexpected query: {query}")
             };

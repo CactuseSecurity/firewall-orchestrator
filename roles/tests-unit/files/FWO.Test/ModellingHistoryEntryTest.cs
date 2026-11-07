@@ -34,16 +34,40 @@ internal class ModellingHistoryEntryTest
     }
 
     [Test]
-    public void StoredChangerIsUsedWhenResolvedUserHasNoName()
+    public void UserIdIsShownWhenTheUserCannotBeResolved()
     {
-        ModellingHistoryEntry entry = new()
+        // e.g. a user of another tenant: the stored changer is the writer's free text and is not shown
+        ModellingHistoryEntry unresolved = new() { Changer = "someone-else", ChangerId = 8 };
+        ModellingHistoryEntry withoutName = new()
         {
-            Changer = "planner",
+            Changer = "someone-else",
             ChangerId = 8,
             ChangerUser = new UiUser { DbId = 8, Name = "" }
         };
 
-        Assert.That(entry.GetAuthenticatedChangerName(), Is.EqualTo("planner"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(unresolved.GetAuthenticatedChangerName(), Is.EqualTo("8"));
+            Assert.That(withoutName.GetAuthenticatedChangerName(), Is.EqualTo("8"));
+        });
+    }
+
+    [Test]
+    public void ChangerNameIsTheAuthenticatedNameAndIsNotSerialized()
+    {
+        ModellingHistoryEntry entry = new()
+        {
+            Changer = "someone-else",
+            ChangerId = 8,
+            ChangerUser = new UiUser { DbId = 8, Name = "planner" }
+        };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(entry.ChangerName, Is.EqualTo("planner"));
+            Assert.That(JsonConvert.SerializeObject(entry), Does.Not.Contain("ChangerName"));
+            Assert.That(System.Text.Json.JsonSerializer.Serialize(entry), Does.Not.Contain("ChangerName"));
+        });
     }
 
     [Test]

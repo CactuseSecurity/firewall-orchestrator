@@ -33,6 +33,28 @@ namespace FWO.Data.Modelling
         [JsonProperty("changer_id"), JsonPropertyName("changer_id")]
         public int? ChangerId { get; set; }
 
+        /// <summary>
+        /// User record of <see cref="ChangerId"/>, when the query selects it. Its name is the authenticated
+        /// author, unlike <see cref="Changer"/>, which older rows may carry as free text of the writer.
+        /// </summary>
+        [JsonProperty("changer_user"), JsonPropertyName("changer_user")]
+        public UiUser? ChangerUser { get; set; }
+
+        /// <summary>
+        /// Name of the author: the login name of the user behind <see cref="ChangerId"/> when it is known,
+        /// otherwise the stored <see cref="Changer"/>, which names the automation for rows without a user.
+        /// </summary>
+        /// <returns>The author name, empty when none is recorded.</returns>
+        public string GetAuthenticatedChangerName()
+        {
+            string? resolvedName = ChangerUser?.Name;
+            if (!string.IsNullOrEmpty(resolvedName))
+            {
+                return resolvedName;
+            }
+            return Changer ?? "";
+        }
+
         [JsonProperty("change_time"), JsonPropertyName("change_time")]
         public DateTime? ChangeTime { get; set; }
 

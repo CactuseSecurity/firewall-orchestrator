@@ -208,7 +208,7 @@ public sealed class WorkflowChangeHistoryService
                 ImplementationTaskId = entry.ObjectId,
                 ChangeTime = WallClockTimestamp.NormalizeStored(entry.ChangeTime),
                 ChangeUserId = entry.ChangerId,
-                ChangeUserName = entry.Changer ?? string.Empty,
+                ChangeUserName = entry.GetAuthenticatedChangerName(),
                 ChangeContent = entry.ChangeText ?? string.Empty,
                 Original = entry.OldData == null ? null : ToJsonElement(entry.OldData),
                 Current = entry.NewData == null ? null : ToJsonElement(entry.NewData)
@@ -257,13 +257,15 @@ public sealed class WorkflowChangeHistoryService
     /// <remarks>
     /// changer and change_text are nullable columns, so the empty string of the response contract is
     /// substituted here rather than letting a null reach a property declared as non-nullable.
+    /// The user name is resolved from changer_id where possible, because changer is free text of the
+    /// writer on rows stored before the change_history_bind_changer trigger existed.
     /// </remarks>
     private static AuditProofCriticalChangeResponse Map(ModellingHistoryEntry entry)
     {
         return new AuditProofCriticalChangeResponse
         {
             ChangeTime = WallClockTimestamp.NormalizeStored(entry.ChangeTime),
-            ChangeUserName = entry.Changer ?? string.Empty,
+            ChangeUserName = entry.GetAuthenticatedChangerName(),
             ChangeUserId = entry.ChangerId,
             ChangeContent = entry.ChangeText ?? string.Empty
         };

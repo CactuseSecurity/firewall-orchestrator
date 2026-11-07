@@ -28,6 +28,15 @@
   become: true
   become_user: postgres
 
+# the probe runs in a single transaction that is always rolled back and fails on the first wrong attribution
+- name: test that change history rows name the authenticated author (GHSA-6g84, usergroupresolver-001)
+  command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
+  args:
+    stdin: "{{ lookup('file', 'database/test-change-history-bind-changer.sql') }}"
+  changed_when: false
+  become: true
+  become_user: postgres
+
 # the probe runs in a single transaction that is always rolled back
 - name: test the authenticated secret encryption and the migration of legacy secrets (#5476)
   command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"

@@ -88,7 +88,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(TimeObjectNamingHelper.BuildDateBasedName(new DateTime(2026, 8, 1), null, FlowIntegrationTimePrecisionOptions.Date), Is.EqualTo(">= 2026-08-01"));
-                Assert.That(TimeObjectNamingHelper.BuildDateBasedName(null, new DateTime(2026, 8, 2), FlowIntegrationTimePrecisionOptions.Date), Is.EqualTo("<= 2026-08-02"));
+                Assert.That(TimeObjectNamingHelper.BuildDateBasedName(null, new DateTime(2026, 8, 2), FlowIntegrationTimePrecisionOptions.Date), Is.EqualTo("< 2026-08-02"));
                 Assert.That(TimeObjectNamingHelper.BuildDateBasedName(null, null, FlowIntegrationTimePrecisionOptions.Date), Is.Empty);
             });
         }

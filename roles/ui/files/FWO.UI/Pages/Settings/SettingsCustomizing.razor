@@ -94,6 +94,14 @@
                         <label for="cbx_show_access_task_owner" class="col-form-label">@(userConfig.GetText("owner"))</label>
                     </div>
                     <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_rule_action" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowRuleAction" />
+                        <label for="cbx_show_access_task_rule_action" class="col-form-label">@(userConfig.GetText("rule_action"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_tracking" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowTracking" />
+                        <label for="cbx_show_access_task_tracking" class="col-form-label">@(userConfig.GetText("track"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
                         <input id="cbx_show_access_task_valid_from" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowValidFrom" />
                         <label for="cbx_show_access_task_valid_from" class="col-form-label">@(userConfig.GetText("valid_from"))</label>
                     </div>

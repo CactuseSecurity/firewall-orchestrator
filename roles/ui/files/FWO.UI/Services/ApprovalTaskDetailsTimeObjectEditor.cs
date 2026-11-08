@@ -272,16 +272,7 @@ internal sealed class ApprovalTaskDetailsTimeObjectEditor
 
     internal IEnumerable<WfReqTask> GetTasksToUpdate(WfReqTask task)
     {
-        string bundleId = task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
-        if (!context.UserConfig.ReqDisplayBundledTasksAsOne || !context.UserConfig.ReqConsiderBundling || string.IsNullOrWhiteSpace(bundleId))
-        {
-            return new List<WfReqTask> { task };
-        }
-
-        return context.WfHandler.ActTicket.Tasks.Where(candidate =>
-            candidate.TaskType == task.TaskType
-            && candidate.StateId == task.StateId
-            && candidate.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId).ToList();
+        return ApprovalTaskBundleHelper.GetTasksToUpdate(context.WfHandler.ActTicket.Tasks, task, context.UserConfig);
     }
 
     internal void ApplyTimeObjectModel(TargetDatesEditorModel model)

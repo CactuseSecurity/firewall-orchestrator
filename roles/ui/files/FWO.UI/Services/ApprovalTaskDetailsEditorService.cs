@@ -24,7 +24,7 @@ internal sealed class ApprovalTaskDetailsEditorService
     internal ApprovalTaskDetailsEditorService()
     {
         lookup = new ApprovalTaskDetailsLookupService(context, state);
-        metadataEditor = new ApprovalTaskDetailsMetadataEditor(context, state, RefreshAfterEditorOpen);
+        metadataEditor = new ApprovalTaskDetailsMetadataEditor(context, state, RefreshAfterEditorOpen, GetTasksToUpdate);
         elementsEditor = new ApprovalTaskDetailsElementsEditor(context, state, RefreshAfterEditorOpen);
         timeObjectEditor = new ApprovalTaskDetailsTimeObjectEditor(
             context,

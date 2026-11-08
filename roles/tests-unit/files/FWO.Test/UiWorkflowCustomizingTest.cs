@@ -189,6 +189,8 @@ namespace FWO.Test
                 Assert.That(stored.ShowComments, Is.False);
                 Assert.That(stored.AccessTask.ShowManagement, Is.True);
                 Assert.That(stored.AccessTask.ShowOwner, Is.True);
+                Assert.That(stored.AccessTask.ShowRuleAction, Is.True);
+                Assert.That(stored.AccessTask.ShowTracking, Is.True);
                 Assert.That(stored.AccessTask.ShowValidFrom, Is.True);
                 Assert.That(stored.AccessTask.ShowValidTo, Is.True);
                 Assert.That(stored.AccessTask.ShowReason, Is.True);

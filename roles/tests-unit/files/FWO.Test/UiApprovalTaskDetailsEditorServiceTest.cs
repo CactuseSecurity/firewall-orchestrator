@@ -698,6 +698,52 @@ internal sealed class UiApprovalTaskDetailsEditorServiceTest
     }
 
     [Test]
+    public async Task MetadataEditor_SavesOwnerChangeForAllTasksInTheBundle()
+    {
+        FwoOwner oldOwner = new() { Id = 1, Name = "old" };
+        FwoOwner newOwner = new() { Id = 2, Name = "new" };
+        WfReqTask first = BundledApprovalTask(150, 1, oldOwner);
+        WfReqTask second = BundledApprovalTask(151, 2, oldOwner);
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 15, Tasks = [first, second] } };
+        UiRequestWorkflowTest.SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix { LowestInputState = 1 });
+        SimulatedUserConfig config = new() { ReqConsiderBundling = true, ReqDisplayBundledTasksAsOne = true };
+        ApprovalTaskDetailsEditorContext context = new();
+        ApprovalTaskDetailsEditorState state = new() { EditingOwnerTask = first };
+        context.Configure(handler, config, () => Task.CompletedTask);
+        ApprovalTaskDetailsMetadataEditor editor = new(
+            context,
+            state,
+            () => Task.CompletedTask,
+            task => ApprovalTaskBundleHelper.GetTasksToUpdate(handler.ActTicket.Tasks, task, config));
+
+        await editor.SaveOwnerCore(newOwner);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.ActTicket.Tasks.SelectMany(task => task.NewOwners).Select(owner => owner.Id),
+                Is.EquivalentTo(new[] { newOwner.Id, newOwner.Id }));
+            Assert.That(handler.ActTicket.Tasks.All(task => task.RemovedOwners.Count == 1
+                && task.RemovedOwners[0].Id == oldOwner.Id), Is.True);
+            Assert.That(state.EditingOwnerTask, Is.Null);
+        });
+    }
+
+    private static WfReqTask BundledApprovalTask(long id, int taskNumber, FwoOwner owner)
+    {
+        WfReqTask task = new()
+        {
+            Id = id,
+            TicketId = 15,
+            TaskNumber = taskNumber,
+            StateId = 2,
+            TaskType = WfTaskType.access.ToString(),
+            Owners = [new FwoOwnerDataHelper { Owner = owner }]
+        };
+        task.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "metadata-bundle");
+        return task;
+    }
+
+    [Test]
     public async Task TimeObjectEditor_CreatesTicketTimeObjectTaskAndReturnsToDateEditor()
     {
         WfReqTask accessTask = new()

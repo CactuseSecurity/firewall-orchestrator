@@ -1269,7 +1269,7 @@ namespace FWO.Test
             List<FlowCreationPayload> endPayloads = FlowDbCreator.BuildFlowCreationPayloads(endOnlyTask, WfObjectScopes.RequestTask, null, null);
 
             Assert.That(beginPayloads[0].TimeName, Is.EqualTo(">= 2026-06-08 00:00:00"));
-            Assert.That(endPayloads[0].TimeName, Is.EqualTo("<= 2026-07-09 23:59:00"));
+            Assert.That(endPayloads[0].TimeName, Is.EqualTo("< 2026-07-09 23:59:00"));
         }
 
         [Test]

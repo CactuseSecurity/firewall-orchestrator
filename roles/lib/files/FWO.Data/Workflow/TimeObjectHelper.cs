@@ -118,7 +118,7 @@ namespace FWO.Data.Workflow
             {
                 return $">= {Format(start.Value)}";
             }
-            return end.HasValue ? $"<= {Format(end.Value)}" : "";
+            return end.HasValue ? $"< {Format(end.Value)}" : "";
         }
     }
 

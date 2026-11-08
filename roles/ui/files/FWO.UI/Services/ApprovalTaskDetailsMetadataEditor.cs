@@ -11,15 +11,18 @@ internal sealed class ApprovalTaskDetailsMetadataEditor
     private readonly ApprovalTaskDetailsEditorContext context;
     private readonly ApprovalTaskDetailsEditorState state;
     private readonly Func<Task> refreshAfterEditorOpen;
+    private readonly Func<WfReqTask, IEnumerable<WfReqTask>> getTasksToUpdate;
 
     internal ApprovalTaskDetailsMetadataEditor(
         ApprovalTaskDetailsEditorContext context,
         ApprovalTaskDetailsEditorState state,
-        Func<Task> refreshAfterEditorOpen)
+        Func<Task> refreshAfterEditorOpen,
+        Func<WfReqTask, IEnumerable<WfReqTask>> getTasksToUpdate)
     {
         this.context = context;
         this.state = state;
         this.refreshAfterEditorOpen = refreshAfterEditorOpen;
+        this.getTasksToUpdate = getTasksToUpdate;
     }
 
     internal IEnumerable<FwoOwner> OwnerOptions() => context.WfHandler.AllOwners.Where(owner => owner.Id != 0);
@@ -76,9 +79,12 @@ internal sealed class ApprovalTaskDetailsMetadataEditor
             return;
         }
 
-        context.WfHandler.SetReqTaskEnv(state.EditingRuleActionTask);
-        context.WfHandler.ActReqTask.RuleAction = ruleAction?.Id;
-        await context.WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+        foreach (WfReqTask task in getTasksToUpdate(state.EditingRuleActionTask))
+        {
+            context.WfHandler.SetReqTaskEnv(task);
+            context.WfHandler.ActReqTask.RuleAction = ruleAction?.Id;
+            await context.WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+        }
         state.EditingRuleActionTask = null;
         await context.RefreshUi();
     }
@@ -90,12 +96,23 @@ internal sealed class ApprovalTaskDetailsMetadataEditor
             return;
         }
 
-        context.WfHandler.SetReqTaskEnv(state.EditingOwnerTask);
-        FwoOwner? oldOwner = state.EditingOwnerTask.Owners.FirstOrDefault()?.Owner;
-        context.WfHandler.ActReqTask.RemovedOwners = oldOwner == null || oldOwner.Id == owner.Id ? [] : [oldOwner];
-        context.WfHandler.ActReqTask.NewOwners = oldOwner != null && oldOwner.Id == owner.Id ? [] : [owner];
-        context.WfHandler.ActReqTask.Owners = oldOwner == null ? [] : [new FwoOwnerDataHelper { Owner = oldOwner }];
-        await context.WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+        foreach (WfReqTask task in getTasksToUpdate(state.EditingOwnerTask))
+        {
+            context.WfHandler.SetReqTaskEnv(task);
+            List<FwoOwner> oldOwners = task.Owners
+                .Select(ownerData => ownerData.Owner)
+                .Where(existingOwner => existingOwner != null)
+                .Cast<FwoOwner>()
+                .DistinctBy(existingOwner => existingOwner.Id)
+                .ToList();
+            bool alreadyAssigned = oldOwners.Count == 1 && oldOwners[0].Id == owner.Id;
+            context.WfHandler.ActReqTask.RemovedOwners = alreadyAssigned ? [] : oldOwners;
+            context.WfHandler.ActReqTask.NewOwners = alreadyAssigned ? [] : [owner];
+            context.WfHandler.ActReqTask.Owners = alreadyAssigned
+                ? [new FwoOwnerDataHelper { Owner = oldOwners[0] }]
+                : [];
+            await context.WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+        }
         state.EditingOwnerTask = null;
         await context.RefreshUi();
     }
@@ -107,9 +124,12 @@ internal sealed class ApprovalTaskDetailsMetadataEditor
             return;
         }
 
-        context.WfHandler.SetReqTaskEnv(state.EditingTrackingTask);
-        context.WfHandler.ActReqTask.Tracking = tracking?.Id;
-        await context.WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+        foreach (WfReqTask task in getTasksToUpdate(state.EditingTrackingTask))
+        {
+            context.WfHandler.SetReqTaskEnv(task);
+            context.WfHandler.ActReqTask.Tracking = tracking?.Id;
+            await context.WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+        }
         state.EditingTrackingTask = null;
         await context.RefreshUi();
     }
@@ -121,9 +141,12 @@ internal sealed class ApprovalTaskDetailsMetadataEditor
             return;
         }
 
-        context.WfHandler.SetReqTaskEnv(state.EditingManagementTask);
-        context.WfHandler.ActReqTask.ManagementId = management?.Id;
-        await context.WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+        foreach (WfReqTask task in getTasksToUpdate(state.EditingManagementTask))
+        {
+            context.WfHandler.SetReqTaskEnv(task);
+            context.WfHandler.ActReqTask.ManagementId = management?.Id;
+            await context.WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+        }
         state.EditingManagementTask = null;
         await context.RefreshUi();
     }
@@ -135,25 +158,28 @@ internal sealed class ApprovalTaskDetailsMetadataEditor
             return;
         }
 
-        context.WfHandler.SetReqTaskEnv(state.EditingTextTask);
-        switch (state.TextEditorKey)
+        foreach (WfReqTask task in getTasksToUpdate(state.EditingTextTask))
         {
-            case WorkflowEditableFieldKeys.Title:
-                context.WfHandler.ActReqTask.Title = value;
-                break;
-            case WorkflowEditableFieldKeys.Reason:
-                context.WfHandler.ActReqTask.Reason = value;
-                break;
-            case WorkflowEditableFieldKeys.FreeText:
-                context.WfHandler.ActReqTask.FreeText = value;
-                break;
-            case WorkflowEditableFieldKeys.Name:
-                context.WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, value);
-                context.WfHandler.ActReqTask.Title = value;
-                break;
-        }
+            context.WfHandler.SetReqTaskEnv(task);
+            switch (state.TextEditorKey)
+            {
+                case WorkflowEditableFieldKeys.Title:
+                    context.WfHandler.ActReqTask.Title = value;
+                    break;
+                case WorkflowEditableFieldKeys.Reason:
+                    context.WfHandler.ActReqTask.Reason = value;
+                    break;
+                case WorkflowEditableFieldKeys.FreeText:
+                    context.WfHandler.ActReqTask.FreeText = value;
+                    break;
+                case WorkflowEditableFieldKeys.Name:
+                    context.WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, value);
+                    context.WfHandler.ActReqTask.Title = value;
+                    break;
+            }
 
-        await context.WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+            await context.WfHandler.ChangeReqTask(allowLockedApprovalUpdate: true);
+        }
         state.EditingTextTask = null;
         await context.RefreshUi();
     }

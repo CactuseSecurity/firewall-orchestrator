@@ -636,6 +636,8 @@ namespace FWO.Test
                 Assert.That(config.HandlerDisplayMode, Is.EqualTo(TicketHandlerDisplayMode.None));
                 Assert.That(config.AccessTask.ShowManagement, Is.True);
                 Assert.That(config.AccessTask.ShowOwner, Is.True);
+                Assert.That(config.AccessTask.ShowRuleAction, Is.True);
+                Assert.That(config.AccessTask.ShowTracking, Is.True);
                 Assert.That(config.AccessTask.ShowValidFrom, Is.True);
                 Assert.That(config.AccessTask.ShowValidTo, Is.True);
                 Assert.That(config.AccessTask.ShowReason, Is.True);
@@ -676,13 +678,15 @@ namespace FWO.Test
         public void TicketFieldVisibilityConfig_ParsesAccessTaskFields()
         {
             TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse(
-                "{\"accessTask\":{\"management\":false,\"owner\":false,\"validFrom\":false,\"validTo\":true,\"reason\":false,\"freeText\":true,\"comments\":false}}");
+                "{\"accessTask\":{\"management\":false,\"owner\":false,\"ruleAction\":false,\"tracking\":false,\"validFrom\":false,\"validTo\":true,\"reason\":false,\"freeText\":true,\"comments\":false}}");
 
             Assert.Multiple(() =>
             {
                 Assert.That(config.AccessTask.ShowReason, Is.False);
                 Assert.That(config.AccessTask.ShowManagement, Is.False);
                 Assert.That(config.AccessTask.ShowOwner, Is.False);
+                Assert.That(config.AccessTask.ShowRuleAction, Is.False);
+                Assert.That(config.AccessTask.ShowTracking, Is.False);
                 Assert.That(config.AccessTask.ShowValidFrom, Is.False);
                 Assert.That(config.AccessTask.ShowValidTo, Is.True);
                 Assert.That(config.AccessTask.ShowFreeText, Is.True);

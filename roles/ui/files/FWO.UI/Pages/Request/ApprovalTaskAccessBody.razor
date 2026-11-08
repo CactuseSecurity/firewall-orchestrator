@@ -20,8 +20,14 @@
     }
 </div>
 <div class="form-group row">
-    @EditableValue(userConfig.GetText("rule_action"), RuleAction, CanEditRuleAction, EditRuleAction)
-    @EditableValue(userConfig.GetText("track"), Tracking, CanEditTracking, EditTracking)
+    @if (ShowRuleAction)
+    {
+        @EditableValue(userConfig.GetText("rule_action"), RuleAction, CanEditRuleAction, EditRuleAction)
+    }
+    @if (ShowTracking)
+    {
+        @EditableValue(userConfig.GetText("track"), Tracking, CanEditTracking, EditTracking)
+    }
     @if (ShowValidFrom || ShowValidTo)
     {
         @EditableValue(userConfig.GetText("time_restriction"), TimeObject, CanEditTimeObject, EditTimeObject, "col-xl-6 col-lg-6 mb-2")
@@ -60,6 +66,8 @@
     private string Reason => DisplayLogic.DistinctValues(TaskGroup, task => task.Reason);
     private string FreeText => DisplayLogic.DistinctValues(TaskGroup, task => task.FreeText);
     private bool ShowOwner => Visibility.ShowOwner;
+    private bool ShowRuleAction => Visibility.ShowRuleAction;
+    private bool ShowTracking => Visibility.ShowTracking;
     private bool ShowManagement => Visibility.ShowManagement;
     private string OwnerColumnClass => ShowManagement ? "col-xl-3 col-lg-6 mb-2" : "col-xl-6 col-lg-6 mb-2";
     private bool ShowValidFrom => Visibility.ShowValidFrom;

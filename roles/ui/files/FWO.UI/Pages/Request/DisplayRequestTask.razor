@@ -27,9 +27,12 @@
                     TaskType="actTaskType" CanEditField="CanEditReqTaskField" TaskTypeChanged="OnMetadataTaskTypeChanged"
                     TargetDatesValidChanged="SetTargetDatesValid" ManagementChanged="OnMetadataManagementChanged"
                     ShowField="ShowTaskField" />
-                @if(actTaskType == WfTaskType.access)
+                @if (actTaskType == WfTaskType.access
+                    && (AccessTaskVisibility.ShowRuleAction || AccessTaskVisibility.ShowTracking))
                 {
                     <div class="form-group row mt-2">
+                        @if (AccessTaskVisibility.ShowRuleAction)
+                        {
                         <div class="col-sm-3">
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("rule_action"))*:</label>
@@ -49,6 +52,9 @@
                                 </div>
                             </div>
                         </div>
+                        }
+                        @if (AccessTaskVisibility.ShowTracking)
+                        {
                         <div class="col-sm-3">
                             <div class="form-group row">
                                 <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("track"))*:</label>
@@ -68,6 +74,7 @@
                                 </div>
                             </div>
                         </div>
+                        }
                     </div>
                 }
                 @if (actTaskType != WfTaskType.access || AccessTaskVisibility.ShowReason)

@@ -14,8 +14,6 @@ For a feature-centric, thematically grouped view see
 
 ---
 
-## 8.x
-
 ### 8.0 — 19.02.2024
 - New **Network Modelling** module: define the target state of all network connections per application (or other distributed ownerships).
 - Scheduled import change notification with inline or attached change report (replaces the simple import notification from the import module).
@@ -128,8 +126,6 @@ For a feature-centric, thematically grouped view see
 ### 8.9.6 — 05.01.2026
 - New parameters for notifications.
 
-## 9.x
-
 ### 9.0 — 27.01.2026
 - Complete 80K-line rework of FWO:
   - Database changes to deduplicate rules (rule-to-gateway mapping now 1:n via `rulebase` and `rulebase_link` tables).
@@ -232,8 +228,6 @@ For a feature-centric, thematically grouped view see
 ### 9.4.5 — 27.08.2026
 - Compliance diff reports can optionally show only rules that newly became non-compliant.
 
-## 9.6.x
-
 ### 9.6.1 — 01.10.2026 (DEVELOP)
 - The Rules report can show management rulebases instead of gateways: start rulebases are selected per management, including rulebases without a gateway link, and reported together with the layers and sections following them.
 - Configurable default rules report view (gateway rules or management rulebases), globally and personally. Personal settings override the global gateway-based default; saved report templates retain their view.
@@ -273,3 +267,7 @@ For a feature-centric, thematically grouped view see
 
 ### 9.9.1 — 07.11.2026
 - Rule hit import: a separate, scheduled import run refreshes the last hit of all rules, also for unchanged configurations; the regular import no longer reads hits. Last hits are stored per gateway (Check Point per gateway, FortiManager per policy package).
+- Workflow state matrices can configure whether phases after request are promoted from the ticket, from individual tasks, or both. The request phase remains ticket-driven.
+- Access-task elements reference their ticket-local object-create task, keeping object changes consistent.
+- Approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks.
+- The promotion-mode setting supports an action-buttons-only option in addition to ticket, task and combined promotion.

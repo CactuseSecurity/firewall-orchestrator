@@ -266,6 +266,26 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
+        /// Returns whether the ticket-level promotion control is available in the current phase.
+        /// The request phase is always promoted from the ticket.
+        /// </summary>
+        public bool CanPromoteTicketInCurrentPhase()
+        {
+            return Phase == WorkflowPhases.request
+                || MasterStateMatrix.PromotionMode is PromotionMode.Ticket or PromotionMode.Both;
+        }
+
+        /// <summary>
+        /// Returns whether task-level promotion controls are available in the current phase.
+        /// The request phase is always promoted from the ticket.
+        /// </summary>
+        public bool CanPromoteTaskInCurrentPhase()
+        {
+            return Phase != WorkflowPhases.request
+                && MasterStateMatrix.PromotionMode is PromotionMode.Task or PromotionMode.Both;
+        }
+
+        /// <summary>
         /// Determines whether a request task is within the actionable state range of its current phase.
         /// </summary>
         /// <param name="reqTask">The request task to evaluate.</param>

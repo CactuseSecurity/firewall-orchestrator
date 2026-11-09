@@ -34,6 +34,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public void HasFlowDbReference_RecognizesTaskAndElementReferences()
+        {
+            WfReqTask emptyTask = new();
+            WfReqTask accessTask = new() { FlowAccessId = 17 };
+            WfReqTask elementTask = new();
+            elementTask.Elements.Add(new() { FlowServiceGroupId = 23 });
+            WfReqTask localTask = new();
+            localTask.Elements.Add(new() { NetworkId = 23, Name = "local" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfObjectTaskHelper.HasFlowDbReference(emptyTask), Is.False);
+                Assert.That(WfObjectTaskHelper.HasFlowDbReference(accessTask), Is.True);
+                Assert.That(WfObjectTaskHelper.HasFlowDbReference(elementTask), Is.True);
+                Assert.That(WfObjectTaskHelper.HasFlowDbReference(localTask), Is.False);
+                Assert.That(WfObjectTaskHelper.HasFlowDbReference(new WfReqElement { FlowTimeObjectId = 31 }), Is.True);
+            });
+        }
+
+        [Test]
         public void IsManagementObjectTask_RecognizesGroupAndObjectTaskTypes()
         {
             Assert.Multiple(() =>
@@ -269,6 +289,49 @@ namespace FWO.Test
             task.Elements.Add(new() { Field = ElemFieldType.service.ToString(), RequestAction = RequestAction.modify.ToString(), ServiceId = 9 });
 
             Assert.That(WfObjectTaskHelper.HasValidElementStructure(task), Is.True);
+        }
+
+        [Test]
+        public void ResolveReferencedElement_UsesCurrentObjectTaskStateForNetworkReferences()
+        {
+            WfReqTask objectTask = new()
+            {
+                Id = 42,
+                TaskType = WfTaskType.object_modify.ToString(),
+                Elements =
+                [
+                    new()
+                    {
+                        Field = ElemFieldType.source.ToString(),
+                        RequestAction = RequestAction.unchanged.ToString(),
+                        Name = "old-name",
+                        IpString = "10.0.0.1/32"
+                    },
+                    new()
+                    {
+                        Field = ElemFieldType.source.ToString(),
+                        RequestAction = RequestAction.modify.ToString(),
+                        Name = "new-name",
+                        IpString = "10.0.0.2/32"
+                    }
+                ]
+            };
+            WfReqElement accessElement = new()
+            {
+                Field = ElemFieldType.destination.ToString(),
+                ObjectTaskId = objectTask.Id,
+                Name = "old-name",
+                IpString = "10.0.0.1/32"
+            };
+
+            WfReqElement result = WfObjectTaskHelper.ResolveReferencedElement(accessElement, [objectTask]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Name, Is.EqualTo("new-name"));
+                Assert.That(result.IpString, Is.EqualTo("10.0.0.2/32"));
+                Assert.That(result.Field, Is.EqualTo(ElemFieldType.destination.ToString()));
+            });
         }
 
         [Test]

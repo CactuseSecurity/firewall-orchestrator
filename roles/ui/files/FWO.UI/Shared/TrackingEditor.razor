@@ -1,0 +1,63 @@
+@using FWO.Data
+@using FWO.Ui.Display
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("edit") + ": " + userConfig.GetText("track"))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <Dropdown ElementType="Tracking" SelectedElement="selectedTracking" SelectedElementChanged="TrackingChanged"
+                ElementToString="@(tracking => tracking.Name)" Elements="Trackings" Nullable="true">
+                <ElementTemplate Context="tracking">
+                    @tracking.Name
+                </ElementTemplate>
+            </Dropdown>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+    </Footer>
+</PopUp>
+
+@code {
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public Tracking? SelectedTracking { get; set; }
+    [Parameter] public List<Tracking> Trackings { get; set; } = [];
+    [Parameter] public EventCallback<Tracking?> Saved { get; set; }
+
+    private Tracking? selectedTracking;
+    private bool initialized;
+
+    protected override void OnParametersSet()
+    {
+        if (!Display || initialized)
+        {
+            return;
+        }
+
+        selectedTracking = Trackings.FirstOrDefault(tracking => tracking.Id == SelectedTracking?.Id);
+        initialized = true;
+    }
+
+    private Task TrackingChanged(Tracking tracking)
+    {
+        selectedTracking = tracking;
+        return Task.CompletedTask;
+    }
+
+    private async Task Save()
+    {
+        await Saved.InvokeAsync(selectedTracking);
+        Close();
+    }
+
+    private void Close()
+    {
+        initialized = false;
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+}

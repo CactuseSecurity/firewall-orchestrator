@@ -1341,6 +1341,7 @@ class FwConfigImportRule:
             self.uid2id_mapper.get_rule_id(rule.rule_uid) for rule in removed_rules if rule.rule_uid is not None
         ]
         changed_rules_ids: list[tuple[int, int, bool]] = []  # (new_rule_id, old_rule_id, security_relevant)
+        security_relevant_uids = self.get_security_relevant_changed_rule_uids(changed_rules, moved_uids)
         for old_rule, new_rule in changed_rules:
             if new_rule.rule_uid is not None and old_rule.rule_uid is not None:
                 rule_uid = new_rule.rule_uid
@@ -1348,7 +1349,7 @@ class FwConfigImportRule:
                     (
                         self.uid2id_mapper.get_rule_id(rule_uid),
                         self.uid2id_mapper.get_rule_id(rule_uid, before_update=True),
-                        rule_uid in moved_uids or self.is_change_security_relevant(old_rule, new_rule),
+                        rule_uid in security_relevant_uids,
                     )
                 )
 
@@ -1440,6 +1441,42 @@ class FwConfigImportRule:
         )
 
         return changelog_rule_insert_objects
+
+    def get_security_relevant_changed_rule_uids(
+        self,
+        changed_rules: list[tuple[RuleNormalized, RuleNormalized]],
+        moved_uids: set[str],
+    ) -> set[str]:
+        """
+        Determines which of the changed rules have a security-relevant change.
+
+        A NAT rule is displayed together with its translated counterpart (xlate rule). When only the
+        translated counterpart changed, the NAT rule gets a new version (xlate_rule FK repoint) without
+        any difference of its own. Such a NAT rule version takes over the security relevance of its
+        translated counterpart, so that the NAT rule change shows up in the NAT changes report.
+
+        Args:
+            changed_rules (list[tuple[RuleNormalized, RuleNormalized]]): (old, new) versions of the changed rules.
+            moved_uids (set[str]): Uids of changed rules moved to another rulebase (always security-relevant).
+
+        Returns:
+            set[str]: The uids of the changed rules whose change is security-relevant.
+
+        """
+        own_relevant_uids: set[str] = {
+            new_rule.rule_uid
+            for old_rule, new_rule in changed_rules
+            if new_rule.rule_uid is not None
+            and (new_rule.rule_uid in moved_uids or self.is_change_security_relevant(old_rule, new_rule))
+        }
+        translation_relevant_uids: set[str] = {
+            new_rule.rule_uid
+            for _, new_rule in changed_rules
+            if new_rule.rule_uid is not None
+            and new_rule.xlate_rule_uid is not None
+            and new_rule.xlate_rule_uid in own_relevant_uids
+        }
+        return own_relevant_uids | translation_relevant_uids
 
     def is_change_security_relevant(self, old_rule: RuleNormalized, new_rule: RuleNormalized) -> bool:
         """

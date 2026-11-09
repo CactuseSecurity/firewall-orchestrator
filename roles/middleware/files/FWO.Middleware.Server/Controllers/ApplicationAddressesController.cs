@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Logging;
@@ -21,11 +22,10 @@ namespace FWO.Middleware.Server.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/modelling")]
-public class ApplicationAddressesController(ApiConnection apiConnection) : ControllerBase
+public class ApplicationAddressesController(ApiConnection apiConnection, GlobalConfig globalConfig) : ControllerBase
 {
     internal const int kMaxFilterTextLength = 256;
     internal const int kMaxFilterValues = 100;
-    internal const int kMaxLimit = GetApplicationAddressesOptions.kMaxLimit;
 
     /// <summary>
     /// Returns every undeleted app-server address for each visible application.
@@ -39,7 +39,8 @@ public class ApplicationAddressesController(ApiConnection apiConnection) : Contr
     /// is matched as a contains search, matching the owner endpoint. Applications with an inactive lifecycle state
     /// are excluded unless <c>options.showOnlyActiveState</c> is set to <c>false</c>. Applications are ordered by
     /// name, so <c>options.limit</c> and <c>options.offset</c> page the result deterministically; without a limit
-    /// a page of at most 10000 applications is returned, and the <c>X-Has-More</c> response header tells whether
+    /// a page of at most the configured <c>maxRestResponseObjectLimit</c> applications (default 10000) is returned,
+    /// and the <c>X-Has-More</c> response header tells whether
     /// further applications follow. Every matching application of the page is returned even when it owns no address;
     /// its <c>addresses</c> list is then empty. Each address uses compact notation: a plain IP when start and end
     /// are equal, CIDR notation when start and end span exactly one network, and <c>ipStart-ipEnd</c> for any other
@@ -59,7 +60,8 @@ public class ApplicationAddressesController(ApiConnection apiConnection) : Contr
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] GetApplicationAddressesRequest? request)
     {
         GetApplicationAddressesRequest effectiveRequest = request ?? new GetApplicationAddressesRequest();
-        Dictionary<string, string[]> validationErrors = ValidateRequest(effectiveRequest);
+        int maxLimit = ListPaging.GetMaxObjectLimit(globalConfig);
+        Dictionary<string, string[]> validationErrors = ValidateRequest(effectiveRequest, maxLimit);
         if (validationErrors.Count > 0)
         {
             return BadRequest(new ValidationProblemDetails(validationErrors)
@@ -72,7 +74,7 @@ public class ApplicationAddressesController(ApiConnection apiConnection) : Contr
         {
             GetApplicationAddressesOptions options = effectiveRequest.Options!;
             ListPage<FwoOwner> applications = ListPage<FwoOwner>.FromLookahead(
-                await GetApplicationsAsync(options), ApplicationAddressQueryBuilder.GetPageSize(options));
+                await GetApplicationsAsync(options, maxLimit), ListPaging.GetPageSize(options.Limit, maxLimit));
             List<ModellingAppServer> appServers = await GetApplicationAddressesAsync(applications.Items);
             ListPaging.SetHasMoreHeader(HttpContext, applications.HasMore);
             return Ok(BuildResponses(applications.Items, appServers));
@@ -87,7 +89,9 @@ public class ApplicationAddressesController(ApiConnection apiConnection) : Contr
     /// <summary>
     /// Validates the request and returns all detected field errors.
     /// </summary>
-    internal static Dictionary<string, string[]> ValidateRequest(GetApplicationAddressesRequest request)
+    /// <param name="request">The request to validate.</param>
+    /// <param name="maxLimit">Maximum page size.</param>
+    internal static Dictionary<string, string[]> ValidateRequest(GetApplicationAddressesRequest request, int maxLimit)
     {
         Dictionary<string, string[]> errors = [];
         if (request.Options is null)
@@ -97,8 +101,11 @@ public class ApplicationAddressesController(ApiConnection apiConnection) : Contr
         }
 
         ValidateFilter(request.Options.Filter, errors);
-        ValidateLimit(request.Options.Limit, errors);
-        ValidateOffset(request.Options.Offset, errors);
+        foreach (KeyValuePair<string, string[]> pagingError in ListPaging.ValidatePaging(
+            request.Options.Limit, request.Options.Offset, maxLimit, "options.limit", "options.offset"))
+        {
+            errors[pagingError.Key] = pagingError.Value;
+        }
         return errors;
     }
 
@@ -159,22 +166,6 @@ public class ApplicationAddressesController(ApiConnection apiConnection) : Contr
         }
     }
 
-    private static void ValidateLimit(int? limit, Dictionary<string, string[]> errors)
-    {
-        if (limit is not null && (limit < 1 || limit > kMaxLimit))
-        {
-            AddError(errors, "options.limit", $"options.limit must be between 1 and {kMaxLimit} when supplied.");
-        }
-    }
-
-    private static void ValidateOffset(int? offset, Dictionary<string, string[]> errors)
-    {
-        if (offset is < 0)
-        {
-            AddError(errors, "options.offset", "options.offset must not be negative when supplied.");
-        }
-    }
-
     private static void ValidateFilterTextValues(List<string>? values, string fieldName, Dictionary<string, string[]> errors)
     {
         if (values is null)
@@ -207,11 +198,11 @@ public class ApplicationAddressesController(ApiConnection apiConnection) : Contr
         }
     }
 
-    private async Task<List<FwoOwner>> GetApplicationsAsync(GetApplicationAddressesOptions options)
+    private async Task<List<FwoOwner>> GetApplicationsAsync(GetApplicationAddressesOptions options, int maxLimit)
     {
         return await apiConnection.SendQueryAsync<List<FwoOwner>>(
             OwnerQueries.getApplicationIdentifiers,
-            ApplicationAddressQueryBuilder.BuildApplicationVariables(options, User)) ?? [];
+            ApplicationAddressQueryBuilder.BuildApplicationVariables(options, User, maxLimit)) ?? [];
     }
 
     private async Task<List<ModellingAppServer>> GetApplicationAddressesAsync(List<FwoOwner> applications)

@@ -11,14 +11,17 @@ namespace FWO.Middleware.Server.Services;
 /// </summary>
 public static class ApplicationAddressQueryBuilder
 {
-    private const string kEditableOwnersClaim = "x-hasura-editable-owners";
+    /// <summary>
+    /// JWT claim listing the ids of the applications a modeller may edit.
+    /// </summary>
+    public const string kEditableOwnersClaim = "x-hasura-editable-owners";
 
     /// <summary>
     /// Builds the variables selecting the applications visible to the caller, including paging. One application more
     /// than the page size is requested, so the caller can tell whether further applications follow.
     /// </summary>
     public static Dictionary<string, object> BuildApplicationVariables(
-        GetApplicationAddressesOptions options, ClaimsPrincipal user)
+        GetApplicationAddressesOptions options, ClaimsPrincipal user, int maxLimit)
     {
         ApplicationAddressFilter? filter = options.Filter;
         List<Dictionary<string, object>> predicates = [];
@@ -37,16 +40,8 @@ public static class ApplicationAddressQueryBuilder
         {
             ["where"] = GraphQlFilterBuilder.CombinePredicates(predicates)
         };
-        ListPaging.AddLookaheadPagingVariables(variables, GetPageSize(options), options.Offset);
+        ListPaging.AddLookaheadPagingVariables(variables, ListPaging.GetPageSize(options.Limit, maxLimit), options.Offset);
         return variables;
-    }
-
-    /// <summary>
-    /// Returns the page size of the request; an omitted or null limit selects the default page size.
-    /// </summary>
-    public static int GetPageSize(GetApplicationAddressesOptions options)
-    {
-        return options.Limit ?? GetApplicationAddressesOptions.kMaxLimit;
     }
 
     /// <summary>

@@ -25,13 +25,13 @@ namespace FWO.Test
         private sealed class ZonesConfigurationApiConnection : SimulatedApiConnection
         {
             public List<string> SentQueries { get; } = [];
-            public List<ComplianceNetworkZone> NetworkZones { get; } = [];
+            public List<NetworkZone> NetworkZones { get; } = [];
             public bool ThrowWhenLoadingNetworkZones { get; set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 SentQueries.Add(query);
-                if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>))
+                if (typeof(QueryResponseType) == typeof(List<NetworkZone>))
                 {
                     if (ThrowWhenLoadingNetworkZones)
                     {
@@ -69,8 +69,8 @@ namespace FWO.Test
         [Test]
         public async Task UpdatingZoneRefreshesAutoCalculatedInternetZone()
         {
-            ComplianceNetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
-            ComplianceNetworkZone internetZone = new()
+            NetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
+            NetworkZone internetZone = new()
             {
                 Id = 2,
                 CriterionId = 1,
@@ -79,7 +79,7 @@ namespace FWO.Test
             };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<ComplianceNetworkZone> { normalZone, internetZone }
+                NetworkZones = new List<NetworkZone> { normalZone, internetZone }
             };
             ZonesConfigurationApiConnection apiConnection = new();
             apiConnection.NetworkZones.Add(normalZone);
@@ -114,8 +114,8 @@ namespace FWO.Test
         [Test]
         public async Task UpdatingZoneWithoutAddressCoverageChangeDoesNotRefreshAutoCalculatedZones()
         {
-            ComplianceNetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
-            ComplianceNetworkZone internetZone = new()
+            NetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
+            NetworkZone internetZone = new()
             {
                 Id = 2,
                 CriterionId = 1,
@@ -124,7 +124,7 @@ namespace FWO.Test
             };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<ComplianceNetworkZone> { normalZone, internetZone }
+                NetworkZones = new List<NetworkZone> { normalZone, internetZone }
             };
             ZonesConfigurationApiConnection apiConnection = new();
             apiConnection.NetworkZones.Add(normalZone);
@@ -151,7 +151,7 @@ namespace FWO.Test
         [Test]
         public async Task EditingAutoCalculatedZoneHidesIpRangeControls()
         {
-            ComplianceNetworkZone internetZone = new()
+            NetworkZone internetZone = new()
             {
                 Id = 2,
                 CriterionId = 1,
@@ -161,7 +161,7 @@ namespace FWO.Test
             };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<ComplianceNetworkZone> { internetZone }
+                NetworkZones = new List<NetworkZone> { internetZone }
             };
             await using BunitContext context = CreateContext(networkZoneService);
             IRenderedComponent<ZonesConfiguration> page = Render(context);
@@ -178,7 +178,7 @@ namespace FWO.Test
         [Test]
         public async Task EditingEmptyAutoCalculatedZoneHidesSubzoneControls()
         {
-            ComplianceNetworkZone undefinedInternalZone = new()
+            NetworkZone undefinedInternalZone = new()
             {
                 Id = 2,
                 CriterionId = 1,
@@ -187,7 +187,7 @@ namespace FWO.Test
             };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<ComplianceNetworkZone> { undefinedInternalZone }
+                NetworkZones = new List<NetworkZone> { undefinedInternalZone }
             };
             await using BunitContext context = CreateContext(networkZoneService);
             IRenderedComponent<ZonesConfiguration> page = Render(context);
@@ -200,7 +200,7 @@ namespace FWO.Test
         [Test]
         public async Task UpdatingAutoCalculatedZoneWithAddressCoverageChangeDoesNotRefreshAutoCalculatedZones()
         {
-            ComplianceNetworkZone undefinedInternalZone = new()
+            NetworkZone undefinedInternalZone = new()
             {
                 Id = 2,
                 CriterionId = 1,
@@ -209,7 +209,7 @@ namespace FWO.Test
             };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<ComplianceNetworkZone> { undefinedInternalZone }
+                NetworkZones = new List<NetworkZone> { undefinedInternalZone }
             };
             ZonesConfigurationApiConnection apiConnection = new();
             apiConnection.NetworkZones.Add(undefinedInternalZone);
@@ -222,7 +222,7 @@ namespace FWO.Test
 
             networkZoneService.InvokeOnEditZone(undefinedInternalZone);
             NetworkZoneService.AdditionsDeletions addDel = new();
-            addDel.SubzonesToAdd.Add(new ComplianceNetworkZone { Id = 3, CriterionId = 1, Name = "subzone" });
+            addDel.SubzonesToAdd.Add(new NetworkZone { Id = 3, CriterionId = 1, Name = "subzone" });
             typeof(ZonesConfiguration)
                 .GetField("addDel", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
                 .SetValue(page.Instance, addDel);
@@ -240,10 +240,10 @@ namespace FWO.Test
         [Test]
         public async Task DeletingZoneDisplaysAutoCalculatedZoneCommunicationWarning()
         {
-            ComplianceNetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
+            NetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<ComplianceNetworkZone> { normalZone }
+                NetworkZones = new List<NetworkZone> { normalZone }
             };
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -260,7 +260,7 @@ namespace FWO.Test
         [Test]
         public async Task DeletingAutoCalculatedInternetZone_DoesNotRecreateIt()
         {
-            ComplianceNetworkZone internetZone = new()
+            NetworkZone internetZone = new()
             {
                 Id = 2,
                 CriterionId = 1,
@@ -269,7 +269,7 @@ namespace FWO.Test
             };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<ComplianceNetworkZone> { internetZone }
+                NetworkZones = new List<NetworkZone> { internetZone }
             };
             ZonesConfigurationApiConnection apiConnection = new();
             apiConnection.NetworkZones.Add(internetZone);
@@ -295,10 +295,10 @@ namespace FWO.Test
         [Test]
         public async Task RecalculationFailureAfterZoneUpdate_ReloadsThePersistedState()
         {
-            ComplianceNetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
+            NetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<ComplianceNetworkZone> { normalZone }
+                NetworkZones = new List<NetworkZone> { normalZone }
             };
             ZonesConfigurationApiConnection apiConnection = new()
             {
@@ -335,10 +335,10 @@ namespace FWO.Test
         [Test]
         public async Task RecalculationFailureAfterZoneDeletion_ReloadsThePersistedState()
         {
-            ComplianceNetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
+            NetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<ComplianceNetworkZone> { normalZone }
+                NetworkZones = new List<NetworkZone> { normalZone }
             };
             ZonesConfigurationApiConnection apiConnection = new()
             {
@@ -386,7 +386,7 @@ namespace FWO.Test
                 Assert.That(HasNoSubscribers(networkZoneService, nameof(NetworkZoneService.OnEditZone)), Is.False);
                 Assert.That(HasNoSubscribers(networkZoneService, nameof(NetworkZoneService.OnDeleteZone)), Is.False);
             });
-            Assert.DoesNotThrow(() => networkZoneService.InvokeOnEditZone(new ComplianceNetworkZone { Id = 5 }));
+            Assert.DoesNotThrow(() => networkZoneService.InvokeOnEditZone(new NetworkZone { Id = 5 }));
         }
 
         [Test]
@@ -399,7 +399,7 @@ namespace FWO.Test
             page.Instance.Dispose();
 
             // an attached handler would still run against the disposed component and re-render it
-            Assert.DoesNotThrow(() => networkZoneService.InvokeOnEditZone(new ComplianceNetworkZone { Id = 5 }));
+            Assert.DoesNotThrow(() => networkZoneService.InvokeOnEditZone(new NetworkZone { Id = 5 }));
             Assert.That(HasNoSubscribers(networkZoneService, nameof(NetworkZoneService.OnEditZone)), Is.True);
         }
 
@@ -412,7 +412,7 @@ namespace FWO.Test
 
             page.Instance.Dispose();
 
-            Assert.DoesNotThrow(() => networkZoneService.InvokeOnDeleteZone(new ComplianceNetworkZone { Id = 5 }));
+            Assert.DoesNotThrow(() => networkZoneService.InvokeOnDeleteZone(new NetworkZone { Id = 5 }));
             Assert.That(HasNoSubscribers(networkZoneService, nameof(NetworkZoneService.OnDeleteZone)), Is.True);
         }
 

@@ -19,7 +19,7 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class ZoneMatrixDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : DataImportBase(apiConnection, globalConfig)
     {
-        private List<ComplianceNetworkZone> ExistingZones = [];
+        private List<NetworkZone> ExistingZones = [];
         private readonly Dictionary<string, int> ZoneIds = [];
         private int MatrixId = 0;
         private const string LogMessageTitle = "Import Network Zone Matrix Data";
@@ -407,7 +407,7 @@ namespace FWO.Middleware.Server
 
             // Reload with all ids: the import file carries id_strings, the API assigns the ids that
             // SaveZoneConnections and HandleIpRangePaths address zones by.
-            ExistingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = MatrixId });
+            ExistingZones = await apiConnection.SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = MatrixId });
             foreach (var zone in ExistingZones)
             {
                 ZoneIds.Add(zone.IdString, zone.Id);
@@ -440,7 +440,7 @@ namespace FWO.Middleware.Server
                 $"Inserted paths to internet: {counters.InsertPathInternet}, removed paths to internet: {counters.RemovePathInternet}.";
         }
 
-        private async Task<(int, List<ComplianceNetworkZone>)> GetExistingMatrixWithZones(string matrixName)
+        private async Task<(int, List<NetworkZone>)> GetExistingMatrixWithZones(string matrixName)
         {
             List<ComplianceCriterion> existingMatrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getMatrixByName, new { name = matrixName });
             if (existingMatrices.Count > 0)
@@ -450,7 +450,7 @@ namespace FWO.Middleware.Server
                     throw new ArgumentException("Manually created matrix existing with same Name");
                 }
                 int matrixId = existingMatrices[0].Id;
-                return (matrixId, await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId }));
+                return (matrixId, await apiConnection.SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId }));
             }
             return (0, []);
         }
@@ -488,7 +488,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                ComplianceNetworkZone? existingZone = ExistingZones.FirstOrDefault(x => x.IdString == incomingZone.IdString);
+                NetworkZone? existingZone = ExistingZones.FirstOrDefault(x => x.IdString == incomingZone.IdString);
                 if (existingZone == null)
                 {
                     await NewZone(incomingZone);
@@ -511,7 +511,7 @@ namespace FWO.Middleware.Server
 
         private async Task NewZone(NetworkZoneData incomingZoneData)
         {
-            ComplianceNetworkZone incomingZone = new()
+            NetworkZone incomingZone = new()
             {
                 CriterionId = MatrixId,
                 Name = incomingZoneData.Name,
@@ -525,7 +525,7 @@ namespace FWO.Middleware.Server
             counters.NewZoneSuccess++;
         }
 
-        private async Task UpdateZone(NetworkZoneData incomingZoneData, ComplianceNetworkZone existingZone)
+        private async Task UpdateZone(NetworkZoneData incomingZoneData, NetworkZone existingZone)
         {
             List<IPAddressRange> incomingRanges = incomingZoneData.IpData.ConvertAll(i => ConvertIpDataToAddressRange(i));
             NetworkZoneService.AdditionsDeletions addDel = new()
@@ -541,7 +541,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task<bool> DeactivateZone(ComplianceNetworkZone zone)
+        private async Task<bool> DeactivateZone(NetworkZone zone)
         {
             try
             {
@@ -561,7 +561,7 @@ namespace FWO.Middleware.Server
 
         private async Task<(int Inserted, int Removed)> SaveZoneConnections(NetworkZoneData incomingZoneData)
         {
-            ComplianceNetworkZone? existingZone = ExistingZones.FirstOrDefault(x => x.IdString == incomingZoneData.IdString);
+            NetworkZone? existingZone = ExistingZones.FirstOrDefault(x => x.IdString == incomingZoneData.IdString);
             if (existingZone != null)
             {
                 // Dont allow auto-calculated undefine-internal to have allowed communications.
@@ -578,8 +578,8 @@ namespace FWO.Middleware.Server
 
                 NetworkZoneService.AdditionsDeletions addDel = new()
                 {
-                    DestinationZonesToAdd = incomingDestZoneIds.Except(existDestZoneIds).ToList().ConvertAll(i => new ComplianceNetworkZone() { Id = i }),
-                    DestinationZonesToDelete = existDestZoneIds.Except(incomingDestZoneIds).ToList().ConvertAll(i => new ComplianceNetworkZone() { Id = i })
+                    DestinationZonesToAdd = incomingDestZoneIds.Except(existDestZoneIds).ToList().ConvertAll(i => new NetworkZone() { Id = i }),
+                    DestinationZonesToDelete = existDestZoneIds.Except(incomingDestZoneIds).ToList().ConvertAll(i => new NetworkZone() { Id = i })
                 };
                 await NetworkZoneService.UpdateZone(existingZone, addDel, apiConnection);
                 return (addDel.DestinationZonesToAdd.Count, addDel.DestinationZonesToDelete.Count);

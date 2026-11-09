@@ -656,12 +656,13 @@ namespace FWO.Middleware.Server
             string timeIntervalText = "", NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
             string subject = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(notification.EmailSubject ?? "", owner, timeIntervalText);
-            string body = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, content), owner, timeIntervalText);
+            bool isHtmlBody = notification.Layout == NotificationLayout.HtmlInBody;
+            string body = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, content), owner,
+                timeIntervalText, isHtmlBody);
             if (placeholderValues != null)
             {
                 subject = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(subject, placeholderValues);
-                body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(body, placeholderValues,
-                    renderHtmlLinks: notification.Layout == NotificationLayout.HtmlInBody);
+                body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(body, placeholderValues, isHtmlBody);
             }
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
             EmailHelper? emailHelper = GlobalConfig.UseDummyEmailAddress ? null : await CreateEmailHelper();
@@ -727,8 +728,23 @@ namespace FWO.Middleware.Server
                 : $"{notification.BundleType}:{notification.BundleId}";
         }
 
+        /// <summary>
+        /// Builds the report attachment for the layout of the notification. A CSV attachment is skipped (with a warning) if the
+        /// report type has no CSV export, so that a misconfigured layout does not abort sending the notification.
+        /// </summary>
+        /// <param name="notification">Notification defining the layout.</param>
+        /// <param name="report">Report to attach.</param>
+        /// <param name="subject">Subject used as attachment name.</param>
+        /// <returns>The attachment or null if the layout has no attachment or the report cannot be exported in it.</returns>
         private static async Task<FormFile?> BuildAttachment(FwoNotification notification, ReportBase report, string subject)
         {
+            if (notification.Layout == NotificationLayout.CsvAsAttachment
+                && !report.ReportType.SupportsCsvExport(report.ReportData.WorkflowFilter.DetailedView))
+            {
+                Log.WriteWarning("Notifications",
+                    $"Notification {notification.Id} ({notification.NotificationClient}) requests a CSV attachment, but report type {report.ReportType} has no CSV export. Sending without attachment.");
+                return null;
+            }
             return await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, subject, report.ExportToHtml, report.ExportToJson, report.ExportToCsv,
                 async html =>
                 {

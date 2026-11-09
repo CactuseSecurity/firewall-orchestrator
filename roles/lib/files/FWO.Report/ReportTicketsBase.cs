@@ -216,7 +216,7 @@ namespace FWO.Report
             }
             if (HasAddInfoColumn())
             {
-                report.AppendLine($"<th>{workflowFilter.AddInfoFilter.Name}</th>");
+                report.AppendLine($"<th>{HtmlOutputEncoder.EncodeText(workflowFilter.AddInfoFilter.Name)}</th>");
             }
             report.AppendLine("</tr>");
         }
@@ -225,19 +225,19 @@ namespace FWO.Report
         {
             report.AppendLine("<tr>");
             report.AppendLine($"<td>{ticket.Id}</td>");
-            report.AppendLine($"<td>{ticket.Title}</td>");
+            report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(ticket.Title)}</td>");
             report.AppendLine($"<td>{ticket.Tasks.Count}</td>");
-            report.AppendLine($"<td>{ticket.Requester?.Name}</td>");
-            report.AppendLine($"<td>{ResolveStateName(ticket.StateId)}</td>");
+            report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(ticket.Requester?.Name)}</td>");
+            report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(ResolveStateName(ticket.StateId))}</td>");
             report.AppendLine($"<td>{ticket.CreationDate}</td>");
             report.AppendLine($"<td>{ticket.CompletionDate}</td>");
             if (HasReferenceDateColumn())
             {
-                report.AppendLine($"<td>{GetTicketReferenceDateValue(ticket)}</td>");
+                report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(GetTicketReferenceDateValue(ticket))}</td>");
             }
             if (HasAddInfoColumn())
             {
-                report.AppendLine($"<td>{GetAddInfoValue(ticket)}</td>");
+                report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(GetAddInfoValue(ticket))}</td>");
             }
             report.AppendLine("</tr>");
         }
@@ -283,8 +283,8 @@ namespace FWO.Report
             report.AppendLine("<tr>");
             report.AppendLine($"<td>{task.Id}</td>");
             report.AppendLine($"<td>{task.TaskNumber}</td>");
-            report.AppendLine($"<td>{task.Title}</td>");
-            report.AppendLine($"<td>{ResolveStateName(task.StateId)}</td>");
+            report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(task.Title)}</td>");
+            report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(ResolveStateName(task.StateId))}</td>");
             report.AppendLine($"<td>{task.Start}</td>");
             report.AppendLine($"<td>{task.Stop}</td>");
             report.AppendLine("</tr>");
@@ -319,8 +319,8 @@ namespace FWO.Report
                 report.AppendLine("<tr>");
                 report.AppendLine($"<td>{implTask.Id}</td>");
                 report.AppendLine($"<td>{implTask.TaskNumber}</td>");
-                report.AppendLine($"<td>{implTask.Title}</td>");
-                report.AppendLine($"<td>{ResolveStateName(implTask.StateId)}</td>");
+                report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(implTask.Title)}</td>");
+                report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(ResolveStateName(implTask.StateId))}</td>");
                 report.AppendLine($"<td>{implTask.Start}</td>");
                 report.AppendLine($"<td>{implTask.Stop}</td>");
                 report.AppendLine("</tr>");
@@ -356,8 +356,8 @@ namespace FWO.Report
             {
                 report.AppendLine("<tr>");
                 report.AppendLine($"<td>{approval.Id}</td>");
-                report.AppendLine($"<td>{approval.ApproverGroup}</td>");
-                report.AppendLine($"<td>{ResolveStateName(approval.StateId)}</td>");
+                report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(approval.ApproverGroup)}</td>");
+                report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(ResolveStateName(approval.StateId))}</td>");
                 report.AppendLine($"<td>{approval.DateOpened}</td>");
                 report.AppendLine($"<td>{approval.ApprovalDate}</td>");
                 report.AppendLine("</tr>");

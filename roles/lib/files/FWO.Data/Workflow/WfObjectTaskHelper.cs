@@ -33,6 +33,7 @@ namespace FWO.Data.Workflow
         /// Maximum number of search hits, matching the row limit of the requester permission.
         /// </summary>
         public const int kSearchLimit = 50;
+        public const int kGroupMemberLimit = 500;
 
         /// <summary>
         /// Object types offered by the search: network, host, machines_range and ip_range (see stm_obj_typ).

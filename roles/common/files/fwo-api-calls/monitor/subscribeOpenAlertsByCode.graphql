@@ -1,0 +1,13 @@
+subscription subscribeOpenAlertsByCode($alertCode: Int!, $limit: Int!) {
+  alert(
+    where: { ack_timestamp: { _is_null: true }, alert_code: { _eq: $alertCode } }
+    order_by: { alert_id: desc }
+    limit: $limit
+  ) {
+    alert_id
+    alert_mgm_id
+    management {
+      mgm_name
+    }
+  }
+}

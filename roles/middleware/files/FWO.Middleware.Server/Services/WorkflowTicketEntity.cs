@@ -37,7 +37,18 @@ internal sealed record WorkflowTicketEntity(
 {
     public static WorkflowTicketEntity FromAddressObject(long id, CreateTicketRequest.CreateAddressObjectRequest request)
     {
-        return new WorkflowTicketEntity(id, WorkflowTicketEntityKind.AddressObject, request.Name, request.IpStart, request.IpEnd,
+        if (string.IsNullOrEmpty(request.NormalizedIpStart))
+        {
+            if (!AddressInputNormalizer.TryValidateAndNormalize(request, "'addressObject'", out NormalizedAddressBounds bounds, out string? errorMessage))
+            {
+                throw new ArgumentException(errorMessage);
+            }
+
+            request.NormalizedIpStart = bounds.IpStart;
+            request.NormalizedIpEnd = bounds.IpEnd;
+        }
+
+        return new WorkflowTicketEntity(id, WorkflowTicketEntityKind.AddressObject, request.Name, request.NormalizedIpStart, request.NormalizedIpEnd,
             LeafRequestAction: ResolveRequestAction(request.Predicate));
     }
 

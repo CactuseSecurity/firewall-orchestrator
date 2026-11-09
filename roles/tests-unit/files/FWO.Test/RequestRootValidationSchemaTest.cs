@@ -1,4 +1,5 @@
 using FWO.Middleware.Server.Requests;
+using FWO.Middleware.Server.Services;
 using NUnit.Framework;
 
 namespace FWO.Test;
@@ -13,20 +14,20 @@ internal class RequestRootValidationSchemaTest
     private static readonly List<string> kVisibilityKeyNames = ["filter"];
 
     /// <summary>
-    /// Paging schemas must preserve the endpoint-specific maximum and all supported keys.
+    /// Paging schemas must preserve the shared paging descriptions and all supported keys.
     /// </summary>
-    [TestCase(FlowCatalogPaging.kMaxObjectLimit)]
-    [TestCase(FlowCatalogPaging.kMaxGroupLimit)]
-    public void PagedVisibilitySchemaPreservesDefinitions(int maxLimit)
+    [Test]
+    public void PagedVisibilitySchemaPreservesDefinitions()
     {
-        RequestRootValidationSchema schema = RequestRootValidationSchema.ForPagedVisibleInRequest("catalog", maxLimit);
+        RequestRootValidationSchema schema = RequestRootValidationSchema.ForPagedVisibleInRequest("catalog");
 
         Assert.Multiple(() =>
         {
             Assert.That(schema.EndpointName, Is.EqualTo("catalog"));
             Assert.That(schema.AllowedKeys.Select(key => key.JsonName), Is.EqualTo(kPagedKeyNames));
-            Assert.That(schema.AllowedKeys.Single(key => key.JsonName == "limit").Description, Is.EqualTo(FlowCatalogPaging.DescribeLimit(maxLimit)));
-            Assert.That(schema.AllowedKeys.Single(key => key.JsonName == "offset").Description, Is.EqualTo(FlowCatalogPaging.kOffsetDescription));
+            Assert.That(schema.AllowedKeys.Single(key => key.JsonName == "limit").Description, Is.EqualTo(FlowCatalogPaging.kLimitDescription));
+            Assert.That(schema.AllowedKeys.Single(key => key.JsonName == "limit").Description, Does.Contain(ListPaging.kMaxObjectLimitSetting));
+            Assert.That(schema.AllowedKeys.Single(key => key.JsonName == "offset").Description, Is.EqualTo(ListPaging.kOffsetDescription));
         });
     }
 
@@ -36,7 +37,7 @@ internal class RequestRootValidationSchemaTest
     [Test]
     public void PagedSchemaDoesNotChangeVisibilityOnlySchema()
     {
-        RequestRootValidationSchema.ForPagedVisibleInRequest("catalog", FlowCatalogPaging.kMaxObjectLimit);
+        RequestRootValidationSchema.ForPagedVisibleInRequest("catalog");
 
         RequestRootValidationSchema schema = RequestRootValidationSchema.ForVisibleInRequest("lookup");
 

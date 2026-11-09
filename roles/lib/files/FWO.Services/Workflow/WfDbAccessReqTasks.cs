@@ -50,7 +50,7 @@ namespace FWO.Services.Workflow
                     foreach (var approval in reqtask.Approvals)
                     {
                         approval.TaskId = returnId;
-                        await AddApprovalToDb(approval, reqtask.TicketId, storedTicket?.Requester);
+                        approval.Id = await AddApprovalToDb(approval, reqtask.TicketId, storedTicket?.Requester);
                     }
                     foreach (var owner in reqtask.Owners)
                     {

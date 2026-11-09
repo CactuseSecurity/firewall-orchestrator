@@ -31,6 +31,7 @@ fragment implTaskDetails on request_impltask {
   target_begin_date
   target_end_date
   free_text
+  rule_position
   elements: elements {
     id
     implementation_task_id

@@ -24,8 +24,8 @@
         </div>
     </div>
 
-    @if ((TaskType == WfTaskType.access && ShowField(WorkflowEditableFieldKeys.Management)) || TaskType == WfTaskType.rule_modify || TaskType == WfTaskType.rule_delete || TaskType == WfTaskType.group_create
-        || WfObjectTaskHelper.IsObjectTask(TaskType))
+    @if ((TaskType == WfTaskType.access && ShowField(WorkflowEditableFieldKeys.Management)) || TaskType == WfTaskType.rule_modify || TaskType == WfTaskType.rule_delete
+        || WfObjectTaskHelper.IsManagementObjectTask(TaskType.ToString()))
     {
         <div class="col-sm-3">
             <div class="form-group row">
@@ -177,18 +177,6 @@
             </div>
         </div>
     }
-    else if (TaskType == WfTaskType.group_create)
-    {
-        <div class="col-sm-6">
-            <div class="form-group row">
-                <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                <div class="col-sm-11">
-                    <input type="text" class="form-control form-control-sm" readonly="@(!CanEditField(WorkflowEditableFieldKeys.Name))"
-                        value="@GroupName" @onchange="GroupNameChangedFromInput" />
-                </div>
-            </div>
-        </div>
-    }
 </div>
 
 @code
@@ -228,7 +216,6 @@
     private Device? RuleDevice { get; set; }
     private FwoOwner? Owner { get; set; }
     private FwoOwner? RequestingOwner { get; set; }
-    private string? GroupName { get; set; }
     private IEnumerable<Device> SelectedDevices { get; set; } = [];
     private readonly List<Device> selectableDevices = [];
     private Device? allDevicesOption;
@@ -239,15 +226,14 @@
     public Device? CurrentRuleDevice => RuleDevice;
     public FwoOwner? CurrentOwner => Owner;
     public FwoOwner? CurrentRequestingOwner => RequestingOwner;
-    public string? CurrentGroupName => GroupName;
     public IEnumerable<Device> CurrentSelectedDevices => SelectedDevices;
     public IEnumerable<FwoOwner> NewInterfaceOwnerOptions => WfHandler.AllOwners.Where(owner => owner.Id != 0);
     public IEnumerable<FwoOwner> RequestingOwnerOptions => userConfig.CanUseAnyRole(Roles.Admin)
         ? NewInterfaceOwnerOptions
         : NewInterfaceOwnerOptions.Where(owner => userConfig.User.Ownerships.Contains(owner.Id));
-    public bool NeedsManualDeviceSelection => !IsPlanningPhaseActive()
-        && (userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask
-            || userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.oneTaskForAllDevices);
+    // The device field is offered whenever configured; entered devices take precedence over the path analysis
+    // when the implementation tasks are created, independently of the planning phase.
+    public bool NeedsManualDeviceSelection => userConfig.ReqDeviceInput != ReqDeviceInputOptions.never;
     public IEnumerable<Device> SelectableDevices => selectableDevices;
 
     protected override void OnParametersSet()
@@ -268,7 +254,6 @@
         RuleDevice = WfHandler.Devices.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetRuleDeviceId());
         Owner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
         RequestingOwner = RequestingOwnerOptions.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
-        GroupName = WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
 
         List<int> selectedDeviceIds = WfHandler.ActReqTask.GetDeviceList().ToList();
         if ((selectedDeviceIds.Count == 0 && NeedsManualDeviceSelection)
@@ -340,11 +325,6 @@
         selectableDevices.AddRange(WfHandler.Devices);
     }
 
-    private bool IsPlanningPhaseActive()
-    {
-        return WfHandler.ActStateMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool isActive) && isActive;
-    }
-
     private Task OnTaskTypeChanged(WfTaskType value)
     {
         TaskType = value;
@@ -375,9 +355,4 @@
         return Task.CompletedTask;
     }
 
-    private Task GroupNameChangedFromInput(ChangeEventArgs args)
-    {
-        GroupName = args.Value?.ToString();
-        return Task.CompletedTask;
-    }
 }

@@ -45,7 +45,7 @@
 						<div class="card-body p-0">
 							<table class="table mb-0">
 								<tbody>
-									@foreach ((ComplianceNetworkZone, ComplianceNetworkZone) forbiddenCommunication in forbiddenCommunicationsOutput)
+									@foreach ((NetworkZone, NetworkZone) forbiddenCommunication in forbiddenCommunicationsOutput)
 									{
 										<tr>
 											<td class="py-1 w-25">@(forbiddenCommunication.Item1.Name)</td>
@@ -69,7 +69,7 @@
 	IPAddressRange? destinationIpRange;
 	bool displayOutput = false;
 	bool compliant = false;
-	List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = [];
+	List<(NetworkZone, NetworkZone)> forbiddenCommunicationsOutput = [];
 
 	private void CheckIpRangeInputCompliance()
 	{
@@ -86,7 +86,7 @@
 		}
 	}
 
-	private bool CheckRuleCompliance(Rule rule, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
+	private bool CheckRuleCompliance(Rule rule, out List<(NetworkZone, NetworkZone)> forbiddenCommunication)
 	{
 		List<IPAddressRange> froms = [];
 		List<IPAddressRange> tos = [];
@@ -105,19 +105,19 @@
 		return CheckCompliance(froms, tos, out forbiddenCommunication);
 	}
 
-	private bool CheckCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
+	private bool CheckCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(NetworkZone, NetworkZone)> forbiddenCommunication)
 	{
 		// Determine all matching source zones
-		List<ComplianceNetworkZone> sourceZones = DetermineZones(source);
+		List<NetworkZone> sourceZones = DetermineZones(source);
 
 		// Determine all macthing destination zones
-		List<ComplianceNetworkZone> destinationZones = DetermineZones(destination);
+		List<NetworkZone> destinationZones = DetermineZones(destination);
 
 		forbiddenCommunication = [];
 
-		foreach (ComplianceNetworkZone sourceZone in sourceZones)
+		foreach (NetworkZone sourceZone in sourceZones)
 		{
-			foreach (ComplianceNetworkZone destinationZone in destinationZones)
+			foreach (NetworkZone destinationZone in destinationZones)
 			{
 				if (!sourceZone.CommunicationAllowedTo(destinationZone))
 				{
@@ -130,9 +130,9 @@
 	}
 
 
-	private List<ComplianceNetworkZone> DetermineZones(List<IPAddressRange> ranges)
+	private List<NetworkZone> DetermineZones(List<IPAddressRange> ranges)
 	{
-		List<ComplianceNetworkZone> result = [];
+		List<NetworkZone> result = [];
 		List<List<IPAddressRange>> unseenIpAddressRanges = new List<List<IPAddressRange>>();
 
 		for (int i = 0; i < ranges.Count; i++)
@@ -143,7 +143,7 @@
 			});
 		}
 
-		foreach (ComplianceNetworkZone zone in networkZoneService.NetworkZones)
+		foreach (NetworkZone zone in networkZoneService.NetworkZones)
 		{
 			if (zone.OverlapExists(ranges, unseenIpAddressRanges))
 			{
@@ -157,7 +157,7 @@
 		{
 			result.Add
 			(
-				new ComplianceNetworkZone()
+				new NetworkZone()
 				{
 					Name = userConfig.GetText("internet_local_zone"),
 				}

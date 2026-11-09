@@ -1,0 +1,6 @@
+query analyzePath($src: cidr!, $dst: cidr!) {
+  devices_in_path(args: {c_source: $src, c_destination: $dst}) {
+    id: dev_id
+    name: dev_name
+  }
+}

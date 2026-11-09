@@ -1,0 +1,48 @@
+query getRulebasesAtImport(
+  $managementId: Int!
+  $rulebaseIds: [Int!]!
+  $importId: bigint!
+  $rulebaseLimit: Int!
+  $ruleLimit: Int!
+) {
+  firewall_rulebase(
+    limit: $rulebaseLimit
+    where: {
+      id: { _in: $rulebaseIds }
+      mgm_id: { _eq: $managementId }
+      created: { _lte: $importId }
+      _or: [
+        { removed: { _is_null: true } }
+        { removed: { _gt: $importId } }
+      ]
+    }
+    order_by: { id: asc }
+  ) {
+    id
+    name
+    uid
+    mgm_id
+    created
+    removed
+    rules(
+      limit: $ruleLimit
+      where: {
+        mgm_id: { _eq: $managementId }
+        rule_create: { _lte: $importId }
+        _or: [
+          { removed: { _is_null: true } }
+          { removed: { _gt: $importId } }
+        ]
+      }
+      order_by: [{ rule_num_numeric: asc }, { rule_id: asc }]
+    ) {
+      rule_id
+      rule_uid
+      mgm_id
+      rulebase_id
+      rule_num_numeric
+      rule_create
+      removed
+    }
+  }
+}

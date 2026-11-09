@@ -188,7 +188,6 @@ class TestImportManagementInner:
         state.mgm_details.importer_hostname = gethostname()
         state.force_import = False
         state.is_initial_import = False
-        state.days_since_last_full_import = 0
         _mock(import_state_controller.api_call.set_import_lock).return_value = IMPORT_ID
         mocker.patch("common.IMPORT_TMP_PATH", str(tmp_path / "import"))
         mocker.patch("common.ManagementController.build_gateway_list", return_value=[])
@@ -252,35 +251,30 @@ class TestImportManagementInner:
         config.store_full_normalized_config_to_file.assert_called_once_with(import_state_controller.state)
         inner_mocks["consistency"].return_value.check_fwconfig_managerlist_consistency.assert_called_once_with(config)
         inner_mocks["config_importer"].import_management_set.assert_called_once()
-        inner_mocks["config_importer"].delete_old_imports.assert_not_called()
 
-    def test_unchanged_config_is_not_imported_but_old_imports_are_deleted(
-        self, inner_mocks: dict[str, MagicMock], import_state_controller: ImportStateController
-    ) -> None:
+    def test_unchanged_config_is_not_imported(self, inner_mocks: dict[str, MagicMock]) -> None:
         inner_mocks["get_config"].return_value = (False, MagicMock())
-        import_state_controller.state.days_since_last_full_import = (
-            import_state_controller.state.data_retention_days + 1
-        )
 
         self._run()
 
         inner_mocks["config_importer"].import_management_set.assert_not_called()
-        inner_mocks["config_importer"].delete_old_imports.assert_called_once()
 
-    def test_clearing_import_skips_consistency_check_on_request(
-        self, inner_mocks: dict[str, MagicMock], import_state_controller: ImportStateController
-    ) -> None:
-        import_state_controller.state.days_since_last_full_import = (
-            import_state_controller.state.data_retention_days + 1
-        )
+    def test_import_does_not_delete_old_imports(self, inner_mocks: dict[str, MagicMock]) -> None:
+        """Deleting import_control rows cascades into rules and objects still in use, so no import may do it."""
+        inner_mocks["get_config"].return_value = (True, MagicMock())
 
+        self._run()
+
+        deleting_calls = [call for call in inner_mocks["config_importer"].mock_calls if "delete" in call[0]]
+        assert deleting_calls == []
+
+    def test_clearing_import_skips_consistency_check_on_request(self, inner_mocks: dict[str, MagicMock]) -> None:
         self._run(clear_management_data=True, suppress_consistency_check=True)
 
         inner_mocks["config_importer"].clear_management.assert_called_once()
         inner_mocks["get_config"].assert_not_called()
         inner_mocks["consistency"].assert_not_called()
         inner_mocks["config_importer"].import_management_set.assert_called_once()
-        inner_mocks["config_importer"].delete_old_imports.assert_not_called()
 
 
 class TestRollbackHandlers:

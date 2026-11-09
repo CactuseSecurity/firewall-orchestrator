@@ -59,9 +59,12 @@ public sealed class WorkflowChangeHistoryService
     /// </summary>
     /// <param name="ticketId">Database id of the workflow ticket.</param>
     /// <param name="filter">Optional response filter; null applies no restriction.</param>
+    /// <param name="pageSize">Maximum number of changes returned.</param>
+    /// <param name="offset">Number of matching changes skipped before the page; null skips none.</param>
     /// <returns>
-    /// The matching changes, empty when the ticket carries none or the filter excludes all of them;
-    /// null when no workflow ticket with that id exists, which the caller reports as not found.
+    /// The page of matching changes, newest first, and whether further changes follow; the changes are empty when
+    /// the ticket carries none, the filter excludes all of them or the offset lies behind the last one. Null when no
+    /// workflow ticket with that id exists, which the caller reports as not found.
     /// </returns>
     /// <remarks>
     /// The ticket restriction is applied by the GraphQL query, the response filter in memory: the
@@ -74,7 +77,8 @@ public sealed class WorkflowChangeHistoryService
     /// change of an existing ticket is an empty result, not a missing ticket.
     /// </para>
     /// </remarks>
-    public async Task<GetAuditProofCriticalChangesResponse?> GetAuditProofCriticalChangesAsync(long ticketId, AuditProofCriticalChangeFilter? filter)
+    public async Task<(GetAuditProofCriticalChangesResponse Response, bool HasMore)?> GetAuditProofCriticalChangesAsync(long ticketId,
+        AuditProofCriticalChangeFilter? filter, int pageSize, int? offset)
     {
         List<ModellingHistoryEntry> entries = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(
             RequestQueries.getAuditProofCriticalChangesForTicket, new { ticketId });
@@ -84,16 +88,18 @@ public sealed class WorkflowChangeHistoryService
             return null;
         }
 
-        List<AuditProofCriticalChangeResponse> changes = entries.Select(Map).Where(change => Matches(change, filter)).ToList();
-        AuditProofTaskDiffResponse? taskDiff = changes.Count == 0
+        IEnumerable<AuditProofCriticalChangeResponse> matchingChanges = entries.Select(Map).Where(change => Matches(change, filter));
+        ListPage<AuditProofCriticalChangeResponse> changes = ListPage<AuditProofCriticalChangeResponse>.FromOrderedItems(matchingChanges, pageSize, offset);
+        AuditProofTaskDiffResponse? taskDiff = changes.Items.Count == 0
             ? null
             : await GetTaskDiffAsync(ticketId, filter);
 
-        return new GetAuditProofCriticalChangesResponse
+        GetAuditProofCriticalChangesResponse response = new()
         {
-            Changes = changes,
+            Changes = changes.Items,
             TaskDiff = taskDiff
         };
+        return (response, changes.HasMore);
     }
 
     /// <summary>

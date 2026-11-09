@@ -35,10 +35,10 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
                 System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
             bool shortened = false;
             TaskText = template.TasksTemplate
-                .Replace(Placeholder.GROUPNAME, ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName).SanitizeJsonFieldMand(ref shortened))
-                .Replace(Placeholder.MANAGEMENT_ID, extMgt.ExtId ?? "0")
-                .Replace(Placeholder.MANAGEMENT_NAME, extMgt.ExtName)
-                .Replace(Placeholder.CHANGEACTION, ChangeAction)
+                .ReplaceJsonStringPlaceholder(Placeholder.GROUPNAME, ReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName).SanitizeJsonFieldMand(ref shortened))
+                .ReplaceJsonStringPlaceholder(Placeholder.MANAGEMENT_ID, extMgt.ExtId ?? "0")
+                .ReplaceJsonStringPlaceholder(Placeholder.MANAGEMENT_NAME, extMgt.ExtName)
+                .ReplaceJsonStringPlaceholder(Placeholder.CHANGEACTION, ChangeAction)
                 .Replace(Placeholder.MEMBERS, ConvertNetworkObjects(template, extMgt.ExtId, NamingConvention));
         }
     }

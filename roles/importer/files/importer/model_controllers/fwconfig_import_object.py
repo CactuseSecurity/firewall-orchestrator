@@ -528,7 +528,7 @@ class FwConfigImportObject:
             "usergrp": "firewall_nw_user_group",
         }.get(prefix, prefix)
 
-    def remove_outdated_memberships(self, prev_config: FwConfigNormalized, typ: Type):
+    def remove_outdated_memberships(self, prev_config: FwConfigNormalized, typ: Type) -> None:
         removed_members: list[dict[str, Any]] = []
         removed_flats: list[dict[str, Any]] = []
 
@@ -575,20 +575,22 @@ class FwConfigImportObject:
             "removedMembers": removed_members,
             "removedFlats": removed_flats,
         }
+        # a failure here has to fail the import: it would otherwise end successfully with stale group memberships
         try:
             import_result = self.import_state.api_call.call(
                 import_mutation, query_variables=query_variables, analyze_payload=True
             )
-            if "errors" in import_result:
-                FWOLogger.exception(
-                    f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {import_result['errors']!s}"
-                )
-            else:
+            if "errors" not in import_result:
+                # a response without the expected counts did not do what was asked either
                 _ = int(import_result["data"][f"update_{gql}"]["affected_rows"]) + int(
                     import_result["data"][f"update_{prefix}_flat"]["affected_rows"]
                 )
         except Exception:
-            FWOLogger.exception(f"failed to remove outdated group memberships for {typ}: {traceback.format_exc()!s}")
+            raise FwoImporterError(f"failed to remove outdated group memberships for {typ}: {traceback.format_exc()!s}")
+        if "errors" in import_result:
+            raise FwoImporterError(
+                f"fwo_api:importNwObject - error in removeOutdated{prefix.capitalize()}Memberships: {import_result['errors']!s}"
+            )
 
     def find_removed_objects(
         self,
@@ -905,17 +907,18 @@ class FwConfigImportObject:
         }
 
         if len(nwobjs_changed) + len(svcobjs_changed) > 0:
+            # an incomplete changelog has to fail the import instead of being reported as a successful one
             try:
                 changelog_result = self.import_state.api_call.call(
                     changelog_mutation,
                     query_variables=query_variables,
                     analyze_payload=True,
                 )
-                if "errors" in changelog_result:
-                    FWOLogger.exception(
-                        f"error while adding changelog entries for objects: {changelog_result['errors']!s}"
-                    )
             except Exception:
-                FWOLogger.exception(
+                raise FwoImporterError(
                     f"fatal error while adding changelog entries for objects: {traceback.format_exc()!s}"
+                )
+            if "errors" in changelog_result:
+                raise FwoImporterError(
+                    f"error while adding changelog entries for objects: {changelog_result['errors']!s}"
                 )

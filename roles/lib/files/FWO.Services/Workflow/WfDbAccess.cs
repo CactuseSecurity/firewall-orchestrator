@@ -97,7 +97,8 @@ namespace FWO.Services.Workflow
                 return [];
             }
             List<long> registeredTickets = (await ApiConnection.SendQueryAsync<List<TicketId>>(RequestQueries.getOwnerTicketIds, new { ownerIds })).ConvertAll(t => t.Id);
-            foreach (var ticket in ticketsIn.Where(ti => !ti.IsEditableForOwner(registeredTickets, ownerIds, UserConfig.UserId)))
+            bool requestingOwnerMayEdit = WorkflowPhase == WorkflowPhases.request;
+            foreach (var ticket in ticketsIn.Where(ti => !ti.IsEditableForOwner(registeredTickets, ownerIds, UserConfig.UserId, requestingOwnerMayEdit)))
             {
                 ticket.Editable = false;
             }

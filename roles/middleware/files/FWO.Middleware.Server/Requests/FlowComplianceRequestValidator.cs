@@ -1,619 +1,209 @@
-using Microsoft.AspNetCore.Mvc;
-using System.Net;
-using System.Net.Sockets;
+using FWO.Middleware.Server.Responses;
+using System.Diagnostics.CodeAnalysis;
 
 namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
-/// Represents the FlowComplianceRequestValidator type.
+/// Validates the flow compliance requests (<c>getFlowComplianceState</c> and <c>getPolicyIds</c>) completely
+/// and reports every detected error in one result.
 /// </summary>
 public static class FlowComplianceRequestValidator
 {
-    private const int MinimumPort = 0;
-    private const int MaximumPort = 65535;
-    private const int Ipv4HostPrefixLength = 32;
-    private const int Ipv6HostPrefixLength = 128;
-    private const int BitsPerByte = 8;
-    private const int Ipv4CompatiblePrefixByteCount = 12;
-    private const uint Ipv6LoopbackSuffix = 1;
-    private const string GetPolicyIdsEndpointName = "getPolicyIds";
-    private const string GetFlowComplianceStateEndpointName = "getFlowComplianceState";
-
-    /// <summary>Maximum number of entries in each of 'source', 'destination' and 'service'.</summary>
-    public const int kMaxRangeEntries = 100;
-
-    /// <summary>Maximum number of entries in 'policies'.</summary>
-    public const int kMaxPolicies = 100;
-
-    private static readonly RequestRootValidationSchema PolicyIdsRootSchema = new(
-        GetPolicyIdsEndpointName,
-        []);
-
-    private static readonly RequestRootValidationSchema FlowComplianceRootSchema = new(
-        GetFlowComplianceStateEndpointName,
-        [
-            new RequestKeyDefinition("source", $"Source IP ranges to evaluate, at most {kMaxRangeEntries} entries."),
-            new RequestKeyDefinition("destination", $"Destination IP ranges to evaluate, at most {kMaxRangeEntries} entries."),
-            new RequestKeyDefinition("service", $"Service ports and protocols to evaluate, at most {kMaxRangeEntries} entries."),
-            new RequestKeyDefinition("policies", $"Policy ids to evaluate, at most {kMaxPolicies} entries.")
-        ]);
-
-    private static readonly RequestKeyDefinition[] IpRangeKeys =
-    [
-        new("ipStart", "Start IP address of the range."),
-        new("ipEnd", "End IP address of the range."),
-        new("ipNetwork", "CIDR network to evaluate instead of ipStart and ipEnd.")
-    ];
-
-    private static readonly RequestKeyDefinition[] ServiceRangeKeys =
-    [
-        new("portStart", "Start port of the service range."),
-        new("portEnd", "End port of the service range."),
-        new("protocol", "Protocol name or id of the service range.")
-    ];
-
     /// <summary>
-    /// Performs the TryValidatePolicyIds operation.
+    /// Validates a policy id request, which accepts no keys.
     /// </summary>
-    public static bool TryValidatePolicyIds(GetPolicyIdsRequest request, out ActionResult? errorResult)
+    /// <param name="request">Request to validate, or null when no body was supplied.</param>
+    /// <returns>All detected errors; empty when the request is valid.</returns>
+    /// <remarks>A missing body is accepted, because the endpoint takes no input.</remarks>
+    public static RequestValidationErrorResponse ValidatePolicyIds(GetPolicyIdsRequest? request)
     {
-        return RequestRootValidator.TryValidate(request, PolicyIdsRootSchema, out errorResult);
+        RequestValidationErrorResponse result = new();
+        if (request == null)
+        {
+            return result;
+        }
+        foreach (string key in (request.AdditionalData ?? []).Keys.Order(StringComparer.Ordinal))
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(key,
+                $"'{key}' is not supported. {FlowComplianceRequestValidationSchema.kPolicyIdsEndpointName} accepts an empty object only."));
+        }
+        return result;
     }
 
     /// <summary>
-    /// Performs the TryValidateFlowComplianceState operation.
+    /// Validates a flow compliance state request without stopping at the first error.
     /// </summary>
-    public static bool TryValidateFlowComplianceState(GetFlowComplianceStateRequest request, out ActionResult? errorResult)
+    /// <param name="request">Request to validate, or null when no body was supplied.</param>
+    /// <returns>All detected errors; empty when the request is valid.</returns>
+    public static RequestValidationErrorResponse ValidateFlowComplianceState(GetFlowComplianceStateRequest? request)
     {
-        if (!RequestRootValidator.TryValidate(request, FlowComplianceRootSchema, out errorResult))
+        RequestValidationErrorResponse result = new();
+        if (request == null)
         {
-            return false;
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(FlowComplianceRequestValidationSchema.kRootPath,
+                $"{FlowComplianceRequestValidationSchema.kFlowComplianceStateEndpointName} requires a request body. Valid root keys: " +
+                FlowComplianceRequestValidationSchema.DescribeKeys(FlowComplianceRequestValidationSchema.RootKeys)));
+            return result;
         }
-
-        if (!TryValidateEntryCounts(request, out errorResult))
-        {
-            return false;
-        }
-
-        if (!TryValidateItemList(request.Source, "source", IpRangeKeys, TryValidateIpRange, out errorResult))
-        {
-            return false;
-        }
-
-        if (!TryValidateItemList(request.Destination, "destination", IpRangeKeys, TryValidateIpRange, out errorResult))
-        {
-            return false;
-        }
-
-        if (!TryValidateItemList(request.Service, "service", ServiceRangeKeys, TryValidateServiceRange, out errorResult))
-        {
-            return false;
-        }
-
-        if (!TryValidatePolicies(request.Policies, out errorResult))
-        {
-            return false;
-        }
-
-        errorResult = null;
-        return true;
+        ValidateAddressList(request.Source, FlowComplianceRequestValidationSchema.kSourcePath, result);
+        ValidateAddressList(request.Destination, FlowComplianceRequestValidationSchema.kDestinationPath, result);
+        ValidateServiceList(request.Service, result);
+        ValidatePolicies(request.Policies, result);
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.AdditionalData, FlowComplianceRequestValidationSchema.kRootPath,
+            FlowComplianceRequestValidationSchema.RootKeys, result);
+        return result;
     }
 
     /// <summary>
-    /// Validates a single IP range using the same semantics as flow compliance requests.
+    /// Validates a single service range of the flow catalog lookup.
     /// </summary>
-    public static bool TryValidateIpRange(string ipStart, string ipEnd, string collectionName, int itemIndex, out string? errorMessage)
-    {
-        bool isValid = TryValidateAndNormalizeIpRange(ipStart, ipEnd, collectionName, itemIndex, out _, out _, out string? validationError);
-        errorMessage = validationError;
-        return isValid;
-    }
-
-    /// <summary>
-    /// Validates a single IPv4 or IPv6 range using the same semantics as flow compliance requests.
-    /// </summary>
-    public static bool TryValidateIpRange(string ipStart, string ipEnd, string context, out string? errorMessage)
-    {
-        bool isValid = TryValidateAndNormalizeIpRange(ipStart, ipEnd, context, out _, out _, out string? validationError);
-        errorMessage = validationError;
-        return isValid;
-    }
-
-    /// <summary>
-    /// Validates a single IPv4 or IPv6 range and returns its inclusive bounds.
-    /// </summary>
-    public static bool TryValidateAndNormalizeIpRange(
-        string ipStart,
-        string ipEnd,
-        string collectionName,
-        int itemIndex,
-        out string normalizedIpStart,
-        out string normalizedIpEnd,
-        out string? errorMessage)
-    {
-        (bool isValid, string? validationError) = ValidateIpRange(
-            ipStart,
-            ipEnd,
-            detail => $"'{collectionName}' entry at index {itemIndex} {detail}",
-            out normalizedIpStart,
-            out normalizedIpEnd);
-        errorMessage = validationError;
-        return isValid;
-    }
-
-    /// <summary>
-    /// Validates an IPv4 or IPv6 CIDR network and returns its inclusive range bounds.
-    /// </summary>
-    public static bool TryValidateAndNormalizeIpNetwork(
-        string ipNetwork,
-        string context,
-        out string normalizedIpStart,
-        out string normalizedIpEnd,
-        out string? errorMessage)
-    {
-        if (!TryNormalizeIpNetwork(ipNetwork, out normalizedIpStart, out normalizedIpEnd, out string? validationError))
-        {
-            errorMessage = $"{context} {validationError}";
-            return false;
-        }
-
-        errorMessage = null;
-        return true;
-    }
-
-    /// <summary>
-    /// Validates a single IPv4 or IPv6 range and returns its inclusive bounds.
-    /// </summary>
-    public static bool TryValidateAndNormalizeIpRange(
-        string ipStart,
-        string ipEnd,
-        string context,
-        out string normalizedIpStart,
-        out string normalizedIpEnd,
-        out string? errorMessage)
-    {
-        (bool isValid, string? validationError) = ValidateIpRange(
-            ipStart,
-            ipEnd,
-            detail => $"'{context}' {detail}",
-            out normalizedIpStart,
-            out normalizedIpEnd);
-        errorMessage = validationError;
-        return isValid;
-    }
-
-    /// <summary>
-    /// Validates a single service range using the same semantics as flow compliance requests.
-    /// </summary>
+    /// <param name="portStart">First port of the range.</param>
+    /// <param name="portEnd">Last port of the range.</param>
+    /// <param name="collectionName">Name of the list the range belongs to, used in the error message.</param>
+    /// <param name="itemIndex">Position of the range in that list, used in the error message.</param>
+    /// <param name="errorMessage">The first error found, or null when the range is valid.</param>
+    /// <returns>True when both ports are allowed and the start port is not above the end port.</returns>
+    /// <remarks>
+    /// Kept for <c>FlowCatalogController</c>, which still reports plain text errors; its messages must stay unchanged.
+    /// The port rule itself is shared with <see cref="ValidateService"/> through <see cref="IsValidPort"/>.
+    /// </remarks>
     public static bool TryValidateServiceRange(int portStart, int portEnd, string collectionName, int itemIndex, out string? errorMessage)
     {
-        (bool isValid, string? validationError) = ValidateServiceRange(portStart, portEnd, collectionName, itemIndex);
-        errorMessage = validationError;
-        return isValid;
-    }
-
-    private static bool TryValidateItemList<TItem>(
-        IEnumerable<TItem> items,
-        string collectionName,
-        IReadOnlyList<RequestKeyDefinition> allowedKeys,
-        Func<TItem, string, int, (bool IsValid, string? ErrorMessage)> semanticValidator,
-        out ActionResult? errorResult)
-        where TItem : IRequestWithAdditionalData
-    {
-        int index = 0;
-        foreach (TItem? item in items)
+        string entry = $"'{collectionName}' entry at index {itemIndex}";
+        string allowedRange = $"{FlowComplianceRequestValidationSchema.kMinPort}-{FlowComplianceRequestValidationSchema.kMaxPort}";
+        if (!IsValidPort(portStart))
         {
-            if (item is null)
-            {
-                errorResult = new BadRequestObjectResult($"'{collectionName}' cannot contain null entries.");
-                return false;
-            }
-
-            if (!TryValidateNestedItem(item, collectionName, allowedKeys, semanticValidator, index, out errorResult))
-            {
-                return false;
-            }
-
-            index++;
+            errorMessage = $"{entry} has an invalid 'portStart' value. Allowed range is {allowedRange}.";
         }
-
-        errorResult = null;
-        return true;
-    }
-
-    private static bool TryValidateNestedItem<TItem>(
-        TItem item,
-        string collectionName,
-        IReadOnlyList<RequestKeyDefinition> allowedKeys,
-        Func<TItem, string, int, (bool IsValid, string? ErrorMessage)> semanticValidator,
-        int itemIndex,
-        out ActionResult? errorResult)
-        where TItem : IRequestWithAdditionalData
-    {
-        if (item.AdditionalData is { Count: > 0 })
+        else if (!IsValidPort(portEnd))
         {
-            errorResult = RequestValidationMessageBuilder.BuildAllowedKeysError($"{collectionName} entry at index {itemIndex}", allowedKeys);
-            return false;
+            errorMessage = $"{entry} has an invalid 'portEnd' value. Allowed range is {allowedRange}.";
         }
-
-        switch (item)
+        else if (portStart > portEnd)
         {
-            case GetFlowComplianceStateRequest.ServiceRangeRequest serviceRange
-                when string.IsNullOrWhiteSpace(serviceRange.Protocol):
-                errorResult = new BadRequestObjectResult($"'{collectionName}' entries require non-empty 'protocol'.");
-                return false;
+            errorMessage = $"{entry} must satisfy 'portStart' <= 'portEnd'.";
         }
-
-        (bool isValid, string? errorMessage) = semanticValidator(item, collectionName, itemIndex);
-        if (!isValid)
+        else
         {
-            errorResult = new BadRequestObjectResult(errorMessage);
-            return false;
-        }
-
-        errorResult = null;
-        return true;
-    }
-
-    private static (bool IsValid, string? ErrorMessage) TryValidateIpRange(GetFlowComplianceStateRequest.IpRangeRequest ipRange, string collectionName, int itemIndex)
-    {
-        bool hasIpNetwork = !string.IsNullOrWhiteSpace(ipRange.IpNetwork);
-        bool hasIpRange = !string.IsNullOrWhiteSpace(ipRange.IpStart) || !string.IsNullOrWhiteSpace(ipRange.IpEnd);
-        string context = $"'{collectionName}' entry at index {itemIndex}";
-        if (hasIpNetwork && hasIpRange)
-        {
-            return (false, $"{context} must define either 'ipNetwork' or 'ipStart' and 'ipEnd', not both.");
-        }
-
-        if (hasIpNetwork)
-        {
-            bool isNetworkValid = TryValidateAndNormalizeIpNetwork(
-                ipRange.IpNetwork,
-                context,
-                out string normalizedNetworkStart,
-                out string normalizedNetworkEnd,
-                out string? networkError);
-            if (isNetworkValid)
-            {
-                ipRange.IpStart = normalizedNetworkStart;
-                ipRange.IpEnd = normalizedNetworkEnd;
-            }
-
-            return (isNetworkValid, networkError);
-        }
-
-        if (string.IsNullOrWhiteSpace(ipRange.IpStart) || string.IsNullOrWhiteSpace(ipRange.IpEnd))
-        {
-            return (false, $"{context} requires non-empty 'ipStart' and 'ipEnd', or a non-empty 'ipNetwork'.");
-        }
-
-        (bool isValid, string? errorMessage) = ValidateIpRange(
-            ipRange.IpStart,
-            ipRange.IpEnd,
-            detail => $"{context} {detail}",
-            out string normalizedIpStart,
-            out string normalizedIpEnd);
-        if (isValid)
-        {
-            ipRange.IpStart = normalizedIpStart;
-            ipRange.IpEnd = normalizedIpEnd;
-        }
-
-        return (isValid, errorMessage);
-    }
-
-    private static (bool IsValid, string? ErrorMessage) TryValidateServiceRange(GetFlowComplianceStateRequest.ServiceRangeRequest serviceRange, string collectionName, int itemIndex)
-    {
-        return ValidateServiceRange(serviceRange.PortStart, serviceRange.PortEnd, collectionName, itemIndex);
-    }
-
-    private static (bool IsValid, string? ErrorMessage) ValidateIpRange(
-        string ipStartValue,
-        string ipEndValue,
-        Func<string, string> errorFactory,
-        out string normalizedIpStart,
-        out string normalizedIpEnd)
-    {
-        if (!TryValidateIpRangeBound(ipStartValue, "ipStart", out normalizedIpStart, out string? ipStartMaskError))
-        {
-            normalizedIpEnd = string.Empty;
-            return (false, errorFactory(ipStartMaskError!));
-        }
-
-        if (!TryValidateIpRangeBound(ipEndValue, "ipEnd", out normalizedIpEnd, out string? ipEndMaskError))
-        {
-            return (false, errorFactory(ipEndMaskError!));
-        }
-
-        return ValidateNormalizedIpRange(normalizedIpStart, normalizedIpEnd, errorFactory);
-    }
-
-    private static (bool IsValid, string? ErrorMessage) ValidateNormalizedIpRange(
-        string normalizedIpStart,
-        string normalizedIpEnd,
-        Func<string, string> errorFactory)
-    {
-        if (!IPAddress.TryParse(normalizedIpStart, out IPAddress? ipStart))
-        {
-            return (false, errorFactory("has an invalid 'ipStart' value."));
-        }
-
-        if (!IPAddress.TryParse(normalizedIpEnd, out IPAddress? ipEnd))
-        {
-            return (false, errorFactory("has an invalid 'ipEnd' value."));
-        }
-
-        if (IsIpv4EncodedAsIpv6(ipStart))
-        {
-            return (false, errorFactory(BuildIpv4EncodedAsIpv6Error(ipStart, "ipStart")));
-        }
-
-        if (IsIpv4EncodedAsIpv6(ipEnd))
-        {
-            return (false, errorFactory(BuildIpv4EncodedAsIpv6Error(ipEnd, "ipEnd")));
-        }
-
-        if (ipStart.AddressFamily != ipEnd.AddressFamily)
-        {
-            return (false, errorFactory("must use the same address family for 'ipStart' and 'ipEnd'."));
-        }
-
-        if (CompareIpAddresses(ipStart, ipEnd) > 0)
-        {
-            return (false, errorFactory("must satisfy 'ipStart' <= 'ipEnd'."));
-        }
-
-        return (true, null);
-    }
-
-    /// <summary>
-    /// True for IPv6 values that only re-encode an IPv4 address: the IPv4-mapped form and the deprecated
-    /// IPv4-compatible form of RFC 4291 section 2.5.5.1. Both are classified as IPv6 downstream and could
-    /// therefore never overlap an IPv4 compliance zone, so they are rejected instead of silently evaluated.
-    /// </summary>
-    /// <param name="address">Address to classify.</param>
-    /// <returns>True when the address is an IPv4 address written in IPv6 notation.</returns>
-    private static bool IsIpv4EncodedAsIpv6(IPAddress address)
-    {
-        if (address.IsIPv4MappedToIPv6)
-        {
-            return true;
-        }
-
-        if (address.AddressFamily != AddressFamily.InterNetworkV6)
-        {
-            return false;
-        }
-
-        byte[] addressBytes = address.GetAddressBytes();
-        for (int index = 0; index < Ipv4CompatiblePrefixByteCount; index++)
-        {
-            if (addressBytes[index] != 0)
-            {
-                return false;
-            }
-        }
-
-        uint embeddedIpv4 = 0;
-        for (int index = Ipv4CompatiblePrefixByteCount; index < addressBytes.Length; index++)
-        {
-            embeddedIpv4 = (embeddedIpv4 << BitsPerByte) | addressBytes[index];
-        }
-
-        // The unspecified address and the IPv6 loopback share the leading zero bytes but denote no IPv4 address.
-        return embeddedIpv4 > Ipv6LoopbackSuffix;
-    }
-
-    /// <summary>
-    /// Builds the rejection message for an IPv6 value that only re-encodes an IPv4 address.
-    /// </summary>
-    /// <param name="address">The rejected address.</param>
-    /// <param name="fieldName">Name of the request field carrying the address.</param>
-    /// <returns>The error message naming the notation that was used.</returns>
-    private static string BuildIpv4EncodedAsIpv6Error(IPAddress address, string fieldName)
-    {
-        string notation = address.IsIPv4MappedToIPv6 ? "IPv4-mapped" : "IPv4-compatible";
-        return $"has an {notation} IPv6 value in '{fieldName}'. Use the dotted IPv4 form instead.";
-    }
-
-    /// <summary>
-    /// Accepts a range bound with no mask or with the host mask of its address family and strips the mask.
-    /// Every broader mask is rejected and pointed at 'ipNetwork'.
-    /// </summary>
-    private static bool TryValidateIpRangeBound(
-        string ipAddressValue,
-        string fieldName,
-        out string normalizedIpAddress,
-        out string? errorMessage)
-    {
-        int maskSeparatorIndex = ipAddressValue.IndexOf('/');
-        if (maskSeparatorIndex < 0)
-        {
-            normalizedIpAddress = ipAddressValue;
             errorMessage = null;
-            return true;
         }
-
-        string address = ipAddressValue[..maskSeparatorIndex];
-        string mask = ipAddressValue[(maskSeparatorIndex + 1)..];
-        if (!IPAddress.TryParse(address, out IPAddress? parsedAddress))
-        {
-            // The address itself is invalid; let the range validation report the value rather than the mask.
-            normalizedIpAddress = address;
-            errorMessage = null;
-            return true;
-        }
-
-        if (IsIpv4EncodedAsIpv6(parsedAddress))
-        {
-            normalizedIpAddress = string.Empty;
-            errorMessage = BuildIpv4EncodedAsIpv6Error(parsedAddress, fieldName);
-            return false;
-        }
-
-        int hostPrefixLength = GetHostPrefixLength(parsedAddress.AddressFamily);
-        if (!int.TryParse(mask, out int prefixLength) || prefixLength != hostPrefixLength)
-        {
-            normalizedIpAddress = string.Empty;
-            errorMessage = $"has unsupported netmask '/{mask}' in '{fieldName}'. Only '/{hostPrefixLength}' is allowed; use 'ipNetwork' for networks.";
-            return false;
-        }
-
-        normalizedIpAddress = address;
-        errorMessage = null;
-        return true;
+        return errorMessage == null;
     }
 
     /// <summary>
-    /// Parses a CIDR network exactly once and returns the inclusive bounds of the addressed block.
-    /// Networks carrying host bits are rejected so that no request is silently widened.
+    /// Rejects a null or oversized address list and validates every entry under its own request path.
     /// </summary>
-    private static bool TryNormalizeIpNetwork(string ipNetwork, out string normalizedIpStart, out string normalizedIpEnd, out string? errorMessage)
+    /// <remarks>Entries of an oversized list are not checked one by one, so the error count stays bounded.</remarks>
+    private static void ValidateAddressList(List<AddressInputRequest?>? addresses, string path, RequestValidationErrorResponse result)
     {
-        normalizedIpStart = string.Empty;
-        normalizedIpEnd = string.Empty;
-
-        int maskSeparatorIndex = ipNetwork.IndexOf('/');
-        if (maskSeparatorIndex <= 0 || maskSeparatorIndex != ipNetwork.LastIndexOf('/'))
+        if (!ValidateListSize(addresses, path, FlowComplianceRequestValidationSchema.kMaxRangeEntries, result))
         {
-            errorMessage = "requires a valid CIDR network in 'ipNetwork'.";
-            return false;
+            return;
         }
-
-        if (!IPAddress.TryParse(ipNetwork[..maskSeparatorIndex], out IPAddress? parsedAddress)
-            || !int.TryParse(ipNetwork[(maskSeparatorIndex + 1)..], out int prefixLength))
+        for (int index = 0; index < addresses.Count; index++)
         {
-            errorMessage = "has an invalid 'ipNetwork' value.";
-            return false;
+            AddressInputRequestValidator.Validate(addresses[index], $"{path}[{index}]", result);
         }
-
-        if (IsIpv4EncodedAsIpv6(parsedAddress))
-        {
-            errorMessage = BuildIpv4EncodedAsIpv6Error(parsedAddress, "ipNetwork");
-            return false;
-        }
-
-        int hostPrefixLength = GetHostPrefixLength(parsedAddress.AddressFamily);
-        if (prefixLength < 0 || prefixLength > hostPrefixLength)
-        {
-            errorMessage = "has an invalid CIDR prefix in 'ipNetwork'.";
-            return false;
-        }
-
-        (IPAddress networkAddress, IPAddress lastAddress) = GetNetworkBounds(parsedAddress, prefixLength);
-        if (!networkAddress.Equals(parsedAddress))
-        {
-            errorMessage = $"must not set host bits in 'ipNetwork'. Use '{networkAddress}/{prefixLength}' to evaluate that network.";
-            return false;
-        }
-
-        normalizedIpStart = networkAddress.ToString();
-        normalizedIpEnd = lastAddress.ToString();
-        errorMessage = null;
-        return true;
     }
 
     /// <summary>
-    /// Computes the first and last address of a CIDR block from an already parsed address and prefix length.
+    /// Rejects a null or oversized service list and validates every entry under its own request path.
     /// </summary>
-    private static (IPAddress NetworkAddress, IPAddress LastAddress) GetNetworkBounds(IPAddress address, int prefixLength)
+    private static void ValidateServiceList(List<GetFlowComplianceStateRequest.ServiceRangeRequest?>? services, RequestValidationErrorResponse result)
     {
-        byte[] networkBytes = address.GetAddressBytes();
-        byte[] lastBytes = address.GetAddressBytes();
-
-        for (int byteIndex = 0; byteIndex < networkBytes.Length; byteIndex++)
+        string path = FlowComplianceRequestValidationSchema.kServicePath;
+        if (!ValidateListSize(services, path, FlowComplianceRequestValidationSchema.kMaxRangeEntries, result))
         {
-            int significantBits = Math.Clamp(prefixLength - (byteIndex * BitsPerByte), 0, BitsPerByte);
-            byte mask = significantBits == 0 ? (byte)0 : (byte)(byte.MaxValue << (BitsPerByte - significantBits));
-            networkBytes[byteIndex] &= mask;
-            lastBytes[byteIndex] |= (byte)~mask;
+            return;
         }
-
-        return (new IPAddress(networkBytes), new IPAddress(lastBytes));
+        for (int index = 0; index < services.Count; index++)
+        {
+            ValidateService(services[index], $"{path}[{index}]", result);
+        }
     }
 
     /// <summary>
-    /// Returns the prefix length that addresses a single host in the given address family.
+    /// Adds every error of one service entry: a null entry, unsupported keys, an empty protocol, ports outside
+    /// the allowed range and a start port above the end port.
     /// </summary>
-    private static int GetHostPrefixLength(AddressFamily addressFamily)
+    private static void ValidateService(GetFlowComplianceStateRequest.ServiceRangeRequest? service, string path, RequestValidationErrorResponse result)
     {
-        return addressFamily == AddressFamily.InterNetwork ? Ipv4HostPrefixLength : Ipv6HostPrefixLength;
+        if (service == null)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(path,
+                $"'{path}' must be an object with the following keys: "
+                + FlowComplianceRequestValidationSchema.DescribeKeys(FlowComplianceRequestValidationSchema.ServiceKeys)));
+            return;
+        }
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(service.AdditionalData, path,
+            FlowComplianceRequestValidationSchema.ServiceKeys, result);
+        if (string.IsNullOrWhiteSpace(service.Protocol))
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError($"{path}.protocol",
+                $"'{path}.protocol' must not be empty."));
+        }
+        if (!IsValidPort(service.PortStart))
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError($"{path}.portStart",
+                $"'{path}.portStart' must be between {FlowComplianceRequestValidationSchema.kMinPort} and {FlowComplianceRequestValidationSchema.kMaxPort}."));
+        }
+        if (!IsValidPort(service.PortEnd))
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError($"{path}.portEnd",
+                $"'{path}.portEnd' must be between {FlowComplianceRequestValidationSchema.kMinPort} and {FlowComplianceRequestValidationSchema.kMaxPort}."));
+        }
+        else if (service.PortStart > service.PortEnd)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError($"{path}.portEnd",
+                $"'{path}.portEnd' must not be lower than 'portStart'."));
+        }
     }
 
-    private static (bool IsValid, string? ErrorMessage) ValidateServiceRange(int portStart, int portEnd, string collectionName, int itemIndex)
+    /// <summary>
+    /// Rejects a null or oversized policy list and every policy id that is not greater than 0.
+    /// </summary>
+    private static void ValidatePolicies(List<int>? policies, RequestValidationErrorResponse result)
     {
-        if (portStart < MinimumPort || portStart > MaximumPort)
+        string path = FlowComplianceRequestValidationSchema.kPoliciesPath;
+        if (!ValidateListSize(policies, path, FlowComplianceRequestValidationSchema.kMaxPolicies, result))
         {
-            return (false, $"'{collectionName}' entry at index {itemIndex} has an invalid 'portStart' value. Allowed range is {MinimumPort}-{MaximumPort}.");
+            return;
         }
-
-        if (portEnd < MinimumPort || portEnd > MaximumPort)
+        for (int index = 0; index < policies.Count; index++)
         {
-            return (false, $"'{collectionName}' entry at index {itemIndex} has an invalid 'portEnd' value. Allowed range is {MinimumPort}-{MaximumPort}.");
-        }
-
-        if (portStart > portEnd)
-        {
-            return (false, $"'{collectionName}' entry at index {itemIndex} must satisfy 'portStart' <= 'portEnd'.");
-        }
-
-        return (true, null);
-    }
-
-    private static int CompareIpAddresses(IPAddress left, IPAddress right)
-    {
-        byte[] leftBytes = left.GetAddressBytes();
-        byte[] rightBytes = right.GetAddressBytes();
-
-        for (int i = 0; i < leftBytes.Length; i++)
-        {
-            int compare = leftBytes[i].CompareTo(rightBytes[i]);
-            if (compare != 0)
+            if (policies[index] <= 0)
             {
-                return compare;
+                string entryPath = $"{path}[{index}]";
+                result.Errors.Add(AggregatedRequestKeyValidation.BuildError(entryPath,
+                    $"'{entryPath}' must be a policy id greater than 0, but is {policies[index]}."));
             }
         }
-
-        return 0;
     }
 
     /// <summary>
-    /// Rejects oversized lists before any item is validated or evaluated; every exceeded list is reported together.
+    /// Adds an error for a null list or a list with more than <paramref name="maxEntries"/> entries.
     /// </summary>
-    private static bool TryValidateEntryCounts(GetFlowComplianceStateRequest request, out ActionResult? errorResult)
+    /// <returns>True when the list is not null and its entries should be validated one by one.</returns>
+    private static bool ValidateListSize<TItem>([NotNullWhen(true)] List<TItem>? items, string path, int maxEntries, RequestValidationErrorResponse result)
     {
-        List<string> errors = [];
-        AddEntryCountError(errors, "source", request.Source.Count, kMaxRangeEntries);
-        AddEntryCountError(errors, "destination", request.Destination.Count, kMaxRangeEntries);
-        AddEntryCountError(errors, "service", request.Service.Count, kMaxRangeEntries);
-        AddEntryCountError(errors, "policies", request.Policies.Count, kMaxPolicies);
-        errorResult = errors.Count == 0 ? null : new BadRequestObjectResult(string.Join(" ", errors));
-        return errors.Count == 0;
-    }
-
-    private static void AddEntryCountError(List<string> errors, string collectionName, int count, int maxEntries)
-    {
-        if (count > maxEntries)
+        if (items == null)
         {
-            errors.Add($"'{collectionName}' must not contain more than {maxEntries} entries.");
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(path,
+                $"'{path}' must not be null. Omit it or use an empty list."));
+            return false;
         }
-    }
-
-    private static bool TryValidatePolicies(IEnumerable<int> policies, out ActionResult? errorResult)
-    {
-        int index = 0;
-        foreach (int policyId in policies)
+        if (items.Count > maxEntries)
         {
-            if (policyId <= 0)
-            {
-                errorResult = new BadRequestObjectResult($"'policies' entries must be positive integers. Invalid value at index {index}.");
-                return false;
-            }
-
-            index++;
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(path,
+                $"'{path}' must not exceed {maxEntries} entries."));
+            return false;
         }
-
-        errorResult = null;
         return true;
     }
+
+    /// <summary>
+    /// Checks one port against the range allowed for service entries.
+    /// </summary>
+    private static bool IsValidPort(int port) => port >= FlowComplianceRequestValidationSchema.kMinPort
+        && port <= FlowComplianceRequestValidationSchema.kMaxPort;
 }

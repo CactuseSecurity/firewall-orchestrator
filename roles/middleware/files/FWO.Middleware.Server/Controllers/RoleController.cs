@@ -1,3 +1,4 @@
+using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Middleware;
@@ -17,13 +18,15 @@ namespace FWO.Middleware.Server.Controllers
     public class RoleController : ControllerBase
     {
         private readonly List<Ldap> ldaps;
+        private readonly UserSessionRevocation sessionRevocation;
 
         /// <summary>
-        /// Constructor needing ldap list
+        /// Constructor needing ldap list and connection
         /// </summary>
-        public RoleController(List<Ldap> ldaps)
+        public RoleController(List<Ldap> ldaps, ApiConnection apiConnection)
         {
             this.ldaps = ldaps;
+            sessionRevocation = new UserSessionRevocation(apiConnection, ldaps);
         }
 
         // GET: api/<ValuesController>
@@ -112,6 +115,9 @@ namespace FWO.Middleware.Server.Controllers
         {
             bool userRemoved = false;
             List<Task> ldapRoleRequests = [];
+            // the dn may name a group, whose members lose the role as well
+            List<string> removedDns = new() { parameters.UserDn };
+            List<int> affectedUserIds = await sessionRevocation.ResolveLocalUserIds(removedDns);
 
             foreach (Ldap currentLdap in ldaps)
             {
@@ -129,6 +135,11 @@ namespace FWO.Middleware.Server.Controllers
                 }
             }
             await Task.WhenAll(ldapRoleRequests);
+
+            if (userRemoved)
+            {
+                await sessionRevocation.RevokeSessions(affectedUserIds, $"Removed {parameters.UserDn} from role {parameters.Role}");
+            }
 
             // Return status and result
             return userRemoved;

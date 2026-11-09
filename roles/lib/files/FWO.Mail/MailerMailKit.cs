@@ -100,6 +100,7 @@ namespace FWO.Mail
         )
         {
             MailData pendingMail = CopyMailData(mailData);
+            RemoveUnparseableRecipients(pendingMail);
             using var smtp = new SmtpClient();
             smtp.Timeout = 5000;
 
@@ -196,6 +197,28 @@ namespace FWO.Mail
             };
         }
 
+        /// <summary>
+        /// Drops recipients that are no valid address, so that one bad entry does not stop the mail to all others,
+        /// just as a recipient the SMTP server rejects does not.
+        /// </summary>
+        /// <param name="mailData">Mail whose recipient lists are cleaned.</param>
+        private static void RemoveUnparseableRecipients(MailData mailData)
+        {
+            int removedCount = RemoveUnparseableRecipients(mailData.To)
+                + RemoveUnparseableRecipients(mailData.Cc)
+                + RemoveUnparseableRecipients(mailData.Bcc);
+            if (removedCount > 0)
+            {
+                // the addresses themselves are not logged: they are free text and may carry line breaks
+                Log.WriteWarning("Send Email", $"Ignored {removedCount} recipient(s) that are no valid email address.");
+            }
+        }
+
+        private static int RemoveUnparseableRecipients(List<string> recipients)
+        {
+            return recipients.RemoveAll(address => IsAddressPresent(address) && !MailboxAddress.TryParse(address.Trim(), out _));
+        }
+
         private static bool HasRecipients(MailData mailData)
         {
             return mailData.To.Any(IsAddressPresent)
@@ -246,7 +269,7 @@ namespace FWO.Mail
             // Receiver
             foreach (string mailAddress in mailData.To.Where(x => !string.IsNullOrWhiteSpace(x)))
             {
-                mail.To.Add(MailboxAddress.Parse(mailAddress));
+                mail.To.Add(MailboxAddress.Parse(mailAddress.Trim()));
             }
 
             // Set Reply to if specified in mail data
@@ -280,7 +303,8 @@ namespace FWO.Mail
         private static async Task AddContent(MailData mailData, MimeMessage mail, bool mailFormatHtml)
         {
             var body = new BodyBuilder();
-            mail.Subject = mailData.Subject;
+            // placeholder values in the subject are free text; a line break must not reach the header
+            mail.Subject = mailData.Subject.ReplaceLineEndings(" ");
             if (mailFormatHtml)
             {
                 body.HtmlBody = mailData.Body;

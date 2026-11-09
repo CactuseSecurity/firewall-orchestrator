@@ -7,12 +7,33 @@
 - debug:
     msg: starting database integration tests
 
+# the read-only role has no password, so a loopback login without one has to be refused (no trust in pg_hba.conf)
+- name: test that the read-only database role cannot log in over loopback without a password
+  command: >-
+    psql -X -w -h 127.0.0.1 -p {{ fworch_db_port }} -U {{ fwo_db_ro_user | default('fwo_ro') }}
+    -d "{{ fworch_db_name }}" -c "select 1"
+  register: test_ro_loopback_login
+  changed_when: false
+  failed_when: test_ro_loopback_login.rc == 0
+  become: true
+  become_user: postgres
+
 # the probe runs in a single transaction that is always rolled back and fails on the first wrong visibility
 - name: test that rule_from / rule_to tenant visibility only depends on the rule itself (GHSA-v8hx-cx2q-j75v)
   command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
   args:
     stdin: "{{ lookup('file', 'database/test-rule-endpoint-tenant-visibility.sql') }}"
   register: test_rule_endpoint_tenant_visibility
+  changed_when: false
+  become: true
+  become_user: postgres
+
+# the probe runs in a single transaction that is always rolled back
+- name: test the authenticated secret encryption and the migration of legacy secrets (#5476)
+  command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
+  args:
+    stdin: "{{ lookup('file', 'database/test-secret-encryption.sql') }}"
+  register: test_secret_encryption
   changed_when: false
   become: true
   become_user: postgres
@@ -61,6 +82,30 @@
       {{ lookup('file', 'database/test-upgrade-9.7.4.sql')
          | replace('-- @run-upgrade-9.7.4', lookup('file', role_path + '/../database/files/upgrade/9.7.4.sql')) }}
   register: test_upgrade_9_7_4
+  changed_when: false
+  become: true
+  become_user: postgres
+
+# the upgrade file is run twice within the test transaction (at its run-upgrade markers), which is always rolled back
+- name: test the rule-position schema change of the 9.8.7 database upgrade
+  command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
+  args:
+    stdin: >-
+      {{ lookup('file', 'database/test-upgrade-9.8.7-rule-positioning.sql')
+         | replace('-- @run-upgrade-9.8.7', lookup('file', role_path + '/../database/files/upgrade/9.8.7.sql')) }}
+  register: test_upgrade_9_8_7
+  changed_when: false
+  become: true
+  become_user: postgres
+
+# the upgrade file is run twice within the test transaction (at its run-upgrade markers), which is always rolled back
+- name: test the SecureChange template migration of the 9.8.5 database upgrade
+  command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
+  args:
+    stdin: >-
+      {{ lookup('file', 'database/test-upgrade-9.8.5.sql')
+         | replace('-- @run-upgrade-9.8.5', lookup('file', role_path + '/../database/files/upgrade/9.8.5.sql')) }}
+  register: test_upgrade_9_8_5_securechange
   changed_when: false
   become: true
   become_user: postgres

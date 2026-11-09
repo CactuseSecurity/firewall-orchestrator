@@ -97,8 +97,7 @@
                             {
                                 <OrderByDropdown CssClass="bg-secondary" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" CustomSort="true" />
                                 <div class="dropzone-scrollable dropzone bg-secondary @GetDynamicHeightScrollableAppserverClass()"
-                                     ondragover="event.preventDefault();"
-                                     ondragstart="event.dataTransfer.setData('', event.target.id);"
+                                     @ondragover:preventDefault="true"
                                      @ondrop="HandleServerDrop">
                                     <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false" ElementsRemoved="OnAppServerRemovedFromEditList">
                                         <Display>

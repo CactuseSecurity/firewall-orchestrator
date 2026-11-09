@@ -58,6 +58,7 @@ public static class CreateRequestTaskSorter
         bool hasRemoveElements = ContainsRemoveElements(task);
         return task.TaskType switch
         {
+            var taskType when taskType == WfTaskType.object_create.ToString() => int.MinValue,
             var taskType when taskType == WfTaskType.group_create.ToString() => sortConfig.GroupCreatePriority,
             var taskType when taskType == WfTaskType.group_modify.ToString() && hasAddElements && hasRemoveElements => Math.Min(sortConfig.GroupModifyAddPriority, sortConfig.GroupModifyRemovePriority),
             var taskType when taskType == WfTaskType.group_modify.ToString() && hasAddElements => sortConfig.GroupModifyAddPriority,

@@ -47,6 +47,10 @@
     argv:
       - openssl
       - verify
+      # only the FWO trust bundle counts: without these, openssl also accepts an anchor from
+      # the operating system's trust store and the preflight could pass a chain FWO rejects
+      - -no-CApath
+      - -no-CAstore
       - -CAfile
       - "{{ retained_chain_trust_bundle | default(internalca_trust_bundle, true) }}"
       - -untrusted

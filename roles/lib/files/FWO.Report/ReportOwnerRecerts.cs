@@ -232,8 +232,8 @@ namespace FWO.Report
             {
                 report.AppendLine($"<td>{FormatHtmlCell(OwnerRecertDisplay.FormatNextRecertDate(owner, userConfig))}</td>");
             }
-            report.AppendLine($"<td>{owner.ExtAppId}</td>");
-            report.AppendLine($"<td>{owner.Name}</td>");
+            report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(owner.ExtAppId)}</td>");
+            report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(owner.Name)}</td>");
             report.AppendLine($"<td>{FormatHtmlCell(OwnerRecertDisplay.FormatMainResponsibles(owner))}</td>");
             if (includeRecertData)
             {

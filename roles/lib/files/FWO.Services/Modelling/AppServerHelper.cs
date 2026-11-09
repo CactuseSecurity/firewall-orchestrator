@@ -11,12 +11,25 @@ namespace FWO.Services.Modelling
 {
     public static class AppServerHelper
     {
+        private const string kIpSuffixSeparator = "_";
+
+        /// <summary>
+        /// Sets the name of a single host app server to its dns name. If the ip cannot be resolved, or for networks and ranges,
+        /// a missing name (or every name, if existing names are overwritten) is constructed following the naming convention.
+        /// </summary>
+        /// <param name="appServer">The app server, whose name is set.</param>
+        /// <param name="namingConvention">Naming convention for constructed names.</param>
+        /// <param name="overwriteExistingNames">True to replace an existing name by a constructed one.</param>
+        /// <param name="logUnresolvable">True to log ips without dns name.</param>
+        /// <param name="reverseDnsLookup">Reverse lookup of the ip, defaults to <see cref="IpOperations.DnsReverseLookUpPreferredAsync"/>.</param>
+        /// <returns>The new name of the app server.</returns>
         public static async Task<string> ConstructAppServerNameFromDns(ModellingAppServer appServer, ModellingNamingConvention namingConvention,
-            bool overwriteExistingNames = false, bool logUnresolvable = false)
+            bool overwriteExistingNames = false, bool logUnresolvable = false, Func<IPAddress, Task<string>>? reverseDnsLookup = null)
         {
             if ((string.IsNullOrEmpty(appServer.IpEnd) || appServer.IpEnd == appServer.Ip) && IPAddress.TryParse(appServer.Ip.StripOffNetmask(), out IPAddress? ip))
             {
-                string dnsName = await IpOperations.DnsReverseLookUpPreferredAsync(ip);
+                Func<IPAddress, Task<string>> lookup = reverseDnsLookup ?? IpOperations.DnsReverseLookUpPreferredAsync;
+                string dnsName = await lookup(ip);
                 if (string.IsNullOrEmpty(dnsName))
                 {
                     if (logUnresolvable)
@@ -43,6 +56,16 @@ namespace FWO.Services.Modelling
             return ConstructAppServerName(appServer, namingConvention, overwriteExistingNames).SanitizeJsonFieldMand(ref shortened);
         }
 
+        /// <summary>
+        /// Constructs the name of an app server with its ip appended, e.g. "server.example.com_10.1.2.3".
+        /// Used if the regular name is already taken by an existing object with another ip, which must not be changed
+        /// as it may be used in further rules or groups.
+        /// </summary>
+        public static string ConstructIpSuffixedAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention)
+        {
+            return ConstructAppServerName(appServer, namingConvention) + kIpSuffixSeparator + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd);
+        }
+
         public static string ConstructAppServerName(ModellingAppServer appServer, ModellingNamingConvention namingConvention, bool overwriteExistingNames = false)
         {
             if (string.IsNullOrEmpty(appServer.Name) || overwriteExistingNames)
@@ -50,6 +73,21 @@ namespace FWO.Services.Modelling
                 return GetPrefix(appServer, namingConvention) + DisplayBase.DisplayIp(appServer.Ip, appServer.IpEnd);
             }
             return char.IsLetter(appServer.Name[0]) ? appServer.Name : GetPrefix(appServer, namingConvention) + appServer.Name;
+        }
+
+        /// <summary>
+        /// Constructs the name of the app server stored for an ip address or range assigned to an owner.
+        /// A given name is kept, otherwise the name is built from the ip data following the naming convention.
+        /// </summary>
+        public static string ConstructOwnedIpName(string? name, string ip, string? ipEnd, ModellingNamingConvention namingConvention)
+        {
+            ModellingAppServer appServer = new()
+            {
+                Name = name ?? "",
+                Ip = ip,
+                IpEnd = string.IsNullOrEmpty(ipEnd) ? ip : ipEnd
+            };
+            return ConstructAppServerName(appServer, namingConvention);
         }
 
         public static async Task AdjustAppServerNames(ApiConnection apiConnection, UserConfig userConfig, CancellationToken cancellationToken = default)

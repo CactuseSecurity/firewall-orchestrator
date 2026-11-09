@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from models.fwconfig_normalized import FwConfigNormalized
     from models.networkobject import NetworkObject
     from models.serviceobject import ServiceObject
+    from pytest_mock import MockerFixture
 
 FIXTURE_CONFIG = Path(__file__).resolve().parents[1] / "fw_modules" / "ciscoasa9" / "test_asa.conf"
 FIXTURE_ACL_LINES = 27
@@ -143,6 +144,31 @@ def test_source_port_is_kept_as_written() -> None:
     assert parse(f"{ACL_PREFIX} tcp any object-group SVC_PORTS any").src_port == "object-group SVC_PORTS"
     assert parse(f"{ACL_PREFIX} tcp any any eq 22").src_port is None
     assert parse(f"{ACL_PREFIX} object-group PROTO_TCP any lt 1024 any").src_port == "lt 1024"
+
+
+@pytest.mark.parametrize(
+    "source_port",
+    ["eq 1024", "neq ntp", "range 7937 10000", "object-group SVC_PORTS"],
+)
+def test_skipped_source_port_is_logged_as_warning(mocker: MockerFixture, source_port: str) -> None:
+    # the warning is the only signal that the imported rule is wider than the rule on the device
+    warning = mocker.patch("fw_modules.ciscoasa9.asa_acl_parser.FWOLogger.warning")
+    line = f"{ACL_PREFIX} tcp any {source_port} any"
+
+    parse(line)
+
+    warning.assert_called_once()
+    message: str = warning.call_args.args[0]
+    assert f"'{source_port}'" in message
+    assert f"'{line}'" in message
+
+
+def test_entry_without_source_port_logs_no_warning(mocker: MockerFixture) -> None:
+    warning = mocker.patch("fw_modules.ciscoasa9.asa_acl_parser.FWOLogger.warning")
+
+    parse(f"{ACL_PREFIX} tcp any any eq 22")
+
+    warning.assert_not_called()
 
 
 @pytest.mark.parametrize(

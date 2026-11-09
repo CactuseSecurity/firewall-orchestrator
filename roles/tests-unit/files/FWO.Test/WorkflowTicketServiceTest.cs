@@ -305,7 +305,7 @@ internal class WorkflowTicketServiceTest
             Assert.That(GetVariable(apiConnection.NewTicketVariables, "preWorkflowTicketReference"), Is.EqualTo("Ticket-12345"));
             Assert.That(apiConnection.CreatedTicket!.PreWorkflowTicketReference, Is.EqualTo("Ticket-12345"));
             Assert.That(accessTask.RuleAction, Is.EqualTo(1));
-            Assert.That(accessTask.Elements.WfElementList, Has.Count.EqualTo(3));
+            Assert.That(accessTask.Elements.WfElementList, Has.Count.EqualTo(4));
             Assert.That(accessTask.Elements.WfElementList.All(element => element.NetworkId == null && element.ServiceId == null), Is.True);
             Assert.That(accessTask.Elements.WfElementList.Single(element => element.Field == ElemFieldType.service.ToString()).ProtoId, Is.EqualTo(expectedProtocolId));
             Assert.That(accessTask.NetworkGroupId, Is.Null);
@@ -317,7 +317,7 @@ internal class WorkflowTicketServiceTest
             Assert.That(apiConnection.CreatedTicket!.Reason, Is.EqualTo("Ticket-level notes"));
             Assert.That(accessTask.FreeText, Is.EqualTo("Task description"));
             Assert.That(accessTask.Reason, Is.EqualTo("Business approved.\nTask reason"));
-            Assert.That(accessTask.GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("-3"));
+            Assert.That(accessTask.Elements.WfElementList.Single(element => element.Field == ElemFieldType.time.ToString()).TimeObjId, Is.Null);
             Assert.That(accessTask.GetAddInfoValue("timeStart"), Is.EqualTo(""));
             Assert.That(accessTask.GetAddInfoValue("timeEnd"), Is.EqualTo(""));
             Assert.That(objectTasks.Select(task => task.Elements.WfElementList.Single().Field),
@@ -501,7 +501,8 @@ internal class WorkflowTicketServiceTest
             Assert.That(elements.Count(element => element.Field == ElemFieldType.service.ToString()), Is.EqualTo(2));
             Assert.That(elements.Single(element => element.FlowServiceObjectId == 303).FlowServiceObjectId, Is.EqualTo(303));
             Assert.That(elements.Single(element => element.FlowServiceGroupId == 303).FlowServiceGroupId, Is.EqualTo(303));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("404"));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList
+                .Single(element => element.Field == ElemFieldType.time.ToString()).FlowTimeObjectId, Is.EqualTo(404));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate, Is.EqualTo(startTime));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate, Is.EqualTo(endTime));
         });

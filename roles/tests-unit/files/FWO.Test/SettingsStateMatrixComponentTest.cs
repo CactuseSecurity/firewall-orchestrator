@@ -1,11 +1,23 @@
+using Bunit;
+using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data.Workflow;
+using FWO.Middleware.Client;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Settings;
+using FWO.Ui.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Linq;
 using System.Reflection;
+using System.Security.Claims;
 using static FWO.Test.WorkflowConfigurationComponentTestSupport;
 
 namespace FWO.Test
@@ -631,6 +643,64 @@ namespace FWO.Test
         }
 
         [Test]
+        public void HasUnsavedChanges_ReflectsPromotionModeEdit()
+        {
+            SettingsStateMatrix component = new();
+            GlobalStateMatrix matrix = new()
+            {
+                GlobalMatrix = Enum.GetValues<WorkflowPhases>().ToDictionary(_ => _, _ => new StateMatrix())
+            };
+            SetProperty(matrix, "OriginalGlobalMatrix", Enum.GetValues<WorkflowPhases>().ToDictionary(_ => _, _ => new StateMatrix()));
+            SetField(component, "actStateMatrix", matrix);
+            SetField(component, "InitComplete", true);
+
+            matrix.GlobalMatrix[WorkflowPhases.planning].PromotionMode = PromotionMode.Task;
+
+            Assert.That(GetProperty<bool>(component, "HasUnsavedChanges"), Is.True);
+        }
+
+        [Test]
+        public async Task OnBeforeInternalNavigation_CleanStateAllowsNavigation()
+        {
+            await using BunitContext context = CreateRenderContext();
+            IRenderedComponent<SettingsStateMatrix> rendered = context.Render<SettingsStateMatrix>();
+            SettingsStateMatrix component = rendered.Instance;
+            NavigationManager navigationManager = context.Services.GetRequiredService<NavigationManager>();
+
+            navigationManager.NavigateTo("/settings/other");
+            await rendered.InvokeAsync(() => { });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(navigationManager.Uri, Does.EndWith("/settings/other"));
+                Assert.That(GetField<bool>(component, "DiscardChangesMode"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task OnBeforeInternalNavigation_DirtyStatePreventsNavigationAndOpensDiscardPrompt()
+        {
+            await using BunitContext context = CreateRenderContext();
+            IRenderedComponent<SettingsStateMatrix> rendered = context.Render<SettingsStateMatrix>();
+            SettingsStateMatrix component = rendered.Instance;
+            GlobalStateMatrix matrix = MatrixWithAllPhases();
+            SetField(component, "actStateMatrix", matrix);
+            SetField(component, "InitComplete", true);
+            matrix.GlobalMatrix[WorkflowPhases.request].Active = true;
+            NavigationManager navigationManager = context.Services.GetRequiredService<NavigationManager>();
+
+            navigationManager.NavigateTo("/settings/other");
+            await rendered.InvokeAsync(() => { });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(navigationManager.Uri, Does.Not.EndWith("/settings/other"));
+                Assert.That(GetField<bool>(component, "DiscardChangesMode"), Is.True);
+                Assert.That(GetFieldValue(component, "pendingDiscardAction"), Is.Not.Null);
+            });
+        }
+
+        [Test]
         public async Task ExecuteOrConfirmDiscard_DefersDirtyActionUntilConfirmed()
         {
             SettingsStateMatrix component = ComponentWithSnapshot();
@@ -917,6 +987,32 @@ namespace FWO.Test
             return component;
         }
 
+        private static GlobalStateMatrix MatrixWithAllPhases()
+        {
+            Dictionary<WorkflowPhases, StateMatrix> matrices = Enum.GetValues<WorkflowPhases>()
+                .ToDictionary(phase => phase, _ => new StateMatrix());
+            GlobalStateMatrix matrix = new() { GlobalMatrix = matrices };
+            SetProperty(matrix, "OriginalGlobalMatrix", Enum.GetValues<WorkflowPhases>()
+                .ToDictionary(phase => phase, _ => new StateMatrix()));
+            return matrix;
+        }
+
+        private static BunitContext CreateRenderContext()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new SettingsAuthStateProvider());
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddSingleton<ApiConnection>(new SimulatedApiConnection());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig { ReqAvailableTaskTypes = "[]" });
+            return context;
+        }
+
         private static GlobalStateMatrix MatrixWithPhase(WorkflowPhases phase) => new()
         {
             GlobalMatrix = new Dictionary<WorkflowPhases, StateMatrix> { [phase] = new() }
@@ -990,6 +1086,15 @@ namespace FWO.Test
             {
                 SaveCalls++;
                 return Task.CompletedTask;
+            }
+        }
+
+        private sealed class SettingsAuthStateProvider : AuthenticationStateProvider
+        {
+            public override Task<AuthenticationState> GetAuthenticationStateAsync()
+            {
+                ClaimsIdentity identity = new([new Claim(ClaimTypes.Role, Roles.Admin)], "Test");
+                return Task.FromResult(new AuthenticationState(new ClaimsPrincipal(identity)));
             }
         }
     }

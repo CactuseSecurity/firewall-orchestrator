@@ -189,6 +189,8 @@ namespace FWO.Test
                 Assert.That(stored.ShowComments, Is.False);
                 Assert.That(stored.AccessTask.ShowManagement, Is.True);
                 Assert.That(stored.AccessTask.ShowOwner, Is.True);
+                Assert.That(stored.AccessTask.ShowRuleAction, Is.True);
+                Assert.That(stored.AccessTask.ShowTracking, Is.True);
                 Assert.That(stored.AccessTask.ShowValidFrom, Is.True);
                 Assert.That(stored.AccessTask.ShowValidTo, Is.True);
                 Assert.That(stored.AccessTask.ShowReason, Is.True);
@@ -476,6 +478,34 @@ namespace FWO.Test
             Assert.That(apiConnection.LastConfigItems[0].Key, Is.EqualTo("reqFlowIntegration"));
             Assert.That(apiConnection.LastConfigItems[0].Value, Is.EqualTo(newValue));
             Assert.That(editableConfig.ReqFlowIntegration, Is.EqualTo(newValue));
+        }
+
+        [Test]
+        public async Task HandleTimeObjectOriginSuffixesChanged_PersistsConfigImmediately()
+        {
+            SettingsCustomizing component = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]" };
+            SimulatedUserConfig userConfig = new();
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            string newValue = "{\"requester\":\"_user\",\"approver\":\"_approver\"}";
+
+            SetMember(component, "apiConnection", apiConnection);
+            SetMember(component, "globalConfig", globalConfig);
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, "configData", editableConfig);
+
+            Task handlerTask = (Task)GetPrivateMethod(typeof(SettingsCustomizing), "HandleTimeObjectOriginSuffixesChanged")
+                .Invoke(component, [newValue])!;
+            await handlerTask;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.LastConfigItems.Single().Key, Is.EqualTo("reqTimeObjectOriginSuffixes"));
+                Assert.That(apiConnection.LastConfigItems.Single().Value, Is.EqualTo(newValue));
+                Assert.That(editableConfig.ReqTimeObjectOriginSuffixes, Is.EqualTo(newValue));
+            });
         }
 
         [Test]

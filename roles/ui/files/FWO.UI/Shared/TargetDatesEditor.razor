@@ -1,0 +1,154 @@
+@using FWO.Data.Flow
+@using FWO.Data.Workflow
+@using FWO.Ui.Display
+@using FWO.Ui.Pages.Request
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("edit") + ": " + userConfig.GetText("time_object"))"
+       Show="@Display" Size="PopupSize.Small" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <TimeObjectSelector FullWidthLayout="true"
+                                SelectedId="editingModel.FlowTimeObjectId"
+                                SelectedName="@editingModel.FlowTimeObjectName"
+                                TicketTimeObjects="editingModel.TicketTimeObjects"
+                                SelectedIdChanged="OnSelectedTimeObjectIdChanged"
+                                SelectedNameChanged="OnSelectedTimeObjectNameChanged"
+                                TimeObjectSelected="OnTimeObjectSelected" />
+            <DisplayTaskTargetDates @key="@($"target-dates-{editingModel.BeginDate:o}-{editingModel.EndDate:o}")"
+                TargetBeginDate="editingModel.BeginDate"
+                TargetBeginDateChanged="OnTargetBeginDateChanged"
+                TargetEndDate="editingModel.EndDate"
+                TargetEndDateChanged="OnTargetEndDateChanged"
+                CanEditTargetBeginDate="false"
+                CanEditTargetEndDate="false"
+                ShowTargetBeginDate="editingModel.ShowBeginDate"
+                ShowTargetEndDate="editingModel.ShowEndDate"
+                TargetDatesValidChanged="SetTargetDatesValid"
+                FullWidthLayout="true" />
+            @if (AllowCreateTimeObjectTask)
+            {
+                <div class="d-flex justify-content-end mt-2">
+                    <button type="button" class="btn btn-sm btn-success" @onclick="CreateTimeObjectTask">
+                        @(DisplayService.DisplayButton(userConfig, "create_time_object_task", Icons.Add))
+                    </button>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanSave)" @onclick="Save">
+            @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">
+            @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+        </button>
+    </Footer>
+</PopUp>
+
+@code {
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public TargetDatesEditorModel Model { get; set; } = new();
+    [Parameter] public EventCallback<TargetDatesEditorModel> Saved { get; set; }
+    [Parameter] public bool AllowCreateTimeObjectTask { get; set; }
+    [Parameter] public EventCallback CreateTimeObjectTaskRequested { get; set; }
+
+    private TargetDatesEditorModel editingModel = new();
+    private TargetDatesEditorModel? sourceModel;
+    private bool targetDatesValid = true;
+    private bool CanSave => targetDatesValid
+        && editingModel.FlowTimeObjectId.HasValue
+        && editingModel.FlowTimeObjectId.Value != 0;
+
+    protected override void OnParametersSet()
+    {
+        if (Display && !ReferenceEquals(sourceModel, Model))
+        {
+            editingModel = new TargetDatesEditorModel(Model);
+            sourceModel = Model;
+            targetDatesValid = true;
+        }
+    }
+
+    private void SetTargetDatesValid(bool valid)
+    {
+        targetDatesValid = valid;
+    }
+
+    private Task OnSelectedTimeObjectIdChanged(long? value)
+    {
+        editingModel.FlowTimeObjectId = value;
+        if (!value.HasValue)
+        {
+            editingModel.TicketElementId = null;
+            editingModel.BeginDate = null;
+            editingModel.EndDate = null;
+        }
+        else if (editingModel.TicketTimeObjectElementIds.TryGetValue(value.Value, out long elementId))
+        {
+            editingModel.TicketElementId = elementId;
+        }
+        else
+        {
+            editingModel.TicketElementId = null;
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task OnSelectedTimeObjectNameChanged(string? value)
+    {
+        editingModel.FlowTimeObjectName = value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnTargetBeginDateChanged(DateTime? value)
+    {
+        editingModel.BeginDate = value;
+        ClearSelectedTimeObject();
+        return Task.CompletedTask;
+    }
+
+    private Task OnTargetEndDateChanged(DateTime? value)
+    {
+        editingModel.EndDate = value;
+        ClearSelectedTimeObject();
+        return Task.CompletedTask;
+    }
+
+    private Task OnTimeObjectSelected(FlowTimeObject timeObject)
+    {
+        editingModel.BeginDate = timeObject.StartTime;
+        editingModel.EndDate = timeObject.EndTime;
+        targetDatesValid = true;
+        return Task.CompletedTask;
+    }
+
+    private void ClearSelectedTimeObject()
+    {
+        editingModel.FlowTimeObjectId = null;
+        editingModel.FlowTimeObjectName = null;
+        editingModel.TicketElementId = null;
+    }
+
+    private async Task Save()
+    {
+        if (CanSave)
+        {
+            await Saved.InvokeAsync(editingModel);
+            Close();
+        }
+    }
+
+    private Task CreateTimeObjectTask()
+    {
+        return CreateTimeObjectTaskRequested.InvokeAsync();
+    }
+
+    private void Close()
+    {
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+}

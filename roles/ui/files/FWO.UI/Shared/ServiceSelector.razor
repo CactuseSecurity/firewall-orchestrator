@@ -108,7 +108,16 @@
         {
             return element.Name;
         }
-        return DisplayBase.DisplayService(element, IpProtos);
+        if (element.FlowServiceObjectId.HasValue || element.FlowServiceGroupId.HasValue)
+        {
+            return element.FlowServiceObjectId?.ToString() ?? element.FlowServiceGroupId?.ToString() ?? "";
+        }
+        if (element.ServiceId.HasValue)
+        {
+            return element.ServiceId.Value.ToString();
+        }
+        string display = DisplayBase.DisplayService(element, IpProtos);
+        return string.IsNullOrWhiteSpace(display) ? element.GroupName ?? "" : display;
     }
 
     protected override void OnParametersSet()

@@ -17,6 +17,9 @@ query getHistory (
     change_text
     changer
     changer_id
+    changer_user {
+      uiuser_username
+    }
     change_time
     change_source
     ticket_id

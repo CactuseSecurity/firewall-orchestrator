@@ -4,6 +4,11 @@ Strict parser for ASA extended access-list entries.
 Every token of an entry must be understood. Unknown, truncated or unsupported syntax raises an
 AsaConfigParseError, which fails the import: a guessed meaning (e.g. "any" for an address that was not
 understood) could make the imported policy more permissive than the real one.
+
+One deliberate exception: the source port of a permit entry is skipped with a warning, and the entry is
+imported for all source ports. This makes the imported rule more permissive than the real one. The source
+port of a deny entry still fails the import, because a deny widened to all source ports would hide traffic
+the firewall permits.
 """
 
 from __future__ import annotations

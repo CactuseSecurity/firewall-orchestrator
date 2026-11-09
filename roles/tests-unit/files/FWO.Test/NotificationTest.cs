@@ -1039,6 +1039,41 @@ namespace FWO.Test
             CollectionAssert.AreEqual(kNoneDeadline, FwoNotification.OfferedDeadlineOptions(NotificationClient.InterfaceDecomm));
         }
 
+        /// <summary>
+        /// A csv layout for a report type without csv export must not abort sending (e.g. import change notifications,
+        /// which would otherwise be resent on every run), the notification is sent without attachment instead.
+        /// </summary>
+        [TestCase(Basics.ReportType.Changes)]
+        [TestCase(Basics.ReportType.NatChanges)]
+        public async Task BuildAttachment_CsvLayoutForReportWithoutCsvExport_ReturnsNoAttachment(Basics.ReportType reportType)
+        {
+            FwoNotification notification = new() { Id = 1, Layout = NotificationLayout.CsvAsAttachment, NotificationClient = NotificationClient.ImportNatChange };
+            ReportChanges report = new(new DynGraphqlQuery(""), new SimulatedUserConfig(), reportType, new TimeFilter(), false);
+
+            Microsoft.AspNetCore.Http.FormFile? attachment = await InvokeBuildAttachment(notification, report);
+
+            Assert.That(attachment, Is.Null);
+        }
+
+        [Test]
+        public async Task BuildAttachment_JsonLayoutForChangesReport_ReturnsAttachment()
+        {
+            FwoNotification notification = new() { Id = 1, Layout = NotificationLayout.JsonAsAttachment, NotificationClient = NotificationClient.ImportNatChange };
+            ReportChanges report = new(new DynGraphqlQuery(""), new SimulatedUserConfig(), Basics.ReportType.NatChanges, new TimeFilter(), false);
+
+            Microsoft.AspNetCore.Http.FormFile? attachment = await InvokeBuildAttachment(notification, report);
+
+            Assert.That(attachment, Is.Not.Null);
+        }
+
+        private static async Task<Microsoft.AspNetCore.Http.FormFile?> InvokeBuildAttachment(FwoNotification notification, ReportBase report)
+        {
+            MethodInfo buildAttachment = typeof(NotificationService).GetMethod("BuildAttachment", BindingFlags.Static | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("BuildAttachment not found.");
+            object?[] arguments = [notification, report, "Subject"];
+            return await (Task<Microsoft.AspNetCore.Http.FormFile?>)buildAttachment.Invoke(null, arguments)!;
+        }
+
         [Test]
         public void NotificationClientGroups_ClassifiesWfActionAsWorkflowRecipientClient()
         {

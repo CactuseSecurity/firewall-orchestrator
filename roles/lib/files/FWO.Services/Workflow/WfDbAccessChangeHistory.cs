@@ -59,7 +59,7 @@ namespace FWO.Services.Workflow
             {
                 string changer = string.IsNullOrWhiteSpace(UserConfig.User.Name) ? Roles.MiddlewareServer : UserConfig.User.Name;
                 bool auditProofCritical = contentChange && IsUiContext && requester != null && requester.DbId != UserConfig.UserId;
-                if (IsUiContext)
+                if (IsUiContext && !IsAdminSession())
                 {
                     var variables = new
                     {
@@ -91,7 +91,7 @@ namespace FWO.Services.Workflow
                         objectId = target.ObjectId,
                         changeText,
                         changer,
-                        changerId = ChangerId > 0 ? ChangerId : null,
+                        changerId = GetExplicitChangerId(),
                         changeSource = GlobalConst.kModuleWorkflow,
                         workflowPhase = (int)WorkflowPhase,
                         oldData = oldValue,
@@ -106,6 +106,27 @@ namespace FWO.Services.Workflow
                 Log.WriteError("Workflow Change History",
                     $"Could not record {target.ChangeType} of {target.ObjectType} {target.ObjectId} for ticket {target.TicketId}.", exception);
             }
+        }
+
+        /// <summary>
+        /// Checks whether the UI session runs as admin. Hasura applies no changer_id preset to the admin
+        /// role, so its rows would carry no user id unless the writer passes it.
+        /// </summary>
+        /// <returns>True when the current API role is admin.</returns>
+        private bool IsAdminSession()
+        {
+            return string.Equals(ApiConnection.GetActRole(), Roles.Admin, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Returns the changer_id a writer without session preset has to pass: the admin's own id in the UI,
+        /// otherwise the id the middleware entry point set for the authenticated caller.
+        /// </summary>
+        /// <returns>The user id, or null for automated changes.</returns>
+        private int? GetExplicitChangerId()
+        {
+            int? changerId = IsUiContext ? UserConfig.UserId : ChangerId;
+            return changerId > 0 ? changerId : null;
         }
 
         /// <summary>

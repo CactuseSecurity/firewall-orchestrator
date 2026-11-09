@@ -1,14 +1,16 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.2 - 09.11.2026
+- importer (Cisco ASA): access-list entries with a source port no longer always fail the import (so far listed as "still not supported" since 9.7.1, GHSA-p8qh-59qx-rjj4)
+  - permit entries are imported for all source ports, and a warning quoting the entry and its source port is logged. The imported rule is therefore more permissive than the real one
+  - deny entries with a source port still fail the import, because a deny widened to all source ports would hide traffic the firewall permits
+
 ## 9.9.1 - 05.11.2026
 - request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent
 - workflow UI: the promotion-mode setting now also supports action-buttons-only in addition to ticket, task and combined promotion
 - workflow UI: approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks
 - workflow UI: classic approval editing now respects the configured approver-allowed ticket and task fields
 - workflow: object and service task references are preserved when approval-task elements are edited, and affected access-task snapshots are refreshed after changes to their defining tasks
-- importer (Cisco ASA): access-list entries with a source port no longer always fail the import (so far listed as "still not supported" since 9.7.1, GHSA-p8qh-59qx-rjj4)
-  - permit entries are imported for all source ports, and a warning quoting the entry and its source port is logged. The imported rule is therefore more permissive than the real one
-  - deny entries with a source port still fail the import, because a deny widened to all source ports would hide traffic the firewall permits
 
 ## 9.9.0 - 04.11.2026
 - Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs

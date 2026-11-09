@@ -14,6 +14,7 @@ For a feature-centric, thematically grouped view see
 
 ---
 
+
 ### 8.0 — 19.02.2024
 - New **Network Modelling** module: define the target state of all network connections per application (or other distributed ownerships).
 - Scheduled import change notification with inline or attached change report (replaces the simple import notification from the import module).
@@ -265,9 +266,11 @@ For a feature-centric, thematically grouped view see
 - Azure gateway autodiscovery: finds the Azure Firewalls of the subscription and maps each to its firewall policy.
 - New importer setting "Skip unsupported rules": rules that cannot be represented (currently Azure geo-location filters) are skipped with a warning or fail the import.
 
-### 9.9.1 — 07.11.2026
-- Rule hit import: a separate, scheduled import run refreshes the last hit of all rules, also for unchanged configurations; the regular import no longer reads hits. Last hits are stored per gateway (Check Point per gateway, FortiManager per policy package).
+### 9.9.1 — 09.11.2026
 - Workflow state matrices can configure whether phases after request are promoted from the ticket, from individual tasks, or both. The request phase remains ticket-driven.
 - Access-task elements reference their ticket-local object-create task, keeping object changes consistent.
 - Approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks.
 - The promotion-mode setting supports an action-buttons-only option in addition to ticket, task and combined promotion.
+
+### 9.9.2 — 10.11.2026
+- Rule hit import: a separate, scheduled import run refreshes the last hit of all rules, also for unchanged configurations; the regular import no longer reads hits. Last hits are stored per gateway (Check Point per gateway, FortiManager per policy package).

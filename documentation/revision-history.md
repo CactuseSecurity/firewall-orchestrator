@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.9.1 - 07.11.2026
+## 9.9.2 - 10.11.2026
 - importer: last hits are read by a separate rule hit import instead of the regular import (#3297)
   - the regular import no longer reads or writes last hits (Check Point no longer requests hits), so unchanged Check Point configurations no longer leave last hits outdated
   - the new middleware scheduler "ImportRuleHitsJob" requests a rule hit import for every imported top-level management (table `rule_hit_import_request`); the responsible importer runs it right after the configuration import of the management and removes the request
@@ -10,7 +10,8 @@
   - Check Point: hits are fetched per gateway (`hits-settings.target`); global layers of a multi-domain server are not covered. FortiManager: the last hit of the policy package is stored for every gateway using the package
   - manual run: `import_mgm.py -m <mgm_id> --rule_hits`
   - "last import" queries (rollback, import status, daily check, last complete/successful import) only consider configuration imports
-## 9.9.1 - 05.11.2026
+
+## 9.9.1 - 09.11.2026
 - request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent
 - workflow UI: the promotion-mode setting now also supports action-buttons-only in addition to ticket, task and combined promotion
 - workflow UI: approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks

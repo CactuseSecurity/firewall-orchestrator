@@ -22,6 +22,9 @@ namespace FWO.Test
         [
             (typeof(FlowComplianceController), nameof(FlowComplianceController.GetFlowComplianceState)),
             (typeof(ApplicationAddressesController), nameof(ApplicationAddressesController.Get)),
+            (typeof(ModellingObjectsController), nameof(ModellingObjectsController.GetAvailableInterfacesForApp)),
+            (typeof(ModellingObjectsController), nameof(ModellingObjectsController.GetAppRolesPerApp)),
+            (typeof(ModellingObjectsController), nameof(ModellingObjectsController.GetNetworkAreas)),
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetAddressObjects)),
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetAddressGroups)),
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetServiceObjects)),

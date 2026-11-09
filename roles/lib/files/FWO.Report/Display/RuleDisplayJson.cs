@@ -37,9 +37,9 @@ namespace FWO.Ui.Display
             return DisplayJsonString("name", name);
         }
 
-        protected string DisplayRuleSourceZones(NetworkZone[] networkZones)
+        protected string DisplayRuleSourceZones(FirewallZone[] firewallZones)
         {
-            return DisplayJsonArray("source zones", ListNetworkZones(networkZones));
+            return DisplayJsonArray("source zones", ListFirewallZones(firewallZones));
         }
 
         protected string DisplaySourceNegated(bool sourceNegated)
@@ -52,9 +52,9 @@ namespace FWO.Ui.Display
             return DisplayJsonArray("source", ListNetworkLocations(rule, reportType, true));
         }
 
-        protected string DisplayRuleDestinationZones(NetworkZone[] networkZones)
+        protected string DisplayRuleDestinationZones(FirewallZone[] firewallZones)
         {
-            return DisplayJsonArray("destination zones", ListNetworkZones(networkZones));
+            return DisplayJsonArray("destination zones", ListFirewallZones(firewallZones));
         }
 
         protected string DisplayDestinationNegated(bool destinationNegated)
@@ -176,7 +176,7 @@ namespace FWO.Ui.Display
             }
             else
             {
-                stringBuilder.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
+                stringBuilder.AppendLine("\"section header\": " + JsonConvert.ToString(rule.SectionHeader));
             }
             stringBuilder.Append("},");
             return stringBuilder.ToString();
@@ -184,30 +184,72 @@ namespace FWO.Ui.Display
 
         protected string ListNetworkLocations(Rule rule, ReportType reportType, bool isSource)
         {
+            return ListNetworkLocations(isSource ? rule.Froms : rule.Tos, reportType);
+        }
+
+        /// <summary>
+        /// Lists network locations as comma separated JSON strings. Resolved reports list the group members,
+        /// NAT change reports list the objects as referenced in the rule, all other reports list nothing.
+        /// </summary>
+        /// <param name="networkLocations">Network locations of a rule (or of its translated part).</param>
+        /// <param name="reportType">Report type defining the level of resolution.</param>
+        /// <returns>Comma separated JSON strings, empty if the report type lists no network locations.</returns>
+        protected static string ListNetworkLocations(NetworkLocation[] networkLocations, ReportType reportType)
+        {
+            List<NetworkLocation> listedLocations;
             if (reportType.IsResolvedReport())
             {
-                List<string> displayedLocations = new List<string>();
-                foreach (NetworkLocation networkLocation in GetResolvedNetworkLocations(isSource ? rule.Froms : rule.Tos))
-                {
-                    displayedLocations.Add(JsonConvert.ToString(DisplayNetworkLocation(networkLocation, reportType).ToString()));
-                }
-                return string.Join(",", displayedLocations);
+                listedLocations = GetResolvedNetworkLocations(networkLocations);
             }
-            return "";
+            else if (reportType == ReportType.NatChanges)
+            {
+                listedLocations = [.. networkLocations];
+            }
+            else
+            {
+                return "";
+            }
+            List<string> displayedLocations = [];
+            foreach (NetworkLocation networkLocation in listedLocations)
+            {
+                displayedLocations.Add(JsonConvert.ToString(DisplayNetworkLocation(networkLocation, reportType).ToString()));
+            }
+            return string.Join(",", displayedLocations);
         }
 
         protected string ListServices(Rule rule, ReportType reportType)
         {
+            return ListServices(rule.Services, reportType);
+        }
+
+        /// <summary>
+        /// Lists services as comma separated JSON strings. Resolved reports list the group members,
+        /// NAT change reports list the services as referenced in the rule, all other reports list nothing.
+        /// </summary>
+        /// <param name="services">Services of a rule (or of its translated part).</param>
+        /// <param name="reportType">Report type defining the level of resolution.</param>
+        /// <returns>Comma separated JSON strings, empty if the report type lists no services.</returns>
+        protected static string ListServices(ServiceWrapper[] services, ReportType reportType)
+        {
+            List<NetworkService> listedServices;
             if (reportType.IsResolvedReport())
             {
-                List<string> displayedServices = new List<string>();
-                foreach (NetworkService service in GetNetworkServices(rule.Services))
-                {
-                    displayedServices.Add(JsonConvert.ToString(DisplayService(service, reportType).ToString()));
-                }
-                return (string.Join(",", displayedServices));
+                listedServices = GetNetworkServices(services);
             }
-            return "";
+            else if (reportType == ReportType.NatChanges)
+            {
+                listedServices = [.. services.Select(service => service.Content)];
+            }
+            else
+            {
+                return "";
+            }
+            List<string> displayedServices = [];
+            foreach (NetworkService service in listedServices)
+            {
+                displayedServices.Add(JsonConvert.ToString(DisplayService(service, reportType).ToString()));
+            }
+            return string.Join(",", displayedServices);
         }
 
         protected string ListEnforcingGateways(IEnumerable<DeviceWrapper> gateways)
@@ -219,10 +261,10 @@ namespace FWO.Ui.Display
                 );
         }
 
-        protected string ListNetworkZones(NetworkZone[] networkZones)
+        protected static string ListFirewallZones(FirewallZone[] firewallZones)
         {
             List<string> displayedZones = new List<string>();
-            foreach (NetworkZone networkZone in networkZones)
+            foreach (FirewallZone networkZone in firewallZones)
             {
                 displayedZones.Add(JsonConvert.ToString(networkZone.Name));
             }

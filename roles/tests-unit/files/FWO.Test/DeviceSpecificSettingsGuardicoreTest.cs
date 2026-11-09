@@ -24,11 +24,11 @@ internal class DeviceSpecificSettingsGuardicoreTest
     ];
     private static readonly List<string> kExpectedKeys =
     [
-        "installOn", "positioningAlgorithm", "ruleLoggingOverride",
+        "installOn", "positioningAlgorithm", "checkPointLayerGuardSectionNameTemplate", "ruleLoggingOverride",
         "serviceObjectCreation", "addressObjectCreation", "timeObjectCreation", "labelCreation",
         "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride",
         "implementationMode", "implementationModeOverrideForRules", "rerouteToExternalTicketSystem",
-        "securityProfiles", "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName",
+        "securityProfiles", "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName", "sshLegacyKeyExchange",
         "autoPlanImplementation", "autoPlanImplementationForRules", "modellingCreateAppZones",
         "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
         "modellingConnectionIdField", "modellingConnectionIdTemplate", "templates",
@@ -37,14 +37,15 @@ internal class DeviceSpecificSettingsGuardicoreTest
     ];
     private static readonly HashSet<string> kManagerConfigKeys =
     [
-        "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName",
+        "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName", "sshLegacyKeyExchange",
         "modellingCreateAppZones", "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
         "modellingConnectionIdField", "modellingConnectionIdTemplate"
     ];
     private static readonly HashSet<string> kManagerUiKeys =
     [
         "serviceObjectCreation", "addressObjectCreation", "timeObjectCreation", "labelCreation",
-        "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride", "securityProfiles"
+        "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride", "securityProfiles",
+        "implementationMode", "rerouteToExternalTicketSystem"
     ];
     private static readonly List<DeviceSpecificScopeType> kAllLevels =
         [DeviceSpecificScopeType.Global, DeviceSpecificScopeType.DeviceType, DeviceSpecificScopeType.Management, DeviceSpecificScopeType.Gateway];
@@ -138,6 +139,8 @@ internal class DeviceSpecificSettingsGuardicoreTest
         using (Assert.EnterMultipleScope())
         {
             Assert.That(settings.ImplementationMode, Is.EqualTo(ProvisioningImplementationMode.Automatic));
+            Assert.That(settings.CheckPointLayerGuardSectionNameTemplate,
+                Is.EqualTo("[@@SOURCE_ZONE@@] -> [@@DESTINATION_ZONE@@]"));
             Assert.That(settings.TimeObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
             Assert.That(settings.LabelCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
             Assert.That(settings.CommonServiceSeparation, Is.False);

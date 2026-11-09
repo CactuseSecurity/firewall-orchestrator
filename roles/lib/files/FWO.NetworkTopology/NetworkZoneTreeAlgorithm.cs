@@ -8,7 +8,7 @@ namespace FWO.NetworkTopology
     public sealed record MatrixData
     {
         /// <summary>Data collected from network_zone.zone.</summary>
-        public List<ComplianceNetworkZone> Zones { get; init; } = [];
+        public List<NetworkZone> Zones { get; init; } = [];
         /// <summary>Data collected from network_zone.ip_range.</summary>
         public List<NetworkZoneIpRange> IpRanges { get; init; } = [];
         /// <summary>Data collected from network_zone.device_ip_range_root.</summary>

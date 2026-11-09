@@ -633,6 +633,11 @@
         {
             return NotificationLayoutGroups.WithoutAttachments().ToList();
         }
+        if(Client == NotificationClient.ImportChange || Client == NotificationClient.ImportNatChange)
+        {
+            // change reports have no csv export
+            return NotificationLayoutGroups.ListWithoutCsv();
+        }
         return Enum.GetValues(typeof(NotificationLayout)).Cast<NotificationLayout>().ToList();
     }
 

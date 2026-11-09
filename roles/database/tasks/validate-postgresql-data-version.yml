@@ -1,0 +1,60 @@
+---
+# Refuses to configure PostgreSQL when the data directory was written by another PostgreSQL
+# major version than the one installed. This is the RedHat layout of the check in
+# validate-postgresql-cluster.yml: RedHat keeps a single data directory whose PG_VERSION
+# file names the format. An operating system upgrade or a switch of the postgresql module
+# stream installs the new server, but leaves the data in the old format, and the server then
+# refuses to start. Without this check the installer edits the config and fails on a
+# PostgreSQL that does not come up, without saying that the data has to be migrated.
+#
+# In its own file so roles/tests-integration drives this code rather than a copy of it.
+#
+# Inputs:
+#   pg_version          - the installed PostgreSQL major version (required)
+#   postgresql_data_dir - the data directory holding PG_VERSION
+# Output: nothing, or a failure naming the data version found and how to migrate it.
+
+- name: read the PostgreSQL version of the data in {{ postgresql_data_dir }}
+  slurp:
+    src: "{{ postgresql_data_dir }}/PG_VERSION"
+  register: postgresql_data_version_file
+  # a missing data directory is reported by the last task below
+  failed_when: false
+
+- name: name the PostgreSQL version the data was written with
+  set_fact:
+    postgresql_data_version: "{{ postgresql_data_version_file.content | default('') | b64decode | trim }}"
+
+- name: stop because the data has to be migrated to PostgreSQL {{ pg_version }} first
+  fail:
+    msg: >-
+      PostgreSQL {{ pg_version }} is installed, but the {{ product_name }} database in
+      {{ postgresql_data_dir }} is still in the PostgreSQL {{ postgresql_data_version }}
+      format, typically after an operating system upgrade. PostgreSQL has not been changed.
+      Migrate the data, then run the upgrade again: stop the {{ product_name }} services and
+      postgresql, install the postgresql-upgrade package, run "postgresql-setup --upgrade",
+      start postgresql, and rebuild the indexes because the sort order of the C library may
+      have changed. See documentation/installer/server-upgrade.md.
+  when:
+    - postgresql_data_version | length > 0
+    - postgresql_data_version is version(pg_version | string, '<')
+
+- name: stop because the data is newer than the installed PostgreSQL {{ pg_version }}
+  fail:
+    msg: >-
+      PostgreSQL {{ pg_version }} is installed, but the {{ product_name }} database in
+      {{ postgresql_data_dir }} was written by PostgreSQL {{ postgresql_data_version }}, which
+      {{ pg_version }} cannot read. PostgreSQL has not been changed. Install PostgreSQL
+      {{ postgresql_data_version }} again (e.g. "dnf module switch-to
+      postgresql:{{ postgresql_data_version }}"), then run the installer again.
+  when:
+    - postgresql_data_version | length > 0
+    - postgresql_data_version is version(pg_version | string, '>')
+
+- name: stop because there is no PostgreSQL data directory
+  fail:
+    msg: >-
+      PostgreSQL {{ pg_version }} is installed, but {{ postgresql_data_dir }} holds no
+      PostgreSQL data. Create it with "postgresql-setup --initdb", then run the installer
+      again.
+  when: postgresql_data_version | length == 0

@@ -63,7 +63,7 @@ namespace FWO.Data.Report
         public NetworkUser[] Users { get; set; } = [];
 
         [JsonProperty("zoneObjects"), JsonPropertyName("zoneObjects")]
-        public NetworkZone[] Zones { get; set; } = [];
+        public FirewallZone[] Zones { get; set; } = [];
 
         [JsonProperty("reportNetworkObjects"), JsonPropertyName("reportNetworkObjects")]
         public NetworkObject[] ReportObjects { get; set; } = [];

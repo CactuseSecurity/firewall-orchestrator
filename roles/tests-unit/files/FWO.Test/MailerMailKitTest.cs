@@ -246,6 +246,52 @@ namespace FWO.Test
             });
         }
 
+        // SendAsync works on a copy of the recipient lists, so the shared list is not changed
+        private static readonly List<string> kUnparseableCc = ["also bad @@"];
+
+        [Test]
+        public async Task SendAsync_SkipsUnparseableRecipientAndSendsToTheOthers()
+        {
+            using TcpListener listener = new(IPAddress.Loopback, 0);
+            listener.Start();
+            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            Task server = RunSmtpServer(listener, rejectFirstRecipient: false);
+            MailData mail = new(new List<string> { "not an address <<", "good@example.test" }, "Subject")
+            {
+                Body = "Body",
+                Cc = kUnparseableCc
+            };
+            EmailConnection connection = new("127.0.0.1", port, EmailEncryptionMethod.None, "", "", "sender@example.test");
+
+            bool result = await MailKitMailer.SendAsync(mail, connection);
+            await server;
+
+            Assert.That(result, Is.True);
+        }
+
+        private static readonly List<string> kExpectedCleanTo = ["a@example.test", " "];
+        private static readonly List<string> kExpectedCleanCc = ["c@example.test"];
+        private static readonly List<string> kExpectedCleanBcc = ["b@example.test"];
+
+        [Test]
+        public void RemoveUnparseableRecipients_KeepsValidAndEmptyEntries()
+        {
+            MailData mail = new(new List<string> { "a@example.test", "broken<<", " " }, "Subject")
+            {
+                Cc = ["c@example.test", "@@"],
+                Bcc = ["b@example.test"]
+            };
+
+            Invoke("RemoveUnparseableRecipients", mail);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(mail.To, Is.EqualTo(kExpectedCleanTo));
+                Assert.That(mail.Cc, Is.EqualTo(kExpectedCleanCc));
+                Assert.That(mail.Bcc, Is.EqualTo(kExpectedCleanBcc));
+            });
+        }
+
         [Test]
         public void ConfigureCertificateValidation_WithChecking_UsesDefaultValidation()
         {
@@ -297,7 +343,7 @@ namespace FWO.Test
             });
         }
 
-        private static async Task RunSmtpServer(TcpListener listener)
+        private static async Task RunSmtpServer(TcpListener listener, bool rejectFirstRecipient = true)
         {
             using TcpClient client = await listener.AcceptTcpClientAsync();
             await using NetworkStream stream = client.GetStream();
@@ -321,7 +367,7 @@ namespace FWO.Test
                         await writer.WriteLineAsync("250 OK");
                         break;
                     case "RCPT":
-                        if (rejectedRecipients++ == 0)
+                        if (rejectFirstRecipient && rejectedRecipients++ == 0)
                         {
                             await writer.WriteLineAsync("550 mailbox unavailable");
                         }

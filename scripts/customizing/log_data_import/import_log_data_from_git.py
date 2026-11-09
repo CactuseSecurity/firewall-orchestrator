@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import logging
 import sys
 import urllib.parse
 from dataclasses import dataclass, field
@@ -25,7 +26,6 @@ from scripts.customizing.fwo_custom_lib.git_helpers import (
 )
 
 if TYPE_CHECKING:
-    import logging
     from collections.abc import Mapping
 
 DEFAULT_CONFIG_FILE: str = "/usr/local/fworch/etc/secrets/customizingConfig.json"
@@ -515,6 +515,21 @@ def acknowledge_import(config_file: str, logger: logging.Logger) -> int:
     return 0
 
 
+class SingleLineLogFilter(logging.Filter):
+    """
+    Keeps every log record on one line.
+
+    File names and cell values come from the log data repository and end up in middleware.log, where a line
+    break would let them forge log lines of their own.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message: str = record.getMessage()
+        record.msg = message.replace("\r", "\\r").replace("\n", "\\n")
+        record.args = None
+        return True
+
+
 def main() -> int:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default=DEFAULT_CONFIG_FILE, help="Customizing configuration file")
@@ -527,6 +542,7 @@ def main() -> int:
     depth: int | None = cast("int | None", arguments.depth)
     acknowledge: bool = cast("bool", arguments.acknowledge_import)
     logger: logging.Logger = get_logger(debug_level_in=2)
+    logger.addFilter(SingleLineLogFilter())
     return acknowledge_import(config_file, logger) if acknowledge else import_data(config_file, depth, logger)
 
 

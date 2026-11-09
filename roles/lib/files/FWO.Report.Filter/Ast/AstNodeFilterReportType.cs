@@ -8,27 +8,38 @@ namespace FWO.Report.Filter.Ast
     {
         ReportType semanticValue;
 
+        /// <summary>
+        /// Report type names (singular and plural or underscore spellings) accepted in the filter.
+        /// </summary>
+        private static readonly Dictionary<string, ReportType> kReportTypeNames = new()
+        {
+            { "rules", ReportType.Rules }, { "rule", ReportType.Rules },
+            { "resolvedrules", ReportType.ResolvedRules }, { "resolvedrule", ReportType.ResolvedRules },
+            { "resolvedrulestech", ReportType.ResolvedRulesTech }, { "resolvedruletech", ReportType.ResolvedRulesTech },
+            { "unusedrules", ReportType.UnusedRules }, { "unusedrule", ReportType.UnusedRules },
+            { "statistics", ReportType.Statistics }, { "statistic", ReportType.Statistics },
+            { "changes", ReportType.Changes }, { "change", ReportType.Changes },
+            { "resolvedchanges", ReportType.ResolvedChanges }, { "resolvedchange", ReportType.ResolvedChanges },
+            { "resolvedchangestech", ReportType.ResolvedChangesTech }, { "resolvedchangetech", ReportType.ResolvedChangesTech },
+            { "natrules", ReportType.NatRules }, { "nat_rules", ReportType.NatRules },
+            { "natchanges", ReportType.NatChanges }, { "nat_changes", ReportType.NatChanges },
+            { "recertifications", ReportType.Recertification }, { "recertification", ReportType.Recertification },
+            { "connections", ReportType.Connections }, { "connection", ReportType.Connections },
+            { "apprules", ReportType.AppRules }, { "apprule", ReportType.AppRules },
+            { "variances", ReportType.VarianceAnalysis }, { "variance", ReportType.VarianceAnalysis },
+            { "ownerrecertifications", ReportType.OwnerRecertification }, { "ownerrecertification", ReportType.OwnerRecertification }
+        };
+
+        /// <summary>
+        /// Converts the filter value into the report type.
+        /// </summary>
         public override void ConvertToSemanticType()
         {
             CheckOperator(Operator, true, TokenKind.EQ, TokenKind.EEQ);
-            semanticValue = Value.Text switch
+            if (!kReportTypeNames.TryGetValue(Value.Text, out semanticValue))
             {
-                "rules" or "rule" => ReportType.Rules,
-                "resolvedrules" or "resolvedrule" => ReportType.ResolvedRules,
-                "resolvedrulestech" or "resolvedruletech" => ReportType.ResolvedRulesTech,
-                "unusedrules" or "unusedrule" => ReportType.UnusedRules,
-                "statistics" or "statistic" => ReportType.Statistics,
-                "changes" or "change" => ReportType.Changes,
-                "resolvedchanges" or "resolvedchange" => ReportType.ResolvedChanges,
-                "resolvedchangestech" or "resolvedchangetech" => ReportType.ResolvedChangesTech,
-                "natrules" or "nat_rules" => ReportType.NatRules,
-                "recertifications" or "recertification" => ReportType.Recertification,
-                "connections" or "connection" => ReportType.Connections,
-                "apprules" or "apprule" => ReportType.AppRules,
-                "variances" or "variance" => ReportType.VarianceAnalysis,
-                "ownerrecertifications" or "ownerrecertification" => ReportType.OwnerRecertification,
-                _ => throw new SemanticException($"Unexpected report type found", Value.Position)
-            };
+                throw new SemanticException($"Unexpected report type found", Value.Position);
+            }
         }
 
         public override void Extract(ref DynGraphqlQuery query, ReportType? reportType)

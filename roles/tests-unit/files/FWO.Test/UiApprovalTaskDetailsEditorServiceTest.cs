@@ -12,6 +12,8 @@ namespace FWO.Test;
 [TestFixture]
 internal sealed class UiApprovalTaskDetailsEditorServiceTest
 {
+    private static readonly long[] ExpectedBundledOwnerIds = [2, 2];
+
     [Test]
     public void ElementsEditor_CopiesObjectSnapshotWithoutChangingReferenceIdentity()
     {
@@ -721,7 +723,7 @@ internal sealed class UiApprovalTaskDetailsEditorServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(handler.ActTicket.Tasks.SelectMany(task => task.NewOwners).Select(owner => owner.Id),
-                Is.EquivalentTo(new[] { newOwner.Id, newOwner.Id }));
+                Is.EquivalentTo(ExpectedBundledOwnerIds));
             Assert.That(handler.ActTicket.Tasks.All(task => task.RemovedOwners.Count == 1
                 && task.RemovedOwners[0].Id == oldOwner.Id), Is.True);
             Assert.That(state.EditingOwnerTask, Is.Null);

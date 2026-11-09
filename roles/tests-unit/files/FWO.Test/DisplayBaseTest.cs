@@ -85,7 +85,7 @@ namespace FWO.Test
             };
             List<IpProtocol> protocols = [new IpProtocol { Id = 0, Name = "HOPOPT" }];
 
-            ClassicAssert.AreEqual("", DisplayBase.DisplayService(service, protocols));
+            Assert.That(DisplayBase.DisplayService(service, protocols), Is.EqualTo(""));
         }
     }
 }

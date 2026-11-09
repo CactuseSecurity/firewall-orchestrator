@@ -19,17 +19,20 @@
     </div>
 </div>
 
-<div class="text-muted small mb-2">
-    @($"{FilteredCount} / {TotalCount}")
-</div>
+@if (!string.IsNullOrWhiteSpace(SearchText))
+{
+    <div class="text-muted small mb-2">
+        @($"{FilteredCount} / {TotalCount}")
+    </div>
 
-<Table TableClass="@TableClass"
-       TableItem="TItem"
-       Items="FilteredItems"
-       PageSize="PageSize"
-       ColumnReorder="true">
-    @ChildContent
-</Table>
+    <Table TableClass="@TableClass"
+           TableItem="TItem"
+           Items="FilteredItems"
+           PageSize="PageSize"
+           ColumnReorder="true">
+        @ChildContent
+    </Table>
+}
 
 @code
 {

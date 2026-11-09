@@ -76,6 +76,10 @@ namespace FWO.Data.Workflow
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public PhaseVisibilityMode VisibilityMode { get; set; } = PhaseVisibilityMode.AnyTask;
 
+        [JsonPropertyName("promotion_mode")]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public PromotionMode PromotionMode { get; set; } = PromotionMode.Both;
+
         [JsonPropertyName("lowest_input_state")]
         public int LowestInputState { get; set; }
 

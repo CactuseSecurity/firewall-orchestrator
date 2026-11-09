@@ -8,7 +8,7 @@ namespace FWO.Test
     public class ApproverAllowedChangesConfigTest
     {
         [Test]
-        public void Catalog_OffersNoObjectReferenceFieldsForObjectTasks()
+    public void Catalog_OffersObjectNameAndContentFieldsForObjectTasks()
         {
             List<string> createFields = ApproverAllowedChangesCatalog.TaskTypeFields[WfTaskType.object_create].ConvertAll(field => field.Key);
             List<string> modifyFields = ApproverAllowedChangesCatalog.TaskTypeFields[WfTaskType.object_modify].ConvertAll(field => field.Key);
@@ -17,10 +17,12 @@ namespace FWO.Test
             {
                 Assert.That(createFields, Does.Contain(WorkflowEditableFieldKeys.Title));
                 Assert.That(createFields, Does.Contain(WorkflowEditableFieldKeys.Management));
-                Assert.That(createFields, Does.Not.Contain(WorkflowEditableFieldKeys.Name));
+                Assert.That(createFields, Does.Contain(WorkflowEditableFieldKeys.Name));
+                Assert.That(createFields, Does.Contain(WorkflowEditableFieldKeys.Content));
                 Assert.That(modifyFields, Does.Contain(WorkflowEditableFieldKeys.Reason));
                 Assert.That(modifyFields, Does.Not.Contain(WorkflowEditableFieldKeys.Management));
-                Assert.That(modifyFields, Does.Not.Contain(WorkflowEditableFieldKeys.Name));
+                Assert.That(modifyFields, Does.Contain(WorkflowEditableFieldKeys.Name));
+                Assert.That(modifyFields, Does.Contain(WorkflowEditableFieldKeys.Content));
             });
         }
 
@@ -31,6 +33,22 @@ namespace FWO.Test
                 .ConvertAll(field => field.Key);
 
             Assert.That(accessFields, Does.Contain(WorkflowEditableFieldKeys.Owner));
+        }
+
+        [Test]
+        public void Catalog_OffersGroupModifyTaskFields()
+        {
+            List<string> groupModifyFields = ApproverAllowedChangesCatalog.TaskTypeFields[WfTaskType.group_modify]
+                .ConvertAll(field => field.Key);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(groupModifyFields, Does.Contain(WorkflowEditableFieldKeys.Title));
+                Assert.That(groupModifyFields, Does.Contain(WorkflowEditableFieldKeys.Management));
+                Assert.That(groupModifyFields, Does.Contain(WorkflowEditableFieldKeys.Reason));
+                Assert.That(groupModifyFields, Does.Contain(WorkflowEditableFieldKeys.Name));
+                Assert.That(groupModifyFields, Does.Contain(WorkflowEditableFieldKeys.GroupMembers));
+            });
         }
 
         [Test]

@@ -13,6 +13,7 @@ namespace FWO.Basics
         ResolvedChanges = 8,
         ResolvedChangesTech = 9,
         UnusedRules = 10,
+        NatChanges = 11,
 
         Connections = 21,
         AppRules = 22,
@@ -145,7 +146,8 @@ namespace FWO.Basics
             {
                 ReportType.Changes or
                 ReportType.ResolvedChanges or
-                ReportType.ResolvedChangesTech => true,
+                ReportType.ResolvedChangesTech or
+                ReportType.NatChanges => true,
                 _ => false
             };
         }
@@ -241,6 +243,7 @@ namespace FWO.Basics
                 ReportType.Changes or
                 ReportType.ResolvedChanges or
                 ReportType.ResolvedChangesTech or
+                ReportType.NatChanges or
                 ReportType.TicketChangeReport => true,
                 _ => false
             };
@@ -309,7 +312,7 @@ namespace FWO.Basics
                 ReportType.Undefined,
                 ReportType.RecertificationEvent,
                 ReportType.Rules, ReportType.ResolvedRules, ReportType.ResolvedRulesTech, ReportType.UnusedRules, ReportType.NatRules,
-                ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech,
+                ReportType.Changes, ReportType.ResolvedChanges, ReportType.ResolvedChangesTech, ReportType.NatChanges,
                 ReportType.Statistics,
                 ReportType.Connections,
                 ReportType.AppRules,

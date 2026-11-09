@@ -4,8 +4,10 @@ using Bunit;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Services;
 using FWO.Ui.Pages.Settings;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -53,6 +55,63 @@ internal sealed class UiSettingsDeviceSpecificTest
         await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
         Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementation)?.Type, Is.EqualTo(Newtonsoft.Json.Linq.JTokenType.Boolean));
         Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementation)?.ToObject<bool>(), Is.False);
+    }
+
+    [Test]
+    public async Task Admin_CanSaveLayerGuardSectionTemplateAndSeeItAtGateway()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        string key = DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey;
+        string fieldSelector = $"#dss-field-{key} input[type=text]";
+
+        await page.Find($"#dss-override-{key}").ChangeAsync(
+            new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
+        await page.Find(fieldSelector).ChangeAsync(
+            new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "fixed @@SOURCE_ZONE@@ fixed" });
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        Assert.That(api.ReadValue(kGlobalNodeId,
+            DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate)?.ToObject<string>(),
+            Is.EqualTo("fixed @@SOURCE_ZONE@@ fixed"));
+
+        await TreeButton(page, "Check Point R8x").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        page.WaitForAssertion(() => TreeButton(page, "cp-mgr"));
+        await TreeButton(page, "cp-mgr").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        page.WaitForAssertion(() => TreeButton(page, "cp-gw-a"));
+        await TreeButton(page, "cp-gw-a").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        page.WaitForAssertion(() => page.Find(fieldSelector));
+    }
+
+    [TestCase("")]
+    [TestCase("@@SOURCE@@")]
+    [TestCase("@@SOURCE_ZONE")]
+    public async Task Admin_RejectsInvalidLayerGuardSectionTemplate(string invalidTemplate)
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        List<(Exception? Exception, string Message, bool IsError)> displayedMessages = [];
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context,
+            (exception, _, message, isError) => displayedMessages.Add((exception, message, isError)));
+        string key = DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey;
+
+        await page.Find($"#dss-override-{key}").ChangeAsync(
+            new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
+        await page.Find($"#dss-field-{key} input[type=text]").ChangeAsync(
+            new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = invalidTemplate });
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        Assert.That(displayedMessages, Has.Count.EqualTo(1));
+        (Exception? exception, string message, bool isError) = displayedMessages.Single();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(api.ReadValue(kGlobalNodeId,
+                DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate), Is.Null);
+            Assert.That(exception, Is.Null);
+            Assert.That(message, Is.EqualTo("E5302"));
+            Assert.That(isError, Is.True);
+        }
     }
 
     /// <summary>Install-on targets are restricted to the two contract values.</summary>
@@ -288,10 +347,14 @@ internal sealed class UiSettingsDeviceSpecificTest
         Assert.That(api.ReadValue(kGlobalNodeId, ticketKey)?.ToObject<string>(), Is.EqualTo("{\"ticket\":@@TASKS@@}"));
     }
 
-    private static IRenderedComponent<CascadingAuthenticationState> RenderPage(BunitContext context)
+    private static IRenderedComponent<CascadingAuthenticationState> RenderPage(
+        BunitContext context,
+        Action<Exception?, string, string, bool>? displayMessageInUi = null)
     {
         IRenderedComponent<CascadingAuthenticationState> page = context.Render<CascadingAuthenticationState>(parameters => parameters
-            .AddChildContent<SettingsDeviceSpecific>());
+            .AddChildContent<CascadingValue<Action<Exception?, string, string, bool>>>(child => child
+                .Add(component => component.Value, displayMessageInUi ?? DefaultInit.DoNothing)
+                .AddChildContent<SettingsDeviceSpecific>(_ => { })));
         page.WaitForAssertion(() => page.Find(kLoggingSwitchSelector));
         return page;
     }

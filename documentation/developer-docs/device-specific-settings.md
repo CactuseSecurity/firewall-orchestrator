@@ -21,6 +21,7 @@ remains effective and is shown as a dormant override that can be cleared there.
 | --- | --- | --- | --- | --- |
 | installOn | enum | ANY | All | All |
 | positioningAlgorithm | enum | DefaultEndOfRulebase | All | All |
+| checkPointLayerGuardSectionNameTemplate | string | `[@@SOURCE_ZONE@@] -> [@@DESTINATION_ZONE@@]` | All | All |
 | ruleLoggingOverride | enum | log | All | All |
 | serviceObjectCreation | enum | Supermanager | All | Global to manager |
 | addressObjectCreation | enum | Supermanager | All | Global to manager |
@@ -62,6 +63,16 @@ stored, so the level inherits instead.
 Positioning offers `DefaultEndOfRulebase`, `cpInlineLayerPerZonePair`, `endOfZone`,
 `endOfAppSection`, `endOfAppSectionDistinguishCommonServices`, and
 `allowCategoryEndOfAppSectionDistinguishCommonServices`.
+
+For the Check Point LayerGuard algorithm, `checkPointLayerGuardSectionNameTemplate`
+defines the firewall section name. It accepts only the exact placeholders
+`@@SOURCE_ZONE@@` and `@@DESTINATION_ZONE@@`; either may be omitted or repeated any
+number of times. Unknown placeholders and unmatched `@@` delimiters invalidate the
+configuration. Only the referenced sides are resolved: each must have complete
+coverage and exactly one persisted zone. A fixed template therefore needs no zone
+matrix lookup. The rendered name is trimmed and uppercased once, while interior
+whitespace remains significant. The value inherits through Global > device type >
+manager > gateway like the other settings.
 
 `modellingConnectionIdField` offers `Name`, `Comment`, and `CustomField`: the field of
 a provisioned object that carries the ID of the modelling connection, formatted by

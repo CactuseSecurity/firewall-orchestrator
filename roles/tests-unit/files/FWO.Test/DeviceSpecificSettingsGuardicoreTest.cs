@@ -24,7 +24,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
     ];
     private static readonly List<string> kExpectedKeys =
     [
-        "installOn", "positioningAlgorithm", "ruleLoggingOverride",
+        "installOn", "positioningAlgorithm", "checkPointLayerGuardSectionNameTemplate", "ruleLoggingOverride",
         "serviceObjectCreation", "addressObjectCreation", "timeObjectCreation", "labelCreation",
         "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride",
         "implementationMode", "implementationModeOverrideForRules", "rerouteToExternalTicketSystem",
@@ -139,6 +139,8 @@ internal class DeviceSpecificSettingsGuardicoreTest
         using (Assert.EnterMultipleScope())
         {
             Assert.That(settings.ImplementationMode, Is.EqualTo(ProvisioningImplementationMode.Automatic));
+            Assert.That(settings.CheckPointLayerGuardSectionNameTemplate,
+                Is.EqualTo("[@@SOURCE_ZONE@@] -> [@@DESTINATION_ZONE@@]"));
             Assert.That(settings.TimeObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
             Assert.That(settings.LabelCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
             Assert.That(settings.CommonServiceSeparation, Is.False);

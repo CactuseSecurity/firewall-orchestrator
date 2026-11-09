@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report.Filter;
@@ -14,6 +15,7 @@ namespace FWO.Report
     public class ReportChanges : ReportDevicesBase
     {
         private const int ColumnCount = 14;
+        private const int NatColumnCount = 17;
 
         private readonly TimeFilter timeFilter;
         private readonly bool IncludeObjects;
@@ -304,6 +306,12 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("destination_zone")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("destination")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("services")}</th>");
+                if (ReportType == ReportType.NatChanges)
+                {
+                    report.AppendLine($"<th>{userConfig.GetText("trans_source")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("trans_destination")}</th>");
+                    report.AppendLine($"<th>{userConfig.GetText("trans_services")}</th>");
+                }
                 report.AppendLine($"<th>{userConfig.GetText("action")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("track")}</th>");
                 report.AppendLine($"<th>{userConfig.GetText("enabled")}</th>");
@@ -379,6 +387,7 @@ namespace FWO.Report
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestinationZone(ruleChange)}</td>");
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayDestination(ruleChange, OutputLocation.export, ReportType)}</td>");
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayServices(ruleChange, OutputLocation.export, ReportType)}</td>");
+                    AppendTranslatedRuleChangeCellsHTML(report, ruleChange, ruleChangeDisplayHtml);
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayAction(ruleChange)}</td>");
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTrack(ruleChange)}</td>");
                     report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayEnabled(ruleChange, OutputLocation.export)}</td>");
@@ -391,10 +400,28 @@ namespace FWO.Report
             else
             {
                 report.AppendLine("<tr>");
-                report.AppendLine($"<td colspan=\"{ColumnCount}\">{userConfig.GetText("no_changes_found")}</td>");
+                report.AppendLine($"<td colspan=\"{(ReportType == ReportType.NatChanges ? NatColumnCount : ColumnCount)}\">{userConfig.GetText("no_changes_found")}</td>");
                 report.AppendLine("</tr>");
             }
         }
+
+        /// <summary>
+        /// Appends the translated source, destination and services of a NAT rule change; other change reports have no such columns.
+        /// </summary>
+        /// <param name="report">Report the cells are appended to.</param>
+        /// <param name="ruleChange">Displayed rule change.</param>
+        /// <param name="ruleChangeDisplayHtml">Html display helper.</param>
+        private void AppendTranslatedRuleChangeCellsHTML(StringBuilder report, RuleChange ruleChange, RuleChangeDisplayHtml ruleChangeDisplayHtml)
+        {
+            if (ReportType != ReportType.NatChanges)
+            {
+                return;
+            }
+            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTranslatedSource(ruleChange, OutputLocation.export, ReportType)}</td>");
+            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTranslatedDestination(ruleChange, OutputLocation.export, ReportType)}</td>");
+            report.AppendLine($"<td>{ruleChangeDisplayHtml.DisplayTranslatedServices(ruleChange, OutputLocation.export, ReportType)}</td>");
+        }
+
         private void AppendObjectChangeRowsHTML(StringBuilder report, ManagementReport management, RuleChangeDisplayHtml ruleChangeDisplayHtml)
         {
             if (management.ObjectChanges != null && management.ObjectChanges?.Any() == true)
@@ -563,6 +590,7 @@ namespace FWO.Report
                         sb.Append(ruleChangeDisplayJson.DisplayDestination(ruleChange, ReportType));
                         sb.Append(ruleChangeDisplayJson.DisplayServiceNegated(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayServices(ruleChange, ReportType));
+                        AppendTranslatedRuleChangeJson(sb, ruleChange, ruleChangeDisplayJson);
                         sb.Append(ruleChangeDisplayJson.DisplayAction(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayTrack(ruleChange));
                         sb.Append(ruleChangeDisplayJson.DisplayEnabled(ruleChange));
@@ -573,6 +601,23 @@ namespace FWO.Report
                 }
             }
             return changes;
+        }
+
+        /// <summary>
+        /// Appends the translated source, destination and services of a NAT rule change; other change reports have no such properties.
+        /// </summary>
+        /// <param name="properties">JSON properties of the rule change the translated part is appended to.</param>
+        /// <param name="ruleChange">Displayed rule change.</param>
+        /// <param name="ruleChangeDisplayJson">Json display helper.</param>
+        private void AppendTranslatedRuleChangeJson(StringBuilder properties, RuleChange ruleChange, RuleChangeDisplayJson ruleChangeDisplayJson)
+        {
+            if (ReportType != ReportType.NatChanges)
+            {
+                return;
+            }
+            properties.Append(ruleChangeDisplayJson.DisplayTranslatedSource(ruleChange, ReportType));
+            properties.Append(ruleChangeDisplayJson.DisplayTranslatedDestination(ruleChange, ReportType));
+            properties.Append(ruleChangeDisplayJson.DisplayTranslatedServices(ruleChange, ReportType));
         }
 
         private JArray BuildObjectChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)

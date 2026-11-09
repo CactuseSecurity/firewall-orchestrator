@@ -350,6 +350,11 @@ else
             form = await service.LoadFormAsync(nodeToReload);
             await RefreshAutoPlanCheck();
         }
+        catch (ArgumentException exception) when (exception.ParamName ==
+            DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("dss_settings"), userConfig.GetText("E5302"), true);
+        }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("dss_settings"), "", true);

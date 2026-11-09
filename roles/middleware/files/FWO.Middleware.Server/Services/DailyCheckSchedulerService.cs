@@ -26,6 +26,7 @@ namespace FWO.Middleware.Server.Services
         private const string JobKeyName = "DailyCheckJob";
         private const string TriggerKeyName = "DailyCheckTrigger";
         private const string SchedulerName = "DailyCheckScheduler";
+        private static readonly TimeSpan kDailyInterval = TimeSpan.FromDays(1);
 
         /// <summary>
         /// Initializes the daily check scheduler service.
@@ -84,7 +85,7 @@ namespace FWO.Middleware.Server.Services
 
         private ScheduleFingerprint GetScheduleFingerprint()
         {
-            return new ScheduleFingerprint(globalConfig.DailyCheckStartAt, TimeSpan.FromDays(1));
+            return new ScheduleFingerprint(globalConfig.DailyCheckStartAt, kDailyInterval);
         }
 
         private async Task ScheduleJob()
@@ -108,30 +109,13 @@ namespace FWO.Middleware.Server.Services
                 .WithIdentity(jobKey)
                 .Build();
 
-            DateTimeOffset startTime = CalculateStartTime(globalConfig.DailyCheckStartAt, TimeSpan.FromDays(1));
-
-            ITrigger trigger = TriggerBuilder.Create()
-                .WithIdentity(triggerKey)
-                .StartAt(startTime)
-                .WithSimpleSchedule(x => x
-                    .WithInterval(TimeSpan.FromDays(1))
-                    .RepeatForever())
-                .Build();
+            DateTimeOffset now = timeProvider.GetUtcNow();
+            TimeZoneInfo zone = timeProvider.LocalTimeZone;
+            ITrigger trigger = WallClockSchedule.CreateTrigger(triggerKey, jobKey, globalConfig.DailyCheckStartAt, kDailyInterval, now, zone);
 
             await scheduler.ScheduleJob(job, trigger);
 
-            Log.WriteInfo(SchedulerName, $"Job scheduled. Start: {startTime:yyyy-MM-dd HH:mm:ss}, Interval: 1d");
-        }
-
-        private DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)
-        {
-            DateTime startTime = configuredStartTime;
-            DateTime now = timeProvider.GetUtcNow().LocalDateTime;
-            while (startTime < now)
-            {
-                startTime = startTime.Add(interval);
-            }
-            return new DateTimeOffset(startTime);
+            Log.WriteInfo(SchedulerName, $"Job scheduled. Start: {WallClockSchedule.FormatNextFireTime(trigger, now, zone)}, Interval: 1d");
         }
 
         /// <summary>

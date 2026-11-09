@@ -21,6 +21,9 @@ internal class DeviceSpecificSettingsManagerTest
     private static readonly List<DeviceSpecificScopeType> kExpectedLevelOrder =
         [DeviceSpecificScopeType.Global, DeviceSpecificScopeType.DeviceType, DeviceSpecificScopeType.Management,
             DeviceSpecificScopeType.Gateway, DeviceSpecificScopeType.Gateway];
+    private static readonly List<DeviceSpecificScopeType> kLayerGuardAllowedScopes =
+        [DeviceSpecificScopeType.Global, DeviceSpecificScopeType.DeviceType, DeviceSpecificScopeType.Management,
+            DeviceSpecificScopeType.Gateway];
     private static readonly List<DeviceSpecificScopePath> kNoPaths = [];
     private static readonly DeviceType kFortiGateType = new() { Id = 10, Name = "FortiGate", Version = "5ff", Manufacturer = "Fortinet" };
     private static readonly DeviceType kFortiAdomType = new() { Id = 11, Name = "FortiADOM", Version = "5ff", Manufacturer = "Fortinet" };
@@ -52,6 +55,46 @@ internal class DeviceSpecificSettingsManagerTest
             Assert.That(result.ValueSources[DeviceSpecificSettingKeys.InstallOn].Scope?.NodeId, Is.EqualTo(3));
             Assert.That(result.ValueSources[DeviceSpecificSettingKeys.RuleZoneToOverride].Scope?.NodeId, Is.EqualTo(4));
             Assert.That(result.ValueSources[DeviceSpecificSettingKeys.Templates].UsesCompiledDefault, Is.True);
+        }
+    }
+
+    [Test]
+    public async Task LoadLevel_ResolvesLayerGuardSectionNameTemplateAtEveryScope()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateFourLevelHierarchy();
+        DeviceSpecificSettingsManager manager = new(api);
+
+        DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> compiledDefault =
+            await manager.LoadLevelAsync<GatewayDeviceSpecificSettings>(GatewayPath());
+        api.SetValue(1, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "global");
+        DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> global =
+            await manager.LoadLevelAsync<GatewayDeviceSpecificSettings>(GatewayPath());
+        api.SetValue(2, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "device-type");
+        DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> deviceType =
+            await manager.LoadLevelAsync<GatewayDeviceSpecificSettings>(GatewayPath());
+        api.SetValue(3, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "management");
+        DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> management =
+            await manager.LoadLevelAsync<GatewayDeviceSpecificSettings>(GatewayPath());
+        api.SetValue(4, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "gateway");
+        DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> gateway =
+            await manager.LoadLevelAsync<GatewayDeviceSpecificSettings>(GatewayPath());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(compiledDefault.Settings.CheckPointLayerGuardSectionNameTemplate,
+                Is.EqualTo("[@@SOURCE_ZONE@@] -> [@@DESTINATION_ZONE@@]"));
+            Assert.That(compiledDefault.ValueSources[DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate].UsesCompiledDefault,
+                Is.True);
+            Assert.That(global.Settings.CheckPointLayerGuardSectionNameTemplate, Is.EqualTo("global"));
+            Assert.That(global.ValueSources[DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate].Scope?.NodeId, Is.EqualTo(1));
+            Assert.That(deviceType.Settings.CheckPointLayerGuardSectionNameTemplate, Is.EqualTo("device-type"));
+            Assert.That(deviceType.ValueSources[DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate].Scope?.NodeId, Is.EqualTo(2));
+            Assert.That(management.Settings.CheckPointLayerGuardSectionNameTemplate, Is.EqualTo("management"));
+            Assert.That(management.ValueSources[DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate].Scope?.NodeId, Is.EqualTo(3));
+            Assert.That(gateway.Settings.CheckPointLayerGuardSectionNameTemplate, Is.EqualTo("gateway"));
+            Assert.That(gateway.ValueSources[DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate].Scope?.NodeId, Is.EqualTo(4));
+            Assert.That(DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.AllowedScopes,
+                Is.EquivalentTo(kLayerGuardAllowedScopes));
         }
     }
 

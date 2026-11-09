@@ -14,6 +14,7 @@ namespace FWO.Test;
 internal class DeviceSpecificSettingsDataTest
 {
     private static readonly List<string> kBoolOptionValues = [bool.TrueString, bool.FalseString];
+    private static readonly List<string> kLayerGuardTextKeys = ["dss_cp_layer_guard_section_name_template", "E5302", "H5199y"];
     private static readonly string[] ExpectedDeviceTypeNames = ["Check Point R8x", "FortiADOM 5ff"];
     private static readonly string[] ExpectedDeviceTypeKeys = ["9", "11"];
     private static readonly string[] ExpectedManagementNames = ["cp-mgr"];
@@ -292,6 +293,38 @@ internal class DeviceSpecificSettingsDataTest
     }
 
     [Test]
+    public void LayerGuardSectionNameTemplate_IsTextAtEveryScopeWithCompiledDefault()
+    {
+        DeviceSpecificFieldDefinition field = Field(DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(field.Kind, Is.EqualTo(DeviceSpecificFieldKind.Text));
+            Assert.That(field.MinLevel, Is.EqualTo(DeviceSpecificScopeType.Global));
+            Assert.That(field.MaxLevel, Is.EqualTo(DeviceSpecificScopeType.Gateway));
+            Assert.That(field.Read(new GlobalDeviceSpecificSettings()),
+                Is.EqualTo("[@@SOURCE_ZONE@@] -> [@@DESTINATION_ZONE@@]"));
+            Assert.That(field.HelpTextKey, Is.EqualTo("H5199y"));
+        }
+    }
+
+    [Test]
+    public void LayerGuardSectionNameTemplate_LabelAndHelpAreLocalizedAndListedOnHelpPage()
+    {
+        string texts = File.ReadAllText(LocateRepositoryFile(
+            "roles", "database", "files", "sql", "idempotent", "fworch-texts.sql"));
+        string help = File.ReadAllText(LocateRepositoryFile(
+            "roles", "ui", "files", "FWO.UI", "Pages", "Help", "HelpSettingsDeviceSpecific.cshtml"));
+
+        foreach (string key in kLayerGuardTextKeys)
+        {
+            Assert.That(texts, Does.Match($@"\('{key}',\s*'German'"), key);
+            Assert.That(texts, Does.Match($@"\('{key}',\s*'English'"), key);
+        }
+        Assert.That(help, Does.Contain("GetText(\"H5199y\")"));
+    }
+
+    [Test]
     public void ParseStringList_KeepsEmptyEntriesButNotForAnEmptyValue()
     {
         using (Assert.EnterMultipleScope())
@@ -339,5 +372,21 @@ internal class DeviceSpecificSettingsDataTest
                 Assert.That(field.Options.Select(o => o.Value), Is.EquivalentTo(storable), field.Id);
             }
         }
+    }
+
+    private static string LocateRepositoryFile(params string[] parts)
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory != null)
+        {
+            FileInfo candidate = new(Path.Combine(directory.FullName, Path.Combine(parts)));
+            if (candidate.Exists)
+            {
+                return candidate.FullName;
+            }
+            directory = directory.Parent;
+        }
+        Assert.Ignore("The repository sources are not reachable in this environment.");
+        return string.Empty;
     }
 }

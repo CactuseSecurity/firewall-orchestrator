@@ -19,6 +19,9 @@ public static class DeviceSpecificSettingKeys
     public static readonly DeviceSpecificSettingKey<ProvisioningPositioningAlgorithm> PositioningAlgorithm =
         new("positioningAlgorithm", AllScopeTypes);
 
+    public static readonly DeviceSpecificSettingKey<string> CheckPointLayerGuardSectionNameTemplate =
+        new("checkPointLayerGuardSectionNameTemplate", AllScopeTypes);
+
     public static readonly DeviceSpecificSettingKey<ProvisioningLoggingMode> RuleLoggingOverride =
         new("ruleLoggingOverride", AllScopeTypes);
 
@@ -106,6 +109,7 @@ public static class DeviceSpecificSettingKeys
     {
         InstallOn,
         PositioningAlgorithm,
+        CheckPointLayerGuardSectionNameTemplate,
         RuleLoggingOverride,
         ServiceObjectCreation,
         AddressObjectCreation,

@@ -7,6 +7,7 @@ namespace FWO.Test.Helpers
     internal sealed class FixedTimeProvider : TimeProvider
     {
         private readonly DateTimeOffset utcNow;
+        private readonly TimeZoneInfo? localTimeZone;
 
         /// <summary>
         /// Creates a clock that always returns the given instant.
@@ -15,6 +16,18 @@ namespace FWO.Test.Helpers
         public FixedTimeProvider(DateTimeOffset now)
         {
             utcNow = now.ToUniversalTime();
+        }
+
+        /// <summary>
+        /// Creates a clock that always returns the given instant and uses the given local time zone,
+        /// independent of the zone the process (or a parallel test) has set as local.
+        /// </summary>
+        /// <param name="now">Instant returned as current time.</param>
+        /// <param name="localTimeZone">Time zone returned as local time zone.</param>
+        public FixedTimeProvider(DateTimeOffset now, TimeZoneInfo localTimeZone)
+            : this(now)
+        {
+            this.localTimeZone = localTimeZone;
         }
 
         /// <summary>
@@ -27,5 +40,8 @@ namespace FWO.Test.Helpers
 
         /// <inheritdoc />
         public override DateTimeOffset GetUtcNow() => utcNow;
+
+        /// <inheritdoc />
+        public override TimeZoneInfo LocalTimeZone => localTimeZone ?? base.LocalTimeZone;
     }
 }

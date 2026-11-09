@@ -188,6 +188,69 @@ namespace FWO.Ui.Display
             }
         }
 
+        /// <summary>
+        /// Displays the translated source of a NAT rule change.
+        /// </summary>
+        /// <param name="ruleChange">NAT rule change.</param>
+        /// <param name="location">Output location defining how object links are built.</param>
+        /// <param name="reportType">Report type the objects are linked for.</param>
+        /// <returns>The translated source, for modified rules as difference between old and new version.</returns>
+        public string DisplayTranslatedSource(RuleChange ruleChange, OutputLocation location, ReportType reportType)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(DisplayTranslatedSource(ruleChange.OldRule, location, 0, GlobalConst.kStyleDeleted, reportType));
+                case 'I': return OutputHtmlAdded(DisplayTranslatedSource(ruleChange.NewRule, location, 0, GlobalConst.kStyleAdded, reportType));
+                case 'C':
+                    return DisplayArrayDiff(DisplayTranslatedSource(ruleChange.OldRule, location, 0, "", reportType),
+                                                  DisplayTranslatedSource(ruleChange.NewRule, location, 0, "", reportType),
+                                                  ruleChange.OldRule.NatData.TranslatedSourceNegated, ruleChange.NewRule.NatData.TranslatedSourceNegated);
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+            }
+        }
+
+        /// <summary>
+        /// Displays the translated destination of a NAT rule change.
+        /// </summary>
+        /// <param name="ruleChange">NAT rule change.</param>
+        /// <param name="location">Output location defining how object links are built.</param>
+        /// <param name="reportType">Report type the objects are linked for.</param>
+        /// <returns>The translated destination, for modified rules as difference between old and new version.</returns>
+        public string DisplayTranslatedDestination(RuleChange ruleChange, OutputLocation location, ReportType reportType)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(DisplayTranslatedDestination(ruleChange.OldRule, location, 0, GlobalConst.kStyleDeleted, reportType));
+                case 'I': return OutputHtmlAdded(DisplayTranslatedDestination(ruleChange.NewRule, location, 0, GlobalConst.kStyleAdded, reportType));
+                case 'C':
+                    return DisplayArrayDiff(DisplayTranslatedDestination(ruleChange.OldRule, location, 0, "", reportType),
+                                                  DisplayTranslatedDestination(ruleChange.NewRule, location, 0, "", reportType),
+                                                  ruleChange.OldRule.NatData.TranslatedDestinationNegated, ruleChange.NewRule.NatData.TranslatedDestinationNegated);
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+            }
+        }
+
+        /// <summary>
+        /// Displays the translated services of a NAT rule change.
+        /// </summary>
+        /// <param name="ruleChange">NAT rule change.</param>
+        /// <param name="location">Output location defining how service links are built.</param>
+        /// <param name="reportType">Report type the services are linked for.</param>
+        /// <returns>The translated services, for modified rules as difference between old and new version.</returns>
+        public string DisplayTranslatedServices(RuleChange ruleChange, OutputLocation location, ReportType reportType)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(DisplayTranslatedService(ruleChange.OldRule, location, 0, GlobalConst.kStyleDeleted, reportType));
+                case 'I': return OutputHtmlAdded(DisplayTranslatedService(ruleChange.NewRule, location, 0, GlobalConst.kStyleAdded, reportType));
+                case 'C':
+                    return DisplayArrayDiff(DisplayTranslatedService(ruleChange.OldRule, location, 0, "", reportType),
+                                                  DisplayTranslatedService(ruleChange.NewRule, location, 0, "", reportType),
+                                                  ruleChange.OldRule.NatData.TranslatedServiceNegated, ruleChange.NewRule.NatData.TranslatedServiceNegated);
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+            }
+        }
+
         public string DisplayAction(RuleChange ruleChange)
         {
             switch (ruleChange.ChangeAction)

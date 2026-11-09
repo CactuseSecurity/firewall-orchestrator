@@ -9,6 +9,8 @@ public class GlobalDeviceSpecificSettings
 
     public ProvisioningPositioningAlgorithm PositioningAlgorithm { get; set; } = ProvisioningPositioningAlgorithm.DefaultEndOfRulebase;
 
+    public string CheckPointLayerGuardSectionNameTemplate { get; set; } = CheckPointLayerGuardSettingDefaults.kSectionNameTemplate;
+
     public ProvisioningLoggingMode RuleLoggingOverride { get; set; } = ProvisioningLoggingMode.Log;
 
     public ProvisioningObjectCreationMode ServiceObjectCreation { get; set; } = ProvisioningObjectCreationMode.Supermanager;

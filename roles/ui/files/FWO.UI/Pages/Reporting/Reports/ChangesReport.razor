@@ -63,6 +63,30 @@
                                     </div>
                                 </Template>
                             </Column>
+                            @if (SelectedReportType == ReportType.NatChanges)
+                            {
+                                <Column TableItem="RuleChange" Title="@(userConfig.GetText("trans_source"))" Hideable="true">
+                                    <Template>
+                                        <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                            @((MarkupString)ruleChangeDisplayHtml.DisplayTranslatedSource(context, OutputLocation.report, SelectedReportType))
+                                        </div>
+                                    </Template>
+                                </Column>
+                                <Column TableItem="RuleChange" Title="@(userConfig.GetText("trans_destination"))" Hideable="true">
+                                    <Template>
+                                        <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                            @((MarkupString)ruleChangeDisplayHtml.DisplayTranslatedDestination(context, OutputLocation.report, SelectedReportType))
+                                        </div>
+                                    </Template>
+                                </Column>
+                                <Column TableItem="RuleChange" Title="@(userConfig.GetText("trans_services"))" Hideable="true">
+                                    <Template>
+                                        <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">
+                                            @((MarkupString)ruleChangeDisplayHtml.DisplayTranslatedServices(context, OutputLocation.report, SelectedReportType))
+                                        </div>
+                                    </Template>
+                                </Column>
+                            }
                             <Column TableItem="RuleChange" Title="@(userConfig.GetText("action"))" Hideable="true">
                                 <Template>
                                     <div style="@ruleChangeDisplayHtml.DisplayStyle(context)">

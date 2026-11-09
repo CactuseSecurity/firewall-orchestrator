@@ -21,7 +21,7 @@ namespace FWO.Services.Workflow
             WfTicket? ticket = null;
             if (dbAcc != null)
             {
-                ticket = await dbAcc.FetchTicket(ticketId, GetOwnerIdsForFiltering(), GetVisibilityTicketFilter());
+                ticket = await dbAcc.FetchTicket(ticketId, GetOwnerIdsForFiltering(), GetTicketFilter());
                 if (ticket != null)
                 {
                     SetTicketEnv(ticket);
@@ -76,20 +76,36 @@ namespace FWO.Services.Workflow
         {
             if (ReloadTasks && reload && dbAcc != null)
             {
-                WfTicket? refreshedTicket = await dbAcc.FetchTicket(ticket.Id, GetOwnerIdsForFiltering(), GetVisibilityTicketFilter());
+                WfTicket? refreshedTicket = await ReloadTicket(ticket);
                 if (refreshedTicket == null)
                 {
                     return;
                 }
                 ticket = refreshedTicket;
-                int ticketIndex = TicketList.FindIndex(x => x.Id == ticket.Id);
-                if (ticketIndex >= 0)
-                {
-                    TicketList[ticketIndex] = ticket;
-                }
             }
             SetTicketEnv(ticket);
             SetTicketOpt(action);
+        }
+
+        private async Task<WfTicket?> ReloadTicket(WfTicket ticket)
+        {
+            if (dbAcc == null)
+            {
+                return null;
+            }
+
+            WfTicket? refreshedTicket = await dbAcc.FetchTicket(ticket.Id, GetOwnerIdsForFiltering(), GetTicketFilter());
+            if (refreshedTicket == null)
+            {
+                return null;
+            }
+
+            int ticketIndex = TicketList.FindIndex(existingTicket => existingTicket.Id == refreshedTicket.Id);
+            if (ticketIndex >= 0)
+            {
+                TicketList[ticketIndex] = refreshedTicket;
+            }
+            return refreshedTicket;
         }
 
         public void SetTicketEnv(WfTicket ticket)
@@ -97,6 +113,34 @@ namespace FWO.Services.Workflow
             ActTicket = ticket;
             ResetImplTaskList();
             ActStateMatrix = MasterStateMatrix;
+        }
+
+        /// <summary>
+        /// Reloads the active ticket after an action changed its tasks or metadata.
+        /// </summary>
+        /// <returns><see langword="true"/> when the ticket was refreshed successfully.</returns>
+        public async Task<bool> ReloadActTicket()
+        {
+            try
+            {
+                if (ActTicket.Id <= 0 || dbAcc == null)
+                {
+                    return false;
+                }
+
+                WfTicket? refreshedTicket = await ReloadTicket(ActTicket);
+                if (refreshedTicket == null)
+                {
+                    return false;
+                }
+                SetTicketEnv(refreshedTicket);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
+                return false;
+            }
         }
 
         public void SetTicketOpt(ObjAction action)
@@ -133,7 +177,7 @@ namespace FWO.Services.Workflow
             LastSaveReloadFailed = false;
             try
             {
-                return dbAcc == null ? 0 : await SaveTicketToDb(ticket);
+                return dbAcc == null || !CheckActTicketChangeable() ? 0 : await SaveTicketToDb(ticket);
             }
             catch (Exception exception)
             {
@@ -180,7 +224,7 @@ namespace FWO.Services.Workflow
 
         private async Task SynchronizeRequestTasks(int targetTicketStateId, string? approvalComment)
         {
-            await UpdateRequestTasksFromTicket(false, targetTicketStateId: targetTicketStateId, approvalComment: approvalComment);
+            await UpdateRequestTasksFromTicket(targetTicketStateId: targetTicketStateId, approvalComment: approvalComment);
             ActTicket.StateId = targetTicketStateId;
         }
 
@@ -336,9 +380,18 @@ namespace FWO.Services.Workflow
             return ticketVisible || ticket.Tasks.Count > 0;
         }
 
+        /// <summary>
+        /// Gets the apps tickets are filtered by in owner based mode: the apps the handler was initialized with, so that
+        /// deep links and reloads apply the same scope as the ticket list. Only callers that do not scope the handler to
+        /// the apps of the user (modelling, monitoring, middleware) resolve tickets against all apps.
+        /// </summary>
         private List<int>? GetOwnerIdsForFiltering()
         {
-            return userConfig.ReqOwnerBased ? AllOwners.ConvertAll(owner => owner.Id) : null;
+            if (!userConfig.ReqOwnerBased)
+            {
+                return null;
+            }
+            return scopedOwnerIds ?? AllOwners.ConvertAll(owner => owner.Id);
         }
 
         private Func<WfTicket, bool>? GetVisibilityTicketFilter()

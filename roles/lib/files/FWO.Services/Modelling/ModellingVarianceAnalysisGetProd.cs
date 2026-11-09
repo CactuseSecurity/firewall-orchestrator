@@ -131,9 +131,23 @@ namespace FWO.Services.Modelling
             return null;
         }
 
+        /// <summary>
+        /// Reads the modelled marker from the imported custom fields of a rule. The custom fields come from the firewall,
+        /// so a value that is no flat JSON object of strings only leaves this rule without marker instead of aborting
+        /// the whole variance analysis.
+        /// </summary>
         private string? GetFromCustomField(Rule rule)
         {
-            Dictionary<string, string>? customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(rule.CustomFields);
+            Dictionary<string, string>? customFields;
+            try
+            {
+                customFields = JsonSerializer.Deserialize<Dictionary<string, string>>(rule.CustomFields);
+            }
+            catch (JsonException)
+            {
+                Log.WriteWarning("Variance Analysis", $"Custom fields of rule {rule.Id} could not be read; the rule is treated as not modelled.");
+                return null;
+            }
             return customFields != null && customFields.TryGetValue(userConfig.ModModelledMarker, out string? value) ? value : null;
         }
 
@@ -652,7 +666,7 @@ namespace FWO.Services.Modelling
             List<NetworkObject>? objByMgt = await GetObjects(mgtId, [1, 3, 12]);
             if (objByMgt != null)
             {
-                if (!allExistingAppServers.TryGetValue(mgtId, out Dictionary<ModellingAppServer, long>? appServers))
+                if (!allExistingAppServers.TryGetValue(mgtId, out Dictionary<ModellingAppServer, ModellingAppServer>? appServers))
                 {
                     appServers = new(appServerComparer);
                     allExistingAppServers.Add(mgtId, appServers);
@@ -660,7 +674,7 @@ namespace FWO.Services.Modelling
                 foreach (NetworkObject obj in objByMgt)
                 {
                     ModellingAppServer appServer = new(obj);
-                    appServers.TryAdd(appServer, appServer.Id);
+                    appServers.TryAdd(appServer, appServer);
                     aSCount++;
                 }
             }

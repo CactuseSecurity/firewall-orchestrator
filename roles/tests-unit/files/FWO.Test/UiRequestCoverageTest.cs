@@ -167,22 +167,12 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RequestTicketsOverview_ResetFiltersToRequestersOwnTickets()
+        public async Task RequestTicketsOverview_ResetSwitchesToReadOnlyMode()
         {
+            // which tickets a requester gets is decided while the handler loads them, see WfHandlerRequestAccessTest
             await using BunitContext context = new();
             RequestCoverageUserConfig userConfig = CreateUserConfig(Roles.Requester);
-            WfTicket ownTicket = new()
-            {
-                Id = 1,
-                Requester = new UiUser { DbId = userConfig.User.DbId, Name = "Current" }
-            };
-            WfTicket foreignTicket = new()
-            {
-                Id = 2,
-                Requester = new UiUser { DbId = 12, Name = "Other" }
-            };
             WfHandler handler = CreateHandler(new ThrowingApiConnection(), userConfig, WorkflowPhases.request);
-            handler.TicketList = [ownTicket, foreignTicket];
 
             RequestTicketsOverview component = new();
             SetMember(component, "userConfig", userConfig);
@@ -190,12 +180,7 @@ namespace FWO.Test
 
             await InvokePrivateTask(typeof(RequestTicketsOverview), component, "Reset");
 
-            Assert.Multiple(() =>
-            {
-                Assert.That(handler.ReadOnlyMode, Is.True);
-                Assert.That(handler.TicketList, Has.Count.EqualTo(1));
-                Assert.That(handler.TicketList.Single().Id, Is.EqualTo(1));
-            });
+            Assert.That(handler.ReadOnlyMode, Is.True);
         }
 
         [Test]
@@ -250,7 +235,7 @@ namespace FWO.Test
 
             GetPrivateMethod(typeof(DisplayPathAnalysis), "Close").Invoke(component, []);
             Assert.That(GetMember<bool>(component, nameof(DisplayPathAnalysis.Display)), Is.False);
-            Assert.That(apiConnection.Queries, Does.Contain(NetworkAnalysisQueries.pathAnalysis));
+            Assert.That(apiConnection.Queries, Does.Contain(PathAnalysisQueries.pathAnalysis));
         }
 
         [Test]
@@ -364,6 +349,41 @@ namespace FWO.Test
             Assert.That(resetCalls, Is.EqualTo(2));
         }
 
+        [TestCase(true, null, 2)]
+        [TestCase(false, true, 0)]
+        public async Task DisplayApprovals_ShowsDisabledActionsOnlyToReadOnlyUsers(bool userReadOnly, bool? popupReadOnly, int expectedDisabledButtons)
+        {
+            await using BunitContext context = new();
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(new RequestCoverageUserConfig());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Auditor));
+            WfHandler handler = new() { ReadOnlyMode = userReadOnly };
+            List<WfApproval> openApprovals = [new WfApproval { Id = 5, StateId = 3, Comments = [] }];
+
+            IRenderedComponent<DisplayApprovals> component = context.Render<DisplayApprovals>(parameters => parameters
+                .Add(p => p.Display, true)
+                .Add(p => p.WfHandler, handler)
+                .Add(p => p.ResetParent, DefaultInit.DoNothing)
+                .Add(p => p.Approvals, openApprovals)
+                .Add(p => p.States, new WfStateDict())
+                .Add(p => p.ReadOnlyMode, popupReadOnly));
+
+            List<AngleSharp.Dom.IElement> actionButtons = [.. component.FindAll("td button")];
+            await InvokePrivateTask(component.Instance, "InitAddComment", component.Instance.Approvals[0]);
+            await InvokePrivateTask(component.Instance, "AssignApproval", component.Instance.Approvals[0]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(actionButtons, Has.Count.EqualTo(expectedDisabledButtons));
+                Assert.That(actionButtons.All(button => button.HasAttribute("disabled")), Is.True);
+                Assert.That(handler.DisplayApprovalCommentMode, Is.False);
+                Assert.That(handler.DisplayAssignApprovalMode, Is.False);
+            });
+        }
+
         [Test]
         public async Task DisplayApprovals_TogglesPopupModesAndAddsComments()
         {
@@ -395,6 +415,149 @@ namespace FWO.Test
             await component.InvokeAsync(async () => await InvokePrivateTask(component.Instance, "ConfAddComment", "test comment"));
             Assert.That(handler.ActApproval.Comments, Has.Count.EqualTo(1));
             Assert.That(handler.DisplayApprovalCommentMode, Is.False);
+        }
+
+        [Test]
+        public async Task DisplayApprovals_CloseInvokesCallbacksAndClearsDisplay()
+        {
+            await using BunitContext context = new();
+            int resetCalls = 0;
+            bool? changedDisplay = null;
+            WfHandler handler = new();
+            List<WfApproval> approvals = new() { new WfApproval { Id = 6, Comments = [] } };
+            IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
+                context, handler, approvals, displayChanged: value => changedDisplay = value,
+                resetParent: () =>
+                {
+                    resetCalls++;
+                    return Task.CompletedTask;
+                });
+
+            await InvokePrivateTask(component.Instance, "Close");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Instance.Display, Is.False);
+                Assert.That(changedDisplay, Is.False);
+                Assert.That(resetCalls, Is.EqualTo(1));
+                Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task DisplayApprovals_HiddenStateDoesNotRenderApprovalTable()
+        {
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
+                context, new WfHandler(), [new WfApproval { Id = 10, Comments = [] }], display: false);
+
+            Assert.That(component.FindAll("table"), Is.Empty);
+        }
+
+        [Test]
+        public async Task DisplayApprovals_ReadOnlyBlocksApprovalActions()
+        {
+            await using BunitContext context = new();
+            WfHandler handler = new();
+            WfApproval approval = new() { Id = 7, Comments = [] };
+            IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
+                context, handler, [approval], readOnlyMode: true);
+
+            await InvokePrivateTask(component.Instance, "InitAddComment", approval);
+            await InvokePrivateTask(component.Instance, "AssignApproval", approval);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayApprovalCommentMode, Is.False);
+                Assert.That(handler.DisplayAssignApprovalMode, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task DisplayApprovals_ResetClearsApprovalActions()
+        {
+            await using BunitContext context = new();
+            WfHandler handler = new();
+            IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
+                context, handler, [new WfApproval { Id = 8, Comments = [] }]);
+            handler.DisplayApprovalCommentMode = true;
+            handler.DisplayAssignApprovalMode = true;
+
+            await InvokePrivateTask(component.Instance, "Reset");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayApprovalCommentMode, Is.False);
+                Assert.That(handler.DisplayAssignApprovalMode, Is.False);
+            });
+        }
+
+        [Test]
+        public void DisplayApprovals_DisplayApproverHandlesEmptyDistinguishedNamesAndSystem()
+        {
+            MethodInfo method = typeof(DisplayApprovals).GetMethod(
+                "DisplayApprover", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingMethodException(nameof(DisplayApprovals), "DisplayApprover");
+            string[] emptyArguments = [null!];
+            string[] distinguishedNameArguments = ["uid=alice,ou=users,dc=example"];
+            string[] systemArguments = [GlobalConst.kSystemUser];
+
+            string empty = (string)method.Invoke(null, emptyArguments)!;
+            string userName = (string)method.Invoke(null, distinguishedNameArguments)!;
+            string system = (string)method.Invoke(null, systemArguments)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(empty, Is.Empty);
+                Assert.That(userName, Is.EqualTo("alice"));
+                Assert.That(system, Is.EqualTo(GlobalConst.kSystemUser));
+            });
+        }
+
+        [Test]
+        public async Task DisplayApprovals_AssignedApprovalDisplaysApproverWithoutAssignmentActions()
+        {
+            await using BunitContext context = new();
+            WfApproval approval = new()
+            {
+                Id = 9,
+                ApproverDn = "uid=alice,ou=users,dc=example",
+                Comments = []
+            };
+            IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(context, new WfHandler(), [approval]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("alice"));
+                Assert.That(component.Markup, Does.Not.Contain("add_comment"));
+                Assert.That(component.Markup, Does.Not.Contain("assign1"));
+            });
+        }
+
+        private static IRenderedComponent<DisplayApprovals> RenderDisplayApprovals(
+            BunitContext context,
+            WfHandler handler,
+            List<WfApproval> approvals,
+            bool display = true,
+            bool? readOnlyMode = null,
+            Action<bool>? displayChanged = null,
+            Func<Task>? resetParent = null)
+        {
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(new RequestCoverageUserConfig());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Approver));
+
+            return context.Render<DisplayApprovals>(parameters => parameters
+                .Add(p => p.Display, display)
+                .Add(p => p.WfHandler, handler)
+                .Add(p => p.ResetParent, resetParent ?? DefaultInit.DoNothing)
+                .Add(p => p.DisplayChanged, value => displayChanged?.Invoke(value))
+                .Add(p => p.Approvals, approvals)
+                .Add(p => p.States, new WfStateDict())
+                .Add(p => p.ReadOnlyMode, readOnlyMode));
         }
 
         [Test]
@@ -535,7 +698,7 @@ namespace FWO.Test
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 Queries.Add(query);
-                if (query == NetworkAnalysisQueries.pathAnalysis)
+                if (query == PathAnalysisQueries.pathAnalysis)
                 {
                     return Task.FromResult((QueryResponseType)(object)PathDevices);
                 }

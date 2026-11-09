@@ -38,14 +38,8 @@ public sealed class ComplianceDesignatedZoneResponse
 public sealed class ComplianceDesignatedZoneIpRangeResponse
 {
     /// <summary>
-    /// Gets the IpStart value.
+    /// Gets the inclusive IP range as its first and last address.
     /// </summary>
-    [JsonPropertyName("ipStart")]
-    public string IpStart { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets the IpEnd value.
-    /// </summary>
-    [JsonPropertyName("ipEnd")]
-    public string IpEnd { get; set; } = string.Empty;
+    [JsonPropertyName("ipRange")]
+    public List<string> IpRange { get; set; } = [];
 }

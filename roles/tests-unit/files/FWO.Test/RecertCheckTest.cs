@@ -317,6 +317,52 @@ namespace FWO.Test
             Assert.That(exception.InnerException, Is.TypeOf<NotSupportedException>());
         }
 
+        [TestCase(NotificationLayout.HtmlInBody, true)]
+        [TestCase(NotificationLayout.SimpleText, false)]
+        [TestCase(NotificationLayout.PdfAsAttachment, false)]
+        public void BuildBodies_EncodeValuesForTheNotificationLayout(NotificationLayout layout, bool encoded)
+        {
+            const string kPayload = "<b>x</b>\" onmouseover=\"x'";
+            RecertCheck recertCheck = CreateRecertCheck(new RecertCheckApiConnection(), CreateGlobalConfig());
+            FwoNotification notification = new() { Layout = layout };
+            FwoOwner owner = new() { Name = kPayload, NextRecertDate = DateTime.Today.AddDays(1) };
+            List<Rule> upcomingRules = [new Rule { Name = kPayload, DeviceName = kPayload, Uid = kPayload }];
+            List<Rule> overdueRules = [];
+
+            string ownerBody = InvokePrivate<string>(recertCheck, "BuildOwnerBody", notification, owner);
+            string rulesBody = InvokePrivate<string>(recertCheck, "BuildRulesBody", notification, upcomingRules, overdueRules, kPayload);
+
+            string expectedValue = encoded ? System.Net.WebUtility.HtmlEncode(kPayload) : kPayload;
+            Assert.Multiple(() =>
+            {
+                Assert.That(ownerBody, Is.EqualTo("upcoming for " + expectedValue));
+                Assert.That(rulesBody.Split(expectedValue).Length - 1, Is.EqualTo(4));
+            });
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void PrepareBodies_EncodeOwnerAndRuleValuesOnlyForHtmlBodies(bool isHtmlBody)
+        {
+            const string kPayload = "<b>x</b>\" onmouseover=\"x'";
+            RecertCheck recertCheck = CreateRecertCheck(new RecertCheckApiConnection(), CreateGlobalConfig());
+            FwoOwner owner = new() { Name = kPayload, NextRecertDate = DateTime.Today.AddDays(1) };
+            List<Rule> upcomingRules = [new Rule { Name = kPayload, DeviceName = kPayload, Uid = kPayload }];
+            List<Rule> overdueRules = [];
+
+            string ownerBody = InvokePrivate<string>(recertCheck, "PrepareOwnerBody", owner, isHtmlBody);
+            string rulesBody = InvokePrivate<string>(recertCheck, "PrepareRulesBody", upcomingRules, overdueRules, kPayload, isHtmlBody);
+
+            string expectedValue = isHtmlBody ? System.Net.WebUtility.HtmlEncode(kPayload) : kPayload;
+            Assert.Multiple(() =>
+            {
+                Assert.That(ownerBody, Is.EqualTo("upcoming for " + expectedValue));
+                // owner name in the text plus device name, rule name and uid of the rule line
+                Assert.That(rulesBody.Split(expectedValue).Length - 1, Is.EqualTo(4));
+                Assert.That(rulesBody.Contains("<b>x</b>"), Is.EqualTo(!isHtmlBody));
+            });
+        }
+
         [Test]
         public void PrepareOwnerBody_ChoosesUpcomingAndOverdueMessages()
         {
@@ -329,12 +375,12 @@ namespace FWO.Test
             {
                 Name = "Owner A",
                 NextRecertDate = DateTime.Today.AddDays(1)
-            });
+            }, false);
             string overdue = InvokePrivate<string>(recertCheck, "PrepareOwnerBody", new FwoOwner
             {
                 Name = "Owner B",
                 NextRecertDate = DateTime.Today.AddDays(-1)
-            });
+            }, false);
 
             Assert.Multiple(() =>
             {
@@ -355,7 +401,7 @@ namespace FWO.Test
             Rule upcomingRule = CreateRule("Upcoming Rule", "UID-UP", new DateTime(2026, 7, 24));
             Rule overdueRule = CreateRule("Overdue Rule", "UID-OVER", new DateTime(2026, 7, 10));
 
-            string body = InvokePrivate<string>(recertCheck, "PrepareRulesBody", new List<Rule> { upcomingRule }, new List<Rule> { overdueRule }, "Owner A");
+            string body = InvokePrivate<string>(recertCheck, "PrepareRulesBody", new List<Rule> { upcomingRule }, new List<Rule> { overdueRule }, "Owner A", false);
 
             Assert.Multiple(() =>
             {
@@ -375,7 +421,7 @@ namespace FWO.Test
             Rule rule = CreateRule("No date rule", "UID-NO-DATE", new DateTime(2026, 7, 24));
             rule.Metadata.RuleRecertification[0].NextRecertDate = null;
 
-            string line = InvokePrivate<string>(typeof(RecertCheck), "PrepareLine", rule);
+            string line = InvokePrivate<string>(typeof(RecertCheck), "PrepareLine", rule, false);
 
             Assert.That(line, Does.StartWith(": Device A: No date rule:UID-NO-DATE"));
         }

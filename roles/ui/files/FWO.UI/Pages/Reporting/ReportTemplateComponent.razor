@@ -17,14 +17,20 @@
                                         @onclick="() => OnTemplateLoad(template)">
                                     @(DisplayService.DisplayButton(userConfig, "load", Icons.Load))
                                 </button>
-                                @* only display buttons for manipulating a template, when it's the user's template or the user has admin role *@
-                                @if (template.TemplateOwningUserId == userConfig.User.DbId || userConfig.CanUseAnyRole(Roles.Admin))
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTemplate(template)">
+                                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                                </button>
+                                @* deleting a template is only allowed, when it's the user's template or the user has admin role *@
+                                @if (CanModifyTemplate(template))
                                 {
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditTemplate(template)">
-                                        @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
-                                    </button>
                                     <button type="button" class="btn btn-sm btn-danger"
                                             @onclick="() => { reportTemplateInEdit = template; ShowDeleteTemplateDialog = true; }">
+                                        @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-danger" disabled>
                                         @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
                                     </button>
                                 }
@@ -218,7 +224,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+            <button type="button" class="btn btn-primary" disabled="@(!CanSaveTemplateInEdit())" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
             <button type="button" class="btn btn-secondary" @onclick="CancelEdit">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
@@ -436,6 +442,23 @@
         ShowAddTemplateDialog = true;
     }
 
+    /// <summary>
+    /// Checks whether the current user may change or delete the given template:
+    /// only its owner and admins may, all others can only view it.
+    /// </summary>
+    private bool CanModifyTemplate(ReportTemplate reportTemplate)
+    {
+        return reportTemplate.TemplateOwningUserId == userConfig.User.DbId || userConfig.CanUseAnyRole(Roles.Admin);
+    }
+
+    /// <summary>
+    /// Checks whether the template dialog may be saved: a new template always belongs to the current user.
+    /// </summary>
+    private bool CanSaveTemplateInEdit()
+    {
+        return ShowAddTemplateDialog || CanModifyTemplate(reportTemplateInEdit);
+    }
+
     private void EditTemplate(ReportTemplate reportTemplate)
     {
         reportTemplateInEdit = decodeComment(reportTemplate);
@@ -508,6 +531,10 @@
 
     private async Task UpdateTemplate()
     {
+        if (!CanModifyTemplate(reportTemplateInEdit))
+        {
+            return;
+        }
         try
         {
             var queryVariables = new
@@ -535,6 +562,10 @@
 
     private async Task DeleteTemplate()
     {
+        if (!CanModifyTemplate(reportTemplateInEdit))
+        {
+            return;
+        }
         try
         {
             var queryVariables = new

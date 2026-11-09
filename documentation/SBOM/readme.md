@@ -125,7 +125,7 @@ The installed mode is intended to run on the target host after installation or u
     python-dateutil>=2.8
     netaddr>=1.0
 
-### Crypto (AES/CBC via cryptography.hazmat)
+### Crypto (AES-CBC + HMAC-SHA256 via cryptography.hazmat)
     cryptography>=40.0
 
 ### HTTP / GraphQL stack (Note: Requests >=2.32.0 is compatible with urllib3 2.x)

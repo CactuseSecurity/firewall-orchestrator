@@ -97,12 +97,19 @@ namespace FWO.Services.Workflow
             }
 
             HashSet<int> loadedConnectionIds = [.. connections.Select(connection => connection.Id)];
+            HashSet<int> taskOwnerIds = GetTaskOwnerIds(scopedTasks);
             foreach (int connectionId in connectionIds.Except(loadedConnectionIds))
             {
+                // a connection not linked to the ticket is only updated if it belongs to an owner of the tasks:
+                // its id comes from the add-info of the request task, which the requester can write
                 ModellingConnection? connection = await LoadWorkflowConnectionById(connectionId);
-                if (connection != null)
+                if (connection != null && BelongsToTaskOwner(connection.AppId ?? connection.ProposedAppId, taskOwnerIds))
                 {
                     connections.Add(connection);
+                }
+                else if (connection != null)
+                {
+                    Log.WriteWarning("UpdateModelling", $"Connection {connectionId} belongs to no owner of the request tasks and is not updated.");
                 }
             }
 
@@ -142,6 +149,8 @@ namespace FWO.Services.Workflow
             string markedState = $"{stateMarker}: {ModIntegrationStateConfig.BuildStateValue(state, stateSetAt)}";
             int updatedGroups = 0;
             List<WfReqTask> groupTasks = [.. scopedTasks.Where(task => task.TaskType.StartsWith("group_", StringComparison.OrdinalIgnoreCase))];
+            // the group ids come from the add-info of the request tasks, which the requester can write
+            HashSet<int> taskOwnerIds = GetTaskOwnerIds(groupTasks);
             List<long> appRoleIds = [.. groupTasks
                 .Select(task => task.GetAddInfoLongValue(AdditionalInfoKeys.AppRoleId))
                 .Where(id => id != null)
@@ -150,6 +159,11 @@ namespace FWO.Services.Workflow
             foreach (long appRoleId in appRoleIds)
             {
                 ModellingAppRole appRole = await apiConnection.SendQueryAsync<ModellingAppRole>(ModellingQueries.getAppRoleById, new { id = appRoleId });
+                if (!BelongsToTaskOwner(appRole?.AppId, taskOwnerIds))
+                {
+                    Log.WriteWarning("UpdateModelling", $"App role {appRoleId} belongs to no owner of the request tasks and is not updated.");
+                    continue;
+                }
                 string comment = ModIntegrationStateConfig.ReplaceMarkedComment(appRole?.Comment, stateMarker, markedState);
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateNwGroupComment, new { id = appRoleId, comment });
                 ++updatedGroups;
@@ -163,11 +177,32 @@ namespace FWO.Services.Workflow
             foreach (int serviceGroupId in serviceGroupIds)
             {
                 ModellingServiceGroup serviceGroup = await apiConnection.SendQueryAsync<ModellingServiceGroup>(ModellingQueries.getServiceGroupById, new { id = serviceGroupId });
+                if (!BelongsToTaskOwner(serviceGroup?.AppId, taskOwnerIds))
+                {
+                    Log.WriteWarning("UpdateModelling", $"Service group {serviceGroupId} belongs to no owner of the request tasks and is not updated.");
+                    continue;
+                }
                 string comment = ModIntegrationStateConfig.ReplaceMarkedComment(serviceGroup?.Comment, stateMarker, markedState);
                 await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.updateServiceGroupComment, new { id = serviceGroupId, comment });
                 ++updatedGroups;
             }
             return updatedGroups;
+        }
+
+        /// <summary>
+        /// Collects the owners of the given request tasks.
+        /// </summary>
+        private static HashSet<int> GetTaskOwnerIds(IEnumerable<WfReqTask> tasks)
+        {
+            return [.. tasks.SelectMany(task => task.Owners).Select(ownerData => ownerData.Owner.Id)];
+        }
+
+        /// <summary>
+        /// Checks whether a modelling object belongs to one of the owners of the request tasks.
+        /// </summary>
+        private static bool BelongsToTaskOwner(int? appId, HashSet<int> taskOwnerIds)
+        {
+            return appId != null && taskOwnerIds.Contains(appId.Value);
         }
 
         public async Task UpdateConnectionOwner(FwoOwner? owner, long? ticketId)

@@ -32,14 +32,28 @@
                         @if (userConfig.AllowManualOwnerAdmin)
                         {
                             <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditResponsibleType(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                            @if (!context.Active)
-                            {
-                                <button type="button" class="btn btn-sm btn-success" @onclick="async () => await ReactivateResponsibleType(context)">@(DisplayService.DisplayButton(userConfig, "reactivate", Icons.Add))</button>
-                            }
-                            else
-                            {
-                                <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteResponsibleType(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
-                            }
+                            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                                <Authorized Context="authState">
+                                    @if (!context.Active)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-success" @onclick="async () => await ReactivateResponsibleType(context)">@(DisplayService.DisplayButton(userConfig, "reactivate", Icons.Add))</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteResponsibleType(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                    }
+                                </Authorized>
+                                <NotAuthorized Context="authState">
+                                    @if (!context.Active)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "reactivate", Icons.Add))</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                    }
+                                </NotAuthorized>
+                            </ExecutionModeAuthorizeView>
                         }
                     </div>
                 </Template>
@@ -106,13 +120,20 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-primary" @onclick="SaveResponsibleType">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveResponsibleType">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                    </NotAuthorized>
+                </ExecutionModeAuthorizeView>
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEdit">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             </div>
         </Footer>
     </PopUp>
 
-    <ConfirmDelete @bind-Display="DeleteTypeMode" PerformAction="DeleteResponsibleType" Title="@userConfig.GetText("responsibles")" DeleteMessage="@deleteTypeMessage" AllowedRoles="@($"{Roles.Admin}, {Roles.Auditor}")" />
+    <ConfirmDelete @bind-Display="DeleteTypeMode" PerformAction="DeleteResponsibleType" Title="@userConfig.GetText("responsibles")" DeleteMessage="@deleteTypeMessage" AllowedRoles="@Roles.Admin" />
 }
 else
 {

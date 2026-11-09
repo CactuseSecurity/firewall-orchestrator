@@ -1,6 +1,7 @@
 @using BlazorTable
 @using FWO.Data
 @using FWO.Data.Workflow
+@using FWO.Basics.Exceptions
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -21,16 +22,16 @@
                      SearchTextChanged="Search">
         <ChildContent>
             <Column TableItem="NetworkService" Title="@(userConfig.GetText("name"))" Field="@(service => service.Name)" Sortable="true" />
-            <Column TableItem="NetworkService" Title="@(userConfig.GetText("service"))" Field="@(service => service.DestinationPort)" Sortable="true" Context="service">
+            <Column TableItem="NetworkService" Title="@(userConfig.GetText(GroupMode ? "members" : "service"))" Field="@(service => service.DestinationPort)" Sortable="true" Context="service">
                 <Template>
-                    @DisplayServicePorts(service)
+                    @(GroupMode ? service.MemberNames : DisplayServicePorts(service))
                 </Template>
             </Column>
             <Column TableItem="NetworkService" Title="@(userConfig.GetText("actions"))" Field="@(service => service.Id)" Sortable="false" Context="service">
                 <Template>
                     <button type="button" class="btn btn-sm @(SelectedService?.Id == service.Id ? "btn-success" : "btn-outline-primary")"
                             @onclick:stopPropagation="true" @onclick="() => SelectService(service)">
-                        @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                        @(DisplayService.DisplayButton(userConfig, "select", Icons.Use))
                     </button>
                 </Template>
             </Column>
@@ -60,7 +61,7 @@ else if (Kind == ObjectTaskKind.Time)
                 <Template>
                     <button type="button" class="btn btn-sm @(SelectedTimeObject?.Id == timeObject.Id ? "btn-success" : "btn-outline-primary")"
                             @onclick:stopPropagation="true" @onclick="() => SelectTimeObject(timeObject)">
-                        @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                        @(DisplayService.DisplayButton(userConfig, "select", Icons.Use))
                     </button>
                 </Template>
             </Column>
@@ -81,16 +82,16 @@ else
                      SearchTextChanged="Search">
         <ChildContent>
             <Column TableItem="NetworkObject" Title="@(userConfig.GetText("name"))" Field="@(networkObject => networkObject.Name)" Sortable="true" />
-            <Column TableItem="NetworkObject" Title="@(userConfig.GetText("ip"))" Field="@(networkObject => networkObject.IP)" Sortable="true" Context="networkObject">
+            <Column TableItem="NetworkObject" Title="@(userConfig.GetText(GroupMode ? "members" : "ip"))" Field="@(networkObject => networkObject.IP)" Sortable="true" Context="networkObject">
                 <Template>
-                    @DisplayBase.DisplayIp(networkObject.IP ?? "", networkObject.IpEnd ?? "")
+                    @(GroupMode ? networkObject.MemberNames : DisplayBase.DisplayIp(networkObject.IP ?? "", networkObject.IpEnd ?? ""))
                 </Template>
             </Column>
             <Column TableItem="NetworkObject" Title="@(userConfig.GetText("actions"))" Field="@(networkObject => networkObject.Id)" Sortable="false" Context="networkObject">
                 <Template>
                     <button type="button" class="btn btn-sm @(SelectedNetworkObject?.Id == networkObject.Id ? "btn-success" : "btn-outline-primary")"
                             @onclick:stopPropagation="true" @onclick="() => SelectNetworkObject(networkObject)">
-                        @(DisplayService.DisplayButton(userConfig, "select", Icons.Select))
+                        @(DisplayService.DisplayButton(userConfig, "select", Icons.Use))
                     </button>
                 </Template>
             </Column>
@@ -124,6 +125,9 @@ else
     public ObjectTaskKind Kind { get; set; }
 
     [Parameter]
+    public bool GroupMode { get; set; }
+
+    [Parameter]
     public List<IpProtocol> IpProtos { get; set; } = [];
 
     [Parameter]
@@ -151,17 +155,13 @@ else
     private const int kPageSize = 5;
 
     private string searchText = "";
-    private string SearchLabel => userConfig.GetText(Kind switch
-    {
-        ObjectTaskKind.Service => "search_service_object",
-        ObjectTaskKind.Time => "search_time_object",
-        _ => "search_network_object"
-    });
+    private string SearchLabel => userConfig.GetText(GetSearchLabelKey());
     private List<NetworkObject> foundNetworkObjects = [];
     private List<NetworkService> foundServices = [];
     private List<TimeObject> foundTimeObjects = [];
     private bool limitReached;
     private CancellationTokenSource? searchCancellation;
+    private long groupSelectionGeneration;
 
     private async Task Search(string newSearchText)
     {
@@ -205,12 +205,31 @@ else
     /// </summary>
     private async Task<int?> SearchKind(WfObjectSearch search, string text, CancellationToken token)
     {
+        if (GroupMode)
+        {
+            return Kind == ObjectTaskKind.Service
+                ? await KeepHits(search.SearchServiceGroups(ManagementId, text), hits => foundServices = hits, token)
+                : await KeepHits(search.SearchNetworkGroups(ManagementId, text), hits => foundNetworkObjects = hits, token);
+        }
         return Kind switch
         {
             ObjectTaskKind.Service => await KeepHits(search.SearchServices(ManagementId, text), hits => foundServices = hits, token),
             ObjectTaskKind.Time => await KeepHits(search.SearchTimeObjects(ManagementId, text), hits => foundTimeObjects = hits, token),
             _ => await KeepHits(search.SearchNetworkObjects(ManagementId, text), hits => foundNetworkObjects = hits, token)
         };
+    }
+
+    private string GetSearchLabelKey()
+    {
+        if (Kind == ObjectTaskKind.Time)
+        {
+            return "search_time_object";
+        }
+        if (Kind == ObjectTaskKind.Service)
+        {
+            return "search_service_object";
+        }
+        return "search_network_object";
     }
 
     /// <summary>
@@ -229,14 +248,86 @@ else
 
     private async Task SelectNetworkObject(NetworkObject networkObject)
     {
+        if (GroupMode && authenticationStateTask != null)
+        {
+            long selectionGeneration = ++groupSelectionGeneration;
+            int selectionManagementId = ManagementId;
+            ObjectTaskKind selectionKind = Kind;
+            try
+            {
+                WfObjectSearch search = new(apiConnection, (await authenticationStateTask).User);
+                NetworkObject? loadedGroup = await search.LoadNetworkGroupMembers(selectionManagementId, networkObject.Id);
+                if (loadedGroup is null || !IsCurrentGroupSelection(selectionGeneration, selectionManagementId, selectionKind))
+                {
+                    return;
+                }
+                networkObject = loadedGroup;
+            }
+            catch (CollectionLimitExceededException)
+            {
+                if (IsCurrentGroupSelection(selectionGeneration, selectionManagementId, selectionKind))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("search_object"), userConfig.GetText("E5130"), true);
+                }
+                return;
+            }
+            catch (Exception exception)
+            {
+                if (IsCurrentGroupSelection(selectionGeneration, selectionManagementId, selectionKind))
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("search_object"), "", true);
+                }
+                return;
+            }
+        }
         SelectedNetworkObject = networkObject;
         await SelectedNetworkObjectChanged.InvokeAsync(networkObject);
     }
 
     private async Task SelectService(NetworkService service)
     {
+        if (GroupMode && authenticationStateTask != null)
+        {
+            long selectionGeneration = ++groupSelectionGeneration;
+            int selectionManagementId = ManagementId;
+            ObjectTaskKind selectionKind = Kind;
+            try
+            {
+                WfObjectSearch search = new(apiConnection, (await authenticationStateTask).User);
+                NetworkService? loadedGroup = await search.LoadServiceGroupMembers(selectionManagementId, service.Id);
+                if (loadedGroup is null || !IsCurrentGroupSelection(selectionGeneration, selectionManagementId, selectionKind))
+                {
+                    return;
+                }
+                service = loadedGroup;
+            }
+            catch (CollectionLimitExceededException)
+            {
+                if (IsCurrentGroupSelection(selectionGeneration, selectionManagementId, selectionKind))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("search_object"), userConfig.GetText("E5130"), true);
+                }
+                return;
+            }
+            catch (Exception exception)
+            {
+                if (IsCurrentGroupSelection(selectionGeneration, selectionManagementId, selectionKind))
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("search_object"), "", true);
+                }
+                return;
+            }
+        }
         SelectedService = service;
         await SelectedServiceChanged.InvokeAsync(service);
+    }
+
+    private bool IsCurrentGroupSelection(long selectionGeneration, int selectionManagementId, ObjectTaskKind selectionKind)
+    {
+        return selectionGeneration == groupSelectionGeneration
+            && ManagementId == selectionManagementId
+            && Kind == selectionKind
+            && GroupMode;
     }
 
     private async Task SelectTimeObject(TimeObject timeObject)
@@ -254,6 +345,7 @@ else
 
     public void Dispose()
     {
+        groupSelectionGeneration++;
         searchCancellation?.Cancel();
         searchCancellation?.Dispose();
         GC.SuppressFinalize(this);

@@ -61,12 +61,15 @@
     [Parameter]
     public bool WithLabel { get; set; } = true;
 
+    [Parameter]
+    public bool IgnoreGroupName { get; set; } = false;
+
 
     private IPAddressRange? ipRangeToAdd;
 
-    private static string DisplayIpAddress(NwObjectElement element)
+    private string DisplayIpAddress(NwObjectElement element)
     {
-        if (!string.IsNullOrWhiteSpace(element.GroupName))
+        if (!IgnoreGroupName && !string.IsNullOrWhiteSpace(element.GroupName))
         {
             return element.GroupName;
         }

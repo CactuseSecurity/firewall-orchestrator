@@ -159,6 +159,7 @@ namespace FWO.Services.Workflow
             long ticketId = await wfHandler.SaveTicket(wfHandler.ActTicket);
             if (ticketId > 0)
             {
+                await CreateNewInterfaceImplTask(ticketId);
                 await AddRequesterInfoToImplTask(ticketId);
             }
             return ticketId;
@@ -277,6 +278,23 @@ namespace FWO.Services.Workflow
             if (ticketId > 0 && !string.IsNullOrWhiteSpace(comment))
             {
                 await wfHandler.ConfAddCommentToTicket(comment);
+            }
+        }
+
+        /// <summary>
+        /// Creates the implementation task of the new interface request task of a ticket. Implementation tasks are not
+        /// created when a ticket is saved any more, but the interface workflow needs this task from the start.
+        /// </summary>
+        private async Task CreateNewInterfaceImplTask(long ticketId)
+        {
+            WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
+            if (ticket == null)
+            {
+                return;
+            }
+            foreach (WfReqTask reqTask in ticket.Tasks.Where(task => task.TaskType == WfTaskType.new_interface.ToString()))
+            {
+                await wfHandler.CreateNewInterfaceImplTask(reqTask);
             }
         }
 

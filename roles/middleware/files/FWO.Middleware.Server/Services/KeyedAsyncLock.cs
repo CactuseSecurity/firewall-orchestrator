@@ -77,6 +77,19 @@ namespace FWO.Middleware.Server.Services
         }
 
         /// <summary>
+        /// Whether a caller currently holds or waits for the given key.
+        /// </summary>
+        /// <param name="key">Key to look up.</param>
+        /// <returns>True while an entry exists for the key.</returns>
+        public bool Contains(TKey key)
+        {
+            lock (entriesLock)
+            {
+                return entries.ContainsKey(key);
+            }
+        }
+
+        /// <summary>
         /// Waits until the lock for the given key is acquired, unless a cap is exceeded.
         /// </summary>
         /// <param name="key">Key to serialize on.</param>

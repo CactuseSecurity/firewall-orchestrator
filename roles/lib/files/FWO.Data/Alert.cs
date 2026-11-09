@@ -18,6 +18,7 @@ namespace FWO.Data
         ImportBrokenObjectReferences = 16,
         MalformedIpAddress = 17,
         RecursionLimitReached = 18,
+        SshHostKeyRejected = 19,
 
         Autodiscovery = 21,
         AutoDiscoveryErrorUnspecific = 22,

@@ -44,6 +44,7 @@ namespace FWO.DeviceAutoDiscovery
                 "FortiManager" => new AutoDiscoveryFortiManager(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
                 "CheckPoint" => new AutoDiscoveryCpMds(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
                 "Check Point" => new AutoDiscoveryCpMds(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
+                "Azure" => new AutoDiscoveryAzure(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
                 _ => throw new NotSupportedException("SuperManager Type is not supported."),
             };
         }
@@ -54,6 +55,7 @@ namespace FWO.DeviceAutoDiscovery
             try
             {
                 List<Management> existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+                AdoptExistingIdentities(discoveredManagements, existingManagements);
 
                 bool compareManagementsByUid = SuperManagement.DeviceType.Name == "FortiManager";
                 foreach (Management discoveredMgmt in discoveredManagements.Where(x => x.ConfigPath != "global"))
@@ -77,6 +79,15 @@ namespace FWO.DeviceAutoDiscovery
             }
             return deltaManagements;
         }
+
+        /// <summary>
+        /// Lets a discovery take over the identity of stored objects that the exact name and uid comparison
+        /// would not recognize, so they are not reported as deleted and added again.
+        /// </summary>
+        /// <param name="discoveredManagements">The discovered managements, changed in place.</param>
+        /// <param name="existingManagements">The managements stored in FWO.</param>
+        protected virtual void AdoptExistingIdentities(List<Management> discoveredManagements, List<Management> existingManagements)
+        { }
 
         private static void DiscoverManagementDetails(
             Management discoveredMgmt,
@@ -296,7 +307,7 @@ namespace FWO.DeviceAutoDiscovery
             Management MgtVariables = new()
             {
                 Hostname = SuperManagement.Hostname,
-                ImportCredential = SuperManagement.ImportCredential,
+                ImportCredential = CreateCredentialReference(SuperManagement.ImportCredential),
                 DebugLevel = SuperManagement.DebugLevel,
                 Port = SuperManagement.Port,
                 ImportDisabled = false,
@@ -334,6 +345,25 @@ namespace FWO.DeviceAutoDiscovery
                     JsonData = JsonSerializer.Serialize(dev)
                 });
             }
+        }
+
+        /// <summary>
+        /// Returns a reference to the given credential without its secret.
+        /// </summary>
+        /// <remarks>
+        /// The action data of a new management is stored in the alert and written to the log, while the super
+        /// management holds the decrypted secret at this point. The autodiscovery dialog creates the management
+        /// with the credential id only, so the secret must never be part of the action data.
+        /// </remarks>
+        /// <param name="credential">The credential of the super management.</param>
+        /// <returns>A credential carrying only id and name.</returns>
+        private static Credential CreateCredentialReference(Credential credential)
+        {
+            return new Credential
+            {
+                Id = credential.Id,
+                Name = credential.Name
+            };
         }
 
         private void ChangeManagement(Management changedMgmt, List<ActionItem> actions, int counter)

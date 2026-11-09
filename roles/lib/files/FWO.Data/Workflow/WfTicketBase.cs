@@ -91,6 +91,12 @@ namespace FWO.Data.Workflow
             return shortened;
         }
 
+        /// <summary>
+        /// Gets a string value from the ticket's optional JSON additional information.
+        /// Malformed or non-object JSON is treated as missing information.
+        /// </summary>
+        /// <param name="key">The additional-information key to read.</param>
+        /// <returns>The stored value, or an empty string when it is unavailable or malformed.</returns>
         public string GetAdditionalInfoValue(string key)
         {
             if (string.IsNullOrWhiteSpace(AdditionalInfo))
@@ -98,8 +104,15 @@ namespace FWO.Data.Workflow
                 return "";
             }
 
-            Dictionary<string, string>? additionalInfo = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(AdditionalInfo);
-            return additionalInfo != null && additionalInfo.TryGetValue(key, out string? value) ? value : "";
+            try
+            {
+                Dictionary<string, string>? additionalInfo = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(AdditionalInfo);
+                return additionalInfo != null && additionalInfo.TryGetValue(key, out string? value) ? value : "";
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return "";
+            }
         }
     }
 }

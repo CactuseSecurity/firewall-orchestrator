@@ -848,17 +848,17 @@ namespace FWO.Report
                 report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayLastModified(rule)}</td>");
             }
-            report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
+            report.AppendLine($"<td>{RuleDisplayHtml.DisplayName(rule)}</td>");
             report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZones(rule)}</td>");
             report.AppendLine($"<td>{ruleDisplayHtml.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
             report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZones(rule)}</td>");
             report.AppendLine($"<td>{ruleDisplayHtml.DisplayDestination(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
             report.AppendLine($"<td>{ruleDisplayHtml.DisplayServices(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
-            report.AppendLine($"<td>{RuleDisplayBase.DisplayAction(rule)}</td>");
-            report.AppendLine($"<td>{RuleDisplayBase.DisplayTrack(rule)}</td>");
+            report.AppendLine($"<td>{RuleDisplayHtml.DisplayAction(rule)}</td>");
+            report.AppendLine($"<td>{RuleDisplayHtml.DisplayTrack(rule)}</td>");
             report.AppendLine($"<td>{RuleDisplayBase.DisplayEnabled(rule, OutputLocation.export)}</td>");
-            report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
-            report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
+            report.AppendLine($"<td>{RuleDisplayHtml.DisplayUid(rule)}</td>");
+            report.AppendLine($"<td>{RuleDisplayHtml.DisplayComment(rule)}</td>");
             if (ReportType != ReportType.Recertification && ReportType != ReportType.UnusedRules)
             {
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayLastModified(rule)}</td>");

@@ -116,5 +116,25 @@ namespace FWO.Test
                 throw new IOException("Simulated broken pipe");
             }
         }
+
+        [Test]
+        public async Task WriteError_IncludesInnerExceptionDetails()
+        {
+            Exception innerException = new IOException("socket closed during TLS handshake");
+            Exception outerException = new HttpRequestException("An error occurred while sending the request.", innerException);
+
+            string writtenLog = await ConsoleOutput.CaptureAsync(() =>
+            {
+                Log.WriteError("Transport", "API request failed.", outerException);
+                return Task.CompletedTask;
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(writtenLog, Does.Contain(nameof(HttpRequestException)));
+                Assert.That(writtenLog, Does.Contain(nameof(IOException)));
+                Assert.That(writtenLog, Does.Contain("socket closed during TLS handshake"));
+            });
+        }
     }
 }

@@ -47,10 +47,10 @@ namespace FWO.Test
             yield return new TestCaseData(typeof(DisplayTicket), "PerformAction", new object[] { new WfStateAction() });
             yield return new TestCaseData(typeof(DisplayTicket), "StartRequestPhase", new object[] { new WfReqTask() });
             yield return new TestCaseData(typeof(DisplayTicket), "StartImplementationPhase", new object[] { new WfImplTask() });
-            yield return new TestCaseData(typeof(DisplayRequestTask), "PerformAction", new object[] { new WfStateAction() });
+            yield return new TestCaseData(typeof(ConfiguredTaskActions), "PerformAction", new object[] { new WfStateAction() });
             yield return new TestCaseData(typeof(DisplayRequestTask), "ConfApproveTask", new object[] { new WfTicket() });
             yield return new TestCaseData(typeof(DisplayRequestTask), "StartImplementationPhase", new object[] { new WfImplTask() });
-            yield return new TestCaseData(typeof(DisplayImplementationTask), "PerformAction", new object[] { new WfStateAction() });
+            yield return new TestCaseData(typeof(ConfiguredTaskActions), "PerformAction", new object[] { new WfStateAction() });
             yield return new TestCaseData(typeof(RequestPlannings), "StartPlanTask", new object[] { new WfReqTask() });
             yield return new TestCaseData(typeof(RequestApprovals), "StartApproveTask", new object[] { new WfReqTask() });
             yield return new TestCaseData(typeof(RequestImplementations), "StartImplementTask", new object[] { new WfImplTask() });
@@ -81,7 +81,7 @@ namespace FWO.Test
                 return;
             }
 
-            PropertyInfo property = component.GetType().GetProperty(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+            PropertyInfo property = component.GetType().GetProperty(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingFieldException(component.GetType().FullName, fieldName);
             property.SetValue(component, value);
         }
@@ -94,7 +94,7 @@ namespace FWO.Test
                 return (TValue)field.GetValue(component)!;
             }
 
-            PropertyInfo property = component.GetType().GetProperty(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+            PropertyInfo property = component.GetType().GetProperty(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingFieldException(component.GetType().FullName, fieldName);
             return (TValue)property.GetValue(component)!;
         }

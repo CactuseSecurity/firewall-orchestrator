@@ -1,6 +1,9 @@
 using FWO.Data;
-using FWO.Data.Workflow;
 using FWO.Services;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Data.Flow;
+using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using NUnit.Framework;
 using System.Reflection;
@@ -11,6 +14,8 @@ namespace FWO.Test
     [TestFixture]
     internal class WfHandlerReqTasksTest
     {
+        private static readonly List<WfState> kRequestedStates = [new WfState { Id = 1, Name = "requested" }];
+
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix? matrix = null)
         {
             FieldInfo? field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -444,6 +449,7 @@ namespace FWO.Test
                 Assert.That(handler.ActReqTask.TicketId, Is.EqualTo(7));
                 Assert.That(handler.ActTicket.Tasks, Has.Count.EqualTo(1));
                 Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(handler.ActReqTask));
+                Assert.That(handler.ActReqTask.Approvals, Has.Count.EqualTo(1));
             });
         }
 
@@ -459,6 +465,55 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(handler.ActReqTask.TicketId, Is.EqualTo(0));
+                Assert.That(handler.ActTicket.Tasks, Has.Count.EqualTo(1));
+                Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(handler.ActReqTask));
+                Assert.That(handler.ActReqTask.Approvals, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task AddReqTask_DoesNotCreateDuplicateApproval()
+        {
+            WfHandler handler = new();
+            handler.ActTicket = new WfTicket { Id = 7 };
+            handler.ActReqTask = new WfReqTask
+            {
+                TaskNumber = 1,
+                TaskType = WfTaskType.access.ToString(),
+                Approvals = [new WfApproval { Id = 9 }]
+            };
+
+            await handler.AddReqTask();
+
+            Assert.That(handler.ActReqTask.Approvals, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task AddReqTask_DatabaseInsertFailureLeavesTaskUnadded()
+        {
+            WfHandler handler = await CreateDbBackedHandler(returnNullTaskId: true);
+
+            await handler.AddReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.Approvals, Has.Count.EqualTo(1));
+                Assert.That(handler.ActTicket.Tasks, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task AddReqTask_DatabaseInsertAddsTaskWhenReloadFails()
+        {
+            WfHandler handler = await CreateDbBackedHandler(returnNullTaskId: false, forceReloadFailure: true);
+
+            await handler.AddReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.Id, Is.EqualTo(201));
+                Assert.That(handler.ActReqTask.TicketId, Is.EqualTo(7));
+                Assert.That(handler.ActReqTask.Approvals, Has.Count.EqualTo(1));
                 Assert.That(handler.ActTicket.Tasks, Has.Count.EqualTo(1));
                 Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(handler.ActReqTask));
             });
@@ -505,6 +560,22 @@ namespace FWO.Test
             await handler.ChangeReqTask();
 
             Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(oldTask));
+        }
+
+        /// <summary>
+        /// Verifies that an explicitly permitted approval edit can replace a locked task.
+        /// </summary>
+        [Test]
+        public async Task ChangeReqTask_AllowsExplicitApprovalUpdateForLockedTask()
+        {
+            WfHandler handler = new();
+            WfReqTask oldTask = new() { Id = 11, TaskNumber = 2, Title = "Old" };
+            handler.ActTicket = new WfTicket { Tasks = { oldTask } };
+            handler.ActReqTask = new WfReqTask { Id = 11, TaskNumber = 2, Title = "New", Locked = true };
+
+            await handler.ChangeReqTask(allowLockedApprovalUpdate: true);
+
+            Assert.That(handler.ActTicket.Tasks[0], Is.SameAs(handler.ActReqTask));
         }
 
         [Test]
@@ -605,6 +676,80 @@ namespace FWO.Test
                 Assert.That(handler.ActTicket.Tasks[0].StateId, Is.EqualTo(2));
                 Assert.That(handler.DisplayReqTaskMode, Is.True);
                 Assert.That(handler.EditReqTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task StartWorkOnReqTask_InReadOnlyMode_OpensPhaseViewWithoutWriting()
+        {
+            WfHandler handler = new() { ReadOnlyMode = true };
+            string taskType = WfTaskType.access.ToString();
+            StateMatrix matrix = new()
+            {
+                Matrix = new Dictionary<int, List<int>> { [0] = [2] },
+                LowestStartedState = 2,
+                LowestEndState = 10
+            };
+            SetMatrix(handler, taskType, matrix);
+            WfReqTask reqTask = new() { Id = 11, TicketId = 7, TaskType = taskType, StateId = 0 };
+            handler.ActTicket = new WfTicket { Id = 7, Tasks = { reqTask } };
+            handler.TicketList.Add(handler.ActTicket);
+
+            await handler.StartWorkOnReqTask(reqTask, ObjAction.approve);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(0));
+                Assert.That(handler.ActReqTask.CurrentHandler, Is.Null);
+                Assert.That(handler.ActTicket.Tasks[0].StateId, Is.EqualTo(0));
+                Assert.That(handler.DisplayReqTaskMode, Is.True);
+                Assert.That(handler.ApproveReqTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ContinuePhase_InReadOnlyMode_KeepsCurrentHandler()
+        {
+            WfHandler handler = new() { ReadOnlyMode = true };
+            handler.userConfig.User.Dn = "cn=auditor";
+            handler.userConfig.User.DbId = 10;
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            UiUser previousHandler = new() { Dn = "cn=old", DbId = 9 };
+            WfReqTask reqTask = new() { Id = 11, TicketId = 7, TaskType = taskType, CurrentHandler = previousHandler };
+            handler.ActTicket = new WfTicket { Id = 7, Tasks = { reqTask } };
+            handler.TicketList.Add(handler.ActTicket);
+            handler.SetContinueEnv(ObjAction.plan);
+
+            await handler.ContinuePhase(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.CurrentHandler, Is.SameAs(previousHandler));
+                Assert.That(handler.ActTicket.Tasks[0].CurrentHandler, Is.SameAs(previousHandler));
+                Assert.That(handler.PlanReqTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ViewReqTaskInPhase_OpensTheTaskInTheContinueMode()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            WfReqTask reqTask = new() { Id = 11, TicketId = 7, TaskType = taskType, StateId = 3 };
+            handler.ActTicket = new WfTicket { Id = 7, Tasks = { reqTask } };
+            handler.TicketList.Add(handler.ActTicket);
+            handler.SetContinueEnv(ObjAction.approve);
+
+            await handler.ViewReqTaskInPhase(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.Id, Is.EqualTo(11));
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(3));
+                Assert.That(handler.ActReqTask.CurrentHandler, Is.Null);
+                Assert.That(handler.ApproveReqTaskMode, Is.True);
             });
         }
 
@@ -871,6 +1016,20 @@ namespace FWO.Test
             return handler;
         }
 
+        private static async Task<WfHandler> CreateDbBackedHandler(bool returnNullTaskId, bool forceReloadFailure = false)
+        {
+            AddReqTaskApiConnection apiConnection = new() { ReturnNullTaskId = returnNullTaskId };
+            WfHandler handler = new();
+            handler.userConfig.ReqVisibilityBased = forceReloadFailure;
+            ActionHandler actionHandler = new(apiConnection, handler);
+            await actionHandler.Init(kRequestedStates);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, false, WorkflowPhases.request);
+            SetPrivateField(handler, "dbAcc", dbAccess);
+            handler.ActTicket = new WfTicket { Id = 7 };
+            handler.ActReqTask = new WfReqTask { TaskNumber = 1, TaskType = WfTaskType.access.ToString() };
+            return handler;
+        }
+
         private static void SetPrivateField<T>(WfHandler handler, string fieldName, T value)
         {
             FieldInfo field = typeof(WfHandler).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
@@ -895,6 +1054,46 @@ namespace FWO.Test
                 }
 
                 throw new NotSupportedException($"Unexpected query type {typeof(QueryResponseType).Name}.");
+            }
+        }
+
+        private sealed class AddReqTaskApiConnection : SimulatedApiConnection
+        {
+            public bool ReturnNullTaskId { get; set; }
+
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null,
+                QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == RequestQueries.newRequestTask)
+                {
+                    ReturnIdWrapper response = new()
+                    {
+                        ReturnIds = ReturnNullTaskId ? null! : [new ReturnId { NewIdLong = 201 }]
+                    };
+                    return Task.FromResult((T)(object)response);
+                }
+                if (query == RequestQueries.newApproval)
+                {
+                    ReturnIdWrapper response = new() { ReturnIds = [new ReturnId { NewIdLong = 301 }] };
+                    return Task.FromResult((T)(object)response);
+                }
+                if (query == ModellingQueries.addHistoryEntry || query == ModellingQueries.addHistoryEntryAsService)
+                {
+                    return Task.FromResult((T)(object)new ReturnIdWrapper { ReturnIds = [] });
+                }
+                if (query == RequestQueries.getTicketById)
+                {
+                    throw new InvalidOperationException("reload intentionally unavailable");
+                }
+                if (query == FlowQueries.getLiveFlowNwObjectIds)
+                {
+                    return Task.FromResult((T)(object)new List<FlowNwObject>());
+                }
+                if (query == FlowQueries.getLiveFlowSvcObjectIds)
+                {
+                    return Task.FromResult((T)(object)new List<FlowSvcObject>());
+                }
+                throw new NotSupportedException($"Unexpected query: {query}");
             }
         }
     }

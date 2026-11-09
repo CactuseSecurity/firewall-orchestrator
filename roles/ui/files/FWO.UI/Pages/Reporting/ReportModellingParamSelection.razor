@@ -14,7 +14,7 @@
         <h5 class="text-start">@(userConfig.GetText("owner"))</h5>
         @if(ownerList.Count == 1)
         {
-            <label class="col-form-label mb-3 text-white">@((MarkupString)(ModellingFilter.SelectedOwner.Display(userConfig.GetText("common_service")) ?? string.Empty))</label>
+            <label class="col-form-label mb-3 text-white">@(ModellingFilter.SelectedOwner.Display(userConfig.GetText("common_service")))</label>
         }
         else
         {

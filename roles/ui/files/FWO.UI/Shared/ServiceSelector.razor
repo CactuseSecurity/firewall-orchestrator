@@ -76,6 +76,9 @@
     [Parameter]
     public bool WithLabel { get; set; } = true;
 
+    [Parameter]
+    public bool IgnoreGroupName { get; set; } = false;
+
 
     private bool FirstTry = true;
     private int? actPort;
@@ -97,7 +100,7 @@
 
     private string DisplayServiceElement(NwServiceElement element)
     {
-        if (!string.IsNullOrWhiteSpace(element.GroupName))
+        if (!IgnoreGroupName && !string.IsNullOrWhiteSpace(element.GroupName))
         {
             return element.GroupName;
         }

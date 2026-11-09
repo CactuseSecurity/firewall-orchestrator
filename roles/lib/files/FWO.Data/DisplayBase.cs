@@ -34,16 +34,30 @@ namespace FWO.Data
             else
             {
                 result.Append($"{serviceName ?? service.Name}");
-                if (displayPorts)
-                {
-                    result.Append($" ({ports}/{service.Protocol?.Name})");
-                }
-                else if (ShouldDisplayProtocolName(service))
-                {
-                    result.Append($" ({service.Protocol?.Name})");
-                }
+                result.Append(DisplayServiceDetails(service));
             }
             return result;
+        }
+
+        /// <summary>
+        /// Builds the port and protocol part that follows the service name in a non-technical display,
+        /// e.g. " (443/tcp)". Html output prepends the encoded name or a link to it.
+        /// </summary>
+        /// <param name="service">The service to describe.</param>
+        /// <returns>The plain text suffix, empty if neither ports nor protocol are shown.</returns>
+        public static string DisplayServiceDetails(NetworkService service)
+        {
+            string ports = service.DestinationPortEnd == null || service.DestinationPortEnd == 0 || service.DestinationPort == service.DestinationPortEnd ?
+                $"{service.DestinationPort}" : $"{service.DestinationPort}-{service.DestinationPortEnd}";
+            if (IpProtocol.HasPorts(service.Protocol?.Id) && service.DestinationPort != null)
+            {
+                return $" ({ports}/{service.Protocol?.Name})";
+            }
+            if (ShouldDisplayProtocolName(service))
+            {
+                return $" ({service.Protocol?.Name})";
+            }
+            return "";
         }
 
         public static string DisplayService(Workflow.NwServiceElement svcElem, List<IpProtocol> IpProtos)

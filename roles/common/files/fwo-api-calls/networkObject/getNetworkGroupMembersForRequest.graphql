@@ -1,0 +1,33 @@
+query getNetworkGroupMembersForRequest(
+  $mgmId: Int!
+  $groupId: Int!
+  $memberLimit: Int!
+) {
+  firewall_nw_object(
+    where: {
+      mgm_id: { _eq: $mgmId }
+      obj_id: { _eq: $groupId }
+      obj_typ_id: { _in: [2, 11] }
+      active: { _eq: true }
+      removed: { _is_null: true }
+    }
+    limit: 1
+  ) {
+    obj_id
+    obj_name
+    obj_member_names
+    objgrps(
+      where: { active: { _eq: true }, removed: { _is_null: true } }
+      order_by: [{ objgrp_member_id: asc }]
+      limit: $memberLimit
+    ) {
+      id: objgrp_member_id
+      byId: objectByObjgrpMemberId {
+        obj_id
+        obj_name
+        obj_ip
+        obj_ip_end
+      }
+    }
+  }
+}

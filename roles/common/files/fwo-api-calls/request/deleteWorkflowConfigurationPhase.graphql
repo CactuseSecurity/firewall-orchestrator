@@ -1,0 +1,13 @@
+mutation deleteWorkflowConfigurationPhase($configurationId: Int!, $taskType: String!, $phase: String!) {
+  delete_phase: delete_request_state_matrix_phase(
+    where: {
+      workflow_configuration_phases: {
+        configuration_id: {_eq: $configurationId}
+        task_type: {_eq: $taskType}
+        phase: {_eq: $phase}
+      }
+    }
+  ) {
+    affected_rows
+  }
+}

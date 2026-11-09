@@ -78,7 +78,7 @@ namespace FWO.Test
                 return Task.FromResult((QueryResponseType)(object)AddHistoryResult);
             }
 
-            if (query == PathAnalysisAlgorithmQueries.getPathAnalysisAlgorithms
+            if (query == PathAnalysisQueries.getPathAnalysisAlgorithms
                 && typeof(QueryResponseType) == typeof(List<PathAnalysisAlgorithm>))
             {
                 return Task.FromResult((QueryResponseType)(object)PathAnalysisAlgorithms);

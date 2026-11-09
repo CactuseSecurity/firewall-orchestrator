@@ -70,6 +70,21 @@ This lifecycle is enforced by the **Version gate** workflow, see
    from the previous version section into the new `1.2.5` section at the top of the file. This
    reclassification is intentional; the gate does not enforce it.
 
+### Merging the revision history
+
+[`.gitattributes`](../../.gitattributes) sets `merge=union` for
+[`documentation/revision-history.md`](../revision-history.md). A merge, rebase, or cherry-pick
+in a local working tree therefore never stops at a conflict in this file: overlapping hunks are
+resolved by keeping the lines of both sides. This removes the usual conflict when two pull
+requests add entries to the same open version section, but it also accepts results nobody
+reviewed. After such a merge, check the top of the file for duplicate version headers (for
+example the same version with different dates), duplicated or contradicting lines, and entries
+that ended up in the wrong version section.
+
+GitHub merges pull requests in a bare repository on the server and may not apply this attribute,
+so a pull request can still be shown as conflicting there. In that case merge `upstream/develop`
+into the pull request branch locally, where the union merge applies, and push the result.
+
 ### Hotfixes
 
 The model keeps a single linear version line on `develop`. A fix for a released `1.2.4`

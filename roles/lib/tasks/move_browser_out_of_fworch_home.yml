@@ -1,0 +1,169 @@
+# Versions before 9.8.6 installed Chrome for Testing below {{ fworch_home }}/bin, which belongs to
+# {{ fworch_user }}, and ran and unpacked it there as root. It now lives in the root owned
+# {{ fworch_browser_dir }}. An existing installation is moved there once instead of being downloaded
+# again, so an upgrade without internet access keeps its browser.
+#
+# Until the move, {{ fworch_user }} controls everything in that tree, so it is not trusted: it is
+# given to root and closed for writing first, then its symbolic links are removed, because root
+# later changes the modes of the whole tree and a link would let that change reach any file of the
+# system. A tree that still holds anything but root owned plain files and directories afterwards
+# is discarded, and the browser is downloaded again.
+
+- name: check for a browser installed below {{ fworch_home }}/bin
+  stat:
+    path: "{{ fworch_home }}/bin/Chrome"
+  register: legacy_browser_dir
+  become: true
+
+- name: check for a browser in {{ fworch_browser_dir }}
+  stat:
+    path: "{{ fworch_browser_dir }}/Chrome"
+  register: browser_dir_chrome
+  become: true
+
+- name: decide whether the browser below {{ fworch_home }}/bin is moved
+  set_fact:
+    browser_move_needed: >-
+      {{ (legacy_browser_dir.stat.isdir | default(false))
+         and not (legacy_browser_dir.stat.islnk | default(false))
+         and not browser_dir_chrome.stat.exists }}
+
+- name: move the browser of versions before 9.8.6 to {{ fworch_browser_dir }}
+  when: browser_move_needed | bool
+  become: true
+  block:
+    # rename moves a symbolic link itself, never what it points to
+    - name: move the browser below {{ fworch_home }}/bin to {{ fworch_browser_dir }}
+      command:
+        argv:
+          - mv
+          - "{{ fworch_home }}/bin/Chrome"
+          - "{{ fworch_browser_dir }}/Chrome"
+        creates: "{{ fworch_browser_dir }}/Chrome"
+
+    # the directory may have been replaced between the check and the move
+    - name: check what was moved
+      stat:
+        path: "{{ fworch_browser_dir }}/Chrome"
+        follow: false
+      register: moved_browser
+
+    - name: remove a moved entry that is not a plain directory
+      file:
+        path: "{{ fworch_browser_dir }}/Chrome"
+        state: absent
+      when: moved_browser.stat.islnk | default(false) or not (moved_browser.stat.isdir | default(false))
+
+    - name: secure the moved browser
+      when:
+        - moved_browser.stat.isdir | default(false)
+        - not (moved_browser.stat.islnk | default(false))
+      block:
+        # -h and the default -P of -R never follow a symbolic link; the change of owner also clears
+        # set-user-ID and set-group-ID bits
+        - name: give the moved browser to root
+          command:
+            argv: [chown, -R, -h, "root:root", "{{ fworch_browser_dir }}/Chrome"]
+
+        # chmod skips symbolic links it meets while descending
+        - name: close the moved browser for writing by others
+          command:
+            argv: [chmod, -R, go-w, "{{ fworch_browser_dir }}/Chrome"]
+
+        # only now, as nothing in the tree is writable for {{ fworch_user }} any more, no new link can appear
+        - name: remove the symbolic links of the moved browser
+          command:
+            argv: [find, -P, "{{ fworch_browser_dir }}/Chrome", -type, l, -delete]
+
+        - name: look for entries of the moved browser that root must not trust
+          command:
+            argv:
+              - find
+              - -P
+              - "{{ fworch_browser_dir }}/Chrome"
+              - "("
+              - "!"
+              - -user
+              - root
+              - -o
+              - "!"
+              - -group
+              - root
+              - -o
+              - -perm
+              - /022
+              - -o
+              - "!"
+              - "("
+              - -type
+              - f
+              - -o
+              - -type
+              - d
+              - ")"
+              - -o
+              - "("
+              - -type
+              - f
+              - -links
+              - "+1"
+              - ")"
+              - ")"
+              - -print
+              - -quit
+          register: untrusted_browser_entry
+          changed_when: false
+
+        - name: discard a moved browser that cannot be trusted
+          file:
+            path: "{{ fworch_browser_dir }}/Chrome"
+            state: absent
+          when: untrusted_browser_entry.stdout | length > 0
+
+        - name: warn about a discarded browser
+          debug:
+            msg: >-
+              WARNING: the browser below {{ fworch_home }}/bin/Chrome contained entries that cannot be trusted
+              (e.g. {{ untrusted_browser_entry.stdout | trim }}) and was discarded; Chrome is downloaded again.
+          when: untrusted_browser_entry.stdout | length > 0
+
+        # the links of the old version pointed below {{ fworch_home }}/bin; without new ones the moved browser
+        # would not be found, and an upgrade without internet access would fail
+        - name: find the moved browser versions
+          find:
+            paths: "{{ fworch_browser_dir }}/Chrome"
+            file_type: directory
+            patterns: "Linux-*"
+            recurse: false
+          register: moved_browser_versions
+          when: untrusted_browser_entry.stdout | length == 0
+
+        - name: link the moved browser into {{ fworch_browser_dir }}
+          file:
+            src: "{{ (moved_browser_versions.files | map(attribute='path') | sort | last) }}/chrome-linux64/{{ item }}"
+            dest: "{{ fworch_browser_dir }}/{{ item }}"
+            state: link
+            force: true
+          loop:
+            - chrome
+            - chrome-wrapper
+            - chrome_crashpad_handler
+            - chrome_sandbox
+          when:
+            - untrusted_browser_entry.stdout | length == 0
+            - moved_browser_versions.files | default([]) | length > 0
+
+# removed as {{ fworch_user }}, who owns the directory, so root never deletes along a path that user controls
+- name: remove the browser links of versions before 9.8.6 from {{ fworch_home }}/bin
+  file:
+    path: "{{ fworch_home }}/bin/{{ item }}"
+    state: absent
+  loop:
+    - chrome
+    - chrome-wrapper
+    - chrome_crashpad_handler
+    - chrome_sandbox
+    - chromium-headless
+  become: true
+  become_user: "{{ fworch_user }}"
+  failed_when: false

@@ -449,7 +449,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task DisplayReqTaskTable_ReadOnlyModeSuppressesPhaseActions()
+        public async Task DisplayReqTaskTable_ReadOnlyModeOffersPhaseViewInsteadOfPhaseActions()
         {
             await using BunitContext context = new();
             WfTicket ticket = new()
@@ -475,11 +475,23 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(component.FindAll("table tbody button.btn-primary"), Is.Not.Empty);
-                Assert.That(component.FindAll("table tbody button.btn-warning"), Is.Empty);
+                Assert.That(component.FindAll("table tbody button.btn-warning").Select(button => button.TextContent.Trim()), Is.EqualTo(kPhaseViewButtonText));
                 Assert.That(component.Markup, Does.Not.Contain("start_planning"));
                 Assert.That(component.Markup, Does.Not.Contain("continue_planning"));
             });
+
+            handler.SetContinueEnv(ObjAction.plan);
+            await component.InvokeAsync(() => component.Find("table tbody button.btn-warning").Click());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.PlanReqTaskMode, Is.True);
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(0));
+                Assert.That(handler.ActReqTask.CurrentHandler, Is.Null);
+            });
         }
+
+        private static readonly List<string> kPhaseViewButtonText = ["open_in_phase_view"];
 
         [Test]
         public void DisplayReqTaskTable_AddReqTaskInitializesDefaultAccessTask()

@@ -192,6 +192,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RequestSessionCheck_AsksEverySubscriberEvenIfOneFails()
+        {
+            UiSessionTracker tracker = CreateTracker();
+            int askedSubscribers = 0;
+            tracker.SessionCheckRequested += () => throw new InvalidOperationException("broken session");
+            tracker.SessionCheckRequested += () => askedSubscribers++;
+
+            tracker.RequestSessionCheck();
+
+            Assert.That(askedSubscribers, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void RequestSessionCheck_WithoutSubscribersDoesNothing()
+        {
+            UiSessionTracker tracker = CreateTracker();
+
+            Assert.DoesNotThrow(tracker.RequestSessionCheck);
+        }
+
+        [Test]
         public void Tracker_UsesSystemClockByDefault()
         {
             UiSessionTracker tracker = new();

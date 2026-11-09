@@ -54,7 +54,7 @@
                         {
                             <ExecutionModeAuthorizeView Roles="@($"{Roles.Modeller}, {Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
-                                    @if (IsModellingWriteAllowedForSelectedApp())
+                                    @if (IsModellingInteractionAllowedForSelectedApp())
                                     {
                                         <button type="button" class="btn btn-sm btn-primary" @onclick="RequestFwChange">
                                             @(DisplayService.DisplayButtonWithTooltip(userConfig, "request_fw_change", Icons.RequestFwChange, UserConfig.PureLineStat(ChangeStatus)))
@@ -395,7 +395,7 @@ else
 
     private void RequestFwChange()
     {
-        if (!IsModellingWriteAllowedForSelectedApp())
+        if (!IsModellingInteractionAllowedForSelectedApp())
         {
             DisplayMessageInUi(null, userConfig.GetText("request_fw_change"), userConfig.GetText("E9104"), true);
             return;
@@ -479,17 +479,12 @@ else
 
     private bool CanOpenRecertificationPopup()
     {
-        return userConfig.CanUseAnyRole(Roles.Admin) || CanRecertifySelectedApp();
+        return userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor) || CanRecertifySelectedApp();
     }
 
     private string GetRecertificationDisabledTooltip()
     {
         return userConfig.PureLine(HasRecertWriteAccess() ? "C9032" : "C9031");
-    }
-
-    private bool IsModellingWriteAllowedForSelectedApp()
-    {
-        return IsModellingWriteAllowedForApp(selectedApp);
     }
 
     /// <summary>

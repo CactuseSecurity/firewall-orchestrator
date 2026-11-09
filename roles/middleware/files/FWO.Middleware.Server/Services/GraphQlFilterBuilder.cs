@@ -32,8 +32,10 @@ public static class GraphQlFilterBuilder
     /// <summary>
     /// Adds an OR-connected set of case-insensitive text predicates for non-blank values in the supplied list.
     /// Values that differ only in casing produce the same case-insensitive match and are therefore added once.
+    /// Plain text without wildcards is a contains search unless <paramref name="matchPlainTextExactly"/> is set.
     /// </summary>
-    public static void AddWildcardPredicates(List<Dictionary<string, object>> predicates, string fieldName, List<string>? values)
+    public static void AddWildcardPredicates(List<Dictionary<string, object>> predicates, string fieldName, List<string>? values,
+        bool matchPlainTextExactly = false)
     {
         if (values is null)
         {
@@ -48,7 +50,7 @@ public static class GraphQlFilterBuilder
         {
             alternatives.Add(new Dictionary<string, object>
             {
-                [fieldName] = new Dictionary<string, object> { ["_ilike"] = BuildLikePattern(value) }
+                [fieldName] = new Dictionary<string, object> { ["_ilike"] = BuildLikePattern(value, matchPlainTextExactly) }
             });
         }
 
@@ -65,7 +67,7 @@ public static class GraphQlFilterBuilder
     /// <summary>
     /// Adds a set membership predicate for the supplied field.
     /// </summary>
-    public static void AddInPredicate(List<Dictionary<string, object>> predicates, string fieldName, List<int> values)
+    public static void AddInPredicate<T>(List<Dictionary<string, object>> predicates, string fieldName, List<T> values)
     {
         predicates.Add(BuildInExpression(fieldName, values));
     }
@@ -73,7 +75,7 @@ public static class GraphQlFilterBuilder
     /// <summary>
     /// Builds a set membership expression for the supplied field.
     /// </summary>
-    public static Dictionary<string, object> BuildInExpression(string fieldName, List<int> values)
+    public static Dictionary<string, object> BuildInExpression<T>(string fieldName, List<T> values)
     {
         return new Dictionary<string, object> { [fieldName] = new Dictionary<string, object> { ["_in"] = values } };
     }
@@ -114,17 +116,31 @@ public static class GraphQlFilterBuilder
     /// Builds an <c>_ilike</c> pattern from a user-supplied filter value.
     /// Literal SQL wildcards (<c>\</c>, <c>%</c>, <c>_</c>) in the input are escaped so they are matched verbatim,
     /// while the documented <c>*</c> and <c>?</c> wildcards are translated to <c>%</c> and <c>_</c>.
-    /// Plain text without <c>*</c>/<c>?</c> is wrapped for a contains search.
+    /// Plain text without <c>*</c>/<c>?</c> is wrapped for a contains search unless
+    /// <paramref name="matchPlainTextExactly"/> is set.
     /// </summary>
-    public static string BuildLikePattern(string value)
+    public static string BuildLikePattern(string value, bool matchPlainTextExactly = false)
     {
         string trimmedValue = value.Trim();
         bool hasWildcard = trimmedValue.Contains('*') || trimmedValue.Contains('?');
-        string escapedValue = trimmedValue
+        string pattern = EscapeLikeWildcards(trimmedValue).Replace('*', '%').Replace('?', '_');
+        return hasWildcard || matchPlainTextExactly ? pattern : $"%{pattern}%";
+    }
+
+    /// <summary>
+    /// Builds an <c>_ilike</c> pattern that matches the trimmed value exactly, ignoring case. <c>*</c> and <c>?</c>
+    /// are matched verbatim.
+    /// </summary>
+    public static string BuildCaseInsensitiveEqualsPattern(string value)
+    {
+        return EscapeLikeWildcards(value.Trim());
+    }
+
+    private static string EscapeLikeWildcards(string value)
+    {
+        return value
             .Replace("\\", "\\\\")
             .Replace("%", "\\%")
             .Replace("_", "\\_");
-        string pattern = escapedValue.Replace('*', '%').Replace('?', '_');
-        return hasWildcard ? pattern : $"%{pattern}%";
     }
 }

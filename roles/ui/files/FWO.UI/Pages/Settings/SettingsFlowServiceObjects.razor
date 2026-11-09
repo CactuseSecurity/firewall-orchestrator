@@ -7,7 +7,7 @@
 @using FWO.Data.Flow
 @using Microsoft.AspNetCore.Components.Authorization
 
-@attribute [Authorize(Roles = $"{Roles.Admin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -68,14 +68,14 @@ else
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
     <h4 class="mb-0">@(userConfig.GetText("flow_service_objects"))</h4>
     <div class="btn-group">
-        <button type="button" class="btn btn-sm btn-success" disabled="@workInProgress" @onclick="() => SetShowInRequestModuleForObjects(FilteredFlowSvcObjects, true)">
+        <button type="button" class="btn btn-sm btn-success" disabled="@(workInProgress || !WriteAllowed)" @onclick="() => SetShowInRequestModuleForObjects(FilteredFlowSvcObjects, true)">
             @if (workInProgress)
             {
                 <Loading CssClass="me-1" />
             }
             @(DisplayService.DisplayButton(userConfig, "show_in_request_module", Icons.Check))
         </button>
-        <button type="button" class="btn btn-sm btn-secondary" disabled="@workInProgress" @onclick="() => SetShowInRequestModuleForObjects(FilteredFlowSvcObjects, false)">
+        <button type="button" class="btn btn-sm btn-secondary" disabled="@(workInProgress || !WriteAllowed)" @onclick="() => SetShowInRequestModuleForObjects(FilteredFlowSvcObjects, false)">
             @if (workInProgress)
             {
                 <Loading CssClass="me-1" />
@@ -142,7 +142,7 @@ else
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary" disabled="@workInProgress" @onclick="SaveSvcObject">
+            <button type="button" class="btn btn-sm btn-primary" disabled="@(workInProgress || !WriteAllowed)" @onclick="SaveSvcObject">
                 @if (workInProgress)
                 {
                     <Loading CssClass="me-1" />
@@ -220,7 +220,7 @@ else
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary" disabled="@workInProgress" @onclick="SaveCustomObject">
+            <button type="button" class="btn btn-sm btn-primary" disabled="@(workInProgress || !WriteAllowed)" @onclick="SaveCustomObject">
                 @if (workInProgress)
                 {
                     <Loading CssClass="me-1" />
@@ -235,6 +235,7 @@ else
 </PopUp>
 
 <FlowDuplicateResolver TItem="NetworkService"
+                       CanResolve="WriteAllowed"
                        Title="@(userConfig.GetText("duplicate_objects"))"
                        Show="@ResolveDuplicateMode"
                        Size=PopupSize.Auto
@@ -278,6 +279,11 @@ else
     private FlowSvcObjectDuplicateGroup? SelectedDuplicateGroup;
     private FlowSvcObject NewCustomFlowSvcObject = new();
     private bool workInProgress = false;
+
+    /// <summary>
+    /// Only admins may change flow settings, auditors can only view them.
+    /// </summary>
+    private bool WriteAllowed => userConfig.CanUseAnyRole(Roles.Admin);
     private bool EditMode = false;
     private bool ResolveDuplicateMode = false;
     private bool CreateCustomObjectMode = false;

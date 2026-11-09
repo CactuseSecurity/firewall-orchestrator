@@ -21,33 +21,33 @@ namespace FWO.Services
         /// </summary>
         public const string kAutoCalculatedUndefinedInternalZoneIdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL";
 
-        public List<ComplianceNetworkZone> NetworkZones { get; set; } = [];
+        public List<NetworkZone> NetworkZones { get; set; } = [];
 
         public delegate void ZoneAddEventArgs();
-        public delegate void ZoneModificationEventArgs(ComplianceNetworkZone networkZone);
+        public delegate void ZoneModificationEventArgs(NetworkZone networkZone);
         public event ZoneModificationEventArgs? OnEditZone;
         public event ZoneModificationEventArgs? OnDeleteZone;
 
         public struct AdditionsDeletions
         {
-            public List<ComplianceNetworkZone> SourceZonesToAdd = [];
-            public List<ComplianceNetworkZone> SourceZonesToDelete = [];
-            public List<ComplianceNetworkZone> DestinationZonesToAdd = [];
-            public List<ComplianceNetworkZone> DestinationZonesToDelete = [];
-            public List<ComplianceNetworkZone> SubzonesToAdd = [];
-            public List<ComplianceNetworkZone> SubzonesToDelete = [];
+            public List<NetworkZone> SourceZonesToAdd = [];
+            public List<NetworkZone> SourceZonesToDelete = [];
+            public List<NetworkZone> DestinationZonesToAdd = [];
+            public List<NetworkZone> DestinationZonesToDelete = [];
+            public List<NetworkZone> SubzonesToAdd = [];
+            public List<NetworkZone> SubzonesToDelete = [];
             public List<IPAddressRange> IpRangesToDelete = [];
             public List<IPAddressRange> IpRangesToAdd = [];
 
             public AdditionsDeletions() { }
         }
 
-        public void InvokeOnEditZone(ComplianceNetworkZone networkZone)
+        public void InvokeOnEditZone(NetworkZone networkZone)
         {
             OnEditZone?.Invoke(networkZone);
         }
 
-        public void InvokeOnDeleteZone(ComplianceNetworkZone networkZone)
+        public void InvokeOnDeleteZone(NetworkZone networkZone)
         {
             OnDeleteZone?.Invoke(networkZone);
         }
@@ -75,7 +75,7 @@ namespace FWO.Services
             return ipAddressRange.ToString();
         }
 
-        public static async Task AddZone(ComplianceNetworkZone networkZone, AdditionsDeletions addDel, ApiConnection apiConnection)
+        public static async Task AddZone(NetworkZone networkZone, AdditionsDeletions addDel, ApiConnection apiConnection)
         {
             var variables = new
             {
@@ -119,7 +119,7 @@ namespace FWO.Services
             await apiConnection.SendQueryAsync<dynamic>(NetworkZoneQueries.addNetworkZone, variables);
         }
 
-        public static async Task UpdateZone(ComplianceNetworkZone networkZone, AdditionsDeletions addDel, ApiConnection apiConnection)
+        public static async Task UpdateZone(NetworkZone networkZone, AdditionsDeletions addDel, ApiConnection apiConnection)
         {
             var addZoneCommunication = addDel.SourceZonesToAdd.ConvertAll(zone =>
                 new
@@ -199,7 +199,7 @@ namespace FWO.Services
             await apiConnection.SendQueryAsync<dynamic>(NetworkZoneQueries.updateNetworkZone, variables);
         }
 
-        public static async Task RemoveZone(ComplianceNetworkZone networkZone, ApiConnection apiConnection)
+        public static async Task RemoveZone(NetworkZone networkZone, ApiConnection apiConnection)
         {
             var deleteZoneCommunicationExp = networkZone.AllowedCommunicationSources.ToList().ConvertAll(zone =>
                 new
@@ -243,7 +243,7 @@ namespace FWO.Services
             {
                 return;
             }
-            List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
+            List<NetworkZone> existingZones = await apiConnection.SendQueryAsync<List<NetworkZone>>(
                 NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
             if (existingZones.Any(zone => zone.IsAutoCalculatedInternetZone))
             {
@@ -262,11 +262,11 @@ namespace FWO.Services
         {
             // Get all zones of the matrix.
 
-            List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+            List<NetworkZone> existingZones = await apiConnection.SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
 
             // Remove existing special zones.
 
-            foreach (ComplianceNetworkZone specialZone in existingZones.Where(zone => zone.IsAutoCalculatedInternetZone || zone.IsAutoCalculatedUndefinedInternalZone).ToList())
+            foreach (NetworkZone specialZone in existingZones.Where(zone => zone.IsAutoCalculatedInternetZone || zone.IsAutoCalculatedUndefinedInternalZone).ToList())
             {
                 await RemoveZone(specialZone, apiConnection);
                 existingZones.Remove(specialZone);
@@ -287,9 +287,9 @@ namespace FWO.Services
         /// <summary>
         /// Calculates and persists the Internet zone, replacing the ranges of an imported placeholder when present.
         /// </summary>
-        private static async Task AddOrUpdateInternetZone(int matrixId, ApiConnection apiConnection, List<ComplianceNetworkZone> existingZones)
+        private static async Task AddOrUpdateInternetZone(int matrixId, ApiConnection apiConnection, List<NetworkZone> existingZones)
         {
-            bool dummyInternetZoneExists = TryUpdateInternetZoneObject(existingZones, matrixId, out ComplianceNetworkZone internetZone);
+            bool dummyInternetZoneExists = TryUpdateInternetZoneObject(existingZones, matrixId, out NetworkZone internetZone);
             List<IPAddressRange> dummyInternetZoneRanges = internetZone.IPRanges.ToList();
             if (dummyInternetZoneExists)
             {
@@ -320,9 +320,9 @@ namespace FWO.Services
         /// <param name="apiConnection">API connection used to persist the zone.</param>
         /// <param name="globalConfig">Global configuration that defines internal address ranges.</param>
         /// <param name="existingZones">Zones that define the calculated Internet zone.</param>
-        private static async Task CreateAndAddUndefinedInternalZone(int matrixId, ApiConnection apiConnection, GlobalConfig globalConfig, List<ComplianceNetworkZone> existingZones)
+        private static async Task CreateAndAddUndefinedInternalZone(int matrixId, ApiConnection apiConnection, GlobalConfig globalConfig, List<NetworkZone> existingZones)
         {
-            ComplianceNetworkZone undefinedInternalZone = new()
+            NetworkZone undefinedInternalZone = new()
             {
                 IdString = kAutoCalculatedUndefinedInternalZoneIdString,
                 Name = "Auto-calculated Undefined-internal Zone",
@@ -347,10 +347,10 @@ namespace FWO.Services
         /// Returns the internet zone object to persist. A pre-existing zone with the reserved id string
         /// (legacy imports before 9.5 without auto-calculation) is adopted instead of creating a duplicate.
         /// </summary>
-        private static bool TryUpdateInternetZoneObject(List<ComplianceNetworkZone> existingZones, int matrixId, out ComplianceNetworkZone internetZone)
+        private static bool TryUpdateInternetZoneObject(List<NetworkZone> existingZones, int matrixId, out NetworkZone internetZone)
         {
             bool updated = false;
-            ComplianceNetworkZone? dummyInternetZone = existingZones.FirstOrDefault(zone => zone.IdString == kAutoCalculatedInternetZoneIdString);
+            NetworkZone? dummyInternetZone = existingZones.FirstOrDefault(zone => zone.IdString == kAutoCalculatedInternetZoneIdString);
 
             if (dummyInternetZone == null)
             {
@@ -373,7 +373,7 @@ namespace FWO.Services
             return updated;
         }
 
-        public static void CalculateInternetZone(ComplianceNetworkZone internetZone, List<ComplianceNetworkZone> excludedZones)
+        public static void CalculateInternetZone(NetworkZone internetZone, List<NetworkZone> excludedZones)
         {
             IPAddressRange fullRangeIPv4 = IPAddressRange.Parse("0.0.0.0/0");
 
@@ -383,9 +383,9 @@ namespace FWO.Services
             internetZone.IPRanges = internetZoneIPRanges.ToArray();
         }
 
-        public static void CalculateUndefinedInternalZone(ComplianceNetworkZone undefinedInternalZone, List<IPAddressRange> internalZoneRanges, List<ComplianceNetworkZone> definedZones)
+        public static void CalculateUndefinedInternalZone(NetworkZone undefinedInternalZone, List<IPAddressRange> internalZoneRanges, List<NetworkZone> definedZones)
         {
-            List<ComplianceNetworkZone> definedNonInternetZones = definedZones
+            List<NetworkZone> definedNonInternetZones = definedZones
                 .Where(zone => zone.IdString != kAutoCalculatedInternetZoneIdString)
                 .ToList();
             List<IPAddressRange> definedZonesRanges = ParseNetworkZoneToListOfRanges(definedNonInternetZones, true);
@@ -414,14 +414,14 @@ namespace FWO.Services
             undefinedInternalZone.IPRanges = undefinedInternalZoneRanges.ToArray();
         }
 
-        private static List<IPAddressRange> ParseNetworkZoneToListOfRanges(List<ComplianceNetworkZone> networkZones, bool sort)
+        private static List<IPAddressRange> ParseNetworkZoneToListOfRanges(List<NetworkZone> networkZones, bool sort)
         {
             List<IPAddressRange> listOfRanges = new();
 
 
             // Gather ip ranges from excluded network zone list
 
-            foreach (ComplianceNetworkZone networkZone in networkZones)
+            foreach (NetworkZone networkZone in networkZones)
             {
                 if (networkZone.IPRanges != null)
                 {

@@ -15,12 +15,23 @@
                     <Column TableItem="WfApproval" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                         <Template>
                             <div class="btn-group">
-                                @if((context.ApproverDn == null || context.ApproverDn == "") && !WfHandler.AddTicketMode && !IsReadOnly)
+                                @if((context.ApproverDn == null || context.ApproverDn == "") && !WfHandler.AddTicketMode)
                                 {
-                                    <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">
-                                        @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add, "comment"))</button>
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">
-                                        @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                    @if (!IsReadOnly)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="() => InitAddComment(context)">
+                                            @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add, "comment"))</button>
+                                        <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignApproval(context)">
+                                            @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                    }
+                                    else if (WfHandler.ReadOnlyMode)
+                                    {
+                                        @* read-only users see what could be done here, but cannot do it *@
+                                        <button type="button" class="btn btn-sm btn-success" disabled>
+                                            @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add, "comment"))</button>
+                                        <button type="button" class="btn btn-sm btn-warning" disabled>
+                                            @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                    }
                                 }
                             </div>
                         </Template>
@@ -35,7 +46,7 @@
                     <Column TableItem="WfApproval" Title="@(userConfig.GetText("approved"))" Field="@(x => x.ApprovalDate)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfApproval" Title="@(userConfig.GetText("approver"))" Field="@(x => x.ApproverDn)" Sortable="true" Filterable="true" >
                         <Template>
-                            @(new DistName(context.ApproverDn).UserName)
+                            @DisplayApprover(context.ApproverDn)
                         </Template>
                     </Column>
                     <Column TableItem="WfApproval" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="true" >
@@ -92,6 +103,17 @@
     static List<string> validRoles = new (){Roles.Approver};
     private bool WorkInProgress = false;
     private bool IsReadOnly => ReadOnlyMode ?? WfHandler.ReadOnlyMode;
+
+    private static string DisplayApprover(string? approverDn)
+    {
+        if (string.IsNullOrWhiteSpace(approverDn))
+        {
+            return "";
+        }
+
+        string userName = new DistName(approverDn).UserName;
+        return string.IsNullOrWhiteSpace(userName) ? approverDn : userName;
+    }
 
 
     private async Task Close()

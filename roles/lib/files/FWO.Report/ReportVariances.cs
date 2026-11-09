@@ -25,10 +25,10 @@ namespace FWO.Report
             report.AppendLine($"{userConfig.GetText("U1003")}<br>");
             foreach (var ownerReport in ReportData.OwnerData)
             {
-                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{ownerReport.Name}</h3>");
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{HtmlOutputEncoder.EncodeText(ownerReport.Name)}</h3>");
                 if (ownerReport.ImplementationState != "")
                 {
-                    report.AppendLine($"{ownerReport.ImplementationState}<br>");
+                    report.AppendLine($"{HtmlOutputEncoder.EncodeText(ownerReport.ImplementationState)}<br>");
                 }
                 AppendStats(ref report, ownerReport);
                 report.AppendLine("<hr>");
@@ -107,7 +107,7 @@ namespace FWO.Report
                 {
                     if (ownerReport.MissingAppRoles[mgt].Count > 0)
                     {
-                        report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{ownerReport.MissingAppRoles[mgt][0].ManagementName}</h5>");
+                        report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{HtmlOutputEncoder.EncodeText(ownerReport.MissingAppRoles[mgt][0].ManagementName)}</h5>");
                         AppendAppRolesHtml(ownerReport.MissingAppRoles[mgt], ref report);
                     }
                 }
@@ -124,7 +124,7 @@ namespace FWO.Report
                 {
                     if (ownerReport.DifferingAppRoles[mgt].Count > 0)
                     {
-                        report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{ownerReport.DifferingAppRoles[mgt][0].ManagementName}</h5>");
+                        report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{HtmlOutputEncoder.EncodeText(ownerReport.DifferingAppRoles[mgt][0].ManagementName)}</h5>");
                         AppendAppRolesHtml(ownerReport.DifferingAppRoles[mgt], ref report, true, true);
                     }
                 }
@@ -145,7 +145,7 @@ namespace FWO.Report
                 report.AppendLine("<tr>");
                 report.AppendLine($"<td>{appRole.Number}</td>");
                 report.AppendLine($"<td>{appRole.Id}</td>");
-                report.AppendLine($"<td>{appRole.Name}</td>");
+                report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(appRole.Name)}</td>");
                 if (split)
                 {
                     report.AppendLine($"<td>{ConnectionReport.ListAppServers([.. ModellingAppServerWrapper.Resolve(appRole.AppServers)], [])}</td>");
@@ -216,7 +216,7 @@ namespace FWO.Report
                 foreach (var difference in ownerReport.RuleDifferences)
                 {
                     bool anyUnusedObjects = difference.ImplementedRules.Any(r => r.UnusedSpecialUserObjects.Count > 0 || r.UnusedUpdatableObjects.Count > 0);
-                    report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{difference.ModelledConnection.Name}</h5>");
+                    report.AppendLine($"<h5 id=\"{Guid.NewGuid()}\">{HtmlOutputEncoder.EncodeText(difference.ModelledConnection.Name)}</h5>");
                     AppendConnectionsGroupHtml([difference.ModelledConnection], ownerReport, chapterNumber, ref report, new() { WithoutLinks = true, WithoutNumber = true });
                     report.AppendLine("<table>");
                     report.AppendLine("<tr>");
@@ -234,15 +234,15 @@ namespace FWO.Report
                     foreach (var diff in difference.ImplementedRules)
                     {
                         report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{diff.ManagementName}</td>");
-                        report.AppendLine($"<td>{diff.DeviceName}</td>");
+                        report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(diff.ManagementName)}</td>");
+                        report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(diff.DeviceName)}</td>");
                         report.AppendLine($"<td>{ruleDiffDisplay.DisplaySourceDiff(diff, OutputLocation.export, ReportType)}</td>");
                         report.AppendLine($"<td>{ruleDiffDisplay.DisplayServiceDiff(diff, OutputLocation.export, ReportType)}</td>");
                         report.AppendLine($"<td>{ruleDiffDisplay.DisplayDestinationDiff(diff, OutputLocation.export, ReportType)}</td>");
                         if (anyUnusedObjects)
                         {
                             List<string> unusedObjects = [.. diff.UnusedSpecialUserObjects, .. diff.UnusedUpdatableObjects];
-                            report.AppendLine($"<td style=\"{GlobalConst.kStyleHighlightedRed}\">{string.Join(", ", unusedObjects)}</td>");
+                            report.AppendLine($"<td style=\"{GlobalConst.kStyleHighlightedRed}\">{HtmlOutputEncoder.EncodeText(string.Join(", ", unusedObjects))}</td>");
                         }
                         report.AppendLine("</tr>");
                     }

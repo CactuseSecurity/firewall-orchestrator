@@ -65,7 +65,7 @@ namespace FWO.Services.Workflow
             bool emailBundleFlushAttempted = false;
             try
             {
-                if (!await PromoteTicket(ticket))
+                if (!CheckActTicketChangeable() || !await PromoteTicket(ticket))
                 {
                     return false;
                 }
@@ -73,10 +73,7 @@ namespace FWO.Services.Workflow
                 BeginWorkflowEmailBundle();
                 emailBundleStarted = true;
 
-                // Creation itself is guarded by the implementation phase's
-                // configured lowest input state. Do not suppress it merely
-                // because this caller is in the request phase.
-                await UpdateRequestTasksFromTicket(true, approvalComment: ticket.OptComment());
+                await UpdateRequestTasksFromTicket(approvalComment: ticket.OptComment());
                 // In the request phase, task actions execute in middleware and
                 // may promote the task and ticket further. The UI still holds
                 // the pre-action task state here, so deriving the ticket from
@@ -125,7 +122,7 @@ namespace FWO.Services.Workflow
                 BeginWorkflowEmailBundle();
                 emailBundleStarted = true;
 
-                await UpdateRequestTasksFromTicket(false, targetTicketStateId: targetTicketStateId,
+                await UpdateRequestTasksFromTicket(targetTicketStateId: targetTicketStateId,
                     approvalComment: ticket.OptComment());
                 ActTicket.StateId = targetTicketStateId;
                 await UpdateActTicketState();
@@ -382,8 +379,17 @@ namespace FWO.Services.Workflow
             SetTicketEnv(ticket);
             SetReqTaskEnv(reqTask);
             await SetApprovalEnv(approval, false);
+            StateMatrix approvalTaskMatrix = stateMatrixDict.Matrices[ActReqTask.TaskType];
             int oldStateId = ActApproval.StateId;
-            ActApproval.StateId = targetStateId;
+            ActApproval.StateId = approvalTaskMatrix.ApprovalLowestEndState > 0
+                ? GetApprovalStateForRequestTask(targetStateId, approvalTaskMatrix)
+                : targetStateId;
+            if (approvalTaskMatrix.ApprovalLowestEndState > 0
+                && ActApproval.StateId >= approvalTaskMatrix.ApprovalLowestEndState)
+            {
+                ActApproval.ApprovalDate = DateTime.Now;
+                ActApproval.ApproverDn = CurrentUserDn();
+            }
             await UpdateActApproval(mode == MonitoringStateChangeMode.TriggerActions);
 
             if (mode != MonitoringStateChangeMode.LocalOnly)
@@ -392,7 +398,7 @@ namespace FWO.Services.Workflow
                 SyncActTicketFromReqTask(ActReqTask);
                 await UpdateActTicketStateFromReqTasks(mode == MonitoringStateChangeMode.TriggerActions, false);
             }
-            LogMonitoringStateChange(WfObjectScopes.Approval, ActApproval.Id, ActTicket.Id, oldStateId, targetStateId, mode);
+            LogMonitoringStateChange(WfObjectScopes.Approval, ActApproval.Id, ActTicket.Id, oldStateId, ActApproval.StateId, mode);
         }
 
         private void LogMonitoringStateChange(WfObjectScopes scope, long objectId, long ticketId, int oldStateId, int newStateId, MonitoringStateChangeMode mode)
@@ -417,6 +423,13 @@ namespace FWO.Services.Workflow
                 }
             }
             return userConfig.User.DbId > 0 ? userConfig.User.DbId.ToString() : "unknown";
+        }
+
+        private string CurrentUserDn()
+        {
+            string? authenticatedUserDn = AuthUser?.FindFirst("x-hasura-uuid")?.Value;
+            string userDn = string.IsNullOrWhiteSpace(authenticatedUserDn) ? userConfig.User.Dn : authenticatedUserDn;
+            return string.IsNullOrWhiteSpace(userDn) ? GlobalConst.kSystemUser : userDn;
         }
 
         private static string GetStatefulObjectId(WfStatefulObject statefulObject)
@@ -463,7 +476,7 @@ namespace FWO.Services.Workflow
             }
             if (syncImplementationTasks)
             {
-                await AutoCreateOrUpdateImplTasks();
+                await SyncImplTaskStatesAfterApproval();
             }
             if (dbAcc != null)
             {
@@ -528,12 +541,11 @@ namespace FWO.Services.Workflow
             SyncActTicketFromReqTask(ActReqTask);
         }
 
-        private async Task<bool> UpdateRequestTasksFromTicket(bool createImplTasks = true, bool triggerActions = true,
+        private async Task<bool> UpdateRequestTasksFromTicket(bool triggerActions = true,
             int? targetTicketStateId = null, string? approvalComment = null)
         {
             bool requestTaskActionsChangedState = false;
             List<WfReqTask> requestTasks = [.. ActTicket.Tasks];
-            List<WfReqTask> requestTasksNeedingInitialImplTasks = [];
             int synchronizationTicketStateId = targetTicketStateId ?? ActTicket.StateId;
             // Read the stored ticket once for the whole loop: every task and approval below needs the same
             // pre-change snapshot for the change history, and none of them is affected by another's write.
@@ -556,15 +568,6 @@ namespace FWO.Services.Workflow
                     requestTaskActionsChangedState = true;
                     Log.WriteDebug("UpdateRequestTasksFromTicket", $"Request task {reqtask.Id} changed from {oldReqTaskState} to {reqtask.StateId}.");
                 }
-                if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !IsPlanningPhaseActive(stateMatrixDict.Matrices[reqtask.TaskType])
-                    && RequestTaskNeedsInitialImplTasks(reqtask))
-                {
-                    requestTasksNeedingInitialImplTasks.Add(reqtask);
-                }
-            }
-            foreach (WfReqTask reqtask in await RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
-            {
-                await AutoCreateImplTasks(reqtask);
             }
             return requestTaskActionsChangedState;
         }
@@ -620,7 +623,10 @@ namespace FWO.Services.Workflow
                 if (approval.StateId >= reqTaskMatrix.ApprovalLowestEndState)
                 {
                     approval.ApprovalDate = DateTime.Now;
-                    approval.ApproverDn = implicitApproval ? "system" : userConfig.User.Dn;
+                    // The comment identifies this as an implicit approval. Keep the
+                    // actual initiating user as approver so the approval remains
+                    // resolvable and visible in the UI.
+                    approval.ApproverDn = CurrentUserDn();
                     await AddApprovalPromotionComment(approval, approvalComment, implicitApproval);
                 }
             }
@@ -686,16 +692,26 @@ namespace FWO.Services.Workflow
             {
                 return;
             }
-            await AddApprovalComment(approval, commentText);
+            await AddApprovalComment(approval, commentText, SystemCommentUser());
         }
 
-        private async Task AddApprovalComment(WfApproval approval, string commentText)
+        private static UiUser SystemCommentUser()
+        {
+            return new UiUser
+            {
+                DbId = 0,
+                Name = GlobalConst.kSystemUser,
+                Dn = GlobalConst.kSystemUser
+            };
+        }
+
+        private async Task AddApprovalComment(WfApproval approval, string commentText, UiUser? creator = null)
         {
             WfComment comment = new()
             {
                 Scope = WfObjectScopes.Approval.ToString(),
                 CreationDate = DateTime.Now,
-                Creator = userConfig.User,
+                Creator = creator ?? userConfig.User,
                 CommentText = commentText
             };
 

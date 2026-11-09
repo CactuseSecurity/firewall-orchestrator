@@ -32,7 +32,7 @@ public static class ApiDocumentationJsonOptions
     /// <summary>
     /// Creates serializer options for published API examples. Empty string properties are omitted so that
     /// an example only documents the fields it actually demonstrates, which matters for mutually exclusive
-    /// fields such as ipStart/ipEnd versus ipNetwork.
+    /// mutually exclusive request alternatives such as ipHost, ipNetwork, and ipRange.
     /// </summary>
     /// <param name="baseOptions">Controller options the examples should follow, or null for the defaults.</param>
     public static JsonSerializerOptions CreateExampleSerializerOptions(JsonSerializerOptions? baseOptions = null)
@@ -40,7 +40,7 @@ public static class ApiDocumentationJsonOptions
         JsonSerializerOptions options = baseOptions == null ? CreateSerializerOptions() : new(baseOptions);
         options.TypeInfoResolver = new DefaultJsonTypeInfoResolver
         {
-            Modifiers = { OmitEmptyStrings }
+            Modifiers = { OmitEmptyExampleValues }
         };
         return options;
     }
@@ -49,11 +49,20 @@ public static class ApiDocumentationJsonOptions
     /// Suppresses string properties without content when an example is serialized.
     /// </summary>
     /// <param name="typeInfo">Type contract to adjust.</param>
-    private static void OmitEmptyStrings(JsonTypeInfo typeInfo)
+    private static void OmitEmptyExampleValues(JsonTypeInfo typeInfo)
     {
         foreach (JsonPropertyInfo property in typeInfo.Properties.Where(property => property.PropertyType == typeof(string)))
         {
             property.ShouldSerialize = (_, value) => value is string text && text.Length > 0;
+        }
+
+        if (typeof(Requests.IAddressInput).IsAssignableFrom(typeInfo.Type))
+        {
+            JsonPropertyInfo? rangeProperty = typeInfo.Properties.FirstOrDefault(property => property.Name == "ipRange");
+            if (rangeProperty != null)
+            {
+                rangeProperty.ShouldSerialize = (_, value) => value is List<string> { Count: > 0 };
+            }
         }
     }
 }

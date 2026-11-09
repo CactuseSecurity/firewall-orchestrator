@@ -1,5 +1,4 @@
 @using FWO.Logging
-@using FWO.ExternalSystems.Tufin.SecureChange
 @using System.Text.Json
 
 @page "/settings/exttickettemplates"
@@ -48,38 +47,33 @@
                     <input id="cbx_ext_ticket_check_certificates" type="checkbox" @bind="configData!.ExtTicketSystemsCheckCertificates" />
                 </div>
             </div>
-            <AuthorizeView Roles="@Roles.Admin">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="SaveServiceData">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <hr />
             <div class="row mb-2">
                 <div class="col-sm-12">
-                    <AuthorizeView Roles="@Roles.Admin">
-                        <Authorized>
-                            <button type="button" class="btn btn-sm btn-success" @onclick="AddExternalTicketSystem">@(DisplayService.DisplayButton(userConfig, "add_ext_ticket_system", Icons.Add))</button>
-                        </Authorized>
-                    </AuthorizeView>
+                    <button type="button" class="btn btn-sm btn-success" @onclick="AddExternalTicketSystem">@(DisplayService.DisplayButton(userConfig, "add_ext_ticket_system", Icons.Add))</button>
                 </div>
             </div>
             <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ExternalTicketSystem" Items="extTicketSystems" PageSize="0" ColumnReorder="true">
                 <Column TableItem="ExternalTicketSystem" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template Context="item">
                         <div class="btn-group">
-                            <AuthorizeView Roles="@Roles.Admin">
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditExternalTicketSystem(item)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                                 <Authorized>
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditExternalTicketSystem(item)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                                     <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteExternalTicketSystem(item)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                 </Authorized>
                                 <NotAuthorized>
-                                    <button type="button" disabled class="btn btn-sm btn-warning">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
                                     <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                 </NotAuthorized>
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                         </div>
                     </Template>
                 </Column>
@@ -158,26 +152,38 @@
                         </div>
                     }
                     <br>
-                    <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
-                        @{
-                            int pos = 0;
-                        }
-                        @foreach (var template in editModel.Templates)
-                        {
-                            <Tab Title="@(template.TaskType)" Position=pos++>
-                                <ExtTicketTemplates Template="template" IsBuiltIn="selectedType.IsBuiltIn" />
-                            </Tab>
-                        }
-                        <Tab Title="  +  " Position=pos>
-                            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
-                                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
-                                <div class="col-sm-4">
-                                    <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="GetAvailableTaskTypesForNewTemplate()" />
-                                </div>
+                    @if (editModel.IsTufinSecureChange())
+                    {
+                        <div class="form-group row mt-2">
+                            <div class="col-sm-12 text-muted">
+                                @(userConfig.GetText("ext_ticket_sc_templates_moved"))
+                                <a href="/settings/devicespecificsettings">@(userConfig.GetText("dss_settings"))</a>
                             </div>
-                            <ExtTicketTemplates Template="newTemplate" IsBuiltIn="selectedType.IsBuiltIn" />
-                        </Tab>
-                    </TabSet>
+                        </div>
+                    }
+                    else
+                    {
+                        <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false">
+                            @{
+                                int pos = 0;
+                            }
+                            @foreach (var template in editModel.Templates)
+                            {
+                                <Tab Title="@(template.TaskType)" Position=pos++>
+                                    <ExtTicketTemplates Template="template" IsBuiltIn="selectedType.IsBuiltIn" />
+                                </Tab>
+                            }
+                            <Tab Title="  +  " Position=pos>
+                                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5599"))">
+                                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
+                                    <div class="col-sm-4">
+                                        <Dropdown ElementType="string" @bind-SelectedElement="newTemplate.TaskType" Elements="GetAvailableTaskTypesForNewTemplate()" />
+                                    </div>
+                                </div>
+                                <ExtTicketTemplates Template="newTemplate" IsBuiltIn="selectedType.IsBuiltIn" />
+                            </Tab>
+                        </TabSet>
+                    }
                 </div>
                 <hr />
             }
@@ -185,14 +191,14 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <AuthorizeView Roles="@Roles.Admin">
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                     </NotAuthorized>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
                 <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEdit">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
             </div>
         </Footer>
@@ -315,7 +321,7 @@ else
                 system.CredentialId = selectedType.IsBuiltIn ? editModel.CredentialId : null;
                 system.Authorization = null;
                 system.LookupRequesterId = editModel.LookupRequesterId;
-                system.Templates = editModel.Templates
+                system.Templates = [.. TemplatesToStore(editModel)
                     .Select(t => new ExternalTicketTemplate
                     {
                         TaskType = t.TaskType,
@@ -328,8 +334,8 @@ else
                         ServiceTemplate = t.ServiceTemplate,
                         IcmpTemplate = t.IcmpTemplate,
                         IpProtocolTemplate = t.IpProtocolTemplate
-                    })
-                    .ToList();
+                    })];
+                ClearLegacyTemplates(system);
 
                 system.Sanitize();
             }
@@ -338,6 +344,8 @@ else
                 editModel.Id = GetNextExternalTicketSystemId(extTicketSystems);
                 editModel.CredentialId = selectedType.IsBuiltIn ? editModel.CredentialId : null;
                 editModel.Authorization = null;
+                editModel.Templates = TemplatesToStore(editModel);
+                ClearLegacyTemplates(editModel);
                 editModel.Sanitize();
                 extTicketSystems.Add(editModel);
                 curExternalTicketSystem = editModel;
@@ -360,6 +368,22 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("ext_ticket_templates"), "", true);
         }
+    }
+
+    /// <summary>
+    /// The templates stored with a ticket system. SecureChange templates are device specific settings, so none are stored
+    /// with a SecureChange system.
+    /// </summary>
+    private static List<ExternalTicketTemplate> TemplatesToStore(ExternalTicketSystem system)
+    {
+        return system.IsTufinSecureChange() ? [] : system.Templates;
+    }
+
+    /// <summary>Removes the templates of the single-template format, which the template list replaced.</summary>
+    private static void ClearLegacyTemplates(ExternalTicketSystem system)
+    {
+        system.TicketTemplate = "";
+        system.TasksTemplate = "";
     }
 
     private int GetNextExternalTicketSystemId(List<ExternalTicketSystem> systems)

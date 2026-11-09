@@ -1,6 +1,6 @@
 namespace FWO.Data.Middleware
 {
-    public class GroupGetParameters
+    public class GroupGetParameters : PagingParameters
     {
         public int LdapId { get; set; }
         public string SearchPattern { get; set; } = "";
@@ -31,18 +31,18 @@ namespace FWO.Data.Middleware
         public string GroupDn { get; set; } = "";
     }
 
-    public class GroupMemberGetParameters
+    public class GroupMemberGetParameters : PagingParameters
     {
         public string GroupDn { get; set; } = "";
     }
 
-    public class GroupMembershipGetParameters
+    public class GroupMembershipGetParameters : PagingParameters
     {
         public string UserDn { get; set; } = "";
         public string UserName { get; set; } = "";
     }
 
-    public class GroupResolveParameters
+    public class GroupResolveParameters : PagingParameters
     {
         public List<string> Dns { get; set; } = new();
     }

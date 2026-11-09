@@ -1,5 +1,4 @@
-using FWO.Basics;
-using FWO.Data;
+using FWO.Services.PathAnalysis;
 using FWO.Data.Workflow;
 using System.Text.Json;
 
@@ -28,7 +27,7 @@ namespace FWO.Services.Workflow
                     return false;
                 }
 
-                WfTicket? refreshedTicket = await dbAcc.FetchTicket(ActReqTask.TicketId, GetOwnerIdsForFiltering(), GetVisibilityTicketFilter());
+                WfTicket? refreshedTicket = await dbAcc.FetchTicket(ActReqTask.TicketId, GetOwnerIdsForFiltering(), GetTicketFilter());
                 if (refreshedTicket != null)
                 {
                     int ticketIndex = TicketList.FindIndex(ticket => ticket.Id == refreshedTicket.Id);
@@ -91,7 +90,7 @@ namespace FWO.Services.Workflow
 
             try
             {
-                WfTicket? ticket = await dbAcc.FetchTicket(reqTask.TicketId, GetOwnerIdsForFiltering(), GetVisibilityTicketFilter());
+                WfTicket? ticket = await dbAcc.FetchTicket(reqTask.TicketId, GetOwnerIdsForFiltering(), GetTicketFilter());
                 if (ticket != null)
                 {
                     int ticketIndex = TicketList.FindIndex(existingTicket => existingTicket.Id == ticket.Id);
@@ -224,6 +223,12 @@ namespace FWO.Services.Workflow
 
         public async Task StartWorkOnReqTask(WfReqTask reqTask, ObjAction action)
         {
+            if (ReadOnlyMode)
+            {
+                // read-only users follow the phase without starting work, so no state is written
+                await SelectReqTask(reqTask, action, true);
+                return;
+            }
             SetReqTaskEnv(await LoadReqTaskDetails(reqTask, true));
             ActReqTask.CurrentHandler = userConfig.User;
             List<int> actPossibleStates = ActStateMatrix.getAllowedTransitions(ActReqTask.StateId);
@@ -248,12 +253,22 @@ namespace FWO.Services.Workflow
 
         public async Task ContinuePhase(WfReqTask reqTask)
         {
-            await SelectReqTask(reqTask, contOption, true);
-            if (ActReqTask.CurrentHandler != userConfig.User)
+            await ViewReqTaskInPhase(reqTask);
+            if (!ReadOnlyMode && ActReqTask.CurrentHandler != userConfig.User)
             {
                 ActReqTask.CurrentHandler = userConfig.User;
                 await UpdateActReqTaskState();
             }
+        }
+
+        /// <summary>
+        /// Opens a request task in the view of the current phase without starting work on it or taking it over,
+        /// so that read-only users can see the phase dialog. No state is written.
+        /// </summary>
+        /// <param name="reqTask">The request task to open.</param>
+        public async Task ViewReqTaskInPhase(WfReqTask reqTask)
+        {
+            await SelectReqTask(reqTask, contOption, true);
         }
 
         public async Task AssignReqTaskGroup(WfStatefulObject statefulObject)
@@ -282,9 +297,14 @@ namespace FWO.Services.Workflow
 
         public async Task AddReqTask()
         {
-            if (ActTicket.Locked)
+            if (ActTicket.Locked || !CheckActTicketChangeable())
             {
                 return;
+            }
+
+            if (ActReqTask.Approvals.Count == 0)
+            {
+                await AddApproval();
             }
 
             if (ActTicket.Id > 0) // ticket already created -> write directly to db
@@ -292,29 +312,45 @@ namespace FWO.Services.Workflow
                 ActReqTask.TicketId = ActTicket.Id;
                 if (dbAcc != null)
                 {
-                    ActReqTask.Id = await dbAcc.AddReqTaskToDb(ActReqTask);
+                    long newTaskId = await dbAcc.AddReqTaskToDb(ActReqTask);
+                    if (newTaskId <= 0)
+                    {
+                        return;
+                    }
+
+                    // The insert creates the task's elements and approvals in separate API calls.
+                    // Reload the ticket so the task table uses the complete persisted task graph.
+                    if (!await ReloadActTicket() || !ActTicket.Tasks.Any(task => task.Id == ActReqTask.Id))
+                    {
+                        ActTicket.Tasks.Add(ActReqTask);
+                    }
+                    return;
                 }
             }
             ActTicket.Tasks.Add(ActReqTask);
         }
 
-        public async Task ChangeReqTask()
+        /// <summary>
+        /// Persists the active request task and replaces it in the active ticket.
+        /// </summary>
+        /// <param name="allowLockedApprovalUpdate">Allows the explicitly permitted approval-phase field update on a locked task.</param>
+        public async Task ChangeReqTask(bool allowLockedApprovalUpdate = false)
         {
-            if (ActReqTask.Locked)
+            if ((ActReqTask.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
             {
                 return;
             }
 
             if (ActReqTask.Id > 0 && dbAcc != null)
             {
-                await dbAcc.UpdateReqTaskInDb(ActReqTask);
+                await dbAcc.UpdateReqTaskInDb(ActReqTask, allowLockedApprovalUpdate);
             }
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.TaskNumber == ActReqTask.TaskNumber)] = ActReqTask;
         }
 
         public async Task ChangeOwner()
         {
-            if (ActReqTask.Locked)
+            if (ActReqTask.Locked || !CheckActTicketChangeable())
             {
                 return;
             }
@@ -328,7 +364,7 @@ namespace FWO.Services.Workflow
 
         public async Task ConfDeleteReqTask()
         {
-            if (ActTicket.Locked)
+            if (ActTicket.Locked || !CheckActTicketChangeable())
             {
                 DisplayDeleteReqTaskMode = false;
                 return;

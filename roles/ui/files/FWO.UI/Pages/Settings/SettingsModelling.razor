@@ -122,6 +122,11 @@
             <CommonAreaSelection CommonAreas="UpdObjAreas" CommAreasToDelete="UpdObjAreasToDelete" SearchCommonArea="SearchUpdObjArea"/>
         </div>
         <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5659a"))">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("com_svc_excluded_areas"):</label>
+            <CommonAreaSelection CommonAreas="ComSvcExcludedAreas" CommAreasToDelete="ComSvcExcludedAreasToDelete" SearchCommonArea="SearchComSvcExcludedArea" ShowUsageFlags="false"/>
+        </div>
+        <hr />
         <div class="form-group row">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5606"))">
                 <label for="cbx_network_area_required" class="col-form-label col-sm-8">@(userConfig.GetText("networkAreaRequired")):</label>
@@ -349,6 +354,7 @@ else
 <SearchNwObject @bind-Display="searchCommonArea" ObjectList="CommonAreas.ConvertAll(x => x.Area)" Add="AddCommonArea" CommonAreaMode="true" />
 <SearchNwObject @bind-Display="searchSpecUserArea" ObjectList="SpecUserAreas.ConvertAll(x => x.Area)" Add="AddSpecUserArea" SpecUserMode="true"/>
 <SearchNwObject @bind-Display="searchUpdObjArea" ObjectList="UpdObjAreas.ConvertAll(x => x.Area)" Add="AddUpdObjArea" UpdObjMode="true"/>
+<SearchNwObject @bind-Display="searchComSvcExcludedArea" ObjectList="ComSvcExcludedAreas.ConvertAll(x => x.Area)" Add="AddComSvcExcludedArea" ComSvcExcludedMode="true"/>
 @code
 {
     [CascadingParameter]
@@ -373,10 +379,13 @@ else
     private readonly List<CommonArea> SpecUserAreasToDelete = [];
     private List<CommonArea> UpdObjAreas = [];
     private readonly List<CommonArea> UpdObjAreasToDelete = [];
+    private List<CommonArea> ComSvcExcludedAreas = [];
+    private readonly List<CommonArea> ComSvcExcludedAreasToDelete = [];
     private bool predefServices = false;
     private bool searchCommonArea = false;
     private bool searchSpecUserArea = false;
     private bool searchUpdObjArea = false;
+    private bool searchComSvcExcludedArea = false;
     private ModellingNamingConvention namingConvention = new();
     private List<IpProtocol> availableProtocols = [];
     private DateTime varAnalysisDate = DateTime.Today;
@@ -412,6 +421,7 @@ else
             CommonAreas = RefreshAreas(configData.ModCommonAreas);
             SpecUserAreas = RefreshAreas(configData.ModSpecUserAreas);
             UpdObjAreas = RefreshAreas(configData.ModUpdatableObjAreas);
+            ComSvcExcludedAreas = RefreshAreas(configData.ModComSvcExcludedAreas);
             varAnalysisDate = varAnalysisTime = configData.VarianceAnalysisStartAt;
 
             ruleRecognitionOption = string.IsNullOrEmpty(configData.RuleRecognitionOption) ? new() : JsonSerializer.Deserialize<RuleRecognitionOption>(configData.RuleRecognitionOption) ?? new();
@@ -455,6 +465,12 @@ else
     public bool AddUpdObjArea(ModellingNwGroup area)
     {
         UpdObjAreas.Add(new() { Area = new() { Content = area } });
+        return true;
+    }
+
+    public bool AddComSvcExcludedArea(ModellingNwGroup area)
+    {
+        ComSvcExcludedAreas.Add(new() { Area = new() { Content = area } });
         return true;
     }
 
@@ -505,6 +521,13 @@ else
         return true;
     }
 
+    private bool SearchComSvcExcludedArea()
+    {
+        searchComSvcExcludedArea = true;
+        StateHasChanged();
+        return true;
+    }
+
     private void VarianceOptions()
     {
         varOptMode = true;
@@ -544,6 +567,7 @@ else
                 CommonAreas = RefreshAreas(configData.ModCommonAreas);
                 SpecUserAreas = RefreshAreas(configData.ModSpecUserAreas);
                 UpdObjAreas = RefreshAreas(configData.ModUpdatableObjAreas);
+                ComSvcExcludedAreas = RefreshAreas(configData.ModComSvcExcludedAreas);
                 DisplayMessageInUi(null, userConfig.GetText("modelling_general_settings"), userConfig.GetText("U5301"), false);
             }
             else
@@ -578,6 +602,7 @@ else
         configData!.ModCommonAreas = PrepareAreas(CommonAreas, CommAreasToDelete);
         configData!.ModSpecUserAreas = PrepareAreas(SpecUserAreas, SpecUserAreasToDelete);
         configData!.ModUpdatableObjAreas = PrepareAreas(UpdObjAreas, UpdObjAreasToDelete);
+        configData!.ModComSvcExcludedAreas = PrepareAreas(ComSvcExcludedAreas, ComSvcExcludedAreasToDelete);
         configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);
         configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
     }

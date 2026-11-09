@@ -59,7 +59,7 @@ namespace FWO.Test
                 new(new WfComment
                 {
                     CreationDate = new DateTime(2026, 5, 31),
-                    Creator = new UiUser { Name = "<img src=x>" },
+                    Creator = new UiUser { DbId = 1, Name = "<img src=x>" },
                     CommentText = "<script>alert(1)</script>"
                 })
             ];

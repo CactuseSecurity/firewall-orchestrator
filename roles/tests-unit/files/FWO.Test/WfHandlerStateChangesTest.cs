@@ -18,6 +18,8 @@ namespace FWO.Test
     internal class WfHandlerStateChangesTest
     {
         private static readonly int[] kPromotedTaskStates = [2, 2];
+        // triggerActions, targetTicketStateId, approvalComment of UpdateRequestTasksFromTicket
+        private static readonly object?[] kUpdateRequestTasksArguments = [true, null, null];
 
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix matrix)
         {
@@ -516,6 +518,56 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task StartWorkOnImplTask_InReadOnlyMode_OpensPhaseViewWithoutWriting()
+        {
+            const string taskType = "access";
+            StateMatrix matrix = new()
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 5,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            };
+            matrix.Matrix[0] = [2];
+            WfHandler handler = new() { Phase = WorkflowPhases.implementation, ReadOnlyMode = true };
+            SetMatrix(handler, taskType, matrix);
+            WfImplTask implTask = new() { Id = 3, TicketId = 1, ReqTaskId = 7, TaskType = taskType, StateId = 0 };
+            WfReqTask reqTask = CreateBundledReqTask(7, implTask);
+            reqTask.TaskType = taskType;
+            handler.TicketList.Add(new WfTicket { Id = 1, Tasks = { reqTask } });
+
+            await handler.StartWorkOnImplTask(implTask, ObjAction.implement);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActImplTask.StateId, Is.EqualTo(0));
+                Assert.That(handler.ActImplTask.CurrentHandler, Is.Null);
+                Assert.That(reqTask.StateId, Is.EqualTo(0));
+                Assert.That(handler.ImplementImplTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ContinueImplPhase_InReadOnlyMode_KeepsCurrentHandler()
+        {
+            const string taskType = "access";
+            WfHandler handler = new() { Phase = WorkflowPhases.review, ReadOnlyMode = true };
+            SetMatrix(handler, taskType, new StateMatrix { LowestInputState = 0, LowestStartedState = 2, LowestEndState = 5 });
+            UiUser previousHandler = new() { Dn = "cn=old", DbId = 9 };
+            WfImplTask implTask = new() { Id = 3, TicketId = 1, ReqTaskId = 7, TaskType = taskType, StateId = 2, CurrentHandler = previousHandler };
+            handler.TicketList.Add(new WfTicket { Id = 1 });
+            handler.SetContinueEnv(ObjAction.review);
+
+            await handler.ContinueImplPhase(implTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActImplTask.CurrentHandler, Is.SameAs(previousHandler));
+                Assert.That(handler.ReviewImplTaskMode, Is.True);
+            });
+        }
+
+        [Test]
         public async Task AutoPromote_TicketScope_UsesProvidedState()
         {
             WfHandler handler = new();
@@ -734,6 +786,20 @@ namespace FWO.Test
 
             Assert.That(approval.Comments, Has.Count.EqualTo(1));
             Assert.That(approval.Comments[0].Comment.CommentText, Is.EqualTo("Automatically approved"));
+            Assert.That(approval.Comments[0].Comment.Creator.Name, Is.EqualTo(FWO.Basics.GlobalConst.kSystemUser));
+            Assert.That(approval.Comments[0].Comment.Creator.DbId, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void CurrentUserDn_UsesSystemForApiActionsWithoutUserIdentity()
+        {
+            WfHandler handler = new() { userConfig = new SimulatedUserConfig() };
+            MethodInfo? method = typeof(WfHandler).GetMethod("CurrentUserDn", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            string actorDn = (string)(method!.Invoke(handler, null) ?? "");
+
+            Assert.That(actorDn, Is.EqualTo(FWO.Basics.GlobalConst.kSystemUser));
         }
 
         [Test]
@@ -770,7 +836,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(4));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(4));
@@ -803,7 +869,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            object[] arguments = [false, true, null!, null!];
+            object[] arguments = [true, null!, null!];
             await (Task)(method?.Invoke(handler, arguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(6));
@@ -844,7 +910,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(6));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(5));
@@ -880,7 +946,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            bool requestTaskActionsChangedState = await (Task<bool>)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            bool requestTaskActionsChangedState = await (Task<bool>)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(4));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(4));
@@ -913,7 +979,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.Multiple(() =>
             {
@@ -981,12 +1047,12 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(6));
             Assert.That(reqTask.Approvals[0].StateId, Is.EqualTo(5));
             Assert.That(reqTask.Approvals[0].ApprovalDate, Is.Not.Null);
-            Assert.That(reqTask.Approvals[0].ApproverDn, Is.EqualTo("system"));
+            Assert.That(reqTask.Approvals[0].ApproverDn, Is.EqualTo("uid=approver,dc=example"));
             Assert.That(reqTask.Approvals[1].StateId, Is.EqualTo(6));
         }
 
@@ -997,6 +1063,7 @@ namespace FWO.Test
             {
                 userConfig = new SimulatedUserConfig()
             };
+            handler.userConfig.User.Dn = "uid=approver,dc=example";
             StateMatrix matrix = new()
             {
                 LowestInputState = 0,
@@ -1041,13 +1108,13 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(secondTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [false, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.Multiple(() =>
             {
                 Assert.That(firstTask.StateId, Is.EqualTo(6));
                 Assert.That(firstTask.Approvals[0].StateId, Is.EqualTo(5));
-                Assert.That(firstTask.Approvals[0].ApproverDn, Is.EqualTo("system"));
+                Assert.That(firstTask.Approvals[0].ApproverDn, Is.EqualTo("uid=approver,dc=example"));
                 Assert.That(firstTask.Approvals[1].StateId, Is.EqualTo(6));
                 Assert.That(secondTask.StateId, Is.EqualTo(6));
                 Assert.That(secondTask.Approvals[0].StateId, Is.EqualTo(5));
@@ -1060,7 +1127,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices }
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices }
             };
             StateMatrix matrix = new()
             {
@@ -1085,7 +1152,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [true, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.Multiple(() =>
             {
@@ -1095,11 +1162,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task UpdateRequestTasksFromTicket_CreatesImplTasksForImplementationRangeWhenEntryStateIsSkipped()
+        public async Task UpdateRequestTasksFromTicket_CreatesNoImplTasksWhenReachingImplementationRange()
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices }
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices }
             };
             StateMatrix matrix = new()
             {
@@ -1124,13 +1191,12 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            await (Task)(method?.Invoke(handler, [true, true, null, null]) ?? throw new InvalidOperationException("Method not found."));
+            await (Task)(method?.Invoke(handler, kUpdateRequestTasksArguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.Multiple(() =>
             {
                 Assert.That(reqTask.StateId, Is.EqualTo(60));
-                Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
-                Assert.That(reqTask.ImplementationTasks[0].DeviceId, Is.Null);
+                Assert.That(reqTask.ImplementationTasks, Is.Empty, "only the action creates implementation tasks");
             });
         }
 
@@ -1383,6 +1449,47 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ChangeApprovalStateForMonitoring_NormalizesLaterStateAndSetsApprover()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig(),
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestEndState = 10,
+                    MinTicketCompleted = 99
+                }
+            };
+            handler.userConfig.User.Dn = "uid=monitor,dc=example";
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                ApprovalLowestEndState = 10,
+                LowestEndState = 99,
+                Matrix = new() { [10] = [10] },
+                PhaseActive = new() { { WorkflowPhases.approval, true } }
+            });
+            WfApproval approval = new() { Id = 12, TaskId = 7, StateId = 1 };
+            WfReqTask reqTask = new()
+            {
+                Id = 7,
+                TicketId = 1,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 1,
+                Approvals = [approval]
+            };
+            WfTicket ticket = new() { Id = 1, StateId = 1, Tasks = [reqTask] };
+
+            await handler.ChangeApprovalStateForMonitoring(ticket, reqTask, approval, 99, MonitoringStateChangeMode.LocalOnly);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActApproval.StateId, Is.EqualTo(10));
+                Assert.That(handler.ActApproval.ApprovalDate, Is.Not.Null);
+                Assert.That(handler.ActApproval.ApproverDn, Is.EqualTo("uid=monitor,dc=example"));
+            });
+        }
+
+        [Test]
         [NonParallelizable]
         public async Task ChangeTicketStateForMonitoring_WritesWarningAuditLog()
         {
@@ -1422,7 +1529,7 @@ namespace FWO.Test
                 AuthUser = new ClaimsPrincipal(new ClaimsIdentity([new Claim("x-hasura-uuid", "admin-user")], "test")),
                 userConfig = new SimulatedUserConfig
                 {
-                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices,
+                    ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices,
                     ReqConsiderBundling = false
                 }
             };

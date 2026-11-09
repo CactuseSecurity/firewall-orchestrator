@@ -28,8 +28,8 @@ namespace FWO.Test
         private static readonly List<FwoOwner> kEmptyOwners = [];
         private static readonly List<FwoOwner> kOwnedAppOwners = [new FwoOwner { Id = 11, Name = "Owned App" }];
         private static readonly List<ReportTemplate> kSingleExistingRulesTemplate = [CreateTemplate(1, "Existing template", ReportType.Rules, ownerId: 50)];
-        private static readonly List<ReportTemplate> kSingleOriginalRulesTemplate = [CreateTemplate(1, "Original template", ReportType.Rules, ownerId: 50)];
-        private static readonly List<ReportTemplate> kSingleDeleteRulesTemplate = [CreateTemplate(1, "Delete me", ReportType.Rules, ownerId: 50)];
+        private static readonly List<ReportTemplate> kSingleOriginalRulesTemplate = [CreateTemplate(1, "Original template", ReportType.Rules, ownerId: 50, templateOwnerId: 50)];
+        private static readonly List<ReportTemplate> kSingleDeleteRulesTemplate = [CreateTemplate(1, "Delete me", ReportType.Rules, ownerId: 50, templateOwnerId: 50)];
 
         private sealed class ReportTemplateComponentTestApiConn(IEnumerable<ReportTemplate> templates, IEnumerable<FwoOwner> owners) : SimulatedApiConnection
         {
@@ -481,6 +481,88 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task ReportTemplateComponent_AuditorCanOpenForeignTemplateButCannotSaveOrDeleteIt()
+        {
+            ReportTemplateComponentTrackingApiConn apiConnection = new(kForeignAndOwnRulesTemplates);
+            SimulatedUserConfig userConfig = CreateUserConfig(kAuditorRoles, kEmptyOwnerships);
+            userConfig.ModIconify = false;
+
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), userConfig, apiConnection);
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<ReportTemplateComponent>(child => child.Add(component => component.OnTemplateLoad, _ => { })));
+            wrapper.WaitForAssertion(() => Assert.That(wrapper.FindComponent<ReportTemplateComponent>().Instance.reportTemplates, Has.Count.EqualTo(2)));
+
+            ReportTemplateComponent component = wrapper.FindComponent<ReportTemplateComponent>().Instance;
+            ReportTemplate foreignTemplate = component.reportTemplates.Single(template => template.TemplateOwningUserId == kForeignOwnerId);
+            List<AngleSharp.Dom.IElement> editButtons = [.. wrapper.FindAll("button").Where(button => button.TextContent.Trim() == userConfig.GetText("edit"))];
+            List<AngleSharp.Dom.IElement> deleteButtons = [.. wrapper.FindAll("button").Where(button => button.TextContent.Trim() == userConfig.GetText("delete"))];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(editButtons, Has.Count.EqualTo(2));
+                Assert.That(editButtons.All(button => !button.HasAttribute("disabled")), Is.True);
+                Assert.That(deleteButtons.Count(button => button.HasAttribute("disabled")), Is.EqualTo(1));
+                Assert.That(InvokePrivateMethod(component, "CanModifyTemplate", foreignTemplate), Is.False);
+            });
+
+            await wrapper.InvokeAsync(() => InvokePrivateMethod(component, "EditTemplate", foreignTemplate));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<bool>(component, "ShowUpdateTemplateDialog"), Is.True);
+                Assert.That(InvokePrivateMethod(component, "CanSaveTemplateInEdit"), Is.False);
+            });
+
+            await (Task)InvokePrivateMethod(component, "Save")!;
+            component.reportTemplateInEdit = foreignTemplate;
+            await (Task)InvokePrivateMethod(component, "DeleteTemplate")!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpdateTemplateCalls, Is.EqualTo(0));
+                Assert.That(apiConnection.DeleteTemplateCalls, Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public void ReportTemplateComponent_OwnerAndAdminCanModifyAndNewTemplateCanBeSaved()
+        {
+            ReportTemplateComponent ownerComponent = new();
+            ReportTemplateComponent adminComponent = new();
+            SetInjectedUserConfig(ownerComponent, CreateUserConfig(kAuditorRoles, kEmptyOwnerships));
+            SetInjectedUserConfig(adminComponent, CreateUserConfig(kAdminRoles, kEmptyOwnerships));
+            ReportTemplate ownTemplate = CreateTemplate(1, "Own", ReportType.Rules, templateOwnerId: 50);
+            ReportTemplate foreignTemplate = CreateTemplate(2, "Foreign", ReportType.Rules, templateOwnerId: kForeignOwnerId);
+
+            SetPrivateField(ownerComponent, "ShowAddTemplateDialog", true);
+            ownerComponent.reportTemplateInEdit = foreignTemplate;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivateMethod(ownerComponent, "CanModifyTemplate", ownTemplate), Is.True);
+                Assert.That(InvokePrivateMethod(ownerComponent, "CanModifyTemplate", foreignTemplate), Is.False);
+                Assert.That(InvokePrivateMethod(ownerComponent, "CanSaveTemplateInEdit"), Is.True);
+                Assert.That(InvokePrivateMethod(adminComponent, "CanModifyTemplate", foreignTemplate), Is.True);
+            });
+        }
+
+        private const int kForeignOwnerId = 77;
+        private static readonly List<string> kAdminRoles = [Roles.Admin];
+        private static readonly List<ReportTemplate> kForeignAndOwnRulesTemplates =
+        [
+            CreateTemplate(1, "Own template", ReportType.Rules, templateOwnerId: 50),
+            CreateTemplate(2, "Foreign template", ReportType.Rules, templateOwnerId: kForeignOwnerId)
+        ];
+
+        private static void SetInjectedUserConfig(ReportTemplateComponent component, UserConfig userConfig)
+        {
+            PropertyInfo property = typeof(ReportTemplateComponent).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .First(candidate => candidate.PropertyType == typeof(UserConfig));
+            property.SetValue(component, userConfig);
+        }
+
         private static BunitContext CreateContext(AuthenticationStateProvider authStateProvider, UserConfig userConfig, ApiConnection apiConnection)
         {
             BunitContext context = new();
@@ -509,12 +591,13 @@ namespace FWO.Test
             };
         }
 
-        private static ReportTemplate CreateTemplate(int id, string name, ReportType reportType, int ownerId = 0)
+        private static ReportTemplate CreateTemplate(int id, string name, ReportType reportType, int ownerId = 0, int templateOwnerId = 0)
         {
             return new ReportTemplate
             {
                 Id = id,
                 Name = name,
+                TemplateOwningUserId = templateOwnerId,
                 Filter = "",
                 Comment = "",
                 ReportParams = new ReportParams

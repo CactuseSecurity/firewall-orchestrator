@@ -117,9 +117,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputCsv(ListNetworkZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()));
-                case 'I': return OutputCsv(ListNetworkZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray()));
-                case 'C': return OutputCsv(DisplayDiff(ListNetworkZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
+                case 'D': return OutputCsv(ListFirewallZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()));
+                case 'I': return OutputCsv(ListFirewallZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray()));
+                case 'C': return OutputCsv(DisplayDiff(ListFirewallZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListFirewallZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
                 default: return ",";
             }
         }
@@ -139,9 +139,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputCsv(ListNetworkZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()));
-                case 'I': return OutputCsv(ListNetworkZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray()));
-                case 'C': return OutputCsv(DisplayDiff(ListNetworkZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
+                case 'D': return OutputCsv(ListFirewallZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()));
+                case 'I': return OutputCsv(ListFirewallZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray()));
+                case 'C': return OutputCsv(DisplayDiff(ListFirewallZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListFirewallZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
                 default: return ",";
             }
         }

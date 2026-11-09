@@ -20,67 +20,56 @@ public interface IPagedListRequest
 }
 
 /// <summary>
-/// Page size limits, key descriptions and validation of the flow catalog list requests.
+/// Key descriptions and validation of the paging keys of the flow catalog list requests. The maximum page size is the
+/// configured <see cref="ListPaging.kMaxObjectLimitSetting"/>, see <see cref="ListPaging.GetMaxObjectLimit"/>.
 /// </summary>
 public static class FlowCatalogPaging
 {
-    /// <summary>Maximum and default page size of the object lists (address, service and time objects).</summary>
-    public const int kMaxObjectLimit = 1000;
-
-    /// <summary>Maximum and default page size of the group lists, which carry their members.</summary>
-    public const int kMaxGroupLimit = 250;
-
     private const string kLimitKey = "limit";
     private const string kOffsetKey = "offset";
 
     /// <summary>
-    /// Describes the 'limit' key for the given maximum page size.
+    /// Describes the 'limit' key.
     /// </summary>
-    public static string DescribeLimit(int maxLimit) =>
-        $"Maximum number of items returned, between 1 and {maxLimit}; omitted or null returns {maxLimit}. Items are ordered by name and id, " +
-        $"so 'limit' and 'offset' page the result deterministically; the response header '{ListPaging.kHasMoreHeader}' tells whether further items follow.";
-
-    /// <summary>
-    /// Describes the 'offset' key.
-    /// </summary>
-    public const string kOffsetDescription = "Number of items skipped before the first returned item, at least 0; omitted or null skips no item.";
+    public static readonly string kLimitDescription =
+        $"{ListPaging.kLimitDescription} Items are ordered by name and id, so 'limit' and 'offset' page the result deterministically.";
 
     /// <summary>
     /// Returns the root key definitions of the paging keys.
     /// </summary>
-    public static List<RequestKeyDefinition> KeyDefinitions(int maxLimit) =>
+    public static List<RequestKeyDefinition> KeyDefinitions() =>
     [
-        new RequestKeyDefinition(kLimitKey, DescribeLimit(maxLimit)),
-        new RequestKeyDefinition(kOffsetKey, kOffsetDescription)
+        new RequestKeyDefinition(kLimitKey, kLimitDescription),
+        new RequestKeyDefinition(kOffsetKey, ListPaging.kOffsetDescription)
     ];
 
     /// <summary>
-    /// Returns the page size of a request; an omitted or null limit selects the maximum page size of the endpoint.
+    /// Returns the page size of a request; an omitted or null limit selects the maximum page size.
     /// </summary>
     /// <param name="request">Request carrying the paging keys.</param>
-    /// <param name="maxLimit">Maximum page size of the endpoint.</param>
+    /// <param name="maxLimit">Maximum page size.</param>
     public static int GetPageSize(IPagedListRequest request, int maxLimit)
     {
-        return request.Limit ?? maxLimit;
+        return ListPaging.GetPageSize(request.Limit, maxLimit);
     }
 
     /// <summary>
     /// Validates both paging keys and reports every invalid key together.
     /// </summary>
     /// <param name="request">Request carrying the paging keys.</param>
-    /// <param name="maxLimit">Maximum page size of the endpoint.</param>
+    /// <param name="maxLimit">Maximum page size.</param>
     /// <param name="errorResult">The bad request result naming every invalid key, or null if both are valid.</param>
     /// <returns>True if both paging keys are valid.</returns>
     public static bool TryValidate(IPagedListRequest request, int maxLimit, out ActionResult? errorResult)
     {
         List<string> errors = [];
-        if (request.Limit is < 1 || request.Limit > maxLimit)
+        if (!ListPaging.IsValidLimit(request.Limit, maxLimit))
         {
-            errors.Add($"'{kLimitKey}': {DescribeLimit(maxLimit)}");
+            errors.Add(ListPaging.BuildLimitError(kLimitKey, maxLimit));
         }
-        if (request.Offset < 0)
+        if (!ListPaging.IsValidOffset(request.Offset))
         {
-            errors.Add($"'{kOffsetKey}': {kOffsetDescription}");
+            errors.Add(ListPaging.BuildOffsetError(kOffsetKey));
         }
 
         errorResult = errors.Count == 0 ? null : new BadRequestObjectResult($"Invalid paging: {string.Join(" ", errors)}");

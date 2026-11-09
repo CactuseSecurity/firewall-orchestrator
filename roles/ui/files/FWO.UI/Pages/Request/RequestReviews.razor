@@ -136,7 +136,6 @@ else
         {
             wfHandler.ReadOnlyMode = !userConfig.CanUseAnyRole(Roles.Reviewer, Roles.Admin);
             await wfHandler.Init(true, userConfig.ReqOwnerBased ? Owners.ConvertAll(x => x.Id) : null, false, true);
-            // wfHandler.FilterForRequester();
         }
         catch (Exception exception)
         {

@@ -33,8 +33,9 @@ namespace FWO.Middleware.Server.Controllers
         /// Retrieves information about all scheduled jobs.
         /// </summary>
         /// <returns>A collection of scheduler job information.</returns>
+        /// <remarks>Readable by admins and auditors. The set of jobs is fixed by the middleware, so the result needs no paging.</remarks>
         [HttpGet]
-        [Authorize(Roles = $"{Roles.Admin}")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public async Task<IEnumerable<SchedulerJobInfo>> GetJobs()
         {
             IScheduler scheduler = await schedulerFactory.GetScheduler();
@@ -117,6 +118,9 @@ namespace FWO.Middleware.Server.Controllers
             return true;
         }
 
+        /// <summary>
+        /// Describes the repeat interval of the first recurring trigger, falling back to its cron expression.
+        /// </summary>
         private static string DescribeTriggers(IEnumerable<ITrigger> triggers)
         {
             foreach (ITrigger trigger in triggers)
@@ -126,13 +130,38 @@ namespace FWO.Middleware.Server.Controllers
                     return FormatInterval(simple.RepeatInterval);
                 }
 
+                if (trigger is ICalendarIntervalTrigger calendar && calendar.RepeatInterval > 0)
+                {
+                    return FormatCalendarInterval(calendar);
+                }
+
                 if (trigger is ICronTrigger cron)
                 {
+                    if (cron.JobDataMap.TryGetValue(WallClockSchedule.kIntervalTicks, out object? value)
+                        && value is long intervalTicks && intervalTicks > 0)
+                    {
+                        return FormatInterval(TimeSpan.FromTicks(intervalTicks));
+                    }
                     return cron.CronExpressionString ?? "";
                 }
             }
 
             return "";
+        }
+
+        /// <summary>
+        /// Formats a calendar interval using the same duration units as a simple trigger.
+        /// </summary>
+        private static string FormatCalendarInterval(ICalendarIntervalTrigger trigger)
+        {
+            return trigger.RepeatIntervalUnit switch
+            {
+                IntervalUnit.Second => FormatInterval(TimeSpan.FromSeconds(trigger.RepeatInterval)),
+                IntervalUnit.Minute => FormatInterval(TimeSpan.FromMinutes(trigger.RepeatInterval)),
+                IntervalUnit.Hour => FormatInterval(TimeSpan.FromHours(trigger.RepeatInterval)),
+                IntervalUnit.Day => FormatInterval(TimeSpan.FromDays(trigger.RepeatInterval)),
+                _ => $"{trigger.RepeatInterval} {trigger.RepeatIntervalUnit}"
+            };
         }
 
         private static string FormatInterval(TimeSpan interval)

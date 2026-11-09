@@ -4,14 +4,18 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Data.Workflow
 {
-    public enum AutoCreateImplTaskOptions
+    /// <summary>
+    /// Whether the requester enters the affected devices in an access request task. Devices entered there take
+    /// precedence over the path analysis algorithm when the implementation tasks are created automatically.
+    /// </summary>
+    public enum ReqDeviceInputOptions
     {
+        /// <summary>No device field in the request task.</summary>
         never,
-        onlyForOneDevice,
-        forEachDevice,
+        /// <summary>Mandatory device field; one implementation task per selected device.</summary>
         enterInReqTask,
-        oneTaskForAllDevices,
-        afterPathAnalysis
+        /// <summary>Like enterInReqTask, but selecting all devices creates exactly one implementation task.</summary>
+        oneTaskForAllDevices
     }
 
     public struct AdditionalInfoKeys

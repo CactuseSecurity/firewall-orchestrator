@@ -1,5 +1,6 @@
 using Bunit;
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
@@ -85,6 +86,42 @@ namespace FWO.Test
                 Assert.That(notEditableHigh, Is.False);
             });
         }
+
+        [TestCase(false, false)]
+        [TestCase(true, true)]
+        public void DisplayTicketTable_CanEditTicketInPhase_HidesEditForTicketsTheUserMayNotChange(bool readOnly, bool expected)
+        {
+            DisplayTicketTable component = new();
+            SetMember(component, nameof(DisplayTicketTable.WfHandler), new WfHandler
+            {
+                MasterStateMatrix = CreateMatrix(lowestInputState: 2, lowestEndState: 7),
+                ReadOnlyMode = readOnly
+            });
+
+            WfTicket ticket = new() { StateId = 4, Editable = false };
+
+            bool editable = UiRequestCoverageTest.InvokePrivateBool(component, "CanEditTicketInPhase", ticket);
+
+            Assert.That(editable, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void DisplayTicketTable_CanEditTicketInPhase_KeepsEditForNotEditableTicketsAfterRequestPhase()
+        {
+            DisplayTicketTable component = new();
+            SetMember(component, nameof(DisplayTicketTable.Phase), WorkflowPhases.approval);
+            SetMember(component, nameof(DisplayTicketTable.WfHandler), new WfHandler
+            {
+                MasterStateMatrix = CreateMatrix(lowestInputState: 2, lowestEndState: 7)
+            });
+
+            WfTicket ticket = new() { StateId = 4, Editable = false };
+
+            bool editable = UiRequestCoverageTest.InvokePrivateBool(component, "CanEditTicketInPhase", ticket);
+
+            Assert.That(editable, Is.True);
+        }
+
         [Test]
         public async Task DisplayTicketTable_OpenAddEditAndDetailsActionsDelegateToHandler()
         {
@@ -138,6 +175,34 @@ namespace FWO.Test
                 Assert.That(handler.DisplayTicketMode, Is.False);
                 Assert.That(handler.EditTicketMode, Is.False);
                 Assert.That(handler.AddTicketMode, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task DisplayTicketTable_HidesTicketColumnsDisabledInTicketVisibility()
+        {
+            await using BunitContext context = new();
+            WfHandler handler = CreateWorkflowHandler(WorkflowPhases.request, WfTaskType.access.ToString(), new WfTicket { Id = 1 });
+            UserConfig config = new RequestWorkflowUserConfig
+            {
+                ReqTicketFieldVisibility = new TicketFieldVisibilityConfig
+                {
+                    ShowRequester = false,
+                    ShowPriority = false,
+                    ShowDeadline = false
+                }.ToConfigValue()
+            };
+            IRenderedComponent<DisplayTicketTable> component = RenderDisplayTicketTableWithUserConfig(
+                context, handler, WorkflowPhases.request, new WfStateDict(), config);
+
+            List<string> headerTexts = component.FindAll("thead th")
+                .Select(header => header.TextContent.Trim())
+                .ToList();
+            Assert.Multiple(() =>
+            {
+                Assert.That(headerTexts, Does.Not.Contain("requester"));
+                Assert.That(headerTexts, Does.Not.Contain("priority"));
+                Assert.That(headerTexts, Does.Not.Contain("deadline"));
             });
         }
 
@@ -211,8 +276,9 @@ namespace FWO.Test
             Assert.That(canEdit, Is.False);
         }
 
-        [Test]
-        public void DisplayTicketTable_ReadOnlyMode_UsesDetailsInPhaseRange()
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        public void DisplayTicketTable_ReadOnlyMode_OpensEditOnPhasePagesButNotOnOverview(bool overview, bool expectedEdit)
         {
             WfHandler handler = new()
             {
@@ -224,12 +290,13 @@ namespace FWO.Test
                 }
             };
             DisplayTicketTable component = CreateTicketTable(handler, WorkflowPhases.approval);
+            typeof(DisplayTicketTable).GetProperty(nameof(DisplayTicketTable.Overview))!.SetValue(component, overview);
             MethodInfo? method = typeof(DisplayTicketTable).GetMethod("CanEditTicketInPhase", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(method, Is.Not.Null);
 
             bool canEdit = (bool)method!.Invoke(component, [new WfTicket { StateId = 60 }])!;
 
-            Assert.That(canEdit, Is.False);
+            Assert.That(canEdit, Is.EqualTo(expectedEdit));
         }
     }
 }

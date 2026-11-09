@@ -91,7 +91,7 @@ namespace FWO.Services.Workflow
                 if (ActApproval.StateId >= ActStateMatrix.LowestEndState)
                 {
                     ActApproval.ApprovalDate = DateTime.Now;
-                    ActApproval.ApproverDn = userConfig.User.Dn;
+                    ActApproval.ApproverDn = CurrentUserDn();
                 }
                 if (approval.OptComment() != null && approval.OptComment() != "")
                 {

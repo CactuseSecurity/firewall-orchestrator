@@ -8,6 +8,7 @@ using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Ui.Pages.Settings;
+using FWO.Ui.Shared;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -33,6 +34,113 @@ namespace FWO.Test
             IRenderedComponent<SettingsFlowNetworkGroups> component = RenderPage<SettingsFlowNetworkGroups>(context);
 
             component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("Flow Network Group")));
+        }
+
+        [Test]
+        public async Task FlowNetworkGroupsPage_AuditorCanViewButNotChange()
+        {
+            await using BunitContext context = CreateContext(out _, Roles.Auditor);
+
+            IRenderedComponent<SettingsFlowNetworkGroups> component = RenderPage<SettingsFlowNetworkGroups>(context);
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Flow Network Group"));
+                AssertButtonsDisabled(component, kBulkVisibilityButtonKeys);
+                Assert.That(component.FindComponent<FlowDuplicateResolver<NetworkObject>>().Instance.CanResolve, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task FlowNetworkGroupsPage_AdminCanChange()
+        {
+            await using BunitContext context = CreateContext();
+
+            IRenderedComponent<SettingsFlowNetworkGroups> component = RenderPage<SettingsFlowNetworkGroups>(context);
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Flow Network Group"));
+                List<IElement> bulkButtons = FindButtons(component, kBulkVisibilityButtonKeys);
+                Assert.That(bulkButtons, Has.Count.GreaterThanOrEqualTo(kBulkVisibilityButtonKeys.Count));
+                Assert.That(bulkButtons.All(button => !button.HasAttribute("disabled")), Is.True);
+                Assert.That(component.FindComponent<FlowDuplicateResolver<NetworkObject>>().Instance.CanResolve, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task FlowNetworkObjectsPage_AuditorLoadsCatalogButCannotChange()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _, Roles.Auditor);
+
+            IRenderedComponent<SettingsFlowNetworkObjects> component = RenderPage<SettingsFlowNetworkObjects>(context);
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("192.0.2.10-192.0.2.20"));
+                AssertButtonsDisabled(component, kBulkVisibilityButtonKeys);
+                Assert.That(component.FindComponent<FlowDuplicateResolver<NetworkObject>>().Instance.CanResolve, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task FlowGeneralPage_AuditorLoadsSettingsButCannotChange()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out FlowNetworkObjectsNamingApiConn apiConnection, Roles.Auditor);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowSelectableManagements));
+                AssertButtonsDisabled(component, kGeneralWriteButtonKeys);
+            });
+        }
+
+        [Test]
+        public async Task FlowServiceObjectsAndGroupsAndTimeObjectsPages_AuditorCannotResolveDuplicates()
+        {
+            await using BunitContext context = CreateContext(out _, Roles.Auditor);
+
+            IRenderedComponent<SettingsFlowServiceObjects> serviceObjects = RenderPage<SettingsFlowServiceObjects>(context);
+            IRenderedComponent<SettingsFlowServiceGroups> serviceGroups = RenderPage<SettingsFlowServiceGroups>(context);
+            IRenderedComponent<SettingsFlowTimeObjects> timeObjects = RenderPage<SettingsFlowTimeObjects>(context);
+
+            serviceObjects.WaitForAssertion(() =>
+            {
+                AssertButtonsDisabled(serviceObjects, kBulkVisibilityButtonKeys);
+                Assert.That(serviceObjects.FindComponent<FlowDuplicateResolver<NetworkService>>().Instance.CanResolve, Is.False);
+            });
+            serviceGroups.WaitForAssertion(() =>
+            {
+                AssertButtonsDisabled(serviceGroups, kBulkVisibilityButtonKeys);
+                Assert.That(serviceGroups.FindComponent<FlowDuplicateResolver<NetworkService>>().Instance.CanResolve, Is.False);
+            });
+            timeObjects.WaitForAssertion(() =>
+            {
+                AssertButtonsDisabled(timeObjects, kBulkVisibilityButtonKeys);
+                Assert.That(timeObjects.FindComponent<FlowDuplicateResolver<TimeObject>>().Instance.CanResolve, Is.False);
+            });
+        }
+
+        private static readonly List<string> kBulkVisibilityButtonKeys = ["show_in_request_module", "disable"];
+        private static readonly List<string> kGeneralWriteButtonKeys = ["save", "recalculate_flow_names", "reset_flow_db"];
+
+        private static List<IElement> FindButtons<TComponent>(IRenderedComponent<TComponent> component, List<string> textKeys)
+            where TComponent : Microsoft.AspNetCore.Components.IComponent
+        {
+            // iconified buttons carry their text only in the tooltip of the icon, so the inner html is searched
+            SimulatedUserConfig userConfig = new();
+            List<string> texts = [.. textKeys.Select(userConfig.GetText)];
+            return [.. component.FindAll("button").Where(button => texts.Any(text => button.InnerHtml.Contains(text, StringComparison.Ordinal)))];
+        }
+
+        private static void AssertButtonsDisabled<TComponent>(IRenderedComponent<TComponent> component, List<string> textKeys)
+            where TComponent : Microsoft.AspNetCore.Components.IComponent
+        {
+            List<IElement> buttons = FindButtons(component, textKeys);
+            Assert.That(buttons, Has.Count.GreaterThanOrEqualTo(textKeys.Count));
+            Assert.That(buttons.All(button => button.HasAttribute("disabled")), Is.True);
         }
 
         [Test]
@@ -878,7 +986,7 @@ namespace FWO.Test
             return CreateContext(out _);
         }
 
-        private static BunitContext CreateContext(out FlowSettingsPagesTestApiConn apiConnection)
+        private static BunitContext CreateContext(out FlowSettingsPagesTestApiConn apiConnection, string role = Roles.Admin)
         {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -890,9 +998,9 @@ namespace FWO.Test
             context.Services.AddScoped<DomEventService>();
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig
             {
-                User = { Roles = [Roles.Admin] }
+                User = { Roles = [role] }
             });
-            context.Services.AddSingleton<AuthenticationStateProvider>(new FlowSettingsPagesAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<AuthenticationStateProvider>(new FlowSettingsPagesAuthStateProvider(role));
             return context;
         }
 
@@ -1026,7 +1134,7 @@ namespace FWO.Test
             return context;
         }
 
-        private static BunitContext CreateNetworkObjectsContext(out FlowNetworkObjectsNamingApiConn apiConnection)
+        private static BunitContext CreateNetworkObjectsContext(out FlowNetworkObjectsNamingApiConn apiConnection, string role = Roles.Admin)
         {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -1039,9 +1147,9 @@ namespace FWO.Test
             context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig
             {
-                User = { Roles = [Roles.Admin] }
+                User = { Roles = [role] }
             });
-            context.Services.AddSingleton<AuthenticationStateProvider>(new FlowSettingsPagesAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<AuthenticationStateProvider>(new FlowSettingsPagesAuthStateProvider(role));
             return context;
         }
 

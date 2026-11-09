@@ -277,7 +277,7 @@ namespace FWO.Middleware.Server
                 user.Ownerships = user.Ownerships.Distinct().ToList();
                 user.RecertOwnerships = user.RecertOwnerships.Distinct().ToList();
             }
-            catch (Exception exeption)
+            catch (Exception exeption) when (!ApiReachability.IndicatesUnreachableApi(exeption))
             {
                 Log.WriteError("Get ownerships", $"Ownerships could not be detemined for User {user.Name}.", exeption);
             }
@@ -324,13 +324,9 @@ namespace FWO.Middleware.Server
                     $"User {user.Name} resolved workflow visibility group ids: [{string.Join(", ", user.WorkflowVisibilityGroupIds)}]");
                 return true;
             }
-            catch (Exception exeption)
+            catch (Exception exeption) when (!ApiReachability.IndicatesUnreachableApi(exeption))
             {
                 Log.WriteError("Get workflow visibility groups", $"Workflow visibility groups could not be determined for User {user.Name}.", exeption);
-                if (ApiReachability.IndicatesUnreachableApi(exeption))
-                {
-                    throw;
-                }
                 return false;
             }
         }
@@ -395,7 +391,7 @@ namespace FWO.Middleware.Server
                     }
                 }
             }
-            catch (Exception exeption)
+            catch (Exception exeption) when (!ApiReachability.IndicatesUnreachableApi(exeption))
             {
                 Log.WriteError("Add User Error", $"User {user.Name} could not be added to database.", exeption);
             }
@@ -425,7 +421,7 @@ namespace FWO.Middleware.Server
                 };
                 return (await apiConn.SendQueryAsync<ReturnId>(AuthQueries.updateUserLastLogin, Variables)).PasswordMustBeChanged;
             }
-            catch (Exception exeption)
+            catch (Exception exeption) when (!ApiReachability.IndicatesUnreachableApi(exeption))
             {
                 Log.WriteError("Update User Error", $"User {id} could not be updated in database.", exeption);
             }

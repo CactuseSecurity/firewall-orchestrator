@@ -83,7 +83,7 @@ namespace FWO.Report
             {
                 report.AppendLine("<tr>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayHierarchicalNumber(rule)}</td>");
-                report.AppendLine($"<td>{RuleDisplayBase.DisplayName(rule)}</td>");
+                report.AppendLine($"<td>{RuleDisplayHtml.DisplayName(rule)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplaySourceZones(rule)}</td>");
                 report.AppendLine($"<td>{ruleDisplay.DisplaySource(rule, OutputLocation.export, ReportType, chapterNumber)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayDestinationZones(rule)}</td>");
@@ -93,8 +93,8 @@ namespace FWO.Report
                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedDestination(rule, OutputLocation.export, chapterNumber)}</td>");
                 report.AppendLine($"<td>{ruleDisplay.DisplayTranslatedService(rule, OutputLocation.export, chapterNumber)}</td>");
                 report.AppendLine($"<td>{NatRuleDisplayHtml.DisplayEnabled(rule, OutputLocation.export)}</td>");
-                report.AppendLine($"<td>{RuleDisplayBase.DisplayUid(rule)}</td>");
-                report.AppendLine($"<td>{RuleDisplayBase.DisplayComment(rule)}</td>");
+                report.AppendLine($"<td>{RuleDisplayHtml.DisplayUid(rule)}</td>");
+                report.AppendLine($"<td>{RuleDisplayHtml.DisplayComment(rule)}</td>");
                 report.AppendLine("</tr>");
             }
             else

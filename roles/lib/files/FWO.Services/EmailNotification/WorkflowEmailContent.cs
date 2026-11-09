@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data.Workflow;
 using System.Net;
@@ -433,7 +434,7 @@ namespace FWO.Services
 
         private static string CsvCell(string value)
         {
-            return $"\"{value.Replace("\"", "\"\"")}\"";
+            return CsvOutputEncoder.EncodeCell(value);
         }
     }
 

@@ -14,6 +14,7 @@ namespace FWO.Test;
 internal class DeviceSpecificSettingsDataTest
 {
     private static readonly List<string> kBoolOptionValues = [bool.TrueString, bool.FalseString];
+    private static readonly List<string> kLayerGuardTextKeys = ["dss_cp_layer_guard_section_name_template", "E5302", "H5199y"];
     private static readonly string[] ExpectedDeviceTypeNames = ["Check Point R8x", "FortiADOM 5ff"];
     private static readonly string[] ExpectedDeviceTypeKeys = ["9", "11"];
     private static readonly string[] ExpectedManagementNames = ["cp-mgr"];
@@ -58,6 +59,39 @@ internal class DeviceSpecificSettingsDataTest
 
     private static DeviceSpecificFieldDefinition Field(DeviceSpecificSettingKey key) =>
         DeviceSpecificSettingsData.FindField(key) ?? throw new AssertionException($"unknown field {key}");
+
+    private static readonly List<string> kAllRuleModes =
+        [nameof(ProvisioningRuleImplementationMode.Automatic), nameof(ProvisioningRuleImplementationMode.Manual), nameof(ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem)];
+    private static readonly List<string> kGatewayRuleModes =
+        [nameof(ProvisioningRuleImplementationMode.Automatic), nameof(ProvisioningRuleImplementationMode.Manual)];
+
+    [Test]
+    public void ExternalTicketSystemSettings_AreOfferedUpToTheManagementOnly()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(Field(DeviceSpecificSettingKeys.ImplementationMode).AppliesToLevel(DeviceSpecificScopeType.Management), Is.True);
+            Assert.That(Field(DeviceSpecificSettingKeys.ImplementationMode).AppliesToLevel(DeviceSpecificScopeType.Gateway), Is.False);
+            Assert.That(Field(DeviceSpecificSettingKeys.RerouteToExternalTicketSystem).AppliesToLevel(DeviceSpecificScopeType.Gateway), Is.False);
+            Assert.That(Field(DeviceSpecificSettingKeys.ImplementationModeOverrideForRules).AppliesToLevel(DeviceSpecificScopeType.Gateway), Is.True);
+        });
+    }
+
+    [Test]
+    public void RuleImplementationMode_OffersExternalTicketSystemUpToTheManagementOnly()
+    {
+        DeviceSpecificFieldDefinition field = Field(DeviceSpecificSettingKeys.ImplementationModeOverrideForRules);
+        string automatic = nameof(ProvisioningRuleImplementationMode.Automatic);
+        string external = nameof(ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(field.OptionsForLevel(DeviceSpecificScopeType.Management, automatic).Select(option => option.Value), Is.EqualTo(kAllRuleModes));
+            Assert.That(field.OptionsForLevel(DeviceSpecificScopeType.Gateway, automatic).Select(option => option.Value), Is.EqualTo(kGatewayRuleModes));
+            Assert.That(field.OptionsForLevel(DeviceSpecificScopeType.Gateway, external).Select(option => option.Value), Is.EqualTo(kAllRuleModes),
+                "a value stored before the restriction stays visible");
+        });
+    }
 
     private static DeviceSpecificNode Node(DeviceSpecificNode root, DeviceSpecificScopeType scopeType, string objectKey) =>
         DeviceSpecificSettingsData.FindNode(root, new DeviceSpecificSettingsScope { ScopeType = scopeType, ObjectKey = objectKey })
@@ -170,7 +204,7 @@ internal class DeviceSpecificSettingsDataTest
             Assert.That(fortiManagement, Does.Contain(DeviceSpecificSettingKeys.SecurityProfiles));
             Assert.That(fortiGateway, Does.Not.Contain(DeviceSpecificSettingKeys.RuleZoneFromOverride));
             Assert.That(fortiGateway, Does.Not.Contain(DeviceSpecificSettingKeys.SecurityProfiles));
-            Assert.That(fortiGateway, Does.Contain(DeviceSpecificSettingKeys.PlanImplementation));
+            Assert.That(fortiGateway, Does.Contain(DeviceSpecificSettingKeys.AutoPlanImplementation));
         }
     }
 
@@ -243,6 +277,54 @@ internal class DeviceSpecificSettingsDataTest
     }
 
     [Test]
+    public void PositioningAlgorithm_OffersCustomerOptionAtEveryScope()
+    {
+        DeviceSpecificFieldDefinition field = DeviceSpecificSettingsData.Fields.Single(item =>
+            item.Key == DeviceSpecificSettingKeys.PositioningAlgorithm);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(field.MinLevel, Is.EqualTo(DeviceSpecificScopeType.Global));
+            Assert.That(field.MaxLevel, Is.EqualTo(DeviceSpecificScopeType.Gateway));
+            Assert.That(field.Options.Single(option => option.Value ==
+                    nameof(ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection)).TextKey,
+                Is.EqualTo("dss_opt_cp_layer_guard_end_of_zone_pair_section"));
+        });
+    }
+
+    [Test]
+    public void LayerGuardSectionNameTemplate_IsTextAtEveryScopeWithCompiledDefault()
+    {
+        DeviceSpecificFieldDefinition field = Field(DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(field.Kind, Is.EqualTo(DeviceSpecificFieldKind.Text));
+            Assert.That(field.MinLevel, Is.EqualTo(DeviceSpecificScopeType.Global));
+            Assert.That(field.MaxLevel, Is.EqualTo(DeviceSpecificScopeType.Gateway));
+            Assert.That(field.Read(new GlobalDeviceSpecificSettings()),
+                Is.EqualTo("[@@SOURCE_ZONE@@] -> [@@DESTINATION_ZONE@@]"));
+            Assert.That(field.HelpTextKey, Is.EqualTo("H5199y"));
+        }
+    }
+
+    [Test]
+    public void LayerGuardSectionNameTemplate_LabelAndHelpAreLocalizedAndListedOnHelpPage()
+    {
+        string texts = File.ReadAllText(LocateRepositoryFile(
+            "roles", "database", "files", "sql", "idempotent", "fworch-texts.sql"));
+        string help = File.ReadAllText(LocateRepositoryFile(
+            "roles", "ui", "files", "FWO.UI", "Pages", "Help", "HelpSettingsDeviceSpecific.cshtml"));
+
+        foreach (string key in kLayerGuardTextKeys)
+        {
+            Assert.That(texts, Does.Match($@"\('{key}',\s*'German'"), key);
+            Assert.That(texts, Does.Match($@"\('{key}',\s*'English'"), key);
+        }
+        Assert.That(help, Does.Contain("GetText(\"H5199y\")"));
+    }
+
+    [Test]
     public void ParseStringList_KeepsEmptyEntriesButNotForAnEmptyValue()
     {
         using (Assert.EnterMultipleScope())
@@ -290,5 +372,21 @@ internal class DeviceSpecificSettingsDataTest
                 Assert.That(field.Options.Select(o => o.Value), Is.EquivalentTo(storable), field.Id);
             }
         }
+    }
+
+    private static string LocateRepositoryFile(params string[] parts)
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory != null)
+        {
+            FileInfo candidate = new(Path.Combine(directory.FullName, Path.Combine(parts)));
+            if (candidate.Exists)
+            {
+                return candidate.FullName;
+            }
+            directory = directory.Parent;
+        }
+        Assert.Ignore("The repository sources are not reachable in this environment.");
+        return string.Empty;
     }
 }

@@ -60,6 +60,7 @@ insert into config (config_key, config_value, config_user) VALUES ('reqOwnerBase
 insert into config (config_key, config_value, config_user) VALUES ('reqVisibilityBased', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqUseFlowDb', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqFlowIntegration', '{"select_objects":"Both","select_services":"Both","select_time_objects":"Both","time_object_precision":"seconds"}', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reqTimeObjectOriginSuffixes', '{"requester":"","approver":""}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqAllowManualOwnerAdmin', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqActivatePathAnalysis', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqShowCompliance', 'False', 0);

@@ -77,7 +77,16 @@
         {
             return element.Name;
         }
-        return NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
+        if (element.FlowNetworkObjectId.HasValue || element.FlowNetworkGroupId.HasValue)
+        {
+            return element.FlowNetworkObjectId?.ToString() ?? element.FlowNetworkGroupId?.ToString() ?? "";
+        }
+        if (element.NetworkId.HasValue)
+        {
+            return element.NetworkId.Value.ToString();
+        }
+        string display = NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
+        return string.IsNullOrWhiteSpace(display) ? element.GroupName ?? "" : display;
     }
 
     private void AddIpRange()

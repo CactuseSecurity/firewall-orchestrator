@@ -80,6 +80,11 @@ namespace FWO.Data.Workflow
         [JsonProperty("flow_timeobj_id"), JsonPropertyName("flow_timeobj_id")]
         public long? FlowTimeObjectId { get; set; }
 
+        /// <summary>
+        /// Identifies the request task that supplies a ticket-local network, service or time object.
+        /// </summary>
+        [JsonProperty("object_task_id"), JsonPropertyName("object_task_id")]
+        public long? ObjectTaskId { get; set; }
 
         public WfElementBase()
         { }
@@ -107,6 +112,7 @@ namespace FWO.Data.Workflow
             EndTime = element.EndTime;
             TimeObjId = element.TimeObjId;
             FlowTimeObjectId = element.FlowTimeObjectId;
+            ObjectTaskId = element.ObjectTaskId;
         }
 
         public static NetworkObject ToNetworkObject(WfElementBase elem)

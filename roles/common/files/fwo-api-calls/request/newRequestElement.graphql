@@ -1,6 +1,7 @@
 mutation newRequestElement(
   $requestAction: action_enum
   $taskId: bigint!
+  $objectTaskId: bigint
   $ip: cidr
   $ipEnd: cidr
   $port: Int
@@ -27,6 +28,7 @@ mutation newRequestElement(
   insert_request_reqelement(objects: {
     request_action: $requestAction
     task_id: $taskId
+    object_task_id: $objectTaskId
     ip: $ip
     ip_end: $ipEnd
     port: $port

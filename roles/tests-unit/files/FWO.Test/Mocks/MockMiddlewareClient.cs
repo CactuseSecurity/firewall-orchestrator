@@ -36,6 +36,32 @@ namespace FWO.Test.Mocks
         };
         public Exception? AuthenticateUserException { get; set; }
         public int AuthenticateUserCallCount { get; private set; }
+        public RestResponse<ComplianceCheckStartResult> StartComplianceCheckResponse { get; set; } =
+            new(new RestRequest())
+            {
+                StatusCode = HttpStatusCode.OK,
+                ResponseStatus = ResponseStatus.Completed,
+                IsSuccessStatusCode = true
+            };
+        public RestResponse<ComplianceCheckJobStatus> ComplianceCheckStatusResponse { get; set; } =
+            new(new RestRequest())
+            {
+                StatusCode = HttpStatusCode.OK,
+                ResponseStatus = ResponseStatus.Completed,
+                IsSuccessStatusCode = true
+            };
+        public Exception? StartComplianceCheckException { get; set; }
+        public Exception? ComplianceCheckStatusException { get; set; }
+        public int StartComplianceCheckCallCount { get; private set; }
+        public int ComplianceCheckStatusCallCount { get; private set; }
+        public RestResponse<List<RoleGetReturnParameters>> GetAllRolesResponse { get; set; } =
+            new(new RestRequest())
+            {
+                StatusCode = HttpStatusCode.OK,
+                Data = new List<RoleGetReturnParameters>(),
+                ResponseStatus = ResponseStatus.Completed,
+                IsSuccessStatusCode = true
+            };
         public RefreshTokenRequest? LastRefreshRequest { get; private set; }
         public RefreshTokenRequest? LastRevokeRequest { get; private set; }
         public UserChangePasswordParameters? LastChangePasswordRequest { get; private set; }
@@ -148,6 +174,34 @@ namespace FWO.Test.Mocks
             return AuthenticateUserResponse;
         }
 
+        public override async Task<RestResponse<ComplianceCheckStartResult>> StartComplianceCheck()
+        {
+            StartComplianceCheckCallCount++;
+            await Task.CompletedTask;
+            if (StartComplianceCheckException != null)
+            {
+                throw StartComplianceCheckException;
+            }
+            return StartComplianceCheckResponse;
+        }
+
+        public override async Task<RestResponse<ComplianceCheckJobStatus>> GetComplianceCheckStatus(string jobId)
+        {
+            ComplianceCheckStatusCallCount++;
+            await Task.CompletedTask;
+            if (ComplianceCheckStatusException != null)
+            {
+                throw ComplianceCheckStatusException;
+            }
+            return ComplianceCheckStatusResponse;
+        }
+
+        public override async Task<RestResponse<List<RoleGetReturnParameters>>> GetAllRoles()
+        {
+            await Task.CompletedTask;
+            return GetAllRolesResponse;
+        }
+
         public override async Task<RestResponse> RevokeRefreshToken(RefreshTokenRequest parameters)
         {
             RevokeRefreshTokenCallCount++;
@@ -197,11 +251,15 @@ namespace FWO.Test.Mocks
             RevokeRefreshTokenCallCount = 0;
             ChangePasswordCallCount = 0;
             AuthenticateUserCallCount = 0;
+            StartComplianceCheckCallCount = 0;
+            ComplianceCheckStatusCallCount = 0;
             LastRefreshRequest = null;
             LastRevokeRequest = null;
             LastChangePasswordRequest = null;
             ChangePasswordException = null;
             AuthenticateUserException = null;
+            StartComplianceCheckException = null;
+            ComplianceCheckStatusException = null;
             NextRefreshTokenResponse = null;
             ShouldRefreshSucceed = true;
             RefreshFailureStatusCode = HttpStatusCode.Unauthorized;

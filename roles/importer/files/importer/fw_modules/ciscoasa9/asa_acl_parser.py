@@ -23,6 +23,7 @@ from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 
 PORT_OPERATORS = ("eq", "neq", "lt", "gt", "range")
+PORT_PROTOCOLS = ("tcp", "udp", "6", "17")  # protocols with ports; ASA rejects source ports for all others
 OPTION_KEYWORDS = ("log", "time-range", "inactive")
 ICMP_PROTOCOLS = ("icmp", "icmp6")
 ICMP_TYPE_NAMES = (
@@ -147,7 +148,7 @@ def parse_access_list_entry(
     protocol, pos = _parse_protocol(parts, pos + 1, protocol_groups, svc_objects, svc_obj_groups)
     service_group_names = {group.name for group in svc_obj_groups}
     src, pos = parse_endpoint(parts, pos)
-    src_port, pos = _parse_source_port(parts, pos, service_group_names, action, line)
+    src_port, pos = _parse_source_port(parts, pos, protocol, protocol_groups, service_group_names, action, line)
     dst, pos = parse_endpoint(parts, pos)
     dst_port, pos = _parse_destination_service(parts, pos, protocol)
     inactive, time_range = _parse_options(parts, pos)
@@ -232,7 +233,13 @@ def _parse_protocol(
 
 
 def _parse_source_port(
-    parts: list[str], pos: int, service_group_names: set[str], action: str, line: str
+    parts: list[str],
+    pos: int,
+    protocol: EndpointKind,
+    protocol_groups: list[AsaProtocolGroup],
+    service_group_names: set[str],
+    action: str,
+    line: str,
 ) -> tuple[str | None, int]:
     """
     Parse an optional source port; returns (source port construct as written or None, next position).
@@ -245,18 +252,33 @@ def _parse_source_port(
     if pos >= len(parts):
         return None, pos
     keyword = parts[pos].lower()
-    if keyword in PORT_OPERATORS:
-        token_count = RANGE_OPERATOR_TOKENS if keyword == "range" else PORT_OPERATOR_TOKENS
-        _expect_token(parts, pos + token_count - 1, f"port after '{keyword}'")
+    if keyword == "neq":
+        # neq is not representable as a destination port, but a skipped source port only needs to be valid
+        _port_number(_expect_token(parts, pos + 1, "port after 'neq'"), pos + 1)
+        end = pos + PORT_OPERATOR_TOKENS
+    elif keyword in PORT_OPERATORS:
+        _, end = _parse_port_operator(parts, pos)
     elif keyword == "object-group" and pos + 1 < len(parts) and parts[pos + 1] in service_group_names:
-        token_count = ENDPOINT_WITH_ARGUMENT_TOKENS
+        end = pos + ENDPOINT_WITH_ARGUMENT_TOKENS
     else:
         return None, pos
-    construct = " ".join(parts[pos : pos + token_count])
+    construct = " ".join(parts[pos:end])
+    if not _has_port_protocol(protocol, protocol_groups):
+        raise AsaConfigParseError(f"source port '{construct}' requires protocol tcp or udp", pos)
     if action == "deny":
         raise AsaConfigParseError(f"unsupported source port '{construct}' in deny entry", pos)
     FWOLogger.warning(f"ignoring source port '{construct}' in '{line}' - the entry is imported for all source ports")
-    return construct, pos + token_count
+    return construct, end
+
+
+def _has_port_protocol(protocol: EndpointKind, protocol_groups: list[AsaProtocolGroup]) -> bool:
+    """Ports exist only for tcp and udp; a protocol object-group qualifies if all its protocols do."""
+    if protocol.kind == "protocol":
+        return protocol.value in PORT_PROTOCOLS
+    if protocol.kind == "protocol-group":
+        group = next(group for group in protocol_groups if group.name == protocol.value)
+        return bool(group.protocols) and all(p.lower() in PORT_PROTOCOLS for p in group.protocols)
+    return False
 
 
 def _parse_destination_service(parts: list[str], pos: int, protocol: EndpointKind) -> tuple[EndpointKind, int]:

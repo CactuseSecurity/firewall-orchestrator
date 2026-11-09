@@ -142,6 +142,7 @@ def test_source_port_is_kept_as_written() -> None:
     assert parse(f"{ACL_PREFIX} tcp any range 7937 10000 any").src_port == "range 7937 10000"
     assert parse(f"{ACL_PREFIX} tcp any object-group SVC_PORTS any").src_port == "object-group SVC_PORTS"
     assert parse(f"{ACL_PREFIX} tcp any any eq 22").src_port is None
+    assert parse(f"{ACL_PREFIX} object-group PROTO_TCP any lt 1024 any").src_port == "lt 1024"
 
 
 @pytest.mark.parametrize(
@@ -226,8 +227,17 @@ def test_line_number_and_deny_are_parsed() -> None:
         (f"{ACL_PREFIX} ip somethingunknown any", 5, "unsupported address 'somethingunknown'"),
         (f"{ACL_PREFIX} ip 10.0.0.0 0.0.0.255 any", 5, "unsupported address '10.0.0.0'"),
         (f"{ACL_PREFIX} ip 10.0.0.0 any", 5, "unsupported address '10.0.0.0'"),
-        (f"{ACL_PREFIX} tcp any range 1000", 8, "port after 'range' is expected"),
+        (f"{ACL_PREFIX} tcp any range 1000", 8, "end port of range is expected"),
         (f"{ACL_PREFIX} tcp any eq", 7, "port after 'eq' is expected"),
+        (f"{ACL_PREFIX} tcp any eq nosuchport any", 7, "unknown port 'nosuchport'"),
+        (f"{ACL_PREFIX} tcp any neq nosuchport any", 7, "unknown port 'nosuchport'"),
+        (f"{ACL_PREFIX} tcp any eq 99999 any", 7, "port '99999' out of range"),
+        (f"{ACL_PREFIX} tcp any range 2000 1000 any", 6, "port range '2000 1000' ends before it starts"),
+        (f"{ACL_PREFIX} tcp any lt 0 any", 6, "port range 'lt 0' is empty"),
+        (f"{ACL_PREFIX} tcp any gt 65535 any", 6, "port range 'gt 65535' is empty"),
+        (f"{ACL_PREFIX} ip any eq 80 any", 6, "source port 'eq 80' requires protocol tcp or udp"),
+        (f"{ACL_PREFIX} icmp any eq 80 any", 6, "source port 'eq 80' requires protocol tcp or udp"),
+        (f"{ACL_PREFIX} ip any object-group SVC_PORTS any", 6, "requires protocol tcp or udp"),
         (f"{ACL_PREFIX} tcp any any neq 80", 7, "unsupported port operator 'neq 80'"),
         (f"{ACL_PREFIX} tcp any any lt 0", 7, "is empty"),
         (f"{ACL_PREFIX} tcp any any gt 65535", 7, "is empty"),
